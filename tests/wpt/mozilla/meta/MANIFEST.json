@@ -2364,18 +2364,6 @@
             "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
           }
         ],
-        "css/incremental_trailing_whitespace_ref.html": [
-          {
-            "path": "css/incremental_trailing_whitespace_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/incremental_trailing_whitespace_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/incremental_trailing_whitespace_ref.html"
-          }
-        ],
         "css/incremental_visibility_a.html": [
           {
             "path": "css/incremental_visibility_a.html",
@@ -2386,18 +2374,6 @@
               ]
             ],
             "url": "/_mozilla/css/incremental_visibility_a.html"
-          }
-        ],
-        "css/incremental_visibility_ref.html": [
-          {
-            "path": "css/incremental_visibility_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/incremental_visibility_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/incremental_visibility_ref.html"
           }
         ],
         "css/inline_absolute_hypothetical_clip_a.html": [
@@ -2940,18 +2916,6 @@
             "url": "/_mozilla/css/input_placeholder.html"
           }
         ],
-        "css/input_placeholder_ref.html": [
-          {
-            "path": "css/input_placeholder_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/input_placeholder_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/input_placeholder_ref.html"
-          }
-        ],
         "css/input_selection_a.html": [
           {
             "path": "css/input_selection_a.html",
@@ -2976,18 +2940,6 @@
             "url": "/_mozilla/css/input_selection_incremental_a.html"
           }
         ],
-        "css/input_selection_ref.html": [
-          {
-            "path": "css/input_selection_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/input_selection_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/input_selection_ref.html"
-          }
-        ],
         "css/input_whitespace.html": [
           {
             "path": "css/input_whitespace.html",
@@ -2998,18 +2950,6 @@
               ]
             ],
             "url": "/_mozilla/css/input_whitespace.html"
-          }
-        ],
-        "css/input_whitespace_ref.html": [
-          {
-            "path": "css/input_whitespace_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/input_whitespace_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/input_whitespace_ref.html"
           }
         ],
         "css/inset.html": [
@@ -3552,18 +3492,6 @@
             "url": "/_mozilla/css/max_inline_block_size_image.html"
           }
         ],
-        "css/max_inline_block_size_ref.html": [
-          {
-            "path": "css/max_inline_block_size_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/max_inline_block_size_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/max_inline_block_size_ref.html"
-          }
-        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -3658,18 +3586,6 @@
               ]
             ],
             "url": "/_mozilla/css/multiple_backgrounds.html"
-          }
-        ],
-        "css/multiple_backgrounds_ref.html": [
-          {
-            "path": "css/multiple_backgrounds_ref.html",
-            "references": [
-              [
-                "/_mozilla/css/multiple_backgrounds_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/multiple_backgrounds_ref.html"
           }
         ],
         "css/multiple_css_class_a.html": [
@@ -6368,18 +6284,6 @@
               ]
             ],
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
-          }
-        ],
-        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
-          {
-            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
-            "references": [
-              [
-                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
           }
         ],
         "mozilla/webgl/tex_image_2d_mipmap.html": [
@@ -16090,18 +15994,6 @@
           "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
         }
       ],
-      "css/incremental_trailing_whitespace_ref.html": [
-        {
-          "path": "css/incremental_trailing_whitespace_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/incremental_trailing_whitespace_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/incremental_trailing_whitespace_ref.html"
-        }
-      ],
       "css/incremental_visibility_a.html": [
         {
           "path": "css/incremental_visibility_a.html",
@@ -16112,18 +16004,6 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_visibility_a.html"
-        }
-      ],
-      "css/incremental_visibility_ref.html": [
-        {
-          "path": "css/incremental_visibility_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/incremental_visibility_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/incremental_visibility_ref.html"
         }
       ],
       "css/inline_absolute_hypothetical_clip_a.html": [
@@ -16666,18 +16546,6 @@
           "url": "/_mozilla/css/input_placeholder.html"
         }
       ],
-      "css/input_placeholder_ref.html": [
-        {
-          "path": "css/input_placeholder_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/input_placeholder_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/input_placeholder_ref.html"
-        }
-      ],
       "css/input_selection_a.html": [
         {
           "path": "css/input_selection_a.html",
@@ -16702,18 +16570,6 @@
           "url": "/_mozilla/css/input_selection_incremental_a.html"
         }
       ],
-      "css/input_selection_ref.html": [
-        {
-          "path": "css/input_selection_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/input_selection_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/input_selection_ref.html"
-        }
-      ],
       "css/input_whitespace.html": [
         {
           "path": "css/input_whitespace.html",
@@ -16724,18 +16580,6 @@
             ]
           ],
           "url": "/_mozilla/css/input_whitespace.html"
-        }
-      ],
-      "css/input_whitespace_ref.html": [
-        {
-          "path": "css/input_whitespace_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/input_whitespace_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/input_whitespace_ref.html"
         }
       ],
       "css/inset.html": [
@@ -17278,18 +17122,6 @@
           "url": "/_mozilla/css/max_inline_block_size_image.html"
         }
       ],
-      "css/max_inline_block_size_ref.html": [
-        {
-          "path": "css/max_inline_block_size_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/max_inline_block_size_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/max_inline_block_size_ref.html"
-        }
-      ],
       "css/max_width_float_simple_a.html": [
         {
           "path": "css/max_width_float_simple_a.html",
@@ -17384,18 +17216,6 @@
             ]
           ],
           "url": "/_mozilla/css/multiple_backgrounds.html"
-        }
-      ],
-      "css/multiple_backgrounds_ref.html": [
-        {
-          "path": "css/multiple_backgrounds_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/multiple_backgrounds_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/multiple_backgrounds_ref.html"
         }
       ],
       "css/multiple_css_class_a.html": [
@@ -20094,18 +19914,6 @@
             ]
           ],
           "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
-        }
-      ],
-      "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
-        {
-          "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
-          "references": [
-            [
-              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
         }
       ],
       "mozilla/webgl/tex_image_2d_mipmap.html": [
