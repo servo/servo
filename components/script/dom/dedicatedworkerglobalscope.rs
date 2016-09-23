@@ -19,6 +19,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerErrorHandler, WorkerMessageHandler};
@@ -370,8 +371,10 @@ impl DedicatedWorkerGlobalScope {
                                     value);
 
         // Step 13.
-        let handled = !event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-        if !handled {
+        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+        // Step 15
+        if event_status == EventStatus::NotCanceled {
             let worker = self.worker.borrow().as_ref().unwrap().clone();
             // TODO: Should use the DOM manipulation task source.
             self.parent_sender
@@ -380,6 +383,7 @@ impl DedicatedWorkerGlobalScope {
                 .unwrap();
         }
 
+        // Step 14
         self.in_error_reporting_mode.set(false);
     }
 }
