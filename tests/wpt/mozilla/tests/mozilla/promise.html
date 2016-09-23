@@ -60,7 +60,7 @@
       t.resolvePromiseDelayed(p, 'success', 100);
       return p.then(function(v) {
           var end = Date.now();
-          assert_true(end - start > 100);
+          assert_greater_than_equal(end - start, 100);
           assert_equals(v, 'success');
       });
   }, 'Native promise from async callback can be resolved');
