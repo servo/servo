@@ -49,7 +49,7 @@
     //If the readonly attribute is specified on an INPUT element, the element is barred from constraint validation.
     {
       tag: "input",
-      types: ["text", "search", "tel", "url", "email", "password", "datetime", "date", "month", "week", "time", "color", "file", "submit"],
+      types: ["text", "search", "tel", "url", "email", "password", "datetime-local", "date", "month", "week", "time", "color", "file", "submit"],
       testData: [
         {conditions: {disabled: true}, expected: false, name: "[target] Must be barred from the constraint validation if it is disabled"},
         {conditions: {disabled: false, readOnly: false}, expected: true, name: "[target] The willValidate attribute must be true if an element is mutable"},

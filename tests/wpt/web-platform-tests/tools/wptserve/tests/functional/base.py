@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import base64
 import logging
 import os
@@ -9,6 +11,8 @@ import urlparse
 import wptserve
 
 logging.basicConfig()
+
+wptserve.logger.set_logger(logging.getLogger())
 
 here = os.path.split(__file__)[0]
 doc_root = os.path.join(here, "docroot")
@@ -24,7 +28,7 @@ class Request(urllib2.Request):
     def add_data(self, data):
         if hasattr(data, "iteritems"):
             data = urllib.urlencode(data)
-        print data
+        print(data)
         self.add_header("Content-Length", str(len(data)))
         urllib2.Request.add_data(self, data)
 
@@ -56,6 +60,6 @@ class TestUsingServer(unittest.TestCase):
             req.add_data(body)
 
         if auth is not None:
-            req.add_header("Authorization", "Basic %s" % base64.encodestring('%s:%s' % auth))
+            req.add_header("Authorization", "Basic %s" % base64.b64encode('%s:%s' % auth))
 
         return urllib2.urlopen(req)

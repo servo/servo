@@ -5,7 +5,7 @@
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",
   "errorMessage": "ERROR: Annotation is missing @context key or 'http://www.w3.org/ns/anno.jsonld' is not a value of @context.",
-  "title": "Annotation has **_@context_ key** and '**http://www.w3.org/ns/anno.jsonld**' is **a value of _@context_** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
+  "title": "Implements **_@context_ key** and '**http://www.w3.org/ns/anno.jsonld**' is **a value of _@context_** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
   "description": "True when the Annotation has @context key and 'http://www.w3.org/ns/anno.jsonld' is an @context value (Section 3.1)",
   "type": "object",
   "required": [ "@context" ],

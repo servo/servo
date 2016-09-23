@@ -35,7 +35,7 @@
     <script>
         var keysystem = getSupportedKeySystem(),
             contentitem = content['mp4-basic'],
-            handler = new MessageHandler( keysystem, contentitem ),
+            handler = new MessageHandler( keysystem, contentitem, 'persistent-license' ),
             config = {  video:              document.getElementById('videoelement'),
                         keysystem:          keysystem,
                         messagehandler:     handler.messagehandler,
@@ -43,8 +43,7 @@
                         videoPath:          contentitem.video.path,
                         audioType:          contentitem.audio.type,
                         videoType:          contentitem.video.type,
-                        initDataType:       'keyids',
-                        initData:           getInitData(contentitem,'keyids'),
+                        initDataType:       contentitem.initDataType,
                        };
 
         runTest(config);

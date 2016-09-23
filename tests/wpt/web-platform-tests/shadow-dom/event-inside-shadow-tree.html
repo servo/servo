@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: Firing an event inside a shadow tree</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="The event path calculation algorithm must be used to determine event path">
+<link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#event-paths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+function dispatchEventWithLog(target, event) {
+    var log = [];
+
+    for (var node = target; node; node = node.parentNode || node.host) {
+        node.addEventListener(event.type, (function (event) {
+            log.push([this, event.target]);
+        }).bind(node));
+    }
+
+    target.dispatchEvent(event);
+
+    return log;
+}
+
+function createShadowRootWithGrandChild(mode) {
+    var host = document.createElement('div');
+    var root = host.attachShadow({mode: mode});
+
+    var parent = document.createElement('span');
+    root.appendChild(parent);
+
+    var target = document.createElement('b');
+    parent.appendChild(target);
+    return {target: target, parent: parent, root: root, host: host};
+}
+
+function testEventInDetachedShadowTree(mode) {
+    test(function () {
+        var shadow = createShadowRootWithGrandChild(mode);
+
+        log = dispatchEventWithLog(shadow.target, new Event('foo', {composed: true, bubbles: true}));
+
+        assert_array_equals(log.length, 4, 'EventPath must contain [target, parent, shadow root, shadow host]');
+        assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
+        assert_array_equals(log[1], [shadow.parent, shadow.target], 'EventPath[1] must be the parent of the target');
+        assert_array_equals(log[2], [shadow.root, shadow.target], 'EventPath[2] must be the shadow root');
+        assert_array_equals(log[3], [shadow.host, shadow.host], 'EventPath[3] must be the shadow host');
+
+    }, 'Firing an event inside a grand child of a detached ' + mode + ' mode shadow tree');
+}
+
+testEventInDetachedShadowTree('open');
+testEventInDetachedShadowTree('closed');
+
+function testEventInShadowTreeInsideDocument(mode) {
+    test(function () {
+        var shadow = createShadowRootWithGrandChild(mode);
+        document.body.appendChild(shadow.host);
+
+        log = dispatchEventWithLog(shadow.target, new Event('foo', {composed: true, bubbles: true}));
+
+        assert_array_equals(log.length, 7, 'EventPath must contain [target, parent, shadow root, shadow host, body, html, document]');
+        assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
+        assert_array_equals(log[1], [shadow.parent, shadow.target], 'EventPath[1] must be the parent of the target');
+        assert_array_equals(log[2], [shadow.root, shadow.target], 'EventPath[2] must be the shadow root');
+        assert_array_equals(log[3], [shadow.host, shadow.host], 'EventPath[3] must be the shadow host');
+        assert_array_equals(log[4], [document.body, shadow.host], 'EventPath[4] must be the body element (parent of shadow host)');
+        assert_array_equals(log[5], [document.documentElement, shadow.host], 'EventPath[5] must be the html element');
+        assert_array_equals(log[6], [document, shadow.host], 'EventPath[6] must be the document node');
+
+    }, 'Firing an event inside a grand child of an in-document ' + mode + ' mode shadow tree');
+}
+
+testEventInShadowTreeInsideDocument('open');
+testEventInShadowTreeInsideDocument('closed');
+
+function createNestedShadowRoot(innerMode, outerMode) {
+    var outerHost = document.createElement('div');
+    var outerRoot = outerHost.attachShadow({mode: outerMode});
+
+    var outerChild = document.createElement('p');
+    outerRoot.appendChild(outerChild);
+
+    var innerHost = document.createElement('span');
+    outerChild.appendChild(innerHost);
+
+    var innerRoot = innerHost.attachShadow({mode: innerMode});
+    var innerChild = document.createElement('span');
+    innerRoot.appendChild(innerChild);
+
+    return {target: innerChild, innerRoot: innerRoot, innerHost: innerHost, outerChild: outerChild, outerRoot: outerRoot, outerHost: outerHost};
+}
+
+function testEventInDetachedNestedShadowTree(innerMode, outerMode) {
+    test(function () {
+        var shadow = createNestedShadowRoot(innerMode, outerMode);
+
+        log = dispatchEventWithLog(shadow.target, new Event('bar', {composed: true, bubbles: true}));
+
+        assert_array_equals(log.length, 6, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
+        assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
+        assert_array_equals(log[1], [shadow.innerRoot, shadow.target], 'EventPath[1] must be the inner shadow root');
+        assert_array_equals(log[2], [shadow.innerHost, shadow.innerHost], 'EventPath[2] must be the inner shadow host');
+        assert_array_equals(log[3], [shadow.outerChild, shadow.innerHost], 'EventPath[3] must be the parent of the inner shadow host');
+        assert_array_equals(log[4], [shadow.outerRoot, shadow.innerHost], 'EventPath[4] must be the outer shadow root');
+        assert_array_equals(log[5], [shadow.outerHost, shadow.outerHost], 'EventPath[5] must be the outer shadow host');
+
+    }, 'Firing an event inside a detached ' + innerMode + ' mode shadow tree inside ' + outerMode + ' mode shadow tree');
+}
+
+testEventInDetachedNestedShadowTree('open',  'open');
+testEventInDetachedNestedShadowTree('open',  'closed');
+testEventInDetachedNestedShadowTree('closed', 'open');
+testEventInDetachedNestedShadowTree('closed', 'closed');
+
+function testEventInNestedShadowTreeInsideDocument(innerMode, outerMode) {
+    test(function () {
+        var shadow = createNestedShadowRoot(innerMode, outerMode);
+        document.body.appendChild(shadow.outerHost);
+
+        log = dispatchEventWithLog(shadow.target, new Event('bar', {composed: true, bubbles: true}));
+
+        assert_array_equals(log.length, 6, 'EventPath must contain [target, inner root, inner host, parent, outer root, outer host]');
+        assert_array_equals(log[0], [shadow.target, shadow.target], 'EventPath[0] must be the target');
+        assert_array_equals(log[1], [shadow.innerRoot, shadow.target], 'EventPath[1] must be the inner shadow root');
+        assert_array_equals(log[2], [shadow.innerHost, shadow.innerHost], 'EventPath[2] must be the inner shadow host');
+        assert_array_equals(log[3], [shadow.outerChild, shadow.innerHost], 'EventPath[3] must be the parent of the inner shadow host');
+        assert_array_equals(log[4], [shadow.outerRoot, shadow.innerHost], 'EventPath[4] must be the outer shadow root');
+        assert_array_equals(log[5], [shadow.outerHost, shadow.outerHost], 'EventPath[5] must be the outer shadow host');
+        assert_array_equals(log[6], [document.body, shadow.outerHost], 'EventPath[6] must be the body element');
+        assert_array_equals(log[7], [document.documentElement, shadow.outerHost], 'EventPath[7] must be the html element');
+        assert_array_equals(log[8], [document, shadow.outerHost], 'EventPath[8] must be the document node');
+
+    }, 'Firing an event inside an in-document ' + innerMode + ' mode shadow tree inside ' + outerMode + ' mode shadow tree');
+}
+
+testEventInNestedShadowTreeInsideDocument('open',  'open');
+testEventInNestedShadowTreeInsideDocument('open',  'closed');
+testEventInNestedShadowTreeInsideDocument('closed', 'open');
+testEventInNestedShadowTreeInsideDocument('closed', 'closed');
+
+</script>
+</body>
+</html>

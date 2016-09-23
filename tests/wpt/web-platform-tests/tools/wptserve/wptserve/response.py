@@ -6,8 +6,8 @@ import types
 import uuid
 import socket
 
-from constants import response_codes
-from logger import get_logger
+from .constants import response_codes
+from .logger import get_logger
 
 missing = object()
 
@@ -344,7 +344,7 @@ class ResponseHeaders(object):
 
     def update(self, items_iter):
         for name, value in items_iter:
-            self.set(name, value)
+            self.append(name, value)
 
     def __repr__(self):
         return repr(self.data)

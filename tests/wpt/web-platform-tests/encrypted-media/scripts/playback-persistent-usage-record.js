@@ -19,6 +19,10 @@ function runTest(config,qualifier) {
             _mediaSource,
             _releaseSequence = false;
 
+        function onFailure(error) {
+            forceTestFailureFromPromise(test, error);
+        }
+
         function onMessage(event) {
             assert_equals( event.target, _mediaKeySession );
             // event instance verification failing on CastTV
@@ -35,15 +39,13 @@ function runTest(config,qualifier) {
             }
 
             config.messagehandler( event.messageType, event.message ).then( function( response ) {
-                _mediaKeySession.update( response ).catch(function(error) {
-                    forceTestFailureFromPromise(test, error);
-                }).then(function() {
+                _mediaKeySession.update( response ).then(function() {
                     if(event.messageType === 'license-request') {
-                        _video.setMediaKeys(_mediaKeys);
+                        return _video.setMediaKeys(_mediaKeys);
                     } else if(event.messageType === 'license-release') {
                         test.done();
                     }
-                });
+                }).catch(onFailure);
             });
         }
 
@@ -55,9 +57,7 @@ function runTest(config,qualifier) {
             waitForEventAndRunStep('message', _mediaKeySession, onMessage, test);
             _mediaKeySession.generateRequest(   config.initData ? config.initDataType : event.initDataType,
                                                 config.initData || event.initData )
-            .catch(function(error) {
-                forceTestFailureFromPromise(test, error);
-            });
+            .catch(onFailure);
         }
 
         function onClosed(event) {
@@ -66,18 +66,13 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 2 ) && !_releaseSequence ) {
-
+            if ( _video.currentTime > ( config.duration || 1 ) && !_releaseSequence ) {
                 _video.removeEventListener('timeupdate', onTimeupdate );
-
                 _video.pause();
-
                 _releaseSequence = true;
 
                 _mediaKeySession.closed.then( test.step_func( onClosed ) );
-                _mediaKeySession.remove().catch(function(error) {
-                    forceTestFailureFromPromise(test, error);
-                });
+                _mediaKeySession.remove().catch(onFailure);
 
                 _video.removeEventListener('timeupdate', onTimeupdate );
             }
@@ -95,7 +90,6 @@ function runTest(config,qualifier) {
         }).then(function(mediaKeys) {
             _mediaKeys = mediaKeys;
             _mediaKeySession = _mediaKeys.createSession( 'persistent-usage-record' );
-
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
         }).then(function() {
@@ -106,8 +100,6 @@ function runTest(config,qualifier) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
             _video.play();
-        }).catch(function(error) {
-            forceTestFailureFromPromise(test, error);
-        });
+        }).catch(onFailure);
     }, testname);
 }

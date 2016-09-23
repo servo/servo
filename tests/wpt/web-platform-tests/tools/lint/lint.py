@@ -12,10 +12,10 @@ import sys
 
 from collections import defaultdict
 
-from .. import localpaths
+from ..localpaths import repo_root
 
 from manifest.sourcefile import SourceFile
-from six import iteritems
+from six import iteritems, itervalues
 from six.moves import range
 
 here = os.path.abspath(os.path.split(__file__)[0])
@@ -52,6 +52,7 @@ def parse_whitelist(f):
     """
 
     data = defaultdict(lambda:defaultdict(set))
+    ignored_files = set()
 
     for line in f:
         line = line.strip()
@@ -64,9 +65,13 @@ def parse_whitelist(f):
             parts[-1] = int(parts[-1])
 
         error_type, file_match, line_number = parts
-        data[file_match][error_type].add(line_number)
 
-    return data
+        if error_type == "*":
+            ignored_files.add(file_match)
+        else:
+            data[file_match][error_type].add(line_number)
+
+    return data, ignored_files
 
 
 def filter_whitelist_errors(data, path, errors):
@@ -79,9 +84,7 @@ def filter_whitelist_errors(data, path, errors):
     for file_match, whitelist_errors in iteritems(data):
         if fnmatch.fnmatch(path, file_match):
             for i, (error_type, msg, path, line) in enumerate(errors):
-                if "*" in whitelist_errors:
-                    whitelisted[i] = True
-                elif error_type in whitelist_errors:
+                if error_type in whitelist_errors:
                     allowed_lines = whitelist_errors[error_type]
                     if None in allowed_lines or line in allowed_lines:
                         whitelisted[i] = True
@@ -240,6 +243,14 @@ def check_parsed(repo_root, path, f):
             if all(seen_elements[name] for name in required_elements):
                 break
 
+
+    for element in source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src]"):
+        src = element.attrib["src"]
+        for name in ["testharness", "testharnessreport"]:
+            if "%s.js" % name == src or ("/%s.js" % name in src and src != "/resources/%s.js" % name):
+                errors.append(("%s-PATH" % name.upper(), "%s.js script seen with incorrect path" % name, path, None))
+
+
     return errors
 
 class ASTCheck(object):
@@ -347,7 +358,6 @@ def parse_args():
     return parser.parse_args()
 
 def main():
-    repo_root = localpaths.repo_root
     args = parse_args()
     paths = args.paths if args.paths else all_git_paths(repo_root)
     return lint(repo_root, paths, args.json)
@@ -357,7 +367,7 @@ def lint(repo_root, paths, output_json):
     last = None
 
     with open(os.path.join(repo_root, "lint.whitelist")) as f:
-        whitelist = parse_whitelist(f)
+        whitelist, ignored_files = parse_whitelist(f)
 
     if output_json:
         output_errors = output_errors_json
@@ -390,11 +400,14 @@ def lint(repo_root, paths, output_json):
         if not os.path.exists(abs_path):
             continue
 
+        if any(fnmatch.fnmatch(path, file_match) for file_match in ignored_files):
+            continue
+
         errors = check_path(repo_root, path)
         last = process_errors(path, errors) or last
 
         if not os.path.isdir(abs_path):
-            with open(abs_path) as f:
+            with open(abs_path, 'rb') as f:
                 errors = check_file_contents(repo_root, path, f)
                 last = process_errors(path, errors) or last
 
@@ -402,7 +415,7 @@ def lint(repo_root, paths, output_json):
         output_error_count(error_count)
         if error_count:
             print(ERROR_MSG % (last[0], last[1], last[0], last[1]))
-    return sum(error_count.itervalues())
+    return sum(itervalues(error_count))
 
 path_lints = [check_path_length]
 file_lints = [check_regexp_line, check_parsed, check_python_ast]

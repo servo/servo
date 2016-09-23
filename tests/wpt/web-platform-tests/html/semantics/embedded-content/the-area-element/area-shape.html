@@ -20,6 +20,9 @@ var tests = [
   {desc: 'empty string', shape: 'default', coords: "", hit: hitAll},
   {desc: 'omitted coords', shape: 'DEFAULT', coords: null, hit: hitAll},
 
+  {desc: 'simple', shape: 'rect', coords: "2,2,10,10", hit: hitRect},
+  {desc: 'simple', shape: 'rectangle', coords: "2,2,10,10", hit: hitRect},
+
   {desc: 'simple', shape: 'circle', coords: "20,40,10", hit: hitCircle},
   {desc: 'simple', shape: 'circ', coords: "20,40,10", hit: hitCircle},
   {desc: 'simple', shape: 'CIRCLE', coords: "20,40,10", hit: hitCircle},

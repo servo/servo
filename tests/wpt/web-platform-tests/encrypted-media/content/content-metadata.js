@@ -148,20 +148,35 @@ function getProprietaryInitDatas( contentitem )
                                     .map( function( k ) { return k.initData; } ) };
 }
 
-// Returns a promise that resolves to true or false depending on whether the content is supported with the key system and one of the initDataTypes
-function isContentSupportedForInitDataTypes( keysystem, intiDataTypes, contentitem )
+// Returns a promise that resolves to the following object
+// { supported: boolean,                        // whether the content is supported at all
+//      content: <the content item>,            // the content item description
+//      initDataTypes: <list of initDataTypes>
+// }
+//
+// Note: we test initData types one at a time since some versions of Edge don't support testing several at once
+//
+function isContentSupportedForInitDataTypes( keysystem, initDataTypes, contentitem )
 {
-    var configuration = {   initDataTypes : intiDataTypes,
-                            audioCapabilities: [ { contentType: contentitem.audio.type } ],
-                            videoCapabilities: [ { contentType: contentitem.video.type } ]
-                        };
-    return navigator.requestMediaKeySystemAccess( keysystem, [ configuration ] )
-    .then(  function( access ) {
-                return { content: contentitem, supported: true, initDataTypes: access.getConfiguration().initDataTyes };
-            },
-            function() {
-                return { content: contentitem, supported: false };
-            } );
+    return Promise.all( initDataTypes.map( function( initDataType ) {
+        var configuration = {   initDataTypes : [ initDataType ],
+                              audioCapabilities: [ { contentType: contentitem.audio.type } ],
+                              videoCapabilities: [ { contentType: contentitem.video.type } ]
+                          };
+        return navigator.requestMediaKeySystemAccess( keysystem, [ configuration ] ).then( function( access ) {
+            return { supported: true, initDataType: access.getConfiguration().initDataTypes[ 0 ] };
+        }, function() {
+            return { supported: false };
+        } );
+    } ) ).then( function( results ) {
+
+        var initDataTypes = results.filter( function( result ) { return result.supported; } )
+                                    .map( function( result ) { return result.initDataType; } );
+
+        return initDataTypes.length > 0 ?
+                    { content: contentitem, supported: true, initDataTypes: initDataTypes }
+                    : { content: contentitem, supported: false };
+    } );
 }
 
 // Returns a promise that resolves to { content:, supported:, initDataTypes: } object

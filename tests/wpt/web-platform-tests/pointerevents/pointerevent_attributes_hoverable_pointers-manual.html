@@ -11,19 +11,28 @@
         <script>
             var detected_pointertypes = {};
             var detected_eventTypes = {};
+            var eventList = ['pointerover', 'pointerenter', 'pointermove', 'pointerdown', 'pointerup', 'pointerout', 'pointerleave'];
+            var expectedPointerId = NaN;
 
             function resetTestState() {
                 detected_eventTypes = {};
                 document.getElementById("square1").style.visibility = 'visible';
                 document.getElementById('innerFrame').contentDocument.getElementById("square2").style.visibility = 'hidden';
+                expectedPointerId = NaN;
             }
             function checkPointerEventAttributes(event, targetBoundingClientRect, testNamePrefix) {
                 if (detected_eventTypes[event.type])
                     return;
+                var expectedEventType =  eventList[Object.keys(detected_eventTypes).length];
                 detected_eventTypes[event.type] = true;
-                var pointerTestName = testNamePrefix + ' ' + expectedPointerType + ' ' + event.type;
+                var pointerTestName = testNamePrefix + ' ' + expectedPointerType + ' ' + expectedEventType;
 
                 detected_pointertypes[event.pointerType] = true;
+
+                test(function() {
+                    assert_equals(event.type, expectedEventType, "Event.type should be " + expectedEventType)
+                }, pointerTestName + "'s type should be " + expectedEventType);
+
                 // Test button and buttons
                 if (event.type == 'pointerdown') {
                     test(function() {
@@ -59,12 +68,21 @@
                     }, pointerTestName + "'s ClientX and ClientY attributes are correct.");
                 }
 
-                // Test isPrimary
+                check_PointerEvent(event, testNamePrefix);
+
+                // Test isPrimary value
                 test(function () {
                     assert_equals(event.isPrimary, true, "isPrimary should be true");
                 }, pointerTestName + ".isPrimary attribute is correct.");
 
-                check_PointerEvent(event, testNamePrefix);
+                // Test pointerId value
+                if (isNaN(expectedPointerId)) {
+                    expectedPointerId = event.pointerId;
+                } else {
+                    test(function () {
+                        assert_equals(event.pointerId, expectedPointerId, "pointerId should remain the same for the same active pointer");
+                    }, pointerTestName + ".pointerId should be the same as previous pointer events for this active pointer.");
+                }
             }
 
             function run() {
@@ -75,7 +93,6 @@
                 var square2 = innerFrame.contentDocument.getElementById('square2');
                 var rectSquare2 = square2.getBoundingClientRect();
 
-                var eventList = ['pointerenter', 'pointerover', 'pointermove', 'pointerdown', 'pointerup', 'pointerout', 'pointerleave'];
                 eventList.forEach(function(eventName) {
                     on_event(square1, eventName, function (event) {
                         if (square1.style.visibility == 'hidden')
@@ -85,6 +102,7 @@
                             square1.style.visibility = 'hidden';
                             detected_eventTypes = {};
                             square2.style.visibility = 'visible';
+                            expectedPointerId = NaN;
                         }
                     });
                     on_event(square2, eventName, function (event) {

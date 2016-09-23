@@ -13,16 +13,6 @@
   var testElements = [
     {
       tag: "input",
-      types: ["datetime"],
-      testData: [
-        {conditions: {step: "", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 60 * 1000, value: "2000-01-01T12:58Z"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 60 * 1000, value: "2000-01-01T12:59Z"}, expected: true, name: "[target] The value must mismatch the step"}
-      ]
-    },
-    {
-      tag: "input",
       types: ["date"],
       testData: [
         {conditions: {step: "", value: "2000-01-01"}, expected: false, name: "[target] The step attribute is not set"},

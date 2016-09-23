@@ -1,25 +1,25 @@
 function runTest(config,qualifier) {
 
-    // Create a session and call generateRequest() temporary,  |initDataType|
-    // and |initData|. generateRequest() should fail temporary,  an
-    // InvalidAccessError. Returns a promise that resolves successfully
-    // if the error happened, rejects otherwise.
-    function test_session(keysystem,initDataType, initData)
+    // Create a "temporary" session for |keysystem| and call generateRequest()
+    // with the provided initData. generateRequest() should fail with an
+    // TypeError. Returns a promise that is resolved
+    // if the error occurred and rejected otherwise.
+    function test_session(keysystem, initDataType, initData)
     {
         return isInitDataTypeSupported(initDataType).then(function(result) {
             // If |initDataType| is not supported, simply succeed.
             if (!result)
                 return Promise.resolve('Not supported');
 
-            return navigator.requestMediaKeySystemAccess( keysystem, getSimpleConfigurationForInitDataType(initDataType)).then(function(access) {
+            return navigator.requestMediaKeySystemAccess(keysystem, getSimpleConfigurationForInitDataType(initDataType)).then(function(access) {
                 return access.createMediaKeys();
             }).then(function(mediaKeys) {
-                var mediaKeySession = mediaKeys.createSession();
+                var mediaKeySession = mediaKeys.createSession("temporary");
                 return mediaKeySession.generateRequest(initDataType, initData);
             }).then(function() {
-                assert_unreached('generateRequest() succeeded');
+                assert_unreached('generateRequest() succeeded unexpectedly');
             }, function(error) {
-                assert_equals(error.name, 'InvalidAccessError');
+                assert_equals(error.name, 'TypeError');
                 return Promise.resolve('success');
             });
         })
@@ -28,19 +28,19 @@ function runTest(config,qualifier) {
     promise_test(function()
     {
         var initData = new Uint8Array(70000);
-        return test_session(config.keysystem,'webm', initData);
+        return test_session(config.keysystem, 'webm', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, webm, initData longer than 64Kb characters');
 
     promise_test(function()
     {
         var initData = new Uint8Array(70000);
-        return test_session(config.keysystem,'cenc', initData);
+        return test_session(config.keysystem, 'cenc', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, cenc, initData longer than 64Kb characters');
 
     promise_test(function()
     {
         var initData = new Uint8Array(70000);
-        return test_session(config.keysystem,'keyids', initData);
+        return test_session(config.keysystem, 'keyids', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, keyids, initData longer than 64Kb characters');
 
     promise_test(function()
@@ -56,7 +56,7 @@ function runTest(config,qualifier) {
             0xAC, 0xE3, 0x3C, 0x1E, 0x52, 0xE2, 0xFB, 0x4B,
             0x00, 0x00, 0x00, 0x00                           // datasize
         ]);
-        return test_session(config.keysystem,'cenc', initData);
+        return test_session(config.keysystem, 'cenc', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, cenc, invalid initdata (invalid pssh)');
 
     promise_test(function()
@@ -71,7 +71,7 @@ function runTest(config,qualifier) {
             0xAC, 0xE3, 0x3C, 0x1E, 0x52, 0xE2, 0xFB, 0x4B,
             0x00, 0x00, 0x00, 0x00                           // datasize
         ]);
-        return test_session(config.keysystem,'cenc', initData);
+        return test_session(config.keysystem, 'cenc', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, cenc, invalid initdata (not pssh)');
 
     promise_test(function()
@@ -79,7 +79,7 @@ function runTest(config,qualifier) {
         // Valid key ID size must be at least 1 character for keyids.
         var keyId = new Uint8Array(0);
         var initData = stringToUint8Array(createKeyIDs(keyId));
-        return test_session(config.keysystem,'keyids', initData);
+        return test_session(config.keysystem, 'keyids', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, keyids, invalid initdata (too short key ID)');
 
     promise_test(function()
@@ -87,6 +87,6 @@ function runTest(config,qualifier) {
         // Valid key ID size must be less than 512 characters for keyids.
         var keyId = new Uint8Array(600);
         var initData = stringToUint8Array(createKeyIDs(keyId));
-        return test_session(config.keysystem,'keyids', initData);
+        return test_session(config.keysystem, 'keyids', initData);
     }, testnamePrefix( qualifier, config.keysystem ) + ', temporary, keyids, invalid initdata (too long key ID)');
 }

@@ -1,0 +1,37 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.1-targModified.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a target may include modified key with a single value that is of format date-time.",
+    "title": "Implements **target _modified_ key** with a **single value** that is of **format date-time** [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+    "description": "True when Annotation includes one or more targets, one or more of which include modified key with a single value of format date-time. (Section 3.3.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/modifiedPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemModifiedPropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceModifiedPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/modifiedPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemModifiedPropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceModifiedPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

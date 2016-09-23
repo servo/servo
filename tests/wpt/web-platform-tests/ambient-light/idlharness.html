@@ -98,7 +98,7 @@ dictionary AmbientLightSensorReadingInit {
   idl_array.add_objects({
     AmbientLightSensor: ['new AmbientLightSensor();'],
     AmbientLightSensorReading: ['new AmbientLightSensorReading({ illuminance: 750 });'],
-    SensorReadingEvent: ['new SensorReadingEvent({ reading: new AmbientLightSensorReading({ illuminance: 750 }) });']
+    SensorReadingEvent: ['new SensorReadingEvent("reading", { reading: new AmbientLightSensorReading({ illuminance: 750 }) });']
   });
 
   idl_array.test();
