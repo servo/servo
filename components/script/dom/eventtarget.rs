@@ -23,7 +23,7 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventdispatcher::dispatch_event;
+use dom::eventdispatcher::{EventStatus, dispatch_event};
 use dom::node::document_from_node;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -300,11 +300,11 @@ impl EventTarget {
 
     pub fn dispatch_event_with_target(&self,
                                       target: &EventTarget,
-                                      event: &Event) -> bool {
+                                      event: &Event) -> EventStatus {
         dispatch_event(self, Some(target), event)
     }
 
-    pub fn dispatch_event(&self, event: &Event) -> bool {
+    pub fn dispatch_event(&self, event: &Event) -> EventStatus {
         dispatch_event(self, None, event)
     }
 
@@ -560,7 +560,10 @@ impl EventTargetMethods for EventTarget {
             return Err(Error::InvalidState);
         }
         event.set_trusted(false);
-        Ok(self.dispatch_event(event))
+        Ok(match self.dispatch_event(event) {
+            EventStatus::Canceled => false,
+            EventStatus::NotCanceled => true
+        })
     }
 }
 
