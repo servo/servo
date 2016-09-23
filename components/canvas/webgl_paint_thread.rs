@@ -42,11 +42,10 @@ impl WebGLPaintThread {
         -> Result<(WebGLPaintThread, GLLimits), String> {
         if let Some(sender) = webrender_api_sender {
             let wr_api = sender.create_api();
-            let (id, limits, is_shared) = try!(wr_api.request_webgl_context(&size, attrs));
-            let image_key = if is_shared {
-                None
-            } else {
-                Some(wr_api.alloc_image())
+            let (id, limits, sharing) = try!(wr_api.request_webgl_context(&size, attrs));
+            let image_key = match sharing {
+                webrender_traits::ContextSharing::Shared => None,
+                webrender_traits::ContextSharing::NotShared => Some(wr_api.alloc_image()),
             };
 
             let painter = WebGLPaintThread {
