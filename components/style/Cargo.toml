@@ -18,6 +18,7 @@ servo = ["serde", "serde/unstable", "serde_macros", "heapsize", "heapsize_plugin
          "cssparser/heap_size", "cssparser/serde-serialization",
          "selectors/heap_size", "selectors/unstable", "string_cache",
          "url/heap_size", "plugins"]
+testing = []
 
 [dependencies]
 app_units = "0.3"

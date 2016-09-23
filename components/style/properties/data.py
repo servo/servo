@@ -160,8 +160,16 @@ class StyleStruct(object):
 
 
 class PropertiesData(object):
-    def __init__(self, product):
+    """
+        The `testing` parameter means that we're running tests.
+
+        In this situation, the `product` value is ignored while choosing
+        which shorthands and longhands to generate; and instead all properties for
+        which code exists for either servo or stylo are generated.
+    """
+    def __init__(self, product, testing):
         self.product = product
+        self.testing = testing
         self.style_structs = []
         self.current_style_struct = None
         self.longhands = []
@@ -179,7 +187,7 @@ class PropertiesData(object):
 
     def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
-        if self.product not in products:
+        if self.product not in products and not self.testing:
             return
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
@@ -194,7 +202,7 @@ class PropertiesData(object):
 
     def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
         products = products.split()
-        if self.product not in products:
+        if self.product not in products and not self.testing:
             return
 
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
