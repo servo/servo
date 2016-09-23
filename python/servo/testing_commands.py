@@ -208,7 +208,7 @@ class MachCommands(CommandBase):
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
 
-        packages.remove('stylo')
+        packages.discard('stylo')
 
         args = ["cargo", "test"]
         for crate in packages:
