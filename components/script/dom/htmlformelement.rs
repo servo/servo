@@ -593,7 +593,7 @@ impl HTMLFormElement {
                 "file" | "textarea" => (), // TODO
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = FormDatumValue::String(clean_crlf( match datum.value {
+                    datum.value = FormDatumValue::String(clean_crlf(match datum.value {
                         FormDatumValue::String(ref s) => s,
                         FormDatumValue::File(_) => unreachable!()
                     }));

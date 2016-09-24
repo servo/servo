@@ -483,6 +483,7 @@ def check_rust(file_name, lines):
             (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
                 lambda match, line: line.startswith('use ')),
             (r"^\s*else {", "else braces should be on the same line", no_filter),
+            (r"[^$ ]\([ \t]", "extra space after (", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
