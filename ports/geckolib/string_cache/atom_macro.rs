@@ -486,6 +486,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_curpos: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7currentE"]
             pub static nsGkAtoms_current: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12cutoutregionE"]
+            pub static nsGkAtoms_cutoutregion: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6cyclerE"]
             pub static nsGkAtoms_cycler: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms4dataE"]
@@ -4100,6 +4102,10 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onencrypted: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9encryptedE"]
             pub static nsGkAtoms_encrypted: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms15onwaitingforkeyE"]
+            pub static nsGkAtoms_onwaitingforkey: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19onkeystatuseschangeE"]
+            pub static nsGkAtoms_onkeystatuseschange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13onremovetrackE"]
             pub static nsGkAtoms_onremovetrack: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9loadstartE"]
@@ -4320,8 +4326,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mac_graphite_themeE"]
             pub static nsGkAtoms_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms14mac_lion_themeE"]
-            pub static nsGkAtoms_mac_lion_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mac_yosemite_themeE"]
             pub static nsGkAtoms_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18windows_compositorE"]
@@ -4376,8 +4380,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_mac_graphite_themeE"]
             pub static nsGkAtoms__moz_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms19_moz_mac_lion_themeE"]
-            pub static nsGkAtoms__moz_mac_lion_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_mac_yosemite_themeE"]
             pub static nsGkAtoms__moz_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_windows_compositorE"]
@@ -5405,6 +5407,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_curpos: *mut nsIAtom;
             #[link_name = "?current@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_current: *mut nsIAtom;
+            #[link_name = "?cutoutregion@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_cutoutregion: *mut nsIAtom;
             #[link_name = "?cycler@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_cycler: *mut nsIAtom;
             #[link_name = "?data@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9019,6 +9023,10 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onencrypted: *mut nsIAtom;
             #[link_name = "?encrypted@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_encrypted: *mut nsIAtom;
+            #[link_name = "?onwaitingforkey@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onwaitingforkey: *mut nsIAtom;
+            #[link_name = "?onkeystatuseschange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onkeystatuseschange: *mut nsIAtom;
             #[link_name = "?onremovetrack@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onremovetrack: *mut nsIAtom;
             #[link_name = "?loadstart@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9239,8 +9247,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "?mac_graphite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "?mac_lion_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mac_lion_theme: *mut nsIAtom;
             #[link_name = "?mac_yosemite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "?windows_compositor@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9295,8 +9301,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "?_moz_mac_graphite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "?_moz_mac_lion_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms__moz_mac_lion_theme: *mut nsIAtom;
             #[link_name = "?_moz_mac_yosemite_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "?_moz_windows_compositor@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10324,6 +10328,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_curpos: *mut nsIAtom;
             #[link_name = "\x01?current@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_current: *mut nsIAtom;
+            #[link_name = "\x01?cutoutregion@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_cutoutregion: *mut nsIAtom;
             #[link_name = "\x01?cycler@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_cycler: *mut nsIAtom;
             #[link_name = "\x01?data@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13938,6 +13944,10 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onencrypted: *mut nsIAtom;
             #[link_name = "\x01?encrypted@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_encrypted: *mut nsIAtom;
+            #[link_name = "\x01?onwaitingforkey@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onwaitingforkey: *mut nsIAtom;
+            #[link_name = "\x01?onkeystatuseschange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onkeystatuseschange: *mut nsIAtom;
             #[link_name = "\x01?onremovetrack@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onremovetrack: *mut nsIAtom;
             #[link_name = "\x01?loadstart@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14158,8 +14168,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_windows_default_theme: *mut nsIAtom;
             #[link_name = "\x01?mac_graphite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "\x01?mac_lion_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mac_lion_theme: *mut nsIAtom;
             #[link_name = "\x01?mac_yosemite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "\x01?windows_compositor@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14214,8 +14222,6 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms__moz_windows_default_theme: *mut nsIAtom;
             #[link_name = "\x01?_moz_mac_graphite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_mac_graphite_theme: *mut nsIAtom;
-            #[link_name = "\x01?_moz_mac_lion_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms__moz_mac_lion_theme: *mut nsIAtom;
             #[link_name = "\x01?_moz_mac_yosemite_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_mac_yosemite_theme: *mut nsIAtom;
             #[link_name = "\x01?_moz_windows_compositor@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15013,6 +15019,7 @@ macro_rules! atom {
 ("crossorigin") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_crossorigin as *mut _) };
 ("curpos") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_curpos as *mut _) };
 ("current") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_current as *mut _) };
+("cutoutregion") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_cutoutregion as *mut _) };
 ("cycler") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_cycler as *mut _) };
 ("data") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_data as *mut _) };
 ("datalist") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_datalist as *mut _) };
@@ -16820,6 +16827,8 @@ macro_rules! atom {
 ("onexit") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onexit as *mut _) };
 ("onencrypted") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onencrypted as *mut _) };
 ("encrypted") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_encrypted as *mut _) };
+("onwaitingforkey") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onwaitingforkey as *mut _) };
+("onkeystatuseschange") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onkeystatuseschange as *mut _) };
 ("onremovetrack") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onremovetrack as *mut _) };
 ("loadstart") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_loadstart as *mut _) };
 ("suspend") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_suspend as *mut _) };
@@ -16930,7 +16939,6 @@ macro_rules! atom {
 ("overlay-scrollbars") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_overlay_scrollbars as *mut _) };
 ("windows-default-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_windows_default_theme as *mut _) };
 ("mac-graphite-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_mac_graphite_theme as *mut _) };
-("mac-lion-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_mac_lion_theme as *mut _) };
 ("mac-yosemite-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_mac_yosemite_theme as *mut _) };
 ("windows-compositor") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_windows_compositor as *mut _) };
 ("windows-glass") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_windows_glass as *mut _) };
@@ -16958,7 +16966,6 @@ macro_rules! atom {
 ("-moz-overlay-scrollbars") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_overlay_scrollbars as *mut _) };
 ("-moz-windows-default-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_windows_default_theme as *mut _) };
 ("-moz-mac-graphite-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_mac_graphite_theme as *mut _) };
-("-moz-mac-lion-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_mac_lion_theme as *mut _) };
 ("-moz-mac-yosemite-theme") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_mac_yosemite_theme as *mut _) };
 ("-moz-windows-compositor") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_windows_compositor as *mut _) };
 ("-moz-windows-classic") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms__moz_windows_classic as *mut _) };
