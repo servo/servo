@@ -24,9 +24,8 @@ use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRT
 use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsStyleContext};
 use gecko_bindings::structs::OpaqueStyleData;
-use gecko_bindings::sugar::ownership::FFIArcHelpers;
-use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use glue::GeckoDeclarationBlock;
+use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasFFI};
+use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use libc::uintptr_t;
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -74,7 +73,7 @@ pub struct GeckoDeclarationBlock {
 }
 
 unsafe impl HasFFI for GeckoDeclarationBlock {
-    type FFIType = ServoDeclarationBlock;
+    type FFIType = bindings::ServoDeclarationBlock;
 }
 unsafe impl HasArcFFI for GeckoDeclarationBlock {}
 

@@ -76,7 +76,6 @@ extern crate util;
 
 #[cfg(feature = "gecko")]
 #[path = "./gecko_string_cache/mod.rs"]
-#[allow(unsafe_code)]
 #[macro_use] pub mod string_cache;
 
 pub mod animation;

@@ -192,5 +192,5 @@ def write_pseudo_element_helper(atoms, target_filename):
 def build(objdir, verbose=False):
     atoms = collect_atoms(objdir)
     write_atom_macro(atoms, "../gecko_string_cache/atom_macro.rs")
-    write_pseudo_element_helper(atoms, "../generated/gecko_pseudo_element_helper.rs")
+    write_pseudo_element_helper(atoms, "../gecko/generated/gecko_pseudo_element_helper.rs")
     return 0
