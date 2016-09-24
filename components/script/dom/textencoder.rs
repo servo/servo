@@ -11,8 +11,9 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use encoding::EncoderTrap;
+use encoding::Encoding;
+use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::EncodingRef;
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetUint8ArrayData, JS_NewUint8Array};
 use libc::uint8_t;
@@ -22,20 +23,17 @@ use std::ptr;
 #[dom_struct]
 pub struct TextEncoder {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "Defined in rust-encoding"]
-    encoder: EncodingRef,
 }
 
 impl TextEncoder {
-    fn new_inherited(encoder: EncodingRef) -> TextEncoder {
+    fn new_inherited() -> TextEncoder {
         TextEncoder {
             reflector_: Reflector::new(),
-            encoder: encoder,
         }
     }
 
-    pub fn new(global: GlobalRef, encoder: EncodingRef) -> Root<TextEncoder> {
-        reflect_dom_object(box TextEncoder::new_inherited(encoder),
+    pub fn new(global: GlobalRef) -> Root<TextEncoder> {
+        reflect_dom_object(box TextEncoder::new_inherited(),
                            global,
                            TextEncoderBinding::Wrap)
     }
@@ -52,12 +50,12 @@ impl TextEncoder {
         };
 
         match encoding.name() {
-            "utf-8" | "utf-16be" | "utf-16le" => {
-                Ok(TextEncoder::new(global, encoding))
+            "utf-8" => {
+                Ok(TextEncoder::new(global))
             }
             _ => {
                 debug!("Encoding Not UTF");
-                Err(Error::Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
+                Err(Error::Range("The encoding must be utf-8.".to_owned()))
             }
         }
     }
@@ -66,14 +64,14 @@ impl TextEncoder {
 impl TextEncoderMethods for TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
     fn Encoding(&self) -> DOMString {
-        DOMString::from(self.encoder.name())
+        DOMString::from(UTF_8.name())
     }
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
     fn Encode(&self, cx: *mut JSContext, input: USVString) -> NonZero<*mut JSObject> {
         unsafe {
-            let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
+            let encoded = UTF_8.encode(&input.0, EncoderTrap::Strict).unwrap();
             let length = encoded.len() as u32;
             rooted!(in(cx) let js_object = JS_NewUint8Array(cx, length));
             assert!(!js_object.is_null());
