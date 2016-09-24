@@ -44,7 +44,7 @@ use style::gecko::selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::timer::Timer;
 use style::gecko::traversal::RecalcStyleOnly;
 use url::Url;
-use style::gecko::wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode};
+use style::gecko::wrapper::{DUMMY_BASE_URL, GeckoDeclarationBlock, GeckoDocument, GeckoElement, GeckoNode};
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
