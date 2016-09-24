@@ -48,6 +48,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
 use style::properties::{self, ServoComputedValues};
+use style::servo_selector_impl::PseudoElement;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -693,7 +694,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             let mut style = node.style(self.style_context()).clone();
             if node_is_input_or_text_area {
-                properties::modify_style_for_input_text(&mut style);
+                style = self.style_context().stylist.
+                    precomputed_values_for_pseudo(&PseudoElement::ServoInputText, Some(&style)).unwrap();
             }
 
             self.create_fragments_for_node_text_content(&mut initial_fragments, node, &style)

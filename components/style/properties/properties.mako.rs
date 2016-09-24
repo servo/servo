@@ -2278,20 +2278,6 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     }
 }
 
-/// Adjusts the `margin` property as necessary to account for the text of an `input` element.
-///
-/// Margins apply to the `input` element itself, so including them in the text will cause them to
-/// be double-counted.
-#[cfg(feature = "servo")]
-pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_mut(style);
-    let margin_style = Arc::make_mut(&mut style.margin);
-    margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
-}
-
 /// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
 /// children.
 #[cfg(feature = "servo")]
