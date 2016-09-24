@@ -135,6 +135,53 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
     }
 }
 
+pub struct SoftWrapSliceIterator<'a> {
+    text: &'a str,
+    glyph_run: Option<&'a GlyphRun>,
+    glyph_run_iter: Iter<'a, GlyphRun>,
+    range: Range<ByteIndex>,
+}
+
+// This is like NaturalWordSliceIterator, except that soft-wrap opportunities
+// are allowed. That is, word boundaries are defined solely by UAX#29,
+// regardless of whether the sequence being broken into different slices is
+// a sequence of alphanumeric characters. This shouldn't make a difference in
+// the case of Latin text, but it does in ideographic characters, as well as
+// scripts such as Thai.
+impl<'a> Iterator for SoftWrapSliceIterator<'a> {
+    type Item = TextRunSlice<'a>;
+
+    #[inline(always)]
+    fn next(&mut self) -> Option<TextRunSlice<'a>> {
+        let glyph_run = match self.glyph_run {
+            None => return None,
+            Some(glyph_run) => glyph_run,
+        };
+
+        let text_start = self.range.begin();
+        let text = &self.text[text_start.to_usize()..glyph_run.range.end().to_usize()];
+        let slice_text = match LineBreakIterator::new(text).next() {
+            Some((idx, _)) => &text[0..idx],
+            None => unreachable!()
+        };
+
+        let slice_len = ByteIndex(slice_text.len() as isize);
+        self.range.adjust_by(slice_len, -slice_len);
+        if self.range.is_empty() {
+            self.glyph_run = None
+        } else if self.range.intersect(&glyph_run.range).is_empty() {
+            self.glyph_run = self.glyph_run_iter.next();
+        }
+
+        let index_within_glyph_run = text_start - glyph_run.range.begin();
+        Some(TextRunSlice {
+            glyphs: &*glyph_run.glyph_store,
+            offset: glyph_run.range.begin(),
+            range: Range::new(index_within_glyph_run, slice_len),
+        })
+    }
+}
+
 pub struct CharacterSliceIterator<'a> {
     text: &'a str,
     glyph_run: Option<&'a GlyphRun>,
@@ -206,11 +253,13 @@ impl<'a> TextRun {
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
             if let Some((i, _)) = word.char_indices().rev()
-                                     .take_while(|&(_, c)| char_is_whitespace(c)).last() {
-                whitespace.start = slice.start + i;
-                slice.end = whitespace.start;
-            }
-
+                .take_while(|&(_, c)| char_is_whitespace(c)).last() {
+                    whitespace.start = slice.start + i;
+                    slice.end = whitespace.start;
+                } else if idx != text.len() {
+                    // If there's no whitespace, try increasing the slice.
+                    continue;
+                }
             if slice.len() > 0 {
                 glyphs.push(GlyphRun {
                     glyph_store: font.shape_text(&text[slice.clone()], options),
@@ -340,6 +389,24 @@ impl<'a> TextRun {
             index: index,
             range: *range,
             reverse: reverse,
+        }
+    }
+
+    /// Returns an iterator that will iterate over all slices of glyphs that represent natural
+    /// words in the given range, where soft wrap opportunities are taken into account.
+    pub fn soft_wrap_slices_in_range(&'a self, range: &Range<ByteIndex>)
+                                        -> SoftWrapSliceIterator<'a> {
+        let index = match self.index_of_first_glyph_run_containing(range.begin()) {
+            None => self.glyphs.len(),
+            Some(index) => index,
+        };
+        let mut glyph_run_iter = self.glyphs[index..].iter();
+        let first_glyph_run = glyph_run_iter.next();
+        SoftWrapSliceIterator {
+            text: &self.text,
+            glyph_run: first_glyph_run,
+            glyph_run_iter: glyph_run_iter,
+            range: *range,
         }
     }
 

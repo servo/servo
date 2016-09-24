@@ -1638,11 +1638,11 @@ impl Fragment {
 
         match self.style().get_inheritedtext().word_break {
             word_break::T::normal => {
-                // Break at normal word boundaries.
-                let natural_word_breaking_strategy =
-                    text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
+                // Break at normal word boundaries, allowing for soft wrap opportunities.
+                let soft_wrap_breaking_strategy =
+                    text_fragment_info.run.soft_wrap_slices_in_range(&text_fragment_info.range);
                 self.calculate_split_position_using_breaking_strategy(
-                    natural_word_breaking_strategy,
+                    soft_wrap_breaking_strategy,
                     max_inline_size,
                     flags)
             }
@@ -1653,6 +1653,15 @@ impl Fragment {
                 flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
                 self.calculate_split_position_using_breaking_strategy(
                     character_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            },
+            word_break::T::keep_all => {
+                // Break at word boundaries, and forbid soft wrap opportunities.
+                let natural_word_breaking_strategy =
+                    text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
+                self.calculate_split_position_using_breaking_strategy(
+                    natural_word_breaking_strategy,
                     max_inline_size,
                     flags)
             }

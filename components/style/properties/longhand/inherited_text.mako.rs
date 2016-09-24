@@ -385,8 +385,7 @@ ${helpers.single_keyword("overflow-wrap",
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
 ${helpers.single_keyword("word-break",
-                         "normal break-all",
-                         extra_gecko_values="keep-all",
+                         "normal break-all keep-all",
                          gecko_constant_prefix="NS_STYLE_WORDBREAK",
                          animatable=False)}
 
