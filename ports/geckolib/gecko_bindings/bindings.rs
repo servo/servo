@@ -18,16 +18,10 @@ enum ServoDeclarationBlockVoid{ }
 pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoNode>;
-enum RawGeckoNodeVoid{ }
-pub struct RawGeckoNode(RawGeckoNodeVoid);
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
 pub type RawGeckoElementBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoElement>;
-enum RawGeckoElementVoid{ }
-pub struct RawGeckoElement(RawGeckoElementVoid);
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
-enum RawGeckoDocumentVoid{ }
-pub struct RawGeckoDocument(RawGeckoDocumentVoid);
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
@@ -36,14 +30,6 @@ pub type RawServoStyleSetBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut
 pub type RawServoStyleSetOwnedOrNull = ::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 enum RawServoStyleSetVoid{ }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
-pub type ServoNodeDataBorrowed<'a> = &'a ServoNodeData;
-pub type ServoNodeDataBorrowedMut<'a> = &'a mut ServoNodeData;
-pub type ServoNodeDataOwned = ::sugar::ownership::Owned<ServoNodeData>;
-pub type ServoNodeDataBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
-pub type ServoNodeDataBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
-pub type ServoNodeDataOwnedOrNull = ::sugar::ownership::OwnedOrNull<ServoNodeData>;
-enum ServoNodeDataVoid{ }
-pub struct ServoNodeData(ServoNodeDataVoid);
 pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
 pub type StyleChildrenIteratorBorrowedMut<'a> = &'a mut StyleChildrenIterator;
 pub type StyleChildrenIteratorOwned = ::sugar::ownership::Owned<StyleChildrenIterator>;
@@ -179,6 +165,10 @@ use structs::nsINode;
 use structs::nsIDocument;
 use structs::nsIPrincipal;
 use structs::nsIURI;
+use structs::RawGeckoNode;
+use structs::RawGeckoElement;
+use structs::RawGeckoDocument;
+use structs::ServoNodeData;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -189,7 +179,7 @@ extern "C" {
                                 aElementSize: usize, aElementAlign: usize);
 }
 extern "C" {
-    pub fn Servo_NodeData_Drop(arg1: *mut ServoNodeData);
+    pub fn Servo_Node_ClearNodeData(arg1: *mut nsINode);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -386,14 +376,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
      -> ServoDeclarationBlockBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetNodeData(node: RawGeckoNodeBorrowed)
-     -> ServoNodeDataBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_SetNodeData(node: RawGeckoNodeBorrowed,
-                             data: ServoNodeDataOwned);
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
