@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
+use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -16,6 +17,7 @@ use dom::file::File;
 use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::iter;
 use string_cache::Atom;
 
 #[dom_struct]
@@ -45,7 +47,7 @@ impl FormData {
 
     pub fn new(form: Option<&HTMLFormElement>, global: GlobalRef) -> Root<FormData> {
         reflect_dom_object(box FormData::new_inherited(form),
-                           global, FormDataBinding::Wrap)
+                           global, FormDataWrap)
     }
 
     pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
@@ -156,11 +158,40 @@ impl FormData {
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {
-        let mut ret = vec![];
-        for values in self.data.borrow().values() {
-            ret.append(&mut values.clone());
-        }
+        self.data.borrow().values()
+            .flat_map(|value| value.iter())
+            .map(|value| value.clone())
+            .collect()
+    }
+}
 
-        ret
+impl Iterable for FormData {
+    type Key = USVString;
+    type Value = FileOrUSVString;
+
+    fn get_iterable_length(&self) -> u32 {
+        self.data.borrow().values().map(|value| value.len()).sum::<usize>() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
+        let data = self.data.borrow();
+        let value = &data.values()
+                         .flat_map(|value| value.iter())
+                         .nth(n as usize)
+                         .unwrap()
+                         .value;
+        match *value {
+            FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
+            FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
+        }
+    }
+
+    fn get_key_at_index(&self, n: u32) -> USVString {
+        let data = self.data.borrow();
+        let value = &data.iter()
+                         .flat_map(|(key, value)| iter::repeat(key).take(value.len()))
+                         .nth(n as usize)
+                         .unwrap();
+        USVString(value.to_string())
     }
 }
