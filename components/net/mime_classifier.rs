@@ -71,6 +71,20 @@ pub enum MimeTopLevel {
     Video,
 }
 
+impl<'a> From<&'a hyper::mime::TopLevel> for MimeTopLevel {
+    fn from(tl: &'a hyper::mime::TopLevel) -> Self {
+        match *tl {
+            hyper::mime::TopLevel::Star => MimeTopLevel::Star,
+            hyper::mime::TopLevel::Application => MimeTopLevel::Application,
+            hyper::mime::TopLevel::Audio => MimeTopLevel::Audio,
+            hyper::mime::TopLevel::Image => MimeTopLevel::Image,
+            hyper::mime::TopLevel::Text => MimeTopLevel::Text,
+            hyper::mime::TopLevel::Video => MimeTopLevel::Video,
+            _ => unimplemented!(),
+        }
+    }
+}
+
 impl From<hyper::mime::TopLevel> for MimeTopLevel {
     fn from(tl: hyper::mime::TopLevel) -> Self {
         match tl {
