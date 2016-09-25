@@ -111,8 +111,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
             //     format, or can otherwise not be rendered at all"
             if !self.have_metadata {
                 elem.queue_dedicated_media_source_failure_steps();
-            }
-            else {
+            } else {
                 elem.change_ready_state(HAVE_ENOUGH_DATA);
 
                 elem.fire_simple_event("progress");
