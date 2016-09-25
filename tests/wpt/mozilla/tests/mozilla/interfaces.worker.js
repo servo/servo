@@ -62,6 +62,7 @@ test_interfaces([
   "HTMLOListElement",
   "HTMLOptGroupElement",
   "HTMLOptionElement",
+  "HTMLOptionsCollection",
   "HTMLOutputElement",
   "HTMLScriptElement",
   "ImageData",
