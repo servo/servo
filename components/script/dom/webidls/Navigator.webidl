@@ -33,7 +33,7 @@ interface NavigatorBluetooth {
     readonly attribute Bluetooth bluetooth;
 };
 
-// https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker
+// https://w3c.github.io/ServiceWorker/#navigator-service-worker
 partial interface Navigator {
   [SameObject, Pref="dom.serviceworker.enabled"] readonly attribute ServiceWorkerContainer serviceWorker;
 };

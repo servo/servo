@@ -103,7 +103,7 @@ impl NavigatorMethods for Navigator {
         false
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker-attribute
+    // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
         self.service_worker.or_init(|| ServiceWorkerContainer::new(self.global().r()))
     }
