@@ -2521,7 +2521,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.5.1"
-source = "git+https://github.com/glennw/webrender?branch=headless-webgl#c93060fab7d453da508322f9b3d883740573a422"
+source = "git+https://github.com/glennw/webrender?branch=headless-webgl#e4882a7e8aaaa1938f5c77db80209114efde7893"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2546,7 +2546,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.5.1"
-source = "git+https://github.com/glennw/webrender?branch=headless-webgl#c93060fab7d453da508322f9b3d883740573a422"
+source = "git+https://github.com/glennw/webrender?branch=headless-webgl#e4882a7e8aaaa1938f5c77db80209114efde7893"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
