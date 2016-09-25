@@ -70,17 +70,17 @@ impl ServiceWorker {
 }
 
 impl ServiceWorkerMethods for ServiceWorker {
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-state-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-state-attribute
     fn State(&self) -> ServiceWorkerState {
         self.state.get()
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-url-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-url-attribute
     fn ScriptURL(&self) -> USVString {
         USVString(self.script_url.borrow().clone())
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-postmessage
+    // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         // Step 1
         if let ServiceWorkerState::Redundant = self.state.get() {
@@ -94,10 +94,10 @@ impl ServiceWorkerMethods for ServiceWorker {
         Ok(())
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-onerror-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-onerror-attribute
     event_handler!(error, GetOnerror, SetOnerror);
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#ref-for-service-worker-onstatechange-attribute-1
+    // https://w3c.github.io/ServiceWorker/#ref-for-service-worker-onstatechange-attribute-1
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 }
 

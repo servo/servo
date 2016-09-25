@@ -41,17 +41,17 @@ impl Client {
 }
 
 impl ClientMethods for Client {
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#client-url-attribute
+    // https://w3c.github.io/ServiceWorker/#client-url-attribute
     fn Url(&self) -> USVString {
         self.url.clone()
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#client-frametype
+    // https://w3c.github.io/ServiceWorker/#client-frametype
     fn FrameType(&self) -> FrameType {
         self.frame_type
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#client-id
+    // https://w3c.github.io/ServiceWorker/#client-id
     fn Id(&self) -> DOMString {
         let uid_str = format!("{}", self.id);
         DOMString::from_string(uid_str)

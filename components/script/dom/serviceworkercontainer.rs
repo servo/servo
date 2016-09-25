@@ -48,12 +48,12 @@ impl Controllable for ServiceWorkerContainer {
 }
 
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-controller-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
         return self.controller.get()
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-register-method
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
