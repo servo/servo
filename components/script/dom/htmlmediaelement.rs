@@ -105,8 +105,13 @@ impl AsyncResponseListener for HTMLMediaElementContext {
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
 
+        // => "If the media data can be fetched but is found by inspection to be in an unsupported
+        //     format, or can otherwise not be rendered at all"
+        if !self.have_metadata {
+            elem.queue_dedicated_media_source_failure_steps();
+        }
         // => "Once the entire media resource has been fetched..."
-        if status.is_ok() {
+        else if status.is_ok() {
             elem.change_ready_state(HAVE_ENOUGH_DATA);
 
             elem.fire_simple_event("progress");
