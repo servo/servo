@@ -15,7 +15,7 @@
            attribute USVString hash;
 
   void assign(USVString url);
-  //void replace(USVString url);
+  void replace(USVString url);
   void reload();
 
   //[SameObject] readonly attribute USVString[] ancestorOrigins;
