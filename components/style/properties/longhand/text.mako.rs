@@ -21,7 +21,8 @@ ${helpers.single_keyword("unicode-bidi",
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="${'text-decoration' if product == 'servo' else 'text-decoration-line'}"
                    custom_cascade="${product == 'servo'}"
-                   animatable="False">
+                   animatable="False"
+                   disable_when_testing="True">
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
