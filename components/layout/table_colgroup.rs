@@ -13,7 +13,6 @@ use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::StackingContext;
-use gfx_traits::StackingContextId;
 use layout_debug;
 use std::cmp::max;
 use std::fmt;
@@ -96,12 +95,7 @@ impl Flow for TableColGroupFlow {
     // Table columns are invisible.
     fn build_display_list(&mut self, _: &mut DisplayListBuildState) { }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent_id: StackingContextId,
-                                 _: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId {
-        parent_id
-    }
+    fn collect_stacking_contexts(&mut self, _parent: &mut StackingContext) { }
 
     fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
 

@@ -18,7 +18,6 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedC
 use fragment::Overflow;
 use generated_content;
 use gfx::display_list::StackingContext;
-use gfx_traits::StackingContextId;
 use inline::InlineMetrics;
 use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
@@ -148,11 +147,8 @@ impl Flow for ListItemFlow {
         self.build_display_list_for_list_item(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent_id: StackingContextId,
-                                 contexts: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId {
-        self.block_flow.collect_stacking_contexts(parent_id, contexts)
+    fn collect_stacking_contexts(&mut self, parent: &mut StackingContext) {
+        self.block_flow.collect_stacking_contexts(parent);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
