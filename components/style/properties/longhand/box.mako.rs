@@ -920,7 +920,7 @@ ${helpers.single_keyword("-moz-appearance",
                          animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
-<%helpers:longhand name="-moz-binding" products="gecko" animatable="False">
+<%helpers:longhand name="-moz-binding" products="gecko" animatable="False" disable_when_testing="True">
     use cssparser::{CssStringWriter, ToCss};
     use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
     use std::fmt::{self, Write};
