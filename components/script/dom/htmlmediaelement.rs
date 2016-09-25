@@ -106,7 +106,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
 
         // => "Once the entire media resource has been fetched..."
-        else if status.is_ok() {
+        if status.is_ok() {
             // => "If the media data can be fetched but is found by inspection to be in an unsupported
             //     format, or can otherwise not be rendered at all"
             if !self.have_metadata {
