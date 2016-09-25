@@ -32,8 +32,11 @@ use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use libc;
+use script_runtime::store_panic_result;
 use std::ffi::CString;
 use std::os::raw::c_void;
+use std::panic;
+use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::slice;
 
@@ -516,9 +519,6 @@ pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
 
 /// Generic wrapper for JS engine callbacks panic-catching
 pub fn wrap_panic<T: FnMut() -> R, R>(function: T, generic_return_type: R) -> R {
-    use script_runtime::store_panic_result;
-    use std::panic;
-    use std::panic::AssertUnwindSafe;
     let result = panic::catch_unwind(AssertUnwindSafe(function));
     match result {
         Ok(result) => result,
