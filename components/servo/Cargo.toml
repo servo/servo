@@ -24,6 +24,7 @@ default = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
+testing = ["style/testing"]
 
 [profile.release]
 opt-level = 3

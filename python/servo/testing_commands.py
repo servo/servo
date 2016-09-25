@@ -215,7 +215,7 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
 
-        features = self.servo_features()
+        features = self.servo_features() + ['testing']
         if features:
             args += ["--features", "%s" % ' '.join(features)]
 
