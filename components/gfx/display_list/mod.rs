@@ -618,7 +618,7 @@ pub struct StackingContext {
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
-    children: Vec<Box<StackingContext>>,
+    pub children: Vec<Box<StackingContext>>,
 }
 
 impl StackingContext {
@@ -654,30 +654,9 @@ impl StackingContext {
         }
     }
 
-    pub fn set_children(&mut self, children: Vec<Box<StackingContext>>) {
-        debug_assert!(self.children.is_empty());
-        // We need to take into account the possible transformations of the
-        // child stacking contexts.
-        for child in &children {
-            self.update_overflow_for_new_child(&child);
-        }
-
-        self.children = children;
-    }
-
-    pub fn add_child(&mut self, child: Box<StackingContext>) {
-        self.update_overflow_for_new_child(&child);
-        self.children.push(child);
-    }
-
-    pub fn add_children(&mut self, children: Vec<Box<StackingContext>>) {
-        if self.children.is_empty() {
-            return self.set_children(children);
-        }
-
-        for child in children {
-            self.add_child(child);
-        }
+    pub fn add_child(&mut self, mut child: StackingContext) {
+        child.update_overflow_for_all_children();
+        self.children.push(Box::new(child));
     }
 
     pub fn child_at_mut(&mut self, index: usize) -> &mut StackingContext {
@@ -688,16 +667,18 @@ impl StackingContext {
         &self.children
     }
 
-    fn update_overflow_for_new_child(&mut self, child: &StackingContext) {
-        if self.context_type == StackingContextType::Real &&
-           child.context_type == StackingContextType::Real &&
-           !self.scrolls_overflow_area {
-            // This child might be transformed, so we need to take into account
-            // its transformed overflow rect too, but at the correct position.
-            let overflow =
-                child.overflow_rect_in_parent_space();
+    fn update_overflow_for_all_children(&mut self) {
+        for child in self.children.iter() {
+            if self.context_type == StackingContextType::Real &&
+               child.context_type == StackingContextType::Real &&
+               !self.scrolls_overflow_area {
+                // This child might be transformed, so we need to take into account
+                // its transformed overflow rect too, but at the correct position.
+                let overflow =
+                    child.overflow_rect_in_parent_space();
 
-            self.overflow = self.overflow.union(&overflow);
+                self.overflow = self.overflow.union(&overflow);
+            }
         }
     }
 

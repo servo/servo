@@ -78,10 +78,7 @@ pub fn build_display_list_for_subtree(flow_root: &mut Flow,
                                       root_stacking_context: &mut StackingContext,
                                       shared_layout_context: &SharedLayoutContext)
                                       -> Vec<DisplayItem> {
-    let mut children = vec![];
-    flow_root.collect_stacking_contexts(root_stacking_context.id,
-                                        &mut children);
-    root_stacking_context.add_children(children);
+    flow_root.collect_stacking_contexts(root_stacking_context);
     let mut build_display_list = BuildDisplayList {
         state: DisplayListBuildState::new(shared_layout_context,
                                           flow::base(flow_root).stacking_context_id),

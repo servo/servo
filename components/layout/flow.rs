@@ -224,10 +224,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 _parent_id: StackingContextId,
-                                 _: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId;
+    fn collect_stacking_contexts(&mut self, _parent: &mut StackingContext);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -1160,11 +1157,9 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self,
-                                                  parent_id: StackingContextId,
-                                                  contexts: &mut Vec<Box<StackingContext>>) {
+    pub fn collect_stacking_contexts_for_children(&mut self, parent: &mut StackingContext) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(parent_id, contexts);
+            kid.collect_stacking_contexts(parent);
         }
     }
 
