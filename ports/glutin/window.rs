@@ -320,7 +320,7 @@ impl Window {
     #[cfg(not(target_os = "android"))]
     fn gl_version() -> GlRequest {
         if opts::get().use_webrender {
-            return GlRequest::Specific(Api::OpenGl, (3, 3));
+            return GlRequest::Specific(Api::OpenGl, (3, 2));
         }
         match opts::get().render_api {
             RenderApi::GL => {

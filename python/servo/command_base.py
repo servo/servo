@@ -51,7 +51,6 @@ def setlocale(name):
 def find_dep_path_newest(package, bin_path):
     deps_path = path.join(path.split(bin_path)[0], "build")
     with cd(deps_path):
-        print(os.getcwd())
         candidates = glob(package + '-*')
     candidates = (path.join(deps_path, c) for c in candidates)
     candidate_times = sorted(((path.getmtime(c), c) for c in candidates), reverse=True)
