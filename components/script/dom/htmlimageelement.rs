@@ -435,6 +435,9 @@ impl VirtualMethods for HTMLImageElement {
 }
 
 fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
+    use app_units::AU_PER_PX;
+    use std::i32;
+
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
     let value = if value > UNSIGNED_LONG_MAX {
@@ -442,7 +445,14 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     } else {
         value
     };
-    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
+
+    let pixel_value = if value > (i32::MAX / AU_PER_PX) as u32 {
+        0
+    } else {
+        value
+    };
+
+    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
     let value = AttrValue::Dimension(value.to_string(), dim);
     element.set_attribute(&attr, value);
 }
