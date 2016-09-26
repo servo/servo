@@ -1155,8 +1155,14 @@ impl Fragment {
         match self.inline_context {
             None => style_border_width,
             Some(ref inline_fragment_context) => {
+                // NOTE: We can have nodes with different writing mode inside
+                // the inline fragment context, so we need to overwrite the
+                // writing mode to compute the child logical sizes.
+                let writing_mode = self.style.writing_mode;
+
                 inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
-                    let mut this_border_width = node.style.logical_border_width();
+                    let mut this_border_width =
+                        node.style.border_width_for_writing_mode(writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         this_border_width.inline_start = Au(0)
                     }
@@ -1289,7 +1295,7 @@ impl Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
-            _ => model::padding_from_style(self.style(), containing_block_inline_size),
+            _ => model::padding_from_style(self.style(), containing_block_inline_size, self.style().writing_mode),
         };
 
         // Compute padding from the inline fragment context.
@@ -1301,9 +1307,10 @@ impl Fragment {
                 LogicalMargin::zero(self.style.writing_mode)
             }
             (_, &Some(ref inline_fragment_context)) => {
-                let zero_padding = LogicalMargin::zero(self.style.writing_mode);
+                let writing_mode = self.style.writing_mode;
+                let zero_padding = LogicalMargin::zero(writing_mode);
                 inline_fragment_context.nodes.iter().fold(zero_padding, |accumulator, node| {
-                    let mut padding = model::padding_from_style(&*node.style, Au(0));
+                    let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         padding.inline_start = Au(0)
                     }
@@ -1529,11 +1536,12 @@ impl Fragment {
 
         // Take borders and padding for parent inline fragments into account, if necessary.
         if self.is_primary_fragment() {
+            let writing_mode = self.style.writing_mode;
             if let Some(ref context) = self.inline_context {
                 for node in &context.nodes {
                     let mut border_width = node.style.logical_border_width();
-                    let mut padding = model::padding_from_style(&*node.style, Au(0));
-                    let mut margin = model::specified_margin_from_style(&*node.style);
+                    let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
+                    let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         border_width.inline_start = Au(0);
                         padding.inline_start = Au(0);
