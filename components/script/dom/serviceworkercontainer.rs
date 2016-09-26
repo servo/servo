@@ -78,7 +78,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         
         // New Step 1
         
-        let p = dom::promise::Promise
+        let p = Promise::new
         
         // New Step 2
         // TODO
