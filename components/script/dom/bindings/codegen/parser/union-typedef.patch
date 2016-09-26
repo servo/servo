@@ -1,0 +1,22 @@
+--- WebIDL.py
++++ WebIDL.py
+@@ -2481,10 +2481,18 @@ class IDLUnionType(IDLType):
+             return type.name
+ 
+         for (i, type) in enumerate(self.memberTypes):
++            # Exclude typedefs because if given "typedef (B or C) test",
++            # we want AOrTest, not AOrBOrC
++            if not type.isComplete() and not isinstance(type, IDLTypedefType):
++                self.memberTypes[i] = type.complete(scope)
++
++        self.name = "Or".join(typeName(type) for type in self.memberTypes)
++
++        # We do this again to complete the typedef types
++        for (i, type) in enumerate(self.memberTypes):
+             if not type.isComplete():
+                 self.memberTypes[i] = type.complete(scope)
+ 
+-        self.name = "Or".join(typeName(type) for type in self.memberTypes)
+         self.flatMemberTypes = list(self.memberTypes)
+         i = 0
+         while i < len(self.flatMemberTypes):
