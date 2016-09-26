@@ -5,7 +5,7 @@
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",
   "errorMessage": "ERROR: Annotation is missing id key or its value is not a single string of format uri.",
-  "title": "Annotation has **_id_ key** which has a **single value** that is a **string of format uri** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
+  "title": "Implements **Annotation _id_ key** which has a **single value** that is a **string of format uri** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
   "description": "True when the Annotation has a single id that is a string of format uri (Section 3.1)",
     "$ref": "id.json#/definitions/idValueFound"
 }

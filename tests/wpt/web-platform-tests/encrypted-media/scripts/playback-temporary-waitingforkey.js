@@ -41,7 +41,7 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 2 ) ) {
+            if ( _video.currentTime > ( config.duration || 1 ) ) {
                 assert_equals( _mediaKeySessions.length, config.initData.length );
                 _video.removeEventListener('timeupdate', onTimeupdate);
                 _video.pause();
@@ -60,7 +60,6 @@ function runTest(config,qualifier) {
             // Not using waitForEventAndRunStep() to avoid too many
             // EVENT(onTimeUpdate) logs.
             _video.addEventListener('timeupdate', onTimeupdate, true);
-        }).then(function() {
             return testmediasource(config);
         }).then(function(source) {
             _mediaSource = source;

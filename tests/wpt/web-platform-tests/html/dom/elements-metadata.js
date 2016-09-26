@@ -34,7 +34,6 @@ var metadataElements = {
   style: {
     media: "string",
     type: "string",
-    scoped: "boolean",
   },
 };
 

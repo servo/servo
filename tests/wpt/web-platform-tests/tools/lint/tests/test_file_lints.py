@@ -221,6 +221,75 @@ def test_present_testharnesscss():
             ]
 
 
+def test_testharness_path():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="testharness.js"></script>
+<script src="resources/testharness.js"></script>
+<script src="../resources/testharness.js"></script>
+<script src="http://w3c-test.org/resources/testharness.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        expected = [("W3C-TEST.ORG", "External w3c-test.org domain used", filename, 5)]
+        if kind == "python":
+            expected.append(("PARSE-FAILED", "Unable to parse file", filename, 1))
+        elif kind in ["web-lax", "web-strict"]:
+            expected.extend([
+                ("TESTHARNESS-PATH", "testharness.js script seen with incorrect path", filename, None),
+                ("TESTHARNESS-PATH", "testharness.js script seen with incorrect path", filename, None),
+                ("TESTHARNESS-PATH", "testharness.js script seen with incorrect path", filename, None),
+                ("TESTHARNESS-PATH", "testharness.js script seen with incorrect path", filename, None),
+            ])
+        assert errors == expected
+
+
+def test_testharnessreport_path():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="testharnessreport.js"></script>
+<script src="resources/testharnessreport.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="http://w3c-test.org/resources/testharnessreport.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        expected = [("W3C-TEST.ORG", "External w3c-test.org domain used", filename, 5)]
+        if kind == "python":
+            expected.append(("PARSE-FAILED", "Unable to parse file", filename, 1))
+        elif kind in ["web-lax", "web-strict"]:
+            expected.extend([
+                ("TESTHARNESSREPORT-PATH", "testharnessreport.js script seen with incorrect path", filename, None),
+                ("TESTHARNESSREPORT-PATH", "testharnessreport.js script seen with incorrect path", filename, None),
+                ("TESTHARNESSREPORT-PATH", "testharnessreport.js script seen with incorrect path", filename, None),
+                ("TESTHARNESSREPORT-PATH", "testharnessreport.js script seen with incorrect path", filename, None),
+            ])
+        assert errors == expected
+
+
+def test_not_testharness_path():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webperftestharness.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        if kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 1),
+            ]
+        else:
+            assert errors == []
+
+
 @pytest.mark.skipif(six.PY3, reason="Cannot parse print statements from python 3")
 def test_print_statement():
     error_map = check_with_files(b"def foo():\n  print 'statement'\n  print\n")

@@ -10,9 +10,8 @@ ReflectionTests.start = new Date().getTime();
  * algorithm here, because we're not concerned with its correctness -- we're
  * only testing HTML reflection, not Web Addresses.
  *
- * Return "" if the URL couldn't be resolved, since this is really for
- * reflected URL attributes, and those are supposed to return "" if the URL
- * couldn't be resolved.
+ * Return the input if the URL couldn't be resolved, per the spec for
+ * reflected URL attributes.
  *
  * It seems like IE9 doesn't implement URL decomposition attributes correctly
  * for <a>, which causes all these tests to fail.  Ideally I'd do this in some
@@ -25,39 +24,15 @@ ReflectionTests.start = new Date().getTime();
  * special cases for all the values we test.
  */
 ReflectionTests.resolveUrl = function(url) {
+    url = String(url);
     var el = document.createElement("a");
-    el.href = String(url);
+    el.href = url;
     var ret = el.protocol + "//" + el.host + el.pathname + el.search + el.hash;
     if (ret == "//") {
-        return "";
+        return url;
     } else {
         return ret;
     }
-};
-
-/**
- * Given some input, convert to a multi-URL value for IDL get per the spec.
- */
-ReflectionTests.urlsExpected = function(urls) {
-    var expected = "";
-    // TODO: Test other whitespace?
-    urls = urls + "";
-    var split = urls.split(" ");
-    for (var j = 0; j < split.length; j++) {
-        if (split[j] == "") {
-            continue;
-        }
-        var append = ReflectionTests.resolveUrl(split[j]);
-        if (append == "") {
-            continue;
-        }
-        if (expected == "") {
-            expected = append;
-        } else {
-            expected += " " + append;
-        }
-    }
-    return expected;
 };
 
 /**
@@ -177,14 +152,17 @@ ReflectionTests.typeMap = {
                 ]
     },
     /**
-     * "If a reflecting IDL attribute is a DOMString attribute whose content
-     * attribute is defined to contain a URL, then on getting, the IDL
-     * attribute must resolve the value of the content attribute relative to
-     * the element and return the resulting absolute URL if that was
-     * successful, or the empty string otherwise; and on setting, must set the
-     * content attribute to the specified literal value. If the content
-     * attribute is absent, the IDL attribute must return the default value, if
-     * the content attribute has one, or else the empty string."
+     * "If a reflecting IDL attribute is a USVString attribute whose content
+     * attribute is defined to contain a URL, then on getting, if the content
+     * attribute is absent, the IDL attribute must return the empty string.
+     * Otherwise, the IDL attribute must parse the value of the content
+     * attribute relative to the element's node document and if that is
+     * successful, return the resulting URL string. If parsing fails, then the
+     * value of the content attribute must be returned instead, converted to a
+     * USVString. On setting, the content attribute must be set to the specified
+     * new value."
+     *
+     * Also HTMLHyperLinkElementUtils href, used by a.href and area.href
      */
     "url": {
         "jsType": "string",
@@ -196,31 +174,6 @@ ReflectionTests.typeMap = {
                      {"valueOf":function(){return "test-valueOf";}, toString:null}],
         "domExpected": ReflectionTests.resolveUrl,
         "idlIdlExpected": ReflectionTests.resolveUrl
-    },
-    /**
-     * "If a reflecting IDL attribute is a DOMString attribute whose content
-     * attribute is defined to contain one or more URLs, then on getting, the
-     * IDL attribute must split the content attribute on spaces and return the
-     * concatenation of resolving each token URL to an absolute URL relative to
-     * the element, with a single U+0020 SPACE character between each URL,
-     * ignoring any tokens that did not resolve successfully. If the content
-     * attribute is absent, the IDL attribute must return the default value, if
-     * the content attribute has one, or else the empty string. On setting, the
-     * IDL attribute must set the content attribute to the specified literal
-     * value."
-     *
-     * Seems to only be used for ping.
-     */
-    "urls": {
-        "jsType": "string",
-        "defaultVal": "",
-        "domTests": ["", " foo   ", "http://site.example/ foo  bar   baz",
-                     "//site.example/path???@#l", binaryString, undefined, 7, 1.5, true,
-                     false, {"test": 6}, NaN, +Infinity, -Infinity, "\0", null,
-                     {"toString":function(){return "test-toString";}},
-                     {"valueOf":function(){return "test-valueOf";}, toString:null}],
-        "domExpected": ReflectionTests.urlsExpected,
-        "idlIdlExpected": ReflectionTests.urlsExpected
     },
     /**
      * "If a reflecting IDL attribute is a DOMString whose content attribute is

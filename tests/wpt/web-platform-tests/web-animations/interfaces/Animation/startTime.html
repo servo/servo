@@ -44,5 +44,12 @@ promise_test(function(t) {
   });
 }, 'startTime is resolved when running');
 
+test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+  assert_equals(animation.startTime, null);
+  assert_equals(animation.currentTime, null);
+}, 'startTime and currentTime are unresolved when animation is cancelled');
+
 </script>
 </body>

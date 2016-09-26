@@ -1,0 +1,4 @@
+Content-Type: application/ld+json; profile="http://www.w3.org/ns/anno.jsonld"
+Link: <http://www.w3.org/ns/ldp#Resource>; rel="type"
+Allow: GET,HEAD,OPTIONS,DELETE,PUT
+Vary: Accept

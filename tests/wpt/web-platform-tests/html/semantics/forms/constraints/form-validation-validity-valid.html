@@ -41,11 +41,11 @@
     },
     {
       tag: "input",
-      types: ["datetime"],
+      types: ["datetime-local"],
       testData: [
-        {conditions: {max: "2000-01-01T12:00:00Z", value: "2001-01-01T12:00:00Z"}, expected: false, name: "[target] validity.valid must be false if validity.rangeOverflow is true"},
-        {conditions: {min: "2001-01-01T12:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] validity.valid must be false if validity.rangeUnderflow is true"},
-        {conditions: {step: 2 * 60 * 1000, value: "2001-01-01T12:03:00Z"}, expected: false, name: "[target] validity.valid must be false if validity.stepMismatch is true"},
+        {conditions: {max: "2000-01-01T12:00:00", value: "2001-01-01T12:00:00"}, expected: false, name: "[target] validity.valid must be false if validity.rangeOverflow is true"},
+        {conditions: {min: "2001-01-01T12:00:00", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] validity.valid must be false if validity.rangeUnderflow is true"},
+        {conditions: {step: 2 * 60 * 1000, value: "2001-01-01T12:03:00"}, expected: false, name: "[target] validity.valid must be false if validity.stepMismatch is true"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] validity.valid must be false if validity.valueMissing is true"}
       ]
     },

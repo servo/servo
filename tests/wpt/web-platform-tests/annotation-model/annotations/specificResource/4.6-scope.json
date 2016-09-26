@@ -1,0 +1,90 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "4.6-scope.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Specific Resource may include scope key with one or more values that is of format uri.",
+    "title": "Implements **Specific Resource _scope_ key** - [model 4.6](https://www.w3.org/TR/annotation-model/#scope-of-a-resource)",
+    "description": "True when Annotation includes one or more Specific Resources, one or more of which include scope key with value(s) of format uri. (Section 4.6)",
+    "type": "object",
+    "anyOf":
+     [
+      { "properties":
+         { "body":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "specificResource.json#/definitions/scopeDetected" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                       { "not":
+                          { "oneOf":
+                             [
+                               { "$ref": "specificResource.json#/definitions/scopeDetected" },
+                               { "$ref": "#/definitions/itemSchema" }
+                             ]
+                          }
+                       }
+                    }
+                 }
+               ]
+            }
+         },
+         "required": [ "body" ]
+      },
+      { "properties":
+         { "target":
+            { "oneOf":
+               [
+                 { "type": "object",
+                   "oneOf":
+                    [
+                      { "$ref": "specificResource.json#/definitions/scopeDetected" },
+                      { "$ref": "#/definitions/itemSchema" }
+                    ]
+                 },
+                 { "type": "array",
+                   "minItems": 1,
+                   "not":
+                    { "items":
+                        { "not":
+                           { "oneOf":
+                              [
+                                { "$ref": "specificResource.json#/definitions/scopeDetected" },
+                                { "$ref": "#/definitions/itemSchema" }
+                              ]
+                           }
+                        }
+                    }
+                 }
+               ]
+            }
+         }
+       }
+     ],
+     "definitions":
+      {
+        "itemSchema":
+         { "type": "object",
+           "properties":
+            { "items":
+               { "type": "array",
+                 "minItems": 1,
+                 "not":
+                  { "items":
+                      { "not": { "$ref": "specificResource.json#/definitions/scopeDetected" } }
+                  }
+               }
+            },
+            "required": [ "items" ]
+         }
+      }
+}

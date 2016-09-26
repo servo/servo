@@ -81,7 +81,7 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 2 ) && !_timeupdateEvent ) {
+            if ( _video.currentTime > ( config.duration || 1 ) && !_timeupdateEvent ) {
                 _timeupdateEvent = true;
                 _video.pause();
                 _mediaKeySession.remove().then( recordEventFunc('remove-done') ).catch(onFailure);

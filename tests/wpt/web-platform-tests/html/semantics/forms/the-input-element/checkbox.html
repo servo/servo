@@ -30,7 +30,7 @@
       t5 = async_test("canceled activation steps on unchecked checkbox"),
       t6 = async_test("canceled activation steps on unchecked checkbox (indeterminate=true in onclick)");
 
-  checkbox1.onclick = t1.step_func(function () {
+  checkbox1.onclick = t1.step_func(function(e) {
     c1_click_fired = true;
     assert_false(c1_input_fired, "click event should fire before input event");
     assert_false(c1_change_fired, "click event should fire before change event");

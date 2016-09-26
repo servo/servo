@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset=utf-8>
-    <meta name="timeout" content="long">
     <title>Encrypted Media Extensions: Successful Playback, Temporary session with Clear Key, mp4, multiple keys for audio/video</title>
     <link rel="help" href="https://w3c.github.io/encrypted-media/">
 
@@ -45,7 +44,7 @@
                             content:            contentitem,
                             messagehandler:     handler.messagehandler,
                             initDataType:       contentitem.initDataType,
-                            initData:           getProprietaryInitDatas(contentitem).initDatas.map( base64DecodeToUnit8Array ),
+                            initData:           getProprietaryInitDatas(contentitem).initDatas.map( base64DecodeToUnit8Array )
                         };
 
             runTest(config);

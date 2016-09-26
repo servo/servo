@@ -21,18 +21,17 @@
     },
     {
       tag: "input",
-      types: ["datetime"],
+      types: ["datetime-local"],
       testData: [
         {conditions: {required: false, value: ""}, expected: false, name: "[target] The required attribute is not set"},
-        {conditions: {required: true, value: "2000-12-10T12:00:00Z"}, expected: false, name: "[target] Valid global date and time string(2000-12-10T12:00:00Z)"},
-        {conditions: {required: true, value: "2000-12-10 12:00Z"}, expected: false, name: "[target] Valid global date and time string(2000-12-10 12:00Z)"},
-        {conditions: {required: true, value: "1979-10-14T12:00:00.001-04:00"}, expected: false, name: "[target] Valid global date and time string(1979-10-14T12:00:00.001-04:00)"},
-        {conditions: {required: true, value: "8592-01-01T02:09+02:09"}, expected: false, name: "[target] Valid global date and time string(8592-01-01T02:09+02:09)"},
+        {conditions: {required: true, value: "2000-12-10T12:00:00"}, expected: false, name: "[target] Valid local date and time string(2000-12-10T12:00:00)"},
+        {conditions: {required: true, value: "2000-12-10 12:00"}, expected: false, name: "[target] Valid local date and time string(2000-12-10 12:00)"},
+        {conditions: {required: true, value: "1979-10-14T12:00:00.001"}, expected: false, name: "[target] Valid local date and time string(1979-10-14T12:00:00.001)"},
         {conditions: {required: true, value: 1234567}, expected: true, name: "[target] The value attribute is a number(1234567)"},
         {conditions: {required: true, value: new Date()}, expected: true, name: "[target] The value attribute is a Date object"},
-        {conditions: {required: true, value: "1979-10-99 99:99Z"}, expected: true, name: "[target] Invalid global date and time string(1979-10-99 99:99Z)"},
-        {conditions: {required: true, value: "1979-10-14 12:00:00"}, expected: true, name: "[target] Invalid global date and time string(1979-10-14 12:00:00)"},
-        {conditions: {required: true, value: "2001-12-21  12:00Z"}, expected: true, name: "[target] Invalid global date and time string(2001-12-21  12:00Z)-two white space"},
+        {conditions: {required: true, value: "1979-10-99 99:99"}, expected: true, name: "[target] Invalid local date and time string(1979-10-99 99:99)"},
+        {conditions: {required: true, value: "1979-10-14 12:00:00"}, expected: false, name: "[target] Valid local date and time string(1979-10-14 12:00:00)"},
+        {conditions: {required: true, value: "2001-12-21  12:00"}, expected: true, name: "[target] Invalid local date and time string(2001-12-21  12:00)-two white space"},
         {conditions: {required: true, value: "abc"}, expected: true, name: "[target] the value attribute is a string(abc)"},
         {conditions: {required: true, value: ""}, expected: true, name: "[target] The value attribute is empty string"}
       ]

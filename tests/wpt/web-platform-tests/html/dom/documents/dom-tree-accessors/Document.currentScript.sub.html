@@ -102,26 +102,6 @@ document.body.appendChild(s);
  finish('nested');
 </script>
 
-<!-- Test beforescriptexecute and afterscriptexecute -->
-<script id="script-exec-before-after">
-function verifyScriptExec(e) {
-  verify('script-exec');
-}
-
-document.addEventListener('beforescriptexecute', verifyScriptExec, false);
-document.addEventListener('afterscriptexecute', verifyScriptExec, false);
-
-var s = document.createElement("script");
-s.id = "script-exec-test";
-s.textContent = "function nop() { return false }";
-document.body.appendChild(s);
-
-document.removeEventListener('beforescriptexecute', verifyScriptExec);
-document.removeEventListener('afterscriptexecute', verifyScriptExec);
-
-finish('script-exec');
-</script>
-
 <!-- Test script load error event listener -->
 <script>
 function testLoadFail() {
