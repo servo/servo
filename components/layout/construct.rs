@@ -360,7 +360,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let style_context = self.style_context();
         if child.is_table_cell() {
             let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table_row);
+            style = self.style_context().stylist.
+                precomputed_values_for_pseudo(&PseudoElement::ServoAnonymousTableRow, Some(&style)).unwrap();
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
                                                                 style,
@@ -374,7 +375,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
         if child.is_table_row() || child.is_table_rowgroup() {
             let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
+            style = self.style_context().stylist.
+                precomputed_values_for_pseudo(&PseudoElement::ServoAnonymousTable, Some(&style)).unwrap();
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
                                                                 style,
@@ -388,7 +390,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
         if child.is_table() {
             let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
+            style = self.style_context().stylist.
+                precomputed_values_for_pseudo(&PseudoElement::ServoAnonymousTable, Some(&style)).unwrap();
             let fragment =
                 Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                      PseudoElementType::Normal,

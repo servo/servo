@@ -55,6 +55,7 @@ use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ServoComputedValues};
+use style::servo_selector_impl::PseudoElement;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -1256,9 +1257,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         let mut style = node.style(style_context);
         match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
-                properties::modify_style_for_anonymous_table_object(
-                    &mut style,
-                    display::T::table_row);
+                style = style_context.stylist
+                    .precomputed_values_for_pseudo(&PseudoElement::ServoAnonymousTableRow, Some(&style)).unwrap();
                 let fragment = Fragment::from_opaque_node_and_style(
                     node.opaque(),
                     PseudoElementType::Normal,
@@ -1269,9 +1269,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 Arc::new(TableRowFlow::from_fragment(fragment))
             },
             FlowClass::TableRow => {
-                properties::modify_style_for_anonymous_table_object(
-                    &mut style,
-                    display::T::table_cell);
+                style = style_context.stylist
+                    .precomputed_values_for_pseudo(&PseudoElement::ServoAnonymousTableCell, Some(&style)).unwrap();
                 let fragment = Fragment::from_opaque_node_and_style(
                     node.opaque(),
                     PseudoElementType::Normal,
