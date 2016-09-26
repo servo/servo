@@ -229,6 +229,9 @@ impl HTMLCollection {
         }
     }
 
+    pub fn root_node(&self) -> Root<Node> {
+        Root::from_ref(&self.root)
+    }
 }
 
 // TODO: Make this generic, and avoid code duplication
