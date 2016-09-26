@@ -24,7 +24,9 @@ Servo Page Load Time Test
 ## Run
 * Activate the virutalenv: `source venv/bin/activate`
 * Sync your system clock before running, the Perfherder API SSL check will fail if your system clock is not accurate. (e.g. `sudo nptdate tw.pool.ntp.org`)
-* Run `test_all.sh`
+* Run `test_all.sh [--servo|--gecko] [--submit]`
+    - choose `servo` or `gecko` as the testing engine
+    - enable `submit`, if you want to submit to perfherder
 * Test results are submitted to https://treeherder.mozilla.org/#/jobs?repo=servo
 
 # How it works
