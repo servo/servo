@@ -5,7 +5,7 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::TextEncoderBinding;
 use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -13,11 +13,9 @@ use dom::bindings::str::{DOMString, USVString};
 use encoding::EncoderTrap;
 use encoding::Encoding;
 use encoding::all::UTF_8;
-use encoding::label::encoding_from_whatwg_label;
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetUint8ArrayData, JS_NewUint8Array};
 use libc::uint8_t;
-use std::borrow::ToOwned;
 use std::ptr;
 
 #[dom_struct]
@@ -39,25 +37,8 @@ impl TextEncoder {
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
-    pub fn Constructor(global: GlobalRef,
-                       label: DOMString) -> Fallible<Root<TextEncoder>> {
-        let encoding = match encoding_from_whatwg_label(&label) {
-            Some(enc) => enc,
-            None => {
-                debug!("Encoding Label Not Supported");
-                return Err(Error::Range("The given encoding is not supported.".to_owned()))
-            }
-        };
-
-        match encoding.name() {
-            "utf-8" => {
-                Ok(TextEncoder::new(global))
-            }
-            _ => {
-                debug!("Encoding Not UTF");
-                Err(Error::Range("The encoding must be utf-8.".to_owned()))
-            }
-        }
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TextEncoder>> {
+        Ok(TextEncoder::new(global))
     }
 }
 
