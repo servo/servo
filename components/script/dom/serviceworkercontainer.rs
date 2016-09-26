@@ -67,24 +67,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 script_url: USVString,
                 options: &RegistrationOptions) -> Promise<ServiceWorker> {
         
-        
-        /*Let p be a promise.
-        Let client be the context object’s service worker client.
-        Let scriptURL be the result of parsing scriptURL with the context object’s relevant settings object’s API base URL.
-        Let scopeURL be null.
-        If options.scope is present, set scopeURL to the result of parsing options.scope with the context object’s relevant settings object’s API base URL.
-        Invoke Start Register with scopeURL, scriptURL, p, client, client’s creation URL and options.type.
-        Return p.    */ 
-        
-        // New Step 1
-        
         let p = Promise::new
-        
-        // New Step 2
-        // TODO
-        
-        // New Step 3
-        let scopeURL = null
         
         let USVString(ref script_url) = script_url;
         // Step 3-4
