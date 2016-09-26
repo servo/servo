@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
+use gecko_bindings::bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
+use gecko_bindings::structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
+use gecko_bindings::structs::{nsStyleCoord_CalcValue, nscoord};
 use std::mem;
-use structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
-use structs::{nsStyleCoord_CalcValue, nscoord};
 
 impl nsStyleCoord {
     #[inline]
@@ -235,7 +235,7 @@ pub trait CoordDataMut : CoordData {
     /// Useful for initializing uninits
     /// (set_value may segfault on uninits)
     fn leaky_set_null(&mut self) {
-        use structs::nsStyleUnit::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         unsafe {
             let (unit, union) = self.values_mut();
             *unit = eStyleUnit_Null;
@@ -245,8 +245,8 @@ pub trait CoordDataMut : CoordData {
 
     #[inline(always)]
     fn set_value(&mut self, value: CoordDataValue) {
+        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
-        use structs::nsStyleUnit::*;
         self.reset();
         unsafe {
             let (unit, union) = self.values_mut();
@@ -337,8 +337,8 @@ pub trait CoordData {
 
     #[inline(always)]
     fn as_value(&self) -> CoordDataValue {
+        use gecko_bindings::structs::nsStyleUnit::*;
         use self::CoordDataValue::*;
-        use structs::nsStyleUnit::*;
         unsafe {
             match self.unit() {
                 eStyleUnit_Null => Null,
@@ -363,7 +363,7 @@ pub trait CoordData {
     #[inline]
     /// Pretend inner value is a float; obtain it.
     unsafe fn get_float(&self) -> f32 {
-        use structs::nsStyleUnit::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         debug_assert!(self.unit() == eStyleUnit_Percent || self.unit() == eStyleUnit_Factor
                       || self.unit() == eStyleUnit_Degree || self.unit() == eStyleUnit_Grad
                       || self.unit() == eStyleUnit_Radian || self.unit() == eStyleUnit_Turn
@@ -374,7 +374,7 @@ pub trait CoordData {
     #[inline]
     /// Pretend inner value is an int; obtain it.
     unsafe fn get_integer(&self) -> i32 {
-        use structs::nsStyleUnit::*;
+        use gecko_bindings::structs::nsStyleUnit::*;
         debug_assert!(self.unit() == eStyleUnit_Coord || self.unit() == eStyleUnit_Integer
                       || self.unit() == eStyleUnit_Enumerated);
         *self.union().mInt.as_ref()

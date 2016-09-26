@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use gecko_bindings::structs::nsStyleAutoArray;
 use std::iter::{once, Chain, Once, IntoIterator};
 use std::slice::{Iter, IterMut};
-use structs::nsStyleAutoArray;
 
 impl<T> nsStyleAutoArray<T> {
     pub fn iter_mut(&mut self) -> Chain<Once<&mut T>, IterMut<T>> {

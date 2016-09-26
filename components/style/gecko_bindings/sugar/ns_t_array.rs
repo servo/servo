@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bindings;
+use gecko_bindings::bindings;
+use gecko_bindings::structs::{nsTArray, nsTArrayHeader};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::slice;
-use structs::{nsTArray, nsTArrayHeader};
 
 impl<T> Deref for nsTArray<T> {
     type Target = [T];

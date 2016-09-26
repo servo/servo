@@ -38,6 +38,8 @@ extern crate app_units;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
+#[macro_use] #[no_link]
+extern crate cfg_if;
 extern crate core;
 #[macro_use]
 extern crate cssparser;
@@ -45,12 +47,11 @@ extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
-#[cfg(feature = "gecko")] extern crate gecko_bindings;
-#[cfg(feature = "gecko")] #[macro_use] extern crate gecko_string_cache as string_cache;
-#[cfg(feature = "servo")] extern crate heapsize;
+extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
@@ -58,12 +59,14 @@ extern crate log;
 extern crate matches;
 extern crate num_integer;
 extern crate num_traits;
+#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
 extern crate quickersort;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
-#[cfg(feature = "servo")] extern crate serde;
+#[cfg(feature = "servo")]
+extern crate serde;
 extern crate smallvec;
 #[cfg(feature = "servo")] #[macro_use] extern crate string_cache;
 #[macro_use]
@@ -71,6 +74,10 @@ extern crate style_traits;
 extern crate time;
 extern crate url;
 extern crate util;
+
+#[cfg(feature = "gecko")]
+#[path = "./gecko_string_cache/mod.rs"]
+#[macro_use] pub mod string_cache;
 
 pub mod animation;
 pub mod attr;
@@ -85,9 +92,8 @@ pub mod domrefcell;
 pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;
-#[cfg(feature = "gecko")] pub mod gecko_conversions;
-#[cfg(feature = "gecko")] pub mod gecko_selector_impl;
-#[cfg(feature = "gecko")] pub mod gecko_values;
+#[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko;
+#[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko_bindings;
 pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;

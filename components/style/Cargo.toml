@@ -12,8 +12,8 @@ name = "style"
 path = "lib.rs"
 
 [features]
-gecko = ["gecko_bindings", "gecko_string_cache"]
-servo = ["serde", "serde/unstable", "serde_macros", "heapsize", "heapsize_plugin",
+gecko = []
+servo = ["serde/unstable", "serde", "serde_macros", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
          "selectors/heap_size", "selectors/unstable", "string_cache",
@@ -23,20 +23,21 @@ testing = []
 [dependencies]
 app_units = "0.3"
 bitflags = "0.7"
+cfg-if = "0.1.0"
 cssparser = "0.7"
 deque = "0.3.1"
 encoding = "0.2"
 euclid = "0.10.1"
 fnv = "1.0"
-gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
-gecko_string_cache = {path = "../../ports/geckolib/string_cache", optional = true}
-heapsize = {version = "0.3.0", optional = true}
+heapsize = "0.3.0"
 heapsize_plugin = {version = "0.1.2", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
+libc = "0.2"
 matches = "0.1"
 num-integer = "0.1.32"
 num-traits = "0.1.32"
+num_cpus = "0.2.2"
 ordered-float = "0.2.2"
 quickersort = "2.0.0"
 rand = "0.3"

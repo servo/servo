@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {Atom, WeakAtom};
 use gecko_bindings::structs::nsIAtom;
 use selectors::bloom::BloomHash;
 use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
+use string_cache::{Atom, WeakAtom};
 
 #[macro_export]
 macro_rules! ns {
-    () => { $crate::Namespace(atom!("")) }
+    () => { $crate::string_cache::Namespace(atom!("")) }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]

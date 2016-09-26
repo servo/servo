@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use animation::Animation;
+use context::SharedStyleContext;
+use dom::OpaqueNode;
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use media_queries::{Device, MediaType};
 use num_cpus;
+use parallel::WorkQueueData;
+use selector_matching::Stylist;
 use std::cmp;
 use std::collections::HashMap;
 use std::env;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use style::animation::Animation;
-use style::context::SharedStyleContext;
-use style::dom::OpaqueNode;
-use style::media_queries::{Device, MediaType};
-use style::parallel::WorkQueueData;
-use style::selector_matching::Stylist;
-use style::stylesheets::Stylesheet;
-use style::thread_state;
-use style::workqueue::WorkQueue;
 use style_traits::ViewportPx;
+use stylesheets::Stylesheet;
+use thread_state;
+use workqueue::WorkQueue;
 
 pub struct PerDocumentStyleData {
     /// Rule processor.

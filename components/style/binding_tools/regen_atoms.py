@@ -117,7 +117,7 @@ def write_atom_macro(atoms, file_name):
 
     with open(file_name, "wb") as f:
         f.write(PRELUDE)
-        f.write("use gecko_bindings::structs::nsIAtom;\n\n")
+        f.write("use style::gecko_bindings::structs::nsIAtom;\n\n")
         f.write("use Atom;\n\n")
         for source in SOURCES:
             if source.TYPE != "nsIAtom":
@@ -138,7 +138,8 @@ def write_atom_macro(atoms, file_name):
         f.write("}\n\n")
         f.write("#[macro_export]\n")
         f.write("macro_rules! atom {\n")
-        f.writelines(['("%s") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::%s as *mut _) };\n'
+        f.writelines(['("%s") => { $crate::string_cache::atom_macro::unsafe_atom_from_static(\
+                      $crate::string_cache::atom_macro::%s as *mut _) };\n'
                      % (atom.value, atom.ident) for atom in atoms])
         f.write("}\n")
 
@@ -191,6 +192,6 @@ def write_pseudo_element_helper(atoms, target_filename):
 
 def build(objdir, verbose=False):
     atoms = collect_atoms(objdir)
-    write_atom_macro(atoms, "../string_cache/atom_macro.rs")
-    write_pseudo_element_helper(atoms, "../../../components/style/generated/gecko_pseudo_element_helper.rs")
+    write_atom_macro(atoms, "../gecko_string_cache/atom_macro.rs")
+    write_pseudo_element_helper(atoms, "../gecko/generated/gecko_pseudo_element_helper.rs")
     return 0

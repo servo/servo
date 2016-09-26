@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use context::StandaloneStyleContext;
+use context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use dom::OpaqueNode;
+use gecko::context::StandaloneStyleContext;
+use gecko::wrapper::GeckoNode;
 use std::mem;
-use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use style::dom::OpaqueNode;
-use style::traversal::{DomTraversalContext, recalc_style_at};
-use style::traversal::RestyleResult;
-use wrapper::GeckoNode;
+use traversal::{DomTraversalContext, recalc_style_at};
+use traversal::RestyleResult;
 
 pub struct RecalcStyleOnly<'lc> {
     context: StandaloneStyleContext<'lc>,

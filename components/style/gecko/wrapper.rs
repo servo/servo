@@ -4,6 +4,15 @@
 
 #![allow(unsafe_code)]
 
+
+use data::PrivateStyleData;
+use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{OpaqueNode, PresentationalHintsSynthetizer};
+use element_state::ElementState;
+use error_reporting::StdoutErrorReporter;
+use gecko::selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
+use gecko::snapshot::GeckoElementSnapshot;
+use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
@@ -24,31 +33,23 @@ use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRT
 use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsStyleContext};
 use gecko_bindings::structs::OpaqueStyleData;
-use gecko_bindings::sugar::ownership::FFIArcHelpers;
-use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use glue::GeckoDeclarationBlock;
+use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasFFI};
 use libc::uintptr_t;
+use parser::ParserContextExtraData;
+use properties::{ComputedValues, parse_style_attribute};
+use properties::PropertyDeclarationBlock;
+use refcell::{Ref, RefCell, RefMut};
+use selector_impl::ElementExt;
+use selector_matching::ApplicableDeclarationBlock;
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use snapshot::GeckoElementSnapshot;
-use snapshot_helpers;
+use sink::Push;
 use std::fmt;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
-use style::data::PrivateStyleData;
-use style::dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
-use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
-use style::element_state::ElementState;
-use style::error_reporting::StdoutErrorReporter;
-use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
-use style::parser::ParserContextExtraData;
-use style::properties::{ComputedValues, parse_style_attribute};
-use style::properties::PropertyDeclarationBlock;
-use style::refcell::{Ref, RefCell, RefMut};
-use style::selector_impl::ElementExt;
-use style::selector_matching::ApplicableDeclarationBlock;
-use style::sink::Push;
+use std::sync::atomic::{AtomicBool, AtomicPtr};
+use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use url::Url;
 
 pub struct NonOpaqueStyleData(RefCell<PrivateStyleData>);
@@ -58,6 +59,24 @@ impl NonOpaqueStyleData {
         NonOpaqueStyleData(RefCell::new(PrivateStyleData::new()))
     }
 }
+
+
+pub struct GeckoDeclarationBlock {
+    pub declarations: Option<Arc<PropertyDeclarationBlock>>,
+    // XXX The following two fields are made atomic to work around the
+    // ownership system so that they can be changed inside a shared
+    // instance. It wouldn't provide safety as Rust usually promises,
+    // but it is fine as far as we only access them in a single thread.
+    // If we need to access them in different threads, we would need
+    // to redesign how it works with MiscContainer in Gecko side.
+    pub cache: AtomicPtr<bindings::nsHTMLCSSStyleSheet>,
+    pub immutable: AtomicBool,
+}
+
+unsafe impl HasFFI for GeckoDeclarationBlock {
+    type FFIType = bindings::ServoDeclarationBlock;
+}
+unsafe impl HasArcFFI for GeckoDeclarationBlock {}
 
 
 // We can eliminate OpaqueStyleData when the bindings move into the style crate.
