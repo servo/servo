@@ -65,7 +65,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
     fn Register(&self,
                 script_url: USVString,
-                options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
+                options: &RegistrationOptions) -> Promise<ServiceWorker> {
         
         
         /*Let p be a promise.
