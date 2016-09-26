@@ -47,15 +47,6 @@ impl Controllable for ServiceWorkerContainer {
     }
 }
 
-impl start_register {
-    scopeURL: url,
-    scriptURL: url,
-    promise: DOM::promise:Promise,
-    client: /*Service Worker*/,
-    referrer: url,
-    workerType: /* worker type */
-}
-
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
