@@ -238,6 +238,8 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
+    /// Vector to store focusable elements
+    focus_list: DOMRefCell<Vec<JS<Element>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -494,6 +496,11 @@ impl Document {
         if is_empty {
             id_map.remove(&id);
         }
+    }
+
+    /// Add a focusable element to this document's ordering focus list.
+    pub fn add_focusable_element(&self, element: &Element) {
+        self.focus_list.borrow_mut().push(JS::from_ref(element));
     }
 
     /// Associate an element present in this document with the provided id.
@@ -1799,6 +1806,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
+            focus_list: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
