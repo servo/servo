@@ -20,26 +20,26 @@ use string_cache::Atom;
 pub struct StorageEvent {
     event: Event,
     key: Option<DOMString>,
-    oldValue: Option<DOMString>,
-    newValue: Option<DOMString>,
+    old_value: Option<DOMString>,
+    new_value: Option<DOMString>,
     url: DOMString,
-    storageArea: MutNullableHeap<JS<Storage>>
+    storage_area: MutNullableHeap<JS<Storage>>
 }
 
 
 impl StorageEvent {
     pub fn new_inherited(key: Option<DOMString>,
-                         oldValue: Option<DOMString>,
-                         newValue: Option<DOMString>,
+                         old_value: Option<DOMString>,
+                         new_value: Option<DOMString>,
                          url: DOMString,
-                         storageArea: Option<&Storage>) -> StorageEvent {
+                         storage_area: Option<&Storage>) -> StorageEvent {
         StorageEvent {
             event: Event::new_inherited(),
             key: key,
-            oldValue: oldValue,
-            newValue: newValue,
+            old_value: old_value,
+            new_value: new_value,
             url: url,
-            storageArea: MutNullableHeap::new(storageArea)
+            storage_area: MutNullableHeap::new(storage_area)
         }
     }
 
@@ -96,12 +96,12 @@ impl StorageEventMethods for StorageEvent {
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue
     fn GetOldValue(&self) -> Option<DOMString> {
-        self.oldValue.clone()
+        self.old_value.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue
     fn GetNewValue(&self) -> Option<DOMString> {
-        self.newValue.clone()
+        self.new_value.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-url
@@ -111,7 +111,7 @@ impl StorageEventMethods for StorageEvent {
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
     fn GetStorageArea(&self) -> Option<Root<Storage>> {
-        self.storageArea.get()
+        self.storage_area.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

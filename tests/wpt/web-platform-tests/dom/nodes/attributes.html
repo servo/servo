@@ -20,23 +20,6 @@
 var XML = "http://www.w3.org/XML/1998/namespace"
 var XMLNS = "http://www.w3.org/2000/xmlns/"
 
-// AttrExodus
-test(function() {
-  document.body.setAttribute("abc", "pass")
-  var attr = document.body.attributes[0]
-  assert_true(attr instanceof Attr, "should be an Attr")
-  assert_false(attr instanceof Node, "should not be a Node")
-  var removed_members = [
-    "appendChild",
-    "insertBefore",
-    "childNodes",
-  ]
-  removed_members.forEach(function(m) {
-    assert_false(m in attr, m + " should not be supported")
-  })
-  assert_equals(attr.value, "pass")
-}, "AttrExodus")
-
 // setAttribute exhaustive tests
 // Step 1
 test(function() {

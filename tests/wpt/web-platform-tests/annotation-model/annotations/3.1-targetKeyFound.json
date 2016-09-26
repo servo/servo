@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.1-targetKeyFound.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "Error: Annotation is missing target  key.",
+  "title": "Implements **_target_ key** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
+  "description": "True when the Annotation has a target key (Section 3.1)",
+  "type": "object",
+  "required": ["target" ]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.1-annotationContextValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation is missing @context key or 'http://www.w3.org/ns/anno.jsonld' is not a value of @context.",
+  "title": "Implements **_@context_ key** and '**http://www.w3.org/ns/anno.jsonld**' is **a value of _@context_** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
+  "description": "True when the Annotation has @context key and 'http://www.w3.org/ns/anno.jsonld' is an @context value (Section 3.1)",
+  "type": "object",
+  "required": [ "@context" ],
+  "properties": {
+    "@context": {
+      "oneOf": [
+      { "$ref": "annotations.json#/definitions/contextValueFound" },
+      { "$ref": "annotations.json#/definitions/contextValueInArrayFound" }
+      ]
+    }
+  }
+}

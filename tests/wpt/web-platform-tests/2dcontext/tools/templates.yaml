@@ -108,7 +108,7 @@ w3c: |
 
     });
     </script>
-    %(images)s
+    %(scripts)s%(images)s
 
 mochitest: |
     <!DOCTYPE HTML>

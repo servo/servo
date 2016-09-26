@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: Test handling of invalid initData for generateRequest()</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/generate-request-disallowed-input.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+        var config = {  keysystem:          getSupportedKeySystem()
+                     };
+
+        runTest(config);
+
+    </script>
+  </body>
+</html>

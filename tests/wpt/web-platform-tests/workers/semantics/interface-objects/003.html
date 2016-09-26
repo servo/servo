@@ -1,12 +1,83 @@
 <!--
 onconnect = function(e) {
-  var expected = 'ApplicationCache WorkerGlobalScope EventTarget ErrorEvent Event Worker DOMException SharedWorker MessagePort MessageEvent WorkerNavigator MessageChannel WorkerLocation Database ImageData File Blob FileList XMLHttpRequest ProgressEvent FormData ArrayBuffer Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Float32Array Float64Array DataView CanvasProxy ImageBitmap CanvasRenderingContext2d DrawingStyle CanvasGradient CanvasPattern Path TextMetrics'.split(' ');
-  var log = [];
+  var expected = [
+    // https://html.spec.whatwg.org/
+    "ApplicationCache",
+    "WorkerGlobalScope",
+    "SharedWorkerGlobalScope",
+    "Worker",
+    "SharedWorker",
+    "MessagePort",
+    "MessageEvent",
+    "WorkerNavigator",
+    "MessageChannel",
+    "WorkerLocation",
+    "ImageData",
+    "ImageBitmap",
+    "CanvasPath",
+    "Path2D",
+    "PromiseRejectionEvent",
+    "EventSource",
+    "WebSocket",
+    "CloseEvent",
+    "BroadcastChannel",
+    // https://tc39.github.io/ecma262/
+    "ArrayBuffer",
+    "Int8Array",
+    "Uint8Array",
+    "Uint8ClampedArray",
+    "Int16Array",
+    "Uint16Array",
+    "Int32Array",
+    "Uint32Array",
+    "Float32Array",
+    "Float64Array",
+    "DataView",
+    // https://xhr.spec.whatwg.org/
+    "XMLHttpRequestEventTarget",
+    "XMLHttpRequestUpload",
+    "XMLHttpRequest",
+    "ProgressEvent",
+    "FormData",
+    // https://url.spec.whatwg.org/
+    "URL",
+    "URLSearchParams",
+    // https://w3c.github.io/FileAPI/
+    "File",
+    "Blob",
+    "FileList",
+    "FileReader",
+    "FileReaderSync",
+    // https://dom.spec.whatwg.org/
+    "EventTarget",
+    "ErrorEvent",
+    "Event",
+    "CustomEvent",
+    // http://heycam.github.io/webidl/
+    "DOMException",
+    // https://streams.spec.whatwg.org/
+    "ReadableStream",
+    "WritableStream",
+    "ByteLengthQueuingStrategy",
+    "CountQueuingStrategy",
+    // http://w3c.github.io/IndexedDB/
+    "IDBRequest",
+    "IDBOpenDBRequest",
+    "IDBVersionChangeEvent",
+    "IDBFactory",
+    "IDBDatabase",
+    "IDBObjectStore",
+    "IDBIndex",
+    "IDBKeyRange",
+    "IDBCursor",
+    "IDBCursorWithValue",
+    "IDBTransaction",
+  ];
+  var result = [];
   for (var i = 0; i < expected.length; ++i) {
-    if (!(expected[i] in self))
-      log.push(expected[i]);
+    result.push([expected[i], expected[i] in self]);
   }
-  e.ports[0].postMessage(log.join(', '));
+  e.ports[0].postMessage(result);
 }
 /*
 -->
@@ -16,13 +87,18 @@ onconnect = function(e) {
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
 <script>
-async_test(function() {
-  var worker = new SharedWorker('#');
-  worker.port.onmessage = this.step_func(function(e) {
-    assert_equals(e.data, '', 'these interface objects were missing');
-    this.done();
-  });
-});
+setup(function() {
+  window.worker = new SharedWorker('#');
+  worker.port.onmessage = function(e) {
+    var result = e.data;
+    for (var i = 0; i < result.length; ++i) {
+      test(function() {
+        assert_true(result[i][1]);
+      }, "The " + result[i][0] + " interface object should be exposed");
+    }
+    done();
+  }
+}, {explicit_done: true});
 </script>
 <!--
 */

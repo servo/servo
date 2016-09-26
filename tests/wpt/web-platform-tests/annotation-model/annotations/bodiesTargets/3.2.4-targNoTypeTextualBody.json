@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.4-targNoTypeTextualBody.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "The description of a target resource MUST NOT include type key which includes the value of TextualBody.",
+    "title": "Neither **target** Resources nor target Choice or Set items have a **_type_ key** which includes a value of **TextualBody** [model 3.2.4](https://www.w3.org/TR/annotation-model/#embedded-textual-body)",
+    "description": "True when none of target(s), target source(s), target item(s) have a type key which includes a value of TextualBody. (Section 3.2.4)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "allOf": [
+                       { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesTextualBody" } },
+                       { "not": { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesTextualBody" } },
+                       {
+                         "items":
+                          { "not":
+                             { "anyOf":
+                              [
+                                { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesTextualBody" },
+                                { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesTextualBody" }
+                              ]
+                             }
+                           }
+                       }
+                     ]
+         }
+     }
+}

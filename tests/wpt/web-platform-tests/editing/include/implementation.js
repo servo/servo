@@ -4,7 +4,7 @@ var htmlNamespace = "http://www.w3.org/1999/xhtml";
 
 var cssStylingFlag = false;
 
-var defaultSingleLineContainerName = "p";
+var defaultSingleLineContainerName = "div";
 
 // This is bad :(
 var globalRange = null;

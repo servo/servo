@@ -17,7 +17,7 @@ void main(void) {
     vec2 f = (vi.local_clamped_pos - vi.local_rect.p0) / (vi.local_rect.p1 - vi.local_rect.p0);
 #endif
 
-    vec2 texture_size = textureSize(sDiffuse, 0);
+    vec2 texture_size = vec2(textureSize(sDiffuse, 0));
     vec2 st0 = uv_rect.xy / texture_size;
     vec2 st1 = uv_rect.zw / texture_size;
 

@@ -56,20 +56,20 @@ pub struct HTMLCanvasElement {
 }
 
 impl HTMLCanvasElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLCanvasElement> {
-        Node::reflect_node(box HTMLCanvasElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLCanvasElementBinding::Wrap)
     }

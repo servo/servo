@@ -10,16 +10,16 @@ use animation;
 use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
-use context::{StyleContext, SharedStyleContext};
+use context::{SharedStyleContext, StyleContext};
 use data::PrivateStyleData;
-use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
+use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
 use properties::longhands::display::computed_value as display;
-use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
-use selector_impl::{TheSelectorImpl, PseudoElement};
+use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
-use selectors::bloom::BloomFilter;
-use selectors::matching::{MatchingReason, StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
 use selectors::{Element, MatchAttr};
+use selectors::bloom::BloomFilter;
+use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::collections::HashMap;
@@ -708,6 +708,7 @@ pub trait ElementMatchMethods : TElement {
             _ => return StyleSharingResult::CannotShare,
         };
 
+        let mut should_clear_cache = false;
         for (i, &mut (ref mut candidate, ())) in style_sharing_candidate_cache.iter_mut().enumerate() {
             let sharing_result = self.share_style_with_candidate_if_possible(parent,
                                                                              shared_context,
@@ -750,6 +751,11 @@ pub trait ElementMatchMethods : TElement {
                     // Cache miss, let's see what kind of failure to decide
                     // whether we keep trying or not.
                     match miss {
+                        // Cache miss because of parent, clear the candidate cache.
+                        CacheMiss::Parent => {
+                            should_clear_cache = true;
+                            break;
+                        },
                         // Too expensive failure, give up, we don't want another
                         // one of these.
                         CacheMiss::CommonStyleAffectingAttributes |
@@ -760,6 +766,9 @@ pub trait ElementMatchMethods : TElement {
                     }
                 }
             }
+        }
+        if should_clear_cache {
+            style_sharing_candidate_cache.clear();
         }
 
         StyleSharingResult::CannotShare

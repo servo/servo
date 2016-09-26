@@ -7,12 +7,12 @@ use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text;
 use core_text::font::CTFont;
-use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{Error, Visitor};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Error as IoError};
 use std::ops::Deref;
 use std::sync::Mutex;
 use string_cache::Atom;
@@ -41,12 +41,12 @@ unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
-        FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> Result<FontTemplateData, IoError> {
+        Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
             font_data: font_data
-        }
+        })
     }
 
     /// Retrieves the Core Text font instance, instantiating it if necessary.
@@ -144,4 +144,3 @@ impl Deserialize for CachedCTFont {
         deserializer.deserialize_option(NoneOptionVisitor)
     }
 }
-

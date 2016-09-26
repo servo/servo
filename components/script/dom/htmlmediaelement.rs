@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use audio_video_metadata;
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -24,7 +25,6 @@ use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
@@ -66,7 +66,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
                              .as_ref()
                              .and_then(|m| m.status
                                             .as_ref()
-                                            .map(|&Serde(ref s)| s.0 < 200 || s.0 >= 300))
+                                            .map(|&(s, _)| s < 200 || s >= 300))
                              .unwrap_or(false);
         if is_failure {
             // Ensure that the element doesn't receive any further notifications
@@ -160,12 +160,24 @@ impl HTMLMediaElementContext {
     }
 
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        // Step 6.
-        //
-        // TODO: Properly implement once we have figured out the build and
-        // licensing ffmpeg issues.
-        elem.change_ready_state(HAVE_METADATA);
-        self.have_metadata = true;
+        match audio_video_metadata::get_format_from_slice(&self.data) {
+            Ok(audio_video_metadata::Metadata::Video(meta)) => {
+                let dur = meta.audio.duration.unwrap_or(::std::time::Duration::new(0, 0));
+                *elem.video.borrow_mut() = Some(VideoMedia {
+                    format: format!("{:?}", meta.format),
+                    duration: Duration::seconds(dur.as_secs() as i64) +
+                              Duration::nanoseconds(dur.subsec_nanos() as i64),
+                    width: meta.dimensions.width,
+                    height: meta.dimensions.height,
+                    video: meta.video.unwrap_or("".to_owned()),
+                    audio: meta.audio.audio,
+                });
+                // Step 6
+                elem.change_ready_state(HAVE_METADATA);
+                self.have_metadata = true;
+            }
+            _ => {}
+        }
     }
 }
 
@@ -507,7 +519,7 @@ impl HTMLMediaElement {
 
             // FIXME: we're supposed to block the load event much earlier than now
             let doc = document_from_node(self);
-            doc.load_async(LoadType::Media(url), response_target);
+            doc.load_async(LoadType::Media(url), response_target, None);
         } else {
             // TODO local resource fetch
             self.queue_dedicated_media_source_failure_steps();

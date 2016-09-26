@@ -26,21 +26,21 @@ pub struct HTMLFieldSetElement {
 }
 
 impl HTMLFieldSetElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      localName, prefix, document)
+                                                      local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFieldSetElement> {
-        Node::reflect_node(box HTMLFieldSetElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLFieldSetElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLFieldSetElementBinding::Wrap)
     }

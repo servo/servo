@@ -18,10 +18,10 @@ pub use servo_selector_impl::*;
 pub use servo_selector_impl::{ServoSelectorImpl as TheSelectorImpl, ServoElementSnapshot as ElementSnapshot};
 
 #[cfg(feature = "gecko")]
-pub use gecko_selector_impl::*;
+pub use gecko::selector_impl::*;
 
 #[cfg(feature = "gecko")]
-pub use gecko_selector_impl::{GeckoSelectorImpl as TheSelectorImpl};
+pub use gecko::selector_impl::{GeckoSelectorImpl as TheSelectorImpl};
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
 ///

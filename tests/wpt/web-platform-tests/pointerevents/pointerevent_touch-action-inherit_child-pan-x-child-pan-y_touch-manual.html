@@ -19,11 +19,11 @@
     </head>
     <body onload="run()">
         <h1>Pointer Events touch-action attribute support</h1>
-        <h4 id="desc">Test Description: Try to scroll element DOWN then RIGHT. Tap Complete button under the rectangle when done. Expected: no panning/zooming/etc.</h4>
+        <h4 id="desc">Test Description: Try to scroll element DOWN then RIGHT inside blue rectangle. Tap Complete button under the rectangle when done. Expected: no panning/zooming/etc.</h4>
         <p>Note: this test is for touch-devices only</p>
         <div class="scroller" id="target0">
             <div>
-                <div>
+                <div id="scrollTarget">
                     <p>
                         Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diem
                         nonummy nibh euismod tincidunt ut lacreet dolore magna aliguam erat volutpat.

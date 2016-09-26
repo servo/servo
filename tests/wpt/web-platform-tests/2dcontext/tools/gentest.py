@@ -128,18 +128,18 @@ if len(sys.argv) > 1 and sys.argv[1] == '--test':
     doctest.testmod()
     sys.exit()
 
-templates = yaml.load(open('templates.yaml').read())
-name_mapping = yaml.load(open('name2dir.yaml').read())
+templates = yaml.load(open('templates.yaml', "r").read())
+name_mapping = yaml.load(open('name2dir.yaml', "r").read())
 
 spec_assertions = []
-for s in yaml.load(open('spec.yaml').read())['assertions']:
+for s in yaml.load(open('spec.yaml', "r").read())['assertions']:
     if 'meta' in s:
         eval(compile(s['meta'], '<meta spec assertion>', 'exec'), {}, {'assertions':spec_assertions})
     else:
         spec_assertions.append(s)
 
 tests = []
-for t in sum([ yaml.load(open(f).read()) for f in ['tests.yaml', 'tests2d.yaml', 'tests2dtext.yaml']], []):
+for t in sum([ yaml.load(open(f, "r").read()) for f in ['tests.yaml', 'tests2d.yaml', 'tests2dtext.yaml']], []):
     if 'DISABLED' in t:
         continue
     if 'meta' in t:
@@ -423,6 +423,10 @@ for i in range(len(tests)):
 
     notes = '<p class="notes">%s' % test['notes'] if 'notes' in test else ''
 
+    scripts = ''
+    for s in test.get('scripts', []):
+        scripts += '<script src="%s"></script>\n' % (s)
+
     images = ''
     for i in test.get('images', []):
         id = i.split('/')[-1]
@@ -453,7 +457,7 @@ for i in range(len(tests)):
         'desc':desc, 'escaped_desc':escaped_desc,
         'prev':prev, 'next':next, 'refs':refs, 'notes':notes, 'images':images,
         'fonts':fonts, 'fonthack':fonthack,
-        'canvas':canvas, 'expected':expectation_html, 'code':code,
+        'canvas':canvas, 'expected':expectation_html, 'code':code, 'scripts':scripts,
         'mochi_name':mochi_name, 'mochi_desc':mochi_desc, 'mochi_code':mochi_code,
         'mochi_setup':mochi_setup, 'mochi_footer':mochi_footer, 'mochi_images':mochi_images,
         'fallback':fallback
@@ -543,7 +547,7 @@ def write_results():
     if not os.path.exists('results.yaml'):
         print "Can't find results.yaml"
     else:
-        for resultset in yaml.load(open('results.yaml').read()):
+        for resultset in yaml.load(open('results.yaml', "r").read()):
             #title = "%s (%s)" % (resultset['ua'], resultset['time'])
             title = resultset['name']
             #assert title not in uas # don't allow repetitions

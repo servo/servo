@@ -4,8 +4,8 @@
     <head>
         <title>Reset src after setMediaKeys()</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="testVideo"></video>
@@ -18,6 +18,10 @@
                 var video = document.getElementById('testVideo');
                 assert_not_equals(video, null);
 
+                // Content to be played. These files must be the same format.
+                var content = 'webm/test-encrypted.webm';
+                var alternateContent = 'webm/test-encrypted-different-av-keys.webm';
+
                 var onEncrypted = function(event)
                 {
                     ++encryptedEventIndex;
@@ -28,7 +32,7 @@
                     // for the video stream each time .src is set.
                     if (encryptedEventIndex == 2) {
                         // Finished first video; set src to a different video.
-                        video.src = '../content/test-encrypted-different-av-keys.webm';
+                        video.src = alternateContent;
                     } else if (encryptedEventIndex == 4) {
                         // Finished second video.
                         test.done();
@@ -36,7 +40,7 @@
                 };
 
                 // Create a MediaKeys object and assign it to video.
-                navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}])
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content))
                 .then(function(access) {
                     assert_equals(access.keySystem, 'org.w3.clearkey');
                     return access.createMediaKeys();
@@ -50,7 +54,7 @@
 
                     // Set src to a video.
                     waitForEventAndRunStep('encrypted', video, onEncrypted, test);
-                    video.src = '../content/test-encrypted.webm';
+                    video.src = content;
                 }).catch(function(error) {
                     forceTestFailureFromPromise(test, error);
                 });

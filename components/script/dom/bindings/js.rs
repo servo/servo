@@ -43,6 +43,7 @@ use std::intrinsics::type_name;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
+use std::rc::Rc;
 use style::thread_state;
 
 /// A traced reference to a DOM object
@@ -269,6 +270,12 @@ impl MutHeapJSVal {
         debug_assert!(thread_state::get().is_script());
         unsafe { (*self.val.get()).get() }
     }
+
+    /// Get the underlying unsafe pointer to the contained value.
+    pub unsafe fn get_unsafe(&self) -> *mut JSVal {
+        debug_assert!(thread_state::get().is_script());
+        (*self.val.get()).get_unsafe()
+    }
 }
 
 
@@ -439,11 +446,29 @@ impl<T: Reflectable> LayoutJS<T> {
     }
 }
 
+/// Get an `&T` out of a `Rc<T>`
+pub trait RootedRcReference<T> {
+    /// Obtain a safe reference to the wrapped non-JS owned value.
+    fn r(&self) -> &T;
+}
+
+impl<T: Reflectable> RootedRcReference<T> for Rc<T> {
+    fn r(&self) -> &T {
+        &*self
+    }
+}
+
 /// Get an `Option<&T>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
     /// Obtain a safe optional reference to the wrapped JS owned-value that
     /// cannot outlive the lifetime of this root.
     fn r(&self) -> Option<&T>;
+}
+
+impl<T: Reflectable> RootedReference<T> for Option<Rc<T>> {
+    fn r(&self) -> Option<&T> {
+        self.as_ref().map(|root| &**root)
+    }
 }
 
 impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {

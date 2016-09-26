@@ -16,17 +16,17 @@ pub struct HTMLTrackElement {
 }
 
 impl HTMLTrackElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTrackElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTrackElement {
         HTMLTrackElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTrackElement> {
-        Node::reflect_node(box HTMLTrackElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTrackElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTrackElementBinding::Wrap)
     }

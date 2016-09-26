@@ -28,7 +28,11 @@ def main(request, response):
     if 'methods' in request.GET:
         response.headers.set("Access-Control-Allow-Methods", request.GET.first('methods'))
 
-    code = request.GET.first('code', None)
+    code_raw = request.GET.first('code', None)
+    if code_raw:
+        code = int(code_raw)
+    else:
+        code = None
     if request.method == 'OPTIONS':
         #Override the response code if we're in a preflight and it's asked
         if 'preflight' in request.GET:
@@ -61,4 +65,3 @@ def main(request, response):
         return (code, "StatusText"), [], body
     else:
         return body
-

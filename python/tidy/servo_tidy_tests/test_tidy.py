@@ -85,6 +85,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('missing space before }', errors.next()[2])
         self.assertTrue('use statement is not in alphabetical order' in errors.next()[2])
         self.assertEqual('use statement contains braces for single import', errors.next()[2])
+        self.assertTrue('use statement is not in alphabetical order' in errors.next()[2])
         self.assertEqual('encountered whitespace following a use statement', errors.next()[2])
         self.assertTrue('mod declaration is not in alphabetical order' in errors.next()[2])
         self.assertEqual('mod declaration spans multiple lines', errors.next()[2])
@@ -108,6 +109,9 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &T instead of &Root<T>', errors.next()[2])
         self.assertEqual('operators should go at the end of the first line', errors.next()[2])
         self.assertEqual('else braces should be on the same line', errors.next()[2])
+        self.assertEqual('extra space after (', errors.next()[2])
+        self.assertEqual('extra space after (', errors.next()[2])
+        self.assertEqual('extra space after (', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.1-annotationTypeValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation is missing type key or 'Annotation' is not a value of type.",
+  "title": "Implements  **Annotation _type_ key** and '**Annotation**' is **a value of _type_** - [model 3.1](https://www.w3.org/TR/annotation-model/#annotations)",
+  "allOf": [
+  { "$ref": "annotations.json#/definitions/annotationTypeValueFound"}
+  ]
+}

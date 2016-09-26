@@ -12,9 +12,9 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHa
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, ErrorInfo};
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -25,7 +25,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
-use dom::console::Console;
+use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
@@ -46,12 +46,12 @@ use euclid::{Point2D, Rect, Size2D};
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
+use js::jsapi::{JS_GC, JS_GetRuntime, MutableHandleValue, SetWindowProxy};
 use js::jsval::UndefinedValue;
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PipelineId, SubpageId, WindowSizeType};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, ReferrerPolicy, WindowSizeType};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -68,13 +68,13 @@ use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflo
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
-use script_runtime::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptThreadEventCategory, maybe_take_panic_result};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, maybe_take_panic_result};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper, Runnable};
-use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
+use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -84,10 +84,10 @@ use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
 use std::panic;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
@@ -157,7 +157,6 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
@@ -201,16 +200,14 @@ pub struct Window {
     /// page changes.
     devtools_wants_updates: Cell<bool>,
 
-    next_subpage_id: Cell<SubpageId>,
-
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Pipeline id associated with this page.
     id: PipelineId,
 
-    /// Subpage id associated with this page, if any.
-    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    /// Parent id associated with this page, if any.
+    parent_info: Option<(PipelineId, FrameType)>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -276,7 +273,10 @@ pub struct Window {
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>
+    in_error_reporting_mode: Cell<bool>,
+
+    /// Timers used by the Console API.
+    console_timers: TimerSet,
 }
 
 impl Window {
@@ -329,15 +329,11 @@ impl Window {
         worker_id
     }
 
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         self.id
     }
 
-    pub fn subpage(&self) -> Option<SubpageId> {
-        self.parent_info.map(|p| p.1)
-    }
-
-    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId, FrameType)> {
+    pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
         self.parent_info
     }
 
@@ -470,7 +466,7 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender)).unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -506,11 +502,6 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Console(&self) -> Root<Console> {
-        self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -1061,7 +1052,7 @@ impl Window {
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
-        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
+        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline_id(), layer_id, point, smooth);
         self.constellation_chan.send(message).unwrap();
     }
 
@@ -1419,11 +1410,14 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: Url) {
+    pub fn load_url(&self, url: Url, replace: bool, referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
+        let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
+
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.id,
-                LoadData::new(url, doc.get_referrer_policy(), Some(doc.url().clone())))).unwrap();
+                LoadData::new(url, referrer_policy, Some(doc.url().clone())),
+                replace)).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
@@ -1493,13 +1487,6 @@ impl Window {
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
         WindowProxyHandler(self.dom_static.windowproxy_handler.0)
-    }
-
-    pub fn get_next_subpage_id(&self) -> SubpageId {
-        let subpage_id = self.next_subpage_id.get();
-        let SubpageId(id_num) = subpage_id;
-        self.next_subpage_id.set(SubpageId(id_num + 1));
-        subpage_id
     }
 
     pub fn get_pending_reflow_count(&self) -> u32 {
@@ -1615,7 +1602,7 @@ impl Window {
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
     pub fn is_top_level(&self) -> bool {
         match self.parent_info {
-            Some((_, _, FrameType::IFrame)) => false,
+            Some((_, FrameType::IFrame)) => false,
             _ => true,
         }
     }
@@ -1679,7 +1666,7 @@ impl Window {
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+               parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
@@ -1701,7 +1688,6 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            console: Default::default(),
             crypto: Default::default(),
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
@@ -1730,7 +1716,6 @@ impl Window {
             page_clip_rect: Cell::new(max_rect()),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
-            next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
             window_size: Cell::new(window_size),
@@ -1747,10 +1732,16 @@ impl Window {
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             in_error_reporting_mode: Cell::new(false),
+            console_timers: TimerSet::new(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
     }
+
+    pub fn console_timers(&self) -> &TimerSet {
+        &self.console_timers
+    }
+
     pub fn live_devtools_updates(&self) -> bool {
         return self.devtools_wants_updates.get();
     }
@@ -1766,6 +1757,7 @@ impl Window {
         self.in_error_reporting_mode.set(true);
 
         // Steps 3-12.
+        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(GlobalRef::Window(self),
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,

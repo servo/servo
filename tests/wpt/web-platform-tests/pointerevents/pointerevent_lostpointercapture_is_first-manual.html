@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>Lostpointercapture triggers first and asynchronously</title>
-        <meta name="assert" content="TA11.1: After pointer capture is released for a pointer, and prior to any subsequent events for the pointer, the lostpointercapture event must be dispatched to the element from which pointer capture was removed; TA11.2: lostpointercapture must be dispatched asynchronously.">
+        <meta name="assert" content="TA5.2.10: A user agent must fire a pointer event named lostpointercapture after pointer capture is released for a pointer. This event must be fired prior to any subsequent events for the pointer after capture was released. This event is fired at the element from which pointer capture was removed;">
         <meta name="viewport" content="width=device-width">
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
@@ -17,7 +17,7 @@
             Complete the following actions:
             <ol>
                 <li>Press and hold left mouse button over "Set Capture" button. "gotpointercapture" should be logged inside of the black rectangle
-                <li>"lostpointercapture" should be logged inside of the black rectangle after a short delay
+                <li>"lostpointercapture" should be logged inside of the black rectangle after pointerup
             </ol>
         </h4>
         Test passes if lostpointercapture is dispatched after releasing the mouse button and before any additional pointer events.
@@ -54,9 +54,13 @@
                     }
                 });
 
+                // TA5.1.3.1: Process Pending Pointer Capture
+                // Whenever a user agent is to fire a Pointer Event that is not gotpointercapture or lostpointercapture,
+                // it must first run the steps of processing pending pointer capture
+                //
+                // TA5.2.12: The lostpointercapture event
                 // After pointer capture is released for a pointer, and prior to any subsequent events for the pointer,
                 // the lostpointercapture event must be dispatched to the element from which pointer capture was removed.
-                // TA: 11.1
                 // listen to all events
                 for (var i = 0; i < All_Pointer_Events.length; i++) {
                     on_event(target0, All_Pointer_Events[i], function (event) {
@@ -78,7 +82,7 @@
                                 assert_true(isAsync, "lostpointercapture must be fired asynchronously");
                              });
 
-                            // if any events have been received with same pointerId before lostpointercapture, then fail
+                            // if any events except pointerup have been received with same pointerId before lostpointercapture, then fail
                             var eventsRcvd_str = "";
                             if (eventRcvd) {
                                 eventsRcvd_str = "Events received before lostpointercapture: ";
@@ -93,7 +97,7 @@
                             test_pointerEvent.done(); // complete test
                         }
                         else {
-                            if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId) {
+                            if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId && event.type != "pointerup") {
                                 detected_pointerEvents.push(event.type);
                                 eventRcvd = true;
                             }

@@ -3,15 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, ErrorInfo};
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::console::Console;
+use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
@@ -24,14 +26,15 @@ use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{IpcSend, LoadOrigin};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
-use net_traits::{LoadOrigin, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
-use script_thread::RunnableWrapper;
+use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
+use script_thread::{Runnable, RunnableWrapper};
+use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::WorkerGlobalScopeInit;
-use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::panic;
@@ -79,7 +82,6 @@ pub struct WorkerGlobalScope {
     resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
-    console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: OneshotTimers,
 
@@ -109,6 +111,11 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    /// Timers used by the Console API.
+    console_timers: TimerSet,
+
+    promise_job_queue: PromiseJobQueue,
 }
 
 impl WorkerGlobalScope {
@@ -129,7 +136,6 @@ impl WorkerGlobalScope {
             resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
-            console: Default::default(),
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
@@ -140,7 +146,13 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            console_timers: TimerSet::new(),
+            promise_job_queue: PromiseJobQueue::new(),
         }
+    }
+
+    pub fn console_timers(&self) -> &TimerSet {
+        &self.console_timers
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
@@ -221,6 +233,25 @@ impl WorkerGlobalScope {
             cancelled: self.closing.clone().unwrap(),
         }
     }
+
+    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+        self.promise_job_queue.enqueue(job, GlobalRef::Worker(self));
+    }
+
+    pub fn flush_promise_jobs(&self) {
+        self.script_chan().send(CommonScriptMsg::RunnableMsg(
+            ScriptThreadEventCategory::WorkerEvent,
+            box FlushPromiseJobs {
+                global: Trusted::new(self),
+            })).unwrap();
+    }
+
+    fn do_flush_promise_jobs(&self) {
+        self.promise_job_queue.flush_promise_jobs(|id| {
+            assert_eq!(self.pipeline_id(), id);
+            Some(GlobalRoot::Worker(Root::from_ref(self)))
+        });
+    }
 }
 
 impl LoadOrigin for WorkerGlobalScope {
@@ -231,7 +262,7 @@ impl LoadOrigin for WorkerGlobalScope {
         None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.pipeline())
+        Some(self.pipeline_id())
     }
 }
 
@@ -247,6 +278,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             WorkerLocation::new(self, self.worker_url.clone())
         })
     }
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
+    error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
     fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
@@ -293,11 +327,6 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
     fn Navigator(&self) -> Root<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/console
-    fn Console(&self) -> Root<Console> {
-        self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
@@ -392,12 +421,14 @@ impl WorkerGlobalScope {
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.script_chan();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.script_chan();
         } else {
-            panic!("need to implement a sender for SharedWorker/ServiceWorker")
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
@@ -405,13 +436,13 @@ impl WorkerGlobalScope {
         FileReadingTaskSource(self.script_chan())
     }
 
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
-            return dedicated.pipeline();
+            return dedicated.pipeline_id();
         } else if let Some(service_worker) = service_worker {
-            return service_worker.pipeline();
+            return service_worker.pipeline_id();
         } else {
             panic!("need to implement a sender for SharedWorker")
         }
@@ -450,5 +481,23 @@ impl WorkerGlobalScope {
         if let Some(ref closing) = self.closing {
             closing.store(true, Ordering::SeqCst);
         }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#report-the-error
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+        self.downcast::<DedicatedWorkerGlobalScope>()
+            .expect("Should implement report_an_error for this worker")
+            .report_an_error(error_info, value);
+    }
+}
+
+struct FlushPromiseJobs {
+    global: Trusted<WorkerGlobalScope>,
+}
+
+impl Runnable for FlushPromiseJobs {
+    fn handler(self: Box<FlushPromiseJobs>) {
+        let global = self.global.root();
+        global.do_flush_promise_jobs();
     }
 }

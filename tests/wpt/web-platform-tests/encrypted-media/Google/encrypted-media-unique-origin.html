@@ -3,8 +3,8 @@
 <html>
     <head>
         <title>Unique origin is unable to create MediaKeys</title>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -36,7 +36,13 @@
                 var script = 'data:text/html,' +
                     '<script>' +
                     '    window.onmessage = function(e) {' +
-                    '        navigator.requestMediaKeySystemAccess(\'org.w3.clearkey\', [{}]).then(function(access) {' +
+                    '        navigator.requestMediaKeySystemAccess(\'org.w3.clearkey\', [{' +
+                    '           initDataTypes: [ \'keyids\' ],' +
+                    '           audioCapabilities: [' +
+                    '               { contentType: \'audio/mp4; codecs="mp4a.40.2"\' },' +
+                    '               { contentType: \'audio/webm; codecs="opus"\' }' +
+                    '           ]' +
+                    '       }]).then(function(access) {' +
                     '            return access.createMediaKeys();' +
                     '        }).then(function(mediaKeys) {' +
                     '            window.parent.postMessage({result: \'allowed\'}, \'*\');' +
@@ -47,7 +53,13 @@
                     '<\/script>';
 
                 // Verify that this page can create a MediaKeys first.
-                navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{
+                    initDataTypes: [ 'keyids' ],
+                    audioCapabilities: [
+                        { contentType: 'audio/mp4; codecs="mp4a.40.2"' },
+                        { contentType: 'audio/webm; codecs="opus"' }
+                    ]
+                }]).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     // Success, so now create the iframe and try there.

@@ -57,6 +57,14 @@
         var response = new Response(body);
         return validateStreamFromString(response.body.getReader(), body);
       }, "Read Response's body as readableStream");
+
+      promise_test(function(test) {
+        var response = new Response("This is my fork", {"headers" : [["Content-Type", ""]]});
+        return response.blob().then(function(blob) {
+          assert_equals(blob.type, "", "Blob type should be the empty string");
+        });
+      }, "Testing empty Response Content-Type header");
+
     </script>
   </body>
 </html>

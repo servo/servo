@@ -4,18 +4,17 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
-use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use url::Url;
-use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -26,7 +25,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -35,7 +34,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -53,7 +52,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum CacheState {
     None,
     Local,
@@ -76,16 +75,19 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub status: Option<StatusCode>,
-    pub raw_status: Option<RawStatus>,
+    pub raw_status: Option<(u16, Vec<u8>)>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
+    #[ignore_heap_size_of = "Mutex heap size undefined"]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
@@ -104,7 +106,7 @@ impl Response {
             url: None,
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
-            raw_status: Some(RawStatus(200, "OK".into())),
+            raw_status: Some((200, b"OK".to_vec())),
             headers: Headers::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -223,24 +225,42 @@ impl Response {
         response
     }
 
-    pub fn metadata(&self) -> Result<Metadata, NetworkError> {
-        let mut metadata = if let Some(ref url) = self.url {
-            Metadata::default(url.clone())
-        } else {
-            return Err(NetworkError::Internal("No url found in response".to_string()));
+    pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
+        fn init_metadata(response: &Response, url: &Url) -> Metadata {
+            let mut metadata = Metadata::default(url.clone());
+            metadata.set_content_type(match response.headers.get() {
+                Some(&ContentType(ref mime)) => Some(mime),
+                None => None
+            });
+            metadata.headers = Some(Serde(response.headers.clone()));
+            metadata.status = response.raw_status.clone();
+            metadata.https_state = response.https_state;
+            metadata
         };
 
         if self.is_network_error() {
-            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_string()));
+            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_owned()));
         }
 
-        metadata.set_content_type(match self.headers.get() {
-            Some(&ContentType(ref mime)) => Some(mime),
-            None => None
-        });
-        metadata.headers = Some(Serde(self.headers.clone()));
-        metadata.status = self.raw_status.clone().map(Serde);
-        metadata.https_state = self.https_state;
-        return Ok(metadata);
+        let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
+
+        if let Some(ref response) = self.internal_response {
+            match response.url {
+                Some(ref url) => {
+                    let unsafe_metadata = init_metadata(response, url);
+
+                    Ok(FetchMetadata::Filtered {
+                        filtered: match metadata {
+                            Some(m) => FilteredMetadata::Transparent(m),
+                            None => FilteredMetadata::Opaque
+                        },
+                        unsafe_: unsafe_metadata
+                    })
+                }
+                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned()))
+            }
+        } else {
+            Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+        }
     }
 }

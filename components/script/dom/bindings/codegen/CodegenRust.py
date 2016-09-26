@@ -26,6 +26,7 @@ from WebIDL import (
 )
 
 from Configuration import (
+    MakeNativeName,
     MemberIsUnforgeable,
     getModuleFromObject,
     getTypesFromCallback,
@@ -80,7 +81,7 @@ def toStringBool(arg):
 
 
 def toBindingNamespace(arg):
-    return re.sub("((_workers)?$)", "Binding\\1", arg)
+    return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
 def stripTrailingWhitespace(text):
@@ -91,13 +92,21 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 
-def innerSequenceType(type):
-    assert type.isSequence()
+def innerContainerType(type):
+    assert type.isSequence() or type.isMozMap()
     return type.inner.inner if type.nullable() else type.inner
 
 
-def MakeNativeName(name):
-    return name[0].upper() + name[1:]
+def wrapInNativeContainerType(type, inner):
+    if type.isSequence():
+        containerType = "Vec"
+    elif type.isMozMap():
+        containerType = "MozMap"
+    else:
+        raise TypeError("Unexpected container type %s", type)
+
+    return CGWrapper(inner, pre=containerType + "<", post=">")
+
 
 builtinNames = {
     IDLType.Tags.bool: 'bool',
@@ -649,7 +658,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # failureCode will prevent pending exceptions from being set in cases when
     # they really should be!
     if exceptionCode is None:
-        exceptionCode = "return false;"
+        exceptionCode = "return false;\n"
+
+    if failureCode is None:
+        failOrPropagate = "throw_type_error(cx, &error);\n%s" % exceptionCode
+    else:
+        failOrPropagate = failureCode
 
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
@@ -721,11 +735,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isArray():
         raise TypeError("Can't handle array arguments yet")
 
-    if type.isSequence():
-        innerInfo = getJSToNativeConversionInfo(innerSequenceType(type),
+    if type.isSequence() or type.isMozMap():
+        innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
-        declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
+        declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         if type.nullable():
@@ -734,11 +748,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (config, exceptionCode, exceptionCode))
+                        "}" % (config, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -750,11 +763,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (exceptionCode, exceptionCode))
+                        "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -785,25 +797,69 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             descriptorType = descriptor.argumentType
 
         templateBody = ""
-        if descriptor.interface.isConsequential():
-            raise TypeError("Consequential interface %s being used as an "
-                            "argument" % descriptor.interface.identifier.name)
+        isPromise = descriptor.interface.identifier.name == "Promise"
+        if isPromise:
+            # Per spec, what we're supposed to do is take the original
+            # Promise.resolve and call it with the original Promise as this
+            # value to make a Promise out of whatever value we actually have
+            # here.  The question is which global we should use.  There are
+            # a couple cases to consider:
+            #
+            # 1) Normal call to API with a Promise argument.  This is a case the
+            #    spec covers, and we should be using the current Realm's
+            #    Promise.  That means the current compartment.
+            # 2) Promise return value from a callback or callback interface.
+            #    This is in theory a case the spec covers but in practice it
+            #    really doesn't define behavior here because it doesn't define
+            #    what Realm we're in after the callback returns, which is when
+            #    the argument conversion happens.  We will use the current
+            #    compartment, which is the compartment of the callable (which
+            #    may itself be a cross-compartment wrapper itself), which makes
+            #    as much sense as anything else. In practice, such an API would
+            #    once again be providing a Promise to signal completion of an
+            #    operation, which would then not be exposed to anyone other than
+            #    our own implementation code.
+            templateBody = fill(
+                """
+                { // Scope for our JSAutoCompartment.
 
-        if failureCode is None:
-            substitutions = {
-                "sourceDescription": sourceDescription,
-                "interface": descriptor.interface.identifier.name,
-                "exceptionCode": exceptionCode,
-            }
-            unwrapFailureCode = string.Template(
-                'throw_type_error(cx, "${sourceDescription} does not '
-                'implement interface ${interface}.");\n'
-                '${exceptionCode}').substitute(substitutions)
+                  rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
+                  let promiseGlobal = global_root_from_object_maybe_wrapped(globalObj.handle().get());
+
+                  rooted!(in(cx) let mut valueToResolve = $${val}.get());
+                  if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
+                    $*{exceptionCode}
+                  }
+                  match Promise::Resolve(promiseGlobal.r(), cx, valueToResolve.handle()) {
+                      Ok(value) => value,
+                      Err(error) => {
+                        throw_dom_exception(cx, promiseGlobal.r(), error);
+                        $*{exceptionCode}
+                      }
+                  }
+                }
+                """,
+                exceptionCode=exceptionCode)
         else:
-            unwrapFailureCode = failureCode
+            if descriptor.interface.isConsequential():
+                raise TypeError("Consequential interface %s being used as an "
+                                "argument" % descriptor.interface.identifier.name)
 
-        templateBody = unwrapCastableObject(
-            descriptor, "${val}", unwrapFailureCode, conversionFunction)
+            if failureCode is None:
+                substitutions = {
+                    "sourceDescription": sourceDescription,
+                    "interface": descriptor.interface.identifier.name,
+                    "exceptionCode": exceptionCode,
+                }
+                unwrapFailureCode = string.Template(
+                    'throw_type_error(cx, "${sourceDescription} does not '
+                    'implement interface ${interface}.");\n'
+                    '${exceptionCode}').substitute(substitutions)
+            else:
+                unwrapFailureCode = failureCode
+
+            templateBody = unwrapCastableObject(
+                descriptor, "${val}", unwrapFailureCode, conversionFunction)
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
@@ -825,11 +881,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (nullBehavior, exceptionCode, exceptionCode))
+            "}" % (nullBehavior, indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -855,11 +910,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -885,11 +939,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -1044,11 +1097,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
-                    "        throw_type_error(cx, &error);\n"
-                    "        %s\n"
+                    "%s\n"
                     "    }\n"
                     "    _ => { %s },\n"
-                    "}" % (typeName, exceptionCode, exceptionCode))
+                    "}" % (typeName, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
@@ -1073,11 +1125,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
         "    Ok(ConversionResult::Success(v)) => v,\n"
         "    Ok(ConversionResult::Failure(error)) => {\n"
-        "        throw_type_error(cx, &error);\n"
-        "        %s\n"
+        "%s\n"
         "    }\n"
         "    _ => { %s }\n"
-        "}" % (conversionBehavior, exceptionCode, exceptionCode))
+        "}" % (conversionBehavior, indent(failOrPropagate, 8), exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -1269,8 +1320,8 @@ def typeNeedsCx(type, retVal=False):
 
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
-    if type.isSequence():
-        return getConversionConfigForType(type.unroll(), isEnforceRange, isClamp, treatNullAs)
+    if type.isSequence() or type.isMozMap():
+        return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
@@ -1354,9 +1405,9 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isSequence():
-        result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
-        result = CGWrapper(result, pre="Vec<", post=">")
+    if returnType.isSequence() or returnType.isMozMap():
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
+        result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -1811,7 +1862,8 @@ class CGImports(CGWrapper):
 
         def isImportable(type):
             if not type.isType():
-                assert type.isInterface() or type.isDictionary() or type.isEnum()
+                assert (type.isInterface() or type.isDictionary() or
+                        type.isEnum() or type.isNamespace())
                 return True
             return not (type.builtin or type.isSequence() or type.isUnion())
 
@@ -1830,7 +1882,7 @@ class CGImports(CGWrapper):
                 if t.isCallback():
                     return t.callback.identifier
                 return t.identifier
-            assert t.isInterface() or t.isDictionary() or t.isEnum()
+            assert t.isInterface() or t.isDictionary() or t.isEnum() or t.isNamespace()
             return t.identifier
 
         def removeWrapperAndNullableTypes(types):
@@ -1881,13 +1933,15 @@ class CGImports(CGWrapper):
             # Importing these types in the same module that defines them is an error.
             if t in dictionaries or t in enums:
                 continue
-            if t.isInterface():
+            if t.isInterface() or t.isNamespace():
                 descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
                 extras += [descriptor.path]
                 if descriptor.interface.parent:
                     parentName = getIdentifier(descriptor.interface.parent).name
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
+            elif t.isType() and t.isMozMap():
+                extras += ['dom::bindings::mozmap::MozMap']
             else:
                 if t.isEnum():
                     extras += [getModuleFromObject(t) + '::' + getIdentifier(t).name + 'Values']
@@ -2060,6 +2114,17 @@ class CGInterfaceObjectJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
+        if self.descriptor.interface.isNamespace():
+            classString = self.descriptor.interface.getExtendedAttribute("ClassString")
+            if classString:
+                classString = classString[0]
+            else:
+                classString = "Object"
+            return """\
+static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
+    NamespaceObjectClass::new(%s)
+};
+""" % str_to_const_array(classString)
         if self.descriptor.interface.ctor():
             constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
@@ -2134,7 +2199,7 @@ class CGCallbackTempRoot(CGGeneric):
         CGGeneric.__init__(self, "%s::new(${val}.get().to_object())" % name)
 
 
-def getAllTypes(descriptors, dictionaries, callbacks):
+def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -2150,9 +2215,11 @@ def getAllTypes(descriptors, dictionaries, callbacks):
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
             yield (t, None, None)
+    for typedef in typedefs:
+        yield (typedef.innerType, None, None)
 
 
-def UnionTypes(descriptors, dictionaries, callbacks, config):
+def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
@@ -2167,6 +2234,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
@@ -2181,7 +2249,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
     unionStructs = dict()
-    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks):
+    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
         assert not descriptor or not dictionary
         t = t.unroll()
         if not t.isUnion():
@@ -2657,6 +2725,28 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     def definition_body(self):
         name = self.descriptor.interface.identifier.name
+        if self.descriptor.interface.isNamespace():
+            if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
+                proto = "JS_GetObjectPrototype(cx, global)"
+            else:
+                proto = "JS_NewPlainObject(cx)"
+            if self.properties.static_methods.length():
+                methods = self.properties.static_methods.variableName()
+            else:
+                methods = "&[]"
+            return CGGeneric("""\
+rooted!(in(cx) let proto = %(proto)s);
+assert!(!proto.is_null());
+rooted!(in(cx) let mut namespace = ptr::null_mut());
+create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+                        %(methods)s, %(name)s, namespace.handle_mut());
+assert!(!namespace.is_null());
+assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
+(*cache)[PrototypeList::Constructor::%(id)s as usize] = namespace.get();
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+                              ptr::null_mut(),
+                              namespace.get());
+""" % {"id": MakeNativeName(name), "methods": methods, "name": str_to_const_array(name), "proto": proto})
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
@@ -2871,7 +2961,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'void', args, pub=pub, unsafe=True)
-        self.id = idPrefix + "::" + self.descriptor.name
+        self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric("""
@@ -3014,7 +3104,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        if self.descriptor.interface.isCallback():
+        if self.descriptor.interface.isCallback() or self.descriptor.interface.isNamespace():
             function = "GetConstructorObject"
         else:
             function = "GetProtoObject"
@@ -3045,7 +3135,7 @@ class CGCallGenerator(CGThing):
     exception from the native code, or None if no error reporting is needed.
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
-                 extendedAttributes, descriptorProvider, nativeMethodName,
+                 extendedAttributes, descriptor, nativeMethodName,
                  static, object="this"):
         CGThing.__init__(self)
 
@@ -3053,7 +3143,7 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorResult is not None
 
-        result = getRetvalDeclarationForType(returnType, descriptorProvider)
+        result = getRetvalDeclarationForType(returnType, descriptor)
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
 
@@ -3074,7 +3164,7 @@ class CGCallGenerator(CGThing):
 
         call = CGGeneric(nativeMethodName)
         if static:
-            call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
+            call = CGWrapper(call, pre="%s::" % MakeNativeName(descriptor.interface.identifier.name))
         else:
             call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
@@ -3957,27 +4047,16 @@ class CGConstant(CGThing):
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
-    # For dictionaries and sequences we need to pass None as the failureCode
-    # for getJSToNativeConversionInfo.
-    # Also, for dictionaries we would need to handle conversion of
-    # null/undefined to the dictionary correctly.
-    if type.isDictionary():
-        raise TypeError("Can't handle dictionaries in unions")
-
     if type.isGeckoInterface():
         name = type.inner.identifier.name
         typeName = descriptorProvider.getDescriptor(name).returnType
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
-    elif type.isSequence():
+    elif type.isSequence() or type.isMozMap():
         name = type.name
-        inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
-        typeName = "Vec<" + inner["typeName"] + ">"
-    elif type.isArray():
-        name = str(type)
-        # XXXjdm dunno about typeName here
-        typeName = "/*" + type.name + "*/"
+        inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
+        typeName = wrapInNativeContainerType(type, CGGeneric(inner["typeName"])).define()
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
@@ -3991,8 +4070,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = builtinNames[type.tag()]
     else:
-        name = type.name
-        typeName = "/*" + type.name + "*/"
+        raise TypeError("Can't handle %s in unions yet" % type)
 
     info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
@@ -4124,14 +4202,25 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        mozMapMemberTypes = filter(lambda t: t.isMozMap(), memberTypes)
+        if len(mozMapMemberTypes) > 0:
+            assert len(mozMapMemberTypes) == 1
+            typeName = mozMapMemberTypes[0].name
+            mozMapObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
+        else:
+            mozMapObject = None
+
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
         if hasObjectTypes:
-            assert interfaceObject or arrayObject
+            assert interfaceObject or arrayObject or mozMapObject
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if mozMapObject:
+                templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
@@ -4624,7 +4713,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = jsid_to_str(cx, id);\n"
+        return ("let %s = string_jsid_to_string(cx, id);\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -4797,13 +4886,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
-                    "    return true;\n" +
+                    "    return (*opresult).succeed();\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if get_array_index_from_id(cx, id).is_some() {\n" +
-                    "    return false;\n" +
-                    "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
-                    "}\n") % self.descriptor.name
+                    "    return (*opresult).failNoIndexedSetter();\n" +
+                    "}\n")
 
         namedSetter = self.descriptor.operations['NamedSetter']
         if namedSetter:
@@ -4819,15 +4907,10 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         else:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
-                    "    if (found) {\n"
-                    # TODO(Issue 5876)
-                    "        //return js::IsInNonStrictPropertySet(cx)\n" +
-                    "        //       ? opresult.succeed()\n" +
-                    "        //       : ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"${name}\");\n" +
-                    "        return (*opresult).succeed();\n" +
-                    "    }\n" +
-                    "    return (*opresult).succeed();\n"
-                    "}\n") % (self.descriptor.name, self.descriptor.name)
+                    "    if result.is_some() {\n"
+                    "        return (*opresult).failNoNamedSetter();\n"
+                    "    }\n"
+                    "}\n")
             set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
         return set
 
@@ -5333,6 +5416,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::AutoIdVector',
         'js::jsapi::Call',
         'js::jsapi::CallArgs',
+        'js::jsapi::CurrentGlobalOrNull',
         'js::jsapi::FreeOp',
         'js::jsapi::GetPropertyKeys',
         'js::jsapi::GetWellKnownSymbol',
@@ -5398,12 +5482,15 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_SetProperty',
         'js::jsapi::JS_SetReservedSlot',
         'js::jsapi::JS_SplicePrototype',
+        'js::jsapi::JS_WrapValue',
         'js::jsapi::MutableHandle',
         'js::jsapi::MutableHandleObject',
         'js::jsapi::MutableHandleValue',
         'js::jsapi::ObjectOpResult',
         'js::jsapi::PropertyDescriptor',
+        'js::jsapi::RootedId',
         'js::jsapi::RootedObject',
+        'js::jsapi::RootedString',
         'js::jsapi::SymbolCode',
         'js::jsapi::jsid',
         'js::jsval::JSVal',
@@ -5433,6 +5520,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::constant::ConstantVal',
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
+        'dom::bindings::global::global_root_from_object_maybe_wrapped',
         'dom::bindings::global::global_root_from_reflector',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
@@ -5451,7 +5539,10 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::js::JS',
         'dom::bindings::js::OptionalRootedReference',
         'dom::bindings::js::Root',
+        'dom::bindings::js::RootedRcReference',
         'dom::bindings::js::RootedReference',
+        'dom::bindings::namespace::NamespaceObjectClass',
+        'dom::bindings::namespace::create_namespace_object',
         'dom::bindings::reflector::MutReflectable',
         'dom::bindings::reflector::Reflectable',
         'dom::bindings::utils::DOMClass',
@@ -5492,13 +5583,13 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::is_array_like',
-        'dom::bindings::conversions::jsid_to_str',
         'dom::bindings::conversions::native_from_handlevalue',
         'dom::bindings::conversions::native_from_object',
         'dom::bindings::conversions::private_from_object',
         'dom::bindings::conversions::root_from_handleobject',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
+        'dom::bindings::conversions::string_jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
@@ -5514,6 +5605,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::fill_property_descriptor',
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
@@ -5559,7 +5651,7 @@ class CGDescriptor(CGThing):
             return name
 
         cgThings = []
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
             reexports.append('GetProtoObject')
         if (descriptor.interface.hasInterfaceObject() and
@@ -5620,7 +5712,7 @@ class CGDescriptor(CGThing):
             if not descriptor.interface.isCallback():
                 cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             cgThings.append(CGPrototypeJSClass(descriptor))
 
         # If there are no constant members, don't make a module for constants
@@ -5677,7 +5769,7 @@ class CGDescriptor(CGThing):
             reexports.append('Wrap')
 
         haveUnscopables = False
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             if unscopableNames:
                 haveUnscopables = True
                 cgThings.append(
@@ -5704,7 +5796,7 @@ class CGDescriptor(CGThing):
                                          cgThings, public=True),
                              post='\n')
         reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
-        self.cgRoot = CGList([CGGeneric('pub use self::%sBinding::{%s};' % (descriptor.name, reexports)),
+        self.cgRoot = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
                               cgThings], '\n')
 
     def define(self):
@@ -6758,10 +6850,12 @@ class GlobalGenRoots():
     @staticmethod
     def PrototypeList(config):
         # Prototype ID enum.
-        interfaces = config.getDescriptors(isCallback=False)
+        interfaces = config.getDescriptors(isCallback=False, isNamespace=False)
         protos = [d.name for d in interfaces]
-        constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True)
-                        if d.shouldHaveGetConstructorObjectMethod()]
+        constructors = sorted([MakeNativeName(d.name)
+                               for d in config.getDescriptors(hasInterfaceObject=True)
+                               if d.shouldHaveGetConstructorObjectMethod()])
+
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
@@ -6798,10 +6892,13 @@ class GlobalGenRoots():
 
     @staticmethod
     def InterfaceTypes(config):
-        descriptors = [d.name for d in config.getDescriptors(register=True,
+        descriptors = sorted([MakeNativeName(d.name)
+                              for d in config.getDescriptors(register=True,
                                                              isCallback=False,
-                                                             isIteratorInterface=False)]
-        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
+                                                             isIteratorInterface=False)])
+        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(),
+                                                             MakeNativeName(name)))
+                       for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
@@ -6812,7 +6909,7 @@ class GlobalGenRoots():
             return getModuleFromObject(d).split('::')[-1]
 
         descriptors = config.getDescriptors(register=True, isIteratorInterface=False)
-        descriptors = (set(d.name + "Binding" for d in descriptors) |
+        descriptors = (set(toBindingNamespace(d.name) for d in descriptors) |
                        set(leafModule(d) for d in config.callbacks) |
                        set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric("pub mod %s;\n" % name) for name in sorted(descriptors)])
@@ -6914,6 +7011,7 @@ impl %(base)s {
         curr = UnionTypes(config.getDescriptors(),
                           config.getDictionaries(),
                           config.getCallbacks(),
+                          config.typedefs,
                           config)
 
         # Add the auto-generated comment.

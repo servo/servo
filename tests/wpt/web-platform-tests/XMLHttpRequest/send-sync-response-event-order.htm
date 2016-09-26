@@ -3,6 +3,7 @@
 <head>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
     <title>XMLHttpRequest: The send() method: event order when synchronous flag is set</title>
     <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadstart" data-tested-assertations="../.." />
     <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onloadend" data-tested-assertations="../.." />
@@ -21,30 +22,13 @@
     <script type="text/javascript">
         test(function () {
             var xhr = new XMLHttpRequest();
-            var expect = [4, "load", "loadend"];
-            var actual = [];
-
-            xhr.onreadystatechange = function()
-            {
-                if (xhr.readyState == 4)
-                {
-                    actual.push(xhr.readyState);
-                }
-            };
-
-            xhr.onloadstart        = function(e){ actual.push(e.type); };
-            xhr.onload             = function(e){ actual.push(e.type); };
-            xhr.onloadend          = function(e){ actual.push(e.type); };
-
-            xhr.upload.onload      = function(e){ actual.push("upload." + e.type); };
-            xhr.upload.onloadstart = function(e){ actual.push("upload." + e.type); };
-            xhr.upload.onloadend   = function(e){ actual.push("upload." + e.type);};
+            prepare_xhr_for_event_order_test(xhr);
 
             xhr.open("POST", "./resources/content.py", false);
             xhr.send("Test Message");
 
             assert_equals(xhr.response, "Test Message");
-            assert_array_equals(actual, expect);
+            assert_xhr_event_order_matches([1, 4, "load(12,12,true)", "loadend(12,12,true)"]);
         });
     </script>
 </body>

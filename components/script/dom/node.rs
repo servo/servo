@@ -23,9 +23,9 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
@@ -59,9 +59,9 @@ use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
-use script_layout_interface::message::Msg;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData};
-use script_layout_interface::{LayoutNodeType, LayoutElementType, TrustedNodeAddress};
+use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
+use script_layout_interface::message::Msg;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
 use selectors::parser::Selector;
@@ -796,10 +796,10 @@ impl Node {
     }
 
     pub fn summarize(&self) -> NodeInfo {
-        let USVString(baseURI) = self.BaseURI();
+        let USVString(base_uri) = self.BaseURI();
         NodeInfo {
             uniqueId: self.unique_id(),
-            baseURI: baseURI,
+            baseURI: base_uri,
             parent: self.GetParentNode().map_or("".to_owned(), |node| node.unique_id()),
             nodeType: self.NodeType(),
             namespaceURI: String::new(), //FIXME
@@ -2296,8 +2296,8 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-issamenode
-    fn IsSameNode(&self, otherNode: Option<&Node>) -> bool {
-        match otherNode {
+    fn IsSameNode(&self, other_node: Option<&Node>) -> bool {
+        match other_node {
             Some(node) => self == node,
             None => false,
         }

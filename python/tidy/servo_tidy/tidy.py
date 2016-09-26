@@ -69,7 +69,6 @@ WEBIDL_STANDARDS = [
     "//w3c.github.io",
     "//heycam.github.io/webidl",
     "//webbluetoothcg.github.io/web-bluetooth/",
-    "//slightlyoff.github.io/ServiceWorker/spec/service_worker/",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."
@@ -483,6 +482,7 @@ def check_rust(file_name, lines):
             (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
                 lambda match, line: line.startswith('use ')),
             (r"^\s*else {", "else braces should be on the same line", no_filter),
+            (r"[^$ ]\([ \t]", "extra space after (", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
@@ -516,10 +516,13 @@ def check_rust(file_name, lines):
                 yield (idx + 1, "use statement spans multiple lines")
             # strip "use" from the begin and ";" from the end
             current_use = line[4:-1]
-            if indent == current_indent and prev_use and current_use < prev_use:
-                yield(idx + 1, decl_message.format("use statement")
-                      + decl_expected.format(prev_use)
-                      + decl_found.format(current_use))
+            if prev_use:
+                current_use_cut = current_use.replace("{self,", ".").replace("{", ".")
+                prev_use_cut = prev_use.replace("{self,", ".").replace("{", ".")
+                if indent == current_indent and current_use_cut < prev_use_cut:
+                    yield(idx + 1, decl_message.format("use statement")
+                          + decl_expected.format(prev_use)
+                          + decl_found.format(current_use))
             prev_use = current_use
             current_indent = indent
 

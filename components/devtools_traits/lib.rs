@@ -27,7 +27,6 @@ extern crate time;
 extern crate url;
 
 use hyper::header::Headers;
-use hyper::http::RawStatus;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -304,7 +303,7 @@ pub struct HttpRequest {
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
     pub headers: Option<Headers>,
-    pub status: Option<RawStatus>,
+    pub status: Option<(u16, Vec<u8>)>,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
 }

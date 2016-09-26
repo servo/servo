@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest Test: event - error</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<meta name="assert" content="Check if event onerror is fired When the request has failed.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+
+async_test(function (t) {
+  var client = new XMLHttpRequest();
+  client.onerror = t.step_func(function(e) {
+    assert_true(e instanceof ProgressEvent);
+    assert_equals(e.type, "error");
+    t.done();
+  });
+
+  client.open("GET", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}");
+  client.send("null");
+}, document.title);
+
+</script>

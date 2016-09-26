@@ -11,6 +11,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use script_thread::Runnable;
 use std::cell::Cell;
@@ -151,6 +152,13 @@ impl Event {
         *self.type_.borrow_mut() = type_;
         self.bubbles.set(bubbles);
         self.cancelable.set(cancelable);
+    }
+
+    pub fn status(&self) -> EventStatus {
+        match self.DefaultPrevented() {
+            true => EventStatus::Canceled,
+            false => EventStatus::NotCanceled
+        }
     }
 
     #[inline]
@@ -303,7 +311,7 @@ impl Event {
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    pub fn fire(&self, target: &EventTarget) -> bool {
+    pub fn fire(&self, target: &EventTarget) -> EventStatus {
         self.set_trusted(true);
         target.dispatch_event(self)
     }

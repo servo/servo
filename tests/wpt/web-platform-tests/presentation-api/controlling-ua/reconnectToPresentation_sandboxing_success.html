@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Sandboxing: Reconnecting a presentation from a nested context succeeds when allow-presentation is set</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-reconnect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    async_test(function (t) {
+        function startWhenReady(ev) {
+            var childFrame = document.getElementById('childFrame');
+            if (ev.data === 'ready') {
+                window.removeEventListener('message', startWhenReady);
+                childFrame.contentWindow.postMessage('reconnect', '*');
+                window.addEventListener('message', t.step_func(function (ev) {
+                    assert_equals(ev.data, 'NotFoundError',
+                        'Presentation sandboxing did not work as expected.');
+                    t.done();
+                }));
+            }
+        }
+        window.addEventListener('message', startWhenReady);
+    });
+</script>
+<iframe id="childFrame" sandbox="allow-scripts allow-presentation" style="display:none" src="support/iframe.html"></iframe>

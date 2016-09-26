@@ -6,6 +6,7 @@
 // web pages.
 
 enum TestEnum { "", "foo", "bar" };
+typedef (DOMString or URL or Blob) TestTypedef;
 
 dictionary TestDictionary {
   required boolean requiredValue;
@@ -241,6 +242,8 @@ interface TestBinding {
   void passUnion6((unsigned long or boolean) bool);
   void passUnion7((sequence<DOMString> or unsigned long) arg);
   void passUnion8((sequence<ByteString> or long) arg);
+  void passUnionWithTypedef((Document or TestTypedef) arg);
+  void passUnionWithTypedef2((sequence<long> or TestTypedef) arg);
   void passAny(any arg);
   void passObject(object arg);
   void passCallbackFunction(Function fun);
@@ -426,6 +429,34 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
+  void passMozMap(MozMap<long> arg);
+  void passNullableMozMap(MozMap<long>? arg);
+  void passMozMapOfNullableInts(MozMap<long?> arg);
+  void passOptionalMozMapOfNullableInts(optional MozMap<long?> arg);
+  void passOptionalNullableMozMapOfNullableInts(optional MozMap<long?>? arg);
+  void passCastableObjectMozMap(MozMap<TestBinding> arg);
+  void passNullableCastableObjectMozMap(MozMap<TestBinding?> arg);
+  void passCastableObjectNullableMozMap(MozMap<TestBinding>? arg);
+  void passNullableCastableObjectNullableMozMap(MozMap<TestBinding?>? arg);
+  void passOptionalMozMap(optional MozMap<long> arg);
+  void passOptionalNullableMozMap(optional MozMap<long>? arg);
+  void passOptionalNullableMozMapWithDefaultValue(optional MozMap<long>? arg = null);
+  void passOptionalObjectMozMap(optional MozMap<TestBinding> arg);
+  void passStringMozMap(MozMap<DOMString> arg);
+  void passByteStringMozMap(MozMap<ByteString> arg);
+  void passMozMapOfMozMaps(MozMap<MozMap<long>> arg);
+
+  void passMozMapUnion((long or MozMap<ByteString>) init);
+  void passMozMapUnion2((TestBinding or MozMap<ByteString>) init);
+  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or MozMap<ByteString>) init);
+
+  MozMap<long> receiveMozMap();
+  MozMap<long>? receiveNullableMozMap();
+  MozMap<long?> receiveMozMapOfNullableInts();
+  MozMap<long?>? receiveNullableMozMapOfNullableInts();
+  MozMap<MozMap<long>> receiveMozMapOfMozMaps();
+  MozMap<any> receiveAnyMozMap();
+
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);
@@ -477,8 +508,23 @@ interface TestBinding {
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
 
+  [Throws]
+  Promise<any> returnResolvedPromise(any value);
+  [Throws]
+  Promise<any> returnRejectedPromise(any value);
+  readonly attribute Promise<boolean> promiseAttribute;
+  void acceptPromise(Promise<DOMString> string);
+  void acceptNullablePromise(Promise<DOMString>? string);
+  Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
+  void promiseResolveNative(Promise<any> p, any value);
+  void promiseRejectNative(Promise<any> p, any value);
+  void promiseRejectWithTypeError(Promise<any> p, USVString message);
+  void resolvePromiseDelayed(Promise<any> p, DOMString value, unsigned long long ms);
+
   void panic();
 };
+
+callback SimpleCallback = void(any value);
 
 partial interface TestBinding {
   [Pref="dom.testable_crash.enabled"]

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.2.5-bodyValueValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation has multiple bodyValue key values or a single bodyValue key value that is not of type string.",
+  "title": "If present the **_bodyValue_ key** has a **single value** that is a **string** - [model 3.2.5](https://www.w3.org/TR/annotation-model/#string-body)",
+  "description": "True when no Annotation bodyValue or the Annotation bodyValue key value is a single string (Section 3.2.5)",
+  "allOf": [
+  { "$ref": "annotations.json#/definitions/bodyValueValidIfPresent" }
+  ]
+}

@@ -25,7 +25,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, call, check_call, host_triple
+from servo.command_base import CommandBase, call, cd, check_call, host_triple
 from wptrunner import wptcommandline
 from update import updatecommandline
 from servo_tidy import tidy
@@ -169,6 +169,16 @@ class MachCommands(CommandBase):
 
         return call(["cargo", "test"], env=env, cwd=path.join("ports", "geckolib"))
 
+    @Command('test-perf',
+             description='Run the page load performance test',
+             category='testing')
+    def test_perf(self):
+        self.ensure_bootstrapped()
+        env = self.build_env()
+        return call(["bash", "test_perf.sh"],
+                    env=env,
+                    cwd=path.join("etc", "ci", "performance"))
+
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
@@ -208,6 +218,8 @@ class MachCommands(CommandBase):
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
 
+        packages.discard('stylo')
+
         args = ["cargo", "test"]
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -229,6 +241,23 @@ class MachCommands(CommandBase):
                 env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
 
         result = call(args, env=env, cwd=self.servo_crate())
+        if result != 0:
+            return result
+
+    @Command('test-stylo',
+             description='Run stylo unit tests',
+             category='testing')
+    def test_stylo(self):
+        self.set_use_stable_rust()
+        self.ensure_bootstrapped()
+
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
+
+        with cd(path.join("ports", "geckolib")):
+            result = call(["cargo", "test", "-p", "stylo_tests"], env=env)
+
         if result != 0:
             return result
 

@@ -22,9 +22,9 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::ReferrerPolicy;
-use net_traits::FetchTaskTarget;
+use net_traits::{FetchTaskTarget, FetchMetadata};
 use net_traits::request::{CacheMode, CredentialsMode, Destination};
-use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -156,8 +156,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // TODO this step (CSP port/content blocking)
 
     // Step 6
-    // TODO this step (referer policy)
-    // currently the clients themselves set referer policy in RequestInit
+    // TODO this step (referrer policy)
+    // currently the clients themselves set referrer policy in RequestInit
 
     // Step 7
     if request.referrer_policy.get().is_none() {
@@ -165,15 +165,15 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     }
 
     // Step 8
-    if *request.referer.borrow() != Referer::NoReferer {
-        // remove Referer headers set in past redirects/preflights
+    if *request.referrer.borrow() != Referrer::NoReferrer {
+        // remove Referrer headers set in past redirects/preflights
         // this stops the assertion in determine_request_referrer from failing
         request.headers.borrow_mut().remove::<RefererHeader>();
         let referrer_url = determine_request_referrer(&mut *request.headers.borrow_mut(),
                                                       request.referrer_policy.get(),
-                                                      request.referer.borrow_mut().take(),
+                                                      request.referrer.borrow_mut().take(),
                                                       request.current_url().clone());
-        *request.referer.borrow_mut() = Referer::from_url(referrer_url);
+        *request.referrer.borrow_mut() = Referrer::from_url(referrer_url);
     }
 
     // Step 9
@@ -312,15 +312,18 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                     Data::Done => break,
                 }
             }
-        } else if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
-            // in case there was no channel to wait for, the body was
-            // obtained synchronously via basic_fetch for data/file/about/etc
-            // We should still send the body across as a chunk
-            if let Some(ref mut target) = *target {
-                target.process_response_chunk(vec.clone());
-            }
         } else {
-            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
+            let body = response.body.lock().unwrap();
+            if let ResponseBody::Done(ref vec) = *body {
+                // in case there was no channel to wait for, the body was
+                // obtained synchronously via basic_fetch for data/file/about/etc
+                // We should still send the body across as a chunk
+                if let Some(ref mut target) = *target {
+                    target.process_response_chunk(vec.clone());
+                }
+            } else {
+                assert!(*body == ResponseBody::Empty)
+            }
         }
 
         // overloaded similarly to process_response
@@ -361,13 +364,14 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             }
         }
     } else if let Some(ref mut target) = *target {
-        if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+        let body = response.body.lock().unwrap();
+        if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
             // obtained synchronously via basic_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         } else {
-            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
+            assert!(*body == ResponseBody::Empty)
         }
     }
 
@@ -745,12 +749,12 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     // Step 6
-    match *http_request.referer.borrow() {
-        Referer::NoReferer => (),
-        Referer::RefererUrl(ref http_request_referer) =>
-            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
-        Referer::Client =>
-            // it should be impossible for referer to be anything else during fetching
+    match *http_request.referrer.borrow() {
+        Referrer::NoReferrer => (),
+        Referrer::ReferrerUrl(ref http_request_referrer) =>
+            http_request.headers.borrow_mut().set(RefererHeader(http_request_referrer.to_string())),
+        Referrer::Client =>
+            // it should be impossible for referrer to be anything else during fetching
             // https://fetch.spec.whatwg.org/#concept-request-referrer
             unreachable!()
     };
@@ -796,7 +800,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     let current_url = http_request.current_url();
     // Step 12
     // todo: pass referrer url and policy
-    // this can only be uncommented when the referer header is set, else it crashes
+    // this can only be uncommented when the referrer header is set, else it crashes
     // in the meantime, we manually set the headers in the block below
     // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
     //                        None, None, None);
@@ -827,7 +831,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url) {
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
                 if !http_request.use_url_credentials || !has_credentials(&current_url) {
                     authorization_value = Some(basic);
                 }
@@ -973,14 +977,18 @@ fn http_network_fetch(request: Rc<Request>,
         Ok((res, msg)) => {
             response.url = Some(url.clone());
             response.status = Some(res.response.status);
-            response.raw_status = Some(res.response.status_raw().clone());
-            response.headers = res.response.headers.clone();
+            response.raw_status = Some((res.response.status_raw().0,
+                                        res.response.status_raw().1.as_bytes().to_vec()));
+                        response.headers = res.response.headers.clone();
 
             let res_body = response.body.clone();
 
             // We're about to spawn a thread to be waited on here
             *done_chan = Some(channel());
-            let meta = response.metadata().expect("Response metadata should exist at this stage");
+            let meta = match response.metadata().expect("Response metadata should exist at this stage") {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            };
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
             let devtools_sender = devtools_chan.clone();
             let meta_status = meta.status.clone();
@@ -1001,7 +1009,7 @@ fn http_network_fetch(request: Rc<Request>,
                                 send_response_to_devtools(
                                     &sender, request_id.unwrap(),
                                     meta_headers.map(Serde::into_inner),
-                                    meta_status.map(Serde::into_inner),
+                                    meta_status,
                                     pipeline_id);
                             }
                         }
@@ -1111,7 +1119,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
-    *preflight.referer.borrow_mut() = request.referer.borrow().clone();
+    *preflight.referrer.borrow_mut() = request.referrer.borrow().clone();
     preflight.referrer_policy.set(request.referrer_policy.get());
 
     // Step 2

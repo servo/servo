@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersInit;
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
@@ -14,24 +15,23 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString, DOMString};
-use dom::headers::{Headers, Guard};
+use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::headers::{Guard, Headers};
 use hyper;
-use msg::constellation_msg::{ReferrerPolicy as MsgReferrerPolicy};
+use msg::constellation_msg::ReferrerPolicy as MsgReferrerPolicy;
+use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
 use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
-use net_traits::request::Referer as NetTraitsRequestReferer;
+use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
-use net_traits::request::{Origin, Window};
 use std::cell::Cell;
 use url::Url;
 
@@ -154,7 +154,7 @@ impl Request {
         *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
         request.same_origin_data.set(true);
-        request.referer = temporary_request.referer;
+        request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
         request.credentials_mode = temporary_request.credentials_mode;
@@ -182,7 +182,7 @@ impl Request {
                 // Step 13.2
                 request.omit_origin_header.set(false);
                 // Step 13.3
-                *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
+                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
                 // Step 13.4
                 request.referrer_policy.set(None);
             }
@@ -193,7 +193,7 @@ impl Request {
             let ref referrer = init_referrer.0;
             // Step 14.2
             if referrer.is_empty() {
-                *request.referer.borrow_mut() = NetTraitsRequestReferer::NoReferer;
+                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::NoReferrer;
             } else {
                 // Step 14.3
                 let parsed_referrer = base_url.join(referrer);
@@ -207,7 +207,7 @@ impl Request {
                     if parsed_referrer.cannot_be_a_base() &&
                         parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client" {
-                            *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
+                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
                         } else {
                             // Step 14.6
                             if parsed_referrer.origin() != origin {
@@ -215,7 +215,7 @@ impl Request {
                                     "RequestInit's referrer has invalid origin".to_string()));
                             }
                             // Step 14.7
-                            *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
+                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
                         }
                 }
             }
@@ -312,7 +312,7 @@ impl Request {
 
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
-            if let &HeadersOrByteStringSequenceSequence::Headers(ref init_headers) = possible_header {
+            if let &HeadersInit::Headers(ref init_headers) = possible_header {
                 headers_copy = init_headers.clone();
             }
         }
@@ -337,7 +337,7 @@ impl Request {
         }
 
         // Step 31
-        try!(r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy))));
+        try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
 
         // Step 32
         let input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -424,7 +424,7 @@ fn net_request_from_global(global: GlobalRef,
                            url: Url,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
-    let pipeline_id = global.pipeline();
+    let pipeline_id = global.pipeline_id();
     NetTraitsRequest::new(url,
                           Some(origin),
                           is_service_worker_global_scope,
@@ -538,11 +538,11 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-referrer
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
-        let referrer = r.referer.borrow();
+        let referrer = r.referrer.borrow();
         USVString(match &*referrer {
-            &NetTraitsRequestReferer::NoReferer => String::from("no-referrer"),
-            &NetTraitsRequestReferer::Client => String::from("client"),
-            &NetTraitsRequestReferer::RefererUrl(ref u) => {
+            &NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
+            &NetTraitsRequestReferrer::Client => String::from("client"),
+            &NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()
             }
@@ -796,13 +796,15 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
     }
 }
 
-impl Clone for HeadersOrByteStringSequenceSequence {
-    fn clone(&self) -> HeadersOrByteStringSequenceSequence {
+impl Clone for HeadersInit {
+    fn clone(&self) -> HeadersInit {
     match self {
-        &HeadersOrByteStringSequenceSequence::Headers(ref h) =>
-            HeadersOrByteStringSequenceSequence::Headers(h.clone()),
-        &HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(ref b) =>
-            HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(b.clone()),
+        &HeadersInit::Headers(ref h) =>
+            HeadersInit::Headers(h.clone()),
+        &HeadersInit::ByteStringSequenceSequence(ref b) =>
+            HeadersInit::ByteStringSequenceSequence(b.clone()),
+        &HeadersInit::ByteStringMozMap(ref m) =>
+            HeadersInit::ByteStringMozMap(m.clone()),
         }
     }
 }

@@ -4,11 +4,13 @@
 
 flat varying vec2 vTextureOffset; // Offset of this image into the texture atlas.
 flat varying vec2 vTextureSize;   // Size of the image in the texture atlas.
+flat varying vec2 vTileSpacing;   // Amount of space between tiled instances of this image.
 
 #ifdef WR_FEATURE_TRANSFORM
 varying vec3 vLocalPos;
 flat varying vec4 vLocalRect;
 flat varying vec2 vStretchSize;
 #else
-varying vec2 vUv;                 // Location within the CSS box to draw.
+varying vec2 vLocalPos;
+flat varying vec2 vStretchSize;
 #endif

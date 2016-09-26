@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    test(function()
+    {
+        var originalTrackDefaults = [
+            // Same everything, but different byteStreamTrackID, should be allowed by the constructor.
+            new TrackDefault("audio", "en-US", "label", ["main"], ""),
+            new TrackDefault("audio", "en-US", "label", ["main"], "1"),
+            new TrackDefault("audio", "en-US", "label", ["main"], "2"),
+            new TrackDefault("audio", "en-US", "label", [""], "3"),
+
+            // Same everything, but different type, should be allowed by the constructor.
+            new TrackDefault("video", "en-US", "label", ["main"], ""),
+            new TrackDefault("video", "en-US", "label", ["main"], "1"),
+            new TrackDefault("video", "en-US", "label", ["main"], "2"),
+            new TrackDefault("video", "en-US", "label", [""], "3")
+        ];
+
+        // Get a new array containing the same objects as |originalTrackDefaults|.
+        var trackDefaults = originalTrackDefaults.slice();
+
+        var trackDefaultList = new TrackDefaultList(trackDefaults);
+        assert_array_equals(trackDefaultList, originalTrackDefaults, "construction and read-back succeeded");
+        assert_equals(trackDefaultList[trackDefaultList.length], undefined, "out of range indexed property getter result is undefined");
+        assert_equals(trackDefaultList[trackDefaultList.length + 1], undefined, "out of range indexed property getter result is undefined");
+
+        // Introduce same-type, same-empty-string-byteStreamTrackId conflict in trackDefaults[0 vs 4].
+        trackDefaults[4] = new TrackDefault("audio", "en-US", "label", ["main"], "");
+        assert_equals(trackDefaults[0].type, trackDefaults[4].type, "same-type conflict setup");
+        assert_equals(trackDefaults[0].byteStreamTrackID, trackDefaults[4].byteStreamTrackID, "same-byteStreamTrackID conflict setup");
+        assert_throws("InvalidAccessError",
+            function() { new TrackDefaultList(trackDefaults); },
+            "TrackDefaultList construction should throw exception due to same type and byteStreamTrackID across at least 2 items in trackDefaults");
+
+        // Introduce same-type, same-non-empty-string-byteStreamTrackId conflict in trackDefaults[4 vs 5].
+        trackDefaults[4] = new TrackDefault("video", "en-US", "label", ["main"], "1");
+        assert_equals(trackDefaults[4].type, trackDefaults[5].type, "same-type conflict setup");
+        assert_equals(trackDefaults[4].byteStreamTrackID, trackDefaults[5].byteStreamTrackID, "same-byteStreamTrackID conflict setup");
+        assert_throws("InvalidAccessError",
+            function() { new TrackDefaultList(trackDefaults); },
+            "TrackDefaultList construction should throw exception due to same type and byteStreamTrackID across at least 2 items in trackDefaults");
+
+        // Confirm the constructed TrackDefaultList makes a shallow copy of the supplied TrackDefault sequence.
+        assert_array_equals(trackDefaultList, originalTrackDefaults, "read-back of original trackDefaultList unchanged");
+
+    }, "Test track default list construction, length, and indexed property getter");
+
+    test(function()
+    {
+        var trackDefaultList = new TrackDefaultList();
+        assert_array_equals(trackDefaultList, [], "empty list constructable without supplying optional trackDefaults parameter");
+
+        trackDefaultList = new TrackDefaultList([]);
+        assert_array_equals(trackDefaultList, [], "empty list constructable by supplying empty sequence as optional trackDefaults parameter");
+    }, "Test empty track default list construction with and without optional trackDefaults parameter");
+</script>

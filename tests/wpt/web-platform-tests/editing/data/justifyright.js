@@ -3,7 +3,7 @@ var browserTests = [
     [["stylewithcss","true"],["defaultparagraphseparator","div"],["justifyright",""]],
     "<div style=\"text-align:right\">foo[]bar</div><p>extra</p>",
     [true,true,true],
-    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"p",false,false,"div"],"justifyright":[false,false,"left",false,true,"right"]}],
+    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"div",false,false,"div"],"justifyright":[false,false,"left",false,true,"right"]}],
 ["foo[]bar<p>extra",
     [["stylewithcss","false"],["defaultparagraphseparator","div"],["justifyright",""]],
     "<div style=\"text-align:right\">foo[]bar</div><p>extra</p>",

@@ -15,9 +15,10 @@
           var client = new self[0].XMLHttpRequest()
           client.onreadystatechange = function() {
             test.step(function() {
-              if(client.readyState == 4)
+              if(client.readyState == 4) {
                 assert_equals(client.responseText, "bottom\n")
                 test.done()
+              }
             })
           }
           client.open("GET", "folder.txt")

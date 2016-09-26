@@ -9,7 +9,7 @@ import html5lib.treebuilders.dom
 
 def extract():
     parser = html5lib.html5parser.HTMLParser(tree=html5lib.treebuilders.dom.TreeBuilder)
-    doc = parser.parse(open('current-work'), encoding='utf-8')
+    doc = parser.parse(open('current-work', "r"), encoding='utf-8')
 
     head = doc.getElementsByTagName('head')[0]
     for n in head.childNodes:

@@ -333,7 +333,7 @@ var browserTests = [
     [["defaultparagraphseparator","div"],["insertlinebreak",""]],
     "<h1>foo<br>{}quz</h1>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"p",false,false,"div"],"insertlinebreak":[false,false,"",false,false,""]}],
+    {"defaultparagraphseparator":[false,false,"div",false,false,"div"],"insertlinebreak":[false,false,"",false,false,""]}],
 ["<h1>foo[bar</h1><p>baz]quz</p>",
     [["defaultparagraphseparator","p"],["insertlinebreak",""]],
     "<h1>foo<br>{}quz</h1>",

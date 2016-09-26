@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Node.prototype.getRootNode()</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-node-getrootnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+test(function () {
+    var element = document.createElement('div');
+    assert_equals(element.getRootNode(), element, 'getRootNode() on an element without a parent must return the element itself');
+
+    var text = document.createTextNode('');
+    assert_equals(text.getRootNode(), text, 'getRootNode() on a text node without a parent must return the text node itself');
+
+    var processingInstruction = document.createProcessingInstruction('target', 'data');
+    assert_equals(processingInstruction.getRootNode(), processingInstruction, 'getRootNode() on a processing instruction node without a parent must return the processing instruction node itself');
+
+    assert_equals(document.getRootNode(), document, 'getRootNode() on a document node must return the document itself');
+
+}, 'getRootNode() must return the context object when it does not have any parent');
+
+test(function () {
+    var parent = document.createElement('div');
+
+    var element = document.createElement('div');
+    parent.appendChild(element);
+    assert_equals(element.getRootNode(), parent, 'getRootNode() on an element with a single ancestor must return the parent node');
+
+    var text = document.createTextNode('');
+    parent.appendChild(text);
+    assert_equals(text.getRootNode(), parent, 'getRootNode() on a text node with a single ancestor must return the parent node');
+
+    var processingInstruction = document.createProcessingInstruction('target', 'data');
+    parent.appendChild(processingInstruction)
+    assert_equals(processingInstruction.getRootNode(), parent, 'getRootNode() on a processing instruction node with a single ancestor must return the parent node');
+
+}, 'getRootNode() must return the parent node of the context object when the context object has a single ancestor not in a document');
+
+test(function () {
+    var parent = document.createElement('div');
+    document.body.appendChild(parent);
+
+    var element = document.createElement('div');
+    parent.appendChild(element);
+    assert_equals(element.getRootNode(), document, 'getRootNode() on an element inside a document must return the document');
+
+    var text = document.createTextNode('');
+    parent.appendChild(text);
+    assert_equals(text.getRootNode(), document, 'getRootNode() on a text node inside a document must return the document');
+
+    var processingInstruction = document.createProcessingInstruction('target', 'data');
+    parent.appendChild(processingInstruction)
+    assert_equals(processingInstruction.getRootNode(), document, 'getRootNode() on a processing instruction node inside a document must return the document');
+}, 'getRootNode() must return the document when a node is in document');
+
+test(function () {
+    var fragment = document.createDocumentFragment();
+    var parent = document.createElement('div');
+    fragment.appendChild(parent);
+
+    var element = document.createElement('div');
+    parent.appendChild(element);
+    assert_equals(element.getRootNode(), fragment, 'getRootNode() on an element inside a document fragment must return the fragment');
+
+    var text = document.createTextNode('');
+    parent.appendChild(text);
+    assert_equals(text.getRootNode(), fragment, 'getRootNode() on a text node inside a document fragment must return the fragment');
+
+    var processingInstruction = document.createProcessingInstruction('target', 'data');
+    parent.appendChild(processingInstruction)
+    assert_equals(processingInstruction.getRootNode(), fragment,
+        'getRootNode() on a processing instruction node inside a document fragment must return the fragment');
+}, 'getRootNode() must return a document fragment when a node is in the fragment');
+
+</script>
+</body>
+</html>

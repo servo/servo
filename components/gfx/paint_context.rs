@@ -5,6 +5,8 @@
 //! Painting of display lists using Moz2D/Azure.
 
 use app_units::Au;
+use azure::{AzDrawTargetFillGlyphs, struct__AzGlyphBuffer, struct__AzPoint};
+use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::azure::AzIntSize;
 use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{CapStyle, JoinStyle};
@@ -13,11 +15,9 @@ use azure::azure_hl::{Filter, FilterNode, GaussianBlurInput, GradientStop, Linea
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{Path, PathBuilder, Pattern, PatternRef, SurfacePattern};
 use azure::scaled_font::ScaledFont;
-use azure::{AzDrawTargetFillGlyphs, struct__AzGlyphBuffer, struct__AzPoint};
-use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
-use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use display_list::{TextDisplayItem, WebRenderImageInfo};
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
@@ -26,16 +26,16 @@ use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use filters;
 use font_context::FontContext;
-use gfx_traits::{color, LayerKind};
+use gfx_traits::{LayerKind, color};
 use net_traits::image::base::PixelFormat;
 use range::Range;
-use std::default::Default;
 use std::{f32, mem, ptr};
+use std::default::Default;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use style_traits::PagePx;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, max_rect, ScreenPx};
+use util::geometry::{self, ScreenPx, max_rect};
 use util::opts;
 
 pub struct PaintContext<'a> {
@@ -189,6 +189,7 @@ impl<'a> PaintContext<'a> {
     pub fn draw_image(&self,
                       bounds: &Rect<Au>,
                       stretch_size: &Size2D<Au>,
+                      tile_spacing: &Size2D<Au>,
                       image_info: &WebRenderImageInfo,
                       image_data: &[u8],
                       image_rendering: image_rendering::T) {
@@ -229,7 +230,7 @@ impl<'a> PaintContext<'a> {
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
 
         // Fast path: No need to create a pattern.
-        if bounds.size == *stretch_size {
+        if bounds.size == *stretch_size && *tile_spacing == Size2D::zero() {
             draw_target_ref.draw_surface(azure_surface,
                                          dest_rect,
                                          source_rect,
@@ -243,8 +244,8 @@ impl<'a> PaintContext<'a> {
         // Annoyingly, surface patterns in Azure/Skia are relative to the top left of the *canvas*,
         // not the rectangle we're drawing to. So we need to translate it explicitly.
         let matrix = Matrix2D::identity().pre_translated(dest_rect.origin.x, dest_rect.origin.y);
-        let stretch_size = stretch_size.to_nearest_azure_size(scale);
-        if source_rect.size == stretch_size {
+        let azure_stretch_size = stretch_size.to_nearest_azure_size(scale);
+        if source_rect.size == azure_stretch_size && *tile_spacing == Size2D::zero() {
             let pattern = SurfacePattern::new(azure_surface.azure_source_surface,
                                               true,
                                               true,
@@ -258,10 +259,11 @@ impl<'a> PaintContext<'a> {
         // Slow path: Both stretch and a pattern are needed.
         let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
+        let temporary_target_size = (*stretch_size + *tile_spacing).to_nearest_azure_size(scale);
         let temporary_draw_target =
-            self.draw_target.create_similar_draw_target(&stretch_size.to_azure_int_size(),
+            self.draw_target.create_similar_draw_target(&temporary_target_size.to_azure_int_size(),
                                                         self.draw_target.get_format());
-        let temporary_dest_rect = Rect::new(Point2D::new(0.0, 0.0), stretch_size);
+        let temporary_dest_rect = Rect::new(Point2D::new(0.0, 0.0), azure_stretch_size);
         temporary_draw_target.draw_surface(azure_surface,
                                            temporary_dest_rect,
                                            source_rect,

@@ -10,9 +10,9 @@
 use cssparser::{Parser, ToCss, Token};
 use std::fmt;
 use values::HasViewportPercentage;
-use values::computed::position as computed_position;
 use values::computed::{CalcLengthOrPercentage, Context};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, ToComputedValue};
+use values::computed::position as computed_position;
 use values::specified::{LengthOrPercentage, Percentage};
 
 #[derive(Debug, Clone, PartialEq, Copy)]
@@ -327,6 +327,16 @@ impl ToComputedValue for Position {
         computed_position::Position {
             horizontal: horizontal,
             vertical: vertical,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &computed_position::Position) -> Position {
+        Position {
+            horiz_keyword: None,
+            horiz_position: Some(ToComputedValue::from_computed_value(&computed.horizontal)),
+            vert_keyword: None,
+            vert_position: Some(ToComputedValue::from_computed_value(&computed.vertical)),
         }
     }
 }

@@ -13,17 +13,17 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root, RootedReference, MutNullableHeap};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
 use dom::filelist::FileList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, FormSubmitter, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
@@ -34,9 +34,9 @@ use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use msg::constellation_msg::Key;
+use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
-use net_traits::{IpcSend, CoreResourceMsg};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -45,9 +45,9 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
 use style::str::split_commas;
+use textinput::{SelectionDirection, TextInput};
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
-use textinput::{TextInput, SelectionDirection};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -85,6 +85,7 @@ pub struct HTMLInputElement {
     value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
+    minlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<IpcSender<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
@@ -123,21 +124,28 @@ impl InputActivationState {
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
+static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
         let chan = document.window().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
-                                                      localName, prefix, document),
+                                                      local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
+            minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
+            textinput: DOMRefCell::new(TextInput::new(Single,
+                                                      DOMString::new(),
+                                                      chan,
+                                                      None,
+                                                      None,
+                                                      SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableHeap::new(None),
@@ -145,10 +153,10 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
-        Node::reflect_node(box HTMLInputElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLInputElementBinding::Wrap)
     }
@@ -478,6 +486,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-minlength
+    make_int_getter!(MinLength, "minlength", DEFAULT_MIN_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-minlength
+    make_limited_int_setter!(SetMinLength, "minlength", DEFAULT_MIN_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_getter!(Min, "min");
@@ -993,7 +1007,19 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     _ => panic!("Expected an AttrValue::Int"),
                 }
-            }
+            },
+            &atom!("minlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        if value < 0 {
+                            self.textinput.borrow_mut().min_length = None
+                        } else {
+                            self.textinput.borrow_mut().min_length = Some(value as usize)
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::Int"),
+                }
+            },
             &atom!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
@@ -1027,6 +1053,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
             &atom!("type") => AttrValue::from_atomic(value.into()),
             &atom!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
+            &atom!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -1275,7 +1302,7 @@ impl Activatable for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -1295,10 +1322,10 @@ impl Activatable for HTMLInputElement {
             Some(ref button) => {
                 if button.is_instance_activatable() {
                     synthetic_click_activation(button.as_element(),
-                                               ctrlKey,
-                                               shiftKey,
-                                               altKey,
-                                               metaKey,
+                                               ctrl_key,
+                                               shift_key,
+                                               alt_key,
+                                               meta_key,
                                                ActivationSource::NotFromClick)
                 }
             }

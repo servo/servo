@@ -9,10 +9,10 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::object::ObjectActor;
+use devtools_traits::{CONSOLE_API, CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
 use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
-use devtools_traits::{CONSOLE_API, CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;

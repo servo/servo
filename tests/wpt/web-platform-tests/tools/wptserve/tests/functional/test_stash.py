@@ -1,14 +1,16 @@
-import os
 import unittest
-import urllib2
-import json
 import uuid
 
 import wptserve
 from wptserve.router import any_method
-from base import TestUsingServer, doc_root
+from wptserve.stash import StashServer
+from .base import TestUsingServer
 
 class TestResponseSetCookie(TestUsingServer):
+    def run(self, result=None):
+        with StashServer(None, authkey=str(uuid.uuid4())):
+            super(TestResponseSetCookie, self).run(result)
+
     def test_put_take(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -26,13 +28,13 @@ class TestResponseSetCookie(TestUsingServer):
         self.server.router.register(*route)
 
         resp = self.request(route[1], method="POST", body={"id": id, "data": "Sample data"})
-        self.assertEquals(resp.read(), "OK")
+        self.assertEqual(resp.read(), "OK")
 
         resp = self.request(route[1], query="id=" + id)
-        self.assertEquals(resp.read(), "Sample data")
+        self.assertEqual(resp.read(), "Sample data")
 
         resp = self.request(route[1], query="id=" + id)
-        self.assertEquals(resp.read(), "NOT FOUND")
+        self.assertEqual(resp.read(), "NOT FOUND")
 
 
 if __name__ == '__main__':

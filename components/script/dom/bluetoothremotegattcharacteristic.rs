@@ -12,8 +12,8 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
-use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
@@ -37,14 +37,14 @@ pub struct BluetoothRemoteGATTCharacteristic {
     uuid: DOMString,
     properties: MutHeap<JS<BluetoothCharacteristicProperties>>,
     value: DOMRefCell<Option<ByteString>>,
-    instanceID: String,
+    instance_id: String,
 }
 
 impl BluetoothRemoteGATTCharacteristic {
     pub fn new_inherited(service: &BluetoothRemoteGATTService,
                          uuid: DOMString,
                          properties: &BluetoothCharacteristicProperties,
-                         instanceID: String)
+                         instance_id: String)
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             reflector_: Reflector::new(),
@@ -52,7 +52,7 @@ impl BluetoothRemoteGATTCharacteristic {
             uuid: uuid,
             properties: MutHeap::new(properties),
             value: DOMRefCell::new(None),
-            instanceID: instanceID,
+            instance_id: instance_id,
         }
     }
 
@@ -77,7 +77,7 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 
     fn get_instance_id(&self) -> String {
-        self.instanceID.clone()
+        self.instance_id.clone()
     }
 }
 

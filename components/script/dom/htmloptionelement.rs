@@ -39,23 +39,23 @@ pub struct HTMLOptionElement {
 }
 
 impl HTMLOptionElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      localName, prefix, document),
+                                                      local_name, prefix, document),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptionElement> {
-        Node::reflect_node(box HTMLOptionElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOptionElementBinding::Wrap)
     }

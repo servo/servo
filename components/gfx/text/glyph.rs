@@ -7,9 +7,9 @@ use euclid::point::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 use simd::u32x4;
+use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
-use std::{fmt, mem, u16};
 
 pub use gfx_traits::ByteIndex;
 

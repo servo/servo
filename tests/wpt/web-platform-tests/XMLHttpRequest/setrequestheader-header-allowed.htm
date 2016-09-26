@@ -4,7 +4,7 @@
     <title>XMLHttpRequest: setRequestHeader() - headers that are allowed</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="/following::ol/li[6] /following::ol/li[7]" />  
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-setrequestheader()-method" data-tested-assertations="/following::ol/li[6] /following::ol/li[7]" />
   </head>
   <body>
     <div id="log"></div>
@@ -12,7 +12,7 @@
       function request(header) {
         test(function() {
           var client = new XMLHttpRequest()
-          client.open("POST", "resources/inspect-headers.py?filter_value=t1, t2", false)
+          client.open("POST", "resources/inspect-headers.py?filter_value=t1,t2", false)
           client.setRequestHeader(header, "t1")
           client.setRequestHeader(header, "t2")
           client.send(null)

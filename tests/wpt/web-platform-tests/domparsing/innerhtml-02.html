@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<title>innerHTML in HTML</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="http://html5.org/specs/dom-parsing.html#innerhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var voidElements = [
+  "area", "base", "basefont", "bgsound", "br", "col", "command", "embed",
+  "frame", "hr", "img", "input", "keygen", "link", "meta", "param", "source",
+  "track", "wbr"
+];
+var tests = [
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("xmp"))
+        .appendChild(document.createElement("span"))
+        .appendChild(document.createTextNode("<"));
+      return el;
+    },
+    "<xmp><span>&lt;<\/span><\/xmp>"
+  ],
+  [
+    function() {
+      var el = document.createElement("xmp");
+      el.appendChild(document.createElement("span"))
+        .appendChild(document.createTextNode("<"));
+      return el;
+    },
+    "<span>&lt;<\/span>"
+  ],
+  [
+    function() {
+      var el = document.createElement("xmp");
+      el.appendChild(document.createTextNode("<"));
+      return el;
+    },
+    "<"
+  ],
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("br"));
+      return el;
+    },
+    "<br>"
+  ],
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("input"))
+        .appendChild(document.createElement("span"));
+      return el;
+    },
+    "<input>"
+  ],
+  [
+    function() {
+      var el = document.createElement("img");
+      el.appendChild(document.createElement("div"))
+        .appendChild(document.createElement("span"));
+      return el.firstChild;
+    },
+    "<span><\/span>"
+  ],
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("style"))
+        .appendChild(document.createElement("span"));
+      return el;
+    },
+    "<style><span><\/span><\/style>"
+  ],
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("style"))
+        .appendChild(document.createTextNode("<"));
+      return el;
+    },
+    "<style><<\/style>"
+  ],
+  [
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement("style"))
+        .appendChild(document.createElement("span"))
+        .appendChild(document.createTextNode("<"));
+      return el;
+    },
+    "<style><span>&lt;<\/span><\/style>"
+  ]
+];
+voidElements.forEach(function(tag) {
+  tests.push([
+    function() {
+      var el = document.createElement(tag);
+      el.appendChild(document.createElement("span"));
+      return el;
+    },
+    "<span><\/span>"
+  ]);
+});
+["pre", "textarea", "listing"].forEach(function(tag) {
+  tests.push([
+    function() {
+      var el = document.createElement("div");
+      el.appendChild(document.createElement(tag))
+        .appendChild(document.createTextNode("\nA"));
+      return el;
+    },
+    "<" + tag + ">\n\nA<\/" + tag + ">"
+  ]);
+});
+test(function() {
+  tests.forEach(function(t) {
+    var el = t[0](), expected = t[1];
+    test(function() {
+      assert_equals(el.innerHTML, expected);
+    }, "Expected innerHTML: " + format_value(expected) + " for " + el.localName + ".");
+  });
+});
+</script>

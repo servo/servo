@@ -15,8 +15,8 @@ use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request, Response};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentEncoding, ContentType, Host, Referer};
-use hyper::header::{Authorization, AcceptLanguage, Basic};
+use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, ContentType, Host, Referer};
+use hyper::header::{AcceptLanguage, Authorization, Basic};
 use hyper::header::{Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
@@ -29,16 +29,16 @@ use ipc_channel::ipc::{self, IpcSender};
 use log;
 use mime_classifier::MimeClassifier;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
+use net_traits::{CustomResponse, CustomResponseMediator, Metadata, NetworkError};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{Metadata, NetworkError, CustomResponse, CustomResponseMediator};
 use openssl;
-use openssl::ssl::error::{SslError, OpensslError};
-use profile_traits::time::{ProfilerCategory, profile, ProfilerChan, TimerMetadata};
-use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
-use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
+use openssl::ssl::error::{OpensslError, SslError};
+use profile_traits::time::{ProfilerCategory, ProfilerChan, TimerMetadata, profile};
+use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use resource_thread::{AuthCache, AuthCacheEntry, CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -46,13 +46,13 @@ use std::error::Error;
 use std::fmt;
 use std::io::{self, Cursor, Read, Write};
 use std::ops::Deref;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
+use std::sync::mpsc::Sender;
 use time;
 use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs;
-use url::{Url, Position};
+use url::{Position, Url, Origin};
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid;
@@ -629,7 +629,7 @@ pub fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
 pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>,
+                             status: Option<(u16, Vec<u8>)>,
                              pipeline_id: PipelineId) {
     let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
     let net_event_response = NetworkEvent::HttpResponse(response);
@@ -676,8 +676,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                                                referrer_url.clone(),
                                                url.clone());
 
-    if let Some(referer_val) = referrer_url.clone() {
-        headers.set(Referer(referer_val.into_string()));
+    if let Some(referrer_val) = referrer_url.clone() {
+        headers.set(Referer(referrer_val.into_string()));
     }
 }
 
@@ -688,15 +688,15 @@ fn set_auth_header(headers: &mut Headers,
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(basic) = auth_from_cache(auth_cache, url) {
+            if let Some(basic) = auth_from_cache(auth_cache, &url.origin()) {
                 headers.set(Authorization(basic));
             }
         }
     }
 }
 
-pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
-    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &Origin) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());
         Some(Basic { username: user_name, password: password })
@@ -1017,13 +1017,15 @@ pub fn load<A, B>(load_data: &LoadData,
         new_auth_header = None;
 
         if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
-            if response.status().class() == StatusClass::Success {
+            if response.status().class() == StatusClass::Success ||
+               response.status().class() == StatusClass::Redirection {
                 let auth_entry = AuthCacheEntry {
                     user_name: auth_header.username.to_owned(),
                     password: auth_header.password.to_owned().unwrap(),
                 };
 
-                http_state.auth_cache.write().unwrap().entries.insert(doc_url.clone(), auth_entry);
+                let serialized_origin = doc_url.origin().ascii_serialization();
+                http_state.auth_cache.write().unwrap().entries.insert(serialized_origin, auth_entry);
             }
         }
 
@@ -1081,7 +1083,8 @@ pub fn load<A, B>(load_data: &LoadData,
             None => None
         });
         metadata.headers = Some(Serde(adjusted_headers));
-        metadata.status = Some(Serde(response.status_raw().clone()));
+        metadata.status = Some((response.status_raw().0,
+                                response.status_raw().1.as_bytes().to_vec()));
         metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {
@@ -1097,7 +1100,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 send_response_to_devtools(
                     &chan, request_id.unwrap(),
                     metadata.headers.clone().map(Serde::into_inner),
-                    metadata.status.clone().map(Serde::into_inner),
+                    metadata.status.clone(),
                     pipeline_id);
             }
         }

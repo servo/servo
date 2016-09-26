@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-targCreatorAgentTypeImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Type (Person, Organization, Software) for Target Creator (Agent) not found. Agents should have one or more type values.",
+  "title": "Implements Target-level creator (Agent) **_type_ key** with one or more values from **model-recommended list (Person, Organization, Software)** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when type for Target Creator (Agent) is implemented (Section 3.3.2)",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/creatorAgentWithTypeFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithTypeFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithTypeFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/creatorAgentWithTypeFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceCreatorAgentWithTypeFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemCreatorAgentWithTypeFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

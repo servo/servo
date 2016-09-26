@@ -121,13 +121,13 @@ pub fn begin_trace(flow_root: FlowRef) {
 /// End the debug layout trace. This will write the layout
 /// trace to disk in the current directory. The output
 /// file can then be viewed with an external tool.
-pub fn end_trace() {
+pub fn end_trace(generation: u32) {
     let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
     assert!(thread_state.scope_stack.len() == 1);
     let mut root_scope = thread_state.scope_stack.pop().unwrap();
     root_scope.post = json::encode(&flow::base(&*thread_state.flow_root)).unwrap();
 
     let result = json::encode(&root_scope).unwrap();
-    let mut file = File::create("layout_trace.json").unwrap();
+    let mut file = File::create(format!("layout_trace-{}.json", generation)).unwrap();
     file.write_all(result.as_bytes()).unwrap();
 }

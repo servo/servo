@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: Retrieve stored persistent-usage-record</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Message handler for Clear Key keysystem -->
+    <script src=/encrypted-media/util/clearkey-messagehandler.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+
+    window.addEventListener( 'message', function( event ) {
+
+        var config = event.data.config,
+            configuration = {   initDataTypes: [ config.initDataType ],
+                                audioCapabilities: [ { contentType: config.audioType } ],
+                                videoCapabilities: [ { contentType: config.videoType } ],
+                                sessionTypes: [ 'persistent-usage-record' ] },
+            assertions = [ ];
+
+            config.messagehandler = (new MessageHandler('org.w3.keysystem')).messagehandler;
+
+        function onMessage( event )
+        {
+            assertions.push( { expected: true, actual: event instanceof window.MediaKeyMessageEvent, message: "event is of correct class" } );
+            assertions.push( { expected: 'message', actual: event.type, message: "event type is message" } );
+            assertions.push( { expected: 'license-release', actual: event.messageType, message: "message type is license-release" } );
+
+            var release = fromUtf8( event.message );
+
+            consoleWrite( JSON.stringify( release ) );
+
+            assertions.push( { expected: 1, actual: release.kids.length, message: "release message contains a single key" } );
+            assertions.push( { expected: true, actual: ( typeof release.firstTime === 'number' ), message: "firstTime is a number" } );
+            assertions.push( { expected: true, actual: ( typeof release.latestTime === 'number' ), message: "latestTime is a number" } );
+
+            var duration = release.latestTime - release.firstTime;
+            assertions.push( { expected: true, actual: ( duration >= 2000 ), message: "duration >= 2s" } );
+            assertions.push( { expected: true, actual: ( duration < 4000 ), message: "duration < 4s" } );
+
+            config.messagehandler( event.messageType, event.message )
+            .then( function( response ) {
+
+                event.target.update( response ).catch(function(error) {
+
+                    assertions.push( { actual: false, expected: true, message: error } );
+
+                    window.opener.postMessage(assertions, '*');
+                });
+            });
+        }
+
+        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ] ).then(function(access) {
+
+            return access.createMediaKeys();
+
+        }).then(function(mediaKeys) {
+
+            var mediaKeySession = mediaKeys.createSession( 'persistent-usage-record' );
+
+            mediaKeySession.addEventListener( 'message', onMessage );
+            mediaKeySession.closed.then( function() {
+
+                window.opener.postMessage(assertions, '*');
+
+            });
+
+            return mediaKeySession.load( event.data.sessionId );
+
+        }).catch(function(error) {
+
+            assertions.push( { actual: false, expected: true, message: error.toString() } );
+
+            window.opener.postMessage(assertions, '*');
+
+        });
+
+
+    } );
+
+    </script>
+  </body>
+</html>

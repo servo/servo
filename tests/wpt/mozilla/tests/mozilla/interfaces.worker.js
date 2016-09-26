@@ -23,7 +23,6 @@ test_interfaces([
   "DOMRect",
   "DOMRectReadOnly",
   "Comment",
-  "Console",
   "CustomEvent",
   "DedicatedWorkerGlobalScope",
   "Document",
@@ -90,6 +89,7 @@ test_interfaces([
   "RadioNodeList",
   "Range",
   "Request",
+  "Response",
   "Screen",
   "Storage",
   "StorageEvent",
@@ -128,6 +128,7 @@ test_interfaces([
   "XMLHttpRequest",
   "XMLHttpRequestEventTarget",
   "XMLHttpRequestUpload",
+  "console",
 ]);
 
 done();

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Calling "start" with an a priori unauthenticated URL in an HTTPS context throws a SecurityError exception.</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-start">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>Click the button below to start the manual test. If prompted to select a device, please dismiss the dialog box. The test passes if a "PASS" result appears.</p>
+<button id="presentBtn" onclick="startPresentationTest()">Start Presentation Test</button>
+
+<script>
+    setup({explicit_timeout: true});
+
+    var presentBtn = document.getElementById("presentBtn");
+
+    function startPresentation() {
+        var request = new PresentationRequest('http://example.org/presentation.html');
+        return request.start();
+    };
+
+    function startPresentationTest() {
+        presentBtn.disabled = true;
+        promise_test(function (t) {
+            return promise_rejects(t, 'SecurityError', startPresentation());
+        });
+    }
+</script>
+

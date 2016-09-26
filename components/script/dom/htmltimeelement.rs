@@ -16,17 +16,17 @@ pub struct HTMLTimeElement {
 }
 
 impl HTMLTimeElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTimeElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTimeElement {
         HTMLTimeElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTimeElement> {
-        Node::reflect_node(box HTMLTimeElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTimeElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTimeElementBinding::Wrap)
     }

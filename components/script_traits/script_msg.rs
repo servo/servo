@@ -17,7 +17,7 @@ use euclid::size::Size2D;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineId, SubpageId, TraversalDirection};
+use msg::constellation_msg::{PipelineId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
@@ -83,11 +83,13 @@ pub enum ScriptMsg {
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete(PipelineId),
-    /// A new load has been requested.
-    LoadUrl(PipelineId, LoadData),
+    /// A new load has been requested, with an option to replace the current entry once loaded
+    /// instead of adding a new entry.
+    LoadUrl(PipelineId, LoadData, bool),
     /// Dispatch a mozbrowser event to a given iframe,
     /// or to the window if no subpage id is provided.
-    MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(Option<PipelineId>, TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
@@ -135,6 +137,9 @@ pub enum ScriptMsg {
     LogEntry(Option<PipelineId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
+    /// Send messages from postMessage calls from serviceworker
+    /// to constellation for storing in service worker manager
+    ForwardDOMMessage(DOMMessage, Url),
     /// Store the data required to activate a service worker for the given scope
     RegisterServiceWorker(ScopeThings, Url),
     /// Requests that the compositor shut down.
@@ -158,6 +163,10 @@ pub struct ScopeThings {
     pub worker_id: WorkerId,
 }
 
+/// Message that gets passed to service worker scope on postMessage
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct DOMMessage(pub Vec<u8>);
+
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 pub struct SWManagerSenders {
     /// sender for communicating with constellation
@@ -173,6 +182,8 @@ pub enum ServiceWorkerMsg {
     RegisterServiceWorker(ScopeThings, Url),
     /// Timeout message sent by active service workers
     Timeout(Url),
+    /// Message sent by constellation to forward to a running service worker
+    ForwardDOMMessage(DOMMessage, Url),
     /// Exit the service worker manager
     Exit,
 }
@@ -181,5 +192,6 @@ pub enum ServiceWorkerMsg {
 #[derive(Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
-    OwnSender(IpcSender<ServiceWorkerMsg>),
+    OwnSender(IpcSender<ServiceWorkerMsg>)
+
 }

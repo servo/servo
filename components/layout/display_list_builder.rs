@@ -10,26 +10,26 @@
 
 #![deny(unsafe_code)]
 
-use app_units::{Au, AU_PER_PX};
+use app_units::{AU_PER_PX, Au};
 use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
-use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
+use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
 use euclid::{Matrix4D, Point2D, Point3D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::SpecificFragmentInfo;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection, GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
-use gfx::display_list::{LayeredItem, LayerInfo, LineDisplayItem, OpaqueNode};
+use gfx::display_list::{LayerInfo, LayeredItem, LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
-use gfx_traits::{color, ScrollPolicy, StackingContextId};
+use gfx_traits::{ScrollPolicy, StackingContextId, color};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
@@ -38,19 +38,19 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
 use script_layout_interface::restyle_damage::REPAINT;
+use std::{cmp, f32};
 use std::default::Default;
 use std::sync::Arc;
-use std::{cmp, f32};
-use style::computed_values::filter::Filter;
-use style::computed_values::text_shadow::TextShadow;
-use style::computed_values::{_servo_overflow_clip_box as overflow_clip_box};
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style};
 use style::computed_values::{cursor, image_rendering, overflow_x, pointer_events, position};
 use style::computed_values::{transform, transform_style, visibility};
+use style::computed_values::_servo_overflow_clip_box as overflow_clip_box;
+use style::computed_values::filter::Filter;
+use style::computed_values::text_shadow::TextShadow;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::style_structs;
 use style::properties::{self, ServoComputedValues};
+use style::properties::style_structs;
 use style::values::RGBA;
 use style::values::computed;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto, LinearGradient};
@@ -547,46 +547,74 @@ impl FragmentDisplayListBuilding for Fragment {
             let position = *get_cyclic(&background.background_position.0, index);
             // Use `background-position` to get the offset.
             let horizontal_position = model::specified(position.horizontal,
-                                                     bounds.size.width - image_size.width);
+                                                       bounds.size.width - image_size.width);
             let vertical_position = model::specified(position.vertical,
-                                                   bounds.size.height - image_size.height);
+                                                     bounds.size.height - image_size.height);
 
-            let abs_x = border.left + virtual_origin_x + horizontal_position + origin_x;
-            let abs_y = border.top + virtual_origin_y + vertical_position + origin_y;
+            // The anchor position for this background, based on both the background-attachment
+            // and background-position properties.
+            let anchor_origin_x = border.left + virtual_origin_x + origin_x + horizontal_position;
+            let anchor_origin_y = border.top + virtual_origin_y + origin_y + vertical_position;
+
+            let mut tile_spacing = Size2D::zero();
+            let mut stretch_size = image_size;
 
             // Adjust origin and size based on background-repeat
             match *get_cyclic(&background.background_repeat.0, index) {
                 background_repeat::single_value::T::no_repeat => {
-                    bounds.origin.x = abs_x;
-                    bounds.origin.y = abs_y;
+                    bounds.origin.x = anchor_origin_x;
+                    bounds.origin.y = anchor_origin_y;
                     bounds.size.width = image_size.width;
                     bounds.size.height = image_size.height;
                 }
                 background_repeat::single_value::T::repeat_x => {
-                    bounds.origin.y = abs_y;
+                    bounds.origin.y = anchor_origin_y;
                     bounds.size.height = image_size.height;
                     ImageFragmentInfo::tile_image(&mut bounds.origin.x,
                                                   &mut bounds.size.width,
-                                                  abs_x,
-                                                  image_size.width.to_nearest_px() as u32);
+                                                  anchor_origin_x,
+                                                  image_size.width);
                 }
                 background_repeat::single_value::T::repeat_y => {
-                    bounds.origin.x = abs_x;
+                    bounds.origin.x = anchor_origin_x;
                     bounds.size.width = image_size.width;
                     ImageFragmentInfo::tile_image(&mut bounds.origin.y,
                                                   &mut bounds.size.height,
-                                                  abs_y,
-                                                  image_size.height.to_nearest_px() as u32);
+                                                  anchor_origin_y,
+                                                  image_size.height);
                 }
                 background_repeat::single_value::T::repeat => {
                     ImageFragmentInfo::tile_image(&mut bounds.origin.x,
-                                                &mut bounds.size.width,
-                                                abs_x,
-                                                image_size.width.to_nearest_px() as u32);
+                                                  &mut bounds.size.width,
+                                                  anchor_origin_x,
+                                                  image_size.width);
                     ImageFragmentInfo::tile_image(&mut bounds.origin.y,
-                                                &mut bounds.size.height,
-                                                abs_y,
-                                                image_size.height.to_nearest_px() as u32);
+                                                  &mut bounds.size.height,
+                                                  anchor_origin_y,
+                                                  image_size.height);
+                }
+                background_repeat::single_value::T::space => {
+                    ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.x,
+                                                         &mut bounds.size.width,
+                                                         &mut tile_spacing.width,
+                                                         anchor_origin_x,
+                                                         image_size.width);
+                    ImageFragmentInfo::tile_image_spaced(&mut bounds.origin.y,
+                                                         &mut bounds.size.height,
+                                                         &mut tile_spacing.height,
+                                                         anchor_origin_y,
+                                                         image_size.height);
+
+                }
+                background_repeat::single_value::T::round => {
+                    ImageFragmentInfo::tile_image_round(&mut bounds.origin.x,
+                                                        &mut bounds.size.width,
+                                                        anchor_origin_x,
+                                                        &mut stretch_size.width);
+                    ImageFragmentInfo::tile_image_round(&mut bounds.origin.y,
+                                                        &mut bounds.size.height,
+                                                        anchor_origin_y,
+                                                        &mut stretch_size.height);
                 }
             };
 
@@ -600,7 +628,8 @@ impl FragmentDisplayListBuilding for Fragment {
               base: base,
               webrender_image: webrender_image,
               image_data: image_data.map(Arc::new),
-              stretch_size: Size2D::new(image_size.width, image_size.height),
+              stretch_size: stretch_size,
+              tile_spacing: tile_spacing,
               image_rendering: style.get_inheritedbox().image_rendering.clone(),
             }));
 
@@ -1257,6 +1286,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         webrender_image: WebRenderImageInfo::from_image(image),
                         image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
+                        tile_spacing: Size2D::zero(),
                         image_rendering: self.style.get_inheritedbox().image_rendering.clone(),
                     }));
                 }
@@ -1300,6 +1330,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                     key: canvas_data.image_key,
                                 },
                                 stretch_size: stacking_relative_content_box.size,
+                                tile_spacing: Size2D::zero(),
                                 image_rendering: image_rendering::T::Auto,
                             })
                         }

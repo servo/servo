@@ -544,7 +544,7 @@ impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
     type Declaration = (Vec<PropertyDeclaration>, Importance);
 
-    fn parse_value(&self, name: &str, input: &mut Parser)
+    fn parse_value(&mut self, name: &str, input: &mut Parser)
                    -> Result<(Vec<PropertyDeclaration>, Importance), ()> {
         let mut results = vec![];
         try!(input.parse_until_before(Delimiter::Bang, |input| {
@@ -2060,6 +2060,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     % if product == "gecko":
         style.mutate_background().fill_arrays();
+        style.mutate_svg().fill_arrays();
     % endif
 
     // The initial value of outline width may be changed at computed value time.
@@ -2275,20 +2276,6 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
         let mut effects = Arc::make_mut(&mut style.effects);
         effects.opacity = 1.0;
     }
-}
-
-/// Adjusts the `margin` property as necessary to account for the text of an `input` element.
-///
-/// Margins apply to the `input` element itself, so including them in the text will cause them to
-/// be double-counted.
-#[cfg(feature = "servo")]
-pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_mut(style);
-    let margin_style = Arc::make_mut(&mut style.margin);
-    margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
 }
 
 /// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its

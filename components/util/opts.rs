@@ -123,6 +123,10 @@ pub struct Opts {
     /// Enable all heartbeats for profiling.
     pub profile_heartbeats: bool,
 
+    /// `None` to disable debugger or `Some` with a port number to start a server to listen to
+    /// remote Firefox debugger connections.
+    pub debugger_port: Option<u16>,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -195,6 +199,11 @@ pub struct Opts {
 
     /// True to show webrender debug on screen.
     pub webrender_debug: bool,
+
+    /// True to compile all webrender shaders at init time. This is mostly
+    /// useful when modifying the shaders, to ensure they all compile
+    /// after each change is made.
+    pub precache_shaders: bool,
 
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
@@ -309,6 +318,10 @@ pub struct DebugOptions {
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
 
+    /// True to compile all webrender shaders at init time. This is mostly
+    /// useful when modifying the shaders, to ensure they all compile
+    /// after each change is made.
+    pub precache_shaders: bool,
 }
 
 
@@ -347,6 +360,7 @@ impl DebugOptions {
                 "wr-debug" => debug_options.webrender_debug = true,
                 "msaa" => debug_options.use_msaa = true,
                 "full-backtraces" => debug_options.full_backtraces = true,
+                "precache-shaders" => debug_options.precache_shaders = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -396,6 +410,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("msaa", "Use multisample antialiasing in WebRender.");
     print_option("full-backtraces", "Print full backtraces for all errors");
     print_option("wr-debug", "Display webrender tile borders. Must be used with -w option.");
+    print_option("precache-shaders", "Compile all shaders during init. Must be used with -w option.");
 
     println!("");
 
@@ -502,6 +517,7 @@ pub fn default_opts() -> Opts {
         enable_text_antialiasing: false,
         enable_canvas_antialiasing: false,
         trace_layout: false,
+        debugger_port: None,
         devtools_port: None,
         webdriver_port: None,
         initial_window_size: TypedSize2D::new(1024, 740),
@@ -532,6 +548,7 @@ pub fn default_opts() -> Opts {
         full_backtraces: false,
         is_printing_version: false,
         webrender_debug: false,
+        precache_shaders: false,
     }
 }
 
@@ -562,6 +579,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
+    opts.optflagopt("", "remote-debugging-port", "Start remote debugger server on port", "2794");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
@@ -721,6 +739,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         bubble_inline_sizes_separately = true;
     }
 
+    let debugger_port = opt_match.opt_default("remote-debugging-port", "2794").map(|port| {
+        port.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --remote-debugging-port ({})", err)))
+    });
+
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
         port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });
@@ -802,6 +825,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         profile_script_events: debug_options.profile_script_events,
         profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
+        debugger_port: debugger_port,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
@@ -837,6 +861,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
         webrender_debug: debug_options.webrender_debug,
+        precache_shaders: debug_options.precache_shaders,
     };
 
     set_defaults(opts);

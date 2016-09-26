@@ -1,0 +1,105 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use animation::Animation;
+use context::SharedStyleContext;
+use dom::OpaqueNode;
+use euclid::size::TypedSize2D;
+use gecko_bindings::bindings::RawServoStyleSet;
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use media_queries::{Device, MediaType};
+use num_cpus;
+use parallel::WorkQueueData;
+use selector_matching::Stylist;
+use std::cmp;
+use std::collections::HashMap;
+use std::env;
+use std::sync::{Arc, RwLock};
+use std::sync::mpsc::{Receiver, Sender, channel};
+use style_traits::ViewportPx;
+use stylesheets::Stylesheet;
+use thread_state;
+use workqueue::WorkQueue;
+
+pub struct PerDocumentStyleData {
+    /// Rule processor.
+    pub stylist: Arc<Stylist>,
+
+    /// List of stylesheets, mirrored from Gecko.
+    pub stylesheets: Vec<Arc<Stylesheet>>,
+
+    /// Whether the stylesheets list above has changed since the last restyle.
+    pub stylesheets_changed: bool,
+
+    // FIXME(bholley): Hook these up to something.
+    pub new_animations_sender: Sender<Animation>,
+    pub new_animations_receiver: Receiver<Animation>,
+    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+
+    // FIXME(bholley): This shouldn't be per-document.
+    pub work_queue: Option<WorkQueue<SharedStyleContext, WorkQueueData>>,
+
+    pub num_threads: usize,
+}
+
+lazy_static! {
+    pub static ref NUM_THREADS: usize = {
+        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
+            Ok(num) => num,
+            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
+        }
+    };
+}
+
+impl PerDocumentStyleData {
+    pub fn new() -> PerDocumentStyleData {
+        // FIXME(bholley): Real window size.
+        let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
+        let device = Device::new(MediaType::Screen, window_size);
+
+        let (new_anims_sender, new_anims_receiver) = channel();
+
+        PerDocumentStyleData {
+            stylist: Arc::new(Stylist::new(device)),
+            stylesheets: vec![],
+            stylesheets_changed: true,
+            new_animations_sender: new_anims_sender,
+            new_animations_receiver: new_anims_receiver,
+            running_animations: Arc::new(RwLock::new(HashMap::new())),
+            expired_animations: Arc::new(RwLock::new(HashMap::new())),
+            work_queue: if *NUM_THREADS <= 1 {
+                None
+            } else {
+                WorkQueue::new("StyleWorker", thread_state::LAYOUT, *NUM_THREADS).ok()
+            },
+            num_threads: *NUM_THREADS,
+        }
+    }
+
+    pub fn flush_stylesheets(&mut self) {
+        // The stylist wants to be flushed if either the stylesheets change or the
+        // device dimensions change. When we add support for media queries, we'll
+        // need to detect the latter case and trigger a flush as well.
+        if self.stylesheets_changed {
+            let _ = Arc::get_mut(&mut self.stylist).unwrap()
+                                                   .update(&self.stylesheets, None, true);
+            self.stylesheets_changed = false;
+        }
+    }
+}
+
+unsafe impl HasFFI for PerDocumentStyleData {
+    type FFIType = RawServoStyleSet;
+}
+unsafe impl HasSimpleFFI for PerDocumentStyleData {}
+unsafe impl HasBoxFFI for PerDocumentStyleData {}
+
+impl Drop for PerDocumentStyleData {
+    fn drop(&mut self) {
+        if let Some(ref mut queue) = self.work_queue {
+            queue.shutdown();
+        }
+    }
+}

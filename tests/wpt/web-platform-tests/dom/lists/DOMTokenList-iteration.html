@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DOMTokenList iteration: keys, values, etc.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<span class="   a  a b "></span>
+<script>
+  test(function() {
+    var list = document.querySelector("span").classList;
+    assert_array_equals([...list], ["a", "a", "b"]);
+
+    var keys = list.keys();
+    assert_false(keys instanceof Array);
+    keys = [...keys];
+    assert_array_equals(keys, [0, 1, 2]);
+
+    var values = list.values();
+    assert_false(values instanceof Array);
+    values = [...values];
+    assert_array_equals(values, ["a", "a", "b"]);
+
+    var entries = list.entries();
+    assert_false(entries instanceof Array);
+    entries = [...entries];
+    assert_equals(entries.length, keys.length);
+    assert_equals(entries.length, values.length);
+    for (var i = 0; i < entries.length; ++i) {
+      assert_array_equals(entries[i], [keys[i], values[i]]);
+    }
+
+    var cur = 0;
+    var thisObj = {};
+    list.forEach(function(value, key, listObj) {
+      assert_equals(listObj, list);
+      assert_equals(this, thisObj);
+      assert_equals(value, values[cur]);
+      assert_equals(key, keys[cur]);
+      cur++;
+    }, thisObj);
+    assert_equals(cur, entries.length);
+
+    assert_equals(list[Symbol.iterator], Array.prototype[Symbol.iterator]);
+    assert_equals(list.keys, Array.prototype.keys);
+    assert_equals(list.values, Array.prototype.values);
+    assert_equals(list.entries, Array.prototype.entries);
+    assert_equals(list.forEach, Array.prototype.forEach);
+  });
+</script>

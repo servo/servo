@@ -16,19 +16,19 @@ pub struct HTMLMapElement {
 }
 
 impl HTMLMapElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMapElement {
         HTMLMapElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMapElement> {
-        Node::reflect_node(box HTMLMapElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLMapElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLMapElementBinding::Wrap)
     }

@@ -7,11 +7,11 @@
 use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
-use selectors::matching::matches_complex_selector;
-use selectors::matching::{MatchingReason, StyleRelations};
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector, SelectorImpl};
+use selector_impl::{AttrValue, ElementExt, NonTSPseudoClass, TheSelectorImpl};
 use selectors::{Element, MatchAttr};
+use selectors::matching::{MatchingReason, StyleRelations};
+use selectors::matching::matches_complex_selector;
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
 use std::clone::Clone;
 use std::sync::Arc;
 use string_cache::Atom;

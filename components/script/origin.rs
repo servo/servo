@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use url::{Host, Url};
 use url::Origin as UrlOrigin;
-use url::{Url, Host};
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
 #[derive(HeapSizeOf, JSTraceable)]

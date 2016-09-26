@@ -127,6 +127,22 @@
                 }
             }
         }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::Normal => SpecifiedValue::Normal,
+                % if product == "gecko":
+                    computed_value::T::MozBlockHeight => SpecifiedValue::MozBlockHeight,
+                % endif
+                computed_value::T::Number(value) => SpecifiedValue::Number(value),
+                computed_value::T::Length(au) => {
+                    SpecifiedValue::LengthOrPercentage(specified::LengthOrPercentage::Length(
+                        ToComputedValue::from_computed_value(&au)
+                    ))
+                }
+            }
+        }
     }
 </%helpers:longhand>
 
@@ -255,6 +271,13 @@
                     computed_value::T(Some(l.to_computed_value(context)))
             }
         }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            computed.0.map(|ref au| {
+                SpecifiedValue::Specified(ToComputedValue::from_computed_value(au))
+            }).unwrap_or(SpecifiedValue::Normal)
+        }
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -328,6 +351,13 @@
                 SpecifiedValue::Specified(l) =>
                     computed_value::T(Some(l.to_computed_value(context))),
             }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            computed.0.map(|ref lop| {
+                SpecifiedValue::Specified(ToComputedValue::from_computed_value(lop))
+            }).unwrap_or(SpecifiedValue::Normal)
         }
     }
 
@@ -685,6 +715,17 @@ ${helpers.single_keyword("text-justify",
                                 .as_ref()
                                 .map(|color| color.parsed)
                                 .unwrap_or(cssparser::Color::CurrentColor),
+                }
+            }).collect())
+        }
+
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            SpecifiedValue(computed.0.iter().map(|value| {
+                SpecifiedTextShadow {
+                    offset_x: ToComputedValue::from_computed_value(&value.offset_x),
+                    offset_y: ToComputedValue::from_computed_value(&value.offset_y),
+                    blur_radius: ToComputedValue::from_computed_value(&value.blur_radius),
+                    color: Some(ToComputedValue::from_computed_value(&value.color)),
                 }
             }).collect())
         }

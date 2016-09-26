@@ -40,6 +40,15 @@ promise_test(function(test) {
 }, "Read text response's body as readableStream");
 
 promise_test(function(test) {
+    var arrayBuffer = new ArrayBuffer(textData.length);
+    var int8Array = new Int8Array(arrayBuffer);
+    for (var cptr = 0; cptr < textData.length; cptr++)
+        int8Array[cptr] = textData.charCodeAt(cptr);
+
+    return validateStreamFromString(new Response(arrayBuffer).body.getReader(), textData);
+}, "Read array buffer response's body as readableStream");
+
+promise_test(function(test) {
     var response = new Response(formData);
     return validateStreamFromString(response.body.getReader(), "name=value");
 }, "Read form data response's body as readableStream");

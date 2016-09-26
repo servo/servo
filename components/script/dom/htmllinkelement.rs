@@ -6,6 +6,7 @@ use cssparser::Parser as CssParser;
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -22,11 +23,11 @@ use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use hyper::header::ContentType;
-use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::ReferrerPolicy;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::message::Msg;
@@ -58,10 +59,10 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             stylesheet: DOMRefCell::new(None),
@@ -69,11 +70,11 @@ impl HTMLLinkElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
-        Node::reflect_node(box HTMLLinkElement::new_inherited(localName, prefix, document, creator),
+        Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLLinkElementBinding::Wrap)
     }
@@ -240,7 +241,13 @@ impl HTMLLinkElement {
                 if self.parser_inserted.get() {
                     document.increment_script_blocking_stylesheet_count();
                 }
-                document.load_async(LoadType::Stylesheet(url), response_target);
+
+                let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+                    true => Some(ReferrerPolicy::NoReferrer),
+                    false => None,
+                };
+
+                document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
@@ -335,7 +342,7 @@ impl AsyncResponseListener for StylesheetContext {
             document.invalidate_stylesheets();
 
             // FIXME: Revisit once consensus is reached at: https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |Serde(RawStatus(code, _))| code == 200);
+            successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
         if elem.parser_inserted.get() {
@@ -361,7 +368,9 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    make_setter!(SetRel, "rel");
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>().set_tokenlist_attribute(&atom!("rel"), rel);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_getter!(Media, "media");

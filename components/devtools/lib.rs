@@ -21,6 +21,7 @@
 #![deny(unsafe_code)]
 
 extern crate devtools_traits;
+extern crate encoding;
 extern crate hyper;
 extern crate ipc_channel;
 #[macro_use]
@@ -54,8 +55,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::net::{Shutdown, TcpListener, TcpStream};
-use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use time::precise_time_ns;
 use util::thread::spawn_named;
 

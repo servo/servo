@@ -8,6 +8,12 @@
 <script>
 test(function() {
   var tests = [
+        [],
+        ["Core"],
+        ["XML"],
+        ["org.w3c.svg"],
+        ["org.w3c.dom.svg"],
+        ["http://www.w3.org/TR/SVG11/feature#Script"],
         ["Core", "1.0"],
         ["Core", "2.0"],
         ["Core", "3.0"],
@@ -131,11 +137,19 @@ test(function() {
         ["This is filler text.", ""],
         [null, ""],
         [undefined, ""],
+        ["org.w3c.svg", ""],
+        ["org.w3c.svg", "1.0"],
+        ["org.w3c.svg", "1.1"],
+        ["org.w3c.dom.svg", ""],
+        ["org.w3c.dom.svg", "1.0"],
+        ["org.w3c.dom.svg", "1.1"],
+        ["http://www.w3.org/TR/SVG11/feature#Script", "7.5"],
       ];
   tests.forEach(function(data) {
     test(function() {
-      assert_equals(document.implementation.hasFeature(data[0], data[1]), true)
-    }, "hasFeature(" + format_value(data[0]) + ", " + format_value(data[1]) + ")")
+      assert_equals(document.implementation.hasFeature
+                    .apply(document.implementation, data), true)
+    }, "hasFeature(" + data.map(format_value).join(", ") + ")")
   })
 })
 </script>

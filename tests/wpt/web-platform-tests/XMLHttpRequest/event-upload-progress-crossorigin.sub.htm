@@ -10,6 +10,7 @@
     <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-upload" data-tested-assertations=".." />
 
 <div id="log"></div>
+<script src="/common/get-host-info.sub.js"></script>
 <script>
   var test = async_test();
   test.step(function() {
@@ -20,7 +21,7 @@
     client.onload = test.step_func(function() {
       assert_unreached("onprogress not called.");
     });
-    client.open("POST", "http://{{domains[www2]}}:{{ports[http][0]}}/XMLHttpRequest/resources/corsenabled.py");
+    client.open("POST", get_host_info().HTTP_REMOTE_ORIGIN + "/XMLHttpRequest/resources/corsenabled.py");
     client.send("This is a test string.");
   });
 </script>

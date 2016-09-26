@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: persistent-license, retrieve and playback, ClearKey</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+    // Wait for a message from the main window with details of our task
+    window.addEventListener( 'message', function( event ) {
+
+        var config = event.data.config,
+            configuration = {   initDataTypes: [ config.initDataType ],
+                                audioCapabilities: [ { contentType: config.audioType } ],
+                                videoCapabilities: [ { contentType: config.videoType } ],
+                                sessionTypes: [ 'persistent-license' ] },
+            assertions = [ ];
+
+        var _mediaKeySession;
+
+        config.video = document.getElementById('videoelement');
+
+        function onComplete() {
+            window.opener.postMessage(assertions, '*');
+        }
+
+        function onFailure(error) {
+            assertions.push( { actual: false, expected: true, message: error.toString() } );
+            onComplete();
+        }
+
+        function onTimeupdate(event) {
+            if ( config.video.currentTime > ( config.duration || 1 ) ) {
+                config.video.pause();
+                _mediaKeySession.close()
+            }
+        }
+
+        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ] )
+        .then(function(access) {
+            return access.createMediaKeys();
+        }).then(function(mediaKeys) {
+            config.video.setMediaKeys(mediaKeys);
+            config.video.addEventListener('timeupdate', onTimeupdate, true);
+            _mediaKeySession = mediaKeys.createSession( 'persistent-license' );
+            _mediaKeySession.closed.then(onComplete);
+            return _mediaKeySession.load(event.data.sessionId);
+        }).then(function( success ) {
+            if ( !success ) throw new DOMException( 'Could not load session' );
+            return testmediasource(config);
+        }).then(function(source) {
+            config.video.src = URL.createObjectURL(source);
+            config.video.play();
+        })
+        .catch(onFailure);
+    } );
+
+    </script>
+  </body>
+</html>

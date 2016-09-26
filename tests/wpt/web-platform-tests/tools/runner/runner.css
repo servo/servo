@@ -90,7 +90,8 @@ html.done section + section {
 
 #manualUI {
     position: fixed;
-    top: 100px;
+    z-index: 2000;
+    top: -20px;
     left: 0;
     right: 0;
     display: block;
@@ -119,6 +120,10 @@ body {
 
 .container {
     max-width: 800px;
+}
+
+.navbar-brand > img {
+    display: inline;
 }
 
 .navbar-inverse .navbar-brand {

@@ -27,6 +27,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "NaN",
       "Number",
       "Object",
+      "Promise",
       "Proxy",
       "RangeError",
       "ReferenceError",
@@ -65,7 +66,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
     }
 
     for (var name of Object.getOwnPropertyNames(self)) {
-      if (!/^[A-Z]/.test(name)) {
+      if (!/^[A-Z]/.test(name) && name != 'console') {
         continue;
       }
       assert_true(name in interfaceMap,

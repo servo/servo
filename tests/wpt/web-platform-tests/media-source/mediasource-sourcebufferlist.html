@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>SourceBufferList test cases.</title>
@@ -13,9 +14,22 @@
           {
               assert_equals(mediaSource.sourceBuffers.length, expected.length, "sourceBuffers length");
               assert_equals(mediaSource.activeSourceBuffers.length, 0, "activeSourceBuffers length");
-              for (var i = 0; i < expected.length; ++i)
+              for (var i = 0; i < expected.length; ++i) {
                 assert_equals(mediaSource.sourceBuffers[i], expected[i], "Verifying mediaSource.sourceBuffers[" + i + "]");
+              }
+              assert_equals(mediaSource.sourceBuffers[expected.length], undefined,
+                "If index is greater than or equal to the length attribute then return undefined.");
           }
+
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBufferA = mediaSource.addSourceBuffer(MediaSourceUtil.VIDEO_ONLY_TYPE);
+              verifySourceBufferLists(mediaSource, [sourceBufferA]);
+
+              var sourceBufferB = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_ONLY_TYPE);
+              verifySourceBufferLists(mediaSource, [sourceBufferA, sourceBufferB]);
+              test.done();
+          }, "Test SourceBufferList getter method");
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {

@@ -35,8 +35,8 @@ use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, LayerType, StackingContextId};
+use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
@@ -44,12 +44,12 @@ use parallel::FlowParallelInfo;
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
+use std::{fmt, mem, raw};
 use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use std::{fmt, mem, raw};
-use style::computed_values::{clear, display, empty_cells, float, position, overflow_x, text_align};
+use style::computed_values::{clear, display, empty_cells, float, overflow_x, position, text_align};
 use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -1405,7 +1405,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 return kid.as_inline().baseline_offset_of_last_line()
             }
             if kid.is_block_like() &&
-                    kid.as_block().formatting_context_type() == FormattingContextType::None {
+                    kid.as_block().formatting_context_type() == FormattingContextType::None &&
+                    !base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 if let Some(baseline_offset) = kid.baseline_offset_of_last_line_box_in_flow() {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }

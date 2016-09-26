@@ -13,19 +13,19 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 pub struct BluetoothAdvertisingData {
     reflector_: Reflector,
     appearance: Option<u16>,
-    txPower: Option<i8>,
+    tx_power: Option<i8>,
     rssi: Option<i8>,
 }
 
 impl BluetoothAdvertisingData {
     pub fn new_inherited(appearance: Option<u16>,
-                         txPower: Option<i8>,
+                         tx_power: Option<i8>,
                          rssi: Option<i8>)
                          -> BluetoothAdvertisingData {
         BluetoothAdvertisingData {
             reflector_: Reflector::new(),
             appearance: appearance,
-            txPower: txPower,
+            tx_power: tx_power,
             rssi: rssi,
         }
     }
@@ -51,7 +51,7 @@ impl BluetoothAdvertisingDataMethods for BluetoothAdvertisingData {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingdata-txpower
     fn GetTxPower(&self) -> Option<i8> {
-        self.txPower
+        self.tx_power
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingdata-rssi

@@ -97,13 +97,6 @@ var tests = [
         },
         target: function() { return div.firstChild },
         finalTarget: function() { return div.lastChild },
-        beforeInputAction: function() {
-            getSelection().removeAllRanges();
-            var range = document.createRange();
-            range.setStart(div.querySelector("div + div").firstChild, 0);
-            range.setEnd(div.querySelector("div + div").firstChild, 3);
-            getSelection().addRange(range);
-        },
         command: "bold",
         value: "",
     },
@@ -168,121 +161,62 @@ Object.keys(commandTests).forEach(function(command) {
 });
 
 tests.forEach(function(obj) {
-    [true, false].forEach(function(cancel) {
-        // Kill all event handlers first
-        var newDiv = div.cloneNode(false);
-        div.parentNode.insertBefore(newDiv, div);
-        div.parentNode.removeChild(div);
-        div = newDiv;
+    // Kill all event handlers first
+    var newDiv = div.cloneNode(false);
+    div.parentNode.insertBefore(newDiv, div);
+    div.parentNode.removeChild(div);
+    div = newDiv;
 
-        div.innerHTML = obj.html;
+    div.innerHTML = obj.html;
 
-        var originalContents = div.cloneNode(true);
+    var originalContents = div.cloneNode(true);
 
-        getSelection().removeAllRanges();
-        var range = document.createRange();
-        obj.initRange(range);
-        getSelection().addRange(range);
+    getSelection().removeAllRanges();
+    var range = document.createRange();
+    obj.initRange(range);
+    getSelection().addRange(range);
 
-        var target = obj.target();
-        var finalTarget = "finalTarget" in obj ? obj.finalTarget() : target;
-        var command = obj.command;
-        var value = obj.value;
+    var target = obj.target();
+    var finalTarget = "finalTarget" in obj ? obj.finalTarget() : target;
+    var command = obj.command;
+    var value = obj.value;
 
-        var beforeInputEvents = [];
-        var inputEvents = [];
-        div.addEventListener("beforeinput", function(e) {
-            var copied = copyEvent(e);
-            copied.inputEventsLength = inputEvents.length;
-            beforeInputEvents.push(copied);
-            if (cancel) {
-                e.preventDefault();
-            }
-            if ("beforeInputAction" in obj) {
-                obj.beforeInputAction();
-            }
-        });
-        div.addEventListener("input", function(e) { inputEvents.push(copyEvent(e)) });
+    var inputEvents = [];
+    div.addEventListener("input", function(e) { inputEvents.push(copyEvent(e)) });
 
-        // Uncomment this code instead of the execCommand() to make all the
-        // tests pass, as a sanity check
-        //var e = new Event("beforeinput", {bubbles: true, cancelable: true});
-        //e.command = command;
-        //e.value = value;
-        //var ret = target ? target.dispatchEvent(e) : false;
-        //if (ret) {
-        //    var e = new Event("input", {bubbles: true});
-        //    e.command = command;
-        //    e.value = value;
-        //    finalTarget.dispatchEvent(e);
-        //}
+    var exception = null;
+    try {
+        document.execCommand(command, false, value);
+    } catch(e) {
+        exception = e;
+    }
 
-        var exception = null;
-        try {
-            document.execCommand(command, false, value);
-        } catch(e) {
-            exception = e;
-        }
+    test(function() {
+        assert_equals(exception, null, "Unexpected exception");
+    }, obj.name + ": execCommand() must not throw");
 
-        test(function() {
-            assert_equals(exception, null, "Unexpected exception");
-        }, obj.name + ": execCommand() must not throw, "
-        + (cancel ? "canceled" : "uncanceled"));
-
-        test(function() {
-            assert_equals(beforeInputEvents.length, target ? 1 : 0,
-                "number of beforeinput events fired");
-            if (beforeInputEvents.length == 0) {
-                assert_equals(inputEvents.length, 0, "number of input events fired");
-                return;
-            }
-            var e = beforeInputEvents[0];
-            assert_equals(e.inputEventsLength, 0, "number of input events fired");
-            assert_equals(e.type, "beforeinput", "event.type");
-            assert_equals(e.target, target, "event.target");
-            assert_equals(e.currentTarget, div, "event.currentTarget");
-            assert_equals(e.eventPhase, Event.BUBBLING_PHASE, "event.eventPhase");
-            assert_equals(e.bubbles, true, "event.bubbles");
-            assert_equals(e.cancelable, true, "event.cancelable");
-            assert_equals(e.defaultPrevented, false, "event.defaultPrevented");
-            assert_equals(e.command, command, "e.command");
-            assert_equals(e.value, value, "e.value");
-            assert_own_property(window, "EditingBeforeInputEvent",
-                "window.EditingBeforeInputEvent must exist");
-            assert_equals(Object.getPrototypeOf(e.original),
-                EditingBeforeInputEvent.prototype,
-                "event prototype");
+    test(function() {
+        assert_equals(inputEvents.length, target ? 1 : 0,
+            "number of input events fired");
+        if (!target) {
             assert_true(originalContents.isEqualNode(div),
-                "div contents not yet changed");
-            assert_equals(e.isTrusted, true, "event.isTrusted");
-        }, obj.name + ": beforeinput event, " + (cancel ? "canceled" : "uncanceled"));
-
-        test(function() {
-            assert_equals(inputEvents.length, target && !cancel ? 1 : 0,
-                "number of input events fired");
-            if (!target || cancel) {
-                assert_true(originalContents.isEqualNode(div),
-                    "div contents must not be changed");
-                return;
-            }
-            var e = inputEvents[0];
-            assert_equals(e.type, "input", "event.type");
-            assert_equals(e.target, finalTarget, "event.target");
-            assert_equals(e.currentTarget, div, "event.currentTarget");
-            assert_equals(e.eventPhase, Event.BUBBLING_PHASE, "event.eventPhase");
-            assert_equals(e.bubbles, true, "event.bubbles");
-            assert_equals(e.cancelable, false, "event.cancelable");
-            assert_equals(e.defaultPrevented, false, "event.defaultPrevented");
-            assert_equals(e.command, command, "e.command");
-            assert_equals(e.value, value, "e.value");
-            assert_own_property(window, "EditingInputEvent",
-                "window.EditingInputEvent must exist");
-            assert_equals(Object.getPrototypeOf(e.original),
-                EditingInputEvent.prototype,
-                "event prototype");
-            assert_equals(e.isTrusted, true, "event.isTrusted");
-        }, obj.name + ": input event, " + (cancel ? "canceled" : "uncanceled"));
-    });
+                "div contents must not be changed");
+            return;
+        }
+        var e = inputEvents[0];
+        assert_equals(e.type, "input", "event.type");
+        assert_equals(e.target, finalTarget, "event.target");
+        assert_equals(e.currentTarget, div, "event.currentTarget");
+        assert_equals(e.eventPhase, Event.BUBBLING_PHASE, "event.eventPhase");
+        assert_equals(e.bubbles, true, "event.bubbles");
+        assert_equals(e.cancelable, false, "event.cancelable");
+        assert_equals(e.defaultPrevented, false, "event.defaultPrevented");
+        assert_own_property(window, "InputEvent",
+            "window.InputEvent must exist");
+        assert_equals(Object.getPrototypeOf(e.original), InputEvent.prototype,
+            "event prototype");
+        assert_equals(e.isTrusted, true, "event.isTrusted");
+    }, obj.name + ": input event");
 });
 
 // Thanks, Gecko.

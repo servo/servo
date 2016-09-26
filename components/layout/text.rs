@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use fragment::{Fragment, REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES, ScannedTextFlags};
-use fragment::{ScannedTextFragmentInfo, SELECTED, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use fragment::{SELECTED, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
@@ -23,13 +23,13 @@ use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
-use style::computed_values::white_space;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
+use style::computed_values::white_space;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::properties::style_structs;
 use unicode_bidi::{is_rtl, process_text};
-use unicode_script::{get_script, Script};
+use unicode_script::{Script, get_script};
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {

@@ -36,34 +36,35 @@ use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
 use dom::abstractworker::SharedRt;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::refcounted::Trusted;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use encoding::types::EncodingRef;
+use euclid::{Matrix2D, Matrix4D, Point2D};
 use euclid::length::Length as EuclidLength;
-use euclid::matrix2d::Matrix2D;
-use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::Mime;
+use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeType, ReferrerPolicy};
+use msg::constellation_msg::{FrameType, PipelineId, ReferrerPolicy, WindowSizeType};
+use net_traits::{Metadata, NetworkError, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::request::Request;
+use net_traits::response::{Response, ResponseBody};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -85,13 +86,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
-use std::time::SystemTime;
+use std::time::{SystemTime, Instant};
 use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::domrefcell::DOMRefCell;
 use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
-use style::selector_impl::{PseudoElement, ElementSnapshot};
+use style::selector_impl::{ElementSnapshot, PseudoElement};
 use style::values::specified::Length;
 use time::Duration;
 use url::Origin as UrlOrigin;
@@ -155,7 +156,7 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Box<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
@@ -302,11 +303,12 @@ no_jsmanaged_fields!(Metadata);
 no_jsmanaged_fields!(NetworkError);
 no_jsmanaged_fields!(Atom, Namespace, QualName);
 no_jsmanaged_fields!(Trusted<T: Reflectable>);
+no_jsmanaged_fields!(TrustedPromise);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(FrameType, SubpageId, WindowSizeData, WindowSizeType, PipelineId);
+no_jsmanaged_fields!(FrameType, WindowSizeData, WindowSizeType, PipelineId);
 no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
@@ -318,6 +320,7 @@ no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(EuclidLength<Unit, T>);
 no_jsmanaged_fields!(Matrix2D<T>);
+no_jsmanaged_fields!(Matrix4D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
@@ -339,8 +342,12 @@ no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(USVString);
 no_jsmanaged_fields!(ReferrerPolicy);
+no_jsmanaged_fields!(Response);
+no_jsmanaged_fields!(ResponseBody);
 no_jsmanaged_fields!(ResourceThreads);
+no_jsmanaged_fields!(StatusCode);
 no_jsmanaged_fields!(SystemTime);
+no_jsmanaged_fields!(Instant);
 no_jsmanaged_fields!(RelativePos);
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 no_jsmanaged_fields!(PathBuf);

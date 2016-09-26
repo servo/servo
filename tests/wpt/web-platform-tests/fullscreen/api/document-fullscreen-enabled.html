@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Document.fullscreenEnabled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe></iframe>
+<iframe allowfullscreen></iframe>
+<script>
+test(function()
+{
+    assert_true(document.fullscreenEnabled, "top-level document");
+
+    var iframes = document.getElementsByTagName("iframe");
+    assert_false(iframes[0].contentDocument.fullscreenEnabled, "iframe without allowfullscreen");
+    assert_true(iframes[1].contentDocument.fullscreenEnabled, "iframe with allowfullscreen");
+});
+</script>

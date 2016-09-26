@@ -35,7 +35,7 @@ partial interface Presentation {
 };
 
 [Constructor(DOMString url),
- Constructor(DOMString[] urls)]
+ Constructor(sequence<DOMString> urls)]
 interface PresentationRequest : EventTarget {
     Promise<PresentationConnection>   start();
     Promise<PresentationConnection>   reconnect(DOMString presentationId);
@@ -72,7 +72,8 @@ enum BinaryType {
 };
 
 interface PresentationConnection : EventTarget {
-    readonly attribute DOMString?                  id;
+    readonly attribute DOMString                   id;
+    readonly attribute DOMString                   url;
     readonly attribute PresentationConnectionState state;
     void close();
     void terminate();
@@ -96,12 +97,12 @@ enum PresentationConnectionClosedReason {
 };
 
 [Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
-interface PresentationConnectionClosedEvent : Event {
+interface PresentationConnectionCloseEvent : Event {
     readonly attribute PresentationConnectionClosedReason reason;
     readonly attribute DOMString                          message;
 };
 
-dictionary PresentationConnectionClosedEventInit : EventInit {
+dictionary PresentationConnectionCloseEventInit : EventInit {
     required PresentationConnectionClosedReason reason;
     		 DOMString                          message = "";
 };
@@ -114,9 +115,13 @@ dictionary PresentationConnectionClosedEventInit : EventInit {
         var idls = document.getElementById('idl').textContent;
         idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
         idl_array.add_idls(idls);
+        window.presentation_request = new PresentationRequest("/presentation-api/receiving-ua/idlharness.html");
+        window.presentation_request_urls = new PresentationRequest(["/presentation-api/receiving-ua/idlharness.html",
+            "http://www.example.com/presentation.html"]);
+        navigator.presentation.defaultRequest = presentation_request;
         idl_array.add_objects({
             Presentation: ['navigator.presentation'],
-            PresentationRequest: ['navigator.presentation.defaultRequest', 'new PresentationRequest("/presentation-api/receiving-ua/idlharness.html")']
+            PresentationRequest: ['navigator.presentation.defaultRequest', 'presentation_request', 'presentation_request_urls']
         });
         idl_array.test();
     })();

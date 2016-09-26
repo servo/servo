@@ -17,16 +17,16 @@ use string_cache::Atom;
 #[dom_struct]
 pub struct CloseEvent {
     event: Event,
-    wasClean: bool,
+    was_clean: bool,
     code: u16,
     reason: DOMString,
 }
 
 impl CloseEvent {
-    pub fn new_inherited(wasClean: bool, code: u16, reason: DOMString) -> CloseEvent {
+    pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
-            wasClean: wasClean,
+            was_clean: was_clean,
             code: code,
             reason: reason,
         }
@@ -77,7 +77,7 @@ impl CloseEvent {
 impl CloseEventMethods for CloseEvent {
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-wasclean
     fn WasClean(&self) -> bool {
-        self.wasClean
+        self.was_clean
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-code

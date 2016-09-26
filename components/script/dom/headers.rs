@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersWrap;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
@@ -51,7 +48,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
-    pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
+    pub fn Constructor(global: GlobalRef, init: Option<HeadersInit>)
                        -> Fallible<Root<Headers>> {
         let dom_headers_new = Headers::new(global);
         try!(dom_headers_new.fill(init));
@@ -87,7 +84,7 @@ impl HeadersMethods for Headers {
         let mut combined_value: Vec<u8> = vec![];
         if let Some(v) = self.header_list.borrow().get_raw(&valid_name) {
             combined_value = v[0].clone();
-            combined_value.push(b","[0]);
+            combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
         self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
@@ -107,8 +104,6 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 4
-        // TODO: Requires clarification from the Fetch spec:
-        // ... https://github.com/whatwg/fetch/issues/372
         if self.guard.get() == Guard::RequestNoCors &&
             !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
                 return Ok(());
@@ -171,10 +166,10 @@ impl HeadersMethods for Headers {
 
 impl Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
+    pub fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
         match filler {
             // Step 1
-            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+            Some(HeadersInit::Headers(h)) => {
                 for header in h.header_list.borrow().iter() {
                     try!(self.Append(
                         ByteString::new(Vec::from(header.name())),
@@ -184,7 +179,7 @@ impl Headers {
                 Ok(())
             },
             // Step 2
-            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+            Some(HeadersInit::ByteStringSequenceSequence(v)) => {
                 for mut seq in v {
                     if seq.len() == 2 {
                         let val = seq.pop().unwrap();
@@ -198,7 +193,14 @@ impl Headers {
                 }
                 Ok(())
             },
-            // Step 3 TODO constructor for when init is an open-ended dictionary
+            Some(HeadersInit::ByteStringMozMap(m)) => {
+                for (key, value) in m.iter() {
+                    let key_vec = key.as_ref().to_string().into();
+                    let headers_key = ByteString::new(key_vec);
+                    try!(self.Append(headers_key, value.clone()));
+                }
+                Ok(())
+            },
             None => Ok(()),
         }
     }
@@ -209,7 +211,13 @@ impl Headers {
         headers_for_request
     }
 
-     pub fn set_guard(&self, new_guard: Guard) {
+    pub fn for_response(global: GlobalRef) -> Root<Headers> {
+        let headers_for_response = Headers::new(global);
+        headers_for_response.guard.set(Guard::Response);
+        headers_for_response
+    }
+
+    pub fn set_guard(&self, new_guard: Guard) {
         self.guard.set(new_guard)
     }
 
@@ -346,7 +354,7 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
 fn validate_name_and_value(name: ByteString, value: ByteString)
-                           -> Result<(String, Vec<u8>), Error> {
+                           -> Fallible<(String, Vec<u8>)> {
     let valid_name = try!(validate_name(name));
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
@@ -354,7 +362,7 @@ fn validate_name_and_value(name: ByteString, value: ByteString)
     Ok((valid_name, value.into()))
 }
 
-fn validate_name(name: ByteString) -> Result<String, Error> {
+fn validate_name(name: ByteString) -> Fallible<String> {
     if !is_field_name(&name) {
         return Err(Error::Type("Name is not valid".to_string()));
     }
@@ -444,7 +452,7 @@ fn is_field_vchar(x: u8) -> bool {
 }
 
 // https://tools.ietf.org/html/rfc5234#appendix-B.1
-fn is_vchar(x: u8) -> bool {
+pub fn is_vchar(x: u8) -> bool {
     match x {
         0x21...0x7E => true,
         _ => false,
@@ -452,7 +460,7 @@ fn is_vchar(x: u8) -> bool {
 }
 
 // http://tools.ietf.org/html/rfc7230#section-3.2.6
-fn is_obs_text(x: u8) -> bool {
+pub fn is_obs_text(x: u8) -> bool {
     match x {
         0x80...0xFF => true,
         _ => false,

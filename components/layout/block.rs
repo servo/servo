@@ -29,26 +29,26 @@
 
 use app_units::{Au, MAX_AU};
 use context::{LayoutContext, SharedLayoutContext};
-use display_list_builder::BlockFlowDisplayListBuilding;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
+use display_list_builder::BlockFlowDisplayListBuilding;
 use euclid::{Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::IS_ABSOLUTELY_POSITIONED;
+use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
+use flow::{FragmentationContext, NEEDS_LAYER, PreorderFlowTraversal};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::{NEEDS_LAYER, PreorderFlowTraversal, FragmentationContext};
-use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
+use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use flow_ref::FlowRef;
-use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
+use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, StackingContextId};
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
-use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{self, IntrinsicISizes, MarginCollapseInfo};
+use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::{max, min};
@@ -895,6 +895,12 @@ impl BlockFlow {
                     !had_children_with_clearance);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
+                // Collapse-through margins should be placed at the top edge,
+                // so we'll handle the delta after the bottom margin is processed
+                if let CollapsibleMargins::CollapseThrough(_) = flow::base(kid).collapsible_margins {
+                    cur_b = cur_b - delta;
+                }
+
                 // Clear past the floats that came in, if necessary.
                 let clearance = match (flow::base(kid).flags.contains(CLEARS_LEFT),
                                        flow::base(kid).flags.contains(CLEARS_RIGHT)) {
@@ -926,6 +932,17 @@ impl BlockFlow {
                     margin_collapse_info.advance_block_end_margin(&kid_base.collapsible_margins);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
+                // Collapse-through margin should be placed at the top edge of the flow.
+                let collapse_delta = match kid_base.collapsible_margins {
+                    CollapsibleMargins::CollapseThrough(_) => {
+                        let delta = margin_collapse_info.current_float_ceiling();
+                        cur_b = cur_b + delta;
+                        kid_base.position.start.b = kid_base.position.start.b + delta;
+                        delta
+                    }
+                    _ => Au(0)
+                };
+
                 if break_at.is_some() {
                     break
                 }
@@ -938,6 +955,10 @@ impl BlockFlow {
                     }
                     ctx.this_fragment_is_empty = false
                 }
+
+                // For consecutive collapse-through flows, their top margin should be calculated
+                // from the same baseline.
+                cur_b = cur_b - collapse_delta;
             }
 
             // Add in our block-end margin and compute our collapsible margins.
@@ -1645,33 +1666,40 @@ impl BlockFlow {
         // Now compute the real value.
         self.propagate_and_compute_used_inline_size(shared_context);
 
-        // Now for some speculation.
-        match self.formatting_context_type() {
-            FormattingContextType::Block => {
-                // We can't actually compute the inline-size of this block now, because floats
-                // might affect it. Speculate that its inline-size is equal to the inline-size
-                // computed above minus the inline-size of the previous left and/or right floats.
-                //
-                // (If `max-width` is set, then don't perform this speculation. We guess that the
-                // page set `max-width` in order to avoid hitting floats. The search box on Google
-                // SERPs falls into this category.)
-                if self.fragment.style.max_inline_size() == LengthOrPercentageOrNone::None {
-                    let speculated_left_float_size =
-                        max(Au(0),
-                            self.base.speculated_float_placement_in.left -
-                            self.fragment.margin.inline_start);
-                    let speculated_right_float_size =
-                        max(Au(0),
-                            self.base.speculated_float_placement_in.right -
-                            self.fragment.margin.inline_end);
-                    self.fragment.border_box.size.inline =
-                        self.fragment.border_box.size.inline -
-                        speculated_left_float_size -
-                        speculated_right_float_size;
-                }
-            }
-            FormattingContextType::None | FormattingContextType::Other => {}
+        self.guess_inline_size_for_block_formatting_context_if_necessary()
+    }
+
+    fn guess_inline_size_for_block_formatting_context_if_necessary(&mut self) {
+        // We don't need to guess anything unless this is a block formatting context.
+        if self.formatting_context_type() != FormattingContextType::Block {
+            return
         }
+
+        // If `max-width` is set, then don't perform this speculation. We guess that the
+        // page set `max-width` in order to avoid hitting floats. The search box on Google
+        // SERPs falls into this category.
+        if self.fragment.style.max_inline_size() != LengthOrPercentageOrNone::None {
+            return
+        }
+
+        // At this point, we know we can't precisely compute the inline-size of this block now,
+        // because floats might affect it. Speculate that its inline-size is equal to the
+        // inline-size computed above minus the inline-size of the previous left and/or right
+        // floats.
+        let speculated_left_float_size = if self.fragment.margin.inline_start >= Au(0) &&
+                self.base.speculated_float_placement_in.left > self.fragment.margin.inline_start {
+            self.base.speculated_float_placement_in.left - self.fragment.margin.inline_start
+        } else {
+            Au(0)
+        };
+        let speculated_right_float_size = if self.fragment.margin.inline_end >= Au(0) &&
+                self.base.speculated_float_placement_in.right > self.fragment.margin.inline_end {
+            self.base.speculated_float_placement_in.right - self.fragment.margin.inline_end
+        } else {
+            Au(0)
+        };
+        self.fragment.border_box.size.inline = self.fragment.border_box.size.inline -
+            speculated_left_float_size - speculated_right_float_size
     }
 
     fn definitely_has_zero_block_size(&self) -> bool {

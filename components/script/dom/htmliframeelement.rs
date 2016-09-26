@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::{LoadType, LoadBlocker};
+use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
@@ -20,7 +20,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, LayoutJS};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
@@ -31,18 +31,18 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
+use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
-use js::jsval::{UndefinedValue, NullValue};
-use msg::constellation_msg::{FrameType, LoadData, TraversalDirection, PipelineId, SubpageId};
+use js::jsval::{NullValue, UndefinedValue};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
+use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -68,7 +68,6 @@ bitflags! {
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
-    subpage_id: Cell<Option<SubpageId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
@@ -94,17 +93,14 @@ impl HTMLIFrameElement {
         }).unwrap_or_else(|| Url::parse("about:blank").unwrap())
     }
 
-    pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
-        self.pipeline_id.set(Some(PipelineId::new()));
-
-        let old_subpage_id = self.subpage_id.get();
-        let win = window_from_node(self);
-        let subpage_id = win.get_next_subpage_id();
-        self.subpage_id.set(Some(subpage_id));
-        (subpage_id, old_subpage_id)
+    pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
+        let old_pipeline_id = self.pipeline_id.get();
+        let new_pipeline_id = PipelineId::new();
+        self.pipeline_id.set(Some(new_pipeline_id));
+        (old_pipeline_id, new_pipeline_id)
     }
 
-    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>, replace: bool) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -126,20 +122,19 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
-        let new_pipeline_id = self.pipeline_id.get().unwrap();
+        let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
-            containing_pipeline_id: window.pipeline(),
-            new_subpage_id: new_subpage_id,
-            old_subpage_id: old_subpage_id,
+            parent_pipeline_id: window.pipeline_id(),
+            old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
             frame_type: frame_type,
+            replace: replace,
         };
         window.constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
@@ -156,7 +151,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(
-            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))));
+            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))), false);
     }
 
     #[allow(unsafe_code)]
@@ -170,8 +165,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn update_subpage_id(&self, new_subpage_id: SubpageId, new_pipeline_id: PipelineId) {
-        self.subpage_id.set(Some(new_subpage_id));
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
         let mut blocker = self.load_blocker.borrow_mut();
@@ -180,13 +174,12 @@ impl HTMLIFrameElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             pipeline_id: Cell::new(None),
-            subpage_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
@@ -195,25 +188,16 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLIFrameElement> {
-        Node::reflect_node(box HTMLIFrameElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLIFrameElementBinding::Wrap)
     }
 
     #[inline]
     pub fn pipeline_id(&self) -> Option<PipelineId> {
-        self.pipeline_id.get()
-    }
-
-    #[inline]
-    pub fn subpage_id(&self) -> Option<SubpageId> {
-        self.subpage_id.get()
-    }
-
-    pub fn pipeline(&self) -> Option<PipelineId> {
         self.pipeline_id.get()
     }
 
@@ -241,7 +225,7 @@ impl HTMLIFrameElement {
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        assert_eq!(loaded_pipeline, self.pipeline().unwrap());
+        assert_eq!(loaded_pipeline, self.pipeline_id().unwrap());
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
@@ -274,11 +258,11 @@ impl HTMLIFrameElement {
     }
 
     pub fn get_content_window(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
+        self.pipeline_id.get().and_then(|pipeline_id| {
             let window = window_from_node(self);
             let window = window.r();
             let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_subpage(subpage_id)
+            browsing_context.find_child_by_id(pipeline_id)
         })
     }
 
@@ -423,7 +407,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> Er
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
-            let msg = ConstellationMsg::TraverseHistory(iframe.pipeline(), direction);
+            let msg = ConstellationMsg::TraverseHistory(iframe.pipeline_id(), direction);
             window.constellation_chan().send(msg).unwrap();
         }
 
@@ -505,10 +489,10 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(&self, _hardReload: bool) -> ErrorResult {
+    fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
-                self.navigate_or_reload_child_browsing_context(None);
+                self.navigate_or_reload_child_browsing_context(None, true);
             }
             Ok(())
         } else {
@@ -663,12 +647,11 @@ impl VirtualMethods for HTMLIFrameElement {
                 receiver.recv().unwrap()
             }
 
-            // Resetting the subpage id to None is required here so that
+            // Resetting the pipeline_id to None is required here so that
             // if this iframe is subsequently re-added to the document
             // the load doesn't think that it's a navigation, but instead
             // a new iframe. Without this, the constellation gets very
             // confused.
-            self.subpage_id.set(None);
             self.pipeline_id.set(None);
         }
     }

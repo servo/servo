@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Origin of document produced from a 'data:' URL</title>
+    <link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#origin">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      async_test(function (t) {
+        window.addEventListener("message", t.step_func_done(function (e) {
+          assert_equals(e.origin, "null", "Messages sent from a 'data:' URL should have an opaque origin (which serializes to 'null').");
+          assert_throws("SecurityError", function () {
+            var couldAccessCrossOriginProperty = e.source.location.href;
+          }, "The 'data:' frame should be cross-origin.")
+        }));
+
+        var i = document.createElement('iframe');
+        i.src = "data:text/html,<script>" +
+                "  window.parent.postMessage('Hello!', '*');" +
+                "</scr" + "ipt>";
+        document.body.appendChild(i);
+      }, "The origin of a 'data:' document in a frame is opaque.");
+    </script>
+  </body>
+</html>

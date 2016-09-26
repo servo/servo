@@ -4,15 +4,15 @@
 
 void main(void) {
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0;
+    float alpha = 0.0;
     vec2 local_pos = init_transform_fs(vLocalPos, vLocalRect, alpha);
 #else
+    float alpha = 1.0;
     vec2 local_pos = vPos;
 #endif
 
-    do_clip(local_pos, vClipRect, vClipRadius);
-
-    oFragColor = mix(vColor0, vColor1, vF);
+    alpha = min(alpha, do_clip(local_pos, vClipRect, vClipRadius));
+    oFragColor = mix(vColor0, vColor1, vF) * vec4(1, 1, 1, alpha);
 
 #ifdef WR_FEATURE_TRANSFORM
     oFragColor.a *= alpha;

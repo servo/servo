@@ -25,9 +25,9 @@ pub struct File {
 impl File {
     #[allow(unrooted_must_root)]
     fn new_inherited(blob_impl: BlobImpl, name: DOMString,
-                     modified: Option<i64>, typeString: &str) -> File {
+                     modified: Option<i64>, type_string: &str) -> File {
         File {
-            blob: Blob::new_inherited(blob_impl, typeString.to_owned()),
+            blob: Blob::new_inherited(blob_impl, type_string.to_owned()),
             name: name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: match modified {

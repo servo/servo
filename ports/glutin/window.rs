@@ -8,37 +8,40 @@ use NestedEventLoopListener;
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
+use euclid::{Point2D, Size2D, TypedPoint2D};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use euclid::{Size2D, Point2D, TypedPoint2D};
-#[cfg(target_os = "windows")] use gdi32;
+#[cfg(target_os = "windows")]
+use gdi32;
 use gleam::gl;
 use glutin;
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
+use glutin::{ScanCode, TouchPhase};
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
-use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
-use glutin::{ScanCode, TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
+use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 use script_traits::{TouchEventType, TouchpadPressurePhase};
 use std::cell::{Cell, RefCell};
 #[cfg(not(target_os = "android"))]
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 use url::Url;
-#[cfg(target_os = "windows")] use user32;
+#[cfg(target_os = "windows")]
+use user32;
 use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
 use util::prefs::PREFS;
 use util::resource_files;
-#[cfg(target_os = "windows")] use winapi;
+#[cfg(target_os = "windows")]
+use winapi;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 

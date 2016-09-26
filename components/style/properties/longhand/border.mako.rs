@@ -65,6 +65,11 @@
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 self.0.to_computed_value(context)
             }
+
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue(ToComputedValue::from_computed_value(computed))
+            }
         }
     </%helpers:longhand>
 % endfor

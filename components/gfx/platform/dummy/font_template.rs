@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::io::Error;
 use string_cache::Atom;
 use webrender_traits::NativeFontHandle;
 
@@ -12,7 +13,7 @@ pub struct FontTemplateData {
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> Result<FontTemplateData, Error> {
         let bytes = match font_data {
             Some(bytes) => {
                 bytes
@@ -22,10 +23,10 @@ impl FontTemplateData {
             }
         };
 
-        FontTemplateData {
+        Ok(FontTemplateData {
             bytes: bytes,
             identifier: identifier,
-        }
+        })
     }
     pub fn bytes(&self) -> Vec<u8> {
         self.bytes.clone()

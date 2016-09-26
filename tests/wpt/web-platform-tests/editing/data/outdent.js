@@ -83,7 +83,7 @@ var browserTests = [
     [["stylewithcss","true"],["defaultparagraphseparator","div"],["outdent",""]],
     "<div class=\"webkit-indent-blockquote\"><p>foo[bar]</p><blockquote><p>baz</p></blockquote></div><p>extra</p>",
     [true,true,true],
-    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"p",false,false,"div"],"outdent":[false,false,"",false,false,""]}],
+    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"div",false,false,"div"],"outdent":[false,false,"",false,false,""]}],
 ["<blockquote class=\"webkit-indent-blockquote\" style=\"margin: 0 0 0 40px; border: none; padding: 0px;\"><p>foo[bar]</p><p>baz</p></blockquote><p>extra",
     [["stylewithcss","false"],["defaultparagraphseparator","div"],["outdent",""]],
     "<div class=\"webkit-indent-blockquote\"><p>foo[bar]</p><blockquote><p>baz</p></blockquote></div><p>extra</p>",

@@ -170,7 +170,7 @@ pub enum FetchResponseMsg {
     ProcessRequestBody,
     ProcessRequestEOF,
     // todo: send more info about the response (or perhaps the entire Response)
-    ProcessResponse(Result<Metadata, NetworkError>),
+    ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
     ProcessResponseEOF(Result<(), NetworkError>),
 }
@@ -200,10 +200,25 @@ pub trait FetchTaskTarget {
     fn process_response_eof(&mut self, response: &Response);
 }
 
+#[derive(Serialize, Deserialize)]
+pub enum FilteredMetadata {
+    Opaque,
+    Transparent(Metadata)
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FetchMetadata {
+    Unfiltered(Metadata),
+    Filtered {
+        filtered: FilteredMetadata,
+        unsafe_: Metadata
+    }
+}
+
 pub trait FetchResponseListener {
     fn process_request_body(&mut self);
     fn process_request_eof(&mut self);
-    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>);
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
     fn process_response_eof(&mut self, response: Result<(), NetworkError>);
 }
@@ -520,6 +535,13 @@ impl PendingAsyncLoad {
         let consumer = LoadConsumer::Listener(listener);
         self.core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
     }
+
+    /// Initiate the fetch associated with this pending load.
+    pub fn fetch_async(mut self, request: RequestInit, fetch_target: IpcSender<FetchResponseMsg>) {
+        self.guard.neuter();
+
+        self.core_resource_thread.send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
+    }
 }
 
 /// Message sent in response to `Load`.  Contains metadata, and a port
@@ -560,9 +582,8 @@ pub struct Metadata {
     /// Headers
     pub headers: Option<Serde<Headers>>,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
     /// HTTP Status
-    pub status: Option<Serde<RawStatus>>,
+    pub status: Option<(u16, Vec<u8>)>,
 
     /// Is successful HTTPS connection
     pub https_state: HttpsState,
@@ -580,7 +601,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(Serde(RawStatus(200, "OK".into()))),
+            status: Some((200, b"OK".to_vec())),
             https_state: HttpsState::None,
             referrer: None,
         }

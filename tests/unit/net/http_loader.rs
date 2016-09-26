@@ -4,34 +4,33 @@
 
 use content_blocker::parse_list;
 use cookie_rs::Cookie as CookiePair;
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
-use flate2::write::{GzEncoder, DeflateEncoder};
+use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
-use hyper::header::{Authorization, AcceptLanguage, Basic};
-use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, qitem, Referer, SetCookie};
+use hyper::header::{AcceptLanguage, Authorization, Basic};
+use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, Referer, SetCookie, qitem};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
-use hyper_serde::Serde;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
-use net::http_loader::{LoadErrorType, HttpResponse};
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, UIProvider, HttpState};
+use net::http_loader::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
+use net::http_loader::{HttpResponse, LoadErrorType};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net_traits::{CustomResponse, Metadata, LoadOrigin};
-use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
+use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
+use net_traits::{CustomResponse, LoadOrigin, Metadata};
 use std::borrow::Cow;
-use std::io::{self, Write, Read, Cursor};
+use std::io::{self, Cursor, Read, Write};
+use std::sync::{Arc, RwLock, mpsc};
 use std::sync::mpsc::Receiver;
-use std::sync::{Arc, mpsc, RwLock};
 use std::thread;
 use url::Url;
 use util::prefs::{self, PREFS};
@@ -80,7 +79,7 @@ fn respond_with_headers(body: Vec<u8>, mut headers: Headers) -> MockResponse {
     MockResponse::new(
         headers,
         StatusCode::Ok,
-        RawStatus(200, Cow::Borrowed("Ok")),
+        RawStatus(200, Cow::Borrowed("OK")),
         body
     )
 }
@@ -537,7 +536,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
-        status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
+        status: Some((200, b"OK".to_vec())),
         body: None,
         pipeline_id: pipeline_id,
     };
@@ -623,7 +622,7 @@ fn test_redirected_request_to_devtools() {
 
     assert!(devhttprequest.method == Method::Post);
     assert!(devhttprequest.url == url);
-    assert!(devhttpresponse.status == Some(RawStatus(301, Cow::Borrowed("Moved Permanently"))));
+    assert!(devhttpresponse.status == Some((301, "Moved Permanently".as_bytes().to_vec())));
 
     let devhttprequest = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
@@ -631,7 +630,7 @@ fn test_redirected_request_to_devtools() {
 
     assert!(devhttprequest.method == Method::Get);
     assert!(devhttprequest.url == url);
-    assert!(devhttpresponse.status == Some(RawStatus(200, Cow::Borrowed("Ok"))));
+    assert!(devhttpresponse.status == Some((200, b"OK".to_vec())));
 }
 
 
@@ -1534,7 +1533,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
                         password: "test".to_owned(),
                      };
 
-    http_state.auth_cache.write().unwrap().entries.insert(url.clone(), auth_entry);
+    http_state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
     let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.credentials_flag = true;
@@ -1586,7 +1585,7 @@ fn test_auth_ui_sets_header_on_401() {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status,
-                       Some(Serde(RawStatus(200, Cow::Borrowed("Ok")))));
+                       Some((200, b"OK".to_vec())));
         }
     }
 }
@@ -1621,14 +1620,14 @@ fn test_auth_ui_needs_www_auth() {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status,
-                       Some(Serde(RawStatus(401, Cow::Borrowed("Unauthorized")))));
+                       Some((401, "Unauthorized".as_bytes().to_vec())));
         }
     }
 }
 
-fn assert_referer_header_matches(origin_info: &LoadOrigin,
-                                 request_url: &str,
-                                 expected_referrer: &str) {
+fn assert_referrer_header_matches(origin_info: &LoadOrigin,
+                                  request_url: &str,
+                                  expected_referrer: &str) {
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
@@ -1636,20 +1635,20 @@ fn assert_referer_header_matches(origin_info: &LoadOrigin,
                                   url.clone(),
                                   origin_info);
 
-    let mut referer_headers = Headers::new();
-    referer_headers.set(Referer(expected_referrer.to_owned()));
+    let mut referrer_headers = Headers::new();
+    referrer_headers.set(Referer(expected_referrer.to_owned()));
 
     let http_state = HttpState::new();
 
     let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
                  &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: referer_headers,
+                     expected_headers: referrer_headers,
                      body: <[_]>::to_vec(&[])
                  }, DEFAULT_USER_AGENT.to_owned(),
                  &CancellationListener::new(None), None);
 }
 
-fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
+fn assert_referrer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
@@ -1668,7 +1667,7 @@ fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &st
 }
 
 #[test]
-fn test_referer_set_to_origin_with_origin_policy() {
+fn test_referrer_set_to_origin_with_origin_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::Origin);
@@ -1679,11 +1678,11 @@ fn test_referer_set_to_origin_with_origin_policy() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_sameorigin_policy_same_orig() {
+fn test_referrer_set_to_ref_url_with_sameorigin_policy_same_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::SameOrigin);
@@ -1694,11 +1693,11 @@ fn test_referer_set_to_ref_url_with_sameorigin_policy_same_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_sameorigin_policy_cross_orig() {
+fn test_no_referrer_set_with_sameorigin_policy_cross_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::SameOrigin);
@@ -1708,11 +1707,11 @@ fn test_no_referer_set_with_sameorigin_policy_cross_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url);
+    assert_referrer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
-fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
+fn test_referrer_set_to_stripped_url_with_unsafeurl_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::UnsafeUrl);
@@ -1722,11 +1721,11 @@ fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_with_originwhencrossorigin_policy_cross_orig() {
+fn test_referrer_with_originwhencrossorigin_policy_cross_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1737,11 +1736,11 @@ fn test_referer_with_originwhencrossorigin_policy_cross_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_with_originwhencrossorigin_policy_same_orig() {
+fn test_referrer_with_originwhencrossorigin_policy_same_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1752,11 +1751,11 @@ fn test_referer_with_originwhencrossorigin_policy_same_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
+fn test_http_to_https_considered_cross_origin_for_referrer_header_logic() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://mozilla.com/some/path";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1767,11 +1766,11 @@ fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1782,11 +1781,11 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_http
         referrer_policy: referrer_policy,
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
+fn test_no_referrer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1796,11 +1795,11 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url)
+    assert_referrer_header_not_included(&origin_info, request_url)
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1811,11 +1810,11 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1826,7 +1825,7 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http(
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1841,7 +1840,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_https() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1855,7 +1854,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url);
+    assert_referrer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
@@ -1870,7 +1869,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_https() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1885,11 +1884,11 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_noreferrer_policy() {
+fn test_no_referrer_set_with_noreferrer_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://someurl.com";
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
@@ -1899,7 +1898,7 @@ fn test_no_referer_set_with_noreferrer_policy() {
         referrer_policy: referrer_policy,
     };
 
-    assert_referer_header_not_included(&origin_info, request_url)
+    assert_referrer_header_not_included(&origin_info, request_url)
 }
 
 fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String) {
@@ -1947,7 +1946,7 @@ fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String
 fn test_custom_response() {
     let expected_body = b"Yay!".to_vec();
     let (metadata, body) = load_request_for_custom_response(expected_body.clone());
-    assert_eq!(metadata.status, Some(Serde(RawStatus(200, Cow::Borrowed("OK")))));
+    assert_eq!(metadata.status, Some((200, b"OK".to_vec())));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
 

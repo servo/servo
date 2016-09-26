@@ -6,7 +6,6 @@ href="https://w3c.github.io/web-animations/#dom-animation-starttime">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
 <script>
@@ -44,6 +43,13 @@ promise_test(function(t) {
     assert_greater_than(animation.startTime, 0, 'startTime when running');
   });
 }, 'startTime is resolved when running');
+
+test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+  assert_equals(animation.startTime, null);
+  assert_equals(animation.currentTime, null);
+}, 'startTime and currentTime are unresolved when animation is cancelled');
 
 </script>
 </body>

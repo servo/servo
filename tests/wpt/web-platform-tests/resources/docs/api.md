@@ -202,7 +202,7 @@ function bar() {
 }
 
 promise_test(function(t) {
-  return promise_rejects(t, new TypeError(), bar);
+  return promise_rejects(t, new TypeError(), bar());
 }, "Another example");
 ```
 

@@ -32,7 +32,7 @@ for file in files:
     input = ""
     expected = ""
     state = ""
-    f = open('dat/'+file)
+    f = open('dat/'+file, "r")
     while 1:
         line = f.readline()
         if not line:

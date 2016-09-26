@@ -30,6 +30,16 @@
 #define MAX_STOPS_PER_ANGLE_GRADIENT 8
 
 #ifdef WR_VERTEX_SHADER
+
+#define VECS_PER_LAYER      13
+#define LAYERS_PER_ROW      (WR_MAX_VERTEX_TEXTURE_WIDTH / VECS_PER_LAYER)
+
+#define VECS_PER_TILE       2
+#define TILES_PER_ROW       (WR_MAX_VERTEX_TEXTURE_WIDTH / VECS_PER_TILE)
+
+uniform sampler2D sLayers;
+uniform sampler2D sRenderTasks;
+
 struct Layer {
     mat4 transform;
     mat4 inv_transform;
@@ -41,35 +51,35 @@ layout(std140) uniform Data {
     vec4 data[WR_MAX_UBO_VECTORS];
 };
 
-layout(std140) uniform Tiles {
-    vec4 tiles[WR_MAX_UBO_VECTORS];
-};
-
-layout(std140) uniform Layers {
-    vec4 layers[WR_MAX_UBO_VECTORS];
-};
-
 Layer fetch_layer(int index) {
     Layer layer;
 
-    int offset = index * 13;
+    // Create a UV base coord for each 8 texels.
+    // This is required because trying to use an offset
+    // of more than 8 texels doesn't work on some versions
+    // of OSX.
+    int y = index / LAYERS_PER_ROW;
+    int x = VECS_PER_LAYER * (index % LAYERS_PER_ROW);
 
-    layer.transform[0] = layers[offset + 0];
-    layer.transform[1] = layers[offset + 1];
-    layer.transform[2] = layers[offset + 2];
-    layer.transform[3] = layers[offset + 3];
+    ivec2 uv0 = ivec2(x + 0, y);
+    ivec2 uv1 = ivec2(x + 8, y);
 
-    layer.inv_transform[0] = layers[offset + 4];
-    layer.inv_transform[1] = layers[offset + 5];
-    layer.inv_transform[2] = layers[offset + 6];
-    layer.inv_transform[3] = layers[offset + 7];
+    layer.transform[0] = texelFetchOffset(sLayers, uv0, 0, ivec2(0, 0));
+    layer.transform[1] = texelFetchOffset(sLayers, uv0, 0, ivec2(1, 0));
+    layer.transform[2] = texelFetchOffset(sLayers, uv0, 0, ivec2(2, 0));
+    layer.transform[3] = texelFetchOffset(sLayers, uv0, 0, ivec2(3, 0));
 
-    layer.local_clip_rect = layers[offset + 8];
+    layer.inv_transform[0] = texelFetchOffset(sLayers, uv0, 0, ivec2(4, 0));
+    layer.inv_transform[1] = texelFetchOffset(sLayers, uv0, 0, ivec2(5, 0));
+    layer.inv_transform[2] = texelFetchOffset(sLayers, uv0, 0, ivec2(6, 0));
+    layer.inv_transform[3] = texelFetchOffset(sLayers, uv0, 0, ivec2(7, 0));
 
-    layer.screen_vertices[0] = layers[offset + 9];
-    layer.screen_vertices[1] = layers[offset + 10];
-    layer.screen_vertices[2] = layers[offset + 11];
-    layer.screen_vertices[3] = layers[offset + 12];
+    layer.local_clip_rect = texelFetchOffset(sLayers, uv1, 0, ivec2(0, 0));
+
+    layer.screen_vertices[0] = texelFetchOffset(sLayers, uv1, 0, ivec2(1, 0));
+    layer.screen_vertices[1] = texelFetchOffset(sLayers, uv1, 0, ivec2(2, 0));
+    layer.screen_vertices[2] = texelFetchOffset(sLayers, uv1, 0, ivec2(2, 0));
+    layer.screen_vertices[3] = texelFetchOffset(sLayers, uv1, 0, ivec2(3, 0));
 
     return layer;
 }
@@ -82,10 +92,13 @@ struct Tile {
 Tile fetch_tile(int index) {
     Tile tile;
 
-    int offset = index * 2;
+    int y = index / TILES_PER_ROW;
+    int x = VECS_PER_TILE * (index % TILES_PER_ROW);
 
-    tile.actual_rect = tiles[offset + 0];
-    tile.target_rect = tiles[offset + 1];
+    ivec2 uv = ivec2(x + 0, y);
+
+    tile.actual_rect = texelFetchOffset(sRenderTasks, uv, 0, ivec2(0, 0));
+    tile.target_rect = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
 
     return tile;
 }
@@ -362,38 +375,44 @@ PrimitiveInfo fetch_text_run_glyph(int index, out vec4 color, out vec4 uv_rect) 
 
 struct Image {
     PrimitiveInfo info;
-    vec4 st_rect;               // Location of the image texture in the texture atlas.
-    vec4 stretch_size_uvkind;   // Size of the actual image.
+    vec4 st_rect;                        // Location of the image texture in the texture atlas.
+    vec4 stretch_size_and_tile_spacing;  // Size of the actual image and amount of space between
+                                         //     tiled instances of this image.
+    vec4 uvkind;                         // Type of texture coordinates.
 };
 
 Image fetch_image(int index) {
     Image image;
 
-    int offset = index * 5;
+    int offset = index * 6;
 
     image.info = unpack_prim_info(offset);
     image.st_rect = data[offset + 3];
-    image.stretch_size_uvkind = data[offset + 4];
+    image.stretch_size_and_tile_spacing = data[offset + 4];
+    image.uvkind = data[offset + 5];
 
     return image;
 }
 
 struct ImageClip {
     PrimitiveInfo info;
-    vec4 st_rect;               // Location of the image texture in the texture atlas.
-    vec4 stretch_size_uvkind;   // Size of the actual image.
+    vec4 st_rect;                        // Location of the image texture in the texture atlas.
+    vec4 stretch_size_and_tile_spacing;  // Size of the actual image and amount of space between
+                                         //     tiled instances of this image.
+    vec4 uvkind;                         // Type of texture coordinates.
     Clip clip;
 };
 
 ImageClip fetch_image_clip(int index) {
     ImageClip image;
 
-    int offset = index * 14;
+    int offset = index * 15;
 
     image.info = unpack_prim_info(offset);
     image.st_rect = data[offset + 3];
-    image.stretch_size_uvkind = data[offset + 4];
-    image.clip = unpack_clip(offset + 5);
+    image.stretch_size_and_tile_spacing = data[offset + 4];
+    image.uvkind = data[offset + 5];
+    image.clip = unpack_clip(offset + 6);
 
     return image;
 }
@@ -495,46 +514,38 @@ AngleGradient fetch_angle_gradient(int index) {
 }
 
 struct Blend {
-    vec4 target_rect;
-    vec4 src_rect;
-    vec4 opacity;
+    vec4 src_id_target_id_opacity;
 };
 
 Blend fetch_blend(int index) {
     Blend blend;
 
-    int offset = index * 3;
+    int offset = index * 1;
 
-    blend.target_rect = data[offset + 0];
-    blend.src_rect = data[offset + 1];
-    blend.opacity = data[offset + 2];
+    blend.src_id_target_id_opacity = data[offset + 0];
 
     return blend;
 }
 
 struct Composite {
-    vec4 src0;
-    vec4 src1;
-    vec4 target_rect;
+    vec4 src0_src1_target_id;
     vec4 info_amount;
 };
 
 Composite fetch_composite(int index) {
     Composite composite;
 
-    int offset = index * 4;
+    int offset = index * 2;
 
-    composite.src0 = data[offset + 0];
-    composite.src1 = data[offset + 1];
-    composite.target_rect = data[offset + 2];
-    composite.info_amount = data[offset + 3];
+    composite.src0_src1_target_id = data[offset + 0];
+    composite.info_amount = data[offset + 1];
 
     return composite;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
+float do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     vec2 ref_tl = clip_rect.xy + vec2( radius.x,  radius.x);
     vec2 ref_tr = clip_rect.zy + vec2(-radius.y,  radius.y);
     vec2 ref_br = clip_rect.zw + vec2(-radius.z, -radius.z);
@@ -545,15 +556,26 @@ void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     float d_br = distance(pos, ref_br);
     float d_bl = distance(pos, ref_bl);
 
-    bool out0 = pos.x < ref_tl.x && pos.y < ref_tl.y && d_tl > radius.x;
-    bool out1 = pos.x > ref_tr.x && pos.y < ref_tr.y && d_tr > radius.y;
-    bool out2 = pos.x > ref_br.x && pos.y > ref_br.y && d_br > radius.z;
-    bool out3 = pos.x < ref_bl.x && pos.y > ref_bl.y && d_bl > radius.w;
+    float pixels_per_fragment = length(fwidth(pos.xy));
+    float nudge = 0.5 * pixels_per_fragment;
 
-    // TODO(gw): Alpha anti-aliasing based on edge distance!
-    if (out0 || out1 || out2 || out3) {
-        discard;
-    }
+    bool out0 = pos.x < ref_tl.x && pos.y < ref_tl.y && d_tl > radius.x - nudge;
+    bool out1 = pos.x > ref_tr.x && pos.y < ref_tr.y && d_tr > radius.y - nudge;
+    bool out2 = pos.x > ref_br.x && pos.y > ref_br.y && d_br > radius.z - nudge;
+    bool out3 = pos.x < ref_bl.x && pos.y > ref_bl.y && d_bl > radius.w - nudge;
+
+    float distance_from_border = (float(out0) * (d_tl - radius.x + nudge)) +
+                                 (float(out1) * (d_tr - radius.y + nudge)) +
+                                 (float(out2) * (d_br - radius.z + nudge)) +
+                                 (float(out3) * (d_bl - radius.w + nudge));
+
+    // Move the distance back into pixels.
+    distance_from_border /= pixels_per_fragment;
+
+    // Apply a more gradual fade out to transparent.
+    //distance_from_border -= 0.5;
+
+    return smoothstep(1.0, 0.0, distance_from_border);
 }
 
 float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {
@@ -566,9 +588,9 @@ vec2 init_transform_fs(vec3 local_pos, vec4 local_rect, out float fragment_alpha
     vec2 pos = local_pos.xy / local_pos.z;
 
     float squared_distance = squared_distance_from_rect(pos, local_rect.xy, local_rect.zw);
-    if (squared_distance != 0) {
+    if (squared_distance != 0.0) {
         float delta = length(fwidth(local_pos.xy));
-        fragment_alpha = smoothstep(1.0, 0.0, squared_distance / delta * 2);
+        fragment_alpha = smoothstep(1.0, 0.0, squared_distance / delta * 2.0);
     }
 
     return pos;

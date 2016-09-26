@@ -4,13 +4,12 @@
 
 use file_loader;
 use hyper::header::ContentType;
-use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use mime_classifier::MimeClassifier;
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::io;
 use std::sync::Arc;
@@ -38,7 +37,7 @@ pub fn factory(mut load_data: LoadData,
                     Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])))),
                 charset: Some("utf-8".to_owned()),
                 headers: None,
-                status: Some(Serde(RawStatus(200, "OK".into()))),
+                status: Some((200, b"OK".to_vec())),
                 https_state: HttpsState::None,
                 referrer: None,
             };

@@ -15,11 +15,11 @@ use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
-use style::parallel::run_queue_with_custom_work_data_type;
 use style::parallel::{CHUNK_SIZE, WorkQueueData};
+use style::parallel::run_queue_with_custom_work_data_type;
 use style::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
-use traversal::AssignBSizes;
 use traversal::{AssignISizes, BubbleISizes};
+use traversal::AssignBSizes;
 use util::opts;
 
 pub use style::parallel::traverse_dom;

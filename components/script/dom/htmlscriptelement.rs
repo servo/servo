@@ -5,19 +5,22 @@
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -26,12 +29,11 @@ use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
-use hyper::http::RawStatus;
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::request::{CORSSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -66,11 +68,11 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -81,9 +83,9 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
-        Node::reflect_node(box HTMLScriptElement::new_inherited(localName, prefix, document, creator),
+        Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLScriptElementBinding::Wrap)
     }
@@ -153,13 +155,21 @@ struct ScriptContext {
     status: Result<(), NetworkError>
 }
 
-impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
-        self.metadata = metadata.ok();
+impl FetchResponseListener for ScriptContext {
+    fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_response(&mut self,
+                        metadata: Result<FetchMetadata, NetworkError>) {
+        self.metadata = metadata.ok().map(|meta| match meta {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        });
 
         let status_code = self.metadata.as_ref().and_then(|m| {
             match m.status {
-                Some(Serde(RawStatus(c, _))) => Some(c),
+                Some((c, _)) => Some(c),
                 _ => None,
             }
         }).unwrap_or(0);
@@ -171,18 +181,17 @@ impl AsyncResponseListener for ScriptContext {
         };
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
         if self.status.is_ok() {
-            let mut payload = payload;
-            self.data.append(&mut payload);
+            self.data.append(&mut chunk);
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
     /// step 4-9
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
         // Step 5.
-        let load = status.and(self.status.clone()).map(|_| {
+        let load = response.and(self.status.clone()).map(|_| {
             let metadata = self.metadata.take().unwrap();
 
             // Step 6.
@@ -212,8 +221,38 @@ impl PreInvoke for ScriptContext {}
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: Url,
+                          cors_setting: Option<CORSSettings>,
                           character_encoding: EncodingRef) {
-    // TODO(#9186): use the fetch infrastructure.
+    let doc = document_from_node(script);
+
+    // Step 1, 2.
+    let request = RequestInit {
+        url: url.clone(),
+        type_: RequestType::Script,
+        destination: Destination::Script,
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 1
+        mode: match cors_setting {
+            Some(_) => RequestMode::CORSMode,
+            None => RequestMode::NoCORS,
+        },
+        // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+        // Step 3-4
+        credentials_mode: match cors_setting {
+            Some(CORSSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            _ => CredentialsMode::Include,
+        },
+        origin: doc.url().clone(),
+        pipeline_id: Some(script.global().r().pipeline_id()),
+        // FIXME: Set to true for now, discussion in https://github.com/whatwg/fetch/issues/381
+        same_origin_data: true,
+        referrer_url: Some(doc.url().clone()),
+        referrer_policy: doc.get_referrer_policy(),
+        .. RequestInit::default()
+    };
+
+    // TODO: Step 3, Add custom steps to perform fetch
+
     let context = Arc::new(Mutex::new(ScriptContext {
         elem: Trusted::new(script),
         character_encoding: character_encoding,
@@ -231,14 +270,11 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         script_chan: doc.window().networking_task_source(),
         wrapper: Some(doc.window().get_runnable_wrapper()),
     };
-    let response_target = AsyncResponseTarget {
-        sender: action_sender,
-    };
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        listener.notify_action(message.to().unwrap());
-    });
 
-    doc.load_async(LoadType::Script(url), response_target);
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        listener.notify_fetch(message.to().unwrap());
+    });
+    doc.fetch_async(LoadType::Script(url), request, action_sender, None);
 }
 
 impl HTMLScriptElement {
@@ -324,7 +360,13 @@ impl HTMLScriptElement {
                               .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
                               .unwrap_or_else(|| doc.encoding());
 
-        // TODO: Step 14: CORS.
+        // Step 14.
+        let cors_setting = match self.GetCrossOrigin() {
+            Some(ref s) if *s == "anonymous" => Some(CORSSettings::Anonymous),
+            Some(ref s) if *s == "use-credentials" => Some(CORSSettings::UseCredentials),
+            None => None,
+            _ => unreachable!()
+        };
 
         // TODO: Step 15: Nonce.
 
@@ -356,9 +398,11 @@ impl HTMLScriptElement {
                 };
 
                 // Step 18.6.
-                fetch_a_classic_script(self, url, encoding);
+                fetch_a_classic_script(self, url, cors_setting, encoding);
+
                 true
             },
+            // TODO: Step 19.
             None => false,
         };
 
@@ -445,7 +489,7 @@ impl HTMLScriptElement {
         }
 
         // TODO(#12446): beforescriptexecute.
-        if !self.dispatch_before_script_execute_event() {
+        if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
             return;
         }
 
@@ -492,7 +536,7 @@ impl HTMLScriptElement {
         window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), window.r());
     }
 
-    pub fn dispatch_before_script_execute_event(&self) -> bool {
+    pub fn dispatch_before_script_execute_event(&self) -> EventStatus {
         self.dispatch_event(atom!("beforescriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::Cancelable)
@@ -563,7 +607,7 @@ impl HTMLScriptElement {
     fn dispatch_event(&self,
                       type_: Atom,
                       bubbles: EventBubbles,
-                      cancelable: EventCancelable) -> bool {
+                      cancelable: EventCancelable) -> EventStatus {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);
@@ -652,6 +696,32 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_getter!(HtmlFor, "for");
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        let element = self.upcast::<Element>();
+        let attr = element.get_attribute(&ns!(), &atom!("crossorigin"));
+
+        if let Some(mut val) = attr.map(|v| v.Value()) {
+            val.make_ascii_lowercase();
+            if val == "anonymous" || val == "use-credentials" {
+                return Some(val);
+            }
+            return Some(DOMString::from("anonymous"));
+        }
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        match value {
+            Some(val) => element.set_string_attribute(&atom!("crossorigin"), val),
+            None => {
+                element.remove_attribute(&ns!(), &atom!("crossorigin"));
+            }
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {

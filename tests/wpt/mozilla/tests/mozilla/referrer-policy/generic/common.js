@@ -112,11 +112,9 @@ function queryIframe(url, callback, referrer_policy) {
     iframe.addEventListener("load", function listener() {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
-      xhr.onreadystatechange = function(e) {
-        if (this.readyState == 4 && this.status == 200) {
-          var server_data = JSON.parse(this.responseText);
-          callback(server_data, url);
-        }
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        callback(server_data);
       };
       xhr.send();
       iframe.removeEventListener("load", listener);
@@ -133,11 +131,9 @@ function queryImage(url, callback, referrer_policy) {
 function queryXhr(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
-  xhr.onreadystatechange = function(e) {
-    if (this.readyState == 4 && this.status == 200) {
-      var server_data = JSON.parse(this.responseText);
-      callback(wrapResult(url, server_data), url);
-    }
+  xhr.onload = function(e) {
+    var server_data = JSON.parse(this.responseText);
+    callback(wrapResult(url, server_data), url);
   };
   xhr.send();
 }
@@ -187,11 +183,37 @@ function queryNavigable(element, url, callback, attributes) {
   navigable.click();
 }
 
-function queryLink(url, callback, referrer_policy) {
-  var a = document.createElement("a");
-  a.innerHTML = "Link to subresource";
-  document.body.appendChild(a);
-  queryNavigable(a, url, callback, referrer_policy)
+function queryAnchor(url, callback, referrer_policy) {
+  var x = document.createElement('script');
+  x.src = '/common/utils.js';
+  x.onerror = function() { console.log('whoops') };
+  x.onload = function() { doQuery() };
+  document.getElementsByTagName("head")[0].appendChild(x);
+
+  function doQuery() {
+    var id = token();
+    var url_with_params = url + "&id=" + id + "&tagAttrs=" + JSON.stringify(referrer_policy);
+    var iframe = appendIframeToBody(url_with_params);
+    iframe.addEventListener("load", function listener() {
+      if ((iframe.contentWindow !== null) &&
+          (iframe.contentWindow.location.toString() === url_with_params)) {
+        return;
+      }
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        server_data.referrer = unescape(server_data.referrer);
+        server_data.headers.referer = unescape(server_data.headers.referer);
+
+        callback(server_data, url_with_params);
+      };
+      xhr.send();
+
+      iframe.removeEventListener("load", listener);
+    });
+  }
 }
 
 function queryAreaLink(url, callback, referrer_policy) {
@@ -213,6 +235,50 @@ function queryScript(url, callback) {
   window.addEventListener("message", listener);
 
   document.body.appendChild(script);
+}
+
+function queryLink(url, callback, referrer_policy) {
+  var x = document.createElement('script');
+  x.src = '/common/utils.js';
+  x.onerror = function() { console.log('whoops') };
+  x.onload = function() { doQuery() };
+  document.getElementsByTagName("head")[0].appendChild(x);
+
+  function doQuery() {
+    var id = token();
+    var link = document.createElement("link");
+
+    if (referrer_policy) {
+      for (var attr in referrer_policy) {
+        // TODO crashed when you assigned value to rel attribute
+        if (attr === "rel") {
+          link.relList.add("noreferrer");
+        } else {
+          link[attr] = referrer_policy[attr];
+        }
+      }
+    }
+
+    link.href = url + "&id=" + id;
+    link.relList.add("stylesheet");
+
+    link.onload = function() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?path=link-element-stash&id=' + id, false);
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        server_data.headers = JSON.parse(server_data.headers);
+        if (server_data.headers.referer == undefined) {
+          server_data.headers.referer = undefined;
+        }
+
+        callback(wrapResult(url, server_data));
+      };
+      xhr.send();
+    };
+
+    document.body.appendChild(link);
+  }
 }
 
  // SanityChecker does nothing in release mode.

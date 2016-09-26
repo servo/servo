@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
+use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -48,12 +48,12 @@ impl Controllable for ServiceWorkerContainer {
 }
 
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-controller-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
         return self.controller.get()
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-register-method
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
@@ -95,12 +95,11 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
         }
 
-        let scope_str = scope.as_str().to_owned();
         let worker_registration = ServiceWorkerRegistration::new(self.global().r(),
                                                                  script_url,
-                                                                 scope_str.clone(),
+                                                                 scope.clone(),
                                                                  self);
-        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline());
+        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
         Ok(worker_registration)
     }
 }

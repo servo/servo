@@ -105,7 +105,7 @@ void main(void) {
     // in the fragment shader itself. For non-transformed borders, we can use the
     // interpolator.
 #ifdef WR_FEATURE_TRANSFORM
-    vPieceRectHypotenuseLength = sqrt(pow(width, 2) + pow(height, 2));
+    vPieceRectHypotenuseLength = sqrt(pow(width, 2.0) + pow(height, 2.0));
 #else
     vDistanceFromMixLine = (vi.local_clamped_pos.x - x0) * height -
                            (vi.local_clamped_pos.y - y0) * width;

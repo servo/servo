@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>SourceBuffer.mode == "sequence" test cases.</title>
@@ -81,45 +82,55 @@
 
           mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              assert_equals(segmentInfo.media[0].timecode, 0, "segment starts at time 0");
+              var offset = Math.min(segmentInfo.media[0].timev, segmentInfo.media[0].timea);
+              var expectedStart = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea) - offset;
+              var expectedEnd = Math.min(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) - offset;
+              var expectedEndEOS = Math.max(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) - offset;
               append_segment(test, sourceBuffer, mediaData, segmentInfo.media[0], function()
               {
                   verify_offset_and_buffered(test, mediaSource, sourceBuffer,
-                                             0, 0,
-                                             segmentInfo.media[1].timecode + sourceBuffer.timestampOffset,
-                                             segmentInfo.media[0].highest_end_time + sourceBuffer.timestampOffset,
+                                             -offset, expectedStart,
+                                             expectedEnd, expectedEndEOS,
                                              test.done);
               });
           }, "Test sequence AppendMode appendBuffer(first media segment)");
 
           mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              assert_greater_than(segmentInfo.media[1].timecode, 0, "segment starts after time 0");
+              var offset = Math.min(segmentInfo.media[1].timev, segmentInfo.media[1].timea);
+              var expectedStart = Math.max(segmentInfo.media[1].timev, segmentInfo.media[1].timea) - offset;
+              var expectedEnd = Math.min(segmentInfo.media[1].endtimev, segmentInfo.media[1].endtimea) - offset;
+              var expectedEndEOS = Math.max(segmentInfo.media[1].endtimev, segmentInfo.media[1].endtimea) - offset;
+              assert_greater_than(Math.min(segmentInfo.media[1].timev, segmentInfo.media[1].timea), 0,
+                                  "segment starts after time 0");
               append_segment(test, sourceBuffer, mediaData, segmentInfo.media[1], function()
               {
                   verify_offset_and_buffered(test, mediaSource, sourceBuffer,
-                                             -segmentInfo.media[1].timecode, 0,
-                                             segmentInfo.media[2].timecode + sourceBuffer.timestampOffset,
-                                             segmentInfo.media[1].highest_end_time + sourceBuffer.timestampOffset,
+                                             -offset, expectedStart,
+                                             expectedEnd, expectedEndEOS,
                                              test.done);
               });
           }, "Test sequence AppendMode appendBuffer(second media segment)");
 
           mediasource_sequencemode_test(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
           {
-              assert_greater_than(segmentInfo.media[1].timecode, 0, "segment starts after time 0");
+              assert_greater_than(Math.min(segmentInfo.media[1].timev, segmentInfo.media[1].timea), 0,
+                                  "segment starts after time 0");
               append_segment(test, sourceBuffer, mediaData, segmentInfo.media[1], function()
               {
-                  assert_equals(segmentInfo.media[0].timecode, 0, "segment starts at time 0");
                   append_segment(test, sourceBuffer, mediaData, segmentInfo.media[0], function()
                   {
+                      var firstOffset = Math.min(segmentInfo.media[1].timev, segmentInfo.media[1].timea);
+                      var secondOffset = Math.max(segmentInfo.media[1].endtimev, segmentInfo.media[1].endtimea) - firstOffset;
+                      var expectedStart = Math.max(segmentInfo.media[1].timev, segmentInfo.media[1].timea) - firstOffset;
+                      var expectedEnd = Math.min(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) + secondOffset;
+                      var expectedEndEOS = Math.max(segmentInfo.media[0].endtimev, segmentInfo.media[0].endtimea) + secondOffset;
                       // Current timestampOffset should reflect offset required to put media[0]
                       // immediately after media[1]'s highest frame end timestamp (as was adjusted
                       // by an earlier timestampOffset).
                       verify_offset_and_buffered(test, mediaSource, sourceBuffer,
-                                                 segmentInfo.media[1].highest_end_time - segmentInfo.media[1].timecode, 0,
-                                                 segmentInfo.media[1].timecode + sourceBuffer.timestampOffset,
-                                                 segmentInfo.media[0].highest_end_time + sourceBuffer.timestampOffset,
+                                                 secondOffset, expectedStart,
+                                                 expectedEnd, expectedEndEOS,
                                                  test.done);
                   })
               });

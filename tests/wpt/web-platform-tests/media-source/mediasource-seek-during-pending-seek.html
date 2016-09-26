@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>Test MediaSource behavior when a seek is requested while another seek is pending.</title>
@@ -30,7 +31,7 @@
 
                   // Seek to a new position before letting the initial seek to 0 completes.
                   test.expectEvent(mediaElement, 'seeking', 'mediaElement');
-                  mediaElement.currentTime = secondSegmentInfo.timecode;
+                  mediaElement.currentTime = Math.max(secondSegmentInfo.timev, secondSegmentInfo.timea);
                   assert_true(mediaElement.seeking, 'mediaElement is seeking');
 
                   // Append media data for time 0.
@@ -53,13 +54,36 @@
 
               test.waitForExpectedEvents(function()
               {
-                  test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
-                  mediaSource.endOfStream();
+                  if (sourceBuffer.updating)
+                  {
+                      // The event playing was fired prior to the appendBuffer completing.
+                      test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_false(sourceBuffer.updating, 'append have compleded');
+                          test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
+                          mediaSource.endOfStream();
+                      });
+                  }
+                  else
+                  {
+                      test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
+                      mediaSource.endOfStream();
+                  }
               });
 
               test.waitForExpectedEvents(function()
               {
-                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'Greater than HAVE_CURRENT_DATA');
+              	  // Note: we just completed the seek. However, we only have less than a second worth of data to play. It is possible that
+              	  // playback has reached the end since the seek completed.
+              	  if (!mediaElement.paused)
+              	  {
+                      assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'Greater or equal than HAVE_CURRENT_DATA');
+                  }
+                  else
+                  {
+                      assert_true(mediaElement.ended);
+                  }
                   test.done();
               });
 
@@ -94,7 +118,7 @@
 
                   // Seek to a new position.
                   test.expectEvent(mediaElement, 'seeking', 'mediaElement');
-                  mediaElement.currentTime = secondSegmentInfo.timecode;
+                  mediaElement.currentTime = Math.max(secondSegmentInfo.timev, secondSegmentInfo.timea);
                   assert_true(mediaElement.seeking, 'mediaElement is seeking');
 
               });
@@ -105,7 +129,7 @@
 
                   // Seek to a second position while the first seek is still pending.
                   test.expectEvent(mediaElement, 'seeking', 'mediaElement');
-                  mediaElement.currentTime = thirdSegmentInfo.timecode;
+                  mediaElement.currentTime = Math.max(thirdSegmentInfo.timev, thirdSegmentInfo.timea);
                   assert_true(mediaElement.seeking, 'mediaElement is seeking');
 
                   // Append media data for the first seek position.
@@ -115,10 +139,10 @@
 
               test.waitForExpectedEvents(function()
               {
-                  assert_true(mediaElement.seeking, 'mediaElement is still seeking');
+                  // Note that we can't assume that the element is still seeking
+                  // when the seeking event is fired as the operation is asynchronous.
 
                   // Append media data for the second seek position.
-                  test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
                   test.expectEvent(mediaElement, 'seeked', 'mediaElement finished seek');
                   MediaSourceUtil.appendUntilEventFires(test, mediaElement, 'seeked', sourceBuffer, mediaData, segmentInfo, segmentIndex);
               });
@@ -127,13 +151,36 @@
               {
                   assert_false(mediaElement.seeking, 'mediaElement is no longer seeking');
 
-                  test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
-                  mediaSource.endOfStream();
+                  if (sourceBuffer.updating)
+                  {
+                      // The event seeked was fired prior to the appendBuffer completing.
+                      test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_false(sourceBuffer.updating, 'append have compleded');
+                          test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
+                          mediaSource.endOfStream();
+                      });
+                  }
+                  else
+                  {
+                      test.expectEvent(mediaSource, 'sourceended', 'mediaSource ended');
+                      mediaSource.endOfStream();
+                  }
               });
 
               test.waitForExpectedEvents(function()
               {
-                  assert_greater_than(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'Greater than HAVE_CURRENT_DATA');
+              	  // Note: we just completed the seek. However, we only have less than a second worth of data to play. It is possible that
+              	  // playback has reached the end since the seek completed.
+              	  if (!mediaElement.paused)
+              	  {
+                      assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA, 'Greater or equal than HAVE_CURRENT_DATA');
+                  }
+                  else
+                  {
+                      assert_true(mediaElement.ended);
+                  }
                   test.done();
               });
           }, 'Test seeking to a new location during a pending seek.');

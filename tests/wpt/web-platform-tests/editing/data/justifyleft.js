@@ -53,7 +53,7 @@ var browserTests = [
     [["stylewithcss","true"],["defaultparagraphseparator","div"],["justifyleft",""]],
     "<center><div style=\"text-align:left\"><p>[foo]</p></div><p>bar</p></center><p>extra</p>",
     [true,true,true],
-    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"p",false,false,"div"],"justifyleft":[false,false,"center",false,true,"left"]}],
+    {"stylewithcss":[false,false,"",false,true,""],"defaultparagraphseparator":[false,false,"div",false,false,"div"],"justifyleft":[false,false,"center",false,true,"left"]}],
 ["<center><p>[foo]<p>bar</center><p>extra",
     [["stylewithcss","false"],["defaultparagraphseparator","div"],["justifyleft",""]],
     "<center><div style=\"text-align:left\"><p>[foo]</p></div><p>bar</p></center><p>extra</p>",

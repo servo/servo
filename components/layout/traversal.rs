@@ -7,8 +7,8 @@
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
+use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
-use flow::{PreorderFlowTraversal, self};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
@@ -16,8 +16,8 @@ use std::mem;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::TNode;
 use style::selector_impl::ServoSelectorImpl;
+use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
-use style::traversal::{DomTraversalContext, remove_from_bloom_filter, recalc_style_at};
 use util::opts;
 use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 

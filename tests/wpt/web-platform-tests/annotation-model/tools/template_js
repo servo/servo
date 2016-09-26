@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<title>{{TESTTITLE}}</title>
+<link rel="stylesheet" href="/resources/testharness.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/annotation-model/scripts/ajv.min.js"></script>
+<script src="/annotation-model/scripts/JSONtest.js"></script>
+<script>
+setup( { explicit_done: true } );
+
+var theDefinitions=[
+  {{SCHEMADEFS}}
+];
+
+var theTestFile="{{TESTFILE}}";
+
+var runningTest = new JSONtest( {
+    "schemaDefs"  : theDefinitions,
+    "testFile"    : theTestFile
+} ) ;
+
+var c;
+
+runningTest.Promise.then(function(test) {
+  test.runTests(test.Assertions, test.Test.content);
+  done();
+});
+</script>
+</head>
+<body>
+<div id="testDescription"></div>
+<p>The following assertions are being evaluated:</p>
+<div id="assertion"></div>
+</body>
+</html>

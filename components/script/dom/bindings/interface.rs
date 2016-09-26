@@ -257,7 +257,8 @@ pub unsafe fn create_named_constructors(
     }
 }
 
-unsafe fn create_object(
+/// Create a new object with a unique type.
+pub unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
@@ -316,7 +317,9 @@ pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
     globals.contains(dom_class.global)
 }
 
-unsafe fn define_on_global_object(
+/// Define a property with a given name on the global object. Should be called
+/// through the resolve hook.
+pub unsafe fn define_on_global_object(
         cx: *mut JSContext,
         global: HandleObject,
         name: &[u8],

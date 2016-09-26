@@ -14,8 +14,8 @@ use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal};
 use gfx::display_list::{GradientStop, StackingContext, StackingContextType};
 use gfx_traits::{FragmentType, ScrollPolicy, StackingContextId};
-use style::computed_values::filter::{self, Filter};
 use style::computed_values::{image_rendering, mix_blend_mode};
+use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
 use webrender_traits::{self, AuxiliaryListsBuilder, DisplayListId, PipelineId};
 
@@ -430,6 +430,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         builder.push_image(item.base.bounds.to_rectf(),
                                            item.base.clip.to_clip_region(frame_builder),
                                            item.stretch_size.to_sizef(),
+                                           item.tile_spacing.to_sizef(),
                                            item.image_rendering.to_image_rendering(),
                                            id);
                     }
@@ -593,4 +594,3 @@ impl WebRenderFragmentTypeConverter for FragmentType {
         }
     }
 }
-

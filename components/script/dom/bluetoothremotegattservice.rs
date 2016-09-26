@@ -24,22 +24,22 @@ pub struct BluetoothRemoteGATTService {
     reflector_: Reflector,
     device: MutHeap<JS<BluetoothDevice>>,
     uuid: DOMString,
-    isPrimary: bool,
-    instanceID: String,
+    is_primary: bool,
+    instance_id: String,
 }
 
 impl BluetoothRemoteGATTService {
     pub fn new_inherited(device: &BluetoothDevice,
                          uuid: DOMString,
-                         isPrimary: bool,
-                         instanceID: String)
+                         is_primary: bool,
+                         instance_id: String)
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             reflector_: Reflector::new(),
             device: MutHeap::new(device),
             uuid: uuid,
-            isPrimary: isPrimary,
-            instanceID: instanceID,
+            is_primary: is_primary,
+            instance_id: instance_id,
         }
     }
 
@@ -64,7 +64,7 @@ impl BluetoothRemoteGATTService {
     }
 
     fn get_instance_id(&self) -> String {
-        self.instanceID.clone()
+        self.instance_id.clone()
     }
 }
 
@@ -76,7 +76,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary
     fn IsPrimary(&self) -> bool {
-        self.isPrimary
+        self.is_primary
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-uuid

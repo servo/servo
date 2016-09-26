@@ -25,9 +25,9 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::{mem, time};
+use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::{LayoutControlMsg, ConstellationControlMsg};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
 use util::ipc::OptionalIpcSender;
 

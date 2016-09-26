@@ -9,8 +9,8 @@
 //! as possible.
 
 use context::LayoutContext;
-use flow::InorderFlowTraversal;
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
+use flow::InorderFlowTraversal;
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{RESOLVE_GENERATED_CONTENT, RestyleDamage};
@@ -18,8 +18,8 @@ use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;
-use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
+use style::computed_values::content::ContentItem;
 use style::dom::TRestyleDamage;
 use style::properties::ServoComputedValues;
 use text::TextRunScanner;

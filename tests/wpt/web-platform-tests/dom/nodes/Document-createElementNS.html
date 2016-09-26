@@ -18,7 +18,6 @@ test(function() {
     [null, null, null],
     [null, "", "INVALID_CHARACTER_ERR"],
     [undefined, null, null],
-    [undefined, undefined, null],
     [undefined, "", "INVALID_CHARACTER_ERR"],
     ["http://example.com/", null, null],
     ["http://example.com/", "", "INVALID_CHARACTER_ERR"],
@@ -56,7 +55,7 @@ test(function() {
         assert_equals(element.nodeName, qualified)
         assert_equals(element.namespaceURI, namespace === undefined ? null : namespace)
       }
-    }, "createElementNS test " + i + ": " + t.map(function(el) { return format_value(el) }))
+    }, "createElementNS test: " + t.map(format_value))
   })
 })
 

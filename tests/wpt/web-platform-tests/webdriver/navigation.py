@@ -39,7 +39,7 @@ class HTTPRequest(object):
             conn.close()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def http(request, session):
     return HTTPRequest(session.transport.host, session.transport.port)
 

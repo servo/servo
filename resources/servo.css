@@ -165,3 +165,7 @@ details[open]::-servo-details-summary {
 svg > * {
   display: none;
 }
+
+*|*::-servo-input-text {
+    margin: 0;
+}

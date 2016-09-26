@@ -6,8 +6,8 @@ use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap, byte_swap_and_premultiply};
-use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
+use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
@@ -19,7 +19,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::{Error, Fallible, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
@@ -42,9 +42,9 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
 use num_traits::ToPrimitive;
 use script_traits::ScriptMsg as ConstellationMsg;
+use std::{cmp, fmt};
 use std::cell::Cell;
 use std::str::FromStr;
-use std::{cmp, fmt};
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
 use util::opts;
@@ -1096,16 +1096,16 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      imagedata: &ImageData,
                      dx: Finite<f64>,
                      dy: Finite<f64>,
-                     dirtyX: Finite<f64>,
-                     dirtyY: Finite<f64>,
-                     dirtyWidth: Finite<f64>,
-                     dirtyHeight: Finite<f64>) {
+                     dirty_x: Finite<f64>,
+                     dirty_y: Finite<f64>,
+                     dirty_width: Finite<f64>,
+                     dirty_height: Finite<f64>) {
         let data = imagedata.get_data_array();
         let offset = Point2D::new(*dx, *dy);
         let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 
-        let dirty_rect = Rect::new(Point2D::new(*dirtyX, *dirtyY),
-                                   Size2D::new(*dirtyWidth, *dirtyHeight));
+        let dirty_rect = Rect::new(Point2D::new(*dirty_x, *dirty_y),
+                                   Size2D::new(*dirty_width, *dirty_height));
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data,
                                                                 offset,
                                                                 image_data_size,

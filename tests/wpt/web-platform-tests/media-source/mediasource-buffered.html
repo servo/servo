@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>SourceBuffer.buffered test cases.</title>
@@ -14,14 +15,24 @@
             var manifestFilenameA = subType + "/test-a-128k-44100Hz-1ch-manifest.json";
             var manifestFilenameB = subType + "/test-v-128k-320x240-30fps-10kfr-manifest.json";
 
+            // Audio track expectations
             var expectationsA = {
               webm: "{ [0.000, 2.023) }",
               mp4: "{ [0.000, 2.043) }",
             };
 
+            // Video track expectations
             var expectationsB = {
               webm: "{ [0.000, 2.001) }",
-              mp4: "{ [0.000, 2.000) }",
+              mp4: "{ [0.067, 2.067) }",
+            };
+
+            // Audio and Video intersection expectations.
+            // https://w3c.github.io/media-source/index.html#dom-sourcebuffer-buffered
+            // When mediaSource.readyState is "ended", then set the end time on the last range in track ranges to highest end time.
+            var expectationsC = {
+              webm: ["{ [0.000, 2.001) }", "{ [0.000, 2.023) }"],
+              mp4: ["{ [0.067, 2.043) }", "{ [0.067, 2.067) }"]
             };
 
             function mediaSourceDemuxedTest(callback, description)
@@ -69,15 +80,18 @@
                 test.expectEvent(mediaElement, "loadedmetadata");
                 appendData(test, mediaSource, dataA, dataB, function()
                 {
+                    var expectedBeforeEndOfStreamIntersection = expectationsC[subType][0];
+                    var expectedAfterEndOfStreamIntersection = expectationsC[subType][1];
+
                     assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
                     assertBufferedEquals(mediaSource.activeSourceBuffers[1], expectationsB[subType], "mediaSource.activeSourceBuffers[1]");
-                    assertBufferedEquals(mediaElement, expectationsB[subType], "mediaElement.buffered");
+                    assertBufferedEquals(mediaElement, expectedBeforeEndOfStreamIntersection, "mediaElement.buffered");
 
                     mediaSource.endOfStream();
 
                     assertBufferedEquals(mediaSource.activeSourceBuffers[0], expectationsA[subType], "mediaSource.activeSourceBuffers[0]");
                     assertBufferedEquals(mediaSource.activeSourceBuffers[1], expectationsB[subType], "mediaSource.activeSourceBuffers[1]");
-                    assertBufferedEquals(mediaElement, expectationsA[subType], "mediaElement.buffered");
+                    assertBufferedEquals(mediaElement, expectedAfterEndOfStreamIntersection, "mediaElement.buffered");
 
                     test.done();
                 });
@@ -99,8 +113,8 @@
                     test.waitForExpectedEvents(function()
                     {
                         var expectationsAV = {
-                            webm: ["{ [0.000, 2.003) }", "{ [0.000, 2.023) }"],
-                            mp4: ["{ [0.000, 2.000) }", "{ [0.000, 2.043) }"],
+                            webm: ["{ [0.003, 2.004) }", "{ [0.003, 2.023) }"],
+                            mp4: ["{ [0.067, 2.043) }", "{ [0.067, 2.067) }"],
                         };
 
                         var expectedBeforeEndOfStream = expectationsAV[subType][0];

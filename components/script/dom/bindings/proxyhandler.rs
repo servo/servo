@@ -8,20 +8,21 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
+use js::glue::{GetProxyHandler, GetProxyHandlerFamily, SetProxyExtra};
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::glue::{GetProxyHandler, SetProxyExtra, GetProxyHandlerFamily};
+use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
+use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
+use js::jsapi::{JSErrNum, JS_AlreadyHasOwnPropertyById, JS_StrictPropertyStub};
+use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, SetDOMProxyInformation};
 use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
 use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::MutableHandleObject;
-use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
-use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor, DOMProxyShadowsResult};
-use js::jsapi::{JSErrNum, JS_StrictPropertyStub, JS_AlreadyHasOwnPropertyById};
-use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, SetDOMProxyInformation};
 use js::jsval::ObjectValue;
 use libc;
 use std::{mem, ptr};
+
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 

@@ -7,26 +7,33 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-    var wrong_presentation_url = null;
-
-    /**
-     *  Test if PresentationRequest constructor returns a TypeError() by missing presentation URL
-     */
-
     test(function() {
         assert_throws(new TypeError(), function() {
             new PresentationRequest();
         });
     }, 'Call PresentationRequest() constructor without presentation URL. TypeError Exception expected.');
 
-    /**
-     *  Test if PresentationRequest constructor returns a TypeError() by wrong presentation URL
-     */
-
     test(function() {
         assert_throws(new TypeError(), function() {
-            new PresentationRequest(wrong_presentation_url);
+            new PresentationRequest(null);
         });
-    }, 'Call PresentationRequest() constructor with null presentation URL. TypeError Exception expected.');
+    }, 'Call PresentationRequest constructor with null presentation URL. TypeError Exception expected.');
 
+    test(function() {
+        assert_throws('NotSupportedError', function() {
+            new PresentationRequest([]);
+        });
+    }, 'Call PresentationRequest constructor with an empty sequence. NotSupportedError Exception expected.');
+
+    test(function() {
+        assert_throws('SyntaxError', function() {
+            new PresentationRequest(':invalid');
+        });
+    }, 'Call PresentationRequest constructor with an invalid URL. SyntaxError Exception expected.');
+
+    test(function() {
+        assert_throws('SyntaxError', function() {
+            new PresentationRequest(['presentation.html', ':invalid']);
+        });
+    }, 'Call PresentationRequest constructor with a sequence of URLs, one of them invalid. SyntaxError Exception expected.');
 </script>

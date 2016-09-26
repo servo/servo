@@ -5,9 +5,9 @@
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::framerate::FramerateActor;
 use actors::memory::{MemoryActor, TimelineMemoryReply};
+use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
-use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;

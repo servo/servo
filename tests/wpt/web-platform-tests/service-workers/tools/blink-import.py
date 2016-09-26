@@ -152,7 +152,7 @@ def main():
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        with open(os.path.join(test_path, path)) as in_f:
+        with open(os.path.join(test_path, path), "r") as in_f:
             data = []
             sub = False
             for line in in_f:
@@ -189,7 +189,7 @@ def main():
 
     for path in source_paths(work_path):
         full_path = os.path.join(work_path, path)
-        with open(full_path) as f:
+        with open(full_path, "r") as f:
             data = sub_changed_filenames(filename_changes, f)
         with open(full_path, "w") as f:
             f.write(data)

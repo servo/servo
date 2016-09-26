@@ -18,19 +18,19 @@ pub struct HTMLMeterElement {
 }
 
 impl HTMLMeterElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMeterElement {
         HTMLMeterElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMeterElement> {
-        Node::reflect_node(box HTMLMeterElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLMeterElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLMeterElementBinding::Wrap)
     }

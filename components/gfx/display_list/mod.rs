@@ -17,14 +17,14 @@
 use app_units::Au;
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
+use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use euclid::approxeq::ApproxEq;
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use fnv::FnvHasher;
-use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, ScrollPolicy, StackingContextId};
+use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
@@ -44,7 +44,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, max_rect, ScreenPx};
+use util::geometry::{self, ScreenPx, max_rect};
 use webrender_traits::{self, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -1148,6 +1148,10 @@ pub struct ImageDisplayItem {
     /// direction to tile the entire bounds.
     pub stretch_size: Size2D<Au>,
 
+    /// The amount of space to add to the right and bottom part of each tile, when the image
+    /// is tiled.
+    pub tile_spacing: Size2D<Au>,
+
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
     pub image_rendering: image_rendering::T,
@@ -1360,6 +1364,7 @@ impl DisplayItem {
                 paint_context.draw_image(
                     &image_item.base.bounds,
                     &image_item.stretch_size,
+                    &image_item.tile_spacing,
                     &image_item.webrender_image,
                     &image_item.image_data
                                .as_ref()

@@ -7,9 +7,9 @@ use cssparser::ToCss;
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
 use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
-use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
-use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
+use selector_impl::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
+use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::fmt;
 use string_cache::{Atom, Namespace};
 
@@ -21,6 +21,7 @@ pub enum PseudoElement {
     Selection,
     DetailsSummary,
     DetailsContent,
+    ServoInputText,
 }
 
 impl ToCss for PseudoElement {
@@ -32,6 +33,7 @@ impl ToCss for PseudoElement {
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
+            ServoInputText => "::-servo-input-text",
         })
     }
 }
@@ -54,7 +56,8 @@ impl PseudoElement {
             PseudoElement::After |
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
-            PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
+            PseudoElement::DetailsContent |
+            PseudoElement::ServoInputText => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -201,6 +204,12 @@ impl SelectorImpl for ServoSelectorImpl {
                 }
                 DetailsContent
             },
+            "-servo-input-text" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoInputText
+            },
             _ => return Err(())
         };
 
@@ -222,6 +231,7 @@ impl ServoSelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
+        fun(PseudoElement::ServoInputText);
     }
 
     #[inline]

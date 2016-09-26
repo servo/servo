@@ -8,8 +8,8 @@
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
 use app_units::Au;
-use cssparser::ToCss;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
+use cssparser::ToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
@@ -225,7 +225,7 @@ impl<'a, 'b> AtRuleParser for ViewportRuleParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
 
-    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
         macro_rules! declaration {
             ($declaration:ident($parse:path)) => {
                 declaration!($declaration(value: try!($parse(input)),

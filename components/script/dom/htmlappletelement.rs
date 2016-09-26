@@ -20,20 +20,20 @@ pub struct HTMLAppletElement {
 }
 
 impl HTMLAppletElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAppletElement {
         HTMLAppletElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAppletElement> {
-        Node::reflect_node(box HTMLAppletElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLAppletElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAppletElementBinding::Wrap)
     }

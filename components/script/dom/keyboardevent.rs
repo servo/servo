@@ -68,7 +68,7 @@ impl KeyboardEvent {
 
     pub fn new(window: &Window,
                type_: DOMString,
-               canBubble: bool,
+               can_bubble: bool,
                cancelable: bool,
                view: Option<&Window>,
                _detail: i32,
@@ -78,26 +78,26 @@ impl KeyboardEvent {
                code: DOMString,
                location: u32,
                repeat: bool,
-               isComposing: bool,
-               ctrlKey: bool,
-               altKey: bool,
-               shiftKey: bool,
-               metaKey: bool,
+               is_composing: bool,
+               ctrl_key: bool,
+               alt_key: bool,
+               shift_key: bool,
+               meta_key: bool,
                char_code: Option<u32>,
                key_code: u32) -> Root<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
-        ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
+        ev.InitKeyboardEvent(type_, can_bubble, cancelable, view, key_string, location,
                              DOMString::new(), repeat, DOMString::new());
         ev.key.set(key);
         *ev.code.borrow_mut() = code;
-        ev.ctrl.set(ctrlKey);
-        ev.alt.set(altKey);
-        ev.shift.set(shiftKey);
-        ev.meta.set(metaKey);
+        ev.ctrl.set(ctrl_key);
+        ev.alt.set(alt_key);
+        ev.shift.set(shift_key);
+        ev.meta.set(meta_key);
         ev.char_code.set(char_code);
         ev.printable.set(ch);
         ev.key_code.set(key_code);
-        ev.is_composing.set(isComposing);
+        ev.is_composing.set(is_composing);
         ev
     }
 
@@ -759,13 +759,13 @@ impl KeyEventProperties {
 impl KeyboardEventMethods for KeyboardEvent {
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
     fn InitKeyboardEvent(&self,
-                         typeArg: DOMString,
-                         canBubbleArg: bool,
-                         cancelableArg: bool,
-                         viewArg: Option<&Window>,
-                         keyArg: DOMString,
-                         locationArg: u32,
-                         _modifiersListArg: DOMString,
+                         type_arg: DOMString,
+                         can_bubble_arg: bool,
+                         cancelable_arg: bool,
+                         view_arg: Option<&Window>,
+                         key_arg: DOMString,
+                         location_arg: u32,
+                         _modifiers_list_arg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
         if self.upcast::<Event>().dispatching() {
@@ -773,9 +773,9 @@ impl KeyboardEventMethods for KeyboardEvent {
         }
 
         self.upcast::<UIEvent>()
-            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
-        *self.key_string.borrow_mut() = keyArg;
-        self.location.set(locationArg);
+            .InitUIEvent(type_arg, can_bubble_arg, cancelable_arg, view_arg, 0);
+        *self.key_string.borrow_mut() = key_arg;
+        self.location.set(location_arg);
         self.repeat.set(repeat);
     }
 
@@ -825,8 +825,8 @@ impl KeyboardEventMethods for KeyboardEvent {
     }
 
     // https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate
-    fn GetModifierState(&self, keyArg: DOMString) -> bool {
-        match &*keyArg {
+    fn GetModifierState(&self, key_arg: DOMString) -> bool {
+        match &*key_arg {
             "Ctrl" => self.CtrlKey(),
             "Alt" => self.AltKey(),
             "Shift" => self.ShiftKey(),

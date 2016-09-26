@@ -23,14 +23,14 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
-use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
@@ -41,6 +41,7 @@ use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
 use dom::forcetouchevent::ForceTouchEvent;
@@ -90,24 +91,25 @@ use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend, PendingAsyncLoad};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, IpcSend};
 use num_traits::ToPrimitive;
 use origin::Origin;
-use parse::{ParserRoot, ParserRef, MutNullableParserField};
+use parse::{MutNullableParserField, ParserRef, ParserRoot};
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_thread::{MainThreadScriptMsg, Runnable};
-use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
+use script_traits::UntrustedNodeAddress;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -119,6 +121,7 @@ use std::iter::once;
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
@@ -247,6 +250,9 @@ pub struct Document {
     referrer: Option<String>,
     /// https://html.spec.whatwg.org/multipage/#target-element
     target_element: MutNullableHeap<JS<Element>>,
+    /// https://w3c.github.io/uievents/#event-type-dblclick
+    #[ignore_heap_size_of = "Defined in std"]
+    last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -637,7 +643,7 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let event = ConstellationMsg::Focus(self.window.pipeline());
+                let event = ConstellationMsg::Focus(self.window.pipeline_id());
                 self.window.constellation_chan().send(event).unwrap();
             }
         }
@@ -657,7 +663,7 @@ impl Document {
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
         window.constellation_chan()
-              .send(ConstellationMsg::SetTitle(window.pipeline(),
+              .send(ConstellationMsg::SetTitle(window.pipeline_id(),
                                                Some(String::from(self.Title()))))
               .unwrap();
     }
@@ -729,13 +735,13 @@ impl Document {
         // https://w3c.github.io/uievents/#event-type-click
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
-        let clickCount = 1;
+        let click_count = 1;
         let event = MouseEvent::new(&self.window,
                                     DOMString::from(mouse_event_type_string),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
-                                    clickCount,
+                                    click_count,
                                     client_x,
                                     client_y,
                                     client_x,
@@ -774,10 +780,62 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
+            self.maybe_fire_dblclick(client_point, node);
         }
+
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    fn maybe_fire_dblclick(&self, click_pos: Point2D<f32>, target: &Node) {
+        // https://w3c.github.io/uievents/#event-type-dblclick
+        let now = Instant::now();
+
+        let opt = self.last_click_info.borrow_mut().take();
+
+        if let Some((last_time, last_pos)) = opt {
+            let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64()
+                                                                                                    .unwrap_or(300));
+            let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap_or(1);
+
+            // Calculate distance between this click and the previous click.
+            let line = click_pos - last_pos;
+            let dist = (line.dot(line) as f64).sqrt();
+
+            if  now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+                dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                // A double click has occurred if this click is within a certain time and dist. of previous click.
+                let click_count = 2;
+                let client_x = click_pos.x as i32;
+                let client_y = click_pos.y as i32;
+
+                let event = MouseEvent::new(&self.window,
+                                            DOMString::from("dblclick"),
+                                            EventBubbles::Bubbles,
+                                            EventCancelable::Cancelable,
+                                            Some(&self.window),
+                                            click_count,
+                                            client_x,
+                                            client_y,
+                                            client_x,
+                                            client_y,
+                                            false,
+                                            false,
+                                            false,
+                                            false,
+                                            0i16,
+                                            None);
+                event.upcast::<Event>().fire(target.upcast());
+
+                // When a double click occurs, self.last_click_info is left as None so that a
+                // third sequential click will not cause another double click.
+                return;
+            }
+        }
+
+        // Update last_click_info with the time and position of the click.
+        *self.last_click_info.borrow_mut() = Some((now, click_pos));
     }
 
     pub fn handle_touchpad_pressure_event(&self,
@@ -1062,7 +1120,11 @@ impl Document {
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
                       ReflowReason::MouseEvent);
-        result
+
+        match result {
+            EventStatus::Canceled => false,
+            EventStatus::NotCanceled => true
+        }
     }
 
     /// The entry point for all key processing for web content
@@ -1286,9 +1348,9 @@ impl Document {
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
-            if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
-                let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              Some(subpage_id),
+            if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
+                let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
+                                                              Some(self.window.pipeline_id()),
                                                               event);
                 self.window.constellation_chan().send(event).unwrap();
             }
@@ -1311,7 +1373,7 @@ impl Document {
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
             let event = ConstellationMsg::ChangeRunningAnimationsState(
-                self.window.pipeline(),
+                self.window.pipeline_id(),
                 AnimationState::AnimationCallbacksPresent);
             self.window.constellation_chan().send(event).unwrap();
         }
@@ -1349,7 +1411,7 @@ impl Document {
         if self.animation_frame_list.borrow().is_empty() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut animation_frame_list);
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             self.window.constellation_chan().send(event).unwrap();
         }
@@ -1367,14 +1429,22 @@ impl Document {
         loader.add_blocking_load(load)
     }
 
-    pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
+    pub fn prepare_async_load(&self, load: LoadType, referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load, self)
+        loader.prepare_async_load(load, self, referrer_policy)
     }
 
-    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
+    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self);
+        loader.load_async(load, listener, self, referrer_policy);
+    }
+
+    pub fn fetch_async(&self, load: LoadType,
+                       request: RequestInit,
+                       fetch_target: IpcSender<FetchResponseMsg>,
+                       referrer_policy: Option<ReferrerPolicy>) {
+        let mut loader = self.loader.borrow_mut();
+        loader.fetch_async(load, request, fetch_target, self, referrer_policy);
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1413,7 +1483,7 @@ impl Document {
         let loader = self.loader.borrow();
         if !loader.is_blocked() && !loader.events_inhibited() {
             let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline());
+            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
     }
@@ -1464,7 +1534,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 20.d and 20.e.
     pub fn process_asap_scripts(&self) {
         // Execute the first in-order asap-executed script if it's ready, repeat as required.
         // Re-borrowing the list for each step because it can also be borrowed under execute.
@@ -1511,7 +1581,7 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let pipeline_id = self.window.pipeline();
+        let pipeline_id = self.window.pipeline_id();
         let load_event = ConstellationMsg::LoadComplete(pipeline_id);
         self.window.constellation_chan().send(load_event).unwrap();
     }
@@ -1525,19 +1595,11 @@ impl Document {
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.subpage_id() == Some(subpage_id))
-    }
-
-    /// Find an iframe element in the document.
-    pub fn find_iframe_by_pipeline(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.pipeline() == Some(pipeline))
+            .find(|node| node.pipeline_id() == Some(pipeline))
     }
 
     pub fn get_dom_loading(&self) -> u64 {
@@ -1569,7 +1631,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
-    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, relatedTarget: Option<&EventTarget>) {
+    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, related_target: Option<&EventTarget>) {
         let (event_name, does_bubble) = match focus_event_type {
             FocusEventType::Focus => (DOMString::from("focus"), EventBubbles::DoesNotBubble),
             FocusEventType::Blur => (DOMString::from("blur"), EventBubbles::DoesNotBubble),
@@ -1580,7 +1642,7 @@ impl Document {
                                     EventCancelable::NotCancelable,
                                     Some(&self.window),
                                     0i32,
-                                    relatedTarget);
+                                    related_target);
         let event = event.upcast::<Event>();
         event.set_trusted(true);
         let target = node.upcast();
@@ -1678,17 +1740,6 @@ impl Document {
             Origin::opaque_identifier()
         };
 
-        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
-        // for an important reason. Many of the methods by which a referrer policy is communicated
-        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
-        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
-        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
-        // referrer policy, this might be passing too much info. Hence, we default to the
-        // strictest policy, which is no-referrer.
-        // Once other delivery methods are implemented, make the unset case really
-        // unset (i.e. None).
-        let referrer_policy = referrer_policy.or(Some(ReferrerPolicy::NoReferrer));
-
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
@@ -1759,6 +1810,7 @@ impl Document {
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
+            last_click_info: DOMRefCell::new(None),
         }
     }
 
@@ -2331,10 +2383,10 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
     fn CreateNodeIterator(&self,
                           root: &Node,
-                          whatToShow: u32,
+                          what_to_show: u32,
                           filter: Option<Rc<NodeFilter>>)
                           -> Root<NodeIterator> {
-        NodeIterator::new(self, root, whatToShow, filter)
+        NodeIterator::new(self, root, what_to_show, filter)
     }
 
     // https://w3c.github.io/touch-events/#idl-def-Document
@@ -2342,22 +2394,22 @@ impl DocumentMethods for Document {
                    window: &Window,
                    target: &EventTarget,
                    identifier: i32,
-                   pageX: Finite<f64>,
-                   pageY: Finite<f64>,
-                   screenX: Finite<f64>,
-                   screenY: Finite<f64>)
+                   page_x: Finite<f64>,
+                   page_y: Finite<f64>,
+                   screen_x: Finite<f64>,
+                   screen_y: Finite<f64>)
                    -> Root<Touch> {
-        let clientX = Finite::wrap(*pageX - window.PageXOffset() as f64);
-        let clientY = Finite::wrap(*pageY - window.PageYOffset() as f64);
+        let client_x = Finite::wrap(*page_x - window.PageXOffset() as f64);
+        let client_y = Finite::wrap(*page_y - window.PageYOffset() as f64);
         Touch::new(window,
                    identifier,
                    target,
-                   screenX,
-                   screenY,
-                   clientX,
-                   clientY,
-                   pageX,
-                   pageY)
+                   screen_x,
+                   screen_y,
+                   client_x,
+                   client_y,
+                   page_x,
+                   page_y)
     }
 
     // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
@@ -2368,10 +2420,10 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
-                        whatToShow: u32,
+                        what_to_show: u32,
                         filter: Option<Rc<NodeFilter>>)
                         -> Root<TreeWalker> {
-        TreeWalker::new(self, root, whatToShow, filter)
+        TreeWalker::new(self, root, what_to_show, filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title
