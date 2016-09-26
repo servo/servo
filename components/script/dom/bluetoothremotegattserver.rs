@@ -139,7 +139,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
-    fn Connect(&self) -> Fallible<Rc<Promise>> {
+    fn Connect(&self) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.connect())
     }
 
@@ -162,7 +162,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
-    fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Fallible<Rc<Promise>> {
+    fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.get_primary_service(service))
     }
 
@@ -170,7 +170,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
     fn GetPrimaryServices(&self,
                           service: Option<BluetoothServiceUUID>)
-                          -> Fallible<Rc<Promise>> {
+                          -> Rc<Promise> {
         result_to_promise(self.global().r(), self.get_primary_services(service))
     }
 }

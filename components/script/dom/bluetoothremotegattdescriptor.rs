@@ -136,13 +136,13 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
-    fn ReadValue(&self) -> Fallible<Rc<Promise>> {
+    fn ReadValue(&self) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.read_value())
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
-    fn WriteValue(&self, value: Vec<u8>) -> Fallible<Rc<Promise>> {
+    fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.write_value(value))
     }
 }

@@ -8,12 +8,9 @@
 interface BluetoothRemoteGATTServer {
   readonly attribute BluetoothDevice device;
   readonly attribute boolean connected;
-  [Throws]
   Promise<BluetoothRemoteGATTServer> connect();
   [Throws]
   void disconnect();
-  [Throws]
   Promise<BluetoothRemoteGATTService> getPrimaryService(BluetoothServiceUUID service);
-  [Throws]
   Promise<sequence<BluetoothRemoteGATTService>> getPrimaryServices(optional BluetoothServiceUUID service);
 };

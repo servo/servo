@@ -213,7 +213,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
-    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Rc<Promise>> {
+    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.get_descriptor(descriptor))
     }
 
@@ -221,7 +221,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
     fn GetDescriptors(&self,
                       descriptor: Option<BluetoothDescriptorUUID>)
-                      -> Fallible<Rc<Promise>> {
+                      -> Rc<Promise> {
         result_to_promise(self.global().r(), self.get_descriptors(descriptor))
     }
 
@@ -232,13 +232,13 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
-    fn ReadValue(&self) -> Fallible<Rc<Promise>> {
+    fn ReadValue(&self) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.read_value())
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
-    fn WriteValue(&self, value: Vec<u8>) -> Fallible<Rc<Promise>> {
+    fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.write_value(value))
     }
 }

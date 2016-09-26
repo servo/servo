@@ -23,7 +23,6 @@ interface Bluetooth {
 //  [SecureContext]
 //  readonly attribute BluetoothDevice? referringDevice;
 //  [SecureContext]
-  [Throws]
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
 };
 

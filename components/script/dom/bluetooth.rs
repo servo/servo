@@ -274,13 +274,13 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
 #[allow(unrooted_must_root)]
 pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
                                                 bluetooth_result: Fallible<T>)
-                                                -> Fallible<Rc<Promise>> {
+                                                -> Rc<Promise> {
     let p = Promise::new(global_ref);
     match bluetooth_result {
         Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
         Err(e) => p.reject_error(p.global().r().get_cx(), e),
     }
-    Ok(p)
+    p
 }
 
 impl From<BluetoothError> for Error {
@@ -298,7 +298,7 @@ impl From<BluetoothError> for Error {
 impl BluetoothMethods for Bluetooth {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Rc<Promise>> {
+    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
         result_to_promise(self.global().r(), self.request_device(option))
     }
 }
