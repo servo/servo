@@ -47,6 +47,15 @@ impl Controllable for ServiceWorkerContainer {
     }
 }
 
+impl start_register {
+    scopeURL: url,
+    scriptURL: url,
+    promise: DOM::promise:Promise,
+    client: /*Service Worker*/,
+    referrer: url,
+    workerType: /* worker type */
+}
+
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
@@ -57,6 +66,26 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
+        
+        
+        /*Let p be a promise.
+        Let client be the context object’s service worker client.
+        Let scriptURL be the result of parsing scriptURL with the context object’s relevant settings object’s API base URL.
+        Let scopeURL be null.
+        If options.scope is present, set scopeURL to the result of parsing options.scope with the context object’s relevant settings object’s API base URL.
+        Invoke Start Register with scopeURL, scriptURL, p, client, client’s creation URL and options.type.
+        Return p.    */ 
+        
+        // New Step 1
+        
+        let p = dom::promise::Promise
+        
+        // New Step 2
+        // TODO
+        
+        // New Step 3
+        let scopeURL = null
+        
         let USVString(ref script_url) = script_url;
         // Step 3-4
         let script_url = match self.global().r().api_base_url().join(script_url) {
