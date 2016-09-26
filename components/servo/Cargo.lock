@@ -1710,7 +1710,7 @@ dependencies = [
 [[package]]
 name = "osmesa-src"
 version = "12.0.1"
-source = "git+https://github.com/servo/osmesa-src#0a112ce4379224785b24bc821747986fdb1afdac"
+source = "git+https://github.com/servo/osmesa-src#aaccb7b7acdbcd54708db6530cea4177642cf64c"
 
 [[package]]
 name = "osmesa-sys"
