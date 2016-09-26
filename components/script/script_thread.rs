@@ -791,6 +791,9 @@ impl ScriptThread {
                 None
             });
 
+            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
+            // TODO: Step 7.7 - evaluate media queries and report changes
+
             if let Some(retval) = result {
                 return retval
             }

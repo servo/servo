@@ -7,9 +7,12 @@
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 
 use app_units::Au;
-use cssparser::{Delimiter, Parser, Token};
+use cssparser::{Delimiter, Parser, ToCss, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
+use serialize_comma_separated_list;
+use std::fmt::{self, Write};
+use string_cache::Atom;
 use style_traits::ViewportPx;
 use values::specified;
 
@@ -18,6 +21,14 @@ use values::specified;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQueryList {
     pub media_queries: Vec<MediaQuery>
+}
+
+impl ToCss for MediaQueryList {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
+        serialize_comma_separated_list(dest, &self.media_queries)
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
@@ -104,20 +115,58 @@ impl MediaQuery {
     }
 }
 
+impl ToCss for MediaQuery {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
+        if self.qualifier == Some(Qualifier::Not) {
+            try!(write!(dest, "not "));
+        }
+
+        let mut type_ = String::new();
+        match self.media_type {
+            MediaQueryType::All => try!(write!(type_, "all")),
+            MediaQueryType::MediaType(MediaType::Screen) => try!(write!(type_, "screen")),
+            MediaQueryType::MediaType(MediaType::Print) => try!(write!(type_, "print")),
+            MediaQueryType::MediaType(MediaType::Unknown(ref desc)) => try!(write!(type_, "{}", desc)),
+        };
+        if self.expressions.is_empty() {
+            return write!(dest, "{}", type_)
+        } else if type_ != "all" || self.qualifier == Some(Qualifier::Not) {
+            try!(write!(dest, "{} and ", type_));
+        }
+        for (i, &e) in self.expressions.iter().enumerate() {
+            try!(write!(dest, "("));
+            let (mm, l) = match e {
+                Expression::Width(Range::Min(ref l)) => ("min", l),
+                Expression::Width(Range::Max(ref l)) => ("max", l),
+            };
+            try!(write!(dest, "{}-width: ", mm));
+            try!(l.to_css(dest));
+            if i == self.expressions.len() - 1 {
+                try!(write!(dest, ")"));
+            } else {
+                try!(write!(dest, ") and "));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaType {
     Screen,
     Print,
-    Unknown,
+    Unknown(Atom),
 }
 
 #[derive(Debug)]
@@ -181,7 +230,7 @@ impl MediaQuery {
                 "screen" => MediaQueryType::MediaType(MediaType::Screen),
                 "print" => MediaQueryType::MediaType(MediaType::Print),
                 "all" => MediaQueryType::All,
-                _ => MediaQueryType::MediaType(MediaType::Unknown)
+                _ => MediaQueryType::MediaType(MediaType::Unknown(Atom::from(&*ident)))
             }
         } else {
             // Media type is only optional if qualifier is not specified.
@@ -233,8 +282,8 @@ impl MediaQueryList {
         self.media_queries.iter().any(|mq| {
             // Check if media matches. Unknown media never matches.
             let media_match = match mq.media_type {
-                MediaQueryType::MediaType(MediaType::Unknown) => false,
-                MediaQueryType::MediaType(media_type) => media_type == device.media_type,
+                MediaQueryType::MediaType(MediaType::Unknown(_)) => false,
+                MediaQueryType::MediaType(ref media_type) => *media_type == device.media_type,
                 MediaQueryType::All => true,
             };
 

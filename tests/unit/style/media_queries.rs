@@ -6,6 +6,7 @@ use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::TypedSize2D;
 use std::borrow::ToOwned;
+use string_cache::Atom;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::parser::ParserContextExtraData;
@@ -114,7 +115,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown), css.to_owned());
+        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("fridge"))), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -122,7 +123,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Only), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown), css.to_owned());
+        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("glass"))), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -130,7 +131,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown), css.to_owned());
+        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("wood"))), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 }
@@ -235,7 +236,7 @@ fn test_mq_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown), css.to_owned());
+        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("fridge"))), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(52))),
