@@ -424,7 +424,7 @@ def template(request, content, escape_type="html"):
         return escape_func(unicode(value)).encode("utf-8")
 
     template_regexp = re.compile(r"{{([^}]*)}}")
-    new_content, count = template_regexp.subn(config_replacement, content)
+    new_content = template_regexp.sub(config_replacement, content)
 
     return new_content
 

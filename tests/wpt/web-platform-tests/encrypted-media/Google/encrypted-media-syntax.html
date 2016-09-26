@@ -8,7 +8,6 @@
         <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
-        <div id="log"></div>
         <script>
             // Since promises catch any exception and convert it into a
             // rejected Promise, there is no current way to have the W3C
@@ -168,7 +167,7 @@
                 }).catch(function(error) {
                     forceTestFailureFromPromise(test, error, 'create() tests failed');
                 });
-            }, 'Test MediaKeys create().');
+            }, 'Test MediaKeySystemAccess createMediaKeys().');
 
             var kCreateSessionExceptionsTestCases = [
                 // Tests in this set use a shortened parameter name due to
@@ -502,20 +501,20 @@
                     return;
                 }
 
-                // FIXME: Update this set of tests when done
-                // implementing the latest spec.
                 assert_equals(typeof mediaKeySession, 'object');
                 assert_equals(typeof mediaKeySession.addEventListener, 'function');
+                assert_equals(typeof mediaKeySession.sessionId, 'string');
+                assert_equals(typeof mediaKeySession.expiration, 'number');
+                assert_equals(typeof mediaKeySession.closed, 'object');
+                assert_equals(typeof mediaKeySession.keyStatuses, 'object');
+                assert_equals(typeof mediaKeySession.onkeystatuseschange, 'object');
+                assert_equals(typeof mediaKeySession.onmessage, 'object');
                 assert_equals(typeof mediaKeySession.generateRequest, 'function');
+                assert_equals(typeof mediaKeySession.load, 'function');
                 assert_equals(typeof mediaKeySession.update, 'function');
                 assert_equals(typeof mediaKeySession.close, 'function');
                 assert_equals(typeof mediaKeySession.remove, 'function');
                 assert_equals(mediaKeySession.sessionId, '');
-                assert_equals(typeof mediaKeySession.sessionId, 'string');
-                assert_equals(typeof mediaKeySession.onopen, 'undefined');
-                assert_equals(typeof mediaKeySession.onmessage, 'undefined');
-                assert_equals(typeof mediaKeySession.onclose, 'undefined');
-                assert_equals(typeof mediaKeySession.onerror, 'undefined');
             }
 
             async_test(function(test)

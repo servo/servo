@@ -1,9 +1,6 @@
 // Up-to-date as of 2013-04-12.
 var tabularElements = {
   table: {
-    // Conforming
-    sortable: "boolean",
-
     // Obsolete
     align: "string",
     border: "string",

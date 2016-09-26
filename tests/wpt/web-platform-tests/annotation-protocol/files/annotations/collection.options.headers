@@ -1,0 +1,3 @@
+Content-Type: text/plain
+Allow: POST,GET,OPTIONS,HEAD,DELETE,PUT
+Vary: Accept, Prefer

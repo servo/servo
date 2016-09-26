@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shadow DOM: MouseEvent's offsetX and offsetY attributes must be relative to the relative target.</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="The MouseEvent offsetX and offsetY attributes must return the coordinates relative to the origin of the padding edge of the relative target">
+<link rel="help" href="http://w3c.github.io/webcomponents/spec/shadow/#event-dispatch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/event-path-test-helpers.js"></script>
+</head>
+<body>
+<style>
+html, body { padding: 0; margin: 0; }
+my-host { display: block; width: 180px; height: 80px; margin: 10px 20px; padding: 10px; background: #ccc; }
+#log { margin: 1rem; }
+</style>
+<my-host></my-host>
+<div id="log"></div>
+<script>
+
+var shadowStyle = '#container { width: 160px; height: 60px; padding: 10px; background: yellow; } #target { margin-left: 5px; background: orange; }';
+var host = document.querySelector('my-host');
+
+function attachLoggers(targets)
+{
+    var eventLogs = [];
+    for (var i = 0; i < targets.length; i++) {
+        targets[i].addEventListener('mousedown', function (event) {
+            eventLogs.push({current: this, target: event.target, offsetX: event.offsetX, offsetY: event.offsetY});
+        });
+    }
+    return eventLogs;
+}
+
+test(function () {
+    host.innerHTML = '<style>' + shadowStyle + '</style><div id="container"><span id="target">Click here</div></div>';
+
+    var target = host.querySelector('#target');
+    var container = host.querySelector('#container');
+
+    var eventLogs = attachLoggers([target, container, host, document.body]);
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 51, clientY: 37, composed: true, bubbles: true});
+    target.dispatchEvent(mouseEvent);
+
+    assert_equals(host.offsetLeft, 20, 'The host must be at (20px, 10px)');
+    assert_equals(host.offsetTop, 10, 'The host must be at (20px, 10px)');
+    assert_equals(target.offsetLeft, 45, 'The target must be at (45px, 30px)');
+    assert_equals(target.offsetTop, 30, 'The target must be at (45px, 30px)');
+
+    assert_equals(eventLogs[0].current, target);
+    assert_equals(eventLogs[0].target, target);
+    assert_equals(eventLogs[0].offsetX, 21); // Padding edge of target is at (30px, 20px)
+    assert_equals(eventLogs[0].offsetY, 17);
+
+    assert_equals(eventLogs[1].current, container);
+    assert_equals(eventLogs[1].target, target);
+    assert_equals(eventLogs[1].offsetX, 21);
+    assert_equals(eventLogs[1].offsetY, 17);
+
+    assert_equals(eventLogs[2].current, host);
+    assert_equals(eventLogs[2].target, target);
+    assert_equals(eventLogs[2].offsetX, 21);
+    assert_equals(eventLogs[2].offsetY, 17);
+
+    assert_equals(eventLogs[3].current, document.body);
+    assert_equals(eventLogs[3].target, target);
+    assert_equals(eventLogs[3].offsetX, 21);
+    assert_equals(eventLogs[3].offsetY, 17);
+}, 'MouseEvent\'s offsetX and offsetY attributes must be relative to the target.');
+
+var shadowRoot = host.attachShadow({mode: 'closed'});
+test(function () {
+    shadowRoot.innerHTML = '<style>' + shadowStyle + '</style><div id="container"><span id="target">Click here</div></div>';
+
+    var target = shadowRoot.querySelector('#target');
+    var container = shadowRoot.querySelector('#container');
+
+    var eventLogs = attachLoggers([target, container, shadowRoot, host, document.body]);
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 51, clientY: 37, composed: true, bubbles: true});
+    target.dispatchEvent(mouseEvent);
+
+    assert_equals(host.offsetLeft, 20, 'The host must be at (20px, 10px)');
+    assert_equals(host.offsetTop, 10, 'The host must be at (20px, 10px)');
+    assert_equals(target.offsetLeft, 45, 'The target must be at (45px, 30px)');
+    assert_equals(target.offsetTop, 30, 'The target must be at (45px, 30px)');
+
+    assert_equals(eventLogs[0].current, target);
+    assert_equals(eventLogs[0].target, target);
+    assert_equals(eventLogs[0].offsetX, 21); // Padding edge of target is at (30px, 20px)
+    assert_equals(eventLogs[0].offsetY, 17);
+
+    assert_equals(eventLogs[1].current, container);
+    assert_equals(eventLogs[1].target, target);
+    assert_equals(eventLogs[1].offsetX, 21);
+    assert_equals(eventLogs[1].offsetY, 17);
+
+    assert_equals(eventLogs[3].current, host);
+    assert_equals(eventLogs[3].target, host);
+    assert_equals(eventLogs[3].offsetX, 31); // Padding edge of host is at (20px, 10px)
+    assert_equals(eventLogs[3].offsetY, 27);
+
+    assert_equals(eventLogs[4].current, document.body);
+    assert_equals(eventLogs[4].target, host);
+    assert_equals(eventLogs[4].offsetX, 31);
+    assert_equals(eventLogs[4].offsetY, 27);
+}, 'MouseEvent\'s offsetX and offsetY attributes must be relative to the shadow host when an event is dispatched inside its shadow tree.');
+
+test(function () {
+    shadowRoot.innerHTML = '<style>' + shadowStyle + '</style><div id="container"><slot></slot></div>';
+    host.innerHTML = '<style>' + shadowStyle + '</style><div id="target">Click here</div>';
+
+    var target = host.querySelector('#target');
+    var container = shadowRoot.querySelector('#container');
+
+    var eventLogs = attachLoggers([target, container, shadowRoot, host, document.body]);
+    var mouseEvent = new MouseEvent('mousedown', {clientX: 51, clientY: 37, composed: true, bubbles: true});
+    target.dispatchEvent(mouseEvent);
+
+    assert_equals(host.offsetLeft, 20, 'The host must be at (20px, 10px)');
+    assert_equals(host.offsetTop, 10, 'The host must be at (20px, 10px)');
+    assert_equals(target.offsetLeft, 45, 'The target must be at (45px, 30px)');
+    assert_equals(target.offsetTop, 30, 'The target must be at (45px, 30px)');
+
+    assert_equals(eventLogs[0].current, target);
+    assert_equals(eventLogs[0].target, target);
+    assert_equals(eventLogs[0].target.offsetParent, document.body);
+    assert_equals(eventLogs[0].offsetX, 6); // Padding edge of target is at (45px, 30px)
+    assert_equals(eventLogs[0].offsetY, 7);
+
+    assert_equals(eventLogs[1].current, container);
+    assert_equals(eventLogs[1].target, target);
+    assert_equals(eventLogs[1].offsetX, 6);
+    assert_equals(eventLogs[1].offsetY, 7);
+
+    assert_equals(eventLogs[2].current, shadowRoot);
+    assert_equals(eventLogs[2].target, target);
+    assert_equals(eventLogs[2].offsetX, 6);
+    assert_equals(eventLogs[2].offsetY, 7);
+
+    assert_equals(eventLogs[3].current, host);
+    assert_equals(eventLogs[3].target, target);
+    assert_equals(eventLogs[3].offsetX, 6);
+    assert_equals(eventLogs[3].offsetY, 7);
+
+    assert_equals(eventLogs[4].current, document.body);
+    assert_equals(eventLogs[4].target, target);
+    assert_equals(eventLogs[4].offsetX, 6);
+    assert_equals(eventLogs[4].offsetY, 7);
+}, 'MouseEvent\'s offsetX and offsetY attributes must be relative to the target when an event is dispatched on a slotted content.');
+
+</script>
+</body>
+</html>

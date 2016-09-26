@@ -33,10 +33,7 @@ function run_test() {
                 Object.keys(derivations[derivedKeySize][saltSize]).forEach(function(hashName) {
                     Object.keys(derivations[derivedKeySize][saltSize][hashName]).forEach(function(infoSize) {
                         var testName = derivedKeySize + " derivedKey, " + saltSize + " salt, " + hashName + ", with " + infoSize + " info";
-                        var algorithm = {name: "HKDF", salt: salts[saltSize], hash: hashName};
-                        if (infoSize !== "missing") {
-                            algorithm.info = infos[infoSize];
-                        }
+                        var algorithm = {name: "HKDF", salt: salts[saltSize], info: infos[infoSize], hash: hashName};
 
                         // Check for correct deriveBits result
                         promise_test(function(test) {
@@ -121,6 +118,27 @@ function run_test() {
                         });
 
                         // Test various error conditions for deriveBits below:
+
+                        // missing salt (TypeError)
+                        promise_test(function(test) {
+                            return subtle.deriveBits({name: "HKDF", info: infos[infoSize], hash: hashName}, baseKeys[derivedKeySize], 0)
+                            .then(function(derivation) {
+                                assert_equals(derivation.byteLength, 0, "Derived even with missing salt");
+                            }, function(err) {
+                                assert_equals(err.name, "TypeError", "deriveBits missing salt correctly threw OperationError: " + err.message);
+                            });
+                        }, testName + " with missing salt");
+
+                        // missing info (TypeError)
+                        promise_test(function(test) {
+                            return subtle.deriveBits({name: "HKDF", salt: salts[saltSize], hash: hashName}, baseKeys[derivedKeySize], 0)
+                            .then(function(derivation) {
+                                assert_equals(derivation.byteLength, 0, "Derived even with missing info");
+                            }, function(err) {
+                                assert_equals(err.name, "TypeError", "deriveBits missing info correctly threw OperationError: " + err.message);
+                            });
+                        }, testName + " with missing info");
+
                         // length null (OperationError)
                         promise_test(function(test) {
                             return subtle.deriveBits(algorithm, baseKeys[derivedKeySize], null)

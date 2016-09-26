@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.2.8-rangeSelectorValid.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains a Range selector that is NOT of format uri and NOT an object having both startSelector and endSelector keys.",
+  "title": "If present all **Selectors of _type_ RangeSelector** have both a **_startSelector_ key** and an **_endSelector_ key**, each with a **single value** which is a **Selector** - [model 4.2.8](https://www.w3.org/TR/annotation-model/#range-selector)",
+  "description": "True when no Range selectors present or all such selectors values are of format uri or are objects having both startSelector and endSelector keys. (Section 4.2.8)",
+  "type": "object",
+  "patternProperties":
+  {
+    "^(body|target)$":
+    {
+      "oneOf":
+      [
+        {"$ref": "id.json#/definitions/stringUri" },
+        {
+            "allOf":
+            [
+              { "$ref": "#/definitions/selectorSchema" },
+              { "$ref": "#/definitions/itemsSchema" }
+            ]
+        },
+        {
+            "type": "array",
+            "minItems": 1,
+            "items":
+            {
+                "oneOf":
+                [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                        "allOf":
+                        [
+                          { "$ref": "#/definitions/selectorSchema" },
+                          { "$ref": "#/definitions/itemsSchema" }
+                        ]
+                    }
+                ]
+            }
+        }
+      ]
+    }
+  },
+  "definitions":
+  {
+      "selectorSchema":
+      {
+        "type": "object",
+        "properties":
+         {
+           "selector":
+            {
+             "oneOf":
+              [
+                {"$ref": "id.json#/definitions/stringUri" },
+                {
+                 "type":"object",
+                 "allOf":
+                 [
+                  { "$ref": "specificResource.json#/definitions/rangeSelectorTypeValidIfPresent" }
+                 ]
+                },
+                {
+                 "type": "array",
+                 "minItems": 1,
+                 "items":
+                 {
+                   "oneOf":
+                   [
+                    {"$ref": "id.json#/definitions/stringUri" },
+                    {
+                     "type":"object",
+                     "allOf":
+                     [
+                      { "$ref": "specificResource.json#/definitions/rangeSelectorTypeValidIfPresent" }                     ]
+                    }
+                   ]
+                 }
+                }
+              ]
+            }
+         }
+      },
+
+      "itemsSchema":
+      {
+        "type": "object",
+        "properties":
+        {
+            "items":
+            {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf":
+                    [
+                        {"$ref": "id.json#/definitions/stringUri" },
+                        {"$ref": "#/definitions/selectorSchema" }
+                    ]
+                }
+            }
+        }
+      }
+  }
+}

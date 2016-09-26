@@ -1,4 +1,4 @@
-import utils
+from . import utils
 
 content_types = utils.invert_dict({"text/html": ["htm", "html"],
                                    "application/json": ["json"],
@@ -89,4 +89,4 @@ response_codes = {
     504: ('Gateway Timeout',
           'The gateway server did not receive a timely response'),
     505: ('HTTP Version Not Supported', 'Cannot fulfill request.'),
-    }
+}

@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.7-bodyCanonicalValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A body or body/source has multiple canonical key values for a body or source, or a single canonical key value that is not of format uri.",
+    "title": "If present all body-level or body/source-level **_canonical_ keys** have a **single value** which is a string of **format uri** - [model 3.3.](https://www.w3.org/TR/annotation-model/#other-identities)",
+    "description": "True when no body-level or body/source-level (SR body) canonical key present or when all canonical keys have a single value which is a string of format uri (Section 3.3.7)",
+    "type": "object",
+    "properties":
+    {
+      "body":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "otherProperties.json#/definitions/canonicalValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithCanonical" }
+               ]
+            },
+            {
+                "type": "array",
+                "minItems": 1,
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "otherProperties.json#/definitions/canonicalValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithCanonical" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }
+}

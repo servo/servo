@@ -46,6 +46,8 @@ class Manifest(object):
                 if item_type == "reftest":
                     for path, items in self.local_changes.iterdeletedreftests():
                         paths[path] -= items
+                        if len(paths[path]) == 0:
+                            del paths[path]
 
             yield item_type, paths
 
@@ -56,13 +58,10 @@ class Manifest(object):
         if item is None:
             return
 
-        is_reference = False
         if isinstance(item, RefTest):
             self.reftest_nodes[item.path].add(item)
             self.reftest_nodes_by_url[item.url] = item
-            is_reference = item.is_reference
-
-        if not is_reference:
+        else:
             self._add(item)
 
         item.manifest = self
@@ -281,6 +280,7 @@ class Manifest(object):
                                                     tests_root,
                                                     obj["local_changes"],
                                                     source_files=source_files)
+        self.update_reftests()
         return self
 
 
@@ -297,13 +297,10 @@ class LocalChanges(object):
         if item is None:
             return
 
-        is_reference = False
         if isinstance(item, RefTest):
             self.reftest_nodes[item.path].add(item)
             self.reftest_nodes_by_url[item.url] = item
-            is_reference = item.is_reference
-
-        if not is_reference:
+        else:
             self._add(item)
 
         item.manifest = self.manifest

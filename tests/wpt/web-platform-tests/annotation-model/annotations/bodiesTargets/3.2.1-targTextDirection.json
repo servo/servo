@@ -1,0 +1,37 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.1-targTextDirection.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a Target may include textDirection key with a single value that is one of ltr, rtl, or auto.",
+    "title": "Implements **target _textDirection_ key** with a **single value** that is is **one of ltr, rtl, or auto** [model 3.2.1](https://www.w3.org/TR/annotation-model/#bodies-and-targets)",
+    "description": "True when Annotation includes one or more Targets, one or more of which include single textDirection key with one of ltr, rtl, or auto as value. (Section 3.2.1)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "bodyTarget.json#/definitions/textDirectionPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/itemTextDirectionPropertyFound" },
+                        { "$ref": "bodyTarget.json#/definitions/sourceTextDirectionPropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "bodyTarget.json#/definitions/textDirectionPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/itemTextDirectionPropertyFound" },
+                                  { "$ref": "bodyTarget.json#/definitions/sourceTextDirectionPropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

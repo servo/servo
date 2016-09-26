@@ -12,14 +12,6 @@ test(function() {
 
 test(function() {
   var v = document.createElement('video');
-  v.controller = new MediaController();
-  assert_true(v.controller instanceof MediaController);
-  assert_throws('InvalidStateError', function() { v.currentTime = 1; });
-  assert_false(v.seeking);
-}, 'setting currentTime with a media controller present');
-
-test(function() {
-  var v = document.createElement('video');
   assert_equals(v.readyState, v.HAVE_NOTHING);
   v.currentTime = Number.MAX_VALUE;
   assert_equals(v.currentTime, Number.MAX_VALUE);

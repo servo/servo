@@ -1,0 +1,85 @@
+<!doctype html>
+<title>Historical forms features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<form id=form hidden>
+ <label id=label></label>
+ <input id=input>
+ <button id=button></button>
+ <select id=select>
+  <optgroup id=optgroup>
+  <option id=option>
+ </select>
+ <datalist id=datalist></datalist>
+ <textarea id=textarea></textarea>
+ <progress id=progress></progress>
+ <meter id=meter></meter>
+ <fieldset id=fieldset>
+  <legend id=legend></legend>
+ </fieldset>
+</form>
+
+<form hidden action="isindex-support.txt" target=isindex_iframe id=isindex_form>
+ <input name=isindex value=x>
+ <iframe name=isindex_iframe id=isindex_iframe></iframe>
+</form>
+<script>
+var tags = ['form', 'label', 'input', 'button', 'select', 'datalist',
+'optgroup', 'option', 'textarea', 'progress', 'meter', 'fieldset', 'legend'];
+
+function t(property, tagName) {
+  var tagNames = tagName ? [tagName] : tags;
+  tagNames.forEach(function(tagName) {
+    test(function() {
+      assert_false(property in document.getElementById(tagName));
+    }, tagName + '.' + property + ' should not be supported');
+  });
+}
+
+function inputType(type) {
+  test(function() {
+    var input = document.createElement('input');
+    input.type = type;
+    assert_equals(input.type, 'text');
+  }, '<input type=' + type + '> should not be supported');
+}
+
+// <input type=range multiple>
+// added in https://github.com/whatwg/html/commit/1efac390abb3f95df61f2d2ac6c0feb47349d97b
+// removed in https://github.com/whatwg/html/commit/b598d4f873fb8c27d4b23b033837108edfbc3d75
+t('valueLow', 'input');
+t('valueHigh', 'input');
+
+// requestAutoComplete()
+// added in https://github.com/whatwg/html/commit/321659e4db11228857632487ab72b6959db1ba86
+// removed in https://github.com/whatwg/html/commit/6a257aae619f85390eee20b47767f34887450fcd
+t('requestAutocomplete', 'form');
+t('onautocomplete', 'form');
+t('onautocompleteerror', 'form');
+
+// <input type=datetime>
+// added in WF2
+// removed in https://github.com/whatwg/html/commit/80ba4fa24e5d3d81a10aa1bbd8a2f72f4bcc3f7c
+inputType('datetime');
+
+// <progress form>, <meter form>
+// removed in https://github.com/whatwg/html/commit/3814376a311837ddfac229d9a631cd10adf53157
+t('form', 'progress');
+t('form', 'meter');
+
+// form.item(), form.namedItem()
+// removed in https://github.com/whatwg/html/commit/da87ab9009d5aeca95a602e718439e35b00d0731
+t('item', 'form');
+t('namedItem', 'form');
+
+// <input name=isindex>
+// removed in https://github.com/whatwg/html/commit/5c44abc734eb483f9a7ec79da5844d2fe63d9c3b
+async_test(function() {
+  var iframe = document.getElementById('isindex_iframe');
+  iframe.onload = this.step_func_done(function() {
+    assert_regexp_match(iframe.contentWindow.location.href, /\?isindex=x$/);
+  });
+  document.getElementById('isindex_form').submit();
+}, '<input name=isindex> should not be supported');
+</script>

@@ -3,7 +3,7 @@ function runTest(config,qualifier) {
     var testname = testnamePrefix( qualifier, config.keysystem )
                                     + ', temporary, '
                                     + /video\/([^;]*)/.exec( config.videoType )[ 1 ]
-                                    + ', playback';
+                                    + ', playback, ' + config.testcase;
 
     var configuration = {   initDataTypes: [ config.initDataType ],
                             audioCapabilities: [ { contentType: config.audioType } ],
@@ -17,6 +17,26 @@ function runTest(config,qualifier) {
             _mediaKeySession,
             _mediaSource;
 
+        function onFailure(error) {
+            forceTestFailureFromPromise(test, error);
+        }
+
+        function onEncrypted(event) {
+            assert_equals(event.target, _video);
+            assert_true(event instanceof window.MediaEncryptedEvent);
+            assert_equals(event.type, 'encrypted');
+
+            // Only create the session for the firs encrypted event
+            if ( _mediaKeySession !== undefined ) return;
+
+            var initDataType = config.initData ? config.initDataType : event.initDataType;
+            var initData = config.initData || event.initData;
+
+            _mediaKeySession = _mediaKeys.createSession( 'temporary' );
+            waitForEventAndRunStep('message', _mediaKeySession, onMessage, test);
+            _mediaKeySession.generateRequest( initDataType, initData ).catch(onFailure);
+        }
+
         function onMessage(event) {
             assert_equals( event.target, _mediaKeySession );
             assert_true( event instanceof window.MediaKeyMessageEvent );
@@ -27,33 +47,8 @@ function runTest(config,qualifier) {
                         [ 'license-request', 'individualization-request' ] );
 
             config.messagehandler( event.messageType, event.message ).then( function( response ) {
-
-                _mediaKeySession.update( response ).catch(function(error) {
-                    forceTestFailureFromPromise(test, error);
-                });
+                event.target.update( response ).catch(onFailure);
             });
-        }
-
-        function onEncrypted(event) {
-            assert_equals(event.target, _video);
-            assert_true(event instanceof window.MediaEncryptedEvent);
-            assert_equals(event.type, 'encrypted');
-
-            waitForEventAndRunStep('message', _mediaKeySession, onMessage, test);
-            _mediaKeySession.generateRequest(   config.initData ? config.initDataType : event.initDataType,
-                                                config.initData || event.initData )
-            .catch(function(error) {
-                forceTestFailureFromPromise(test, error);
-            });
-
-            _video.setMediaKeys(_mediaKeys);
-        }
-
-        function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 2 ) ) {
-                _video.pause();
-                test.done();
-            }
         }
 
         function onPlaying(event) {
@@ -62,22 +57,26 @@ function runTest(config,qualifier) {
             _video.addEventListener('timeupdate', onTimeupdate, true);
         }
 
+        function onTimeupdate(event) {
+            if ( _video.currentTime > ( config.duration || 1 ) ) {
+                _video.pause();
+                test.done();
+            }
+        }
+
         navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ]).then(function(access) {
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
             _mediaKeys = mediaKeys;
-            _mediaKeySession = _mediaKeys.createSession( 'temporary' );
-
+            return _video.setMediaKeys(_mediaKeys);
+        }).then(function(){
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
-        }).then(function() {
             return testmediasource(config);
         }).then(function(source) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
             _video.play();
-        }).catch(function(error) {
-            forceTestFailureFromPromise(test, error);
-        });
+        }).catch(onFailure);
     }, testname);
 }

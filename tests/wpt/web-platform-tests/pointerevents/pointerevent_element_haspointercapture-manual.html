@@ -34,7 +34,7 @@
                     target1.setPointerCapture(e.pointerId);
                     test_pointerEvent.step(function () {
                         assert_equals(target0.hasPointerCapture(e.pointerId), false,
-                                      "target1.setPointerCapture, target0.hasPointerCapture should be false");
+                                      "after target1.setPointerCapture, target0.hasPointerCapture should be false");
                     });
                     target0.setPointerCapture(e.pointerId);
                     set_capture_to_target0 = true;
