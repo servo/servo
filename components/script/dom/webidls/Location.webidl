@@ -14,6 +14,7 @@
            attribute USVString search;
            attribute USVString hash;
 
+  [Throws]
   void assign(USVString url);
   //void replace(USVString url);
   void reload();
