@@ -12,6 +12,11 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                         push: &mut FnMut(Annotatable)) {
     if let &Annotatable::Item(ref item) = annotatable {
         if let ItemKind::Struct(ref def, _) = item.node {
+            if def.fields().is_empty() {
+                cx.span_err(span, "#[dom_struct] should have a reflector or \
+                                   parent dom struct as its first field");
+                return;
+            }
             let struct_name = item.ident;
             // This path has to be hardcoded, unfortunately, since we can't resolve paths at expansion time
             match def.fields().iter().find(
