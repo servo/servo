@@ -5768,9 +5768,13 @@ class CGDescriptor(CGThing):
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
                                          cgThings, public=True),
                              post='\n')
-        reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
-        self.cgRoot = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
-                              cgThings], '\n')
+
+        if reexports:
+            reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
+            cgThings = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
+                               cgThings], '\n')
+
+        self.cgRoot = cgThings
 
     def define(self):
         return self.cgRoot.define()
