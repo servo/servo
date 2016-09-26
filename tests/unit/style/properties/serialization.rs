@@ -865,4 +865,142 @@ mod shorthand_serialization {
             assert_eq!(serialization, "background: rgb(255, 0, 0) none repeat-x scroll 0px 0px;");
         }
     }
+
+    mod mask {
+        use style::properties::longhands::mask_clip as clip;
+        use style::properties::longhands::mask_composite as composite;
+        use style::properties::longhands::mask_image as image;
+        use style::properties::longhands::mask_mode as mode;
+        use style::properties::longhands::mask_origin as origin;
+        use style::properties::longhands::mask_position as position;
+        use style::properties::longhands::mask_repeat as repeat;
+        use style::properties::longhands::mask_size as size;
+        use style::values::specified::Image;
+        use style::values::specified::position::Position;
+        use super::*;
+
+        macro_rules! single_vec_value_typedef {
+            ($name:ident, $path:expr) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                    vec![$path]
+                ))
+            };
+        }
+        macro_rules! single_vec_keyword_value {
+            ($name:ident, $kw:ident) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                    vec![$name::single_value::SpecifiedValue::$kw]
+                ))
+            };
+        }
+        macro_rules! single_vec_variant_value {
+            ($name:ident, $variant:expr) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                        vec![$variant]
+                ))
+            };
+        }
+
+        #[test]
+        fn mask_should_serialize_all_available_properties_when_specified() {
+            let mut properties = Vec::new();
+
+            let image = single_vec_value_typedef!(image,
+                image::single_value::SpecifiedValue::Image(
+                    Image::Url(Url::parse("http://servo/test.png").unwrap(),
+                    UrlExtraData {})));
+
+            let mode = single_vec_keyword_value!(mode, luminance);
+
+            let position = single_vec_value_typedef!(position,
+                Position {
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                }
+            );
+
+            let size = single_vec_variant_value!(size,
+                size::single_value::SpecifiedValue::Explicit(
+                    size::single_value::ExplicitSize {
+                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                    }
+                )
+            );
+
+            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let origin = single_vec_keyword_value!(origin, padding_box);
+            let clip = single_vec_keyword_value!(clip, border_box);
+            let composite = single_vec_keyword_value!(composite, subtract);
+
+            properties.push(PropertyDeclaration::MaskImage(image));
+            properties.push(PropertyDeclaration::MaskMode(mode));
+            properties.push(PropertyDeclaration::MaskPosition(position));
+            properties.push(PropertyDeclaration::MaskSize(size));
+            properties.push(PropertyDeclaration::MaskRepeat(repeat));
+            properties.push(PropertyDeclaration::MaskOrigin(origin));
+            properties.push(PropertyDeclaration::MaskClip(clip));
+            properties.push(PropertyDeclaration::MaskComposite(composite));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(
+                serialization,
+                "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
+                repeat-x padding-box border-box subtract;"
+            );
+        }
+
+        #[test]
+        fn mask_should_combine_origin_and_clip_properties_when_equal() {
+            let mut properties = Vec::new();
+
+            let image = single_vec_value_typedef!(image,
+                image::single_value::SpecifiedValue::Image(
+                    Image::Url(Url::parse("http://servo/test.png").unwrap(),
+                    UrlExtraData {})));
+
+            let mode = single_vec_keyword_value!(mode, luminance);
+
+            let position = single_vec_value_typedef!(position,
+                Position {
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                }
+            );
+
+            let size = single_vec_variant_value!(size,
+                size::single_value::SpecifiedValue::Explicit(
+                    size::single_value::ExplicitSize {
+                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                    }
+                )
+            );
+
+            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let origin = single_vec_keyword_value!(origin, padding_box);
+            let clip = single_vec_keyword_value!(clip, padding_box);
+            let composite = single_vec_keyword_value!(composite, subtract);
+
+            properties.push(PropertyDeclaration::MaskImage(image));
+            properties.push(PropertyDeclaration::MaskMode(mode));
+            properties.push(PropertyDeclaration::MaskPosition(position));
+            properties.push(PropertyDeclaration::MaskSize(size));
+            properties.push(PropertyDeclaration::MaskRepeat(repeat));
+            properties.push(PropertyDeclaration::MaskOrigin(origin));
+            properties.push(PropertyDeclaration::MaskClip(clip));
+            properties.push(PropertyDeclaration::MaskComposite(composite));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(
+                serialization,
+                "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
+                repeat-x padding-box subtract;"
+            );
+        }
+    }
 }
