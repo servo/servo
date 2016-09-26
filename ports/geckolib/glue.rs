@@ -47,7 +47,6 @@ use style::stylesheets::{Origin, Stylesheet};
 use style::timer::Timer;
 use url::Url;
 
-
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
  * the C header in Gecko. In order to catch accidental mismatches, we run rust-bindgen against
