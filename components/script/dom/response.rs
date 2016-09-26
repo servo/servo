@@ -324,6 +324,18 @@ impl ResponseMethods for Response {
     fn Text(&self) -> Rc<Promise> {
         consume_body(self, BodyType::Text)
     }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-blob
+    fn Blob(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    fn FormData(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData)
+    }
 }
 
 fn serialize_without_fragment(url: &Url) -> &str {

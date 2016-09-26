@@ -46,7 +46,7 @@ pub fn consume_body<T: BodyTrait + Reflectable>(object: &T, body_type: BodyType)
 
     // Step 1
     if object.get_body_used_trait() || object.locked_trait() {
-        promise.maybe_reject_error(promise.global().r().get_cx(), Error::Type(
+        promise.reject_error(promise.global().r().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
     }
 
@@ -59,15 +59,14 @@ pub fn consume_body<T: BodyTrait + Reflectable>(object: &T, body_type: BodyType)
                                                       body_type,
                                                       object.get_mime_type());
     match pkg_data_results {
-        Err(e) => promise.maybe_reject_error(promise.global().r().get_cx(), e),
+        Err(e) => promise.reject_error(promise.global().r().get_cx(), e),
         Ok(r) => {
-            let d = match r {
-                FetchedData::Text(s) => USVString(s),
-                FetchedData::Json(j) => j,
-                FetchedData::BlobData(b) => b,
-                FetchedData::FormData(f) => f,
+            match r {
+                FetchedData::Text(s) => promise.resolve_native(promise.global().r().get_cx(), &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native(promise.global().r().get_cx(), &j),
+                FetchedData::BlobData(b) => promise.resolve_native(promise.global().r().get_cx(), &b),
+                FetchedData::FormData(f) => promise.resolve_native(promise.global().r().get_cx(), &f),
             };
-            promise.maybe_resolve_native(promise.global().r().get_cx(), &d);
         },
     }
     promise
