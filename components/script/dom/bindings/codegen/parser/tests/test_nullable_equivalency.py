@@ -53,16 +53,6 @@ def WebIDLTest(parser, harness):
           attribute object  a;
           attribute object? b;
         };
-
-        interface TestNullableEquivalency11 {
-          attribute double[]  a;
-          attribute double[]? b;
-        };
-
-        interface TestNullableEquivalency12 {
-          attribute TestNullableEquivalency9[]  a;
-          attribute TestNullableEquivalency9[]? b;
-        };
     """)
 
     for decl in parser.finish():

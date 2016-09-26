@@ -462,8 +462,7 @@ class CGMethodCall(CGThing):
             pickFirstSignature("%s.get().is_object() && is_array_like(cx, %s)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s:
-                                   (s[1][distinguishingIndex].type.isArray() or
-                                    s[1][distinguishingIndex].type.isSequence() or
+                                   (s[1][distinguishingIndex].type.isSequence() or
                                     s[1][distinguishingIndex].type.isObject()))
 
             # Check for Date objects
@@ -537,9 +536,6 @@ def typeIsSequenceOrHasSequenceMember(type):
         type = type.inner
     if type.isSequence():
         return True
-    if type.isArray():
-        elementType = type.inner
-        return typeIsSequenceOrHasSequenceMember(elementType)
     if type.isDictionary():
         return dictionaryHasSequenceMember(type.inner)
     if type.isUnion():
@@ -731,9 +727,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return templateBody
 
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
-
-    if type.isArray():
-        raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence() or type.isMozMap():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
@@ -1309,7 +1302,7 @@ def typeNeedsCx(type, retVal=False):
         return False
     if type.nullable():
         type = type.inner
-    if type.isSequence() or type.isArray():
+    if type.isSequence():
         type = type.inner
     if type.isUnion():
         return any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes)
@@ -3809,9 +3802,6 @@ class CGMemberJITInfo(CGThing):
         if t.isVoid():
             # No return, every time
             return "JSVAL_TYPE_UNDEFINED"
-        if t.isArray():
-            # No idea yet
-            assert False
         if t.isSequence():
             return "JSVAL_TYPE_OBJECT"
         if t.isMozMap():
@@ -3887,9 +3877,6 @@ class CGMemberJITInfo(CGThing):
         if t.nullable():
             # Sometimes it might return null, sometimes not
             return "JSJitInfo_ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
-        if t.isArray():
-            # No idea yet
-            assert False
         if t.isSequence():
             return "JSJitInfo_ArgType::Object as i32"
         if t.isGeckoInterface():
@@ -4153,7 +4140,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             interfaceObject = None
 
-        arrayObjectMemberTypes = filter(lambda t: t.isArray() or t.isSequence(), memberTypes)
+        arrayObjectMemberTypes = filter(lambda t: t.isSequence(), memberTypes)
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
             typeName = arrayObjectMemberTypes[0].name
