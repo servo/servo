@@ -147,7 +147,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                     }
                 };
 
-                let renderer_kind = if opts.headless {
+                let renderer_kind = if opts::get().should_use_osmesa() {
                     webrender_traits::RendererKind::OSMesa
                 } else {
                     webrender_traits::RendererKind::Native
