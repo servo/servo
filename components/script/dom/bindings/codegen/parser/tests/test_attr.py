@@ -77,110 +77,6 @@ def WebIDLTest(parser, harness):
           attribute float? f;
           readonly attribute float? rf;
         };
-
-        interface TestAttrArray {
-          attribute byte[] b;
-          readonly attribute byte[] rb;
-          attribute octet[] o;
-          readonly attribute octet[] ro;
-          attribute short[] s;
-          readonly attribute short[] rs;
-          attribute unsigned short[] us;
-          readonly attribute unsigned short[] rus;
-          attribute long[] l;
-          readonly attribute long[] rl;
-          attribute unsigned long[] ul;
-          readonly attribute unsigned long[] rul;
-          attribute long long[] ll;
-          readonly attribute long long[] rll;
-          attribute unsigned long long[] ull;
-          readonly attribute unsigned long long[] rull;
-          attribute DOMString[] str;
-          readonly attribute DOMString[] rstr;
-          attribute object[] obj;
-          readonly attribute object[] robj;
-          attribute object[] _object;
-          attribute float[] f;
-          readonly attribute float[] rf;
-        };
-
-        interface TestAttrNullableArray {
-          attribute byte[]? b;
-          readonly attribute byte[]? rb;
-          attribute octet[]? o;
-          readonly attribute octet[]? ro;
-          attribute short[]? s;
-          readonly attribute short[]? rs;
-          attribute unsigned short[]? us;
-          readonly attribute unsigned short[]? rus;
-          attribute long[]? l;
-          readonly attribute long[]? rl;
-          attribute unsigned long[]? ul;
-          readonly attribute unsigned long[]? rul;
-          attribute long long[]? ll;
-          readonly attribute long long[]? rll;
-          attribute unsigned long long[]? ull;
-          readonly attribute unsigned long long[]? rull;
-          attribute DOMString[]? str;
-          readonly attribute DOMString[]? rstr;
-          attribute object[]? obj;
-          readonly attribute object[]? robj;
-          attribute object[]? _object;
-          attribute float[]? f;
-          readonly attribute float[]? rf;
-        };
-
-        interface TestAttrArrayOfNullableTypes {
-          attribute byte?[] b;
-          readonly attribute byte?[] rb;
-          attribute octet?[] o;
-          readonly attribute octet?[] ro;
-          attribute short?[] s;
-          readonly attribute short?[] rs;
-          attribute unsigned short?[] us;
-          readonly attribute unsigned short?[] rus;
-          attribute long?[] l;
-          readonly attribute long?[] rl;
-          attribute unsigned long?[] ul;
-          readonly attribute unsigned long?[] rul;
-          attribute long long?[] ll;
-          readonly attribute long long?[] rll;
-          attribute unsigned long long?[] ull;
-          readonly attribute unsigned long long?[] rull;
-          attribute DOMString?[] str;
-          readonly attribute DOMString?[] rstr;
-          attribute object?[] obj;
-          readonly attribute object?[] robj;
-          attribute object?[] _object;
-          attribute float?[] f;
-          readonly attribute float?[] rf;
-        };
-
-        interface TestAttrNullableArrayOfNullableTypes {
-          attribute byte?[]? b;
-          readonly attribute byte?[]? rb;
-          attribute octet?[]? o;
-          readonly attribute octet?[]? ro;
-          attribute short?[]? s;
-          readonly attribute short?[]? rs;
-          attribute unsigned short?[]? us;
-          readonly attribute unsigned short?[]? rus;
-          attribute long?[]? l;
-          readonly attribute long?[]? rl;
-          attribute unsigned long?[]? ul;
-          readonly attribute unsigned long?[]? rul;
-          attribute long long?[]? ll;
-          readonly attribute long long?[]? rll;
-          attribute unsigned long long?[]? ull;
-          readonly attribute unsigned long long?[]? rull;
-          attribute DOMString?[]? str;
-          readonly attribute DOMString?[]? rstr;
-          attribute object?[]? obj;
-          readonly attribute object?[]? robj;
-          attribute object?[]? _object;
-          attribute float?[]? f;
-          readonly attribute float?[]? rf;
-        };
     """)
 
     results = parser.finish()
@@ -197,7 +93,7 @@ def WebIDLTest(parser, harness):
         harness.check(attr.readonly, readonly, "Attr's readonly state is correct")
 
     harness.ok(True, "TestAttr interface parsed without error.")
-    harness.check(len(results), 6, "Should be six productions.")
+    harness.check(len(results), 2, "Should be two productions.")
     iface = results[0]
     harness.ok(isinstance(iface, WebIDL.IDLInterface),
                "Should be an IDLInterface")
@@ -227,66 +123,6 @@ def WebIDLTest(parser, harness):
         attr = attrs[i]
         (QName, name, type, readonly) = data
         checkAttr(attr, QName % "Nullable", name, type % "OrNull", readonly)
-
-    iface = results[2]
-    harness.ok(isinstance(iface, WebIDL.IDLInterface),
-               "Should be an IDLInterface")
-    harness.check(iface.identifier.QName(), "::TestAttrArray", "Interface has the right QName")
-    harness.check(iface.identifier.name, "TestAttrArray", "Interface has the right name")
-    harness.check(len(iface.members), len(testData), "Expect %s members" % len(testData))
-
-    attrs = iface.members
-
-    for i in range(len(attrs)):
-        data = testData[i]
-        attr = attrs[i]
-        (QName, name, type, readonly) = data
-        checkAttr(attr, QName % "Array", name, type % "Array", readonly)
-
-    iface = results[3]
-    harness.ok(isinstance(iface, WebIDL.IDLInterface),
-               "Should be an IDLInterface")
-    harness.check(iface.identifier.QName(), "::TestAttrNullableArray", "Interface has the right QName")
-    harness.check(iface.identifier.name, "TestAttrNullableArray", "Interface has the right name")
-    harness.check(len(iface.members), len(testData), "Expect %s members" % len(testData))
-
-    attrs = iface.members
-
-    for i in range(len(attrs)):
-        data = testData[i]
-        attr = attrs[i]
-        (QName, name, type, readonly) = data
-        checkAttr(attr, QName % "NullableArray", name, type % "ArrayOrNull", readonly)
-
-    iface = results[4]
-    harness.ok(isinstance(iface, WebIDL.IDLInterface),
-               "Should be an IDLInterface")
-    harness.check(iface.identifier.QName(), "::TestAttrArrayOfNullableTypes", "Interface has the right QName")
-    harness.check(iface.identifier.name, "TestAttrArrayOfNullableTypes", "Interface has the right name")
-    harness.check(len(iface.members), len(testData), "Expect %s members" % len(testData))
-
-    attrs = iface.members
-
-    for i in range(len(attrs)):
-        data = testData[i]
-        attr = attrs[i]
-        (QName, name, type, readonly) = data
-        checkAttr(attr, QName % "ArrayOfNullableTypes", name, type % "OrNullArray", readonly)
-
-    iface = results[5]
-    harness.ok(isinstance(iface, WebIDL.IDLInterface),
-               "Should be an IDLInterface")
-    harness.check(iface.identifier.QName(), "::TestAttrNullableArrayOfNullableTypes", "Interface has the right QName")
-    harness.check(iface.identifier.name, "TestAttrNullableArrayOfNullableTypes", "Interface has the right name")
-    harness.check(len(iface.members), len(testData), "Expect %s members" % len(testData))
-
-    attrs = iface.members
-
-    for i in range(len(attrs)):
-        data = testData[i]
-        attr = attrs[i]
-        (QName, name, type, readonly) = data
-        checkAttr(attr, QName % "NullableArrayOfNullableTypes", name, type % "OrNullArrayOrNull", readonly)
 
     parser = parser.reset()
     threw = False

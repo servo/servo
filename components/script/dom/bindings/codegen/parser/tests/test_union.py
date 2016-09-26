@@ -139,9 +139,6 @@ def WebIDLTest(parser, harness):
           void method${i}(${type} arg);
           ${type} returnMethod${i}();
           attribute ${type} attr${i};
-          void arrayMethod${i}(${type}[] arg);
-          ${type}[] arrayReturnMethod${i}();
-          attribute ${type}[] arrayAttr${i};
           void optionalMethod${i}(${type}? arg);
         """).substitute(i=i, type=type)
     interface += """

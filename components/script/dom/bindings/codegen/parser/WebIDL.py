@@ -9,6 +9,7 @@ import re
 import os
 import traceback
 import math
+import string
 from collections import defaultdict
 
 # Machinery
@@ -1850,7 +1851,6 @@ class IDLDictionary(IDLObjectWithScope):
             """
 
             if (memberType.nullable() or
-                memberType.isArray() or
                 memberType.isSequence() or
                 memberType.isMozMap()):
                 return typeContainsDictionary(memberType.inner, dictionary)
@@ -1973,8 +1973,7 @@ class IDLType(IDLObject):
         'callback',
         'union',
         'sequence',
-        'mozmap',
-        'array'
+        'mozmap'
         )
 
     def __init__(self, location, name):
@@ -2025,9 +2024,6 @@ class IDLType(IDLObject):
         return False
 
     def isMozMap(self):
-        return False
-
-    def isArray(self):
         return False
 
     def isArrayBuffer(self):
@@ -2255,9 +2251,6 @@ class IDLNullableType(IDLParameterizedType):
     def isMozMap(self):
         return self.inner.isMozMap()
 
-    def isArray(self):
-        return self.inner.isArray()
-
     def isArrayBuffer(self):
         return self.inner.isArrayBuffer()
 
@@ -2359,9 +2352,6 @@ class IDLSequenceType(IDLParameterizedType):
 
     def isSequence(self):
         return True
-
-    def isArray(self):
-        return False
 
     def isDictionary(self):
         return False
@@ -2575,106 +2565,6 @@ class IDLUnionType(IDLType):
         return set(self.memberTypes)
 
 
-class IDLArrayType(IDLType):
-    def __init__(self, location, parameterType):
-        assert not parameterType.isVoid()
-        if parameterType.isSequence():
-            raise WebIDLError("Array type cannot parameterize over a sequence type",
-                              [location])
-        if parameterType.isMozMap():
-            raise WebIDLError("Array type cannot parameterize over a MozMap type",
-                              [location])
-        if parameterType.isDictionary():
-            raise WebIDLError("Array type cannot parameterize over a dictionary type",
-                              [location])
-
-        IDLType.__init__(self, location, parameterType.name)
-        self.inner = parameterType
-        self.builtin = False
-
-    def __eq__(self, other):
-        return isinstance(other, IDLArrayType) and self.inner == other.inner
-
-    def __str__(self):
-        return self.inner.__str__() + "Array"
-
-    def nullable(self):
-        return False
-
-    def isPrimitive(self):
-        return False
-
-    def isString(self):
-        return False
-
-    def isByteString(self):
-        return False
-
-    def isDOMString(self):
-        return False
-
-    def isUSVString(self):
-        return False
-
-    def isVoid(self):
-        return False
-
-    def isSequence(self):
-        assert not self.inner.isSequence()
-        return False
-
-    def isArray(self):
-        return True
-
-    def isDictionary(self):
-        assert not self.inner.isDictionary()
-        return False
-
-    def isInterface(self):
-        return False
-
-    def isEnum(self):
-        return False
-
-    def tag(self):
-        return IDLType.Tags.array
-
-    def resolveType(self, parentScope):
-        assert isinstance(parentScope, IDLScope)
-        self.inner.resolveType(parentScope)
-
-    def isComplete(self):
-        return self.inner.isComplete()
-
-    def complete(self, scope):
-        self.inner = self.inner.complete(scope)
-        self.name = self.inner.name
-
-        if self.inner.isDictionary():
-            raise WebIDLError("Array type must not contain "
-                              "dictionary as element type.",
-                              [self.inner.location])
-
-        assert not self.inner.isSequence()
-
-        return self
-
-    def unroll(self):
-        return self.inner.unroll()
-
-    def isDistinguishableFrom(self, other):
-        if other.isPromise():
-            return False
-        if other.isUnion():
-            # Just forward to the union; it'll deal
-            return other.isDistinguishableFrom(self)
-        return (other.isPrimitive() or other.isString() or other.isEnum() or
-                other.isDate() or other.isNonCallbackInterface())
-
-    def _getDependentObjects(self):
-        return self.inner._getDependentObjects()
-
-
 class IDLTypedefType(IDLType):
     def __init__(self, location, innerType, name):
         IDLType.__init__(self, location, name)
@@ -2719,9 +2609,6 @@ class IDLTypedefType(IDLType):
 
     def isMozMap(self):
         return self.inner.isMozMap()
-
-    def isArray(self):
-        return self.inner.isArray()
 
     def isDictionary(self):
         return self.inner.isDictionary()
@@ -2838,9 +2725,6 @@ class IDLWrapperType(IDLType):
     def isSequence(self):
         return False
 
-    def isArray(self):
-        return False
-
     def isDictionary(self):
         return isinstance(self.inner, IDLDictionary)
 
@@ -2907,8 +2791,7 @@ class IDLWrapperType(IDLType):
         if self.isEnum():
             return (other.isPrimitive() or other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isMozMap() or other.isArray() or
-                    other.isDate())
+                    other.isSequence() or other.isMozMap() or other.isDate())
         if self.isDictionary() and other.nullable():
             return False
         if (other.isPrimitive() or other.isString() or other.isEnum() or
@@ -2930,7 +2813,7 @@ class IDLWrapperType(IDLType):
                     (self.isNonCallbackInterface() or
                      other.isNonCallbackInterface()))
         if (other.isDictionary() or other.isCallback() or
-            other.isMozMap() or other.isArray()):
+            other.isMozMap()):
             return self.isNonCallbackInterface()
 
         # Not much else |other| can be
@@ -3140,20 +3023,17 @@ class IDLBuiltinType(IDLType):
             return (other.isNumeric() or other.isString() or other.isEnum() or
                     other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isMozMap() or other.isArray() or
-                    other.isDate())
+                    other.isSequence() or other.isMozMap() or other.isDate())
         if self.isNumeric():
             return (other.isBoolean() or other.isString() or other.isEnum() or
                     other.isInterface() or other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isMozMap() or other.isArray() or
-                    other.isDate())
+                    other.isSequence() or other.isMozMap() or other.isDate())
         if self.isString():
             return (other.isPrimitive() or other.isInterface() or
                     other.isObject() or
                     other.isCallback() or other.isDictionary() or
-                    other.isSequence() or other.isMozMap() or other.isArray() or
-                    other.isDate())
+                    other.isSequence() or other.isMozMap() or other.isDate())
         if self.isAny():
             # Can't tell "any" apart from anything
             return False
@@ -3163,7 +3043,7 @@ class IDLBuiltinType(IDLType):
             return (other.isPrimitive() or other.isString() or other.isEnum() or
                     other.isInterface() or other.isCallback() or
                     other.isDictionary() or other.isSequence() or
-                    other.isMozMap() or other.isArray())
+                    other.isMozMap())
         if self.isVoid():
             return not other.isVoid()
         # Not much else we could be!
@@ -3171,8 +3051,7 @@ class IDLBuiltinType(IDLType):
         # Like interfaces, but we know we're not a callback
         return (other.isPrimitive() or other.isString() or other.isEnum() or
                 other.isCallback() or other.isDictionary() or
-                other.isSequence() or other.isMozMap() or other.isArray() or
-                other.isDate() or
+                other.isSequence() or other.isMozMap() or other.isDate() or
                 (other.isInterface() and (
                  # ArrayBuffer is distinguishable from everything
                  # that's not an ArrayBuffer or a callback interface
@@ -3311,6 +3190,11 @@ def matchIntegerValueToType(value):
 
     return None
 
+class NoCoercionFoundError(WebIDLError):
+    """
+    A class we use to indicate generic coercion failures because none of the
+    types worked out in IDLValue.coerceToType.
+    """
 
 class IDLValue(IDLObject):
     def __init__(self, location, type, value):
@@ -3338,8 +3222,18 @@ class IDLValue(IDLObject):
                     # use the value's type when it is a default value of a
                     # union, and the union cares about the exact float type.
                     return IDLValue(self.location, subtype, coercedValue.value)
-                except:
-                    pass
+                except Exception as e:
+                    # Make sure to propagate out WebIDLErrors that are not the
+                    # generic "hey, we could not coerce to this type at all"
+                    # exception, because those are specific "coercion failed for
+                    # reason X" exceptions.  Note that we want to swallow
+                    # non-WebIDLErrors here, because those can just happen if
+                    # "type" is not something that can have a default value at
+                    # all.
+                    if (isinstance(e, WebIDLError) and
+                        not isinstance(e, NoCoercionFoundError)):
+                        raise e
+
         # If the type allows null, rerun this matching on the inner type, except
         # nullable enums.  We handle those specially, because we want our
         # default string values to stay strings even when assigned to a nullable
@@ -3388,12 +3282,21 @@ class IDLValue(IDLObject):
             assert self.type.isDOMString()
             return self
         elif self.type.isString() and type.isByteString():
-            # Allow ByteStrings to use default value just like
-            # DOMString.  No coercion is required here.
-            assert self.type.isDOMString()
-            return self
-        raise WebIDLError("Cannot coerce type %s to type %s." %
-                          (self.type, type), [location])
+            # Allow ByteStrings to use a default value like DOMString.
+            # No coercion is required as Codegen.py will handle the
+            # extra steps. We want to make sure that our string contains
+            # only valid characters, so we check that here.
+            valid_ascii_lit = " " + string.ascii_letters + string.digits + string.punctuation
+            for idx, c in enumerate(self.value):
+                if c not in valid_ascii_lit:
+                    raise WebIDLError("Coercing this string literal %s to a ByteString is not supported yet. "
+                                      "Coercion failed due to an unsupported byte %d at index %d."
+                                      % (self.value.__repr__(), ord(c), idx), [location])
+
+            return IDLValue(self.location, type, self.value)
+
+        raise NoCoercionFoundError("Cannot coerce type %s to type %s." %
+                                   (self.type, type), [location])
 
     def _getDependentObjects(self):
         return set()
@@ -4568,12 +4471,6 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
         base=IDLInterfaceMember.Special
     )
 
-    TypeSuffixModifier = enum(
-        'None',
-        'QMark',
-        'Brackets'
-    )
-
     NamedOrIndexed = enum(
         'Neither',
         'Named',
@@ -5743,14 +5640,6 @@ class Parser(Tokenizer):
         booleanType = BuiltinTypes[IDLBuiltinType.Types.boolean]
         p[0] = IDLValue(location, booleanType, p[1])
 
-    def p_ConstValueByteString(self, p):
-        """
-            ConstValue : BYTESTRING
-        """
-        location = self.getLocation(p, 1)
-        bytestringType = BuiltinTypes[IDLBuiltinType.Types.bytestring]
-        p[0] = IDLValue(location, bytestringType, p[1])
-
     def p_ConstValueInteger(self, p):
         """
             ConstValue : INTEGER
@@ -6383,9 +6272,9 @@ class Parser(Tokenizer):
 
     def p_TypeUnionType(self, p):
         """
-            Type : UnionType TypeSuffix
+            Type : UnionType Null
         """
-        p[0] = self.handleModifiers(p[1], p[2])
+        p[0] = self.handleNullable(p[1], p[2])
 
     def p_SingleTypeNonAnyType(self, p):
         """
@@ -6395,9 +6284,9 @@ class Parser(Tokenizer):
 
     def p_SingleTypeAnyType(self, p):
         """
-            SingleType : ANY TypeSuffixStartingWithArray
+            SingleType : ANY
         """
-        p[0] = self.handleModifiers(BuiltinTypes[IDLBuiltinType.Types.any], p[2])
+        p[0] = BuiltinTypes[IDLBuiltinType.Types.any]
 
     def p_UnionType(self, p):
         """
@@ -6413,19 +6302,11 @@ class Parser(Tokenizer):
         """
         p[0] = p[1]
 
-    def p_UnionMemberTypeArrayOfAny(self, p):
-        """
-            UnionMemberTypeArrayOfAny : ANY LBRACKET RBRACKET
-        """
-        p[0] = IDLArrayType(self.getLocation(p, 2),
-                            BuiltinTypes[IDLBuiltinType.Types.any])
-
     def p_UnionMemberType(self, p):
         """
-            UnionMemberType : UnionType TypeSuffix
-                            | UnionMemberTypeArrayOfAny TypeSuffix
+            UnionMemberType : UnionType Null
         """
-        p[0] = self.handleModifiers(p[1], p[2])
+        p[0] = self.handleNullable(p[1], p[2])
 
     def p_UnionMemberTypes(self, p):
         """
@@ -6442,10 +6323,10 @@ class Parser(Tokenizer):
 
     def p_NonAnyType(self, p):
         """
-            NonAnyType : PrimitiveOrStringType TypeSuffix
-                       | ARRAYBUFFER TypeSuffix
-                       | SHAREDARRAYBUFFER TypeSuffix
-                       | OBJECT TypeSuffix
+            NonAnyType : PrimitiveOrStringType Null
+                       | ARRAYBUFFER Null
+                       | SHAREDARRAYBUFFER Null
+                       | OBJECT Null
         """
         if p[1] == "object":
             type = BuiltinTypes[IDLBuiltinType.Types.object]
@@ -6456,7 +6337,7 @@ class Parser(Tokenizer):
         else:
             type = BuiltinTypes[p[1]]
 
-        p[0] = self.handleModifiers(type, p[2])
+        p[0] = self.handleNullable(type, p[2])
 
     def p_NonAnyTypeSequenceType(self, p):
         """
@@ -6464,9 +6345,7 @@ class Parser(Tokenizer):
         """
         innerType = p[3]
         type = IDLSequenceType(self.getLocation(p, 1), innerType)
-        if p[5]:
-            type = IDLNullableType(self.getLocation(p, 5), type)
-        p[0] = type
+        p[0] = self.handleNullable(type, p[5])
 
     # Note: Promise<void> is allowed, so we want to parametrize on
     # ReturnType, not Type.  Also, we want this to end up picking up
@@ -6478,9 +6357,7 @@ class Parser(Tokenizer):
         innerType = p[3]
         promiseIdent = IDLUnresolvedIdentifier(self.getLocation(p, 1), "Promise")
         type = IDLUnresolvedType(self.getLocation(p, 1), promiseIdent, p[3])
-        if p[5]:
-            type = IDLNullableType(self.getLocation(p, 5), type)
-        p[0] = type
+        p[0] = self.handleNullable(type, p[5])
 
     def p_NonAnyTypeMozMapType(self, p):
         """
@@ -6488,13 +6365,11 @@ class Parser(Tokenizer):
         """
         innerType = p[3]
         type = IDLMozMapType(self.getLocation(p, 1), innerType)
-        if p[5]:
-            type = IDLNullableType(self.getLocation(p, 5), type)
-        p[0] = type
+        p[0] = self.handleNullable(type, p[5])
 
     def p_NonAnyTypeScopedName(self, p):
         """
-            NonAnyType : ScopedName TypeSuffix
+            NonAnyType : ScopedName Null
         """
         assert isinstance(p[1], IDLUnresolvedIdentifier)
 
@@ -6516,29 +6391,27 @@ class Parser(Tokenizer):
                     type = IDLCallbackType(obj.location, obj)
                 else:
                     type = IDLWrapperType(self.getLocation(p, 1), p[1])
-                p[0] = self.handleModifiers(type, p[2])
+                p[0] = self.handleNullable(type, p[2])
                 return
         except:
             pass
 
         type = IDLUnresolvedType(self.getLocation(p, 1), p[1])
-        p[0] = self.handleModifiers(type, p[2])
+        p[0] = self.handleNullable(type, p[2])
 
     def p_NonAnyTypeDate(self, p):
         """
-            NonAnyType : DATE TypeSuffix
+            NonAnyType : DATE Null
         """
-        p[0] = self.handleModifiers(BuiltinTypes[IDLBuiltinType.Types.date],
-                                    p[2])
+        p[0] = self.handleNullable(BuiltinTypes[IDLBuiltinType.Types.date],
+                                   p[2])
 
     def p_ConstType(self, p):
         """
             ConstType : PrimitiveOrStringType Null
         """
         type = BuiltinTypes[p[1]]
-        if p[2]:
-            type = IDLNullableType(self.getLocation(p, 1), type)
-        p[0] = type
+        p[0] = self.handleNullable(type, p[2])
 
     def p_ConstTypeIdentifier(self, p):
         """
@@ -6547,9 +6420,7 @@ class Parser(Tokenizer):
         identifier = IDLUnresolvedIdentifier(self.getLocation(p, 1), p[1])
 
         type = IDLUnresolvedType(self.getLocation(p, 1), identifier)
-        if p[2]:
-            type = IDLNullableType(self.getLocation(p, 1), type)
-        p[0] = type
+        p[0] = self.handleNullable(type, p[2])
 
     def p_PrimitiveOrStringTypeUint(self, p):
         """
@@ -6657,48 +6528,15 @@ class Parser(Tokenizer):
         """
         p[0] = False
 
-    def p_TypeSuffixBrackets(self, p):
-        """
-            TypeSuffix : LBRACKET RBRACKET TypeSuffix
-        """
-        p[0] = [(IDLMethod.TypeSuffixModifier.Brackets, self.getLocation(p, 1))]
-        p[0].extend(p[3])
-
-    def p_TypeSuffixQMark(self, p):
-        """
-            TypeSuffix : QUESTIONMARK TypeSuffixStartingWithArray
-        """
-        p[0] = [(IDLMethod.TypeSuffixModifier.QMark, self.getLocation(p, 1))]
-        p[0].extend(p[2])
-
-    def p_TypeSuffixEmpty(self, p):
-        """
-            TypeSuffix :
-        """
-        p[0] = []
-
-    def p_TypeSuffixStartingWithArray(self, p):
-        """
-            TypeSuffixStartingWithArray : LBRACKET RBRACKET TypeSuffix
-        """
-        p[0] = [(IDLMethod.TypeSuffixModifier.Brackets, self.getLocation(p, 1))]
-        p[0].extend(p[3])
-
-    def p_TypeSuffixStartingWithArrayEmpty(self, p):
-        """
-            TypeSuffixStartingWithArray :
-        """
-        p[0] = []
-
     def p_Null(self, p):
         """
             Null : QUESTIONMARK
                  |
         """
         if len(p) > 1:
-            p[0] = True
+            p[0] = self.getLocation(p, 1)
         else:
-            p[0] = False
+            p[0] = None
 
     def p_ReturnTypeType(self, p):
         """
@@ -6857,15 +6695,9 @@ class Parser(Tokenizer):
             typedef = IDLTypedef(BuiltinLocation("<builtin type>"), scope, builtin, name)
 
     @ staticmethod
-    def handleModifiers(type, modifiers):
-        for (modifier, modifierLocation) in modifiers:
-            assert (modifier == IDLMethod.TypeSuffixModifier.QMark or
-                    modifier == IDLMethod.TypeSuffixModifier.Brackets)
-
-            if modifier == IDLMethod.TypeSuffixModifier.QMark:
-                type = IDLNullableType(modifierLocation, type)
-            elif modifier == IDLMethod.TypeSuffixModifier.Brackets:
-                type = IDLArrayType(modifierLocation, type)
+    def handleNullable(type, questionMarkLocation):
+        if questionMarkLocation is not None:
+            type = IDLNullableType(questionMarkLocation, type)
 
         return type
 

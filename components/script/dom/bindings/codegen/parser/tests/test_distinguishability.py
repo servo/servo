@@ -159,7 +159,7 @@ def WebIDLTest(parser, harness):
                  "object", "Callback", "Callback2", "optional Dict",
                  "optional Dict2", "sequence<long>", "sequence<short>",
                  "MozMap<object>", "MozMap<Dict>", "MozMap<long>",
-                 "long[]", "short[]", "Date", "Date?", "any",
+                 "Date", "Date?", "any",
                  "Promise<any>", "Promise<any>?",
                  "USVString", "ArrayBuffer", "ArrayBufferView", "SharedArrayBuffer",
                  "Uint8Array", "Uint16Array" ]
@@ -187,7 +187,6 @@ def WebIDLTest(parser, harness):
                  "Date?", "any", "Promise<any>?"]
     dates = [ "Date", "Date?" ]
     sequences = [ "sequence<long>", "sequence<short>" ]
-    arrays = [ "long[]", "short[]" ]
     nonUserObjects = nonObjects + interfaces + dates + sequences
     otherObjects = allBut(argTypes, nonUserObjects + ["object"])
     notRelatedInterfaces = (nonObjects + ["UnrelatedInterface"] +
@@ -229,14 +228,12 @@ def WebIDLTest(parser, harness):
     setDistinguishable("optional Dict", allBut(nonUserObjects, nullables))
     setDistinguishable("optional Dict2", allBut(nonUserObjects, nullables))
     setDistinguishable("sequence<long>",
-                       allBut(argTypes, sequences + arrays + ["object"]))
+                       allBut(argTypes, sequences + ["object"]))
     setDistinguishable("sequence<short>",
-                       allBut(argTypes, sequences + arrays + ["object"]))
+                       allBut(argTypes, sequences + ["object"]))
     setDistinguishable("MozMap<object>", nonUserObjects)
     setDistinguishable("MozMap<Dict>", nonUserObjects)
     setDistinguishable("MozMap<long>", nonUserObjects)
-    setDistinguishable("long[]", allBut(nonUserObjects, sequences))
-    setDistinguishable("short[]", allBut(nonUserObjects, sequences))
     setDistinguishable("Date", allBut(argTypes, dates + ["object"]))
     setDistinguishable("Date?", allBut(argTypes, dates + nullables + ["object"]))
     setDistinguishable("any", [])
