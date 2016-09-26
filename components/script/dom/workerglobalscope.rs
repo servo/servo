@@ -54,11 +54,6 @@ use task_source::file_reading::FileReadingTaskSource;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum WorkerGlobalScopeTypeId {
-    DedicatedWorkerGlobalScope,
-}
-
 pub fn prepare_workerscope_init(global: GlobalRef,
                                 devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
     let worker_id = global.get_next_worker_id();
