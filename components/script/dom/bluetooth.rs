@@ -18,7 +18,6 @@ use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
-use js::jsval::UndefinedValue;
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
@@ -273,28 +272,15 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
 }
 
 #[allow(unrooted_must_root)]
-#[allow(unsafe_code)]
 pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
-                                                 bluetooth_result: Fallible<T>)
-                                                 -> Fallible<Rc<Promise>> {
+                                                bluetooth_result: Fallible<T>)
+                                                -> Fallible<Rc<Promise>> {
+    let p = Promise::new(global_ref);
     match bluetooth_result {
-        Ok(not_error) => {
-            let cx = global_ref.get_cx();
-            rooted!(in(cx) let mut v = UndefinedValue());
-            unsafe {
-                not_error.to_jsval(cx, v.handle_mut());
-            }
-            Promise::Resolve(global_ref, cx, v.handle())
-        },
-        Err(error) => {
-            let cx = global_ref.get_cx();
-            rooted!(in(cx) let mut v = UndefinedValue());
-            unsafe {
-                error.to_jsval(cx, global_ref, v.handle_mut());
-            }
-            Promise::Reject(global_ref, cx, v.handle())
-        }
+        Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
+        Err(e) => p.reject_error(p.global().r().get_cx(), e),
     }
+    Ok(p)
 }
 
 impl From<BluetoothError> for Error {
@@ -311,7 +297,6 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Rc<Promise>> {
         result_to_promise(self.global().r(), self.request_device(option))

@@ -232,7 +232,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
@@ -241,7 +240,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
     fn GetCharacteristics(&self,
                           characteristic: Option<BluetoothCharacteristicUUID>)
@@ -250,7 +248,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
     fn GetIncludedService(&self,
                           service: BluetoothServiceUUID)
@@ -259,7 +256,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     }
 
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
     fn GetIncludedServices(&self,
                           service: Option<BluetoothServiceUUID>)
