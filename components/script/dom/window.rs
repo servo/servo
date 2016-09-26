@@ -35,6 +35,7 @@ use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::history::History;
 use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
@@ -143,7 +144,7 @@ pub type ScrollPoint = Point2D<Au>;
 
 #[dom_struct]
 pub struct Window {
-    eventtarget: EventTarget,
+    globalscope: GlobalScope,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "task sources are hard"]
@@ -1629,7 +1630,7 @@ impl Window {
         };
         let current_time = time::get_time();
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(),
+            globalscope: GlobalScope::new_inherited(),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,

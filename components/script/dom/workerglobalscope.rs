@@ -22,6 +22,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
@@ -79,7 +80,8 @@ pub fn prepare_workerscope_init(global: GlobalRef,
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
 pub struct WorkerGlobalScope {
-    eventtarget: EventTarget,
+    globalscope: GlobalScope,
+
     worker_id: WorkerId,
     pipeline_id: PipelineId,
     worker_url: Url,
@@ -140,7 +142,7 @@ impl WorkerGlobalScope {
                          closing: Option<Arc<AtomicBool>>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
-            eventtarget: EventTarget::new_inherited(),
+            globalscope: GlobalScope::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             pipeline_id: init.pipeline_id,

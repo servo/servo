@@ -88,6 +88,8 @@ class Configuration:
                 getter = lambda x: x.interface.isJSImplemented()
             elif key == 'isGlobal':
                 getter = lambda x: x.isGlobal()
+            elif key == 'isInline':
+                getter = lambda x: x.interface.getExtendedAttribute('Inline') is not None
             elif key == 'isExposedConditionally':
                 getter = lambda x: x.interface.isExposedConditionally()
             elif key == 'isIteratorInterface':
@@ -234,6 +236,7 @@ class Descriptor(DescriptorProvider):
         self.concrete = (not self.interface.isCallback() and
                          not self.interface.isNamespace() and
                          not self.interface.getExtendedAttribute("Abstract") and
+                         not self.interface.getExtendedAttribute("Inline") and
                          not spiderMonkeyInterface)
         self.hasUnforgeableMembers = (self.concrete and
                                       any(MemberIsUnforgeable(m, self) for m in
@@ -383,8 +386,12 @@ class Descriptor(DescriptorProvider):
         return attrs
 
     def getParentName(self):
-        assert self.interface.parent is not None
-        return self.interface.parent.identifier.name
+        parent = self.interface.parent
+        while parent:
+            if not parent.getExtendedAttribute("Inline"):
+                return parent.identifier.name
+            parent = parent.parent
+        return None
 
     def hasDescendants(self):
         return (self.interface.getUserData("hasConcreteDescendant", False) or

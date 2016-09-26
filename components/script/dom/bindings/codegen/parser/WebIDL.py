@@ -1695,7 +1695,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
                   identifier == "ProbablyShortLivingObject" or
                   identifier == "LegacyUnenumerableNamedProperties" or
                   identifier == "NonOrdinaryGetPrototypeOf" or
-                  identifier == "Abstract"):
+                  identifier == "Abstract" or
+                  identifier == "Inline"):
                 # Known extended attributes that do not take values
                 if not attr.noArguments():
                     raise WebIDLError("[%s] must take no arguments" % identifier,

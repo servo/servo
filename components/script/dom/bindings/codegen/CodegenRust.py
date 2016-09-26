@@ -1929,8 +1929,8 @@ class CGImports(CGWrapper):
             if t.isInterface() or t.isNamespace():
                 descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
                 extras += [descriptor.path]
-                if descriptor.interface.parent:
-                    parentName = getIdentifier(descriptor.interface.parent).name
+                parentName = descriptor.getParentName()
+                if parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
             elif t.isType() and t.isMozMap():
@@ -2754,7 +2754,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 getPrototypeProto = "prototype_proto.set(JS_GetObjectPrototype(cx, global))"
         else:
             getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
-                                 toBindingNamespace(self.descriptor.prototypeChain[-2]))
+                                 toBindingNamespace(self.descriptor.getParentName()))
 
         code = [CGGeneric("""\
 rooted!(in(cx) let mut prototype_proto = ptr::null_mut());
@@ -2808,8 +2808,9 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
                 properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
                 properties["length"] = 0
-            if self.descriptor.interface.parent:
-                parentName = toBindingNamespace(self.descriptor.getParentName())
+            parentName = self.descriptor.getParentName()
+            if parentName:
+                parentName = toBindingNamespace(parentName)
                 code.append(CGGeneric("""
 rooted!(in(cx) let mut interface_proto = ptr::null_mut());
 %s::GetConstructorObject(cx, global, interface_proto.handle_mut());""" % parentName))
@@ -5744,25 +5745,26 @@ class CGDescriptor(CGThing):
 
         cgThings.append(CGGeneric(str(properties)))
 
-        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
-            cgThings.append(CGGetProtoObjectMethod(descriptor))
-            reexports.append('GetProtoObject')
-            cgThings.append(CGPrototypeJSClass(descriptor))
-        if descriptor.interface.hasInterfaceObject():
-            if descriptor.interface.ctor():
-                cgThings.append(CGClassConstructHook(descriptor))
-            for ctor in descriptor.interface.namedConstructors:
-                cgThings.append(CGClassConstructHook(descriptor, ctor))
-            if not descriptor.interface.isCallback():
-                cgThings.append(CGInterfaceObjectJSClass(descriptor))
-            if descriptor.shouldHaveGetConstructorObjectMethod():
-                cgThings.append(CGGetConstructorObjectMethod(descriptor))
-                reexports.append('GetConstructorObject')
-            if descriptor.register:
-                cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-                reexports.append('DefineDOMInterface')
-                cgThings.append(CGConstructorEnabled(descriptor))
-        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
+        if not descriptor.interface.getExtendedAttribute("Inline"):
+            if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
+                cgThings.append(CGGetProtoObjectMethod(descriptor))
+                reexports.append('GetProtoObject')
+                cgThings.append(CGPrototypeJSClass(descriptor))
+            if descriptor.interface.hasInterfaceObject():
+                if descriptor.interface.ctor():
+                    cgThings.append(CGClassConstructHook(descriptor))
+                for ctor in descriptor.interface.namedConstructors:
+                    cgThings.append(CGClassConstructHook(descriptor, ctor))
+                if not descriptor.interface.isCallback():
+                    cgThings.append(CGInterfaceObjectJSClass(descriptor))
+                if descriptor.shouldHaveGetConstructorObjectMethod():
+                    cgThings.append(CGGetConstructorObjectMethod(descriptor))
+                    reexports.append('GetConstructorObject')
+                if descriptor.register:
+                    cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+                    reexports.append('DefineDOMInterface')
+                    cgThings.append(CGConstructorEnabled(descriptor))
+            cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
         cgThings = generate_imports(config, CGList(cgThings, '\n'), [descriptor])
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -6803,7 +6805,7 @@ class GlobalGenRoots():
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
         pairs = []
-        for d in config.getDescriptors(hasInterfaceObject=True):
+        for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding = toBindingNamespace(d.name)
             pairs.append((d.name, binding, binding))
             for ctor in d.interface.namedConstructors:
@@ -6931,7 +6933,7 @@ class GlobalGenRoots():
                 allprotos.append(CGGeneric("\n"))
 
             if downcast:
-                hierarchy[descriptor.getParentName()].append(name)
+                hierarchy[descriptor.interface.parent.identifier.name].append(name)
 
         typeIdCode = []
         topTypeVariants = [
@@ -6955,7 +6957,7 @@ class GlobalGenRoots():
 
         for base, derived in hierarchy.iteritems():
             variants = []
-            if not config.getInterface(base).getExtendedAttribute("Abstract"):
+            if config.getDescriptor(base).concrete:
                 variants.append(CGGeneric(base))
             variants += [CGGeneric(type_id_variant(derivedName)) for derivedName in derived]
             derives = "Clone, Copy, Debug, PartialEq"
