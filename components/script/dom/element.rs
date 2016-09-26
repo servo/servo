@@ -2245,6 +2245,20 @@ impl VirtualMethods for Element {
         }
 
         let doc = document_from_node(self);
+
+        if self.is_focusable_area() {
+            let doc = document_from_node(self);
+            let children = self.upcast::<Node>().traverse_preorder();
+
+            for child in children {
+                if let Some(element) = child.downcast::<Element>() {
+                    if element.is_focusable_area() && !element.disabled_state() {
+                        doc.add_focusable_element(element);
+                    }
+                }
+            }
+        }
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.register_named_element(self, value.clone());
         }
@@ -2260,10 +2274,14 @@ impl VirtualMethods for Element {
         }
 
         let doc = document_from_node(self);
+
+        doc.remove_focusable_element(self);
+
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.r() == Some(self) {
             doc.exit_fullscreen();
         }
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.unregister_named_element(self, value.clone());
         }
