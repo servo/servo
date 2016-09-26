@@ -8,19 +8,17 @@ interface ServiceWorkerContainer : EventTarget {
   [Unforgeable] readonly attribute ServiceWorker? controller;
   [SameObject] readonly attribute Promise<ServiceWorkerRegistration> ready;
 
-  [NewObject, Throws] ServiceWorkerRegistration register(USVString scriptURL, optional RegistrationOptions options);
-
-  [NewObject] Promise<any> any getRegistration(optional USVString clientURL = "");
-  [NewObject] Promise <sequence<ServiceWorkerRegistration>> getRegistrations();
+  //[NewObject] /*Promise<any>*/ any getRegistration(optional USVString clientURL = "");
+  //[NewObject] /* Promise */<sequence<ServiceWorkerRegistration>> getRegistrations();
 
 
   // events
-  attribute EventHandler oncontrollerchange;
+  //attribute EventHandler oncontrollerchange;
   //attribute EventHandler onerror;
-  attribute EventHandler onmessage; // event.source of message events is ServiceWorker object
+  //attribute EventHandler onmessage; // event.source of message events is ServiceWorker object
 };
 
 dictionary RegistrationOptions {
   USVString scope;
-  WorkerType type = "classic";
+  //WorkerType type = "classic";
 };
