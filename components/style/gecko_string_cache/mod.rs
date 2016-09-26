@@ -22,7 +22,7 @@ use std::ops::Deref;
 use std::slice;
 
 #[macro_use]
-#[allow(improper_ctypes)]
+#[allow(improper_ctypes, safe_extern_statics)]
 pub mod atom_macro;
 #[macro_use]
 pub mod namespace;
