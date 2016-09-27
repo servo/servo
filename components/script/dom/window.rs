@@ -192,10 +192,6 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
 
-    /// A flag to indicate whether the developer tools have requested live updates of
-    /// page changes.
-    devtools_wants_updates: Cell<bool>,
-
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
@@ -1474,10 +1470,6 @@ impl Window {
         had_clip_rect
     }
 
-    pub fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
-    }
-
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
         None
@@ -1664,7 +1656,6 @@ impl Window {
 
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
-            devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
@@ -1678,10 +1669,6 @@ impl Window {
 
     pub fn console_timers(&self) -> &TimerSet {
         &self.console_timers
-    }
-
-    pub fn live_devtools_updates(&self) -> bool {
-        return self.devtools_wants_updates.get();
     }
 
     /// https://html.spec.whatwg.org/multipage/#report-the-error

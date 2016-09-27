@@ -258,15 +258,6 @@ impl<'a> GlobalRef<'a> {
         )
     }
 
-    /// Set the `bool` value to indicate whether developer tools has requested
-    /// updates from the global
-    pub fn set_devtools_wants_updates(&self, send_updates: bool) {
-        match *self {
-            GlobalRef::Window(window) => window.set_devtools_wants_updates(send_updates),
-            GlobalRef::Worker(worker) => worker.set_devtools_wants_updates(send_updates),
-        }
-    }
-
     /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
     /// passed.
     pub fn schedule_callback(&self,

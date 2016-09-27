@@ -107,10 +107,6 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    /// A flag to indicate whether the developer tools has requested live updates
-    /// from the worker
-    devtools_wants_updates: Cell<bool>,
-
     #[ignore_heap_size_of = "Defined in std"]
     constellation_chan: IpcSender<ConstellationMsg>,
 
@@ -150,7 +146,6 @@ impl WorkerGlobalScope {
             to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
-            devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
             console_timers: TimerSet::new(),
@@ -470,10 +465,6 @@ impl WorkerGlobalScope {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
-    }
-
-    pub fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
     }
 
     pub fn close(&self) {

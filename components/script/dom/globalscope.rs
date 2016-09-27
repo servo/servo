@@ -15,6 +15,10 @@ pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableHeap<JS<Crypto>>,
     next_worker_id: Cell<WorkerId>,
+
+    /// A flag to indicate whether the developer tools has requested
+    /// live updates from the worker.
+    devtools_wants_updates: Cell<bool>,
 }
 
 impl GlobalScope {
@@ -23,6 +27,7 @@ impl GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
+            devtools_wants_updates: Default::default(),
         }
     }
 
@@ -48,5 +53,13 @@ impl GlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
+    }
+
+    pub fn live_devtools_updates(&self) -> bool {
+        self.devtools_wants_updates.get()
+    }
+
+    pub fn set_devtools_wants_updates(&self, value: bool) {
+        self.devtools_wants_updates.set(value);
     }
 }

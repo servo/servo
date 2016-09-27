@@ -40,6 +40,7 @@ use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
@@ -1004,8 +1005,7 @@ impl ScriptThread {
                     Some(browsing_context) => browsing_context.active_window(),
                     None => return warn!("Message sent to closed pipeline {}.", id),
                 };
-                let global_ref = GlobalRef::Window(window.r());
-                devtools::handle_wants_live_notifications(&global_ref, to_send)
+                devtools::handle_wants_live_notifications(window.upcast(), to_send)
             },
             DevtoolScriptControlMsg::SetTimelineMarkers(_pipeline_id, marker_types, reply) =>
                 devtools::handle_set_timeline_markers(&context, marker_types, reply),
@@ -2153,7 +2153,7 @@ impl ScriptThread {
         };
 
         let window = context.active_window();
-        if window.live_devtools_updates() {
+        if window.upcast::<GlobalScope>().live_devtools_updates() {
             let css_error = CSSError {
                 filename: filename,
                 line: line,

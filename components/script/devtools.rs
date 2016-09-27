@@ -20,6 +20,7 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::node::Node;
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
@@ -245,7 +246,7 @@ pub fn handle_modify_attribute(context: &BrowsingContext,
     }
 }
 
-pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: bool) {
+pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
     global.set_devtools_wants_updates(send_notifications);
 }
 
