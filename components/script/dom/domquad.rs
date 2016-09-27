@@ -11,6 +11,7 @@ use dom::bindings::js::{Root, JS};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
+use dom::globalscope::GlobalScope;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]
@@ -37,7 +38,7 @@ impl DOMQuad {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                p1: &DOMPoint,
                p2: &DOMPoint,
                p3: &DOMPoint,
@@ -53,6 +54,7 @@ impl DOMQuad {
                        p3: &DOMPointInit,
                        p4: &DOMPointInit)
                        -> Fallible<Root<DOMQuad>> {
+        let global = global.as_global_scope();
         Ok(DOMQuad::new(global,
                         &*DOMPoint::new_from_init(global, p1),
                         &*DOMPoint::new_from_init(global, p2),
@@ -62,6 +64,7 @@ impl DOMQuad {
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
     pub fn FromRect(global: GlobalRef, other: &DOMRectInit) -> Root<DOMQuad> {
+        let global = global.as_global_scope();
         DOMQuad::new(global,
                      &*DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
                      &*DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
@@ -71,6 +74,7 @@ impl DOMQuad {
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
     pub fn FromQuad(global: GlobalRef, other: &DOMQuadInit) -> Root<DOMQuad> {
+        let global = global.as_global_scope();
         DOMQuad::new(global,
                      &DOMPoint::new_from_init(global, &other.p1),
                      &DOMPoint::new_from_init(global, &other.p2),
@@ -107,7 +111,7 @@ impl DOMQuadMethods for DOMQuad {
         let right = self.p1.X().max(self.p2.X()).max(self.p3.X()).max(self.p4.X());
         let bottom = self.p1.Y().max(self.p2.Y()).max(self.p3.Y()).max(self.p4.Y());
 
-        DOMRect::new(self.global().r(),
+        DOMRect::new(self.global().r().as_global_scope(),
                      left,
                      top,
                      right - left,

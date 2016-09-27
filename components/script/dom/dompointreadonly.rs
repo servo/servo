@@ -7,6 +7,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
@@ -30,7 +31,7 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(global: GlobalRef, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPointReadOnly> {
+    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPointReadOnly> {
         reflect_dom_object(box DOMPointReadOnly::new_inherited(x, y, z, w),
                            global,
                            Wrap)
@@ -42,7 +43,7 @@ impl DOMPointReadOnly {
                        z: f64,
                        w: f64)
                        -> Fallible<Root<DOMPointReadOnly>> {
-        Ok(DOMPointReadOnly::new(global, x, y, z, w))
+        Ok(DOMPointReadOnly::new(global.as_global_scope(), x, y, z, w))
     }
 }
 

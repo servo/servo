@@ -11,6 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 use url::Url;
 
@@ -42,8 +43,10 @@ impl EventSource {
         }
     }
 
-    fn new(global: GlobalRef, url: Url, with_credentials: bool) -> Root<EventSource> {
-        reflect_dom_object(box EventSource::new_inherited(url, with_credentials), global, Wrap)
+    fn new(global: &GlobalScope, url: Url, with_credentials: bool) -> Root<EventSource> {
+        reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
+                           global,
+                           Wrap)
     }
 
     pub fn Constructor(global: GlobalRef,
@@ -56,7 +59,7 @@ impl EventSource {
             Err(_) => return Err(Error::Syntax)
         };
         // Step 3
-        let event_source = EventSource::new(global, url, event_source_init.withCredentials);
+        let event_source = EventSource::new(global.as_global_scope(), url, event_source_init.withCredentials);
         // Step 4
         // Step 5
         // Step 6

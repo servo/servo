@@ -12,6 +12,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use string_cache::Atom;
@@ -32,12 +33,12 @@ impl CustomEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<CustomEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<CustomEvent> {
         reflect_dom_object(box CustomEvent::new_inherited(),
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -52,7 +53,7 @@ impl CustomEvent {
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit)
                        -> Fallible<Root<CustomEvent>> {
-        Ok(CustomEvent::new(global,
+        Ok(CustomEvent::new(global.as_global_scope(),
                             Atom::from(type_),
                             init.parent.bubbles,
                             init.parent.cancelable,

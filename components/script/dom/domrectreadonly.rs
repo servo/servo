@@ -7,6 +7,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -29,7 +30,7 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                x: f64,
                y: f64,
                width: f64,
@@ -46,7 +47,7 @@ impl DOMRectReadOnly {
                        width: f64,
                        height: f64)
                        -> Fallible<Root<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(global, x, y, width, height))
+        Ok(DOMRectReadOnly::new(global.as_global_scope(), x, y, width, height))
     }
 
     pub fn set_x(&self, value: f64) {

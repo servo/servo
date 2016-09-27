@@ -11,9 +11,11 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::console::TimerSet;
+use dom::globalscope::GlobalScope;
 use dom::window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
@@ -55,6 +57,14 @@ pub enum GlobalRoot {
 }
 
 impl<'a> GlobalRef<'a> {
+    /// Returns that `GlobalRef` as a `GlobalScope` referengce.
+    pub fn as_global_scope(&self) -> &GlobalScope {
+        match *self {
+            GlobalRef::Window(window) => window.upcast(),
+            GlobalRef::Worker(worker) => worker.upcast(),
+        }
+    }
+
     /// Get the `JSContext` for the `JSRuntime` associated with the thread
     /// this global object is on.
     pub fn get_cx(&self) -> *mut JSContext {

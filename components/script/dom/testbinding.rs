@@ -30,6 +30,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
@@ -57,23 +58,23 @@ impl TestBinding {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<TestBinding> {
+    pub fn new(global: &GlobalScope) -> Root<TestBinding> {
         reflect_dom_object(box TestBinding::new_inherited(),
                            global, TestBindingBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global))
+        Ok(TestBinding::new(global.as_global_scope()))
     }
 
     #[allow(unused_variables)]
     pub fn Constructor_(global: GlobalRef, nums: Vec<f64>) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global))
+        Ok(TestBinding::new(global.as_global_scope()))
     }
 
     #[allow(unused_variables)]
     pub fn Constructor__(global: GlobalRef, num: f64) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global))
+        Ok(TestBinding::new(global.as_global_scope()))
     }
 }
 
@@ -113,7 +114,7 @@ impl TestBindingMethods for TestBinding {
     fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
-        Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -209,7 +210,7 @@ impl TestBindingMethods for TestBinding {
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
@@ -264,7 +265,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
-        Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
@@ -287,7 +288,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
-        vec![Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
+        vec![Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
     }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
@@ -308,7 +309,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
         self.GetObjectAttributeNullable(cx)
@@ -691,7 +692,7 @@ impl TestBindingMethods for TestBinding {
                             resolve: Option<Rc<SimpleCallback>>,
                             reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
         let global = self.global();
-        let handler = PromiseNativeHandler::new(global.r(),
+        let handler = PromiseNativeHandler::new(global.r().as_global_scope(),
                                                 resolve.map(SimpleHandler::new),
                                                 reject.map(SimpleHandler::new));
         let p = Promise::new(global.r());

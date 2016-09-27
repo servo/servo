@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -38,7 +37,7 @@ impl Performance {
         reflect_dom_object(box Performance::new_inherited(window,
                                                           navigation_start,
                                                           navigation_start_precise),
-                           GlobalRef::Window(window),
+                           window,
                            PerformanceBinding::Wrap)
     }
 }

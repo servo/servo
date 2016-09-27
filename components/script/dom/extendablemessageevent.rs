@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
@@ -27,7 +28,7 @@ pub struct ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn new(global: GlobalRef, type_: Atom,
+    pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<ExtendableMessageEvent> {
@@ -51,7 +52,8 @@ impl ExtendableMessageEvent {
                        init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
                        -> Fallible<Root<ExtendableMessageEvent>> {
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = ExtendableMessageEvent::new(global, Atom::from(type_),
+        let ev = ExtendableMessageEvent::new(global.as_global_scope(),
+                                             Atom::from(type_),
                                              init.parent.parent.bubbles,
                                              init.parent.parent.cancelable,
                                              data.handle(),
@@ -66,7 +68,7 @@ impl ExtendableMessageEvent {
                           scope: GlobalRef,
                           message: HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
-            scope, atom!("message"), false, false, message,
+            scope.as_global_scope(), atom!("message"), false, false, message,
             DOMString::new(), DOMString::new());
         Extendablemessageevent.upcast::<Event>().fire(target);
     }

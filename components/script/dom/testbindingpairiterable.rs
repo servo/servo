@@ -13,6 +13,7 @@ use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct TestBindingPairIterable {
@@ -35,7 +36,7 @@ impl Iterable for TestBindingPairIterable {
 }
 
 impl TestBindingPairIterable {
-    fn new(global: GlobalRef) -> Root<TestBindingPairIterable> {
+    fn new(global: &GlobalScope) -> Root<TestBindingPairIterable> {
         reflect_dom_object(box TestBindingPairIterable {
             reflector: Reflector::new(),
             map: DOMRefCell::new(vec![]),
@@ -43,7 +44,7 @@ impl TestBindingPairIterable {
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBindingPairIterable>> {
-        Ok(TestBindingPairIterable::new(global))
+        Ok(TestBindingPairIterable::new(global.as_global_scope()))
     }
 }
 

@@ -604,7 +604,7 @@ impl HTMLScriptElement {
                       cancelable: EventCancelable) -> EventStatus {
         let window = window_from_node(self);
         let window = window.r();
-        let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);
+        let event = Event::new(window.upcast(), type_, bubbles, cancelable);
         event.fire(self.upcast())
     }
 }

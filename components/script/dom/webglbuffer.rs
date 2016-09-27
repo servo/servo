@@ -5,9 +5,9 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
@@ -39,7 +39,7 @@ impl WebGLBuffer {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLBuffer>> {
         let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateBuffer(sender))).unwrap();
@@ -48,7 +48,7 @@ impl WebGLBuffer {
         result.map(|buffer_id| WebGLBuffer::new(global, renderer, buffer_id))
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLBufferId)
               -> Root<WebGLBuffer> {

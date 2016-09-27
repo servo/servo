@@ -311,7 +311,7 @@ impl HTMLMediaElement {
 
     fn fire_simple_event(&self, type_: &str) {
         let window = window_from_node(self);
-        let event = Event::new(GlobalRef::Window(&*window),
+        let event = Event::new(window.upcast(),
                                Atom::from(type_),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);

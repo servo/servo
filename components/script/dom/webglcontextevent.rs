@@ -13,6 +13,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use string_cache::Atom;
 
 #[dom_struct]
@@ -41,7 +42,7 @@ impl WebGLContextEvent {
         }
     }
 
-    pub fn new_uninitialized(global_ref: GlobalRef) -> Root<WebGLContextEvent> {
+    pub fn new_uninitialized(global_ref: &GlobalScope) -> Root<WebGLContextEvent> {
         // according to https://www.khronos.org/registry/webgl/specs/1.0/#5.15 this is
         // additional information or the empty string if no additional information is
         // available.
@@ -52,7 +53,7 @@ impl WebGLContextEvent {
                         WebGLContextEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -82,7 +83,8 @@ impl WebGLContextEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        Ok(WebGLContextEvent::new(global, Atom::from(type_),
+        Ok(WebGLContextEvent::new(global.as_global_scope(),
+                                  Atom::from(type_),
                                   bubbles,
                                   cancelable,
                                   status_message))

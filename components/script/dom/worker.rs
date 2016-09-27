@@ -21,6 +21,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
@@ -61,7 +62,7 @@ impl Worker {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                closing: Arc<AtomicBool>) -> Root<Worker> {
         reflect_dom_object(box Worker::new_inherited(sender, closing),
@@ -80,7 +81,7 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, sender.clone(), closing.clone());
+        let worker = Worker::new(global.as_global_scope(), sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
 
         let worker_load_origin = WorkerScriptLoadOrigin {
@@ -144,7 +145,7 @@ impl Worker {
     #[allow(unsafe_code)]
     fn dispatch_error(&self, error_info: ErrorInfo) {
         let global = self.global();
-        let event = ErrorEvent::new(global.r(),
+        let event = ErrorEvent::new(global.r().as_global_scope(),
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable,

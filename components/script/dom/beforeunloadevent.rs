@@ -6,12 +6,12 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding;
 use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use string_cache::Atom;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
@@ -29,13 +29,13 @@ impl BeforeUnloadEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<BeforeUnloadEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<BeforeUnloadEvent> {
         reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
                            global,
                            BeforeUnloadEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<BeforeUnloadEvent> {

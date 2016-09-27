@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkercontainer::Controllable;
 use dom::workerglobalscope::prepare_workerscope_init;
@@ -35,7 +36,7 @@ impl ServiceWorkerRegistration {
         }
     }
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                script_url: Url,
                scope: Url,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {

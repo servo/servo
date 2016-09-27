@@ -18,7 +18,6 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElemen
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
@@ -316,7 +315,7 @@ pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) ->
     rooted!(in(cx) let mut detail = UndefinedValue());
     let event_name = Atom::from(event.name());
     unsafe { build_mozbrowser_event_detail(event, cx, detail.handle_mut()); }
-    CustomEvent::new(GlobalRef::Window(window),
+    CustomEvent::new(window.upcast(),
                      event_name,
                      true,
                      true,

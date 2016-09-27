@@ -71,7 +71,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
 
     // Step 1
     let promise = Promise::new(global);
-    let response = Response::new(global);
+    let response = Response::new(global.as_global_scope());
 
     // Step 2
     let request = match Request::Constructor(global, input, init) {

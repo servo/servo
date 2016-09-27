@@ -15,6 +15,7 @@ use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
@@ -52,7 +53,7 @@ impl Bluetooth {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<Bluetooth> {
+    pub fn new(global: &GlobalScope) -> Root<Bluetooth> {
         reflect_dom_object(box Bluetooth::new_inherited(),
                            global,
                            BluetoothBinding::Wrap)
@@ -105,11 +106,14 @@ impl Bluetooth {
         // Step 12-13.
         match device {
             Ok(device) => {
-                let ad_data = BluetoothAdvertisingData::new(self.global().r(),
+                let global = self.global();
+                let global = global.r();
+                let global = global.as_global_scope();
+                let ad_data = BluetoothAdvertisingData::new(global,
                                                             device.appearance,
                                                             device.tx_power,
                                                             device.rssi);
-                Ok(BluetoothDevice::new(self.global().r(),
+                Ok(BluetoothDevice::new(global,
                                         DOMString::from(device.id),
                                         device.name.map(DOMString::from),
                                         &ad_data))

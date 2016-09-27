@@ -7,7 +7,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
 use dom::bindings::error::{ErrorResult, Error};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -15,6 +14,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
 use script_traits::{ScriptMsg, DOMMessage};
@@ -45,7 +45,7 @@ impl ServiceWorker {
         }
     }
 
-    pub fn install_serviceworker(global: GlobalRef,
+    pub fn install_serviceworker(global: &GlobalScope,
                 script_url: Url,
                 scope_url: Url,
                 skip_waiting: bool) -> Root<ServiceWorker> {

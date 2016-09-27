@@ -4,7 +4,6 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoXMLParserBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
@@ -95,8 +94,7 @@ impl ServoXMLParser {
             pipeline: pipeline,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
-                           ServoXMLParserBinding::Wrap)
+        reflect_dom_object(box parser, document.window(), ServoXMLParserBinding::Wrap)
     }
 
     pub fn window(&self) -> &Window {

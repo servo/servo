@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -277,8 +276,7 @@ impl ServoHTMLParser {
             pipeline: pipeline,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
-                           ServoHTMLParserBinding::Wrap)
+        reflect_dom_object(box parser, document.window(), ServoHTMLParserBinding::Wrap)
     }
 
     #[allow(unrooted_must_root)]
@@ -314,8 +312,7 @@ impl ServoHTMLParser {
             pipeline: None,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
-                           ServoHTMLParserBinding::Wrap)
+        reflect_dom_object(box parser, document.window(), ServoHTMLParserBinding::Wrap)
     }
 
     #[inline]

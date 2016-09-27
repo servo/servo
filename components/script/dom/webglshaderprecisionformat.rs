@@ -5,9 +5,9 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding;
 use dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct WebGLShaderPrecisionFormat {
@@ -27,7 +27,7 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                range_min: i32,
                range_max: i32,
                precision: i32) -> Root<WebGLShaderPrecisionFormat> {

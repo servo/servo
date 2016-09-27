@@ -13,6 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
@@ -27,14 +28,14 @@ pub struct MessageEvent {
 }
 
 impl MessageEvent {
-    pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<MessageEvent> {
         MessageEvent::new_initialized(global,
                                       HandleValue::undefined(),
                                       DOMString::new(),
                                       DOMString::new())
     }
 
-    pub fn new_initialized(global: GlobalRef,
+    pub fn new_initialized(global: &GlobalScope,
                            data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
@@ -48,7 +49,7 @@ impl MessageEvent {
         reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef, type_: Atom,
+    pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<MessageEvent> {
@@ -67,9 +68,13 @@ impl MessageEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = MessageEvent::new(global, Atom::from(type_), init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global.as_global_scope(),
+                                   Atom::from(type_),
+                                   init.parent.bubbles,
+                                   init.parent.cancelable,
                                    data.handle(),
-                                   init.origin.clone(), init.lastEventId.clone());
+                                   init.origin.clone(),
+                                   init.lastEventId.clone());
         Ok(ev)
     }
 }
@@ -79,8 +84,13 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
-            scope, atom!("message"), false, false, message,
-            DOMString::new(), DOMString::new());
+            scope.as_global_scope(),
+            atom!("message"),
+            false,
+            false,
+            message,
+            DOMString::new(),
+            DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }
 }

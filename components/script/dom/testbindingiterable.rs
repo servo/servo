@@ -11,6 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct TestBindingIterable {
@@ -19,7 +20,7 @@ pub struct TestBindingIterable {
 }
 
 impl TestBindingIterable {
-    fn new(global: GlobalRef) -> Root<TestBindingIterable> {
+    fn new(global: &GlobalScope) -> Root<TestBindingIterable> {
         reflect_dom_object(box TestBindingIterable {
             reflector: Reflector::new(),
             vals: DOMRefCell::new(vec![]),
@@ -27,7 +28,7 @@ impl TestBindingIterable {
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBindingIterable>> {
-        Ok(TestBindingIterable::new(global))
+        Ok(TestBindingIterable::new(global.as_global_scope()))
     }
 }
 

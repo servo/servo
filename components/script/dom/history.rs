@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -31,7 +30,7 @@ impl History {
 
     pub fn new(window: &Window) -> Root<History> {
         reflect_dom_object(box History::new_inherited(window),
-                           GlobalRef::Window(window),
+                           window,
                            HistoryBinding::Wrap)
     }
 }

@@ -38,7 +38,7 @@ impl DOMParser {
 
     pub fn new(window: &Window) -> Root<DOMParser> {
         reflect_dom_object(box DOMParser::new_inherited(window),
-                           GlobalRef::Window(window),
+                           window,
                            DOMParserBinding::Wrap)
     }
 

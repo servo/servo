@@ -343,7 +343,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
     fn Crypto(&self) -> Root<Crypto> {
-        self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
+        self.crypto.or_init(|| Crypto::new(self.upcast()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
@@ -505,7 +505,7 @@ impl WorkerGlobalScope {
 
         // Steps 3-12.
         // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(GlobalRef::Worker(self),
+        let event = ErrorEvent::new(self.upcast(),
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable,

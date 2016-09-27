@@ -10,6 +10,7 @@ use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
+use dom::globalscope::GlobalScope;
 use hyper::header::Headers as HyperHeaders;
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Cell;
@@ -43,14 +44,14 @@ impl Headers {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<Headers> {
+    pub fn new(global: &GlobalScope) -> Root<Headers> {
         reflect_dom_object(box Headers::new_inherited(), global, HeadersWrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
     pub fn Constructor(global: GlobalRef, init: Option<HeadersInit>)
                        -> Fallible<Root<Headers>> {
-        let dom_headers_new = Headers::new(global);
+        let dom_headers_new = Headers::new(global.as_global_scope());
         try!(dom_headers_new.fill(init));
         Ok(dom_headers_new)
     }
@@ -205,13 +206,13 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: GlobalRef) -> Root<Headers> {
+    pub fn for_request(global: &GlobalScope) -> Root<Headers> {
         let headers_for_request = Headers::new(global);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: GlobalRef) -> Root<Headers> {
+    pub fn for_response(global: &GlobalScope) -> Root<Headers> {
         let headers_for_response = Headers::new(global);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response

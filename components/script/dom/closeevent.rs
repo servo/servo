@@ -12,6 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use string_cache::Atom;
 
 #[dom_struct]
@@ -32,13 +33,13 @@ impl CloseEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<CloseEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<CloseEvent> {
         reflect_dom_object(box CloseEvent::new_inherited(false, 0, DOMString::new()),
                            global,
                            CloseEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -63,7 +64,7 @@ impl CloseEvent {
                        -> Fallible<Root<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        Ok(CloseEvent::new(global,
+        Ok(CloseEvent::new(global.as_global_scope(),
                            Atom::from(type_),
                            bubbles,
                            cancelable,

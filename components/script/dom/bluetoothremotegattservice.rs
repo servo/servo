@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{self, Security};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -16,6 +15,7 @@ use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -46,7 +46,7 @@ impl BluetoothRemoteGATTService {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                device: &BluetoothDevice,
                uuid: DOMString,
                isPrimary: bool,
@@ -84,7 +84,10 @@ impl BluetoothRemoteGATTService {
         let characteristic = receiver.recv().unwrap();
         match characteristic {
             Ok(characteristic) => {
-                let properties = BluetoothCharacteristicProperties::new(self.global().r(),
+                let global = self.global();
+                let global = global.r();
+                let global = global.as_global_scope();
+                let properties = BluetoothCharacteristicProperties::new(global,
                                                                         characteristic.broadcast,
                                                                         characteristic.read,
                                                                         characteristic.write_without_response,
@@ -94,7 +97,7 @@ impl BluetoothRemoteGATTService {
                                                                         characteristic.authenticated_signed_writes,
                                                                         characteristic.reliable_write,
                                                                         characteristic.writable_auxiliaries);
-                Ok(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
+                Ok(BluetoothRemoteGATTCharacteristic::new(global,
                                                           self,
                                                           DOMString::from(characteristic.uuid),
                                                           &properties,
@@ -127,7 +130,10 @@ impl BluetoothRemoteGATTService {
         match characteristics_vec {
             Ok(characteristic_vec) => {
                 for characteristic in characteristic_vec {
-                    let properties = BluetoothCharacteristicProperties::new(self.global().r(),
+                    let global = self.global();
+                    let global = global.r();
+                    let global = global.as_global_scope();
+                    let properties = BluetoothCharacteristicProperties::new(global,
                                                                             characteristic.broadcast,
                                                                             characteristic.read,
                                                                             characteristic.write_without_response,
@@ -137,7 +143,7 @@ impl BluetoothRemoteGATTService {
                                                                             characteristic.authenticated_signed_writes,
                                                                             characteristic.reliable_write,
                                                                             characteristic.writable_auxiliaries);
-                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
+                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(global,
                                                                                 self,
                                                                                 DOMString::from(characteristic.uuid),
                                                                                 &properties,
@@ -167,7 +173,7 @@ impl BluetoothRemoteGATTService {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(self.global().r(),
+                Ok(BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -201,7 +207,7 @@ impl BluetoothRemoteGATTService {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                              .map(|service| BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,

@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::USVString;
 use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
@@ -103,8 +103,8 @@ fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
-        BodyType::Blob => run_blob_data_algorithm(object.global().r(), bytes, mime),
-        BodyType::FormData => run_form_data_algorithm(object.global().r(), bytes, mime),
+        BodyType::Blob => run_blob_data_algorithm(object.global().r().as_global_scope(), bytes, mime),
+        BodyType::FormData => run_form_data_algorithm(object.global().r().as_global_scope(), bytes, mime),
     }
 }
 
@@ -132,7 +132,7 @@ fn run_json_data_algorithm(cx: *mut JSContext,
     }
 }
 
-fn run_blob_data_algorithm(root: GlobalRef,
+fn run_blob_data_algorithm(root: &GlobalScope,
                            bytes: Vec<u8>,
                            mime: &[u8]) -> Fallible<FetchedData> {
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
@@ -144,7 +144,7 @@ fn run_blob_data_algorithm(root: GlobalRef,
     Ok(FetchedData::BlobData(blob))
 }
 
-fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
+fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
     } else {

@@ -12,6 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 use string_cache::Atom;
 
@@ -30,13 +31,13 @@ impl PageTransitionEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<PageTransitionEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<PageTransitionEvent> {
         reflect_dom_object(box PageTransitionEvent::new_inherited(),
                            global,
                            PageTransitionEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -55,7 +56,7 @@ impl PageTransitionEvent {
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
                        -> Fallible<Root<PageTransitionEvent>> {
-        Ok(PageTransitionEvent::new(global,
+        Ok(PageTransitionEvent::new(global.as_global_scope(),
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,

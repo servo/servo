@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::BluetoothAdvertisingDataBinding;
 use dom::bindings::codegen::Bindings::BluetoothAdvertisingDataBinding::BluetoothAdvertisingDataMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingdata
 #[dom_struct]
@@ -30,7 +30,7 @@ impl BluetoothAdvertisingData {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                appearance: Option<u16>,
                txPower: Option<i8>,
                rssi: Option<i8>)

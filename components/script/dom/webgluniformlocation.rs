@@ -4,9 +4,9 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use webrender_traits::WebGLProgramId;
 
 #[dom_struct]
@@ -27,7 +27,7 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                id: i32,
                program_id: WebGLProgramId)
                -> Root<WebGLUniformLocation> {

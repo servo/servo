@@ -167,7 +167,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
+            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global.as_global_scope())),
             response_url: DOMRefCell::new(String::from("")),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -198,7 +198,7 @@ impl XMLHttpRequest {
     }
     pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
-                           global,
+                           global.as_global_scope(),
                            XMLHttpRequestBinding::Wrap)
     }
 
@@ -860,7 +860,7 @@ impl XMLHttpRequest {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global();
-        let event = Event::new(global.r(),
+        let event = Event::new(global.r().as_global_scope(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
@@ -977,7 +977,7 @@ impl XMLHttpRequest {
                     }
                     let global = self.global();
                     let event = Event::new(
-                        global.r(),
+                        global.r().as_global_scope(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable);
@@ -1050,7 +1050,7 @@ impl XMLHttpRequest {
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
         let global = self.global();
-        let progressevent = ProgressEvent::new(global.r(),
+        let progressevent = ProgressEvent::new(global.r().as_global_scope(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
@@ -1118,7 +1118,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(self.global().r(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }

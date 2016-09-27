@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
@@ -31,7 +31,7 @@ impl ServiceWorkerContainer {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<ServiceWorkerContainer> {
+    pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
         reflect_dom_object(box ServiceWorkerContainer::new_inherited(), global, Wrap)
     }
 }
@@ -95,7 +95,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
         }
 
-        let worker_registration = ServiceWorkerRegistration::new(self.global().r(),
+        let worker_registration = ServiceWorkerRegistration::new(self.global().r().as_global_scope(),
                                                                  script_url,
                                                                  scope.clone(),
                                                                  self);

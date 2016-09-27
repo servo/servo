@@ -5,13 +5,13 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcSender};
@@ -35,8 +35,8 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &GlobalRef, storage_type: StorageType) -> Root<Storage> {
-        reflect_dom_object(box Storage::new_inherited(storage_type), *global, StorageBinding::Wrap)
+    pub fn new(global: &GlobalScope, storage_type: StorageType) -> Root<Storage> {
+        reflect_dom_object(box Storage::new_inherited(storage_type), global, StorageBinding::Wrap)
     }
 
     fn get_url(&self) -> Url {
@@ -191,7 +191,7 @@ impl Runnable for StorageEventRunnable {
         let ev_url = storage.get_url();
 
         let storage_event = StorageEvent::new(
-            global_ref,
+            global_ref.as_global_scope(),
             atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),

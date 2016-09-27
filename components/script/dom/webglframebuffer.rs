@@ -6,9 +6,9 @@
 use canvas_traits::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
@@ -38,7 +38,7 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLFramebuffer>> {
         let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
@@ -47,7 +47,7 @@ impl WebGLFramebuffer {
         result.map(|fb_id| WebGLFramebuffer::new(global, renderer, fb_id))
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLFramebufferId)
                -> Root<WebGLFramebuffer> {

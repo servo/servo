@@ -14,6 +14,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
+use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -45,14 +46,14 @@ impl FormData {
         }
     }
 
-    pub fn new(form: Option<&HTMLFormElement>, global: GlobalRef) -> Root<FormData> {
+    pub fn new(form: Option<&HTMLFormElement>, global: &GlobalScope) -> Root<FormData> {
         reflect_dom_object(box FormData::new_inherited(form),
                            global, FormDataWrap)
     }
 
     pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
         // TODO: Construct form data set for form if it is supplied
-        Ok(FormData::new(form, global))
+        Ok(FormData::new(form, global.as_global_scope()))
     }
 }
 
@@ -154,7 +155,7 @@ impl FormData {
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
-        File::new(global.r(), BlobImpl::new_from_bytes(bytes), name, None, "")
+        File::new(global.r().as_global_scope(), BlobImpl::new_from_bytes(bytes), name, None, "")
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {

@@ -4,10 +4,10 @@
 
 use dom::bindings::codegen::Bindings::PluginArrayBinding;
 use dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use dom::plugin::Plugin;
 
 #[dom_struct]
@@ -22,7 +22,7 @@ impl PluginArray {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<PluginArray> {
+    pub fn new(global: &GlobalScope) -> Root<PluginArray> {
         reflect_dom_object(box PluginArray::new_inherited(),
                            global,
                            PluginArrayBinding::Wrap)

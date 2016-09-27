@@ -10,6 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::globalscope::GlobalScope;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use js::jsapi::{JSContext, JSObject};
@@ -36,7 +37,7 @@ impl TextDecoder {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: GlobalRef, encoding: EncodingRef, fatal: bool) -> Root<TextDecoder> {
+    pub fn new(global: &GlobalScope, encoding: EncodingRef, fatal: bool) -> Root<TextDecoder> {
         reflect_dom_object(box TextDecoder::new_inherited(encoding, fatal),
                            global,
                            TextDecoderBinding::Wrap)
@@ -60,7 +61,7 @@ impl TextDecoder {
             Some("replacement") => return TextDecoder::make_range_error(),
             _ => ()
         };
-        Ok(TextDecoder::new(global, encoding, options.fatal))
+        Ok(TextDecoder::new(global.as_global_scope(), encoding, options.fatal))
     }
 }
 

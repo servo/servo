@@ -1848,7 +1848,7 @@ impl Document {
                                                                       doc_loader,
                                                                       referrer,
                                                                       referrer_policy),
-                                          GlobalRef::Window(window),
+                                          window,
                                           DocumentBinding::Wrap);
         {
             let node = document.upcast::<Node>();
@@ -2325,13 +2325,13 @@ impl DocumentMethods for Document {
             "mouseevents" | "mouseevent" =>
                 Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
             "customevent" =>
-                Ok(Root::upcast(CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(CustomEvent::new_uninitialized(self.window.upcast()))),
             "htmlevents" | "events" | "event" | "svgevents" =>
-                Ok(Event::new_uninitialized(GlobalRef::Window(&self.window))),
+                Ok(Event::new_uninitialized(&self.window.upcast())),
             "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
-                Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
             "touchevent" =>
                 Ok(Root::upcast(
                     TouchEvent::new_uninitialized(&self.window,
@@ -2341,25 +2341,25 @@ impl DocumentMethods for Document {
                     )
                 )),
             "webglcontextevent" =>
-                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {
                 let USVString(url) = self.URL();
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
             },
             "progressevent" =>
-                Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
+                Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
             "errorevent" =>
-                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
             "closeevent" =>
-                Ok(Root::upcast(CloseEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
             "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
             "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
             _ =>
                 Err(Error::NotSupported),
         }
@@ -2993,7 +2993,7 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.root();
         let window = document.window();
-        let event = Event::new(GlobalRef::Window(window),
+        let event = Event::new(window.upcast(),
                                atom!("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);

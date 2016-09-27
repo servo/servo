@@ -20,6 +20,7 @@ use dom::blob::{Blob, BlobImpl};
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -190,7 +191,7 @@ impl WebSocket {
         }
     }
 
-    fn new(global: GlobalRef, url: Url) -> Root<WebSocket> {
+    fn new(global: &GlobalScope, url: Url) -> Root<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
@@ -241,7 +242,7 @@ impl WebSocket {
         let origin = UrlHelper::Origin(&global.get_url()).0;
 
         // Step 7.
-        let ws = WebSocket::new(global, resource_url.clone());
+        let ws = WebSocket::new(global.as_global_scope(), resource_url.clone());
         let address = Trusted::new(ws.r());
 
         let connect_data = WebSocketConnectData {
@@ -557,7 +558,7 @@ impl Runnable for CloseTask {
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
-        let close_event = CloseEvent::new(global.r(),
+        let close_event = CloseEvent::new(global.r().as_global_scope(),
                                           atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
@@ -599,7 +600,10 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(global.r(), BlobImpl::new_from_bytes(data), "".to_owned());
+                            let blob = Blob::new(
+                                global.r().as_global_scope(),
+                                BlobImpl::new_from_bytes(data),
+                                "".to_owned());
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {

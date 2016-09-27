@@ -5,10 +5,10 @@
 use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 
 #[repr(u16)]
 #[derive(JSTraceable, Copy, Clone, Debug, HeapSizeOf)]
@@ -52,7 +52,7 @@ impl DOMException {
         }
     }
 
-    pub fn new(global: GlobalRef, code: DOMErrorName) -> Root<DOMException> {
+    pub fn new(global: &GlobalScope, code: DOMErrorName) -> Root<DOMException> {
         reflect_dom_object(box DOMException::new_inherited(code),
                            global,
                            DOMExceptionBinding::Wrap)

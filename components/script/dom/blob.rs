@@ -11,6 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
@@ -79,7 +80,9 @@ pub struct Blob {
 
 impl Blob {
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: String) -> Root<Blob> {
+    pub fn new(
+            global: &GlobalScope, blob_impl: BlobImpl, typeString: String)
+            -> Root<Blob> {
         let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
@@ -99,7 +102,6 @@ impl Blob {
     #[allow(unrooted_must_root)]
     fn new_sliced(parent: &Blob, rel_pos: RelativePos,
                   relative_content_type: DOMString) -> Root<Blob> {
-        let global = parent.global();
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
                 // Create new parent node
@@ -115,7 +117,7 @@ impl Blob {
             }
         };
 
-        Blob::new(global.r(), blob_impl, relative_content_type.into())
+        Blob::new(parent.global().r().as_global_scope(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
@@ -132,7 +134,7 @@ impl Blob {
             }
         };
 
-        Ok(Blob::new(global, BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
+        Ok(Blob::new(global.as_global_scope(), BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching

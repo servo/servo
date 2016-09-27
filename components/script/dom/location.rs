@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -29,7 +28,7 @@ impl Location {
 
     pub fn new(window: &Window) -> Root<Location> {
         reflect_dom_object(box Location::new_inherited(window),
-                           GlobalRef::Window(window),
+                           window,
                            LocationBinding::Wrap)
     }
 

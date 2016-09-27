@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementatio
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -43,7 +42,7 @@ impl DOMImplementation {
     pub fn new(document: &Document) -> Root<DOMImplementation> {
         let window = document.window();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
-                           GlobalRef::Window(window),
+                           window,
                            DOMImplementationBinding::Wrap)
     }
 }

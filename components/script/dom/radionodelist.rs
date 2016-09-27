@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::RadioNodeListBinding;
 use dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -32,7 +31,7 @@ impl RadioNodeList {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> Root<RadioNodeList> {
         reflect_dom_object(box RadioNodeList::new_inherited(list_type),
-                           GlobalRef::Window(window),
+                           window,
                            RadioNodeListBinding::Wrap)
     }
 

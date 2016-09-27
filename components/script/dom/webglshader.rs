@@ -7,10 +7,10 @@ use angle::hl::{BuiltInResources, Output, ShaderValidator};
 use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
@@ -65,7 +65,7 @@ impl WebGLShader {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef,
+    pub fn maybe_new(global: &GlobalScope,
                      renderer: IpcSender<CanvasMsg>,
                      shader_type: u32) -> Option<Root<WebGLShader>> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -75,7 +75,7 @@ impl WebGLShader {
         result.map(|shader_id| WebGLShader::new(global, renderer, shader_id, shader_type))
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLShaderId,
                shader_type: u32)

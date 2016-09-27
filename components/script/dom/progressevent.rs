@@ -12,7 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::window::Window;
+use dom::globalscope::GlobalScope;
 use string_cache::Atom;
 
 #[dom_struct]
@@ -32,12 +32,12 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new_uninitialized(window: &Window) -> Root<ProgressEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<ProgressEvent> {
         reflect_dom_object(box ProgressEvent::new_inherited(false, 0, 0),
-                           GlobalRef::Window(window),
+                           global,
                            ProgressEventBinding::Wrap)
     }
-    pub fn new(global: GlobalRef, type_: Atom,
+    pub fn new(global: &GlobalScope, type_: Atom,
                can_bubble: EventBubbles, cancelable: EventCancelable,
                length_computable: bool, loaded: u64, total: u64) -> Root<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
@@ -55,7 +55,7 @@ impl ProgressEvent {
                        -> Fallible<Root<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,
+        let ev = ProgressEvent::new(global.as_global_scope(), Atom::from(type_), bubbles, cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

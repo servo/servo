@@ -14,6 +14,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
+use dom::globalscope::GlobalScope;
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
 use dom::promise::Promise;
@@ -66,7 +67,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: GlobalRef) -> Root<Response> {
+    pub fn new(global: &GlobalScope) -> Root<Response> {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
@@ -86,7 +87,7 @@ impl Response {
         }
 
         // Step 3
-        let r = Response::new(global);
+        let r = Response::new(global.as_global_scope());
 
         // Step 4
         *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status));
@@ -139,7 +140,7 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-error
     pub fn Error(global: GlobalRef) -> Root<Response> {
-        let r = Response::new(global);
+        let r = Response::new(global.as_global_scope());
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
         *r.raw_status.borrow_mut() = Some((0, b"".to_vec()));
@@ -166,7 +167,7 @@ impl Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global);
+        let r = Response::new(global.as_global_scope());
 
         // Step 5
         *r.status.borrow_mut() = Some(StatusCode::from_u16(status));
@@ -292,7 +293,7 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::for_response(self.global().r()))
+        self.headers_reflector.or_init(|| Headers::for_response(self.global().r().as_global_scope()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
@@ -301,7 +302,7 @@ impl ResponseMethods for Response {
         // TODO: This step relies on body and stream, which are still unimplemented.
 
         // Step 2
-        let new_response = Response::new(self.global().r());
+        let new_response = Response::new(self.global().r().as_global_scope());
         new_response.Headers().set_guard(self.Headers().get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone

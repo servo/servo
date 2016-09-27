@@ -5,7 +5,6 @@
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
@@ -66,7 +65,7 @@ impl Attr {
                                                    namespace,
                                                    prefix,
                                                    owner),
-                           GlobalRef::Window(window),
+                           window,
                            AttrBinding::Wrap)
     }
 

@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::TouchBinding;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -50,7 +49,8 @@ impl Touch {
                                                     screen_x, screen_y,
                                                     client_x, client_y,
                                                     page_x, page_y),
-                           GlobalRef::Window(window), TouchBinding::Wrap)
+                           window,
+                           TouchBinding::Wrap)
     }
 }
 

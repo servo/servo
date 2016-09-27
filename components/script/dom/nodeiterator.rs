@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
@@ -48,7 +47,7 @@ impl NodeIterator {
                            what_to_show: u32,
                            filter: Filter) -> Root<NodeIterator> {
         reflect_dom_object(box NodeIterator::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(document.window()),
+                           document.window(),
                            NodeIteratorBinding::Wrap)
     }
 

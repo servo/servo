@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMetho
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -33,7 +32,7 @@ impl HTMLFormControlsCollection {
         -> Root<HTMLFormControlsCollection>
     {
         reflect_dom_object(box HTMLFormControlsCollection::new_inherited(root, filter),
-                           GlobalRef::Window(window),
+                           window,
                            HTMLFormControlsCollectionBinding::Wrap)
     }
 

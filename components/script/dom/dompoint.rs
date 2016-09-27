@@ -9,6 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
+use dom::globalscope::GlobalScope;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
@@ -23,7 +24,7 @@ impl DOMPoint {
         }
     }
 
-    pub fn new(global: GlobalRef, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPoint> {
+    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> Root<DOMPoint> {
         reflect_dom_object(box DOMPoint::new_inherited(x, y, z, w), global, Wrap)
     }
 
@@ -33,10 +34,10 @@ impl DOMPoint {
                        z: f64,
                        w: f64)
                        -> Fallible<Root<DOMPoint>> {
-        Ok(DOMPoint::new(global, x, y, z, w))
+        Ok(DOMPoint::new(global.as_global_scope(), x, y, z, w))
     }
 
-    pub fn new_from_init(global: GlobalRef, p: &DOMPointInit) -> Root<DOMPoint> {
+    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> Root<DOMPoint> {
         DOMPoint::new(global, p.x, p.y, p.z, p.w)
     }
 }

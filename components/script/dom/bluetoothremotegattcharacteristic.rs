@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
@@ -23,6 +22,7 @@ use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -59,7 +59,7 @@ impl BluetoothRemoteGATTCharacteristic {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                service: &BluetoothRemoteGATTService,
                uuid: DOMString,
                properties: &BluetoothCharacteristicProperties,
@@ -95,7 +95,7 @@ impl BluetoothRemoteGATTCharacteristic {
         let descriptor = receiver.recv().unwrap();
         match descriptor {
             Ok(descriptor) => {
-                Ok(BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                Ok(BluetoothRemoteGATTDescriptor::new(self.global().r().as_global_scope(),
                                                       self,
                                                       DOMString::from(descriptor.uuid),
                                                       descriptor.instance_id))
@@ -126,7 +126,7 @@ impl BluetoothRemoteGATTCharacteristic {
         match descriptors_vec {
             Ok(descriptor_vec) => {
                 Ok(descriptor_vec.into_iter()
-                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(self.global().r().as_global_scope(),
                                                                                 self,
                                                                                 DOMString::from(desc.uuid),
                                                                                 desc.instance_id))

@@ -11,6 +11,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
+use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
@@ -44,7 +45,7 @@ impl URL {
         }
     }
 
-    pub fn new(global: GlobalRef, url: Url) -> Root<URL> {
+    pub fn new(global: &GlobalScope, url: Url) -> Root<URL> {
         reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
@@ -89,7 +90,7 @@ impl URL {
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
-        let result = URL::new(global, parsed_url);
+        let result = URL::new(global.as_global_scope(), parsed_url);
         // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
@@ -283,7 +284,9 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     fn SearchParams(&self) -> Root<URLSearchParams> {
-        self.search_params.or_init(|| URLSearchParams::new(self.global().r(), Some(self)))
+        self.search_params.or_init(|| {
+            URLSearchParams::new(self.global().r().as_global_scope(), Some(self))
+        })
     }
 
     // https://url.spec.whatwg.org/#dom-url-href

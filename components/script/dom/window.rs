@@ -495,17 +495,17 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> Root<Storage> {
-        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
+        self.session_storage.or_init(|| Storage::new(self.upcast(), StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
-        self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
+        self.local_storage.or_init(|| Storage::new(self.upcast(), StorageType::Local))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> Root<Crypto> {
-        self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
+        self.crypto.or_init(|| Crypto::new(self.upcast()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -1708,7 +1708,7 @@ impl Window {
 
         // Steps 3-12.
         // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(GlobalRef::Window(self),
+        let event = ErrorEvent::new(self.upcast(),
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable,

@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
@@ -38,7 +37,8 @@ impl NodeList {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> Root<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
-                           GlobalRef::Window(window), NodeListBinding::Wrap)
+                           window,
+                           NodeListBinding::Wrap)
     }
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>

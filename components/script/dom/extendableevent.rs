@@ -11,6 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use string_cache::Atom;
 
@@ -28,7 +29,7 @@ impl ExtendableEvent {
             extensions_allowed: true
         }
     }
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool)
@@ -44,7 +45,7 @@ impl ExtendableEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(global,
+        Ok(ExtendableEvent::new(global.as_global_scope(),
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable))

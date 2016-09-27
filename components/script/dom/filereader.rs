@@ -17,6 +17,7 @@ use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -88,13 +89,13 @@ impl FileReader {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<FileReader> {
+    pub fn new(global: &GlobalScope) -> Root<FileReader> {
         reflect_dom_object(box FileReader::new_inherited(),
                            global, FileReaderBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<FileReader>> {
-        Ok(FileReader::new(global))
+        Ok(FileReader::new(global.as_global_scope()))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps
@@ -115,7 +116,7 @@ impl FileReader {
         *fr.result.borrow_mut() = None;
 
         let global = fr.r().global();
-        let exception = DOMException::new(global.r(), error);
+        let exception = DOMException::new(global.r().as_global_scope(), error);
         fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event(atom!("error"), 0, None);
@@ -290,7 +291,7 @@ impl FileReaderMethods for FileReader {
         *self.result.borrow_mut() = None;
 
         let global = self.global();
-        let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
+        let exception = DOMException::new(global.r().as_global_scope(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
@@ -319,7 +320,7 @@ impl FileReaderMethods for FileReader {
 impl FileReader {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
         let global = self.global();
-        let progressevent = ProgressEvent::new(global.r(),
+        let progressevent = ProgressEvent::new(global.r().as_global_scope(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
@@ -338,7 +339,7 @@ impl FileReader {
         // Step 2
         if blob.IsClosed() {
             let global = self.global();
-            let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
+            let exception = DOMException::new(global.r().as_global_scope(), DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
 
             self.dispatch_progress_event(atom!("error"), 0, None);

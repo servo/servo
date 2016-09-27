@@ -13,6 +13,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::cell::Cell;
@@ -41,13 +42,13 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -94,11 +95,16 @@ impl ErrorEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let error = init.error);
-        let event = ErrorEvent::new(global, Atom::from(type_),
-                                bubbles, cancelable,
-                                msg, file_name,
-                                line_num, col_num,
-                                error.handle());
+        let event = ErrorEvent::new(
+                global.as_global_scope(),
+                Atom::from(type_),
+                bubbles,
+                cancelable,
+                msg,
+                file_name,
+                line_num,
+                col_num,
+                error.handle());
         Ok(event)
     }
 

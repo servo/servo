@@ -8,8 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
-
-
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct FileReaderSync {
@@ -23,12 +22,12 @@ impl FileReaderSync {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<FileReaderSync> {
+    pub fn new(global: &GlobalScope) -> Root<FileReaderSync> {
         reflect_dom_object(box FileReaderSync::new_inherited(),
                            global, FileReaderSyncBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<FileReaderSync>> {
-        Ok(FileReaderSync::new(global))
+        Ok(FileReaderSync::new(global.as_global_scope()))
     }
 }

@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -33,7 +32,7 @@ impl NamedNodeMap {
 
     pub fn new(window: &Window, elem: &Element) -> Root<NamedNodeMap> {
         reflect_dom_object(box NamedNodeMap::new_inherited(elem),
-                           GlobalRef::Window(window), NamedNodeMapBinding::Wrap)
+                           window, NamedNodeMapBinding::Wrap)
     }
 }
 

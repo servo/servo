@@ -1927,8 +1927,10 @@ class CGImports(CGWrapper):
             if t in dictionaries or t in enums:
                 continue
             if t.isInterface() or t.isNamespace():
-                descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
-                extras += [descriptor.path]
+                name = getIdentifier(t).name
+                descriptor = descriptorProvider.getDescriptor(name)
+                if name != 'GlobalScope':
+                    extras += [descriptor.path]
                 parentName = descriptor.getParentName()
                 if parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
@@ -2523,7 +2525,8 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -5594,6 +5597,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::weakref::WeakBox',
         'dom::bindings::weakref::WeakReferenceable',
         'dom::browsingcontext::BrowsingContext',
+        'dom::globalscope::GlobalScope',
         'mem::heap_size_of_raw_self_and_children',
         'libc',
         'util::prefs::PREFS',

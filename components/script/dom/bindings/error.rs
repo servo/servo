@@ -127,7 +127,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
     };
 
     assert!(!JS_IsExceptionPending(cx));
-    let exception = DOMException::new(global, code);
+    let exception = DOMException::new(global.as_global_scope(), code);
     rooted!(in(cx) let mut thrown = UndefinedValue());
     exception.to_jsval(cx, thrown.handle_mut());
     JS_SetPendingException(cx, thrown.handle());

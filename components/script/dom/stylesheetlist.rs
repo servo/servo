@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
@@ -29,7 +28,7 @@ impl StyleSheetList {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, document: JS<Document>) -> Root<StyleSheetList> {
         reflect_dom_object(box StyleSheetList::new_inherited(document),
-                           GlobalRef::Window(window), StyleSheetListBinding::Wrap)
+                           window, StyleSheetListBinding::Wrap)
     }
 }
 
