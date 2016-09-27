@@ -9,6 +9,8 @@
 
 import os
 import unittest
+import mock
+
 from servo_tidy import tidy
 
 base_path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
@@ -29,6 +31,21 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("invalid config key 'wrong-key'", errors.next()[2])
         self.assertEqual('invalid config table [wrong]', errors.next()[2])
         self.assertNoMoreErrors(errors)
+
+    def test_directory_checks(self):
+        mock_config = {
+            "check_ext": {
+                "./python/tidy/servo_tidy_tests/dir_check/webidl_plus/": ['webidl', 'test'],
+                "./python/tidy/servo_tidy_tests/dir_check/only_webidl/": ['webidl'],
+                "./python/tidy/servo_tidy_tests/dir_check/empty/": ['webidl']
+            }
+        }
+        with mock.patch.dict('servo_tidy.tidy.config', mock_config):
+            errors = tidy.check_directory_files(False)
+            error_dir = "./python/tidy/servo_tidy_tests/dir_check/webidl_plus"
+            self.assertEqual("Unexpected extension found for test.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), errors.next()[2])
+            self.assertEqual("Unexpected extension found for test2.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), errors.next()[2])
+            self.assertNoMoreErrors(errors)
 
     def test_spaces_correctnes(self):
         errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line], print_text=False)
