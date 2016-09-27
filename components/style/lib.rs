@@ -61,6 +61,7 @@ extern crate num_integer;
 extern crate num_traits;
 #[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
+extern crate parking_lot;
 extern crate quickersort;
 extern crate rand;
 extern crate rustc_serialize;
