@@ -1118,7 +1118,6 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType;
         use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImageLayers_Size};
         use properties::longhands::background_size::single_value::computed_value::T;
-        use values::computed::LengthOrPercentageOrAuto;
 
         let mut width = nsStyleCoord_CalcValue::new();
         let mut height = nsStyleCoord_CalcValue::new();
