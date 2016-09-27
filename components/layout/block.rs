@@ -63,6 +63,7 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use util::clamp;
 use util::geometry::max_rect;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -1534,12 +1535,8 @@ impl BlockFlow {
                     box_sizing::T::content_box =>
                         size + self.fragment.border_padding.inline_start_end(),
                 }
-            } else if available_inline_size > max_inline_size {
-                max_inline_size
-            } else if available_inline_size < min_inline_size {
-                min_inline_size
             } else {
-                available_inline_size
+                clamp(min_inline_size, available_inline_size, max_inline_size)
             };
         self.base.position.size.inline = inline_size + self.fragment.margin.inline_start_end();
 
