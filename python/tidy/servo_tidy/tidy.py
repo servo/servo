@@ -631,14 +631,36 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
+class DuplicateKeyError(StandardError):
+    def __init__(self, key):
+        self.key = key
+
+
+class UnsortedKeyError(StandardError):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+
 def check_for_possible_duplicate_json_keys(key_value_pairs):
     keys = [x[0] for x in key_value_pairs]
     seen_keys = set()
     for key in keys:
         if key in seen_keys:
-            raise KeyError(key)
+            raise DuplicateKeyError(key)
 
         seen_keys.add(key)
+
+
+def check_for_alphabetical_sorted_json_keys(key_value_pairs):
+    for a, b in itertools.combinations(key_value_pairs, 2):
+        if a[0] > b[0]:
+            raise UnsortedKeyError(a[0], b[0])
+
+
+def check_json_requirements(key_value_pairs):
+    check_for_possible_duplicate_json_keys(key_value_pairs)
+    check_for_alphabetical_sorted_json_keys(key_value_pairs)
 
 
 def check_json(filename, contents):
@@ -646,13 +668,15 @@ def check_json(filename, contents):
         raise StopIteration
 
     try:
-        json.loads(contents, object_pairs_hook=check_for_possible_duplicate_json_keys)
+        json.loads(contents, object_pairs_hook=check_json_requirements)
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
         yield (line_no, e.message)
-    except KeyError as e:
-        yield (None, "Duplicated Key (%s)" % e.message)
+    except DuplicateKeyError as e:
+        yield (None, "Duplicated Key (%s)" % e.key)
+    except UnsortedKeyError as e:
+        yield (None, "Unordered key (found %s before %s)" % (e.a, e.b))
 
 
 def check_spec(file_name, lines):
