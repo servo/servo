@@ -77,6 +77,7 @@ pub struct Keyframe {
     /// so the second value of these tuples is always `Importance::Normal`.
     /// But including them enables `compute_style_for_animation_step` to create a `ApplicableDeclarationBlock`
     /// by cloning an `Arc<_>` (incrementing a reference count) rather than re-creating a `Vec<_>`.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub block: Arc<PropertyDeclarationBlock>,
 }
 
