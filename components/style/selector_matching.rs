@@ -5,11 +5,11 @@
 //! Selector matching.
 
 use dom::PresentationalHintsSynthetizer;
-use domrefcell::DOMRefCell;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
+use parking_lot::{RwLock, RwLockReadGuard};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues, Importance};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
@@ -333,7 +333,7 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>>,
+                                        style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -393,8 +393,7 @@ impl Stylist {
 
         // Step 4: Normal style attributes.
         if let Some(sa) = style_attribute {
-            // FIXME: Is this thread-safe?
-            if unsafe { sa.borrow_for_layout() }.any_normal() {
+            if sa.read().any_normal() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -416,8 +415,7 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(sa) = style_attribute {
-            // FIXME: Is this thread-safe?
-            if unsafe { sa.borrow_for_layout() }.any_important() {
+            if sa.read().any_important() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -709,8 +707,7 @@ impl SelectorMap {
         for rule in self.other_rules.iter() {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
-                // FIXME: Is this thread-safe?
-                let block = unsafe { rule.declarations.borrow_for_layout() };
+                let block = rule.declarations.read();
                 if block.any_normal() {
                     matching_rules_list.push(
                         rule.to_applicable_declaration_block(Importance::Normal));
@@ -764,8 +761,7 @@ impl SelectorMap {
               V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
-            // FIXME: Is this thread-safe?
-            let block = unsafe { rule.declarations.borrow_for_layout() };
+            let block = rule.declarations.read();
             let any_declaration_for_importance = if importance.important() {
                 block.any_important()
             } else {
@@ -853,7 +849,7 @@ pub struct Rule {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
+    pub declarations: Arc<RwLock<PropertyDeclarationBlock>>,
     pub source_order: usize,
     pub specificity: u32,
 }
@@ -878,7 +874,7 @@ pub struct ApplicableDeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
     /// Use ApplicableDeclarationBlock::iter
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub mixed_declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
+    pub mixed_declarations: Arc<RwLock<PropertyDeclarationBlock>>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
@@ -886,7 +882,7 @@ pub struct ApplicableDeclarationBlock {
 
 impl ApplicableDeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
+    pub fn from_declarations(declarations: Arc<RwLock<PropertyDeclarationBlock>>,
                              importance: Importance)
                              -> Self {
         ApplicableDeclarationBlock {
@@ -897,11 +893,24 @@ impl ApplicableDeclarationBlock {
         }
     }
 
-    #[allow(unsafe_code)]
+    pub fn read(&self) -> ApplicableDeclarationBlockReadGuard {
+        ApplicableDeclarationBlockReadGuard {
+            guard: self.mixed_declarations.read(),
+            importance: self.importance,
+        }
+    }
+
+}
+
+pub struct ApplicableDeclarationBlockReadGuard<'a> {
+    guard: RwLockReadGuard<'a, PropertyDeclarationBlock>,
+    importance: Importance,
+}
+
+impl<'a> ApplicableDeclarationBlockReadGuard<'a> {
     pub fn iter(&self) -> ApplicableDeclarationBlockIter {
         ApplicableDeclarationBlockIter {
-            // FIXME: Is this thread-safe?
-            iter: unsafe { self.mixed_declarations.borrow_for_layout() }.declarations.iter(),
+            iter: self.guard.declarations.iter(),
             importance: self.importance,
         }
     }

@@ -383,7 +383,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
         // TODO: avoiding this spurious clone might involve having to create
         // an Arc in the below (more common case).
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
-        KeyframesStepValue::Declarations(ref declarations) => {
+        KeyframesStepValue::Declarations { block: ref declarations } => {
             let declaration_block = ApplicableDeclarationBlock {
                 mixed_declarations: declarations.clone(),
                 importance: Importance::Normal,
