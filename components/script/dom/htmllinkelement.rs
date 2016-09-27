@@ -203,56 +203,56 @@ impl HTMLLinkElement {
             return;
         }
 
-        match document.base_url().join(href) {
-            Ok(url) => {
-                let element = self.upcast::<Element>();
+        let url = match document.base_url().join(href) {
+            Err(e) => return debug!("Parsing url {} failed: {}", href, e),
+            Ok(url) => url,
+        };
 
-                let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
-                let value = mq_attribute.r().map(|a| a.value());
-                let mq_str = match value {
-                    Some(ref value) => &***value,
-                    None => "",
-                };
-                let mut css_parser = CssParser::new(&mq_str);
-                let media = parse_media_query_list(&mut css_parser);
+        let element = self.upcast::<Element>();
 
-                // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-                let elem = Trusted::new(self);
+        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
+        let value = mq_attribute.r().map(|a| a.value());
+        let mq_str = match value {
+            Some(ref value) => &***value,
+            None => "",
+        };
+        let mut css_parser = CssParser::new(&mq_str);
+        let media = parse_media_query_list(&mut css_parser);
 
-                let context = Arc::new(Mutex::new(StylesheetContext {
-                    elem: elem,
-                    media: Some(media),
-                    data: vec!(),
-                    metadata: None,
-                    url: url.clone(),
-                }));
+        // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
+        let elem = Trusted::new(self);
 
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let listener = NetworkListener {
-                    context: context,
-                    script_chan: document.window().networking_task_source(),
-                    wrapper: Some(document.window().get_runnable_wrapper()),
-                };
-                let response_target = AsyncResponseTarget {
-                    sender: action_sender,
-                };
-                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify_action(message.to().unwrap());
-                });
+        let context = Arc::new(Mutex::new(StylesheetContext {
+            elem: elem,
+            media: Some(media),
+            data: vec!(),
+            metadata: None,
+            url: url.clone(),
+        }));
 
-                if self.parser_inserted.get() {
-                    document.increment_script_blocking_stylesheet_count();
-                }
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let listener = NetworkListener {
+            context: context,
+            script_chan: document.window().networking_task_source(),
+            wrapper: Some(document.window().get_runnable_wrapper()),
+        };
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify_action(message.to().unwrap());
+        });
 
-                let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-                    true => Some(ReferrerPolicy::NoReferrer),
-                    false => None,
-                };
-
-                document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
-            }
-            Err(e) => debug!("Parsing url {} failed: {}", href, e)
+        if self.parser_inserted.get() {
+            document.increment_script_blocking_stylesheet_count();
         }
+
+        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+            true => Some(ReferrerPolicy::NoReferrer),
+            false => None,
+        };
+
+        document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
