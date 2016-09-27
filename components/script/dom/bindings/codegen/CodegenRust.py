@@ -4754,7 +4754,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
                 Argument('HandleId', 'id'),
-                Argument('MutableHandle<PropertyDescriptor>', 'desc', mutable=True)]
+                Argument('MutableHandle<PropertyDescriptor>', 'desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
                                         "bool", args)
         self.descriptor = descriptor
@@ -4773,7 +4773,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs += " | JSPROP_READONLY"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(&mut desc, proxy.get(), %s);\n"
+                              "fill_property_descriptor(desc, proxy.get(), %s);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -4799,7 +4799,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = "0"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(&mut desc, proxy.get(), %s);\n"
+                              "fill_property_descriptor(desc, proxy.get(), %s);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
