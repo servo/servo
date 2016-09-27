@@ -1526,7 +1526,7 @@ impl LayoutThread {
             }
 
             if opts::get().dump_flow_tree {
-                root_flow.print("Post layout flow tree".to_owned());
+                root_flow.print("Post layout flow tree:".to_owned());
             }
 
             self.generation += 1;
