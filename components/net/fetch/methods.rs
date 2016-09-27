@@ -194,8 +194,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             };
 
             if (same_origin && !cors_flag ) ||
-                (current_url.scheme() == "data" && request.same_origin_data.get()) ||
-                (current_url.scheme() == "file" && request.same_origin_data.get()) ||
+                current_url.scheme() == "data" ||
+                current_url.scheme() == "file" ||
                 current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
                 basic_fetch(request.clone(), cache, target, done_chan, context)
@@ -673,8 +673,6 @@ fn http_redirect_fetch(request: Rc<Request>,
     request.redirect_count.set(request.redirect_count.get() + 1);
 
     // Step 9
-    request.same_origin_data.set(false);
-
     let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
         *origin == request.current_url().origin()
     } else {
