@@ -1485,10 +1485,12 @@ impl BlockFlow {
         //   * Flex items cannot also be floats.
         // Therefore, a flex item cannot be impacted by a float.
         // See also: https://www.w3.org/TR/css-flexbox-1/#flex-containers
-        // This line is not just an optimization. It's also needed for correctness.
         if !self.base.might_have_floats_in() {
             return
         }
+
+        // If you remove the might_have_floats_in conditional, this will go off.
+        debug_assert!(!self.is_flex());
 
         // Compute the available space for us, based on the actual floats.
         let rect = self.base.floats.available_rect(

@@ -46,11 +46,11 @@ pub fn servo_version() -> String {
 }
 
 pub fn clamp<T: Ord>(lo: T, mid: T, hi: T) -> T {
-	if mid < lo {
-		lo
-	} else if mid > hi {
-		hi
-	} else {
-		mid
-	}
+    if mid < lo {
+        lo
+    } else if mid > hi {
+        hi
+    } else {
+        mid
+    }
 }
