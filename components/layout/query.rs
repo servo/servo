@@ -431,6 +431,11 @@ impl UnioningFragmentScrollAreaIterator {
     }
 }
 
+struct NodeOffsetBoxInfo {
+    offset: Point2D<Au>,
+    rectangle: Rect<Au>,
+}
+
 struct ParentBorderBoxInfo {
     node_address: OpaqueNode,
     border_box: Rect<Au>,
@@ -438,8 +443,8 @@ struct ParentBorderBoxInfo {
 
 struct ParentOffsetBorderBoxIterator {
     node_address: OpaqueNode,
-    has_found_node: bool,
-    node_border_box: Rect<Au>,
+    has_processed_node: bool,
+    node_offset_box: Option<NodeOffsetBoxInfo>,
     parent_nodes: Vec<Option<ParentBorderBoxInfo>>,
 }
 
@@ -447,8 +452,8 @@ impl ParentOffsetBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> ParentOffsetBorderBoxIterator {
         ParentOffsetBorderBoxIterator {
             node_address: node_address,
-            has_found_node: false,
-            node_border_box: Rect::zero(),
+            has_processed_node: false,
+            node_offset_box: None,
             parent_nodes: Vec::new(),
         }
     }
@@ -525,20 +530,53 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
 impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
-        // Remove all nodes at this level or higher, as they can't be parents of this node.
-        self.parent_nodes.truncate(level as usize);
-        assert!(self.parent_nodes.len() == level as usize);
+        match self.node_offset_box {
+            Some(_) => {  }, // We've already found the node, so we already have its parent.
+            None => {
+                // Remove all nodes at this level or higher, as they can't be parents of this node.
+                self.parent_nodes.truncate(level as usize);
+                assert!(self.parent_nodes.len() == level as usize);
+            },
+        }
 
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
-            self.has_found_node = true;
-            self.node_border_box = *border_box;
+            self.has_processed_node = true;
+            self.node_offset_box = Some(NodeOffsetBoxInfo {
+                offset: border_box.origin,
+                rectangle: *border_box,
+            });
 
             // offsetParent returns null if the node is fixed.
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
+        } else if fragment.contains_node(self.node_address) {
+            // Found a fragment in the flow tree that matches a child
+            // of the DOM node being looked for.
+            // Since we haven't found an exact match, the node must be
+            // inline. Hopefully.
+            match self.node_offset_box {
+                Some(NodeOffsetBoxInfo { ref mut rectangle, .. }) => {
+                    *rectangle = rectangle.union(border_box);
+                },
+                None => {
+                    self.node_offset_box = Some(NodeOffsetBoxInfo {
+                        offset: border_box.origin,
+                        rectangle: *border_box,
+                    });
+                },
+            }
+
+            // TODO: `position: fixed` on inline elements doesn't seem to work
+            // as of Sep 25, 2016, so I don't know how one will check if an
+            // inline element has it when it does.
+        } else if let Some(_) = self.node_offset_box {
+            // We've been processing fragments within the node, but now
+            // we've found one outside it. That means we're done.
+            // Hopefully.
+            self.has_processed_node = true;
         } else {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
@@ -577,7 +615,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     }
 
     fn should_process(&mut self, _: &Fragment) -> bool {
-        !self.has_found_node
+        !self.has_processed_node
     }
 }
 
@@ -797,14 +835,15 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
         -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    assert!(iterator.has_found_node);
+    // If we didn't find the node, something went wrong. Unwrap it.
+    let node_offset_box = iterator.node_offset_box.unwrap();
 
     let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
     match parent_info_index {
         Some(parent_info_index) => {
             let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
-            let origin = iterator.node_border_box.origin - parent.border_box.origin;
-            let size = iterator.node_border_box.size;
+            let origin = node_offset_box.offset - parent.border_box.origin;
+            let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
                 node_address: Some(parent.node_address.to_untrusted_node_address()),
                 rect: Rect::new(origin, size),
