@@ -30,6 +30,18 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('invalid config table [wrong]', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_directory_checks(self):
+        directories = {
+            "./python/tidy/servo_tidy_tests/dir_check/webidl_plus/": ['webidl', 'test'],
+            "./python/tidy/servo_tidy_tests/dir_check/only_webidl/": ['webidl'],
+            "./python/tidy/servo_tidy_tests/dir_check/empty/": ['webidl']
+        }
+        errors = tidy.check_directory_files(directories, False)
+        error_dir = "./python/tidy/servo_tidy_tests/dir_check/webidl_plus/"
+        self.assertEqual("found file with unexpected extension: test.rs in {0}".format(error_dir), errors.next()[2])
+        self.assertEqual("found file with unexpected extension: test2.rs in {0}".format(error_dir), errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_spaces_correctnes(self):
         errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertEqual('trailing whitespace', errors.next()[2])

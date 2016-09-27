@@ -46,3 +46,8 @@ directories = [
   "./target",
   "./ports/cef",
 ]
+
+# Directories that are checked for correct file types
+[check_dirs_for_exts]
+# directory, list of expected file extensions
+"components/script/dom/webidls" = [".webidl"]

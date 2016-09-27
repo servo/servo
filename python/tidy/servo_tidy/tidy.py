@@ -35,6 +35,8 @@ config = {
             "./.",   # ignore hidden directories
         ],
         "packages": [],
+    },
+    "check_dirs_for_exts": {
     }
 }
 
@@ -686,7 +688,7 @@ def check_config_file(config_file, print_text=True):
         # Check for invalid tables
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
-            if table_name not in ("configs", "ignore"):
+            if table_name not in ("configs", "ignore", "check_dirs", "check_dirs_for_exts"):
                 yield config_file, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
@@ -723,11 +725,30 @@ def parse_config(content):
     config['ignore']['directories'] = map(lambda path: os.path.join(*path.split('/')),
                                           config['ignore']['directories'])
 
+    # Add dict of dir, list of expected ext to config
+    dirs_for_ext = config_file.get("check_dirs_for_exts", {})
+    # Fix the paths (OS-dependent)
+    for path, exts in dirs_for_ext.items():
+        fixed_path = os.path.join(*path.split('/'))
+        config['check_dirs_for_exts'][fixed_path] = exts
+
     # Override default configs
     user_configs = config_file.get("configs", [])
     for pref in user_configs:
         if pref in config:
             config[pref] = user_configs[pref]
+
+
+def check_directory_files(directories_for_files, only_changed_files):
+    for directory, file_extensions in directories_for_files.items():
+        files = get_file_list(directory, only_changed_files, config["ignore"]["directories"])
+        for filename in files:
+            if not any(filename.endswith(ext) for ext in file_extensions):
+                error_details = {
+                    'wrong': filename.split('/')[-1],
+                    'dir': directory
+                }
+                yield (filename, 1, "found file with unexpected extension: {wrong} in {dir}".format(**error_details))
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
@@ -830,6 +851,8 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 def scan(only_changed_files=False, progress=True):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
+    # check directories contain expected files
+    directory_errors = check_directory_files(config['check_dirs_for_exts'], only_changed_files)
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
@@ -841,7 +864,7 @@ def scan(only_changed_files=False, progress=True):
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # chain all the iterators
-    errors = itertools.chain(config_errors, file_errors, dep_license_errors, wpt_lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, wpt_lint_errors)
 
     error = None
     for error in errors:
