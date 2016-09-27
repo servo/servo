@@ -194,8 +194,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             };
 
             if (same_origin && !cors_flag ) ||
-                (current_url.scheme() == "data" && request.same_origin_data.get()) ||
-                (current_url.scheme() == "file" && request.same_origin_data.get()) ||
+                current_url.scheme() == "data" ||
+                current_url.scheme() == "file" ||
                 current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
                 basic_fetch(request.clone(), cache, target, done_chan, context)
@@ -640,41 +640,35 @@ fn http_redirect_fetch(request: Rc<Request>,
     // Step 1
     assert_eq!(response.return_internal.get(), true);
 
-    // Step 3
-    // this step is done early, because querying if Location exists says
-    // if it is None or Some, making it easy to seperate from the retrieval failure case
+    // Step 2
     if !response.actual_response().headers.has::<Location>() {
         return Rc::try_unwrap(response).ok().unwrap();
     }
 
-    // Step 2
+    // Step 3
     let location = match response.actual_response().headers.get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
-        // Step 4
         _ => return Response::network_error()
     };
-
-    // Step 5
     let response_url = response.actual_response().url.as_ref().unwrap();
     let location_url = response_url.join(&*location);
-
-    // Step 6
     let location_url = match location_url {
         Ok(url) => url,
         _ => return Response::network_error()
     };
 
-    // Step 7
+    // Step 4
+    // TODO implement return network_error if not HTTP(S)
+
+    // Step 5
     if request.redirect_count.get() >= 20 {
         return Response::network_error();
     }
 
-    // Step 8
+    // Step 6
     request.redirect_count.set(request.redirect_count.get() + 1);
 
-    // Step 9
-    request.same_origin_data.set(false);
-
+    // Step 7
     let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
         *origin == request.current_url().origin()
     } else {
@@ -682,22 +676,21 @@ fn http_redirect_fetch(request: Rc<Request>,
     };
     let has_credentials = has_credentials(&location_url);
 
-    // Step 10
     if request.mode == RequestMode::CORSMode && !same_origin && has_credentials {
         return Response::network_error();
     }
 
-    // Step 11
+    // Step 8
     if cors_flag && has_credentials {
         return Response::network_error();
     }
 
-    // Step 12
+    // Step 9
     if cors_flag && !same_origin {
         *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::new_opaque());
     }
 
-    // Step 13
+    // Step 10
     let status_code = response.actual_response().status.unwrap();
     if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
         *request.method.borrow() == Method::Post) ||
@@ -706,10 +699,13 @@ fn http_redirect_fetch(request: Rc<Request>,
         *request.body.borrow_mut() = None;
     }
 
-    // Step 14
+    // Step 11
     request.url_list.borrow_mut().push(location_url);
 
-    // Step 15
+    // Step 12
+    // TODO implement referrer policy
+
+    // Step 13
     main_fetch(request, cache, cors_flag, true, target, done_chan, context)
 }
 

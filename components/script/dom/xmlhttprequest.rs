@@ -587,7 +587,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             url: self.request_url.borrow().clone().unwrap(),
             headers: (*self.request_headers.borrow()).clone(),
             unsafe_request: true,
-            same_origin_data: true,
             // XXXManishearth figure out how to avoid this clone
             body: extracted.as_ref().map(|e| e.0.clone()),
             // XXXManishearth actually "subresource", but it doesn't exist

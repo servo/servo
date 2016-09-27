@@ -159,7 +159,6 @@ impl Request {
         // TODO: `entry settings object` is not implemented in Servo yet.
         *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
-        request.same_origin_data.set(true);
         request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
