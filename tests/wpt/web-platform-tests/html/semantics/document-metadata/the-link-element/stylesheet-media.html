@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test</title>
+<link rel=match href=stylesheet-media-ref.html>
+<style>
+body {
+  color: green;
+}
+</style>
+<link rel=stylesheet id=link>
+<script>
+var link = document.getElementById("link");
+link.setAttribute("media", "all")
+</script>
+<p>This text should be green.
