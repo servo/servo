@@ -37724,68 +37724,6 @@
       }
     },
     "reftest_nodes": {}
-    "items": {
-      "reftest": {
-        "http/basic-auth-cache-test.html": [
-          {
-            "path": "http/basic-auth-cache-test.html",
-            "references": [
-              [
-                "/http/basic-auth-cache-test-ref.html",
-                "=="
-              ]
-            ],
-            "url": "/http/basic-auth-cache-test.html"
-          }
-        ]
-      },
-      "testharness": {
-        "dom/lists/DOMTokenList-Iterable.html": [
-          {
-            "path": "dom/lists/DOMTokenList-Iterable.html",
-            "url": "/dom/lists/DOMTokenList-Iterable.html"
-          }
-        ],
-        "html/semantics/forms/the-form-element/form-action-url.html": [
-          {
-            "path": "html/semantics/forms/the-form-element/form-action-url.html",
-            "url": "/html/semantics/forms/the-form-element/form-action-url.html"
-          }
-        ],
-        "html/semantics/forms/the-input-element/minlength.html": [
-          {
-            "path": "html/semantics/forms/the-input-element/minlength.html",
-            "url": "/html/semantics/forms/the-input-element/minlength.html"
-          }
-        ],
-        "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html": [
-          {
-            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html",
-            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin-network.html"
-          }
-        ],
-        "html/semantics/scripting-1/the-script-element/script-crossorigin.html": [
-          {
-            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin.html",
-            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin.html"
-          }
-        ]
-      }
-    },
-    "reftest_nodes": {
-      "http/basic-auth-cache-test.html": [
-        {
-          "path": "http/basic-auth-cache-test.html",
-          "references": [
-            [
-              "/http/basic-auth-cache-test-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/http/basic-auth-cache-test.html"
-        }
-      ]
-    }
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
