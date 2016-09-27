@@ -1,26 +1,12 @@
-# GeckoLib tools
+# Geckolib tools
 
-This directory contains mostly simple tools for working with
-[stylo](https://public.etherpad-mozilla.org/p/stylo).
-
-Some scripts require [multirust](https://github.com/brson/multirust) in order to
-work.
-
-You can see a description of them below.
+This directory contains simple tools for generating the Rust bindings for [stylo](https://public.etherpad-mozilla.org/p/stylo).
 
 ## `setup_bindgen.sh`
 
-This uses downloads a custom version of bindgen, up to date to generate the
-bindings, and uses the required `llvm38` to build it.
+This clones Servo's version of bindgen, and uses `llvm-3.8` library to build it. It will then be used to generate the Rust bindings.
 
-It will also rebuild it if it's already downloaded.
-
-## `regen_bindings.sh`
+## `regen.sh`
 
 This will regenerate the bindings for the `ServoBindings.h` file in your gecko
-build (which are in `ports/geckolib/bindings.rs`).
-
-## `regen_style_structs.sh`
-
-This will generate the bindings for Gecko's style structs. Current bindings are
-actually in `ports/geckolib/structs.rs`.
+build. The generated bindings live in `components/style/gecko_bindings/bindings.rs`. For structs, the bindings are in `components/style/gecko_bindings/structs_*`
