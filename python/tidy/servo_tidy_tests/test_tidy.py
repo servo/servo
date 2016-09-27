@@ -9,6 +9,7 @@
 
 import os
 import unittest
+
 from servo_tidy import tidy
 
 base_path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
@@ -28,6 +29,17 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("invalid config key 'key-outside'", errors.next()[2])
         self.assertEqual("invalid config key 'wrong-key'", errors.next()[2])
         self.assertEqual('invalid config table [wrong]', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_directory_checks(self):
+        dirs = {
+            os.path.join(base_path, "dir_check/webidl_plus"): ['webidl', 'test'],
+            os.path.join(base_path, "dir_check/only_webidl"): ['webidl']
+            }
+        errors = tidy.check_directory_files(dirs)
+        error_dir = os.path.join(base_path, "dir_check/webidl_plus")
+        self.assertEqual("Unexpected extension found for test.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), errors.next()[2])
+        self.assertEqual("Unexpected extension found for test2.rs. We only expect files with webidl, test extensions in {0}".format(error_dir), errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_spaces_correctnes(self):
