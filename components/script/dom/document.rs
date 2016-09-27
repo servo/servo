@@ -83,6 +83,7 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
+use dom::virtualmethods::VirtualMethods;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use encoding::EncodingRef;
@@ -240,6 +241,7 @@ pub struct Document {
     load_event_end: Cell<u64>,
     /// Vector to store focusable elements
     focus_list: DOMRefCell<Vec<JS<Element>>>,
+    focus_list_index: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -1183,6 +1185,9 @@ impl Document {
         event.fire(target);
         let mut prevented = event.DefaultPrevented();
 
+        self.handle_event(event);
+        self.commit_focus_transaction(FocusType::Element);
+
         // https://w3c.github.io/uievents/#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://w3c.github.io/uievents/#keypress-event-order
@@ -1663,6 +1668,64 @@ impl Document {
 
         self.window.layout().nodes_from_point(page_point, *client_point)
     }
+
+    // https://html.spec.whatwg.org/multipage/#sequential-focus-navigation
+    fn sequential_focus_navigation(&self, event: &Event, key: Key) {
+        // Step 1
+        // Step 2
+        // TODO: Implement the sequential focus navigation starting point.
+        // This can be used to change the starting point for navigation.
+
+        // Step 3
+        let direction =
+            if key == Key::Tab {
+                let modifier = event.downcast::<KeyboardEvent>()
+                                    .unwrap().get_key_modifiers();
+
+                if modifier.is_empty() {
+                    NavigationDirection::Forward
+                } else {
+                    NavigationDirection::Backward
+                }
+            } else {
+                return
+            };
+
+        // TODO: Step 4
+
+        // Step 5
+        let candidate = self.sequential_search(direction);
+
+        // Step 6
+        self.request_focus(&self.focus_list.borrow()[candidate]);
+    }
+
+    fn sequential_search(&self, direction: NavigationDirection) -> usize {
+        let list = self.focus_list.borrow();
+        let ref current_index = self.focus_list_index;
+        let focus_state = list[current_index.get() as usize].focus_state();
+
+        if focus_state {
+            match direction {
+                NavigationDirection::Forward => {
+                    current_index.set(current_index.get() + 1);
+
+                    if current_index.get() == (list.len() as u64) {
+                        current_index.set(0);
+                    }
+                },
+                NavigationDirection::Backward => {
+                    current_index.set(current_index.get() - 1);
+
+                    if current_index.get() >= (list.len() as u64) {
+                        current_index.set((list.len() as u64) - 1);
+                    }
+                },
+            }
+        }
+
+        current_index.get() as usize
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -1807,6 +1870,7 @@ impl Document {
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
             focus_list: DOMRefCell::new(vec![]),
+            focus_list_index: Cell::new(0),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
@@ -1983,6 +2047,30 @@ impl Document {
     }
 }
 
+impl VirtualMethods for Document {
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<Document>() as &VirtualMethods)
+    }
+
+    fn handle_event(&self, event: &Event) {
+        if event.type_() == atom!("keydown") {
+            let key_event = event.downcast::<KeyboardEvent>().unwrap();
+            let key = key_event.get_key().unwrap();
+
+            match key {
+                Key::Tab => {
+                    self.sequential_focus_navigation(event, Key::Tab);
+                },
+                _ => (),
+            }
+        }
+    }
+}
+
+enum NavigationDirection {
+    Forward,
+    Backward
+}
 
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
