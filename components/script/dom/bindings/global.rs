@@ -7,7 +7,7 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
@@ -143,14 +143,6 @@ impl<'a> GlobalRef<'a> {
     /// Get the `CoreResourceThread` for this global scope
     pub fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
-    }
-
-    /// Get next worker id.
-    pub fn get_next_worker_id(&self) -> WorkerId {
-        match *self {
-            GlobalRef::Window(ref window) => window.get_next_worker_id(),
-            GlobalRef::Worker(ref worker) => worker.get_next_worker_id(),
-        }
     }
 
     /// Get the URL for this global scope.

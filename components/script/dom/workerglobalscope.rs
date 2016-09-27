@@ -56,7 +56,7 @@ use url::Url;
 
 pub fn prepare_workerscope_init(global: GlobalRef,
                                 devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
-    let worker_id = global.get_next_worker_id();
+    let worker_id = global.as_global_scope().get_next_worker_id();
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: global.mem_profiler_chan().clone(),
@@ -84,7 +84,6 @@ pub struct WorkerGlobalScope {
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
-    next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
     resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
@@ -137,7 +136,6 @@ impl WorkerGlobalScope {
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             globalscope: GlobalScope::new_inherited(),
-            next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             pipeline_id: init.pipeline_id,
             worker_url: worker_url,
@@ -229,13 +227,6 @@ impl WorkerGlobalScope {
 
     pub fn get_worker_id(&self) -> WorkerId {
         self.worker_id.clone()
-    }
-
-    pub fn get_next_worker_id(&self) -> WorkerId {
-        let worker_id = self.next_worker_id.get();
-        let WorkerId(id_num) = worker_id;
-        self.next_worker_id.set(WorkerId(id_num + 1));
-        worker_id
     }
 
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType, WorkerId};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -175,8 +175,6 @@ pub struct Window {
     scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
 
-    next_worker_id: Cell<WorkerId>,
-
     /// For sending messages to the memory profiler.
     #[ignore_heap_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
@@ -318,13 +316,6 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
-    }
-
-    pub fn get_next_worker_id(&self) -> WorkerId {
-        let worker_id = self.next_worker_id.get();
-        let WorkerId(id_num) = worker_id;
-        self.next_worker_id.set(WorkerId(id_num + 1));
-        worker_id
     }
 
     pub fn pipeline_id(&self) -> PipelineId {
@@ -1653,7 +1644,6 @@ impl Window {
             status: DOMRefCell::new(DOMString::new()),
             scheduler_chan: scheduler_chan.clone(),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
-            next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),

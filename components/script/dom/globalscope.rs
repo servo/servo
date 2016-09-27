@@ -2,16 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::WorkerId;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableHeap<JS<Crypto>>,
+    next_worker_id: Cell<WorkerId>,
 }
 
 impl GlobalScope {
@@ -19,6 +22,7 @@ impl GlobalScope {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
+            next_worker_id: Cell::new(WorkerId(0)),
         }
     }
 
@@ -36,5 +40,13 @@ impl GlobalScope {
 
     pub fn crypto(&self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(self))
+    }
+
+    /// Get next worker id.
+    pub fn get_next_worker_id(&self) -> WorkerId {
+        let worker_id = self.next_worker_id.get();
+        let WorkerId(id_num) = worker_id;
+        self.next_worker_id.set(WorkerId(id_num + 1));
+        worker_id
     }
 }
