@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ToCss;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -14,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
+use parking_lot::RwLock;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -92,7 +92,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn Length(&self) -> u32 {
         let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
-            Some(ref declarations) => declarations.borrow().declarations.len(),
+            Some(ref declarations) => declarations.read().declarations.len(),
             None => 0,
         };
         len as u32
@@ -120,7 +120,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         if let Some(shorthand) = Shorthand::from_name(&property) {
             let style_attribute = owner.style_attribute().borrow();
             let style_attribute = if let Some(ref style_attribute) = *style_attribute {
-                style_attribute.borrow()
+                style_attribute.read()
             } else {
                 // shorthand.longhands() is never empty, so with no style attribute
                 // step 2.2.2 would do this:
@@ -331,7 +331,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
         style_attribute.as_ref().and_then(|declarations| {
-            declarations.borrow().declarations.get(index).map(|entry| {
+            declarations.read().declarations.get(index).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
@@ -348,7 +348,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let style_attribute = elem.style_attribute().borrow();
 
         if let Some(declarations) = style_attribute.as_ref() {
-            DOMString::from(declarations.borrow().to_css_string())
+            DOMString::from(declarations.read().to_css_string())
         } else {
             DOMString::new()
         }
@@ -370,7 +370,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
-            Some(Arc::new(DOMRefCell::new(decl_block)))
+            Some(Arc::new(RwLock::new(decl_block)))
         };
         element.sync_property_with_attrs_style();
         let node = element.upcast::<Node>();

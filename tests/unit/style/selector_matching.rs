@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
+use parking_lot::RwLock;
 use selectors::parser::{LocalName, ParserContext, parse_selector_list};
 use std::sync::Arc;
 use string_cache::Atom;
-use style::domrefcell::DOMRefCell;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
 use style::selector_matching::{Rule, SelectorMap};
@@ -21,7 +21,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         .unwrap().into_iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                declarations: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                declarations: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),

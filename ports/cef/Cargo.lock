@@ -1868,6 +1868,7 @@ dependencies = [
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parking_lot 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",

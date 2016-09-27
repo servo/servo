@@ -4,12 +4,12 @@
 
 use cssparser::{self, Parser, SourcePosition};
 use media_queries::CSSErrorReporterTest;
+use parking_lot::RwLock;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
 use string_cache::{Atom, Namespace as NsAtom};
-use style::domrefcell::DOMRefCell;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -51,17 +51,7 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
-    macro_rules! assert_eq {
-        ($left: expr, $right: expr) => {
-            let left = $left;
-            let right = $right;
-            if left != right {
-                panic!("{:#?} != {:#?}", left, right)
-            }
-        }
-    }
-
-    assert_eq!(stylesheet, Stylesheet {
+    let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: None,
         dirty_on_viewport_size_change: false,
@@ -98,7 +88,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
@@ -146,7 +136,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
@@ -181,7 +171,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
@@ -237,7 +227,7 @@ fn test_parse_stylesheet() {
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
@@ -249,7 +239,7 @@ fn test_parse_stylesheet() {
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
@@ -266,7 +256,9 @@ fn test_parse_stylesheet() {
             }))
 
         ],
-    });
+    };
+
+    assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
 }
 
 struct CSSError {

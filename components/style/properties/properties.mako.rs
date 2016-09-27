@@ -29,7 +29,7 @@ use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use selector_matching::ApplicableDeclarationBlock;
+use selector_matching::{ApplicableDeclarationBlock, ApplicableDeclarationBlockReadGuard};
 use stylesheets::Origin;
 use values::LocalToCss;
 use values::HasViewportPercentage;
@@ -1725,7 +1725,7 @@ mod lazy_static_module {
 #[allow(unused_mut, unused_imports)]
 fn cascade_with_cached_declarations(
         viewport_size: Size2D<Au>,
-        applicable_declarations: &[ApplicableDeclarationBlock],
+        applicable_declarations: &[ApplicableDeclarationBlockReadGuard],
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
@@ -1755,8 +1755,8 @@ fn cascade_with_cached_declarations(
     let mut seen = PropertyBitField::new();
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
-    for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.iter().rev() {
+    for block in applicable_declarations.iter().rev() {
+        for declaration in block.iter().rev() {
             match *declaration {
                 % for style_struct in data.active_style_structs():
                     % for property in style_struct.longhands:
@@ -1883,15 +1883,20 @@ pub fn cascade(viewport_size: Size2D<Au>,
         None => (true, initial_values),
     };
 
+    // Aquire locks for at least the lifetime of `specified_custom_properties`.
+    let applicable_declarations = applicable_declarations.iter()
+        .map(|block| block.read())
+        .collect::<Vec<_>>();
+
     let inherited_custom_properties = inherited_style.custom_properties();
-    let mut custom_properties = None;
+    let mut specified_custom_properties = None;
     let mut seen_custom = HashSet::new();
-    for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.iter().rev() {
+    for block in applicable_declarations.iter().rev() {
+        for declaration in block.iter().rev() {
             match *declaration {
                 PropertyDeclaration::Custom(ref name, ref value) => {
                     ::custom_properties::cascade(
-                        &mut custom_properties, &inherited_custom_properties,
+                        &mut specified_custom_properties, &inherited_custom_properties,
                         &mut seen_custom, name, value)
                 }
                 _ => {}
@@ -1899,11 +1904,11 @@ pub fn cascade(viewport_size: Size2D<Au>,
         }
     }
     let custom_properties = ::custom_properties::finish_cascade(
-            custom_properties, &inherited_custom_properties);
+            specified_custom_properties, &inherited_custom_properties);
 
     if let (Some(cached_style), Some(parent_style)) = (cached_style, parent_style) {
         let style = cascade_with_cached_declarations(viewport_size,
-                                                     applicable_declarations,
+                                                     &applicable_declarations,
                                                      shareable,
                                                      parent_style,
                                                      cached_style,
@@ -1944,8 +1949,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // virtual dispatch instead.
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
-            for sub_list in applicable_declarations.iter().rev() {
-                for declaration in sub_list.iter().rev() {
+            for block in applicable_declarations.iter().rev() {
+                for declaration in block.iter().rev() {
                     if let PropertyDeclaration::Custom(..) = *declaration {
                         continue
                     }
