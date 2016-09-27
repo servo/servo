@@ -1442,6 +1442,22 @@ fn static_assert() {
 </%self:impl_trait>
 
 
+<%self:impl_trait style_struct_name="InheritedTable"
+                  skip_longhands="border-spacing">
+
+    pub fn set_border_spacing(&mut self, v: longhands::border_spacing::computed_value::T) {
+        self.gecko.mBorderSpacingCol = v.horizontal.0;
+        self.gecko.mBorderSpacingRow = v.vertical.0;
+    }
+
+    pub fn copy_border_spacing_from(&mut self, other: &Self) {
+        self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
+        self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
+    }
+
+</%self:impl_trait>
+
+
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-shadow line-height word-spacing">
 
