@@ -120,7 +120,6 @@ pub struct RequestInit {
             serialize_with = "::hyper_serde::serialize")]
     pub headers: Headers,
     pub unsafe_request: bool,
-    pub same_origin_data: bool,
     pub body: Option<Vec<u8>>,
     // TODO: client object
     pub type_: Type,
@@ -146,7 +145,6 @@ impl Default for RequestInit {
             url: Url::parse("about:blank").unwrap(),
             headers: Headers::new(),
             unsafe_request: false,
-            same_origin_data: false,
             body: None,
             type_: Type::None,
             destination: Destination::None,
@@ -188,7 +186,6 @@ pub struct Request {
     // TODO: priority object
     pub origin: RefCell<Origin>,
     pub omit_origin_header: Cell<bool>,
-    pub same_origin_data: Cell<bool>,
     /// https://fetch.spec.whatwg.org/#concept-request-referrer
     pub referrer: RefCell<Referrer>,
     pub referrer_policy: Cell<Option<ReferrerPolicy>>,
@@ -230,7 +227,6 @@ impl Request {
             destination: Destination::None,
             origin: RefCell::new(origin.unwrap_or(Origin::Client)),
             omit_origin_header: Cell::new(false),
-            same_origin_data: Cell::new(false),
             referrer: RefCell::new(Referrer::Client),
             referrer_policy: Cell::new(None),
             pipeline_id: Cell::new(pipeline_id),
@@ -256,7 +252,6 @@ impl Request {
         *req.method.borrow_mut() = init.method;
         *req.headers.borrow_mut() = init.headers;
         req.unsafe_request = init.unsafe_request;
-        req.same_origin_data.set(init.same_origin_data);
         *req.body.borrow_mut() = init.body;
         req.type_ = init.type_;
         req.destination = init.destination;
