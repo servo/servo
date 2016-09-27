@@ -8,8 +8,8 @@
 
 use context::SharedStyleContext;
 use data::PrivateStyleData;
-use domrefcell::DOMRefCell;
 use element_state::ElementState;
+use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
@@ -215,7 +215,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>>;
+    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
 
     fn get_state(&self) -> ElementState;
 

@@ -13,7 +13,7 @@ use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::PrivateStyleData;
 use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
-use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
+use properties::{ComputedValues, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
