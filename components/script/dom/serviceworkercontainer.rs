@@ -60,10 +60,8 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Rc<Promise> {
-        
         let promise = Promise::new(self.global().r());
         let ctx = self.global().r().get_cx();
-        
         let USVString(ref script_url) = script_url;
         // Step 3-4
         let script_url = match self.global().r().api_base_url().join(script_url) {
@@ -125,7 +123,6 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  scope.clone(),
                                                                  self);
         ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
-        
         promise.resolve_native(ctx, &*worker_registration);
         promise
     }
