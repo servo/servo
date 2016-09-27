@@ -89,7 +89,6 @@ pub struct WorkerGlobalScope {
     resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
-    crypto: MutNullableHeap<JS<Crypto>>,
     timers: OneshotTimers,
 
     #[ignore_heap_size_of = "Defined in std"]
@@ -147,7 +146,6 @@ impl WorkerGlobalScope {
             resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
-            crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
             time_profiler_chan: init.time_profiler_chan,
@@ -343,7 +341,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
     fn Crypto(&self) -> Root<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self.upcast()))
+        self.upcast::<GlobalScope>().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa

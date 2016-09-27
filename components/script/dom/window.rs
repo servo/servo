@@ -157,7 +157,6 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
@@ -505,7 +504,7 @@ impl WindowMethods for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> Root<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self.upcast()))
+        self.upcast::<GlobalScope>().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -1638,7 +1637,6 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            crypto: Default::default(),
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
