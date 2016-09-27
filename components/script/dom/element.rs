@@ -109,6 +109,7 @@ pub struct Element {
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
+    #[ignore_heap_size_of = "Arc"]
     style_attribute: DOMRefCell<Option<Arc<PropertyDeclarationBlock>>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,

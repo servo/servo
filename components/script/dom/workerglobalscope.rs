@@ -83,6 +83,7 @@ pub struct WorkerGlobalScope {
     worker_id: WorkerId,
     pipeline_id: PipelineId,
     worker_url: Url,
+    #[ignore_heap_size_of = "Arc"]
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,

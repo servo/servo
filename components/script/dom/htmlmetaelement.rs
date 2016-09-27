@@ -27,6 +27,7 @@ use style::viewport::ViewportRule;
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
+    #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 }
 
