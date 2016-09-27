@@ -20,11 +20,12 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ReferrerPolicy;
+use msg::constellation_msg::{Key, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
 use std::default::Default;
@@ -97,6 +98,20 @@ impl VirtualMethods for HTMLAnchorElement {
         match name {
             &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
+    fn handle_event(&self, event: &Event) {
+        if event.type_() == atom!("keydown") {
+            if let Some(keyevent) =
+                event.downcast::<KeyboardEvent>() {
+                    match keyevent.get_key() {
+                        Some(Key::Enter) => {
+                            follow_hyperlink(self.upcast::<Element>(), Some(String::new()), None);
+                        },
+                        _ => ()
+                    }
+            }
         }
     }
 }
@@ -559,7 +574,7 @@ fn is_current_browsing_context(target: DOMString) -> bool {
 }
 
 /// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
-fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
+pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.
