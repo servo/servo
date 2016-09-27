@@ -74,6 +74,10 @@ WEBIDL_STANDARDS = [
     " accessible to\n// web pages."
 ]
 
+DIRECTORIES_FOR_FILETYPES = {
+    "components/script/dom/webidls": [".webidl"]
+}
+
 
 def is_iter_empty(iterator):
     try:
@@ -730,6 +734,19 @@ def parse_config(content):
             config[pref] = user_configs[pref]
 
 
+def check_directory_files(directories_for_files):
+    for directory, file_extensions in directories_for_files.items():
+        files = get_file_list(directory, only_changed_files=False, exclude_dirs=[])
+        for filename in files:
+            expected = [True for possible in file_extensions if filename.endswith(possible)]
+            if not expected:
+                error_details = {
+                    'wrong': filename.split('/')[-1],
+                    'dir': directory
+                }
+                yield (filename, 1, "found file with unexpected extension: {wrong} in {dir}".format(**error_details))
+
+
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -830,6 +847,8 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 def scan(only_changed_files=False, progress=True):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
+    # check directories contain expected files
+    directory_errors = check_directory_files(DIRECTORIES_FOR_FILETYPES)
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
@@ -841,7 +860,7 @@ def scan(only_changed_files=False, progress=True):
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # chain all the iterators
-    errors = itertools.chain(config_errors, file_errors, dep_license_errors, wpt_lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, wpt_lint_errors)
 
     error = None
     for error in errors:
