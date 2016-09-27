@@ -43,7 +43,6 @@ pub enum Origin {
 
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
@@ -63,7 +62,6 @@ pub struct UserAgentStylesheets {
 
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
@@ -86,14 +84,12 @@ pub struct NamespaceRule {
 }
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesRule {
     pub name: Atom,
     pub keyframes: Vec<Arc<Keyframe>>,
 }
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaRule {
     pub media_queries: Arc<MediaQueryList>,
     pub rules: Vec<CSSRule>,
@@ -108,7 +104,6 @@ impl MediaRule {
 }
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
     pub declarations: Arc<PropertyDeclarationBlock>,

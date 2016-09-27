@@ -78,10 +78,12 @@ pub struct Stylist {
     state_deps: DependencySet,
 
     /// Selectors in the page affecting siblings
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     sibling_affecting_selectors: Vec<Selector<TheSelectorImpl>>,
 
     /// Selectors in the page matching elements with non-common style-affecting
     /// attributes.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     non_common_style_affecting_attributes_selectors: Vec<Selector<TheSelectorImpl>>,
 }
 
@@ -839,7 +841,9 @@ pub struct Rule {
     // This is an Arc because Rule will essentially be cloned for every element
     // that it matches. Selector contains an owned vector (through
     // ComplexSelector) and we want to avoid the allocation.
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub declarations: Arc<PropertyDeclarationBlock>,
     pub source_order: usize,
     pub specificity: u32,
@@ -864,6 +868,7 @@ impl Rule {
 pub struct ApplicableDeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
     /// Use ApplicableDeclarationBlock::iter
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub mixed_declarations: Arc<PropertyDeclarationBlock>,
     pub importance: Importance,
     pub source_order: usize,
