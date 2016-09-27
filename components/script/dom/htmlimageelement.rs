@@ -47,6 +47,7 @@ struct ImageRequest {
     state: State,
     parsed_url: Option<Url>,
     source_url: Option<DOMString>,
+    #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }

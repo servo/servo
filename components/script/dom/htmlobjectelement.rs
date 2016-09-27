@@ -24,6 +24,7 @@ use string_cache::Atom;
 #[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
+    #[ignore_heap_size_of = "Arc"]
     image: DOMRefCell<Option<Arc<Image>>>,
 }
 

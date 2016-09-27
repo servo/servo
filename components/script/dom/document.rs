@@ -146,6 +146,14 @@ enum ParserBlockedByScript {
     Unblocked,
 }
 
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+struct StylesheetInDocument {
+    node: JS<Node>,
+    #[ignore_heap_size_of = "Arc"]
+    stylesheet: Arc<Stylesheet>,
+}
+
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
 pub struct Document {
@@ -174,7 +182,7 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<(JS<Node>, Arc<Stylesheet>)>>>,
+    stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
@@ -1891,13 +1899,16 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }.map(|stylesheet| (JS::from_ref(&*node), stylesheet))
+                        }.map(|stylesheet| StylesheetInDocument {
+                            node: JS::from_ref(&*node),
+                            stylesheet: stylesheet
+                        })
                     })
                     .collect());
             };
         }
         self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .map(|s| s.stylesheet.clone())
                         .collect()
     }
 
