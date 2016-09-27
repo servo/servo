@@ -1377,7 +1377,7 @@ pub use gecko_properties::ComputedValues;
 pub type ServoComputedValues = ComputedValues;
 
 #[cfg(feature = "servo")]
-#[cfg_attr(feature = "servo", derive(Clone, Debug, HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(Clone, Debug))]
 pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
