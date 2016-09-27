@@ -23,7 +23,7 @@ python components/style/properties/build.py servo html regular
 cd components/script
 cmake .
 cmake --build . --target supported-apis
-cp apis.html target/doc/servo/
+cp apis.html ../../target/doc/servo/
 cd ../..
 
 ghp-import -n target/doc
