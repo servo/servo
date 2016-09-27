@@ -197,12 +197,19 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
+    /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
         if document.browsing_context().is_none() {
             return;
         }
 
+        // Step 1.
+        if href.is_empty() {
+            return;
+        }
+
+        // Step 2.
         let url = match document.base_url().join(href) {
             Err(e) => return debug!("Parsing url {} failed: {}", href, e),
             Ok(url) => url,
