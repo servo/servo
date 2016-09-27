@@ -1,0 +1,15 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno39",
+  "type": "Annotation",
+  "body": "http://example.org/comment1",
+  "target": {
+    "source": "http://example.edu/article.pdf",
+    "selector": "http://example.org/selectors/html-selector1",
+    "renderedVia": {
+      "id": "http://example.com/pdf-to-html-library",
+      "type": "Software",
+      "schema:softwareVersion": "2.5"
+    }
+  }
+}

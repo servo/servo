@@ -20,6 +20,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -488,7 +489,7 @@ impl HTMLScriptElement {
         }
 
         // TODO(#12446): beforescriptexecute.
-        if !self.dispatch_before_script_execute_event() {
+        if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
             return;
         }
 
@@ -535,7 +536,7 @@ impl HTMLScriptElement {
         window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), window.r());
     }
 
-    pub fn dispatch_before_script_execute_event(&self) -> bool {
+    pub fn dispatch_before_script_execute_event(&self) -> EventStatus {
         self.dispatch_event(atom!("beforescriptexecute"),
                             EventBubbles::Bubbles,
                             EventCancelable::Cancelable)
@@ -606,7 +607,7 @@ impl HTMLScriptElement {
     fn dispatch_event(&self,
                       type_: Atom,
                       bubbles: EventBubbles,
-                      cancelable: EventCancelable) -> bool {
+                      cancelable: EventCancelable) -> EventStatus {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);

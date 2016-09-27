@@ -98,8 +98,8 @@
         "url": "/XMLHttpRequest/send-authentication-prompt-manual.htm"
       },
       {
-        "path": "annotation-model/annotations/annotationAgentOptionals-manual.html",
-        "url": "/annotation-model/annotations/annotationAgentOptionals-manual.html"
+        "path": "ambient-light/AmbientLightSensor_onchange-manual.html",
+        "url": "/ambient-light/AmbientLightSensor_onchange-manual.html"
       },
       {
         "path": "annotation-model/annotations/annotationMusts-manual.html",
@@ -108,6 +108,10 @@
       {
         "path": "annotation-model/annotations/annotationOptionals-manual.html",
         "url": "/annotation-model/annotations/annotationOptionals-manual.html"
+      },
+      {
+        "path": "annotation-model/annotations/annotationsAgentOptionals-manual.html",
+        "url": "/annotation-model/annotations/annotationsAgentOptionals-manual.html"
       },
       {
         "path": "annotation-protocol/server/server-manual.html",
@@ -694,12 +698,12 @@
         "url": "/html/obsolete/requirements-for-implementations/the-marquee-element-0/marquee-direction-up-manual.html"
       },
       {
-        "path": "html/semantics/embedded-content/media-elements/audio_controls_present-manual.html",
-        "url": "/html/semantics/embedded-content/media-elements/audio_controls_present-manual.html"
+        "path": "html/obsolete/requirements-for-implementations/the-marquee-element-0/marquee-scrollamount-effect-manual.html",
+        "url": "/html/obsolete/requirements-for-implementations/the-marquee-element-0/marquee-scrollamount-effect-manual.html"
       },
       {
-        "path": "html/semantics/embedded-content/media-elements/audio_loop_current_media_controller-manual.html",
-        "url": "/html/semantics/embedded-content/media-elements/audio_loop_current_media_controller-manual.html"
+        "path": "html/semantics/embedded-content/media-elements/audio_controls_present-manual.html",
+        "url": "/html/semantics/embedded-content/media-elements/audio_controls_present-manual.html"
       },
       {
         "path": "html/semantics/embedded-content/media-elements/audio_muted_overriding_volume-manual.html",
@@ -732,10 +736,6 @@
       {
         "path": "html/semantics/embedded-content/media-elements/video_controls_present-manual.html",
         "url": "/html/semantics/embedded-content/media-elements/video_controls_present-manual.html"
-      },
-      {
-        "path": "html/semantics/embedded-content/media-elements/video_loop_current_media_controller-manual.html",
-        "url": "/html/semantics/embedded-content/media-elements/video_loop_current_media_controller-manual.html"
       },
       {
         "path": "html/semantics/embedded-content/media-elements/video_muted_overriding_volume-manual.html",
@@ -878,6 +878,114 @@
         "url": "/notifications/tag-same-manual.html"
       },
       {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_000-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_000-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_001-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_001-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_002-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_002-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_003-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_003-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_004-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_004-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_005-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_005-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_006-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_006-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_007-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_007-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_008-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_008-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_009-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_009-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_010-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_010-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_011-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_011-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_012-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_012-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_013-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_013-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_014-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_014-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_015-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_015-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_016-manual.htm",
+        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_016-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_003-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_003-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_004-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_004-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_006-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_006-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_007-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_007-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_008-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_008-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_009-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_009-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_010-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_010-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_020-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_020-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_021-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_021-manual.htm"
+      },
+      {
+        "path": "old-tests/submission/Microsoft/sandbox/sandbox_022-manual.htm",
+        "url": "/old-tests/submission/Microsoft/sandbox/sandbox_022-manual.htm"
+      },
+      {
         "path": "orientation-event/free-fall-manual.html",
         "url": "/orientation-event/free-fall-manual.html"
       },
@@ -954,6 +1062,10 @@
         "url": "/pointerevents/pointerevent_attributes_hoverable_pointers-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_attributes_nohover_pointers-manual.html",
+        "url": "/pointerevents/pointerevent_attributes_nohover_pointers-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_capture_mouse-manual.html",
         "url": "/pointerevents/pointerevent_capture_mouse-manual.html"
       },
@@ -994,28 +1106,12 @@
         "url": "/pointerevents/pointerevent_pointercancel_touch-manual.html"
       },
       {
-        "path": "pointerevents/pointerevent_pointerdown-manual.html",
-        "url": "/pointerevents/pointerevent_pointerdown-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerenter-manual.html",
-        "url": "/pointerevents/pointerevent_pointerenter-manual.html"
-      },
-      {
         "path": "pointerevents/pointerevent_pointerenter_does_not_bubble-manual.html",
         "url": "/pointerevents/pointerevent_pointerenter_does_not_bubble-manual.html"
       },
       {
-        "path": "pointerevents/pointerevent_pointerenter_nohover-manual.html",
-        "url": "/pointerevents/pointerevent_pointerenter_nohover-manual.html"
-      },
-      {
         "path": "pointerevents/pointerevent_pointerleave_after_pointercancel_touch-manual.html",
         "url": "/pointerevents/pointerevent_pointerleave_after_pointercancel_touch-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerleave_after_pointerup_nohover-manual.html",
-        "url": "/pointerevents/pointerevent_pointerleave_after_pointerup_nohover-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_pointerleave_descendant_over-manual.html",
@@ -1030,16 +1126,8 @@
         "url": "/pointerevents/pointerevent_pointerleave_does_not_bubble-manual.html"
       },
       {
-        "path": "pointerevents/pointerevent_pointerleave_mouse-manual.html",
-        "url": "/pointerevents/pointerevent_pointerleave_mouse-manual.html"
-      },
-      {
         "path": "pointerevents/pointerevent_pointerleave_pen-manual.html",
         "url": "/pointerevents/pointerevent_pointerleave_pen-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerleave_touch-manual.html",
-        "url": "/pointerevents/pointerevent_pointerleave_touch-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_pointermove-manual.html",
@@ -1050,20 +1138,8 @@
         "url": "/pointerevents/pointerevent_pointermove_isprimary_same_as_pointerdown-manual.html"
       },
       {
-        "path": "pointerevents/pointerevent_pointermove_pointertype-manual.html",
-        "url": "/pointerevents/pointerevent_pointermove_pointertype-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerout-manual.html",
-        "url": "/pointerevents/pointerevent_pointerout-manual.html"
-      },
-      {
         "path": "pointerevents/pointerevent_pointerout_after_pointercancel_touch-manual.html",
         "url": "/pointerevents/pointerevent_pointerout_after_pointercancel_touch-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerout_after_pointerup_nohover-manual.html",
-        "url": "/pointerevents/pointerevent_pointerout_after_pointerup_nohover-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_pointerout_pen-manual.html",
@@ -1072,34 +1148,6 @@
       {
         "path": "pointerevents/pointerevent_pointerout_received_once-manual.html",
         "url": "/pointerevents/pointerevent_pointerout_received_once-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerover-manual.html",
-        "url": "/pointerevents/pointerevent_pointerover-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointertype_mouse-manual.html",
-        "url": "/pointerevents/pointerevent_pointertype_mouse-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointertype_pen-manual.html",
-        "url": "/pointerevents/pointerevent_pointertype_pen-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointertype_touch-manual.html",
-        "url": "/pointerevents/pointerevent_pointertype_touch-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerup-manual.html",
-        "url": "/pointerevents/pointerevent_pointerup-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerup_isprimary_same_as_pointerdown-manual.html",
-        "url": "/pointerevents/pointerevent_pointerup_isprimary_same_as_pointerdown-manual.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointerup_pointertype-manual.html",
-        "url": "/pointerevents/pointerevent_pointerup_pointertype-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_releasepointercapture_events_to_original_target-manual.html",
@@ -1132,6 +1180,14 @@
       {
         "path": "pointerevents/pointerevent_setpointercapture_relatedtarget-manual.html",
         "url": "/pointerevents/pointerevent_setpointercapture_relatedtarget-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_suppress_compat_events_on_click-manual.html",
+        "url": "/pointerevents/pointerevent_suppress_compat_events_on_click-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_suppress_compat_events_on_drag_mouse-manual.html",
+        "url": "/pointerevents/pointerevent_suppress_compat_events_on_drag_mouse-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_touch-action-auto-css_touch-manual.html",
@@ -3810,6 +3866,16 @@
         "url": "/2dcontext/shadows/canvas_shadows_002.htm"
       },
       {
+        "path": "2dcontext/text-styles/canvas_text_font_001.htm",
+        "references": [
+          [
+            "/2dcontext/text-styles/canvas_text_font_001-ref.htm",
+            "=="
+          ]
+        ],
+        "url": "/2dcontext/text-styles/canvas_text_font_001.htm"
+      },
+      {
         "path": "2dcontext/the-canvas-state/canvas_state_restore_001.htm",
         "references": [
           [
@@ -4800,6 +4866,76 @@
         "url": "/html/dom/elements/requirements-relating-to-bidirectional-algorithm-formatting-characters/dir-isolation-009c.html"
       },
       {
+        "path": "html/editing/the-hidden-attribute/hidden-1a.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1a.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1b.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1b.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1c.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1c.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1d.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1d.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1e.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1e.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1f.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1f.html"
+      },
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1g.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1g.html"
+      },
+      {
         "path": "html/editing/the-hidden-attribute/hidden-2.svg",
         "references": [
           [
@@ -5570,6 +5706,26 @@
         "url": "/html/semantics/forms/the-textarea-element/textarea-newline-bidi.html"
       },
       {
+        "path": "html/semantics/forms/the-textarea-element/wrap-reflect-1a.html",
+        "references": [
+          [
+            "/html/semantics/forms/the-textarea-element/wrap-reflect-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/forms/the-textarea-element/wrap-reflect-1a.html"
+      },
+      {
+        "path": "html/semantics/forms/the-textarea-element/wrap-reflect-1b.html",
+        "references": [
+          [
+            "/html/semantics/forms/the-textarea-element/wrap-reflect-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/forms/the-textarea-element/wrap-reflect-1b.html"
+      },
+      {
         "path": "html/semantics/grouping-content/the-li-element/grouping-li-reftest-001.html",
         "references": [
           [
@@ -5948,6 +6104,16 @@
           ]
         ],
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
+      },
+      {
+        "path": "http/basic-auth-cache-test.html",
+        "references": [
+          [
+            "/http/basic-auth-cache-test-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/http/basic-auth-cache-test.html"
       },
       {
         "path": "quirks-mode/historical/list-item-bullet-size.html",
@@ -8958,6 +9124,10 @@
         "url": "/2dcontext/drawing-images-to-the-canvas/2d.drawImage.zerosource.image.html"
       },
       {
+        "path": "2dcontext/drawing-paths-to-the-canvas/canvas_complexshapes_ispointInpath_001.htm",
+        "url": "/2dcontext/drawing-paths-to-the-canvas/canvas_complexshapes_ispointInpath_001.htm"
+      },
+      {
         "path": "2dcontext/drawing-paths-to-the-canvas/canvas_focus_drawCustomFocusRing_001.html",
         "url": "/2dcontext/drawing-paths-to-the-canvas/canvas_focus_drawCustomFocusRing_001.html"
       },
@@ -9952,6 +10122,10 @@
       {
         "path": "2dcontext/fill-and-stroke-styles/2d.strokeStyle.default.html",
         "url": "/2dcontext/fill-and-stroke-styles/2d.strokeStyle.default.html"
+      },
+      {
+        "path": "2dcontext/fill-and-stroke-styles/canvas_colorsandstyles_createlineargradient_001.htm",
+        "url": "/2dcontext/fill-and-stroke-styles/canvas_colorsandstyles_createlineargradient_001.htm"
       },
       {
         "path": "2dcontext/hit-regions/addHitRegions-NotSupportedError-01.html",
@@ -11072,6 +11246,10 @@
       {
         "path": "2dcontext/shadows/2d.shadow.transform.2.html",
         "url": "/2dcontext/shadows/2d.shadow.transform.2.html"
+      },
+      {
+        "path": "2dcontext/shadows/canvas_shadows_001.htm",
+        "url": "/2dcontext/shadows/canvas_shadows_001.htm"
       },
       {
         "path": "2dcontext/text-styles/2d.text.align.default.html",
@@ -12782,10 +12960,6 @@
         "url": "/XMLHttpRequest/event-error-order.sub.html"
       },
       {
-        "path": "XMLHttpRequest/event-error.html",
-        "url": "/XMLHttpRequest/event-error.html"
-      },
-      {
         "path": "XMLHttpRequest/event-error.sub.html",
         "url": "/XMLHttpRequest/event-error.sub.html"
       },
@@ -13466,6 +13640,22 @@
         "url": "/XMLHttpRequest/xmlhttprequest-unsent.htm"
       },
       {
+        "path": "ambient-light/AmbientLightSensor_browsing_context.html",
+        "url": "/ambient-light/AmbientLightSensor_browsing_context.html"
+      },
+      {
+        "path": "ambient-light/AmbientLightSensor_onstatechange.html",
+        "url": "/ambient-light/AmbientLightSensor_onstatechange.html"
+      },
+      {
+        "path": "ambient-light/AmbientLightSensor_start.html",
+        "url": "/ambient-light/AmbientLightSensor_start.html"
+      },
+      {
+        "path": "ambient-light/AmbientLightSensor_stop.html",
+        "url": "/ambient-light/AmbientLightSensor_stop.html"
+      },
+      {
         "path": "ambient-light/idlharness.html",
         "url": "/ambient-light/idlharness.html"
       },
@@ -14090,6 +14280,10 @@
         "url": "/content-security-policy/meta/meta-modified.html"
       },
       {
+        "path": "content-security-policy/reporting/securitypolicyviolation-idl.html",
+        "url": "/content-security-policy/reporting/securitypolicyviolation-idl.html"
+      },
+      {
         "path": "content-security-policy/script-src/script-src-1_1.html",
         "url": "/content-security-policy/script-src/script-src-1_1.html"
       },
@@ -14272,6 +14466,10 @@
       {
         "path": "cssom-view/scrollingElement.html",
         "url": "/cssom-view/scrollingElement.html"
+      },
+      {
+        "path": "custom-elements/HTMLElement-constructor.html",
+        "url": "/custom-elements/HTMLElement-constructor.html"
       },
       {
         "path": "custom-elements/custom-element-registry/define.html",
@@ -14676,6 +14874,10 @@
       {
         "path": "dom/interfaces.html",
         "url": "/dom/interfaces.html"
+      },
+      {
+        "path": "dom/lists/DOMTokenList-Iterable.html",
+        "url": "/dom/lists/DOMTokenList-Iterable.html"
       },
       {
         "path": "dom/lists/DOMTokenList-coverage-for-attributes.html",
@@ -15430,6 +15632,10 @@
         "url": "/dom/nodes/remove-unscopable.html"
       },
       {
+        "path": "dom/nodes/rootNode.html",
+        "url": "/dom/nodes/rootNode.html"
+      },
+      {
         "path": "dom/ranges/Range-commonAncestorContainer-2.html",
         "url": "/dom/ranges/Range-commonAncestorContainer-2.html"
       },
@@ -15790,24 +15996,12 @@
         "url": "/encrypted-media/Google/encrypted-media-clearkey-update-non-ascii-input.html"
       },
       {
-        "path": "encrypted-media/Google/encrypted-media-keystatuses-multiple-sessions.html",
-        "url": "/encrypted-media/Google/encrypted-media-keystatuses-multiple-sessions.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-keystatuses-multiple-updates.html",
-        "url": "/encrypted-media/Google/encrypted-media-keystatuses-multiple-updates.html"
-      },
-      {
         "path": "encrypted-media/Google/encrypted-media-onencrypted.html",
         "url": "/encrypted-media/Google/encrypted-media-onencrypted.html"
       },
       {
         "path": "encrypted-media/Google/encrypted-media-playback-encrypted-and-clear-sources.html",
         "url": "/encrypted-media/Google/encrypted-media-playback-encrypted-and-clear-sources.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-playback-multiple-sessions.html",
-        "url": "/encrypted-media/Google/encrypted-media-playback-multiple-sessions.html"
       },
       {
         "path": "encrypted-media/Google/encrypted-media-requestmediakeysystemaccess.html",
@@ -15866,6 +16060,38 @@
         "url": "/encrypted-media/Google/encrypted-media-waiting-for-a-key.html"
       },
       {
+        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-sessions.html",
+        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-sessions.html"
+      },
+      {
+        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-updates.html",
+        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-updates.html"
+      },
+      {
+        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-playback-multiple-sessions.html",
+        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-playback-multiple-sessions.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-check-initdata-type.html",
+        "url": "/encrypted-media/clearkey-check-initdata-type.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-events.html",
+        "url": "/encrypted-media/clearkey-events.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-generate-request-disallowed-input.html",
+        "url": "/encrypted-media/clearkey-generate-request-disallowed-input.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-keystatuses-multiple-sessions.html",
+        "url": "/encrypted-media/clearkey-keystatuses-multiple-sessions.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-keystatuses.html",
+        "url": "/encrypted-media/clearkey-keystatuses.html"
+      },
+      {
         "path": "encrypted-media/clearkey-mp4-playback-destroy-persistent-license.html",
         "url": "/encrypted-media/clearkey-mp4-playback-destroy-persistent-license.html"
       },
@@ -15878,12 +16104,84 @@
         "url": "/encrypted-media/clearkey-mp4-playback-persistent-license.html"
       },
       {
+        "path": "encrypted-media/clearkey-mp4-playback-persistent-usage-record-events.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-persistent-usage-record-events.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-persistent-usage-record.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-persistent-usage-record.html"
+      },
+      {
         "path": "encrypted-media/clearkey-mp4-playback-retrieve-destroy-persistent-license.html",
         "url": "/encrypted-media/clearkey-mp4-playback-retrieve-destroy-persistent-license.html"
       },
       {
         "path": "encrypted-media/clearkey-mp4-playback-retrieve-persistent-license.html",
         "url": "/encrypted-media/clearkey-mp4-playback-retrieve-persistent-license.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-retrieve-persistent-usage-record.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-retrieve-persistent-usage-record.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-events.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-events.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-multikey.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multikey.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-multisession.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multisession.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-src.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-src.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-update.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-update.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-immediately.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-immediately.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-onencrypted.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-onencrypted.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-waitingforkey.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-waitingforkey.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-not-callable-after-createsession.html",
+        "url": "/encrypted-media/clearkey-not-callable-after-createsession.html"
+      },
+      {
+        "path": "encrypted-media/drm-check-initdata-type.html",
+        "url": "/encrypted-media/drm-check-initdata-type.html"
+      },
+      {
+        "path": "encrypted-media/drm-events.html",
+        "url": "/encrypted-media/drm-events.html"
+      },
+      {
+        "path": "encrypted-media/drm-generate-request-disallowed-input.html",
+        "url": "/encrypted-media/drm-generate-request-disallowed-input.html"
+      },
+      {
+        "path": "encrypted-media/drm-keystatuses-multiple-sessions.html",
+        "url": "/encrypted-media/drm-keystatuses-multiple-sessions.html"
+      },
+      {
+        "path": "encrypted-media/drm-keystatuses.html",
+        "url": "/encrypted-media/drm-keystatuses.html"
       },
       {
         "path": "encrypted-media/drm-mp4-playback-destroy-persistent-license.html",
@@ -15896,6 +16194,54 @@
       {
         "path": "encrypted-media/drm-mp4-playback-persistent-license.html",
         "url": "/encrypted-media/drm-mp4-playback-persistent-license.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-persistent-usage-record-events.html",
+        "url": "/encrypted-media/drm-mp4-playback-persistent-usage-record-events.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html",
+        "url": "/encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-multikey.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-multikey.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-multisession.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-multisession.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-src.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-src.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-update.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-update.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-immediately.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-immediately.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-onencrypted.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-onencrypted.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-two-videos.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-two-videos.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-waitingforkey.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-waitingforkey.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary.html"
+      },
+      {
+        "path": "encrypted-media/drm-not-callable-after-createsession.html",
+        "url": "/encrypted-media/drm-not-callable-after-createsession.html"
       },
       {
         "path": "encrypted-media/idlharness.html",
@@ -16618,6 +16964,14 @@
         "url": "/fetch/nosniff/worker.html"
       },
       {
+        "path": "fullscreen/api/document-fullscreen-enabled.html",
+        "url": "/fullscreen/api/document-fullscreen-enabled.html"
+      },
+      {
+        "path": "fullscreen/api/document-onfullscreenerror.html",
+        "url": "/fullscreen/api/document-onfullscreenerror.html"
+      },
+      {
         "path": "gamepad/idlharness.html",
         "url": "/gamepad/idlharness.html"
       },
@@ -17316,6 +17670,10 @@
       {
         "path": "html/browsers/offline/manifest_url_check.html",
         "url": "/html/browsers/offline/manifest_url_check.html"
+      },
+      {
+        "path": "html/browsers/origin/origin-of-data-document.html",
+        "url": "/html/browsers/origin/origin-of-data-document.html"
       },
       {
         "path": "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html",
@@ -18386,6 +18744,10 @@
         "url": "/html/semantics/document-metadata/the-meta-element/the-lang-attribute-012.html"
       },
       {
+        "path": "html/semantics/document-metadata/the-style-element/historical.html",
+        "url": "/html/semantics/document-metadata/the-style-element/historical.html"
+      },
+      {
         "path": "html/semantics/document-metadata/the-style-element/style-error-01.html",
         "url": "/html/semantics/document-metadata/the-style-element/style-error-01.html"
       },
@@ -18400,10 +18762,6 @@
       {
         "path": "html/semantics/document-metadata/the-style-element/style_media.html",
         "url": "/html/semantics/document-metadata/the-style-element/style_media.html"
-      },
-      {
-        "path": "html/semantics/document-metadata/the-style-element/style_scoped.html",
-        "url": "/html/semantics/document-metadata/the-style-element/style_scoped.html"
       },
       {
         "path": "html/semantics/document-metadata/the-title-element/title.text-01.html",
@@ -18956,10 +19314,6 @@
       {
         "path": "html/semantics/embedded-content/media-elements/src_reflects_attribute_not_source_elements.html",
         "url": "/html/semantics/embedded-content/media-elements/src_reflects_attribute_not_source_elements.html"
-      },
-      {
-        "path": "html/semantics/embedded-content/media-elements/synchronising-multiple-media-elements/media-controllers/task-source.html",
-        "url": "/html/semantics/embedded-content/media-elements/synchronising-multiple-media-elements/media-controllers/task-source.html"
       },
       {
         "path": "html/semantics/embedded-content/media-elements/track/track-element/cloneNode.html",
@@ -19642,6 +19996,10 @@
         "url": "/html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-iframe-element/historical.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/historical.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe-allowfullscreen.html",
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe-allowfullscreen.html"
       },
@@ -19854,6 +20212,10 @@
         "url": "/html/semantics/forms/form-submission-0/url-encoded.html"
       },
       {
+        "path": "html/semantics/forms/historical.html",
+        "url": "/html/semantics/forms/historical.html"
+      },
+      {
         "path": "html/semantics/forms/resetting-a-form/reset-form.html",
         "url": "/html/semantics/forms/resetting-a-form/reset-form.html"
       },
@@ -19954,16 +20316,16 @@
         "url": "/html/semantics/forms/the-input-element/checked.xhtml"
       },
       {
+        "path": "html/semantics/forms/the-input-element/cloning-steps.html",
+        "url": "/html/semantics/forms/the-input-element/cloning-steps.html"
+      },
+      {
         "path": "html/semantics/forms/the-input-element/color.html",
         "url": "/html/semantics/forms/the-input-element/color.html"
       },
       {
         "path": "html/semantics/forms/the-input-element/date.html",
         "url": "/html/semantics/forms/the-input-element/date.html"
-      },
-      {
-        "path": "html/semantics/forms/the-input-element/datetime-2.html",
-        "url": "/html/semantics/forms/the-input-element/datetime-2.html"
       },
       {
         "path": "html/semantics/forms/the-input-element/datetime-local.html",
@@ -19996,6 +20358,10 @@
       {
         "path": "html/semantics/forms/the-input-element/maxlength.html",
         "url": "/html/semantics/forms/the-input-element/maxlength.html"
+      },
+      {
+        "path": "html/semantics/forms/the-input-element/minlength.html",
+        "url": "/html/semantics/forms/the-input-element/minlength.html"
       },
       {
         "path": "html/semantics/forms/the-input-element/month.html",
@@ -20158,6 +20524,10 @@
         "url": "/html/semantics/forms/the-select-element/select-remove.html"
       },
       {
+        "path": "html/semantics/forms/the-textarea-element/cloning-steps.html",
+        "url": "/html/semantics/forms/the-textarea-element/cloning-steps.html"
+      },
+      {
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html",
         "url": "/html/semantics/forms/the-textarea-element/textarea-type.html"
       },
@@ -20310,8 +20680,12 @@
         "url": "/html/semantics/scripting-1/the-script-element/fetch-src/failure.html"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/script-before-after-events.html",
-        "url": "/html/semantics/scripting-1/the-script-element/script-before-after-events.html"
+        "path": "html/semantics/scripting-1/the-script-element/historical.html",
+        "url": "/html/semantics/scripting-1/the-script-element/historical.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/load-event.html",
+        "url": "/html/semantics/scripting-1/the-script-element/load-event.html"
       },
       {
         "path": "html/semantics/scripting-1/the-script-element/script-charset-01.html",
@@ -20324,6 +20698,14 @@
       {
         "path": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
         "url": "/html/semantics/scripting-1/the-script-element/script-charset-03.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin-network.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-crossorigin.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin.html"
       },
       {
         "path": "html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml",
@@ -20514,6 +20896,10 @@
         "url": "/html/semantics/tabular-data/attributes-common-to-td-and-th-elements/cellIndex.html"
       },
       {
+        "path": "html/semantics/tabular-data/historical.html",
+        "url": "/html/semantics/tabular-data/historical.html"
+      },
+      {
         "path": "html/semantics/tabular-data/the-caption-element/caption_001.html",
         "url": "/html/semantics/tabular-data/the-caption-element/caption_001.html"
       },
@@ -20604,6 +20990,10 @@
       {
         "path": "html/semantics/tabular-data/the-tr-element/sectionRowIndex.html",
         "url": "/html/semantics/tabular-data/the-tr-element/sectionRowIndex.html"
+      },
+      {
+        "path": "html/semantics/text-level-semantics/historical.html",
+        "url": "/html/semantics/text-level-semantics/historical.html"
       },
       {
         "path": "html/semantics/text-level-semantics/the-a-element/a-stringifier.html",
@@ -21480,6 +21870,10 @@
       {
         "path": "mediacapture-streams/MediaStreamTrack-init.https.html",
         "url": "/mediacapture-streams/MediaStreamTrack-init.https.html"
+      },
+      {
+        "path": "mediacapture-streams/MediaStreamTrackEvent-constructor.https.html",
+        "url": "/mediacapture-streams/MediaStreamTrackEvent-constructor.https.html"
       },
       {
         "path": "mixed-content/allowed/http-csp/same-host-https/audio-tag/top-level/keep-scheme-redirect/allowed.https.html",
@@ -22802,26 +23196,6 @@
         "url": "/old-tests/submission/Infraware/Forms/contents/Forms/keygen_labels.html"
       },
       {
-        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_004.htm",
-        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_004.htm"
-      },
-      {
-        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_005.htm",
-        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_005.htm"
-      },
-      {
-        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_006.htm",
-        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_006.htm"
-      },
-      {
-        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_007.htm",
-        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_007.htm"
-      },
-      {
-        "path": "old-tests/submission/Microsoft/dragdrop/dragdrop_008.htm",
-        "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_008.htm"
-      },
-      {
         "path": "old-tests/submission/Microsoft/history/history_000.htm",
         "url": "/old-tests/submission/Microsoft/history/history_000.htm"
       },
@@ -23584,14 +23958,6 @@
       {
         "path": "pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html",
         "url": "/pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_suppress_compat_events_on_click.html",
-        "url": "/pointerevents/pointerevent_suppress_compat_events_on_click.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_suppress_compat_events_on_drag_mouse.html",
-        "url": "/pointerevents/pointerevent_suppress_compat_events_on_drag_mouse.html"
       },
       {
         "path": "pointerevents/pointerevent_touch-action-illegal.html",
@@ -29042,6 +29408,10 @@
         "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/xhr-request/upgrade-protocol.swap-origin-redirect.http.html"
       },
       {
+        "path": "resource-timing/idlharness.html",
+        "url": "/resource-timing/idlharness.html"
+      },
+      {
         "path": "resource-timing/resource-timing.html",
         "url": "/resource-timing/resource-timing.html"
       },
@@ -29538,8 +29908,16 @@
         "url": "/shadow-dom/Element-interface-shadowRoot-attribute.html"
       },
       {
+        "path": "shadow-dom/Extensions-to-Event-Interface.html",
+        "url": "/shadow-dom/Extensions-to-Event-Interface.html"
+      },
+      {
         "path": "shadow-dom/HTMLSlotElement-interface.html",
         "url": "/shadow-dom/HTMLSlotElement-interface.html"
+      },
+      {
+        "path": "shadow-dom/MouseEvent-prototype-offsetX-offsetY.html",
+        "url": "/shadow-dom/MouseEvent-prototype-offsetX-offsetY.html"
       },
       {
         "path": "shadow-dom/Node-prototype-cloneNode.html",
@@ -29548,6 +29926,10 @@
       {
         "path": "shadow-dom/ShadowRoot-interface.html",
         "url": "/shadow-dom/ShadowRoot-interface.html"
+      },
+      {
+        "path": "shadow-dom/Slotable-interface.html",
+        "url": "/shadow-dom/Slotable-interface.html"
       },
       {
         "path": "shadow-dom/event-composed-path-with-related-target.html",
@@ -29560,6 +29942,18 @@
       {
         "path": "shadow-dom/event-composed.html",
         "url": "/shadow-dom/event-composed.html"
+      },
+      {
+        "path": "shadow-dom/event-inside-shadow-tree.html",
+        "url": "/shadow-dom/event-inside-shadow-tree.html"
+      },
+      {
+        "path": "shadow-dom/event-inside-slotted-node.html",
+        "url": "/shadow-dom/event-inside-slotted-node.html"
+      },
+      {
+        "path": "shadow-dom/event-with-related-target.html",
+        "url": "/shadow-dom/event-with-related-target.html"
       },
       {
         "path": "shadow-dom/leaktests/get-elements.html",
@@ -29576,6 +29970,10 @@
       {
         "path": "shadow-dom/scroll-to-the-fragment-in-shadow-tree.html",
         "url": "/shadow-dom/scroll-to-the-fragment-in-shadow-tree.html"
+      },
+      {
+        "path": "shadow-dom/slotchange-event.html",
+        "url": "/shadow-dom/slotchange-event.html"
       },
       {
         "path": "shadow-dom/slotchange.html",
@@ -29864,6 +30262,10 @@
       {
         "path": "subresource-integrity/subresource-integrity.sub.html",
         "url": "/subresource-integrity/subresource-integrity.sub.html"
+      },
+      {
+        "path": "svg/historical.html",
+        "url": "/svg/historical.html"
       },
       {
         "path": "svg/interfaces.html",
@@ -35314,6 +35716,10 @@
         "url": "/workers/interfaces/WorkerUtils/navigator/language.html"
       },
       {
+        "path": "workers/interfaces/WorkerUtils/navigator/window-only.worker.js",
+        "url": "/workers/interfaces/WorkerUtils/navigator/window-only.worker"
+      },
+      {
         "path": "workers/nested_worker.worker.js",
         "url": "/workers/nested_worker.worker"
       },
@@ -35958,129 +36364,9 @@
         "url": "/encoding/single-byte-decoder.html"
       },
       {
-        "path": "encrypted-media/clearkey-check-initdata-type.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-check-initdata-type.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-events.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-events.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-generate-request-disallowed-input.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-generate-request-disallowed-input.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-keystatuses-multiple-sessions.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-keystatuses-multiple-sessions.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-keystatuses.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-keystatuses.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-persistent-usage-record-events.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-persistent-usage-record-events.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-persistent-usage-record.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-persistent-usage-record.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-retrieve-persistent-usage-record.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-retrieve-persistent-usage-record.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-events.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-events.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-multikey.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multikey.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-src.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-src.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-update.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-after-update.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-immediately.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-immediately.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-onencrypted.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-setMediaKeys-onencrypted.html"
-      },
-      {
         "path": "encrypted-media/clearkey-mp4-playback-temporary-two-videos.html",
         "timeout": "long",
         "url": "/encrypted-media/clearkey-mp4-playback-temporary-two-videos.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary-waitingforkey.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary-waitingforkey.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-mp4-playback-temporary.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-mp4-playback-temporary.html"
-      },
-      {
-        "path": "encrypted-media/clearkey-not-callable-after-createsession.html",
-        "timeout": "long",
-        "url": "/encrypted-media/clearkey-not-callable-after-createsession.html"
-      },
-      {
-        "path": "encrypted-media/drm-check-initdata-type.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-check-initdata-type.html"
-      },
-      {
-        "path": "encrypted-media/drm-events.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-events.html"
-      },
-      {
-        "path": "encrypted-media/drm-generate-request-disallowed-input.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-generate-request-disallowed-input.html"
-      },
-      {
-        "path": "encrypted-media/drm-keystatuses-multiple-sessions.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-keystatuses-multiple-sessions.html"
-      },
-      {
-        "path": "encrypted-media/drm-keystatuses.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-keystatuses.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-persistent-usage-record-events.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-persistent-usage-record-events.html"
       },
       {
         "path": "encrypted-media/drm-mp4-playback-persistent-usage-record.html",
@@ -36098,64 +36384,9 @@
         "url": "/encrypted-media/drm-mp4-playback-retrieve-persistent-license.html"
       },
       {
-        "path": "encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html"
-      },
-      {
         "path": "encrypted-media/drm-mp4-playback-temporary-events.html",
         "timeout": "long",
         "url": "/encrypted-media/drm-mp4-playback-temporary-events.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-multikey-sequential.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-multikey-sequential.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-multikey.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-multikey.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-src.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-src.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-update.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-after-update.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-immediately.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-immediately.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-setMediaKeys-onencrypted.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-setMediaKeys-onencrypted.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-two-videos.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-two-videos.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary-waitingforkey.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary-waitingforkey.html"
-      },
-      {
-        "path": "encrypted-media/drm-mp4-playback-temporary.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-mp4-playback-temporary.html"
-      },
-      {
-        "path": "encrypted-media/drm-not-callable-after-createsession.html",
-        "timeout": "long",
-        "url": "/encrypted-media/drm-not-callable-after-createsession.html"
       },
       {
         "path": "eventsource/dedicated-worker/eventsource-constructor-non-same-origin.htm",
@@ -37483,61 +37714,16 @@
     "deleted": [],
     "deleted_reftests": {},
     "items": {
-      "reftest": {
-        "http/basic-auth-cache-test.html": [
-          {
-            "path": "http/basic-auth-cache-test.html",
-            "references": [
-              [
-                "/http/basic-auth-cache-test-ref.html",
-                "=="
-              ]
-            ],
-            "url": "/http/basic-auth-cache-test.html"
-          }
-        ]
-      },
       "testharness": {
-        "dom/lists/DOMTokenList-Iterable.html": [
+        "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html": [
           {
-            "path": "dom/lists/DOMTokenList-Iterable.html",
-            "url": "/dom/lists/DOMTokenList-Iterable.html"
-          }
-        ],
-        "html/semantics/forms/the-input-element/minlength.html": [
-          {
-            "path": "html/semantics/forms/the-input-element/minlength.html",
-            "url": "/html/semantics/forms/the-input-element/minlength.html"
-          }
-        ],
-        "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html": [
-          {
-            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html",
-            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin-network.html"
-          }
-        ],
-        "html/semantics/scripting-1/the-script-element/script-crossorigin.html": [
-          {
-            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin.html",
-            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin.html"
+            "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
+            "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
           }
         ]
       }
     },
-    "reftest_nodes": {
-      "http/basic-auth-cache-test.html": [
-        {
-          "path": "http/basic-auth-cache-test.html",
-          "references": [
-            [
-              "/http/basic-auth-cache-test-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/http/basic-auth-cache-test.html"
-        }
-      ]
-    }
+    "reftest_nodes": {}
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
@@ -37910,6 +38096,18 @@
           ]
         ],
         "url": "/2dcontext/shadows/canvas_shadows_002.htm"
+      }
+    ],
+    "2dcontext/text-styles/canvas_text_font_001.htm": [
+      {
+        "path": "2dcontext/text-styles/canvas_text_font_001.htm",
+        "references": [
+          [
+            "/2dcontext/text-styles/canvas_text_font_001-ref.htm",
+            "=="
+          ]
+        ],
+        "url": "/2dcontext/text-styles/canvas_text_font_001.htm"
       }
     ],
     "2dcontext/the-canvas-state/canvas_state_restore_001.htm": [
@@ -39124,6 +39322,90 @@
         "url": "/html/dom/elements/requirements-relating-to-bidirectional-algorithm-formatting-characters/dir-isolation-009c.html"
       }
     ],
+    "html/editing/the-hidden-attribute/hidden-1a.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1a.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1a.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1b.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1b.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1b.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1c.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1c.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1c.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1d.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1d.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1d.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1e.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1e.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1e.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1f.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1f.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1f.html"
+      }
+    ],
+    "html/editing/the-hidden-attribute/hidden-1g.html": [
+      {
+        "path": "html/editing/the-hidden-attribute/hidden-1g.html",
+        "references": [
+          [
+            "/html/editing/the-hidden-attribute/hidden-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/editing/the-hidden-attribute/hidden-1g.html"
+      }
+    ],
     "html/editing/the-hidden-attribute/hidden-2.svg": [
       {
         "path": "html/editing/the-hidden-attribute/hidden-2.svg",
@@ -40048,6 +40330,30 @@
         "url": "/html/semantics/forms/the-textarea-element/textarea-newline-bidi.html"
       }
     ],
+    "html/semantics/forms/the-textarea-element/wrap-reflect-1a.html": [
+      {
+        "path": "html/semantics/forms/the-textarea-element/wrap-reflect-1a.html",
+        "references": [
+          [
+            "/html/semantics/forms/the-textarea-element/wrap-reflect-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/forms/the-textarea-element/wrap-reflect-1a.html"
+      }
+    ],
+    "html/semantics/forms/the-textarea-element/wrap-reflect-1b.html": [
+      {
+        "path": "html/semantics/forms/the-textarea-element/wrap-reflect-1b.html",
+        "references": [
+          [
+            "/html/semantics/forms/the-textarea-element/wrap-reflect-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/forms/the-textarea-element/wrap-reflect-1b.html"
+      }
+    ],
     "html/semantics/grouping-content/the-li-element/grouping-li-reftest-001.html": [
       {
         "path": "html/semantics/grouping-content/the-li-element/grouping-li-reftest-001.html",
@@ -40502,6 +40808,18 @@
           ]
         ],
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
+      }
+    ],
+    "http/basic-auth-cache-test.html": [
+      {
+        "path": "http/basic-auth-cache-test.html",
+        "references": [
+          [
+            "/http/basic-auth-cache-test-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/http/basic-auth-cache-test.html"
       }
     ],
     "quirks-mode/historical/list-item-bullet-size.html": [
@@ -43241,7 +43559,7 @@
       }
     ]
   },
-  "rev": "dc5cbf088edcdb266541d4e5a76149a2c6e716a0",
+  "rev": "3b3585e368841b77caea8576fa56cef91c3fbdf0",
   "url_base": "/",
   "version": 3
 }

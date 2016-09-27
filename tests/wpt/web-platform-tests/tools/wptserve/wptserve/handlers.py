@@ -5,12 +5,12 @@ import traceback
 import urllib
 import urlparse
 
-from constants import content_types
-from pipes import Pipeline, template
-from ranges import RangeParser
-from request import Authentication
-from response import MultipartContent
-from utils import HTTPException
+from .constants import content_types
+from .pipes import Pipeline, template
+from .ranges import RangeParser
+from .request import Authentication
+from .response import MultipartContent
+from .utils import HTTPException
 
 __all__ = ["file_handler", "python_script_handler",
            "FunctionHandler", "handler", "json_handler",
@@ -55,13 +55,14 @@ class DirectoryHandler(object):
         return "<%s base_path:%s url_base:%s>" % (self.__class__.__name__, self.base_path, self.url_base)
 
     def __call__(self, request, response):
-        if not request.url_parts.path.endswith("/"):
+        url_path = request.url_parts.path
+
+        if not url_path.endswith("/"):
             raise HTTPException(404)
 
         path = filesystem_path(self.base_path, request, self.url_base)
 
-        if not os.path.isdir(path):
-            raise HTTPException(404, "%s is not a directory" % path)
+        assert os.path.isdir(path)
 
         response.headers = [("Content-Type", "text/html")]
         response.content = """<!doctype html>
@@ -71,19 +72,18 @@ class DirectoryHandler(object):
 <ul>
 %(items)s
 </ul>
-""" % {"path": cgi.escape(request.url_parts.path),
-       "items": "\n".join(self.list_items(request, path))}
+""" % {"path": cgi.escape(url_path),
+       "items": "\n".join(self.list_items(url_path, path))}  # flake8: noqa
 
-    def list_items(self, request, path):
+    def list_items(self, base_path, path):
+        assert base_path.endswith("/")
+
         # TODO: this won't actually list all routes, only the
         # ones that correspond to a real filesystem path. It's
         # not possible to list every route that will match
         # something, but it should be possible to at least list the
         # statically defined ones
-        base_path = request.url_parts.path
 
-        if not base_path.endswith("/"):
-            base_path += "/"
         if base_path != "/":
             link = urlparse.urljoin(base_path, "..")
             yield ("""<li class="dir"><a href="%(link)s">%(name)s</a></li>""" %
@@ -97,9 +97,6 @@ class DirectoryHandler(object):
                 class_ = "file"
             yield ("""<li class="%(class)s"><a href="%(link)s">%(name)s</a></li>""" %
                    {"link": link, "name": cgi.escape(item), "class": class_})
-
-
-directory_handler = DirectoryHandler()
 
 
 class FileHandler(object):

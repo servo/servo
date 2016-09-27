@@ -1,0 +1,32 @@
+<!doctype html>
+<title>Historical text-level element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function t(property, tagNames) {
+  if (typeof tagNames === "string") {
+    tagNames = [tagNames];
+  }
+  tagNames.forEach(function(tagName) {
+    test(function() {
+      assert_false(property in document.createElement(tagName));
+    }, tagName + '.' + property + ' should not be supported');
+  });
+}
+
+// <area> and <link> are in other sections in the spec, but we'll test them here together with <a>
+
+// removed in https://github.com/whatwg/html/commit/790479ab1ba143efc27d1f92cd0465627df48fb0
+t('hreflang', 'area');
+t('type', 'area');
+
+// renamed to dateTime in https://github.com/whatwg/html/commit/8b6732237c7021cd61e3c3463146234ca8ce5bad
+t('datetime', 'time');
+
+// removed in https://github.com/whatwg/html/commit/66fcb2357f205448fe2f40d7834a1e8ea2ed283b
+t('media', ['a', 'area']);
+
+// renamed to noreferrer in https://github.com/whatwg/html/commit/6a34274e99593e767ae99744a6c38a19489915c6
+t('noreferer', ['link', 'a', 'area']);
+</script>

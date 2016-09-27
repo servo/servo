@@ -23,7 +23,7 @@ x</listing>
 </div>
 
 <script>
-var expected_outer = '\n<div id="inner">\n<pre id="pre1">x</pre>\n<pre id="pre2">\n\nx</pre>\n<textarea id="textarea1">x</textarea>\n<textarea id="textarea2">\n\nx</textarea>\n<listing id="listing1">x</listing>\n<listing id="listing2">\n\nx</listing>\n</div>\n';
+var expected_outer = '\n<div id="inner">\n<pre id="pre1">x</pre>\n<pre id="pre2">\nx</pre>\n<textarea id="textarea1">x</textarea>\n<textarea id="textarea2">\nx</textarea>\n<listing id="listing1">x</listing>\n<listing id="listing2">\nx</listing>\n</div>\n';
 var expected_inner = expected_outer.replace('\n<div id="inner">', '').replace('</div>\n', '');
 var expected_1 = 'x';
 var expected_2 = '\nx';

@@ -3,22 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+//use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
+use dom::htmlcollection::CollectionFilter;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, HTMLFormElement};
+use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
-use dom::node::{document_from_node, Node, UnbindContext, window_from_node};
+use dom::htmloptionscollection::HTMLOptionsCollection;
+use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
@@ -27,9 +34,31 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
 
+#[derive(JSTraceable, HeapSizeOf)]
+struct OptionsFilter;
+impl CollectionFilter for OptionsFilter {
+    fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {
+        if !elem.is::<HTMLOptionElement>() {
+            return false;
+        }
+
+        let node = elem.upcast::<Node>();
+        if root.is_parent_of(node) {
+            return true;
+        }
+
+        match node.GetParentNode() {
+            Some(optgroup) =>
+                optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(optgroup.r()),
+            None => false,
+        }
+    }
+}
+
 #[dom_struct]
 pub struct HTMLSelectElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    options: MutNullableHeap<JS<HTMLOptionsCollection>>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;
@@ -41,7 +70,8 @@ impl HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document)
+                                                      local_name, prefix, document),
+                options: Default::default()
         }
     }
 
@@ -185,48 +215,48 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         self.upcast::<HTMLElement>().labels()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-select-length
-    fn SetLength(&self, value: u32) {
-        let length  = self.Length();
-        let node = self.upcast::<Node>();
-        if value < length {     // truncate the number of option elements
-            let mut iter = node.rev_children().take((length - value) as usize);
-            while let Some(child) = iter.next() {
-                if let Err(e) = node.RemoveChild(&child) {
-                    warn!("Error removing child of HTMLSelectElement: {:?}", e);
-                }
-            }
-        } else if value > length {  // add new blank option elements
-            let document = document_from_node(self);
-            for _ in 0..(value - length) {
-                let element = HTMLOptionElement::new(atom!("option"), None, &document.upcast());
-                if let Err(e) = node.AppendChild(element.upcast()) {
-                    warn!("error appending child of HTMLSelectElement: {:?}", e);
-                }
-            }
-        }
+    // https://html.spec.whatwg.org/multipage/#dom-select-options
+    fn Options(&self) -> Root<HTMLOptionsCollection> {
+        self.options.or_init(|| {
+            let window = window_from_node(self);
+            HTMLOptionsCollection::new(window.r(),
+                        self.upcast(), box OptionsFilter)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-length
     fn Length(&self) -> u32 {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
-            .count() as u32
+        self.Options().Length()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    fn SetLength(&self, length: u32) {
+        self.Options().SetLength(length)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
     fn Item(&self, index: u32) -> Option<Root<Element>> {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
-            .nth(index as usize)
-            .map(|item| Root::from_ref(item.upcast()))
+        self.Options().upcast().Item(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
     fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
-        self.Item(index)
+        self.Options().IndexedGetter(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-nameditem
+    fn NamedItem(&self, name: DOMString) -> Option<Root<HTMLOptionElement>> {
+        self.Options().NamedGetter(name).map_or(None, |e| Root::downcast::<HTMLOptionElement>(e))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-remove
+    fn Remove_(&self, index: i32) {
+        self.Options().Remove(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-remove
+    fn Remove(&self) {
+        self.upcast::<Element>().Remove()
     }
 }
 

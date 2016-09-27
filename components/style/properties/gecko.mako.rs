@@ -27,9 +27,9 @@ use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImage
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
-use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
-use gecko_values::convert_rgba_to_nscolor;
-use gecko_values::round_border_to_device_pixels;
+use gecko::values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
+use gecko::values::convert_rgba_to_nscolor;
+use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use properties::CascadePropertyFn;
 use properties::longhands;
@@ -1622,8 +1622,8 @@ clip-path
         use gecko_bindings::structs::StyleClipPathGeometryBox;
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
         use gecko_bindings::structs::{StyleClipPath, StyleFillRule};
-        use gecko_conversions::basic_shape::set_corners_from_radius;
-        use gecko_values::GeckoStyleCoordConvertible;
+        use gecko::conversions::basic_shape::set_corners_from_radius;
+        use gecko::values::GeckoStyleCoordConvertible;
         use values::computed::basic_shape::*;
         let ref mut clip_path = self.gecko.mClipPath;
         // clean up existing struct

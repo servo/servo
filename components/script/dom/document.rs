@@ -41,6 +41,7 @@ use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
 use dom::forcetouchevent::ForceTouchEvent;
@@ -1119,7 +1120,11 @@ impl Document {
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
                       ReflowReason::MouseEvent);
-        result
+
+        match result {
+            EventStatus::Canceled => false,
+            EventStatus::NotCanceled => true
+        }
     }
 
     /// The entry point for all key processing for web content

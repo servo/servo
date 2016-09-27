@@ -20,7 +20,7 @@ function testInlineScript(mode)
         var host = document.createElement('div');
         var shadowRoot = host.attachShadow({mode: mode});
         var scriptElement = document.createElement('script');
-        scriptElement.textContent = 'assert_equals(document.currentScript, outerScriptElement)';
+        scriptElement.textContent = 'assert_equals(document.currentScript, null)';
         shadowRoot.appendChild(scriptElement);
 
         assert_equals(document.currentScript, outerScriptElement,

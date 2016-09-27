@@ -25,8 +25,8 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW};
-use script_layout_interface::restyle_damage::{REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
+use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
+use script_layout_interface::restyle_damage::{REPOSITION, RESOLVE_GENERATED_CONTENT};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
 use std::cmp::max;
@@ -1650,6 +1650,8 @@ impl Flow for InlineFlow {
                 _ => {}
             }
         }
+
+        self.base.restyle_damage.remove(REPOSITION)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}

@@ -130,6 +130,8 @@ class GitTree(TestTree):
             elif staged == "?" and worktree == "?":
                 # A new file. If it's a directory, recurse into it
                 if os.path.isdir(os.path.join(self.tests_root, filename)):
+                    if filename[-1] != '/':
+                        filename += '/'
                     rv.update(self.local_changes(filename))
                 else:
                     rv[filename] = "modified"

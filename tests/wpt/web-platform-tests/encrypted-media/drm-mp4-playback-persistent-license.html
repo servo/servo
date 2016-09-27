@@ -18,7 +18,7 @@
     <!-- Content metadata -->
     <script src=/encrypted-media/content/content-metadata.js></script>
 
-    <!-- Message handler for Clear Key keysystem -->
+    <!-- Message handler for DRM keysystem -->
     <script src=/encrypted-media/util/drm-messagehandler.js></script>
 
     <!-- The script for this specific test -->
@@ -43,7 +43,7 @@
                         videoPath:          contentitem.video.path,
                         audioType:          contentitem.audio.type,
                         videoType:          contentitem.video.type,
-                        initDataType:       contentitem.initDataType,
+                        initDataType:       contentitem.initDataType
                     };
 
         runTest(config);

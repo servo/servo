@@ -83,22 +83,22 @@ pub fn longest_prefix_match(stored_scope: &Url, potential_match: &Url) -> bool {
 }
 
 impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-registration-installing-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
     fn GetInstalling(&self) -> Option<Root<ServiceWorker>> {
         self.installing.as_ref().map(|sw| Root::from_ref(&**sw))
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-registration-active-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute
     fn GetActive(&self) -> Option<Root<ServiceWorker>> {
         self.active.as_ref().map(|sw| Root::from_ref(&**sw))
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-registration-waiting-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute
     fn GetWaiting(&self) -> Option<Root<ServiceWorker>> {
         self.waiting.as_ref().map(|sw| Root::from_ref(&**sw))
     }
 
-    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-registration-scope-attribute
+    // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute
     fn Scope(&self) -> USVString {
         USVString(self.scope.clone())
     }

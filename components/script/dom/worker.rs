@@ -19,6 +19,7 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
@@ -153,8 +154,8 @@ impl Worker {
                                     error_info.column,
                                     unsafe { NullHandleValue });
 
-        let handled = !event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-        if handled {
+        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        if event_status == EventStatus::Canceled {
             return;
         }
 

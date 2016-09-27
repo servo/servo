@@ -8,10 +8,10 @@ packages = ["lazy_static"]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Generated and upstream code combined with our own. Could use cleanup
-  "./ports/geckolib/gecko_bindings/bindings.rs",
-  "./ports/geckolib/gecko_bindings/structs_debug.rs",
-  "./ports/geckolib/gecko_bindings/structs_release.rs",
-  "./ports/geckolib/string_cache/atom_macro.rs",
+  "./components/style/gecko_bindings/bindings.rs",
+  "./components/style/gecko_bindings/structs_debug.rs",
+  "./components/style/gecko_bindings/structs_release.rs",
+  "./components/style/gecko_string_cache/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./tests/wpt/metadata-css/MANIFEST.json",

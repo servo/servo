@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Document.onfullscreenerror</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t)
+{
+    assert_equals(document.onfullscreenerror, null, "initial onfullscreenerror");
+    document.onfullscreenerror = t.step_func_done();
+    document.createElement("a").requestFullscreen();
+});
+</script>

@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "4.4-styleClassValidIfPresent.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation contains one or more Specific Resources with styleClass key, but does not contain an Annotation-level stylesheet key.",
+  "title": "If any **Specific Resource _styleClass_ keys** are present, a **_stylesheet_ key** (a key of Annotation) with a **single value** is also present [model 4.4](https://www.w3.org/TR/annotation-model/#styles)",
+  "description": "True when no Specific Resources styleClass present or all Specific Resource styleClass values are strings / array of strings and Annotation has a stylesheet key. (Section 4.4)",
+  "type": "object",
+  "anyOf":
+   [
+    { "required": ["stylesheet"] },
+    { "not":
+      {
+        "anyOf":
+         [
+          { "$ref": "#/definitions/bodyHasStyleClass" },
+          { "$ref": "#/definitions/targHasStyleClass" }
+         ]
+      }
+    }
+   ],
+  "definitions":
+   {
+      "bodyHasStyleClass":
+      {
+        "properties":
+        {
+            "body":
+            {
+               "oneOf":
+               [
+                  { "anyOf":
+                  [
+                    { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                    { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                   ]
+                  },
+                   { "not":
+                     { "items":
+                        { "not":
+                           { "anyOf": [
+                              { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                              { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                             ]
+                           }
+                         }
+                     }
+                   }
+               ]
+             }
+         },
+         "required": ["body"]
+      },
+
+      "targHasStyleClass":
+      {
+        "properties":
+        {
+            "target":
+            {
+               "oneOf":
+               [
+                  { "anyOf":
+                   [
+                    { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                    { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                   ]
+                  },
+                   { "not":
+                     { "items":
+                        { "not":
+                           { "anyOf": [
+                              { "$ref": "specificResource.json#/definitions/styleClassDetected" },
+                              { "$ref": "specificResource.json#/definitions/itemStyleClassPropertyDetected" }
+                             ]
+                           }
+                         }
+                     }
+                   }
+               ]
+             }
+         }
+      }
+   }
+}

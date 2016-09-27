@@ -42,4 +42,12 @@ test(function() {
     new TextTrackCue(0, 0, '');
   });
 }, 'TextTrackCue constructor should not be supported');
+
+// added in https://github.com/whatwg/html/commit/66c5b32240c202c74f475872e7ea2cd163777b4a
+// removed in https://github.com/whatwg/html/commit/634698e70ea4586d58c989fa7d2cbfcad20d33e6
+t('mediaGroup');
+t('controller');
+test(function() {
+  assert_false('MediaController' in window);
+}, 'MediaController constructor should not be supported');
 </script>

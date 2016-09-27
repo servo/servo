@@ -12,6 +12,5 @@ doctest = false
 [dependencies]
 app_units = "0.3"
 cssparser = {version = "0.7", features = ["heap_size"]}
-gecko_bindings = {path = "../../../ports/geckolib/gecko_bindings"}
 style = {path = "../../../components/style", features = ["gecko"]}
 style_traits = {path = "../../../components/style_traits"}

@@ -11,7 +11,7 @@
     <script>
       test(function() {
         var client = new XMLHttpRequest()
-        client.open("POST", "resources/inspect-headers.py?filter_value=t1, t2, t3", false)
+        client.open("POST", "resources/inspect-headers.py?filter_value=t1,t2,t3", false)
         client.setRequestHeader("x-test", "t1")
         client.setRequestHeader("X-TEST", "t2")
         client.setRequestHeader("X-teST", "t3")

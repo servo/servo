@@ -65,7 +65,7 @@ use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
 use layout::display_list_builder::ToGfxColor;
-use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::{self, FlowRef};
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use layout::layout_debug;
@@ -75,7 +75,7 @@ use layout::query::{process_margin_style_query, process_node_overflow_request, p
 use layout::query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use layout::query::process_offset_parent_query;
 use layout::sequential;
-use layout::traversal::RecalcStyleAndConstructFlows;
+use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 use layout_traits::LayoutThreadFactory;
@@ -89,7 +89,8 @@ use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
-use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, STORE_OVERFLOW};
+use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use script_layout_interface::restyle_damage::STORE_OVERFLOW;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
@@ -630,6 +631,7 @@ impl LayoutThread {
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
+                                                     None,
                                                      &mut *rw_data,
                                                      &mut layout_context);
 
@@ -900,8 +902,11 @@ impl LayoutThread {
                                               traversal);
     }
 
+    /// Computes the stacking-relative positions of all flows and, if the painting is dirty and the
+    /// reflow goal and query type need it, builds the display list.
     fn compute_abs_pos_and_build_display_list(&mut self,
                                               data: &Reflow,
+                                              query_type: Option<&ReflowQueryType>,
                                               document: Option<&ServoLayoutDocument>,
                                               layout_root: &mut Flow,
                                               shared_layout_context: &mut SharedLayoutContext,
@@ -919,49 +924,64 @@ impl LayoutThread {
             flow::mut_base(layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
+            if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
+                layout_root.traverse_preorder(&ComputeAbsolutePositions {
+                    layout_context: shared_layout_context
+                });
+            }
+
             if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
-                let mut root_stacking_context = StackingContext::new(StackingContextId::new(0),
-                                                                     StackingContextType::Real,
-                                                                     &Rect::zero(),
-                                                                     &Rect::zero(),
-                                                                     0,
-                                                                     filter::T::new(Vec::new()),
-                                                                     mix_blend_mode::T::normal,
-                                                                     Matrix4D::identity(),
-                                                                     Matrix4D::identity(),
-                                                                     true,
-                                                                     false,
-                                                                     None);
+                let display_list_needed = query_type.map(reflow_query_type_needs_display_list)
+                                                    .unwrap_or(false);
+                match (data.goal, display_list_needed) {
+                    (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
+                        let mut root_stacking_context =
+                            StackingContext::new(StackingContextId::new(0),
+                                                 StackingContextType::Real,
+                                                 &Rect::zero(),
+                                                 &Rect::zero(),
+                                                 0,
+                                                 filter::T::new(Vec::new()),
+                                                 mix_blend_mode::T::normal,
+                                                 Matrix4D::identity(),
+                                                 Matrix4D::identity(),
+                                                 true,
+                                                 false,
+                                                 None);
 
-                let display_list_entries =
-                    sequential::build_display_list_for_subtree(layout_root,
-                                                               &mut root_stacking_context,
-                                                               shared_layout_context);
+                        let display_list_entries =
+                            sequential::build_display_list_for_subtree(layout_root,
+                                                                       &mut root_stacking_context,
+                                                                       shared_layout_context);
 
-                debug!("Done building display list.");
+                        debug!("Done building display list.");
 
-                let root_background_color = get_root_flow_background_color(layout_root);
-                let root_size = {
-                    let root_flow = flow::base(layout_root);
-                    if rw_data.stylist.viewport_constraints().is_some() {
-                        root_flow.position.size.to_physical(root_flow.writing_mode)
-                    } else {
-                        root_flow.overflow.scroll.size
+                        let root_background_color = get_root_flow_background_color(layout_root);
+                        let root_size = {
+                            let root_flow = flow::base(layout_root);
+                            if rw_data.stylist.viewport_constraints().is_some() {
+                                root_flow.position.size.to_physical(root_flow.writing_mode)
+                            } else {
+                                root_flow.overflow.scroll.size
+                            }
+                        };
+
+                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
+                        root_stacking_context.bounds = origin;
+                        root_stacking_context.overflow = origin;
+                        root_stacking_context.layer_info =
+                            Some(LayerInfo::new(layout_root.layer_id(),
+                                                ScrollPolicy::Scrollable,
+                                                None,
+                                                root_background_color));
+
+                        rw_data.display_list =
+                            Some(Arc::new(DisplayList::new(root_stacking_context,
+                                                           display_list_entries)))
                     }
-                };
-
-                let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                root_stacking_context.bounds = origin;
-                root_stacking_context.overflow = origin;
-                root_stacking_context.layer_info =
-                    Some(LayerInfo::new(layout_root.layer_id(),
-                                        ScrollPolicy::Scrollable,
-                                        None,
-                                        root_background_color));
-
-                rw_data.display_list =
-                    Some(Arc::new(DisplayList::new(root_stacking_context, display_list_entries)))
+                    (ReflowGoal::ForScriptQuery, false) => {}
+                }
             }
 
             if data.goal != ReflowGoal::ForDisplay {
@@ -1037,6 +1057,12 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+
+        // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
+        debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&
+                       data.query_type == ReflowQueryType::NoQuery) ||
+                      (data.reflow_info.goal == ReflowGoal::ForScriptQuery &&
+                       data.query_type != ReflowQueryType::NoQuery));
 
         debug!("layout: received layout request for: {}", self.url);
 
@@ -1217,74 +1243,84 @@ impl LayoutThread {
 
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
+                                                     Some(&data.query_type),
                                                      Some(&document),
                                                      &mut rw_data,
                                                      &mut shared_layout_context);
 
-        if let Some(mut root_flow) = self.root_flow.clone() {
-            let root_flow = flow_ref::deref_mut(&mut root_flow);
-            match data.query_type {
-                ReflowQueryType::ContentBoxQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.content_box_response = process_content_box_request(node, root_flow);
-                },
-                ReflowQueryType::ContentBoxesQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
-                },
-                ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
-                    let translated_point =
-                        Point2D::new(Au::from_f32_px(translated_point.x),
-                                     Au::from_f32_px(translated_point.y));
+        self.respond_to_query_if_necessary(&data.query_type,
+                                           &mut *rw_data,
+                                           &mut shared_layout_context);
+    }
 
-                    let client_point =
-                        Point2D::new(Au::from_f32_px(client_point.x),
-                                     Au::from_f32_px(client_point.y));
+    fn respond_to_query_if_necessary(&mut self,
+                                     query_type: &ReflowQueryType,
+                                     rw_data: &mut LayoutThreadData,
+                                     shared_layout_context: &mut SharedLayoutContext) {
+        let mut root_flow = match self.root_flow.clone() {
+            Some(root_flow) => root_flow,
+            None => return,
+        };
+        let root_flow = flow_ref::deref_mut(&mut root_flow);
+        match *query_type {
+            ReflowQueryType::ContentBoxQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.content_box_response = process_content_box_request(node, root_flow);
+            },
+            ReflowQueryType::ContentBoxesQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
+            },
+            ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
+                let translated_point = Point2D::new(Au::from_f32_px(translated_point.x),
+                                                    Au::from_f32_px(translated_point.y));
 
-                    let result = rw_data.display_list
-                                        .as_ref()
-                                        .expect("Tried to hit test with no display list")
-                                        .hit_test(&translated_point,
-                                                  &client_point,
-                                                  &rw_data.stacking_context_scroll_offsets);
-                    rw_data.hit_test_response = (result.last().cloned(), update_cursor);
-                },
-                ReflowQueryType::NodeGeometryQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
-                },
-                ReflowQueryType::NodeScrollGeometryQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
-                },
-                ReflowQueryType::NodeOverflowQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.overflow_response = process_node_overflow_request(node);
-                },
-                ReflowQueryType::NodeLayerIdQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.layer_id_response = Some(process_node_layer_id_request(node));
-                },
-                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    let layout_context = LayoutContext::new(&shared_layout_context);
-                    rw_data.resolved_style_response =
-                        process_resolved_style_request(node,
-                                                       &layout_context,
-                                                       pseudo,
-                                                       property,
-                                                       root_flow);
-                },
-                ReflowQueryType::OffsetParentQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
-                },
-                ReflowQueryType::MarginStyleQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.margin_style_response = process_margin_style_query(node);
-                },
-                ReflowQueryType::NoQuery => {}
-            }
+                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
+                                                Au::from_f32_px(client_point.y));
+
+                let result = rw_data.display_list
+                                    .as_ref()
+                                    .expect("Tried to hit test with no display list")
+                                    .hit_test(&translated_point,
+                                              &client_point,
+                                              &rw_data.stacking_context_scroll_offsets);
+                rw_data.hit_test_response = (result.last().cloned(), update_cursor);
+            },
+            ReflowQueryType::NodeGeometryQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
+            },
+            ReflowQueryType::NodeScrollGeometryQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
+            },
+            ReflowQueryType::NodeOverflowQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.overflow_response = process_node_overflow_request(node);
+            },
+            ReflowQueryType::NodeLayerIdQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.layer_id_response = Some(process_node_layer_id_request(node));
+            },
+            ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                let layout_context = LayoutContext::new(&shared_layout_context);
+                rw_data.resolved_style_response =
+                    process_resolved_style_request(node,
+                                                   &layout_context,
+                                                   pseudo,
+                                                   property,
+                                                   root_flow);
+            },
+            ReflowQueryType::OffsetParentQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
+            },
+            ReflowQueryType::MarginStyleQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.margin_style_response = process_margin_style_query(node);
+            },
+            ReflowQueryType::NoQuery => {}
         }
     }
 
@@ -1340,7 +1376,11 @@ impl LayoutThread {
                                                                   false,
                                                                   reflow_info.goal);
 
-        self.perform_post_main_layout_passes(&reflow_info, None, &mut *rw_data, &mut layout_context);
+        self.perform_post_main_layout_passes(&reflow_info,
+                                             None,
+                                             None,
+                                             &mut *rw_data,
+                                             &mut layout_context);
         true
     }
 
@@ -1399,6 +1439,7 @@ impl LayoutThread {
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
+                                                     None,
                                                      &mut *rw_data,
                                                      &mut layout_context);
     }
@@ -1422,12 +1463,14 @@ impl LayoutThread {
         }
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
+                                                     None,
                                                      &mut *rw_data,
                                                      &mut layout_context);
     }
 
     fn perform_post_style_recalc_layout_passes(&mut self,
                                                data: &Reflow,
+                                               query_type: Option<&ReflowQueryType>,
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
                                                layout_context: &mut SharedLayoutContext) {
@@ -1503,18 +1546,24 @@ impl LayoutThread {
                                            flow_ref::deref_mut(&mut root_flow) as &mut Flow);
             });
 
-            self.perform_post_main_layout_passes(data, document, rw_data, layout_context);
+            self.perform_post_main_layout_passes(data,
+                                                 query_type,
+                                                 document,
+                                                 rw_data,
+                                                 layout_context);
         }
     }
 
     fn perform_post_main_layout_passes(&mut self,
                                        data: &Reflow,
+                                       query_type: Option<&ReflowQueryType>,
                                        document: Option<&ServoLayoutDocument>,
                                        rw_data: &mut LayoutThreadData,
                                        layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = self.root_flow.clone() {
             self.compute_abs_pos_and_build_display_list(data,
+                                                        query_type,
                                                         document,
                                                         flow_ref::deref_mut(&mut root_flow),
                                                         &mut *layout_context,
@@ -1632,6 +1681,18 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     })
 }
 
+/// Returns true if the given reflow query type needs a full, up-to-date display list to be present
+/// or false if it only needs stacking-relative positions.
+fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
+    match *query_type {
+        ReflowQueryType::HitTestQuery(..) => true,
+        ReflowQueryType::ContentBoxQuery(_) | ReflowQueryType::ContentBoxesQuery(_) |
+        ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
+        ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeLayerIdQuery(_) |
+        ReflowQueryType::ResolvedStyleQuery(..) | ReflowQueryType::OffsetParentQuery(_) |
+        ReflowQueryType::MarginStyleQuery(_) | ReflowQueryType::NoQuery => false,
+    }
+}
 
 lazy_static! {
     static ref UA_STYLESHEETS: UserAgentStylesheets = {

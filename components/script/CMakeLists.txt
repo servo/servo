@@ -72,6 +72,22 @@ add_custom_command(
   VERBATIM
   )
 
+add_custom_command(
+  OUTPUT apis.html
+  COMMAND python -B ${bindings_src}/pythonpath.py -I ${bindings_src}/parser -I ${bindings_src}/ply
+                 ${bindings_src}/GlobalGen.py
+                 --cachedir=_cache
+                 --filelist=webidls.list
+                 --only-html
+                 ${bindings_src}/Bindings.conf
+                 .
+                 ${PROJECT_SOURCE_DIR}
+  DEPENDS _cache ${globalgen_deps} ${webidls}
+  VERBATIM
+  )
+
+add_custom_target(supported-apis DEPENDS apis.html)
+
 # We need an intermediate custom target for this, due to this misfeature:
 # > If any dependency is an OUTPUT of another custom command in the same
 # > directory CMake automatically brings the other custom command into the

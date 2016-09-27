@@ -17,7 +17,7 @@ use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayItem, StackingContext};
 use script_layout_interface::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use style::context::StyleContext;
-use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use util::opts;
 
 pub use style::sequential::traverse_dom;
@@ -78,7 +78,6 @@ pub fn build_display_list_for_subtree(flow_root: &mut Flow,
                                       root_stacking_context: &mut StackingContext,
                                       shared_layout_context: &SharedLayoutContext)
                                       -> Vec<DisplayItem> {
-    flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: shared_layout_context });
     let mut children = vec![];
     flow_root.collect_stacking_contexts(root_stacking_context.id,
                                         &mut children);

@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.7-targChoice.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "A Choice resource may be used as an Annotation Target (not found).",
+    "title": "Implements **Choice** with **_type_ and _items_ keys** as a target of the Annotation  [model 3.2.7](https://www.w3.org/TR/annotation-model/#choice-of-targets-and-targets)",
+    "description": "True when Annotation includes one or more Choice resources as Annotation target(ies). (Section 3.2.7)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "$ref": "choiceSet.json#/definitions/choiceDetected" },
+                      { "not":
+                         {
+                           "items":
+                            { "not":
+                                  { "$ref": "choiceSet.json#/definitions/choiceDetected" }
+                            }
+                          }
+                      }
+                     ]
+         }
+     }
+}

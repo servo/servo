@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Historical iframe element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+function t(property) {
+  test(function() {
+    assert_false(property in document.createElement('iframe'));
+  }, 'iframe.' + property + ' should not be supported');
+}
+
+// added in https://github.com/whatwg/html/commit/f6490f17f577fa3478791b29ad8c2b586418001f
+// removed in https://github.com/whatwg/html/commit/1490eba4dba5ab476f0981443a86c01acae01311
+t('seamless');
+</script>

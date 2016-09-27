@@ -20,6 +20,10 @@ function runTest(config,qualifier) {
             _sessionId,
             _isClosing = false;
 
+        function onFailure(error) {
+            forceTestFailureFromPromise(test, error);
+        }
+
         function onEncrypted(event) {
             assert_equals(event.target, _video);
             assert_true(event instanceof window.MediaEncryptedEvent);
@@ -28,11 +32,8 @@ function runTest(config,qualifier) {
             waitForEventAndRunStep('message', _mediaKeySession, onMessage, test);
             _mediaKeySession.generateRequest(   config.initDataType || event.initDataType,
                                                 config.initData || event.initData ).then( function() {
-
                 _sessionId = _mediaKeySession.sessionId;
-            }).catch(function(error) {
-                forceTestFailureFromPromise(test, error);
-            });
+            }).catch(onFailure);
         }
 
         function onMessage(event) {
@@ -43,24 +44,20 @@ function runTest(config,qualifier) {
             assert_in_array(  event.messageType, [ 'license-request', 'individualization-request' ] );
 
             config.messagehandler( event.messageType, event.message ).then( function( response ) {
-
                 _mediaKeySession.update( response ).then(function() {
                     _video.setMediaKeys(_mediaKeys);
-                }).catch(function(error) {
-                    forceTestFailureFromPromise(test, error);
-                });
+                }).catch(onFailure);
             });
         }
 
         function onPlaying(event) {
-
             // Not using waitForEventAndRunStep() to avoid too many
             // EVENT(onTimeUpdate) logs.
             _video.addEventListener('timeupdate', onTimeupdate, true);
         }
 
         function onTimeupdate(event) {
-            if ( !_isClosing && _video.currentTime > ( config.duration || 2 ) ) {
+            if ( !_isClosing && _video.currentTime > ( config.duration || 1 ) ) {
                 _isClosing = true;
                 _video.removeEventListener('timeupdate', onTimeupdate );
                 _video.pause();
@@ -75,15 +72,11 @@ function runTest(config,qualifier) {
 
             var win = window.open( config.windowscript );
             window.addEventListener('message', test.step_func(function( event ) {
-
                 event.data.forEach(test.step_func(function( assertion ) {
-
                     assert_equals(assertion.actual, assertion.expected, assertion.message);
-
                 }));
 
                 win.close();
-
                 test.done();
             }));
 
@@ -91,7 +84,6 @@ function runTest(config,qualifier) {
             delete config.messagehandler;
 
             win.onload = function() {
-
                 win.postMessage( { config: config, sessionId: _sessionId }, '*' );
             }
         }
@@ -100,14 +92,11 @@ function runTest(config,qualifier) {
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
             _mediaKeys = mediaKeys;
-
-            _video.setMediaKeys( mediaKeys );
-
+            return _video.setMediaKeys( mediaKeys );
+        }).then(function(){
             _mediaKeySession = _mediaKeys.createSession( 'persistent-usage-record' );
-
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
-        }).then(function() {
             return config.servercertificate ? _mediaKeys.setServerCertificate( config.servercertificate ) : true;
         }).then(function( success ) {
             return testmediasource(config);
@@ -115,8 +104,6 @@ function runTest(config,qualifier) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
             _video.play();
-        }).catch(function(error) {
-            forceTestFailureFromPromise(test, error);
-        });
+        }).catch(onFailure);
     }, testname);
 }

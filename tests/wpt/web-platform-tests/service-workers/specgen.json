@@ -654,5 +654,5 @@
             "testable": false
         }
     ],
-    "specUrl": "https://slightlyoff.github.io/ServiceWorker/spec/service_worker/"
+    "specUrl": "https://w3c.github.io/ServiceWorker/"
 }
