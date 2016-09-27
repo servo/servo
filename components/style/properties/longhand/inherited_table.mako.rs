@@ -16,7 +16,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
                          animatable=False)}
 
-<%helpers:longhand name="border-spacing" products="servo" animatable="False">
+<%helpers:longhand name="border-spacing" animatable="False">
     use app_units::Au;
     use values::LocalToCss;
     use values::HasViewportPercentage;
