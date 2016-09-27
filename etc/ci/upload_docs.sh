@@ -18,7 +18,7 @@ cd "$(dirname ${0})/../.."
 # etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
 cp etc/doc.servo.org/* target/doc/
 
-python components/style/properties/build.py servo html
+python components/style/properties/build.py servo html regular
 
 cd components/script
 cmake .
