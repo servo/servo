@@ -117,8 +117,8 @@ def write_atom_macro(atoms, file_name):
 
     with open(file_name, "wb") as f:
         f.write(PRELUDE)
-        f.write("use style::gecko_bindings::structs::nsIAtom;\n\n")
-        f.write("use Atom;\n\n")
+        f.write("use gecko_bindings::structs::nsIAtom;\n\n")
+        f.write("use string_cache::Atom;\n\n")
         for source in SOURCES:
             if source.TYPE != "nsIAtom":
                 f.write("pub enum {} {{}}\n\n".format(source.TYPE))
