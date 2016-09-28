@@ -7,7 +7,8 @@
  */
 
 [Constructor(DOMString url, optional EventSourceInit eventSourceInitDict),
- Exposed=(Window,Worker)]
+ Exposed=(Window,Worker),
+ Pref="dom.eventsource.enabled"]
 interface EventSource : EventTarget {
   readonly attribute DOMString url;
   readonly attribute boolean withCredentials;
