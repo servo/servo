@@ -1195,7 +1195,7 @@ impl ScriptThread {
 
         if let Some(fragment) = doc.url().fragment() {
             self.check_and_scroll_fragment(fragment, pipeline, doc);
-        }
+        };
     }
 
     fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
@@ -1217,7 +1217,8 @@ impl ScriptThread {
 
         if let Some(root_context) = self.browsing_context.get() {
             for it_context in root_context.iter() {
-                let current_url = it_context.active_document().url().to_string();
+                let doc = it_context.active_document();
+                let current_url = doc.url().to_string();
 
                 for child in it_context.active_document().upcast::<Node>().traverse_preorder() {
                     dom_tree_size += heap_size_of_self_and_children(&*child);
@@ -2017,12 +2018,13 @@ impl ScriptThread {
                     Some(browsing_context) => browsing_context.active_document(),
                     None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
                 };
-                let url = document.url();
+                let url = (*document.url()).clone();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
                     self.check_and_scroll_fragment(fragment, parent_pipeline_id, document.r());
+                    document.set_url(nurl);
                     return;
-                }
+                } 
             }
         }
 

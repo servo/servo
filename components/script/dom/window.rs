@@ -1444,7 +1444,9 @@ impl Window {
     }
 
     pub fn get_url(&self) -> Url {
-        (*self.Document().url()).clone()
+        let doc = self.Document();
+        let val = (*doc.url()).clone();
+        val
     }
 
     pub fn resource_threads(&self) -> &ResourceThreads {

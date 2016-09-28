@@ -175,7 +175,8 @@ macro_rules! make_url_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use dom::node::document_from_node;
-            let value = AttrValue::from_url(document_from_node(self).url(),
+            let doc = document_from_node(self);
+            let value = AttrValue::from_url(&*doc.url(),
                                             value.into());
             let element = self.upcast::<Element>();
             element.set_attribute(&atom!($htmlname), value);

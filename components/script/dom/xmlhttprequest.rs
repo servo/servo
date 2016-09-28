@@ -157,7 +157,8 @@ impl XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
         let (referrer_url, referrer_policy) = if let GlobalRef::Window(window) = global {
             let document = window.Document();
-            (Some(document.url().clone()), document.get_referrer_policy())
+            let val = (Some((*document.url()).clone()), document.get_referrer_policy());
+            val
         } else {
             (None, None)
         };
