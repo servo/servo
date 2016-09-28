@@ -41,11 +41,11 @@ pub enum FetchedData {
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body<T: BodyTrait + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
+pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
     let promise = Promise::new(object.global().r());
 
     // Step 1
-    if object.get_body_used_trait() || object.locked_trait() {
+    if object.get_body_used() || object.is_locked() {
         promise.reject_error(promise.global().r().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
     }
@@ -58,38 +58,40 @@ pub fn consume_body<T: BodyTrait + Reflectable>(object: &T, body_type: BodyType)
                                                       object.take_body(),
                                                       body_type,
                                                       object.get_mime_type());
+
+    let cx = promise.global().r().get_cx();
     match pkg_data_results {
-        Err(e) => promise.reject_error(promise.global().r().get_cx(), e),
-        Ok(r) => {
-            match r {
-                FetchedData::Text(s) => promise.resolve_native(promise.global().r().get_cx(), &USVString(s)),
-                FetchedData::Json(j) => promise.resolve_native(promise.global().r().get_cx(), &j),
-                FetchedData::BlobData(b) => promise.resolve_native(promise.global().r().get_cx(), &b),
-                FetchedData::FormData(f) => promise.resolve_native(promise.global().r().get_cx(), &f),
+        Ok(results) => {
+            match results {
+                FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
+                FetchedData::Json(j) => promise.resolve_native(cx, &j),
+                FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
+                FetchedData::FormData(f) => promise.resolve_native(cx, &f),
             };
         },
+        Err(err) => promise.reject_error(cx, err),
     }
     promise
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
-fn run_package_data_algorithm<T: BodyTrait + Reflectable>(object: &T,
+fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
                                                           bytes: Option<Vec<u8>>,
                                                           body_type: BodyType,
                                                           mime_type: Ref<Vec<u8>>) -> Fallible<FetchedData> {
-    if let Some(b) = bytes {
-        let cx = object.global().r().get_cx();
-        let mime = &*mime_type;
-        match body_type {
-            BodyType::Text => run_text_data_algorithm(b),
-            BodyType::Json => run_json_data_algorithm(cx, b),
-            BodyType::Blob => run_blob_data_algorithm(object.global().r(), b, mime),
-            BodyType::FormData => run_form_data_algorithm(object.global().r(), b, mime),
-            _ => Err(Error::Type("Unable to process body type".to_string()))
-        }
-    } else {
-        return Err(Error::Type("Unable to process bytes".to_string()));
+    let bytes = match bytes {
+        Some(b) => b,
+        _ => vec![],
+    };
+    let cx = object.global().r().get_cx();
+    let mime = &*mime_type;
+    match body_type {
+        BodyType::Text => run_text_data_algorithm(bytes),
+        BodyType::Json => run_json_data_algorithm(cx, bytes),
+        BodyType::Blob => run_blob_data_algorithm(object.global().r(), bytes, mime),
+        BodyType::FormData => run_form_data_algorithm(object.global().r(), bytes, mime),
+        _ => Err(Error::Type("Unable to process body type".to_string()))
     }
 }
 
@@ -110,8 +112,7 @@ fn run_json_data_algorithm(cx: *mut JSContext,
                          json_text.len() as u32,
                          rval.handle_mut()) {
             JS_ClearPendingException(cx);
-            // TODO
-            // ... Should this return `NullValue()`?
+            // TODO: See issue #13464. Exception should be thrown instead of cleared.
             return Err(Error::Type("Failed to parse JSON".to_string()));
             }
         Ok(FetchedData::Json(rval.get()))
@@ -124,7 +125,7 @@ fn run_blob_data_algorithm(root: GlobalRef,
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
         s
     } else {
-        "None".to_string()
+        "".to_string()
     };
     let blob = Blob::new(root, BlobImpl::new_from_bytes(bytes), mime_string);
     Ok(FetchedData::BlobData(blob))
@@ -134,7 +135,7 @@ fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fall
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
     } else {
-        "None"
+        ""
     };
     let mime: Mime = try!(mime_str.parse().map_err(
         |_| Error::Type("Inappropriate MIME-type for Body".to_string())));
@@ -154,9 +155,9 @@ fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fall
     }
 }
 
-pub trait BodyTrait {
-    fn get_body_used_trait(&self) -> bool;
+pub trait BodyOperations {
+    fn get_body_used(&self) -> bool;
     fn take_body(&self) -> Option<Vec<u8>>;
-    fn locked_trait(&self) -> bool;
+    fn is_locked(&self) -> bool;
     fn get_mime_type(&self) -> Ref<Vec<u8>>;
 }

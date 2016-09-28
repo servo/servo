@@ -637,6 +637,12 @@ impl RequestMethods for Request {
     fn FormData(&self) -> Rc<Promise> {
         unimplemented!();
     }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-json
+    fn Json(&self) -> Rc<Promise> {
+        unimplemented!();
+    }
 }
 
 impl Into<NetTraitsRequestCache> for RequestCache {

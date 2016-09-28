@@ -13,6 +13,6 @@ interface Body {
   // [NewObject] Promise<ArrayBuffer> arrayBuffer();
   [NewObject] Promise<Blob> blob();
   [NewObject] Promise<FormData> formData();
-  // [NewObject] Promise<JSON> json();
+  [NewObject] Promise<any> json();
   [NewObject] Promise<USVString> text();
 };

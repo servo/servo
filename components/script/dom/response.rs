@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use body::{BodyTrait, BodyType, consume_body};
+use body::{BodyOperations, BodyType, consume_body};
 use core::cell::Cell;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
@@ -180,38 +180,35 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#concept-body-locked
-    pub fn locked(&self) -> bool {
+    fn locked(&self) -> bool {
         // TODO: ReadableStream is unimplemented. Just return false
         // for now.
         false
     }
 }
 
-impl BodyTrait for Response {
-    fn get_body_used_trait(&self) -> bool {
+impl BodyOperations for Response {
+    fn get_body_used(&self) -> bool {
         self.BodyUsed()
     }
 
-    fn locked_trait(&self) -> bool {
+    fn is_locked(&self) -> bool {
         self.locked()
     }
 
     fn take_body(&self) -> Option<Vec<u8>> {
         let body: NetTraitsResponseBody = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
-        if let NetTraitsResponseBody::Done(bytes) = body {
-            self.body_used.set(true);
-            Some(bytes)
-        } else if let NetTraitsResponseBody::Receiving(bytes) = body {
-            self.body_used.set(true);
-            Some(bytes)
-        } else {
-            None
+        match body {
+            NetTraitsResponseBody::Done(bytes) | NetTraitsResponseBody::Receiving(bytes) => {
+                self.body_used.set(true);
+                Some(bytes)
+            },
+            _ => None,
         }
     }
 
     fn get_mime_type(&self) -> Ref<Vec<u8>> {
         self.mime_type.borrow()
-        //r.map(|vec| &*vec)
     }
 }
 
@@ -335,6 +332,12 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-body-formdata
     fn FormData(&self) -> Rc<Promise> {
         consume_body(self, BodyType::FormData)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-json
+    fn Json(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Json)
     }
 }
 
