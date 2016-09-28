@@ -185,9 +185,9 @@ class PropertiesData(object):
     def active_style_structs(self):
         return [s for s in self.style_structs if s.additional_methods or s.longhands]
 
-    def declare_longhand(self, name, products="gecko servo", **kwargs):
+    def declare_longhand(self, name, products="gecko servo", disable_when_testing=False, **kwargs):
         products = products.split()
-        if self.product not in products and not self.testing:
+        if self.product not in products and not (self.testing and not disable_when_testing):
             return
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
@@ -200,9 +200,10 @@ class PropertiesData(object):
 
         return longhand
 
-    def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
+    def declare_shorthand(self, name, sub_properties, products="gecko servo",
+                          disable_when_testing=False, *args, **kwargs):
         products = products.split()
-        if self.product not in products and not self.testing:
+        if self.product not in products and not (self.testing and not disable_when_testing):
             return
 
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]

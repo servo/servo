@@ -220,14 +220,11 @@ class MachCommands(CommandBase):
 
         packages.discard('stylo')
 
-        args = ["cargo", "test"]
-        for crate in packages:
-            args += ["-p", "%s_tests" % crate]
-        args += test_patterns
-
-        features = self.servo_features()
-        if features:
-            args += ["--features", "%s" % ' '.join(features)]
+        has_style = True
+        try:
+            packages.remove('style')
+        except KeyError:
+            has_style = False
 
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -240,9 +237,29 @@ class MachCommands(CommandBase):
             else:
                 env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
 
-        result = call(args, env=env, cwd=self.servo_crate())
-        if result != 0:
-            return result
+        features = self.servo_features()
+        if len(packages) > 0:
+            args = ["cargo", "test"]
+            for crate in packages:
+                args += ["-p", "%s_tests" % crate]
+            args += test_patterns
+
+            if features:
+                args += ["--features", "%s" % ' '.join(features)]
+            result = call(args, env=env, cwd=self.servo_crate())
+            if result != 0:
+                return result
+
+        # Run style tests with the testing feature
+        if has_style:
+            args = ["cargo", "test", "-p", "style_tests", "--features"]
+            if features:
+                args += ["%s" % ' '.join(features + ["testing"])]
+            else:
+                args += ["testing"]
+            result = call(args, env=env, cwd=self.servo_crate())
+            if result != 0:
+                return result
 
     @Command('test-stylo',
              description='Run stylo unit tests',
