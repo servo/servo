@@ -1262,13 +1262,16 @@ impl InlineFlow {
     }
 
     pub fn baseline_offset_of_last_line(&self) -> Option<Au> {
-        match self.lines.last() {
-            None => None,
-            Some(ref last_line) => {
-                Some(last_line.bounds.start.b + last_line.bounds.size.block -
-                     last_line.inline_metrics.depth_below_baseline)
+        // Find the last line that doesn't consist entirely of hypothetical boxes.
+        for line in self.lines.iter().rev() {
+            if (line.range.begin().get()..line.range.end().get()).any(|index| {
+                !self.fragments.fragments[index as usize].is_hypothetical()
+            }) {
+                return Some(line.bounds.start.b + line.bounds.size.block -
+                            line.inline_metrics.depth_below_baseline)
             }
         }
+        None
     }
 }
 
