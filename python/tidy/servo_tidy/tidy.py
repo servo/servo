@@ -688,7 +688,7 @@ def check_config_file(config_file, print_text=True):
         # Check for invalid tables
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
-            if table_name not in ("configs", "ignore", "check_dirs", "check_dirs_for_exts"):
+            if table_name not in ("configs", "ignore", "check_dirs_for_exts"):
                 yield config_file, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
