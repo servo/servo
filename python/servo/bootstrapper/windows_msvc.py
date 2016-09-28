@@ -23,7 +23,7 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
     def install_system_packages(self, packages=deps):
         from servo.bootstrap_commands import extract, download_file
 
-        deps_dir = os.path.join(".servo", "msvc-dependencies")
+        deps_dir = os.path.join(self.context.sharedir, "msvc-dependencies")
         deps_url = "https://servo-rust.s3.amazonaws.com/msvc-deps/"
         first_run = True
 

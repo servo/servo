@@ -145,7 +145,7 @@ class MachCommands(CommandBase):
     def bootstrap(self, android=False, interactive=False, force=False):
         from servo.bootstrapper.bootstrap import Bootstrapper
 
-        bootstrapper = Bootstrapper()
+        bootstrapper = Bootstrapper(self.context)
         bootstrapper.bootstrap(android=android, interactive=interactive, force=force)
 
     @Command('bootstrap-rust',
