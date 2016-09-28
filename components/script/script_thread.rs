@@ -1234,8 +1234,8 @@ impl ScriptThread {
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
-            self.check_and_scroll_fragment(fragment, pipeline, &doc);
-        }
+            self.check_and_scroll_fragment(fragment, pipeline, doc);
+        };
     }
 
     fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
@@ -1975,12 +1975,13 @@ impl ScriptThread {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
                 };
-                let url = document.url();
+                let url = (*document.url()).clone();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, &document);
+                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, document.r());
+                    document.set_url(nurl);
                     return;
-                }
+                } 
             }
         }
 

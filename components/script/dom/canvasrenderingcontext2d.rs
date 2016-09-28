@@ -239,7 +239,9 @@ impl CanvasRenderingContext2D {
                         // TODO(zbarsky): we should check the origin of the image against
                         // the entry settings object, but for now check it against the canvas' doc.
                         let node: &Node = &*self.canvas.upcast();
-                        url.origin() == node.owner_doc().url().origin()
+                        let doc = node.owner_doc();
+                        let result = url.origin() == doc.url().origin();
+                        result
                     }
                 }
         }

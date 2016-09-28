@@ -171,7 +171,7 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
     is_html_document: bool,
-    url: Url,
+    url: DOMRefCell<Url>,
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
@@ -376,8 +376,12 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    pub fn url(&self) -> &Url {
-        &self.url
+    pub fn url(&self) -> Ref<Url> {
+        self.url.borrow()
+    }
+
+    pub fn set_url(&self, url: &Url) {
+        *self.url.borrow_mut() = url.clone();
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
@@ -1687,7 +1691,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
     pub fn is_cookie_averse(&self) -> bool {
-        self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
+        self.browsing_context.is_none() || !url_has_network_scheme(&self.url.borrow())
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
@@ -1792,7 +1796,7 @@ impl Document {
                 }),
             },
             last_modified: last_modified,
-            url: url,
+            url: DOMRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
