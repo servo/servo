@@ -35,7 +35,6 @@ test_interfaces([
   "Element",
   "ErrorEvent",
   "Event",
-  "EventSource",
   "EventTarget",
   "File",
   "FileList",
