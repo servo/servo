@@ -146,7 +146,9 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") |
             local_name!("text") => AttrValue::from_legacy_color(value.into()),
             local_name!("background") => {
-                AttrValue::from_url(document_from_node(self).url(), value.into())
+                let doc = document_from_node(self);
+                let val = AttrValue::from_url(&*doc.url(), value.into());
+                val 
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
