@@ -1501,8 +1501,8 @@ pub enum JSWhyMagic {
 #[derive(Debug, Copy)]
 pub struct jsval_layout {
     pub asBits: __BindgenUnionField<u64>,
-    pub debugView: __BindgenUnionField<jsval_layout__bindgen_ty_bindgen_id_61264>,
-    pub s: __BindgenUnionField<jsval_layout__bindgen_ty_bindgen_id_61271>,
+    pub debugView: __BindgenUnionField<jsval_layout__bindgen_ty_bindgen_id_61754>,
+    pub s: __BindgenUnionField<jsval_layout__bindgen_ty_bindgen_id_61761>,
     pub asDouble: __BindgenUnionField<f64>,
     pub asPtr: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub asWord: __BindgenUnionField<usize>,
@@ -1511,20 +1511,20 @@ pub struct jsval_layout {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct jsval_layout__bindgen_ty_bindgen_id_61264 {
+pub struct jsval_layout__bindgen_ty_bindgen_id_61754 {
     pub _bitfield_1: u64,
 }
 #[test]
-fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61264() {
-    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61264>()
+fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61754() {
+    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61754>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61264>()
+    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61754>()
                , 8usize);
 }
-impl Clone for jsval_layout__bindgen_ty_bindgen_id_61264 {
+impl Clone for jsval_layout__bindgen_ty_bindgen_id_61754 {
     fn clone(&self) -> Self { *self }
 }
-impl jsval_layout__bindgen_ty_bindgen_id_61264 {
+impl jsval_layout__bindgen_ty_bindgen_id_61754 {
     #[inline]
     pub fn payload47(&self) -> u64 {
         unsafe {
@@ -1557,36 +1557,36 @@ impl jsval_layout__bindgen_ty_bindgen_id_61264 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct jsval_layout__bindgen_ty_bindgen_id_61271 {
-    pub payload: jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272,
+pub struct jsval_layout__bindgen_ty_bindgen_id_61761 {
+    pub payload: jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272 {
+pub struct jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762 {
     pub i32: __BindgenUnionField<i32>,
     pub u32: __BindgenUnionField<u32>,
     pub why: __BindgenUnionField<JSWhyMagic>,
     pub bindgen_union_field: u32,
 }
 #[test]
-fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272() {
-    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272>()
+fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762() {
+    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762>()
                , 4usize);
-    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272>()
+    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762>()
                , 4usize);
 }
 impl Clone for
- jsval_layout__bindgen_ty_bindgen_id_61271__bindgen_ty_bindgen_id_61272 {
+ jsval_layout__bindgen_ty_bindgen_id_61761__bindgen_ty_bindgen_id_61762 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61271() {
-    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61271>()
+fn bindgen_test_layout_jsval_layout__bindgen_ty_bindgen_id_61761() {
+    assert_eq!(::std::mem::size_of::<jsval_layout__bindgen_ty_bindgen_id_61761>()
                , 4usize);
-    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61271>()
+    assert_eq!(::std::mem::align_of::<jsval_layout__bindgen_ty_bindgen_id_61761>()
                , 4usize);
 }
-impl Clone for jsval_layout__bindgen_ty_bindgen_id_61271 {
+impl Clone for jsval_layout__bindgen_ty_bindgen_id_61761 {
     fn clone(&self) -> Self { *self }
 }
 impl Clone for jsval_layout {
@@ -1620,7 +1620,7 @@ pub type nsAString_internal_size_type = u32;
 pub type nsAString_internal_index_type = u32;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsAString_internal__bindgen_ty_bindgen_id_63109 {
+pub enum nsAString_internal__bindgen_ty_bindgen_id_63599 {
     F_NONE = 0,
     F_TERMINATED = 1,
     F_VOIDED = 2,
@@ -1682,12 +1682,12 @@ fn bindgen_test_layout_nsString() {
     assert_eq!(::std::mem::align_of::<nsString>() , 8usize);
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_63719 {
+pub struct bindgen_vtable__bindgen_id_64209 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsStringComparator {
-    pub vtable_: *const bindgen_vtable__bindgen_id_63719,
+    pub vtable_: *const bindgen_vtable__bindgen_id_64209,
 }
 pub type nsStringComparator_char_type = u16;
 #[test]
@@ -1729,7 +1729,7 @@ pub type nsACString_internal_size_type = u32;
 pub type nsACString_internal_index_type = u32;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsACString_internal__bindgen_ty_bindgen_id_64949 {
+pub enum nsACString_internal__bindgen_ty_bindgen_id_65439 {
     F_NONE = 0,
     F_TERMINATED = 1,
     F_VOIDED = 2,
@@ -1791,12 +1791,12 @@ fn bindgen_test_layout_nsCString() {
     assert_eq!(::std::mem::align_of::<nsCString>() , 8usize);
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_65501 {
+pub struct bindgen_vtable__bindgen_id_65991 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsCStringComparator {
-    pub vtable_: *const bindgen_vtable__bindgen_id_65501,
+    pub vtable_: *const bindgen_vtable__bindgen_id_65991,
 }
 pub type nsCStringComparator_char_type = ::std::os::raw::c_char;
 #[test]
@@ -1808,7 +1808,7 @@ impl Clone for nsCStringComparator {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_65545 {
+pub struct bindgen_vtable__bindgen_id_66035 {
 }
 /**
  * Basic component object model interface. Objects which implement
@@ -1819,7 +1819,7 @@ pub struct bindgen_vtable__bindgen_id_65545 {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsISupports {
-    pub vtable_: *const bindgen_vtable__bindgen_id_65545,
+    pub vtable_: *const bindgen_vtable__bindgen_id_66035,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1837,7 +1837,7 @@ impl Clone for nsISupports {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_65828 {
+pub struct bindgen_vtable__bindgen_id_66318 {
 }
 /**
  * Participant implementation classes
@@ -1845,7 +1845,7 @@ pub struct bindgen_vtable__bindgen_id_65828 {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsCycleCollectionParticipant {
-    pub vtable_: *const bindgen_vtable__bindgen_id_65828,
+    pub vtable_: *const bindgen_vtable__bindgen_id_66318,
     pub mMightSkip: bool,
 }
 #[test]
@@ -2154,7 +2154,7 @@ fn bindgen_test_layout_ErrorResult() {
 #[derive(Debug)]
 pub struct TErrorResult<CleanupPolicy> {
     pub mResult: nsresult,
-    pub __bindgen_anon_1: TErrorResult__bindgen_ty_bindgen_id_73321<CleanupPolicy>,
+    pub __bindgen_anon_1: TErrorResult__bindgen_ty_bindgen_id_73811<CleanupPolicy>,
     pub mMightHaveUnreportedJSException: bool,
     pub mUnionState: TErrorResult_UnionState,
     pub _mOwningThread: nsAutoOwningThread,
@@ -2184,7 +2184,7 @@ pub struct TErrorResult_DOMExceptionInfo<CleanupPolicy> {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct TErrorResult__bindgen_ty_bindgen_id_73321<CleanupPolicy> {
+pub struct TErrorResult__bindgen_ty_bindgen_id_73811<CleanupPolicy> {
     pub mMessage: __BindgenUnionField<*mut TErrorResult_Message<CleanupPolicy>>,
     pub mJSException: __BindgenUnionField<Value>,
     pub mDOMExceptionInfo: __BindgenUnionField<*mut TErrorResult_DOMExceptionInfo<CleanupPolicy>>,
@@ -2331,7 +2331,7 @@ impl nsIAtom {
     }
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_74308 {
+pub struct bindgen_vtable__bindgen_id_74798 {
 }
 /**
  * Class to store the wrapper for an object. This can only be used with objects
@@ -2373,7 +2373,7 @@ pub struct bindgen_vtable__bindgen_id_74308 {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsWrapperCache {
-    pub vtable_: *const bindgen_vtable__bindgen_id_74308,
+    pub vtable_: *const bindgen_vtable__bindgen_id_74798,
     pub mWrapper: *mut JSObject,
     pub mFlags: nsWrapperCache_FlagsType,
 }
@@ -2398,7 +2398,7 @@ pub type nsWrapperCache_FlagsType = u32;
    * NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER).
    */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsWrapperCache__bindgen_ty_bindgen_id_74515 {
+pub enum nsWrapperCache__bindgen_ty_bindgen_id_75005 {
     WRAPPER_BIT_PRESERVED = 1,
 }
 #[repr(u32)]
@@ -2407,12 +2407,12 @@ pub enum nsWrapperCache__bindgen_ty_bindgen_id_74515 {
    * binding.
    */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsWrapperCache__bindgen_ty_bindgen_id_74518 {
+pub enum nsWrapperCache__bindgen_ty_bindgen_id_75008 {
     WRAPPER_IS_NOT_DOM_BINDING = 2,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsWrapperCache__bindgen_ty_bindgen_id_74521 {
+pub enum nsWrapperCache__bindgen_ty_bindgen_id_75011 {
     kWrapperFlagsMask = 3,
 }
 #[test]
@@ -2444,6 +2444,41 @@ pub struct GlobalObject {
 fn bindgen_test_layout_GlobalObject() {
     assert_eq!(::std::mem::size_of::<GlobalObject>() , 40usize);
     assert_eq!(::std::mem::align_of::<GlobalObject>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsScriptObjectTracer {
+    pub _base: nsCycleCollectionParticipant,
+}
+#[test]
+fn bindgen_test_layout_nsScriptObjectTracer() {
+    assert_eq!(::std::mem::size_of::<nsScriptObjectTracer>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsScriptObjectTracer>() , 8usize);
+}
+impl Clone for nsScriptObjectTracer {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsXPCOMCycleCollectionParticipant {
+    pub _base: nsScriptObjectTracer,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsXPCOMCycleCollectionParticipant_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+#[test]
+fn bindgen_test_layout_nsXPCOMCycleCollectionParticipant() {
+    assert_eq!(::std::mem::size_of::<nsXPCOMCycleCollectionParticipant>() ,
+               16usize);
+    assert_eq!(::std::mem::align_of::<nsXPCOMCycleCollectionParticipant>() ,
+               8usize);
+}
+impl Clone for nsXPCOMCycleCollectionParticipant {
+    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2486,7 +2521,7 @@ impl Clone for random_access_iterator_tag {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_93424 {
+pub struct bindgen_vtable__bindgen_id_94640 {
 }
 /**
  * A class of objects that return source code on demand.
@@ -2502,246 +2537,12 @@ pub struct bindgen_vtable__bindgen_id_93424 {
 #[repr(C)]
 #[derive(Debug)]
 pub struct SourceHook {
-    pub vtable_: *const bindgen_vtable__bindgen_id_93424,
+    pub vtable_: *const bindgen_vtable__bindgen_id_94640,
 }
 #[test]
 fn bindgen_test_layout_SourceHook() {
     assert_eq!(::std::mem::size_of::<SourceHook>() , 8usize);
     assert_eq!(::std::mem::align_of::<SourceHook>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct __bit_const_reference<_Cp> {
-    pub __seg_: __bit_const_reference___storage_pointer<_Cp>,
-    pub __mask_: __bit_const_reference___storage_type<_Cp>,
-}
-pub type __bit_const_reference___storage_type<_Cp> = _Cp;
-pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsScriptObjectTracer {
-    pub _base: nsCycleCollectionParticipant,
-}
-#[test]
-fn bindgen_test_layout_nsScriptObjectTracer() {
-    assert_eq!(::std::mem::size_of::<nsScriptObjectTracer>() , 16usize);
-    assert_eq!(::std::mem::align_of::<nsScriptObjectTracer>() , 8usize);
-}
-impl Clone for nsScriptObjectTracer {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsXPCOMCycleCollectionParticipant {
-    pub _base: nsScriptObjectTracer,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsXPCOMCycleCollectionParticipant_COMTypeInfo<T, U> {
-    pub _address: u8,
-    pub _phantom_0: ::std::marker::PhantomData<T>,
-    pub _phantom_1: ::std::marker::PhantomData<U>,
-}
-#[test]
-fn bindgen_test_layout_nsXPCOMCycleCollectionParticipant() {
-    assert_eq!(::std::mem::size_of::<nsXPCOMCycleCollectionParticipant>() ,
-               16usize);
-    assert_eq!(::std::mem::align_of::<nsXPCOMCycleCollectionParticipant>() ,
-               8usize);
-}
-impl Clone for nsXPCOMCycleCollectionParticipant {
-    fn clone(&self) -> Self { *self }
-}
-pub type PLDHashNumber = u32;
-#[repr(C)]
-#[derive(Debug)]
-pub struct PLDHashTable {
-    pub mOps: *const PLDHashTableOps,
-    pub mHashShift: i16,
-    pub mEntrySize: u32,
-    pub mEntryCount: u32,
-    pub mRemovedCount: u32,
-    pub mEntryStore: PLDHashTable_EntryStore,
-    pub mChecker: Checker,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct PLDHashTable_EntryStore {
-    pub mEntryStore: *mut ::std::os::raw::c_char,
-    pub mGeneration: u32,
-}
-#[test]
-fn bindgen_test_layout_PLDHashTable_EntryStore() {
-    assert_eq!(::std::mem::size_of::<PLDHashTable_EntryStore>() , 16usize);
-    assert_eq!(::std::mem::align_of::<PLDHashTable_EntryStore>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct PLDHashTable_Iterator {
-    pub mTable: *mut PLDHashTable,
-    pub mStart: *mut ::std::os::raw::c_char,
-    pub mLimit: *mut ::std::os::raw::c_char,
-    pub mCurrent: *mut ::std::os::raw::c_char,
-    pub mNexts: u32,
-    pub mNextsLimit: u32,
-    pub mHaveRemoved: bool,
-}
-#[test]
-fn bindgen_test_layout_PLDHashTable_Iterator() {
-    assert_eq!(::std::mem::size_of::<PLDHashTable_Iterator>() , 48usize);
-    assert_eq!(::std::mem::align_of::<PLDHashTable_Iterator>() , 8usize);
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable12kMaxCapacityE"]
-    pub static PLDHashTable_kMaxCapacity: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable12kMinCapacityE"]
-    pub static PLDHashTable_kMinCapacity: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable17kMaxInitialLengthE"]
-    pub static PLDHashTable_kMaxInitialLength: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable21kDefaultInitialLengthE"]
-    pub static PLDHashTable_kDefaultInitialLength: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable9kHashBitsE"]
-    pub static PLDHashTable_kHashBits: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable12kGoldenRatioE"]
-    pub static PLDHashTable_kGoldenRatio: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable14kCollisionFlagE"]
-    pub static PLDHashTable_kCollisionFlag: PLDHashNumber;
-}
-#[test]
-fn bindgen_test_layout_PLDHashTable() {
-    assert_eq!(::std::mem::size_of::<PLDHashTable>() , 48usize);
-    assert_eq!(::std::mem::align_of::<PLDHashTable>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct PLDHashTableOps {
-    pub hashKey: PLDHashHashKey,
-    pub matchEntry: PLDHashMatchEntry,
-    pub moveEntry: PLDHashMoveEntry,
-    pub clearEntry: PLDHashClearEntry,
-    pub initEntry: PLDHashInitEntry,
-}
-#[test]
-fn bindgen_test_layout_PLDHashTableOps() {
-    assert_eq!(::std::mem::size_of::<PLDHashTableOps>() , 40usize);
-    assert_eq!(::std::mem::align_of::<PLDHashTableOps>() , 8usize);
-}
-impl Clone for PLDHashTableOps {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct PLDHashEntryHdr {
-    pub mKeyHash: PLDHashNumber,
-}
-#[test]
-fn bindgen_test_layout_PLDHashEntryHdr() {
-    assert_eq!(::std::mem::size_of::<PLDHashEntryHdr>() , 4usize);
-    assert_eq!(::std::mem::align_of::<PLDHashEntryHdr>() , 4usize);
-}
-impl Clone for PLDHashEntryHdr {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct Checker {
-    pub mState: u32,
-    pub mIsWritable: u32,
-}
-extern "C" {
-    #[link_name = "_ZN7Checker5kIdleE"]
-    pub static Checker_kIdle: u32;
-}
-extern "C" {
-    #[link_name = "_ZN7Checker6kRead1E"]
-    pub static Checker_kRead1: u32;
-}
-extern "C" {
-    #[link_name = "_ZN7Checker8kReadMaxE"]
-    pub static Checker_kReadMax: u32;
-}
-extern "C" {
-    #[link_name = "_ZN7Checker6kWriteE"]
-    pub static Checker_kWrite: u32;
-}
-#[test]
-fn bindgen_test_layout_Checker() {
-    assert_eq!(::std::mem::size_of::<Checker>() , 8usize);
-    assert_eq!(::std::mem::align_of::<Checker>() , 4usize);
-}
-impl Clone for Checker {
-    fn clone(&self) -> Self { *self }
-}
-pub type PLDHashHashKey =
-    ::std::option::Option<unsafe extern "C" fn(aKey:
-                                                   *const ::std::os::raw::c_void)
-                              -> ::std::os::raw::c_uint>;
-pub type PLDHashMatchEntry =
-    ::std::option::Option<unsafe extern "C" fn(aEntry: *const PLDHashEntryHdr,
-                                               aKey:
-                                                   *const ::std::os::raw::c_void)
-                              -> bool>;
-pub type PLDHashMoveEntry =
-    ::std::option::Option<unsafe extern "C" fn(aTable: *mut PLDHashTable,
-                                               aFrom: *const PLDHashEntryHdr,
-                                               aTo: *mut PLDHashEntryHdr)>;
-pub type PLDHashClearEntry =
-    ::std::option::Option<unsafe extern "C" fn(aTable: *mut PLDHashTable,
-                                               aEntry: *mut PLDHashEntryHdr)>;
-pub type PLDHashInitEntry =
-    ::std::option::Option<unsafe extern "C" fn(aEntry: *mut PLDHashEntryHdr,
-                                               aKey:
-                                                   *const ::std::os::raw::c_void)>;
-/**
- * hashkey wrapper using T* KeyType
- *
- * @see nsTHashtable::EntryType for specification
- */
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsPtrHashKey<T> {
-    pub _base: PLDHashEntryHdr,
-    pub mKey: *mut T,
-}
-pub type nsPtrHashKey_KeyType<T> = *mut T;
-pub type nsPtrHashKey_KeyTypePointer<T> = *mut T;
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsPtrHashKey__bindgen_ty_bindgen_id_104414 { ALLOW_MEMMOVE = 0, }
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIRunnable {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsIRunnable_COMTypeInfo<T, U> {
-    pub _address: u8,
-    pub _phantom_0: ::std::marker::PhantomData<T>,
-    pub _phantom_1: ::std::marker::PhantomData<U>,
-}
-#[test]
-fn bindgen_test_layout_nsIRunnable() {
-    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
-}
-impl Clone for nsIRunnable {
-    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -2757,7 +2558,7 @@ pub struct nsIPrincipal_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPrincipal__bindgen_ty_bindgen_id_106456 {
+pub enum nsIPrincipal__bindgen_ty_bindgen_id_100105 {
     APP_STATUS_NOT_INSTALLED = 0,
     APP_STATUS_INSTALLED = 1,
     APP_STATUS_PRIVILEGED = 2,
@@ -3080,7 +2881,7 @@ pub type nsIDocument_FrameRequestCallbackList =
     nsTArray<RefPtr<FrameRequestCallback>>;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIDocument__bindgen_ty_bindgen_id_115186 { REQUEST_DISCARD = 1, }
+pub enum nsIDocument__bindgen_ty_bindgen_id_108835 { REQUEST_DISCARD = 1, }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum nsIDocument_DeprecatedOperations {
@@ -3771,7 +3572,7 @@ pub struct nsINode {
     pub mNextSibling: *mut nsIContent,
     pub mPreviousSibling: *mut nsIContent,
     pub mFirstChild: *mut nsIContent,
-    pub __bindgen_anon_1: nsINode__bindgen_ty_bindgen_id_111874,
+    pub __bindgen_anon_1: nsINode__bindgen_ty_bindgen_id_105524,
     pub mSlots: *mut nsINode_nsSlots,
     pub mServoData: ServoCell<*mut ServoNodeData>,
 }
@@ -3796,7 +3597,7 @@ pub struct nsINode_COMTypeInfo<T, U> {
    * Bit-flags to pass (or'ed together) to IsNodeOfType()
    */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsINode__bindgen_ty_bindgen_id_107999 {
+pub enum nsINode__bindgen_ty_bindgen_id_101649 {
     eCONTENT = 1,
     eDOCUMENT = 2,
     eATTRIBUTE = 4,
@@ -3811,12 +3612,12 @@ pub enum nsINode__bindgen_ty_bindgen_id_107999 {
     eFILTER = 2048,
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_108768 {
+pub struct bindgen_vtable__bindgen_id_102418 {
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsINode_nsSlots {
-    pub vtable_: *const bindgen_vtable__bindgen_id_108768,
+    pub vtable_: *const bindgen_vtable__bindgen_id_102418,
     /**
      * A list of mutation observers
      */
@@ -3885,19 +3686,19 @@ pub enum nsINode_BooleanFlag {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsINode__bindgen_ty_bindgen_id_111874 {
+pub struct nsINode__bindgen_ty_bindgen_id_105524 {
     pub mPrimaryFrame: __BindgenUnionField<*mut nsIFrame>,
     pub mSubtreeRoot: __BindgenUnionField<*mut nsINode>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsINode__bindgen_ty_bindgen_id_111874() {
-    assert_eq!(::std::mem::size_of::<nsINode__bindgen_ty_bindgen_id_111874>()
+fn bindgen_test_layout_nsINode__bindgen_ty_bindgen_id_105524() {
+    assert_eq!(::std::mem::size_of::<nsINode__bindgen_ty_bindgen_id_105524>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsINode__bindgen_ty_bindgen_id_111874>()
+    assert_eq!(::std::mem::align_of::<nsINode__bindgen_ty_bindgen_id_105524>()
                , 8usize);
 }
-impl Clone for nsINode__bindgen_ty_bindgen_id_111874 {
+impl Clone for nsINode__bindgen_ty_bindgen_id_105524 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -4036,6 +3837,9 @@ pub enum ReferrerPolicy {
     RP_No_Referrer_When_Downgrade = 0,
     RP_Origin_When_Crossorigin = 3,
     RP_Unsafe_URL = 4,
+    RP_Same_Origin = 5,
+    RP_Strict_Origin = 6,
+    RP_Strict_Origin_When_Cross_Origin = 7,
     RP_Unset = 4294967295,
 }
 /**
@@ -4181,6 +3985,26 @@ impl Clone for nsIVariant {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIRunnable {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsIRunnable_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+#[test]
+fn bindgen_test_layout_nsIRunnable() {
+    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
+}
+impl Clone for nsIRunnable {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct Runnable {
     pub _base: nsIRunnable,
@@ -4227,7 +4051,7 @@ pub struct nsIDOMNode_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIDOMNode__bindgen_ty_bindgen_id_120024 {
+pub enum nsIDOMNode__bindgen_ty_bindgen_id_113686 {
     ELEMENT_NODE = 1,
     ATTRIBUTE_NODE = 2,
     TEXT_NODE = 3,
@@ -4243,7 +4067,7 @@ pub enum nsIDOMNode__bindgen_ty_bindgen_id_120024 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIDOMNode__bindgen_ty_bindgen_id_120243 {
+pub enum nsIDOMNode__bindgen_ty_bindgen_id_113905 {
     DOCUMENT_POSITION_DISCONNECTED = 1,
     DOCUMENT_POSITION_PRECEDING = 2,
     DOCUMENT_POSITION_FOLLOWING = 4,
@@ -5098,6 +4922,273 @@ pub enum Side {
     eSideBottom = 2,
     eSideLeft = 3,
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct CallbackFunction {
+    pub _base: CallbackObject,
+}
+#[test]
+fn bindgen_test_layout_CallbackFunction() {
+    assert_eq!(::std::mem::size_of::<CallbackFunction>() , 56usize);
+    assert_eq!(::std::mem::align_of::<CallbackFunction>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct CallbackObject {
+    pub _base: nsISupports,
+    pub mRefCnt: nsCycleCollectingAutoRefCnt,
+    pub _mOwningThread: nsAutoOwningThread,
+    pub mCallback: u64,
+    pub mCreationStack: u64,
+    pub mIncumbentGlobal: nsCOMPtr<nsIGlobalObject>,
+    pub mIncumbentJSGlobal: u64,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct CallbackObject_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+pub type CallbackObject_HasThreadSafeRefCnt = FalseType;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct CallbackObject_cycleCollection {
+    pub _base: nsXPCOMCycleCollectionParticipant,
+}
+#[test]
+fn bindgen_test_layout_CallbackObject_cycleCollection() {
+    assert_eq!(::std::mem::size_of::<CallbackObject_cycleCollection>() ,
+               16usize);
+    assert_eq!(::std::mem::align_of::<CallbackObject_cycleCollection>() ,
+               8usize);
+}
+impl Clone for CallbackObject_cycleCollection {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum CallbackObject_ExceptionHandling {
+    eReportExceptions = 0,
+    eRethrowContentExceptions = 1,
+    eRethrowExceptions = 2,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct CallbackObject_FastCallbackConstructor {
+    pub _address: u8,
+}
+#[test]
+fn bindgen_test_layout_CallbackObject_FastCallbackConstructor() {
+    assert_eq!(::std::mem::size_of::<CallbackObject_FastCallbackConstructor>()
+               , 1usize);
+    assert_eq!(::std::mem::align_of::<CallbackObject_FastCallbackConstructor>()
+               , 1usize);
+}
+impl Clone for CallbackObject_FastCallbackConstructor {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct CallbackObject_CallSetup {
+    pub mCx: *mut JSContext,
+    pub mCompartment: *mut JSCompartment,
+    pub mAutoEntryScript: [u64; 21usize],
+    pub mAutoIncumbentScript: [u64; 6usize],
+    pub mRootedCallable: [u64; 4usize],
+    pub mAsyncStack: [u64; 4usize],
+    pub mAsyncStackSetter: [u64; 7usize],
+    pub mAc: [u64; 4usize],
+    pub mErrorResult: *mut ErrorResult,
+    pub mExceptionHandling: CallbackObject_ExceptionHandling,
+    pub mIsMainThread: bool,
+}
+#[test]
+fn bindgen_test_layout_CallbackObject_CallSetup() {
+    assert_eq!(::std::mem::size_of::<CallbackObject_CallSetup>() , 400usize);
+    assert_eq!(::std::mem::align_of::<CallbackObject_CallSetup>() , 8usize);
+}
+extern "C" {
+    #[link_name = "_ZN7mozilla3dom14CallbackObject21_cycleCollectorGlobalE"]
+    pub static mut CallbackObject__cycleCollectorGlobal:
+               CallbackObject_cycleCollection;
+}
+#[test]
+fn bindgen_test_layout_CallbackObject() {
+    assert_eq!(::std::mem::size_of::<CallbackObject>() , 56usize);
+    assert_eq!(::std::mem::align_of::<CallbackObject>() , 8usize);
+}
+pub type PLDHashNumber = u32;
+#[repr(C)]
+#[derive(Debug)]
+pub struct PLDHashTable {
+    pub mOps: *const PLDHashTableOps,
+    pub mHashShift: i16,
+    pub mEntrySize: u32,
+    pub mEntryCount: u32,
+    pub mRemovedCount: u32,
+    pub mEntryStore: PLDHashTable_EntryStore,
+    pub mChecker: Checker,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct PLDHashTable_EntryStore {
+    pub mEntryStore: *mut ::std::os::raw::c_char,
+    pub mGeneration: u32,
+}
+#[test]
+fn bindgen_test_layout_PLDHashTable_EntryStore() {
+    assert_eq!(::std::mem::size_of::<PLDHashTable_EntryStore>() , 16usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTable_EntryStore>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct PLDHashTable_Iterator {
+    pub mTable: *mut PLDHashTable,
+    pub mStart: *mut ::std::os::raw::c_char,
+    pub mLimit: *mut ::std::os::raw::c_char,
+    pub mCurrent: *mut ::std::os::raw::c_char,
+    pub mNexts: u32,
+    pub mNextsLimit: u32,
+    pub mHaveRemoved: bool,
+}
+#[test]
+fn bindgen_test_layout_PLDHashTable_Iterator() {
+    assert_eq!(::std::mem::size_of::<PLDHashTable_Iterator>() , 48usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTable_Iterator>() , 8usize);
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable12kMaxCapacityE"]
+    pub static PLDHashTable_kMaxCapacity: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable12kMinCapacityE"]
+    pub static PLDHashTable_kMinCapacity: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable17kMaxInitialLengthE"]
+    pub static PLDHashTable_kMaxInitialLength: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable21kDefaultInitialLengthE"]
+    pub static PLDHashTable_kDefaultInitialLength: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable9kHashBitsE"]
+    pub static PLDHashTable_kHashBits: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable12kGoldenRatioE"]
+    pub static PLDHashTable_kGoldenRatio: u32;
+}
+extern "C" {
+    #[link_name = "_ZN12PLDHashTable14kCollisionFlagE"]
+    pub static PLDHashTable_kCollisionFlag: PLDHashNumber;
+}
+#[test]
+fn bindgen_test_layout_PLDHashTable() {
+    assert_eq!(::std::mem::size_of::<PLDHashTable>() , 48usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTable>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct PLDHashTableOps {
+    pub hashKey: PLDHashHashKey,
+    pub matchEntry: PLDHashMatchEntry,
+    pub moveEntry: PLDHashMoveEntry,
+    pub clearEntry: PLDHashClearEntry,
+    pub initEntry: PLDHashInitEntry,
+}
+#[test]
+fn bindgen_test_layout_PLDHashTableOps() {
+    assert_eq!(::std::mem::size_of::<PLDHashTableOps>() , 40usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTableOps>() , 8usize);
+}
+impl Clone for PLDHashTableOps {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct PLDHashEntryHdr {
+    pub mKeyHash: PLDHashNumber,
+}
+#[test]
+fn bindgen_test_layout_PLDHashEntryHdr() {
+    assert_eq!(::std::mem::size_of::<PLDHashEntryHdr>() , 4usize);
+    assert_eq!(::std::mem::align_of::<PLDHashEntryHdr>() , 4usize);
+}
+impl Clone for PLDHashEntryHdr {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct Checker {
+    pub mState: u32,
+    pub mIsWritable: u32,
+}
+extern "C" {
+    #[link_name = "_ZN7Checker5kIdleE"]
+    pub static Checker_kIdle: u32;
+}
+extern "C" {
+    #[link_name = "_ZN7Checker6kRead1E"]
+    pub static Checker_kRead1: u32;
+}
+extern "C" {
+    #[link_name = "_ZN7Checker8kReadMaxE"]
+    pub static Checker_kReadMax: u32;
+}
+extern "C" {
+    #[link_name = "_ZN7Checker6kWriteE"]
+    pub static Checker_kWrite: u32;
+}
+#[test]
+fn bindgen_test_layout_Checker() {
+    assert_eq!(::std::mem::size_of::<Checker>() , 8usize);
+    assert_eq!(::std::mem::align_of::<Checker>() , 4usize);
+}
+impl Clone for Checker {
+    fn clone(&self) -> Self { *self }
+}
+pub type PLDHashHashKey =
+    ::std::option::Option<unsafe extern "C" fn(aKey:
+                                                   *const ::std::os::raw::c_void)
+                              -> ::std::os::raw::c_uint>;
+pub type PLDHashMatchEntry =
+    ::std::option::Option<unsafe extern "C" fn(aEntry: *const PLDHashEntryHdr,
+                                               aKey:
+                                                   *const ::std::os::raw::c_void)
+                              -> bool>;
+pub type PLDHashMoveEntry =
+    ::std::option::Option<unsafe extern "C" fn(aTable: *mut PLDHashTable,
+                                               aFrom: *const PLDHashEntryHdr,
+                                               aTo: *mut PLDHashEntryHdr)>;
+pub type PLDHashClearEntry =
+    ::std::option::Option<unsafe extern "C" fn(aTable: *mut PLDHashTable,
+                                               aEntry: *mut PLDHashEntryHdr)>;
+pub type PLDHashInitEntry =
+    ::std::option::Option<unsafe extern "C" fn(aEntry: *mut PLDHashEntryHdr,
+                                               aKey:
+                                                   *const ::std::os::raw::c_void)>;
+/**
+ * hashkey wrapper using T* KeyType
+ *
+ * @see nsTHashtable::EntryType for specification
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsPtrHashKey<T> {
+    pub _base: PLDHashEntryHdr,
+    pub mKey: *mut T,
+}
+pub type nsPtrHashKey_KeyType<T> = *mut T;
+pub type nsPtrHashKey_KeyTypePointer<T> = *mut T;
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum nsPtrHashKey__bindgen_ty_bindgen_id_118429 { ALLOW_MEMMOVE = 0, }
 /**
  * A node of content in a document's content model. This interface
  * is supported by all content objects.
@@ -5117,14 +5208,14 @@ pub struct nsIContent_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIContent__bindgen_ty_bindgen_id_124178 {
+pub enum nsIContent__bindgen_ty_bindgen_id_119769 {
     eAllChildren = 0,
     eAllButXBL = 1,
     eSkipPlaceholderContent = 2,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIContent__bindgen_ty_bindgen_id_124414 {
+pub enum nsIContent__bindgen_ty_bindgen_id_120005 {
     ATTR_MISSING = -1,
     ATTR_VALUE_NO_MATCH = -2,
 }
@@ -5330,7 +5421,7 @@ pub struct FragmentOrElement_nsDOMSlots {
      * @see FragmentOrElement::GetAttributes
      */
     pub mAttributeMap: RefPtr<nsDOMAttributeMap>,
-    pub __bindgen_anon_1: FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545,
+    pub __bindgen_anon_1: FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136,
     /**
      * An object implementing the .children property for this element.
      */
@@ -5367,7 +5458,7 @@ pub struct FragmentOrElement_nsDOMSlots {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545 {
+pub struct FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136 {
     /**
       * The nearest enclosing content node with a binding that created us.
       * @see FragmentOrElement::GetBindingParent
@@ -5380,13 +5471,13 @@ pub struct FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545 {
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545() {
-    assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545>()
+fn bindgen_test_layout_FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136() {
+    assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545>()
+    assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136>()
                , 8usize);
 }
-impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_125545 {
+impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_bindgen_id_121136 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -5437,91 +5528,13 @@ impl Clone for PrefSetting {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-#[derive(Debug)]
-pub struct CallbackObject {
-    pub _base: nsISupports,
-    pub mRefCnt: nsCycleCollectingAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
-    pub mCallback: u64,
-    pub mCreationStack: u64,
-    pub mIncumbentGlobal: nsCOMPtr<nsIGlobalObject>,
-    pub mIncumbentJSGlobal: u64,
-}
-#[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct CallbackObject_COMTypeInfo<T, U> {
-    pub _address: u8,
-    pub _phantom_0: ::std::marker::PhantomData<T>,
-    pub _phantom_1: ::std::marker::PhantomData<U>,
+pub struct __bit_const_reference<_Cp> {
+    pub __seg_: __bit_const_reference___storage_pointer<_Cp>,
+    pub __mask_: __bit_const_reference___storage_type<_Cp>,
 }
-pub type CallbackObject_HasThreadSafeRefCnt = FalseType;
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct CallbackObject_cycleCollection {
-    pub _base: nsXPCOMCycleCollectionParticipant,
-}
-#[test]
-fn bindgen_test_layout_CallbackObject_cycleCollection() {
-    assert_eq!(::std::mem::size_of::<CallbackObject_cycleCollection>() ,
-               16usize);
-    assert_eq!(::std::mem::align_of::<CallbackObject_cycleCollection>() ,
-               8usize);
-}
-impl Clone for CallbackObject_cycleCollection {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum CallbackObject_ExceptionHandling {
-    eReportExceptions = 0,
-    eRethrowContentExceptions = 1,
-    eRethrowExceptions = 2,
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct CallbackObject_FastCallbackConstructor {
-    pub _address: u8,
-}
-#[test]
-fn bindgen_test_layout_CallbackObject_FastCallbackConstructor() {
-    assert_eq!(::std::mem::size_of::<CallbackObject_FastCallbackConstructor>()
-               , 1usize);
-    assert_eq!(::std::mem::align_of::<CallbackObject_FastCallbackConstructor>()
-               , 1usize);
-}
-impl Clone for CallbackObject_FastCallbackConstructor {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct CallbackObject_CallSetup {
-    pub mCx: *mut JSContext,
-    pub mCompartment: *mut JSCompartment,
-    pub mAutoEntryScript: [u64; 21usize],
-    pub mAutoIncumbentScript: [u64; 6usize],
-    pub mRootedCallable: [u64; 4usize],
-    pub mAsyncStack: [u64; 4usize],
-    pub mAsyncStackSetter: [u64; 7usize],
-    pub mAc: [u64; 4usize],
-    pub mErrorResult: *mut ErrorResult,
-    pub mExceptionHandling: CallbackObject_ExceptionHandling,
-    pub mIsMainThread: bool,
-}
-#[test]
-fn bindgen_test_layout_CallbackObject_CallSetup() {
-    assert_eq!(::std::mem::size_of::<CallbackObject_CallSetup>() , 400usize);
-    assert_eq!(::std::mem::align_of::<CallbackObject_CallSetup>() , 8usize);
-}
-extern "C" {
-    #[link_name = "_ZN7mozilla3dom14CallbackObject21_cycleCollectorGlobalE"]
-    pub static mut CallbackObject__cycleCollectorGlobal:
-               CallbackObject_cycleCollection;
-}
-#[test]
-fn bindgen_test_layout_CallbackObject() {
-    assert_eq!(::std::mem::size_of::<CallbackObject>() , 56usize);
-    assert_eq!(::std::mem::align_of::<CallbackObject>() , 8usize);
-}
+pub type __bit_const_reference___storage_type<_Cp> = _Cp;
+pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIChannel {
@@ -5536,7 +5549,7 @@ pub struct nsIChannel_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIChannel__bindgen_ty_bindgen_id_137651 {
+pub enum nsIChannel__bindgen_ty_bindgen_id_138647 {
     LOAD_DOCUMENT_URI = 65536,
     LOAD_RETARGETED_DOCUMENT_URI = 131072,
     LOAD_REPLACE = 262144,
@@ -5550,7 +5563,7 @@ pub enum nsIChannel__bindgen_ty_bindgen_id_137651 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIChannel__bindgen_ty_bindgen_id_137671 {
+pub enum nsIChannel__bindgen_ty_bindgen_id_138667 {
     DISPOSITION_INLINE = 0,
     DISPOSITION_ATTACHMENT = 1,
 }
@@ -5576,7 +5589,7 @@ pub struct nsIRequest_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIRequest__bindgen_ty_bindgen_id_137489 {
+pub enum nsIRequest__bindgen_ty_bindgen_id_138485 {
     LOAD_REQUESTMASK = 65535,
     LOAD_NORMAL = 0,
     LOAD_BACKGROUND = 1,
@@ -6131,13 +6144,13 @@ pub enum nsIPresShell_ReflowRootHandling {
     eNoPositionOrSizeChange = 1,
     eInferFromBitToAdd = 2,
 }
-pub const SCROLL_LEFT: nsIPresShell__bindgen_ty_bindgen_id_155504 =
-    nsIPresShell__bindgen_ty_bindgen_id_155504::SCROLL_TOP;
-pub const SCROLL_RIGHT: nsIPresShell__bindgen_ty_bindgen_id_155504 =
-    nsIPresShell__bindgen_ty_bindgen_id_155504::SCROLL_BOTTOM;
+pub const SCROLL_LEFT: nsIPresShell__bindgen_ty_bindgen_id_156516 =
+    nsIPresShell__bindgen_ty_bindgen_id_156516::SCROLL_TOP;
+pub const SCROLL_RIGHT: nsIPresShell__bindgen_ty_bindgen_id_156516 =
+    nsIPresShell__bindgen_ty_bindgen_id_156516::SCROLL_BOTTOM;
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPresShell__bindgen_ty_bindgen_id_155504 {
+pub enum nsIPresShell__bindgen_ty_bindgen_id_156516 {
     SCROLL_TOP = 0,
     SCROLL_BOTTOM = 100,
     SCROLL_CENTER = 50,
@@ -6165,7 +6178,7 @@ impl Clone for nsIPresShell_ScrollAxis {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPresShell__bindgen_ty_bindgen_id_155535 {
+pub enum nsIPresShell__bindgen_ty_bindgen_id_156547 {
     SCROLL_FIRST_ANCESTOR_ONLY = 1,
     SCROLL_OVERFLOW_HIDDEN = 2,
     SCROLL_NO_PARENT_FRAMES = 4,
@@ -6212,7 +6225,7 @@ pub enum nsIPresShell__bindgen_ty_bindgen_id_155535 {
    * transform.
    */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPresShell__bindgen_ty_bindgen_id_155934 {
+pub enum nsIPresShell__bindgen_ty_bindgen_id_157000 {
     RENDER_IS_UNTRUSTED = 1,
     RENDER_IGNORE_VIEWPORT_SCROLLING = 2,
     RENDER_CARET = 4,
@@ -6223,7 +6236,7 @@ pub enum nsIPresShell__bindgen_ty_bindgen_id_155934 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPresShell__bindgen_ty_bindgen_id_155952 {
+pub enum nsIPresShell__bindgen_ty_bindgen_id_157018 {
     RENDER_IS_IMAGE = 256,
     RENDER_AUTO_SCALE = 128,
 }
@@ -6236,7 +6249,7 @@ pub enum nsIPresShell__bindgen_ty_bindgen_id_155952 {
    * transparent by default.
    */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsIPresShell__bindgen_ty_bindgen_id_156075 { FORCE_DRAW = 1, }
+pub enum nsIPresShell__bindgen_ty_bindgen_id_157141 { FORCE_DRAW = 1, }
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsIPresShell_PointerCaptureInfo {
@@ -6623,67 +6636,67 @@ pub struct DOMPointInit {
 impl Clone for DOMPointInit {
     fn clone(&self) -> Self { *self }
 }
-pub const NODE_HAS_LISTENERMANAGER: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_LISTENERMANAGER;
-pub const NODE_HAS_PROPERTIES: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_PROPERTIES;
-pub const NODE_IS_ANONYMOUS_ROOT: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_ANONYMOUS_ROOT;
-pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-pub const NODE_FORCE_XBL_BINDINGS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_FORCE_XBL_BINDINGS;
-pub const NODE_MAY_BE_IN_BINDING_MNGR: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_MAY_BE_IN_BINDING_MNGR;
-pub const NODE_IS_EDITABLE: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_EDITABLE;
-pub const NODE_MAY_HAVE_CLASS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_MAY_HAVE_CLASS;
-pub const NODE_IS_IN_SHADOW_TREE: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_IN_SHADOW_TREE;
-pub const NODE_HAS_EMPTY_SELECTOR: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_EMPTY_SELECTOR;
-pub const NODE_HAS_SLOW_SELECTOR: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_SLOW_SELECTOR;
-pub const NODE_HAS_EDGE_CHILD_SELECTOR: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_EDGE_CHILD_SELECTOR;
-pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: _bindgen_ty_bindgen_id_157496
+pub const NODE_HAS_LISTENERMANAGER: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_LISTENERMANAGER;
+pub const NODE_HAS_PROPERTIES: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_PROPERTIES;
+pub const NODE_IS_ANONYMOUS_ROOT: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_ANONYMOUS_ROOT;
+pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+pub const NODE_FORCE_XBL_BINDINGS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_FORCE_XBL_BINDINGS;
+pub const NODE_MAY_BE_IN_BINDING_MNGR: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_MAY_BE_IN_BINDING_MNGR;
+pub const NODE_IS_EDITABLE: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_EDITABLE;
+pub const NODE_MAY_HAVE_CLASS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_MAY_HAVE_CLASS;
+pub const NODE_IS_IN_SHADOW_TREE: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_IN_SHADOW_TREE;
+pub const NODE_HAS_EMPTY_SELECTOR: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_EMPTY_SELECTOR;
+pub const NODE_HAS_SLOW_SELECTOR: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_SLOW_SELECTOR;
+pub const NODE_HAS_EDGE_CHILD_SELECTOR: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_EDGE_CHILD_SELECTOR;
+pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: _bindgen_ty_bindgen_id_158562
           =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-pub const NODE_ALL_SELECTOR_FLAGS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_ALL_SELECTOR_FLAGS;
-pub const NODE_NEEDS_FRAME: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_NEEDS_FRAME;
-pub const NODE_DESCENDANTS_NEED_FRAMES: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_DESCENDANTS_NEED_FRAMES;
-pub const NODE_HAS_ACCESSKEY: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_ACCESSKEY;
-pub const NODE_HAS_DIRECTION_RTL: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_DIRECTION_RTL;
-pub const NODE_HAS_DIRECTION_LTR: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_HAS_DIRECTION_LTR;
-pub const NODE_ALL_DIRECTION_FLAGS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_ALL_DIRECTION_FLAGS;
-pub const NODE_CHROME_ONLY_ACCESS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_CHROME_ONLY_ACCESS;
-pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-pub const NODE_SHARED_RESTYLE_BIT_1: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_SHARED_RESTYLE_BIT_1;
-pub const NODE_SHARED_RESTYLE_BIT_2: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_SHARED_RESTYLE_BIT_2;
-pub const NODE_IS_DIRTY_FOR_SERVO: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_SHARED_RESTYLE_BIT_1;
-pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: _bindgen_ty_bindgen_id_157496
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+pub const NODE_ALL_SELECTOR_FLAGS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_ALL_SELECTOR_FLAGS;
+pub const NODE_NEEDS_FRAME: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_NEEDS_FRAME;
+pub const NODE_DESCENDANTS_NEED_FRAMES: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_DESCENDANTS_NEED_FRAMES;
+pub const NODE_HAS_ACCESSKEY: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_ACCESSKEY;
+pub const NODE_HAS_DIRECTION_RTL: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_DIRECTION_RTL;
+pub const NODE_HAS_DIRECTION_LTR: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_HAS_DIRECTION_LTR;
+pub const NODE_ALL_DIRECTION_FLAGS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_ALL_DIRECTION_FLAGS;
+pub const NODE_CHROME_ONLY_ACCESS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_CHROME_ONLY_ACCESS;
+pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+pub const NODE_SHARED_RESTYLE_BIT_1: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_SHARED_RESTYLE_BIT_1;
+pub const NODE_SHARED_RESTYLE_BIT_2: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_SHARED_RESTYLE_BIT_2;
+pub const NODE_IS_DIRTY_FOR_SERVO: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_SHARED_RESTYLE_BIT_1;
+pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: _bindgen_ty_bindgen_id_158562
           =
-    _bindgen_ty_bindgen_id_157496::NODE_SHARED_RESTYLE_BIT_2;
-pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: _bindgen_ty_bindgen_id_157496 =
-    _bindgen_ty_bindgen_id_157496::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    _bindgen_ty_bindgen_id_158562::NODE_SHARED_RESTYLE_BIT_2;
+pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: _bindgen_ty_bindgen_id_158562 =
+    _bindgen_ty_bindgen_id_158562::NODE_TYPE_SPECIFIC_BITS_OFFSET;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum _bindgen_ty_bindgen_id_157496 {
+pub enum _bindgen_ty_bindgen_id_158562 {
     NODE_HAS_LISTENERMANAGER = 4,
     NODE_HAS_PROPERTIES = 8,
     NODE_IS_ANONYMOUS_ROOT = 16,
@@ -6741,7 +6754,7 @@ pub struct nsITimer_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsITimer__bindgen_ty_bindgen_id_174064 {
+pub enum nsITimer__bindgen_ty_bindgen_id_175130 {
     TYPE_ONE_SHOT = 0,
     TYPE_REPEATING_SLACK = 1,
     TYPE_REPEATING_PRECISE = 2,
@@ -6767,7 +6780,7 @@ pub struct nsExpirationState {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsExpirationState__bindgen_ty_bindgen_id_174540 {
+pub enum nsExpirationState__bindgen_ty_bindgen_id_175606 {
     NOT_TRACKED = 15,
     MAX_INDEX_IN_GENERATION = 268435455,
 }
@@ -6841,7 +6854,7 @@ pub struct imgIRequest_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum imgIRequest__bindgen_ty_bindgen_id_175132 {
+pub enum imgIRequest__bindgen_ty_bindgen_id_176193 {
     STATUS_NONE = 0,
     STATUS_SIZE_AVAILABLE = 1,
     STATUS_LOAD_COMPLETE = 2,
@@ -6853,7 +6866,7 @@ pub enum imgIRequest__bindgen_ty_bindgen_id_175132 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum imgIRequest__bindgen_ty_bindgen_id_175212 {
+pub enum imgIRequest__bindgen_ty_bindgen_id_176273 {
     CORS_NONE = 1,
     CORS_ANONYMOUS = 2,
     CORS_USE_CREDENTIALS = 3,
@@ -7064,16 +7077,6 @@ pub struct FrameRequestCallback {
 fn bindgen_test_layout_FrameRequestCallback() {
     assert_eq!(::std::mem::size_of::<FrameRequestCallback>() , 56usize);
     assert_eq!(::std::mem::align_of::<FrameRequestCallback>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct CallbackFunction {
-    pub _base: CallbackObject,
-}
-#[test]
-fn bindgen_test_layout_CallbackFunction() {
-    assert_eq!(::std::mem::size_of::<CallbackFunction>() , 56usize);
-    assert_eq!(::std::mem::align_of::<CallbackFunction>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -7362,7 +7365,7 @@ pub type nsPresArena_FreeList_KeyType = u32;
 pub type nsPresArena_FreeList_KeyTypePointer = *const ::std::os::raw::c_void;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsPresArena_FreeList__bindgen_ty_bindgen_id_187768 {
+pub enum nsPresArena_FreeList__bindgen_ty_bindgen_id_196745 {
     ALLOW_MEMMOVE = 0,
 }
 #[test]
@@ -7389,7 +7392,7 @@ pub struct imgINotificationObserver_COMTypeInfo<T, U> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum imgINotificationObserver__bindgen_ty_bindgen_id_187915 {
+pub enum imgINotificationObserver__bindgen_ty_bindgen_id_196892 {
     SIZE_AVAILABLE = 1,
     FRAME_UPDATE = 2,
     FRAME_COMPLETE = 3,
@@ -7638,7 +7641,7 @@ pub type gfxFontFeatureValueSet_FeatureValueHashEntry_KeyTypePointer =
     *const gfxFontFeatureValueSet_FeatureValueHashKey;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum gfxFontFeatureValueSet_FeatureValueHashEntry__bindgen_ty_bindgen_id_189169
+pub enum gfxFontFeatureValueSet_FeatureValueHashEntry__bindgen_ty_bindgen_id_198146
          {
     ALLOW_MEMMOVE = 1,
 }
@@ -8034,23 +8037,23 @@ pub enum nsStyleUnit {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct _bindgen_ty_bindgen_id_189922 {
+pub struct _bindgen_ty_bindgen_id_198899 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mPointer: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout__bindgen_ty_bindgen_id_189922() {
-    assert_eq!(::std::mem::size_of::<_bindgen_ty_bindgen_id_189922>() ,
+fn bindgen_test_layout__bindgen_ty_bindgen_id_198899() {
+    assert_eq!(::std::mem::size_of::<_bindgen_ty_bindgen_id_198899>() ,
                8usize);
-    assert_eq!(::std::mem::align_of::<_bindgen_ty_bindgen_id_189922>() ,
+    assert_eq!(::std::mem::align_of::<_bindgen_ty_bindgen_id_198899>() ,
                8usize);
 }
-impl Clone for _bindgen_ty_bindgen_id_189922 {
+impl Clone for _bindgen_ty_bindgen_id_198899 {
     fn clone(&self) -> Self { *self }
 }
-pub type nsStyleUnion = _bindgen_ty_bindgen_id_189922;
+pub type nsStyleUnion = _bindgen_ty_bindgen_id_198899;
 /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -9096,7 +9099,7 @@ fn bindgen_test_layout_imgRequestProxy() {
     assert_eq!(::std::mem::align_of::<imgRequestProxy>() , 8usize);
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_199333 {
+pub struct bindgen_vtable__bindgen_id_207995 {
 }
 /**
  * An interface for observing changes to image state, as reported by
@@ -9113,7 +9116,7 @@ pub struct bindgen_vtable__bindgen_id_199333 {
 #[repr(C)]
 #[derive(Debug)]
 pub struct IProgressObserver {
-    pub vtable_: *const bindgen_vtable__bindgen_id_199333,
+    pub vtable_: *const bindgen_vtable__bindgen_id_207995,
     pub _base: u64,
 }
 #[test]
@@ -9135,7 +9138,7 @@ pub struct nsISupportsPriority_COMTypeInfo<T, U> {
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsISupportsPriority__bindgen_ty_bindgen_id_199414 {
+pub enum nsISupportsPriority__bindgen_ty_bindgen_id_208076 {
     PRIORITY_HIGHEST = -20,
     PRIORITY_HIGH = -10,
     PRIORITY_NORMAL = 0,
@@ -9570,7 +9573,7 @@ fn bindgen_test_layout_nsCSSValueFloatColor() {
 #[derive(Debug)]
 pub struct nsCSSValue {
     pub mUnit: nsCSSUnit,
-    pub mValue: nsCSSValue__bindgen_ty_bindgen_id_202409,
+    pub mValue: nsCSSValue__bindgen_ty_bindgen_id_211071,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -9586,7 +9589,7 @@ fn bindgen_test_layout_nsCSSValue_Array() {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsCSSValue__bindgen_ty_bindgen_id_202409 {
+pub struct nsCSSValue__bindgen_ty_bindgen_id_211071 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mString: __BindgenUnionField<*mut nsStringBuffer>,
@@ -9611,13 +9614,13 @@ pub struct nsCSSValue__bindgen_ty_bindgen_id_202409 {
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsCSSValue__bindgen_ty_bindgen_id_202409() {
-    assert_eq!(::std::mem::size_of::<nsCSSValue__bindgen_ty_bindgen_id_202409>()
+fn bindgen_test_layout_nsCSSValue__bindgen_ty_bindgen_id_211071() {
+    assert_eq!(::std::mem::size_of::<nsCSSValue__bindgen_ty_bindgen_id_211071>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsCSSValue__bindgen_ty_bindgen_id_202409>()
+    assert_eq!(::std::mem::align_of::<nsCSSValue__bindgen_ty_bindgen_id_211071>()
                , 8usize);
 }
-impl Clone for nsCSSValue__bindgen_ty_bindgen_id_202409 {
+impl Clone for nsCSSValue__bindgen_ty_bindgen_id_211071 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -9638,12 +9641,12 @@ fn bindgen_test_layout_nsCSSValueGradientStop() {
     assert_eq!(::std::mem::align_of::<nsCSSValueGradientStop>() , 8usize);
 }
 #[repr(C)]
-pub struct bindgen_vtable__bindgen_id_202617 {
+pub struct bindgen_vtable__bindgen_id_211279 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct CounterStyle {
-    pub vtable_: *const bindgen_vtable__bindgen_id_202617,
+    pub vtable_: *const bindgen_vtable__bindgen_id_211279,
     pub mStyle: i32,
 }
 #[test]
@@ -9843,26 +9846,26 @@ pub struct nsStyleImage {
     pub mCachedBIData: UniquePtr<CachedBorderImageData,
                                  DefaultDelete<CachedBorderImageData>>,
     pub mType: nsStyleImageType,
-    pub __bindgen_anon_1: nsStyleImage__bindgen_ty_bindgen_id_204585,
+    pub __bindgen_anon_1: nsStyleImage__bindgen_ty_bindgen_id_213247,
     pub mCropRect: UniquePtr<nsStyleSides, DefaultDelete<nsStyleSides>>,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleImage__bindgen_ty_bindgen_id_204585 {
+pub struct nsStyleImage__bindgen_ty_bindgen_id_213247 {
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mGradient: __BindgenUnionField<*mut nsStyleGradient>,
     pub mElementId: __BindgenUnionField<*mut u16>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsStyleImage__bindgen_ty_bindgen_id_204585() {
-    assert_eq!(::std::mem::size_of::<nsStyleImage__bindgen_ty_bindgen_id_204585>()
+fn bindgen_test_layout_nsStyleImage__bindgen_ty_bindgen_id_213247() {
+    assert_eq!(::std::mem::size_of::<nsStyleImage__bindgen_ty_bindgen_id_213247>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleImage__bindgen_ty_bindgen_id_204585>()
+    assert_eq!(::std::mem::align_of::<nsStyleImage__bindgen_ty_bindgen_id_213247>()
                , 8usize);
 }
-impl Clone for nsStyleImage__bindgen_ty_bindgen_id_204585 {
+impl Clone for nsStyleImage__bindgen_ty_bindgen_id_213247 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -9913,7 +9916,7 @@ pub struct nsStyleImageLayers {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsStyleImageLayers__bindgen_ty_bindgen_id_204640 {
+pub enum nsStyleImageLayers__bindgen_ty_bindgen_id_213302 {
     shorthand = 0,
     color = 1,
     image = 2,
@@ -10413,7 +10416,7 @@ impl Clone for nsStyleImageOrientation {
 #[derive(Debug, Copy)]
 pub struct nsTimingFunction {
     pub mType: nsTimingFunction_Type,
-    pub __bindgen_anon_1: nsTimingFunction__bindgen_ty_bindgen_id_206393,
+    pub __bindgen_anon_1: nsTimingFunction__bindgen_ty_bindgen_id_215055,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -10432,56 +10435,56 @@ pub enum nsTimingFunction_Type {
 pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction__bindgen_ty_bindgen_id_206393 {
-    pub mFunc: __BindgenUnionField<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394>,
-    pub __bindgen_anon_1: __BindgenUnionField<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405>,
+pub struct nsTimingFunction__bindgen_ty_bindgen_id_215055 {
+    pub mFunc: __BindgenUnionField<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056>,
+    pub __bindgen_anon_1: __BindgenUnionField<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067>,
     pub bindgen_union_field: [u32; 4usize],
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394 {
+pub struct nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056 {
     pub mX1: f32,
     pub mY1: f32,
     pub mX2: f32,
     pub mY2: f32,
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394>()
+fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056>()
                , 4usize);
 }
 impl Clone for
- nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206394
+ nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215056
  {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405 {
+pub struct nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067 {
     pub mSteps: u32,
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405>()
+fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067>()
                , 4usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067>()
                , 4usize);
 }
 impl Clone for
- nsTimingFunction__bindgen_ty_bindgen_id_206393__bindgen_ty_bindgen_id_206405
+ nsTimingFunction__bindgen_ty_bindgen_id_215055__bindgen_ty_bindgen_id_215067
  {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_206393() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393>()
+fn bindgen_test_layout_nsTimingFunction__bindgen_ty_bindgen_id_215055() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_206393>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction__bindgen_ty_bindgen_id_215055>()
                , 4usize);
 }
-impl Clone for nsTimingFunction__bindgen_ty_bindgen_id_206393 {
+impl Clone for nsTimingFunction__bindgen_ty_bindgen_id_215055 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -10542,13 +10545,13 @@ fn bindgen_test_layout_StyleBasicShape() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct StyleShapeSource<ReferenceBox> {
-    pub __bindgen_anon_1: StyleShapeSource__bindgen_ty_bindgen_id_206776<ReferenceBox>,
+    pub __bindgen_anon_1: StyleShapeSource__bindgen_ty_bindgen_id_215438<ReferenceBox>,
     pub mType: StyleShapeSourceType,
     pub mReferenceBox: ReferenceBox,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct StyleShapeSource__bindgen_ty_bindgen_id_206776<ReferenceBox> {
+pub struct StyleShapeSource__bindgen_ty_bindgen_id_215438<ReferenceBox> {
     pub mBasicShape: __BindgenUnionField<*mut StyleBasicShape>,
     pub mURL: __BindgenUnionField<*mut FragmentOrURL>,
     pub bindgen_union_field: u64,
@@ -10600,25 +10603,25 @@ pub enum nsStyleContentType {
 #[derive(Debug)]
 pub struct nsStyleContentData {
     pub mType: nsStyleContentType,
-    pub mContent: nsStyleContentData__bindgen_ty_bindgen_id_206860,
+    pub mContent: nsStyleContentData__bindgen_ty_bindgen_id_215522,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleContentData__bindgen_ty_bindgen_id_206860 {
+pub struct nsStyleContentData__bindgen_ty_bindgen_id_215522 {
     pub mString: __BindgenUnionField<*mut u16>,
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mCounters: __BindgenUnionField<*mut nsCSSValue_Array>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsStyleContentData__bindgen_ty_bindgen_id_206860() {
-    assert_eq!(::std::mem::size_of::<nsStyleContentData__bindgen_ty_bindgen_id_206860>()
+fn bindgen_test_layout_nsStyleContentData__bindgen_ty_bindgen_id_215522() {
+    assert_eq!(::std::mem::size_of::<nsStyleContentData__bindgen_ty_bindgen_id_215522>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleContentData__bindgen_ty_bindgen_id_206860>()
+    assert_eq!(::std::mem::align_of::<nsStyleContentData__bindgen_ty_bindgen_id_215522>()
                , 8usize);
 }
-impl Clone for nsStyleContentData__bindgen_ty_bindgen_id_206860 {
+impl Clone for nsStyleContentData__bindgen_ty_bindgen_id_215522 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -10743,25 +10746,25 @@ pub enum nsStyleSVGPaintType {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleSVGPaint {
-    pub mPaint: nsStyleSVGPaint__bindgen_ty_bindgen_id_207259,
+    pub mPaint: nsStyleSVGPaint__bindgen_ty_bindgen_id_215921,
     pub mType: nsStyleSVGPaintType,
     pub mFallbackColor: nscolor,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleSVGPaint__bindgen_ty_bindgen_id_207259 {
+pub struct nsStyleSVGPaint__bindgen_ty_bindgen_id_215921 {
     pub mColor: __BindgenUnionField<nscolor>,
     pub mPaintServer: __BindgenUnionField<*mut FragmentOrURL>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsStyleSVGPaint__bindgen_ty_bindgen_id_207259() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint__bindgen_ty_bindgen_id_207259>()
+fn bindgen_test_layout_nsStyleSVGPaint__bindgen_ty_bindgen_id_215921() {
+    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint__bindgen_ty_bindgen_id_215921>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint__bindgen_ty_bindgen_id_207259>()
+    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint__bindgen_ty_bindgen_id_215921>()
                , 8usize);
 }
-impl Clone for nsStyleSVGPaint__bindgen_ty_bindgen_id_207259 {
+impl Clone for nsStyleSVGPaint__bindgen_ty_bindgen_id_215921 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
@@ -10796,7 +10799,7 @@ pub struct nsStyleSVG {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsStyleSVG__bindgen_ty_bindgen_id_207436 {
+pub enum nsStyleSVG__bindgen_ty_bindgen_id_216098 {
     FILL_OPACITY_SOURCE_MASK = 3,
     STROKE_OPACITY_SOURCE_MASK = 12,
     STROKE_DASHARRAY_CONTEXT = 16,
@@ -10815,23 +10818,23 @@ fn bindgen_test_layout_nsStyleSVG() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
-    pub __bindgen_anon_1: nsStyleFilter__bindgen_ty_bindgen_id_207502,
+    pub __bindgen_anon_1: nsStyleFilter__bindgen_ty_bindgen_id_216164,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleFilter__bindgen_ty_bindgen_id_207502 {
+pub struct nsStyleFilter__bindgen_ty_bindgen_id_216164 {
     pub mURL: __BindgenUnionField<*mut FragmentOrURL>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout_nsStyleFilter__bindgen_ty_bindgen_id_207502() {
-    assert_eq!(::std::mem::size_of::<nsStyleFilter__bindgen_ty_bindgen_id_207502>()
+fn bindgen_test_layout_nsStyleFilter__bindgen_ty_bindgen_id_216164() {
+    assert_eq!(::std::mem::size_of::<nsStyleFilter__bindgen_ty_bindgen_id_216164>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleFilter__bindgen_ty_bindgen_id_207502>()
+    assert_eq!(::std::mem::align_of::<nsStyleFilter__bindgen_ty_bindgen_id_216164>()
                , 8usize);
 }
-impl Clone for nsStyleFilter__bindgen_ty_bindgen_id_207502 {
+impl Clone for nsStyleFilter__bindgen_ty_bindgen_id_216164 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
