@@ -973,9 +973,16 @@ impl XMLHttpRequest {
                 *self.response.borrow_mut() = partial_response;
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
-                        self.change_ready_state(XMLHttpRequestState::Loading);
-                        return_if_fetch_was_terminated!();
+                        self.ready_state.set(XMLHttpRequestState::Loading);
                     }
+                    let global = self.global();
+                    let event = Event::new(
+                        global.r(),
+                        atom!("readystatechange"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::Cancelable);
+                    event.fire(self.upcast());
+                    return_if_fetch_was_terminated!();
                     self.dispatch_response_progress_event(atom!("progress"));
                 }
             },

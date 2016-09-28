@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>XMLHttpRequest: the LOADING state change should only happen once</title>
+    <title>XMLHttpRequest: the LOADING state change may be emitted multiple times</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol[1]/li[10]/dt[1]">
@@ -26,7 +26,7 @@ test.step(function() {
         }
 
         if (client.readyState === 4) {
-            assert_equals(countedLoading, 1, "LOADING state change may only be emitted once");
+            assert_equals(countedLoading, 10, "LOADING state change may be emitted multiple times");
 
             test.done();
         }
