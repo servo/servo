@@ -15,7 +15,6 @@
 
 #![allow(unsafe_code)]
 
-#[cfg(feature = "servo")] use heapsize::HeapSizeOf;
 use std::cell::{UnsafeCell, Cell};
 use std::cmp::Ordering;
 use std::fmt::{self, Debug, Display};
@@ -30,13 +29,6 @@ use std::ops::{Deref, DerefMut};
 pub struct RefCell<T: ?Sized> {
     borrow: Cell<BorrowFlag>,
     value: UnsafeCell<T>,
-}
-
-#[cfg(feature = "servo")]
-impl<T: HeapSizeOf> HeapSizeOf for RefCell<T> {
-    fn heap_size_of_children(&self) -> usize {
-        self.borrow().heap_size_of_children()
-    }
 }
 
 /// An enumeration of values returned from the `state` method on a `RefCell<T>`.
@@ -534,18 +526,6 @@ impl<'b, T: ?Sized> Ref<'b, T> {
             value: f(orig.value),
             borrow: orig.borrow,
         }
-    }
-
-    #[inline]
-    pub fn filter_map<U: ?Sized, F>(orig: Ref<'b, T>, f: F) -> Option<Ref<'b, U>>
-        where F: FnOnce(&T) -> Option<&U>
-    {
-        f(orig.value).map(move |new_value| {
-            Ref {
-                value: new_value,
-                borrow: orig.borrow,
-            }
-        })
     }
 }
 

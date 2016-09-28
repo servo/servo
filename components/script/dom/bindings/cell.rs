@@ -4,7 +4,7 @@
 
 //! A shareable mutable container for the DOM.
 
-use style::refcell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
+use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
 use style::thread_state;
 
 /// A mutable field in the DOM.
