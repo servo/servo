@@ -208,7 +208,7 @@
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="letter-spacing" products="servo" animatable="False">
+<%helpers:longhand name="letter-spacing" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
