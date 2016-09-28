@@ -98,8 +98,7 @@ class PostBuildCommands(CommandBase):
                 # Convert to a relative path to avoid mingw -> Windows path conversions
                 browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
 
-            args = args + ['-w',
-                           '--pref', 'dom.mozbrowser.enabled',
+            args = args + ['--pref', 'dom.mozbrowser.enabled',
                            '--pref', 'dom.forcetouch.enabled',
                            '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                            path.join(browserhtml_path, 'out', 'index.html')]
