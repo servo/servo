@@ -1404,7 +1404,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn baseline_offset_of_last_line_box_in_flow(self) -> Option<Au> {
         for kid in base(self).children.iter().rev() {
             if kid.is_inline_flow() {
-                return kid.as_inline().baseline_offset_of_last_line()
+                if let Some(baseline_offset) = kid.as_inline().baseline_offset_of_last_line() {
+                    return Some(baseline_offset)
+                }
             }
             if kid.is_block_like() &&
                     kid.as_block().formatting_context_type() == FormattingContextType::None &&
