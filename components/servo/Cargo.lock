@@ -498,6 +498,7 @@ name = "debugger"
 version = "0.0.1"
 dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
  "util 0.0.1",
  "ws 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

@@ -331,6 +331,8 @@ impl fmt::Display for PipelineId {
     }
 }
 
+pub type ScriptThreadId = PipelineId;
+
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum FrameType {
     IFrame,

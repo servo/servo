@@ -4,9 +4,11 @@
 
 #[macro_use]
 extern crate log;
+extern crate msg;
 extern crate util;
 extern crate ws;
 
+use msg::constellation_msg::ScriptThreadId;
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
 use util::thread::spawn_named;
@@ -14,6 +16,7 @@ use ws::{Builder, CloseCode, Handler, Handshake};
 
 enum Message {
     ShutdownServer,
+    ScriptThreadAdded(ScriptThreadId)
 }
 
 pub struct Sender(mpsc::Sender<Message>);
@@ -53,6 +56,9 @@ pub fn start_server(port: u16) -> Sender {
                 Message::ShutdownServer => {
                     break;
                 }
+                Message::ScriptThreadAdded(id) => {
+
+                }
             }
         }
         sender.shutdown().unwrap();
@@ -65,5 +71,13 @@ pub fn shutdown_server(sender: &Sender) {
     let &Sender(ref sender) = sender;
     if let Err(_) = sender.send(Message::ShutdownServer) {
         warn!("Failed to shut down server.");
+    }
+}
+
+pub fn script_thread_added(sender: &Sender, id: ScriptThreadId) {
+    println!("Script thread added.");
+    let &Sender(ref sender) = sender;
+    if let Err(_) = sender.send(Message::ScriptThreadAdded(id)) {
+        warn!("");
     }
 }
