@@ -13,7 +13,7 @@ def WebIDLTest(parser, harness):
     results = parser.finish();
 
     harness.ok(True, "TestByteString interface parsed without error.")
-    
+
     harness.check(len(results), 1, "Should be one production")
     harness.ok(isinstance(results[0], WebIDL.IDLInterface),
                "Should be an IDLInterface")
@@ -54,10 +54,9 @@ def WebIDLTest(parser, harness):
         """)
     except WebIDL.WebIDLError:
         threw = True
-    harness.ok(threw, "Should have thrown a WebIDL error")
+    harness.ok(threw, "Should have thrown a WebIDL error for ByteString default in interface")
 
-    # Cannot have optional ByteStrings with default values
-    threw = False
+    # Can have optional ByteStrings with default values
     try:
         parser.parse("""
             interface OptionalByteString {
@@ -65,8 +64,36 @@ def WebIDLTest(parser, harness):
               };
         """)
         results2 = parser.finish();
-    except WebIDL.WebIDLError:
+    except WebIDL.WebIDLError as e:
+        harness.ok(False,
+                   "Should not have thrown a WebIDL error for ByteString "
+                   "default in dictionary. " + str(e))
+
+    # Can have a default ByteString value in a dictionary
+    try:
+        parser.parse("""
+        dictionary OptionalByteStringDict {
+          ByteString item = "some string";
+        };
+        """)
+        results3 = parser.finish();
+    except WebIDL.WebIDLError as e:
+        harness.ok(False,
+                   "Should not have thrown a WebIDL error for ByteString "
+                   "default in dictionary. " + str(e))
+
+    # Don't allow control characters in ByteString literals
+    threw = False
+    try:
+        parser.parse("""
+        dictionary OptionalByteStringDict2 {
+          ByteString item = "\x03";
+        };
+        """)
+        results4 = parser.finish()
+    except WebIDL.WebIDLError as e:
         threw = True
 
-    harness.ok(threw, "Should have thrown a WebIDL error")
-
+    harness.ok(threw,
+               "Should have thrown a WebIDL error for invalid ByteString "
+               "default in dictionary")

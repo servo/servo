@@ -4,37 +4,37 @@ def WebIDLTest(parser, harness):
     parser.parse("""
         interface TestArrayBuffer {
           attribute ArrayBuffer bufferAttr;
-          void bufferMethod(ArrayBuffer arg1, ArrayBuffer? arg2, ArrayBuffer[] arg3, sequence<ArrayBuffer> arg4);
+          void bufferMethod(ArrayBuffer arg1, ArrayBuffer? arg2, sequence<ArrayBuffer> arg3);
 
           attribute ArrayBufferView viewAttr;
-          void viewMethod(ArrayBufferView arg1, ArrayBufferView? arg2, ArrayBufferView[] arg3, sequence<ArrayBufferView> arg4);
+          void viewMethod(ArrayBufferView arg1, ArrayBufferView? arg2, sequence<ArrayBufferView> arg3);
 
           attribute Int8Array int8ArrayAttr;
-          void int8ArrayMethod(Int8Array arg1, Int8Array? arg2, Int8Array[] arg3, sequence<Int8Array> arg4);
+          void int8ArrayMethod(Int8Array arg1, Int8Array? arg2, sequence<Int8Array> arg3);
 
           attribute Uint8Array uint8ArrayAttr;
-          void uint8ArrayMethod(Uint8Array arg1, Uint8Array? arg2, Uint8Array[] arg3, sequence<Uint8Array> arg4);
+          void uint8ArrayMethod(Uint8Array arg1, Uint8Array? arg2, sequence<Uint8Array> arg3);
 
           attribute Uint8ClampedArray uint8ClampedArrayAttr;
-          void uint8ClampedArrayMethod(Uint8ClampedArray arg1, Uint8ClampedArray? arg2, Uint8ClampedArray[] arg3, sequence<Uint8ClampedArray> arg4);
+          void uint8ClampedArrayMethod(Uint8ClampedArray arg1, Uint8ClampedArray? arg2, sequence<Uint8ClampedArray> arg3);
 
           attribute Int16Array int16ArrayAttr;
-          void int16ArrayMethod(Int16Array arg1, Int16Array? arg2, Int16Array[] arg3, sequence<Int16Array> arg4);
+          void int16ArrayMethod(Int16Array arg1, Int16Array? arg2, sequence<Int16Array> arg3);
 
           attribute Uint16Array uint16ArrayAttr;
-          void uint16ArrayMethod(Uint16Array arg1, Uint16Array? arg2, Uint16Array[] arg3, sequence<Uint16Array> arg4);
+          void uint16ArrayMethod(Uint16Array arg1, Uint16Array? arg2, sequence<Uint16Array> arg3);
 
           attribute Int32Array int32ArrayAttr;
-          void int32ArrayMethod(Int32Array arg1, Int32Array? arg2, Int32Array[] arg3, sequence<Int32Array> arg4);
+          void int32ArrayMethod(Int32Array arg1, Int32Array? arg2, sequence<Int32Array> arg3);
 
           attribute Uint32Array uint32ArrayAttr;
-          void uint32ArrayMethod(Uint32Array arg1, Uint32Array? arg2, Uint32Array[] arg3, sequence<Uint32Array> arg4);
+          void uint32ArrayMethod(Uint32Array arg1, Uint32Array? arg2, sequence<Uint32Array> arg3);
 
           attribute Float32Array float32ArrayAttr;
-          void float32ArrayMethod(Float32Array arg1, Float32Array? arg2, Float32Array[] arg3, sequence<Float32Array> arg4);
+          void float32ArrayMethod(Float32Array arg1, Float32Array? arg2, sequence<Float32Array> arg3);
 
           attribute Float64Array float64ArrayAttr;
-          void float64ArrayMethod(Float64Array arg1, Float64Array? arg2, Float64Array[] arg3, sequence<Float64Array> arg4);
+          void float64ArrayMethod(Float64Array arg1, Float64Array? arg2, sequence<Float64Array> arg3);
         };
     """)
 
@@ -56,7 +56,7 @@ def WebIDLTest(parser, harness):
 
         (retType, arguments) = method.signatures()[0]
         harness.ok(retType.isVoid(), "Should have a void return type")
-        harness.check(len(arguments), 4, "Expect 4 arguments")
+        harness.check(len(arguments), 3, "Expect 3 arguments")
 
         harness.check(str(arguments[0].type), t,  "Expect an ArrayBuffer type")
         harness.ok(arguments[0].type.isSpiderMonkeyInterface(), "Should test as a js interface")
@@ -64,11 +64,8 @@ def WebIDLTest(parser, harness):
         harness.check(str(arguments[1].type), t + "OrNull",  "Expect an ArrayBuffer type")
         harness.ok(arguments[1].type.inner.isSpiderMonkeyInterface(), "Should test as a js interface")
 
-        harness.check(str(arguments[2].type), t + "Array",  "Expect an ArrayBuffer type")
+        harness.check(str(arguments[2].type), t + "Sequence",  "Expect an ArrayBuffer type")
         harness.ok(arguments[2].type.inner.isSpiderMonkeyInterface(), "Should test as a js interface")
-
-        harness.check(str(arguments[3].type), t + "Sequence",  "Expect an ArrayBuffer type")
-        harness.ok(arguments[3].type.inner.isSpiderMonkeyInterface(), "Should test as a js interface")
 
 
     checkStuff(members[0],  members[1],  "ArrayBuffer")
