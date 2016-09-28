@@ -128,9 +128,8 @@
 //! return `Err()` from the method with the appropriate [error value]
 //! (error/enum.Error.html).
 
-pub use style::domrefcell as cell;
-
 pub mod callback;
+pub mod cell;
 pub mod constant;
 pub mod conversions;
 pub mod error;
