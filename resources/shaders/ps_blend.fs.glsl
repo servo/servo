@@ -6,5 +6,5 @@ uniform sampler2D sCache;
 
 void main(void) {
     vec4 color = texture(sCache, vUv);
-    oFragColor = vec4(color.rgb, color.a * vOpacity);
+    oFragColor = vec4(color.rgb * vBrightnessOpacity.x, color.a * vBrightnessOpacity.y);
 }
