@@ -2372,6 +2372,18 @@
             "url": "/_mozilla/css/incremental_visibility_a.html"
           }
         ],
+        "css/inline_absolute_hypothetical_baseline_a.html": [
+          {
+            "path": "css/inline_absolute_hypothetical_baseline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_absolute_hypothetical_baseline_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_absolute_hypothetical_baseline_a.html"
+          }
+        ],
         "css/inline_absolute_hypothetical_clip_a.html": [
           {
             "path": "css/inline_absolute_hypothetical_clip_a.html",
@@ -16008,6 +16020,18 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_visibility_a.html"
+        }
+      ],
+      "css/inline_absolute_hypothetical_baseline_a.html": [
+        {
+          "path": "css/inline_absolute_hypothetical_baseline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_absolute_hypothetical_baseline_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_absolute_hypothetical_baseline_a.html"
         }
       ],
       "css/inline_absolute_hypothetical_clip_a.html": [

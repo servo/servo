@@ -1262,12 +1262,17 @@ impl InlineFlow {
     }
 
     pub fn baseline_offset_of_last_line(&self) -> Option<Au> {
-        match self.lines.last() {
-            None => None,
-            Some(ref last_line) => {
-                Some(last_line.bounds.start.b + last_line.bounds.size.block -
-                     last_line.inline_metrics.depth_below_baseline)
-            }
+        let last_line = match self.lines.last() {
+            None => return None,
+            Some(last_line) => last_line,
+        };
+        if (last_line.range.begin().get()..last_line.range.end().get()).all(|index| {
+            self.fragments.fragments[index as usize].is_hypothetical()
+        }) {
+            None
+        } else {
+            Some(last_line.bounds.start.b + last_line.bounds.size.block -
+                 last_line.inline_metrics.depth_below_baseline)
         }
     }
 }
