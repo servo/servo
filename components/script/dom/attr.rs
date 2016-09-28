@@ -15,10 +15,10 @@ use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use std::borrow::ToOwned;
+use std::cell::Ref;
 use std::mem;
 use string_cache::{Atom, Namespace};
 use style::attr::{AttrIdentifier, AttrValue};
-use style::refcell::Ref;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]

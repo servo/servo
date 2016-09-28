@@ -19,9 +19,9 @@ use js::jsapi::JS_ParseJSON;
 use js::jsapi::Value as JSValue;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
+use std::cell::Ref;
 use std::rc::Rc;
 use std::str;
-use style::refcell::Ref;
 use url::form_urlencoded;
 
 pub enum BodyType {
