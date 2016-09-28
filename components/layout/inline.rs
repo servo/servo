@@ -1454,7 +1454,6 @@ impl Flow for InlineFlow {
                                            self.minimum_depth_below_baseline);
         scanner.scan_for_lines(self, layout_context);
 
-
         // Now, go through each line and lay out the fragments inside.
         let line_count = self.lines.len();
         for (line_index, line) in self.lines.iter_mut().enumerate() {
