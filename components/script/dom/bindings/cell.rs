@@ -16,13 +16,6 @@ pub struct DOMRefCell<T> {
     value: RefCell<T>,
 }
 
-// FIXME: These two impls make promises that are not quite true,
-// but maybe the debug_assert! makes it close enough.
-#[allow(unsafe_code)]
-unsafe impl<T: Send> Send for DOMRefCell<T> {}
-#[allow(unsafe_code)]
-unsafe impl<T: Sync> Sync for DOMRefCell<T> {}
-
 // Functionality specific to Servo's `DOMRefCell` type
 // ===================================================
 
