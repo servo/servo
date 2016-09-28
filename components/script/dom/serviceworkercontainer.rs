@@ -11,11 +11,13 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
+use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
 use std::ascii::AsciiExt;
 use std::default::Default;
+use std::rc::Rc;
 
 #[dom_struct]
 pub struct ServiceWorkerContainer {
@@ -53,25 +55,37 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         return self.controller.get()
     }
 
+    #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
     fn Register(&self,
                 script_url: USVString,
-                options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
+                options: &RegistrationOptions) -> Rc<Promise> {
+        let promise = Promise::new(self.global().r());
+        let ctx = self.global().r().get_cx();
         let USVString(ref script_url) = script_url;
         // Step 3-4
         let script_url = match self.global().r().api_base_url().join(script_url) {
             Ok(url) => url,
-            Err(_) => return Err(Error::Type("Invalid script URL".to_owned()))
+            Err(_) => {
+                promise.reject_error(ctx, Error::Type("Invalid script URL".to_owned()));
+                return promise;
+            }
         };
         // Step 5
         match script_url.scheme() {
             "https" | "http" => {},
-            _ => return Err(Error::Type("Only secure origins are allowed".to_owned()))
+            _ => {
+                promise.reject_error(ctx, Error::Type("Only secure origins are allowed".to_owned()));
+                return promise;
+            }
         }
         // Step 6
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
         script_url.path().to_ascii_lowercase().contains("%5c") {
-            return Err(Error::Type("Script URL contains forbidden characters".to_owned()));
+            return {
+                promise.reject_error(ctx, Error::Type("Script URL contains forbidden characters".to_owned()));
+                return promise;
+            }
         }
         // Step 8-9
         let scope = match options.scope {
@@ -79,7 +93,10 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 let &USVString(ref inner_scope) = scope;
                 match self.global().r().api_base_url().join(inner_scope) {
                     Ok(url) => url,
-                    Err(_) => return Err(Error::Type("Invalid scope URL".to_owned()))
+                    Err(_) => {
+                        promise.reject_error(ctx, Error::Type("Invalid scope URL".to_owned()));
+                        return promise;
+                    }
                 }
             },
             None => script_url.join("./").unwrap()
@@ -87,12 +104,18 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         // Step 11
         match scope.scheme() {
             "https" | "http" => {},
-            _ => return Err(Error::Type("Only secure origins are allowed".to_owned()))
+            _ => {
+                promise.reject_error(ctx, Error::Type("Only secure origins are allowed".to_owned()));
+                return promise;
+            }
         }
         // Step 12
         if scope.path().to_ascii_lowercase().contains("%2f") ||
         scope.path().to_ascii_lowercase().contains("%5c") {
-            return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
+            return {
+                promise.reject_error(ctx, Error::Type("Scope URL contains forbidden characters".to_owned()));
+                return promise;
+            }
         }
 
         let worker_registration = ServiceWorkerRegistration::new(self.global().r(),
@@ -100,6 +123,8 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  scope.clone(),
                                                                  self);
         ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
-        Ok(worker_registration)
+
+        promise.resolve_native(ctx, &*worker_registration);
+        promise
     }
 }
