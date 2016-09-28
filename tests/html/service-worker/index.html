@@ -19,17 +19,22 @@
     <button onclick="post_message_root()">Msg to Root service worker</button>
 </div>
     <script>
-
-    var reg = navigator.serviceWorker.register('iframe_sw.js', { 'scope': '/demo_iframe.html' });
-    console.log("From client worker registered: ", navigator.serviceWorker.controller);
-    console.log("Registered script source: "+ navigator.serviceWorker.controller.scriptURL);
-    document.getElementById('iframe_sw').src = 'demo_iframe.html';
-    post_message('/demo_iframe');
+        navigator.serviceWorker.register('iframe_sw.js', { 'scope': '/demo_iframe.html' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: iframe_sw.js");
+            document.getElementById('iframe_sw').src = 'demo_iframe.html';
+            post_message('/demo_iframe');
+        }).catch(function(error) {
+            console.log("Error in loading `iframe_sw.js` -->" + error);
+        });
 
     function register_zero() {
-        var reg = navigator.serviceWorker.register('sw.js', { 'scope': './*' });
-        console.log("From client worker registered: ", navigator.serviceWorker.controller);
-        console.log("Registered script source: "+ navigator.serviceWorker.controller.scriptURL);
+        navigator.serviceWorker.register('sw.js', { 'scope': './*' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw.js");
+        }).catch(function(error) {
+            console.log("Error in loading `sw.js` -->" + error);
+        });
     }
 
     function post_message_root() {
@@ -40,17 +45,23 @@
     }
 
     function register_one() {
-        var reg = navigator.serviceWorker.register('sw_dashboard.js', { 'scope': '/dashboard' });
-        console.log("From client worker registered: ", navigator.serviceWorker.controller);
-        console.log("Registered script source: "+ navigator.serviceWorker.controller.scriptURL);
-        post_message('/dashboard');
+        navigator.serviceWorker.register('sw_dashboard.js', { 'scope': '/dashboard' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw_dashboard.js");
+            post_message('/dashboard');
+        }).catch(function(error) {
+            console.log("Error in loading `sw_dashboard.js` -->" + error);
+        });
     }
 
     function register_two() {
-        var reg = navigator.serviceWorker.register('sw_profile.js', { 'scope': '/profile' });
-        console.log("From client worker registered: ", navigator.serviceWorker.controller);
-        console.log("Registered script source: "+ navigator.serviceWorker.controller.scriptURL);
-        post_message('/profile');
+        navigator.serviceWorker.register('sw_profile.js', { 'scope': '/profile' }).then(function(registration) {
+            console.log("From client worker registered: ", navigator.serviceWorker.controller);
+            console.log("Registered script source: sw_profile.js");
+            post_message('/profile');
+        }).catch(function(error) {
+            console.log("Error in loading `sw_profile.js` --> " + error);
+        });
     }
 
     navigator.serviceWorker.addEventListener('controllerchange', function(e) {
