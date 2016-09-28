@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use body::{BodyOperations, BodyType, consume_body};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::RequestBinding;
@@ -35,7 +36,9 @@ use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
 use std::cell::Cell;
+use std::mem;
 use std::rc::Rc;
+use style::refcell::Ref;
 use url::Url;
 
 #[dom_struct]
@@ -399,6 +402,13 @@ impl Request {
         // Step 38
         Ok(r)
     }
+
+    // https://fetch.spec.whatwg.org/#concept-body-locked
+    fn locked(&self) -> bool {
+        // TODO: ReadableStream is unimplemented. Just return false
+        // for now.
+        false
+    }
 }
 
 impl Request {
@@ -623,25 +633,51 @@ impl RequestMethods for Request {
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
     fn Text(&self) -> Rc<Promise> {
-        unimplemented!();
+        consume_body(self, BodyType::Text)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-blob
     fn Blob(&self) -> Rc<Promise> {
-        unimplemented!();
+        consume_body(self, BodyType::Blob)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-formdata
     fn FormData(&self) -> Rc<Promise> {
-        unimplemented!();
+        consume_body(self, BodyType::FormData)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-json
     fn Json(&self) -> Rc<Promise> {
-        unimplemented!();
+        consume_body(self, BodyType::Json)
+    }
+}
+
+impl BodyOperations for Request {
+    fn get_body_used(&self) -> bool {
+        self.BodyUsed()
+    }
+
+    fn is_locked(&self) -> bool {
+        self.locked()
+    }
+
+    fn take_body(&self) -> Option<Vec<u8>> {
+        let ref mut net_traits_req = *self.request.borrow_mut();
+        let body: Option<Vec<u8>> = mem::replace(&mut *net_traits_req.body.borrow_mut(), None);
+        match body {
+            Some(_) => {
+                self.body_used.set(true);
+                body
+            },
+            _ => None,
+        }
+    }
+
+    fn get_mime_type(&self) -> Ref<Vec<u8>> {
+        self.mime_type.borrow()
     }
 }
 

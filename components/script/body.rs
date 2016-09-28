@@ -77,9 +77,10 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
 fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
-                                                          bytes: Option<Vec<u8>>,
-                                                          body_type: BodyType,
-                                                          mime_type: Ref<Vec<u8>>) -> Fallible<FetchedData> {
+                                                               bytes: Option<Vec<u8>>,
+                                                               body_type: BodyType,
+                                                               mime_type: Ref<Vec<u8>>)
+                                                               -> Fallible<FetchedData> {
     let bytes = match bytes {
         Some(b) => b,
         _ => vec![],
@@ -114,7 +115,7 @@ fn run_json_data_algorithm(cx: *mut JSContext,
             JS_ClearPendingException(cx);
             // TODO: See issue #13464. Exception should be thrown instead of cleared.
             return Err(Error::Type("Failed to parse JSON".to_string()));
-            }
+        }
         Ok(FetchedData::Json(rval.get()))
     }
 }
