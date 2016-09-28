@@ -2044,7 +2044,7 @@ impl Fragment {
     /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment
     /// when used in an inline formatting context. See CSS 2.1 § 10.8.1.
     pub fn inline_metrics(&self, layout_context: &LayoutContext) -> InlineMetrics {
-        match self.specific {
+        return match self.specific {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 let computed_block_size = image_fragment_info.replaced_image_fragment_info
                                                              .computed_block_size();
@@ -2082,30 +2082,13 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
-                // See CSS 2.1 § 10.8.1.
-                let flow = &info.flow_ref;
-                let block_flow = flow.as_block();
-                let is_auto = self.style.get_position().height == LengthOrPercentageOrAuto::Auto;
-                let baseline_offset = match flow.baseline_offset_of_last_line_box_in_flow() {
-                    Some(baseline_offset) if is_auto => baseline_offset,
-                    _ => block_flow.fragment.border_box.size.block,
-                };
-                let start_margin = block_flow.fragment.margin.block_start;
-                let end_margin = block_flow.fragment.margin.block_end;
-                let depth_below_baseline = flow::base(&**flow).position.size.block -
-                    baseline_offset + end_margin;
-                InlineMetrics::new(baseline_offset + start_margin,
-                                   depth_below_baseline,
-                                   baseline_offset)
+                inline_metrics_of_block(&info.flow_ref, &*self.style)
             }
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => {
+                inline_metrics_of_block(&info.flow_ref, &*self.style)
+            }
             SpecificFragmentInfo::InlineAbsolute(_) => {
-                // Hypothetical boxes take up no space.
-                InlineMetrics {
-                    block_size_above_baseline: Au(0),
-                    depth_below_baseline: Au(0),
-                    ascent: Au(0),
-                }
+                InlineMetrics::new(Au(0), Au(0), Au(0))
             }
             _ => {
                 InlineMetrics {
@@ -2114,6 +2097,23 @@ impl Fragment {
                     ascent: self.border_box.size.block,
                 }
             }
+        };
+
+        fn inline_metrics_of_block(flow: &FlowRef, style: &ServoComputedValues) -> InlineMetrics {
+            // See CSS 2.1 § 10.8.1.
+            let block_flow = flow.as_block();
+            let is_auto = style.get_position().height == LengthOrPercentageOrAuto::Auto;
+            let baseline_offset = flow.baseline_offset_of_last_line_box_in_flow();
+            let baseline_offset = match baseline_offset {
+                Some(baseline_offset) if is_auto => baseline_offset,
+                _ => block_flow.fragment.border_box.size.block,
+            };
+            let start_margin = block_flow.fragment.margin.block_start;
+            let end_margin = block_flow.fragment.margin.block_end;
+            let block_size_above_baseline = baseline_offset + start_margin;
+            let depth_below_baseline = flow::base(&**flow).position.size.block - baseline_offset +
+                end_margin;
+            InlineMetrics::new(block_size_above_baseline, depth_below_baseline, baseline_offset)
         }
     }
 
@@ -2932,3 +2932,4 @@ impl Encodable for DebugId {
         e.emit_u16(self.0)
     }
 }
+
