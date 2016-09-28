@@ -2,12 +2,34 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# Based on Mozilla's Mozboot: https://dxr.mozilla.org/mozilla-central/source/python/mozboot
+
 from __future__ import print_function
 
+import platform
 import sys
 
+from centosfedora import CentOSFedoraBootstrapper
+from debian import DebianBootstrapper
+from osx import OSXBootstrapper
 from windows_gnu import WindowsGnuBootstrapper
 from windows_msvc import WindowsMsvcBootstrapper
+
+
+DEBIAN_DISTROS = (
+    'Debian',
+    'debian',
+    'Ubuntu',
+    # Most Linux Mint editions are based on Ubuntu. One is based on Debian.
+    # The difference is reported in dist_id from platform.linux_distribution.
+    # But it doesn't matter since we share a bootstrapper between Debian and
+    # Ubuntu.
+    'Mint',
+    'LinuxMint',
+    'Elementary OS',
+    'Elementary',
+    '"elementary OS"',
+)
 
 
 class Bootstrapper(object):
@@ -18,7 +40,27 @@ class Bootstrapper(object):
         cls = None
         args = {}
 
-        if sys.platform.startswith('msys'):
+        if sys.platform.startswith('linux'):
+            distro, version, dist_id = platform.linux_distribution()
+
+            if distro in ('CentOS', 'CentOS Linux', 'Fedora'):
+                cls = CentOSFedoraBootstrapper
+                args['distro'] = distro
+            elif distro in DEBIAN_DISTROS:
+                cls = DebianBootstrapper
+            else:
+                sys.exit('Bootstrap support for this Linux distro not yet available.')
+
+            args['version'] = version
+            args['dist_id'] = dist_id
+
+        elif sys.platform.startswith('darwin'):
+            osx_version = platform.mac_ver()[0]
+
+            cls = OSXBootstrapper
+            args['version'] = osx_version
+
+        elif sys.platform.startswith('msys'):
             cls = WindowsGnuBootstrapper
 
         elif sys.platform.startswith('win32'):
@@ -29,13 +71,22 @@ class Bootstrapper(object):
 
         self.instance = cls(**args)
 
-    def bootstrap(self, android=False, interactive=False, force=False):
+    def bootstrap(self, android, interactive, force, silent):
         self.instance.interactive = interactive
         self.instance.force = force
+        self.instance.silent = silent
 
-        if android:
-            self.instance.install_mobile_android_packages()
-        elif force:
+        if force:
             self.instance.install_system_packages()
         else:
             self.instance.ensure_system_packages()
+
+        if android:
+            self.instance.install_mobile_android_packages()
+
+        print
+
+    def virtualenv(self):
+        self.instance.install_virtualenv()
+
+        print

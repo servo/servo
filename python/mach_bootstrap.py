@@ -106,6 +106,16 @@ def _activate_virtualenv(topdir):
     script_dir = _get_virtualenv_script_dir()
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
+        # Install missing pip and/or virtualenv packages before creating virtual environment
+        if not _get_exec_path(PIP_NAMES) or not _get_exec_path(VIRTUALENV_NAMES):
+            try:
+                from servo.bootstrapper.bootstrap import Bootstrapper
+
+                bootstrapper = Bootstrapper()
+                bootstrapper.virtualenv()
+            except:
+                pass
+
         virtualenv = _get_exec_path(VIRTUALENV_NAMES)
         if not virtualenv:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")

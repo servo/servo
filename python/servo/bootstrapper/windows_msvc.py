@@ -8,11 +8,12 @@ import shutil
 from distutils import spawn
 
 from base import BaseBootstrapper
-from packages import WINDOWS_MSVC as deps
 
 
 class WindowsMsvcBootstrapper(BaseBootstrapper):
     '''Bootstrapper for MSVC building on Windows.'''
+
+    from packages import WINDOWS_MSVC as deps
 
     def __init__(self, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
@@ -84,3 +85,6 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
 
     def install_mobile_android_packages(self):
         sys.exit('We do not support building Android on Windows. Sorry!')
+
+    def install_virtualenv(self):
+        self.run(['pip', 'install', 'virtualenv'])

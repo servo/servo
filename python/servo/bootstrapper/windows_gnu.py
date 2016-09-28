@@ -3,14 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import sys
-import subprocess
 
 from base import BaseBootstrapper
-from packages import WINDOWS_GNU as deps
 
 
 class WindowsGnuBootstrapper(BaseBootstrapper):
     '''Bootstrapper for msys2 based environments for building in Windows.'''
+
+    from packages import WINDOWS_GNU as deps
 
     def __init__(self, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
@@ -21,12 +21,13 @@ class WindowsGnuBootstrapper(BaseBootstrapper):
 
     def ensure_system_packages(self):
         install_packages = []
-        for p in deps:
+        for p in self.deps:
             command = ['pacman', '-Qs', p]
             if self.run_check(command):
                 install_packages += [p]
         if install_packages:
-            install_packages(install_packages)
+            print "Installing missing packages..."
+            self.install_system_packages(install_packages)
 
     def install_system_packages(self, packages=deps):
         self._ensure_package_manager_updated()
@@ -37,12 +38,6 @@ class WindowsGnuBootstrapper(BaseBootstrapper):
 
     def _update_package_manager(self):
         self.pacman_update()
-
-    def run(self, command):
-        subprocess.check_call(command, stdin=sys.stdin)
-
-    def run_check(self, command):
-        return subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def pacman_update(self):
         command = ['pacman', '--sync', '--refresh']

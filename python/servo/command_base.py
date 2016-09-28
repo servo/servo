@@ -518,9 +518,11 @@ class CommandBase(object):
         target_path = path.join(base_target_path, target_platform)
         target_exists = path.exists(target_path)
 
-        # Always check if all needed MSVC dependencies are installed
-        if "msvc" in target_platform:
-            Registrar.dispatch("bootstrap", context=self.context)
+        # Check for missing packages on supported platforms
+        try:
+            Registrar.dispatch("bootstrap", context=self.context, silent=True)
+        except:
+            pass
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
