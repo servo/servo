@@ -56,7 +56,10 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
     fn Register(&self,
                 script_url: USVString,
-                options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
+                options: &RegistrationOptions) -> Promise<ServiceWorker> {
+        
+        let p = Promise::new
+        
         let USVString(ref script_url) = script_url;
         // Step 3-4
         let script_url = match self.global().r().api_base_url().join(script_url) {
