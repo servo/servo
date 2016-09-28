@@ -158,6 +158,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                         enable_recording: false,
                         precache_shaders: opts.precache_shaders,
                         enable_scrollbars: opts.output_file.is_none(),
+                        renderer_kind: webrender_traits::RendererKind::Native,
                     });
                 (Some(webrender), Some(webrender_sender))
             } else {
