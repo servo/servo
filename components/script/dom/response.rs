@@ -22,10 +22,10 @@ use hyper::header::Headers as HyperHeaders;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use std::cell::Ref;
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
-use style::refcell::Ref;
 use url::Position;
 use url::Url;
 

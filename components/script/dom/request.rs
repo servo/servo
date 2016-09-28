@@ -35,10 +35,9 @@ use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::mem;
 use std::rc::Rc;
-use style::refcell::Ref;
 use url::Url;
 
 #[dom_struct]
