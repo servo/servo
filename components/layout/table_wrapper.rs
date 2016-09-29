@@ -31,7 +31,7 @@ use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
 use style::context::SharedStyleContext;
-use style::logical_geometry::LogicalSize;
+use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -422,10 +422,12 @@ impl Flow for TableWrapperFlow {
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8)
+                                                            parent_thread_id: u8,
+                                                            content_box: LogicalRect<Au>)
                                                             -> bool {
         self.block_flow.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                         parent_thread_id)
+                                                                         parent_thread_id,
+                                                                         content_box)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {

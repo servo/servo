@@ -238,7 +238,8 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// it as laid out by its parent.
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8)
+                                                            parent_thread_id: u8,
+                                                            _content_box: LogicalRect<Au>)
                                                             -> bool {
         let might_have_floats_in_or_out = base(self).might_have_floats_in() ||
             base(self).might_have_floats_out();

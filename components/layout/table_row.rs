@@ -111,11 +111,15 @@ impl TableRowFlow {
             // all cells).
             let mut max_block_size = Au(0);
             let thread_id = self.block_flow.base.thread_id;
+            let content_box = self.block_flow.base.position
+                - self.block_flow.fragment.border_padding
+                - self.block_flow.fragment.margin;
             for kid in self.block_flow.base.child_iter_mut() {
                 kid.place_float_if_applicable();
                 if !flow::base(kid).flags.is_float() {
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                         thread_id);
+                                                                         thread_id,
+                                                                         content_box);
                 }
 
                 {

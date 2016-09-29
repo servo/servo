@@ -52,6 +52,7 @@ use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use script_layout_interface::restyle_damage::REPOSITION;
+use sequential;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -62,6 +63,7 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use util::clamp;
 use util::geometry::max_rect;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -781,6 +783,7 @@ impl BlockFlow {
                                          self.base.debug_id());
 
         let mut break_at = None;
+        let content_box = self.fragment.content_box();
         if self.base.restyle_damage.contains(REFLOW) {
             self.determine_if_layer_needed();
 
@@ -830,7 +833,8 @@ impl BlockFlow {
                     kid.place_float_if_applicable();
                     if !flow::base(kid).flags.is_float() {
                         kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                             thread_id);
+                                                                             thread_id,
+                                                                             content_box);
                     }
 
                     // Skip the collapsing and float processing for absolute flow kids and continue
@@ -881,7 +885,8 @@ impl BlockFlow {
                 // Lay the child out if this was an in-order traversal.
                 let need_to_process_child_floats =
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                         thread_id);
+                                                                         thread_id,
+                                                                         content_box);
 
                 if !had_children_with_clearance &&
                         floats.is_present() &&
@@ -1062,7 +1067,9 @@ impl BlockFlow {
             // necessary.
             let thread_id = self.base.thread_id;
             for kid in self.base.child_iter_mut() {
-                kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                     thread_id,
+                                                                     content_box);
             }
         }
 
@@ -1457,32 +1464,102 @@ impl BlockFlow {
     /// on the floats we could see at the time of inline-size assignment. The job of this function,
     /// therefore, is not only to assign the final size but also to perform the layout again for
     /// this block formatting context if our speculation was wrong.
-    ///
-    /// FIXME(pcwalton): This code is not incremental-reflow-safe (i.e. not idempotent).
-    fn assign_inline_position_for_formatting_context(&mut self) {
+    fn assign_inline_position_for_formatting_context<'a>(&mut self,
+                                                         layout_context: &'a LayoutContext<'a>,
+                                                         content_box: LogicalRect<Au>) {
         debug_assert!(self.formatting_context_type() != FormattingContextType::None);
 
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
 
-        let info = PlacementInfo {
-            size: self.fragment.border_box.size.convert(self.fragment.style.writing_mode,
-                                                        self.base.floats.writing_mode),
-            ceiling: self.base.position.start.b,
-            max_inline_size: MAX_AU,
-            kind: FloatKind::Left,
-        };
-
-        // Offset our position by whatever displacement is needed to not impact the floats.
-        let rect = self.base.floats.place_between_floats(&info);
-        self.base.position.start.i = self.base.position.start.i + rect.start.i;
-
-        // TODO(pcwalton): If the inline-size of this flow is different from the size we estimated
-        // earlier, lay it out again.
-
+        // We do this first to avoid recomputing our inline size when we propagate it.
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+
+        // The code below would completely wreck the layout if run on a flex item, however:
+        //   * Flex items are always the children of flex containers.
+        //   * Flex containers only contain flex items.
+        //   * Floats cannot intrude into flex containers.
+        //   * Floats cannot escape flex items.
+        //   * Flex items cannot also be floats.
+        // Therefore, a flex item cannot be impacted by a float.
+        // See also: https://www.w3.org/TR/css-flexbox-1/#flex-containers
+        if !self.base.might_have_floats_in() {
+            return
+        }
+
+        // If you remove the might_have_floats_in conditional, this will go off.
+        debug_assert!(!self.is_flex());
+
+        // Compute the available space for us, based on the actual floats.
+        let rect = self.base.floats.available_rect(
+            self.base.position.start.b,
+            self.fragment.border_box.size.block,
+            content_box.size.inline
+        );
+        let available_inline_size = if let Some(rect) = rect {
+            // Offset our position by whatever displacement is needed to not impact the floats.
+            // Also, account for margins sliding behind floats.
+            let inline_offset = if self.fragment.margin.inline_start < rect.start.i {
+                // Do not do anything for negative margins; those are handled separately.
+                rect.start.i - max(Au(0), self.fragment.margin.inline_start)
+            } else {
+                Au(0)
+            };
+            self.base.position.start.i = content_box.start.i + inline_offset;
+            // Handle the end margin sliding behind the float.
+            let end = content_box.size.inline - rect.start.i - rect.size.inline;
+            let inline_end_offset = if self.fragment.margin.inline_end < end {
+                end - max(Au(0), self.fragment.margin.inline_end)
+            } else {
+                Au(0)
+            };
+            content_box.size.inline - inline_offset - inline_end_offset
+        } else {
+            content_box.size.inline
+        } - self.fragment.margin.inline_start_end();
+        let max_inline_size = specified_or_none(
+            self.fragment.style().max_inline_size(),
+            self.base.block_container_inline_size
+        ).unwrap_or(MAX_AU);
+        let min_inline_size = specified(
+            self.fragment.style().min_inline_size(),
+            self.base.block_container_inline_size
+        );
+        let specified_inline_size = self.fragment.style().content_inline_size();
+        let container_size = self.base.block_container_inline_size;
+        let inline_size =
+            if let MaybeAuto::Specified(size) = MaybeAuto::from_style(specified_inline_size,
+                                                                      container_size) {
+                match self.fragment.style().get_position().box_sizing {
+                    box_sizing::T::border_box => size,
+                    box_sizing::T::content_box =>
+                        size + self.fragment.border_padding.inline_start_end(),
+                }
+            } else {
+                clamp(min_inline_size, available_inline_size, max_inline_size)
+            };
+        self.base.position.size.inline = inline_size + self.fragment.margin.inline_start_end();
+
+        // If float speculation failed, fixup our layout, and re-layout all the children.
+        if self.fragment.margin_box_inline_size() != self.base.position.size.inline {
+            debug!("assign_inline_position_for_formatting_context: float speculation failed");
+            // Fix-up our own layout.
+            // We can't just traverse_flow_tree_preorder ourself, because that would re-run
+            // float speculation, instead of acting on the actual results.
+            self.fragment.border_box.size.inline = inline_size;
+            // Assign final-final inline sizes on all our children.
+            self.assign_inline_sizes(&layout_context.shared.style_context);
+            // Re-run layout on our children.
+            for child in flow::mut_base(self).children.iter_mut() {
+                sequential::traverse_flow_tree_preorder(child, layout_context.shared);
+            }
+            // Assign our final-final block size.
+            self.assign_block_size(layout_context);
+        }
+
+        debug_assert_eq!(self.fragment.margin_box_inline_size(), self.base.position.size.inline);
     }
 
     fn is_inline_block(&self) -> bool {
@@ -1792,7 +1869,8 @@ impl Flow for BlockFlow {
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8)
+                                                            parent_thread_id: u8,
+                                                            content_box: LogicalRect<Au>)
                                                             -> bool {
         if self.base.flags.is_float() {
             return false
@@ -1800,7 +1878,7 @@ impl Flow for BlockFlow {
 
         let is_formatting_context = self.formatting_context_type() != FormattingContextType::None;
         if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) && is_formatting_context {
-            self.assign_inline_position_for_formatting_context();
+            self.assign_inline_position_for_formatting_context(layout_context, content_box);
         }
 
         if (self as &Flow).floats_might_flow_through() {
