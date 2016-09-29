@@ -6,7 +6,6 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.7
 //
 
-[Exposed=(Window,Worker)]
 interface WebGLActiveInfo {
     readonly attribute GLint size;
     readonly attribute GLenum type;
