@@ -38,7 +38,7 @@ use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};
-use msg::constellation_msg::{FrameType, LoadData, PipelineId, TraversalDirection};
+use msg::constellation_msg::{FrameType, FrameId, LoadData, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -67,6 +67,7 @@ bitflags! {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
+    frame_id: FrameId,
     pipeline_id: Cell<Option<PipelineId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
@@ -130,6 +131,7 @@ impl HTMLIFrameElement {
         let load_info = IFrameLoadInfo {
             load_data: load_data,
             parent_pipeline_id: global_scope.pipeline_id(),
+            frame_id: self.frame_id,
             old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
@@ -181,6 +183,7 @@ impl HTMLIFrameElement {
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            frame_id: FrameId::new(),
             pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
