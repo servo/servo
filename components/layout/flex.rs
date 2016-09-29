@@ -18,7 +18,6 @@ use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::StackingContextId;
 use layout_debug;
 use model::{Direction, IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use model::{specified, specified_or_none};
@@ -940,11 +939,8 @@ impl Flow for FlexFlow {
         self.build_display_list_for_flex(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent_id: StackingContextId,
-                                 contexts: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId {
-        self.block_flow.collect_stacking_contexts(parent_id, contexts)
+    fn collect_stacking_contexts(&mut self, parent: &mut StackingContext) {
+        self.block_flow.collect_stacking_contexts(parent);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
