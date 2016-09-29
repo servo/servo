@@ -287,7 +287,7 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_temp = path.join(binary_path[:-5], 'targz')
+            dir_to_temp = path.join(os.path.dirname(binary_path), 'targz')
             resources_dir = path.join(dir_to_temp, 'resources')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
