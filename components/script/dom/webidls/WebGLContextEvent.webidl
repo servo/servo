@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15
-[Constructor(DOMString type, optional WebGLContextEventInit eventInit), Exposed=(Window,Worker)]
+[Constructor(DOMString type, optional WebGLContextEventInit eventInit)]
 interface WebGLContextEvent : Event {
     readonly attribute DOMString statusMessage;
 };
