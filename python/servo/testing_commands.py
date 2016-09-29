@@ -246,9 +246,7 @@ class MachCommands(CommandBase):
 
             if features:
                 args += ["--features", "%s" % ' '.join(features)]
-            result = call(args, env=env, cwd=self.servo_crate())
-            if result != 0:
-                return result
+            return call(args, env=env, cwd=self.servo_crate())
 
         # Run style tests with the testing feature
         if has_style:
@@ -257,9 +255,7 @@ class MachCommands(CommandBase):
                 args += ["%s" % ' '.join(features + ["testing"])]
             else:
                 args += ["testing"]
-            result = call(args, env=env, cwd=self.servo_crate())
-            if result != 0:
-                return result
+            return call(args, env=env, cwd=self.servo_crate())
 
     @Command('test-stylo',
              description='Run stylo unit tests',
@@ -273,10 +269,7 @@ class MachCommands(CommandBase):
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
         with cd(path.join("ports", "geckolib")):
-            result = call(["cargo", "test", "-p", "stylo_tests"], env=env)
-
-        if result != 0:
-            return result
+            return call(["cargo", "test", "-p", "stylo_tests"], env=env)
 
     @Command('test-compiletest',
              description='Run compiletests',
@@ -333,9 +326,7 @@ class MachCommands(CommandBase):
         else:
             env["BUILD_MODE"] = "debug"
 
-        result = call(args, env=env, cwd=self.servo_crate())
-        if result != 0:
-            return result
+        return call(args, env=env, cwd=self.servo_crate())
 
     @Command('test-content',
              description='Run the content tests',
