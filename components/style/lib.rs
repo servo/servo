@@ -81,6 +81,7 @@ extern crate util;
 #[macro_use] pub mod string_cache;
 
 pub mod animation;
+pub mod atomic_refcell;
 pub mod attr;
 pub mod bezier;
 pub mod cache;
