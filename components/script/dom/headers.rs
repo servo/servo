@@ -229,6 +229,10 @@ impl Headers {
         *self.header_list.borrow_mut() = HyperHeaders::new();
     }
 
+    pub fn set_headers(&self, hyper_headers: HyperHeaders) {
+        *self.header_list.borrow_mut() = hyper_headers;
+    }
+
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
         self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
