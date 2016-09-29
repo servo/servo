@@ -449,6 +449,8 @@ pub struct IFrameLoadInfo {
     pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
+    /// The ID for this iframe.
+    pub frame_id: FrameId,
     /// The old pipeline ID for this iframe, if a page was previously loaded.
     pub old_pipeline_id: Option<PipelineId>,
     /// The new pipeline ID that the iframe has generated.
