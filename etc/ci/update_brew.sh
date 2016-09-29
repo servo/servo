@@ -16,7 +16,6 @@ PACKAGENAME=$(basename ${PACKAGEPATH})
 REGEX="s/servo-.*\([0-9]\{4\}\)-\([0-9]\{2\}\)-\([0-9]\{2\}\).tar.gz/\1.\2.\3/p"
 VERSION=$(echo ${PACKAGENAME}| sed -n "${REGEX}")
 SHA=$(shasum -a 256 ${PACKAGEPATH} | sed -e 's/ .*//')
-GIT="https://${TOKEN}@github.com/servo/homebrew-servo.git"
 
 # See upload_nightly.sh
 PACKAGEURL="https://download.servo.org/nightly/macbrew/${PACKAGENAME}"
@@ -31,7 +30,7 @@ cd ${TMP_DIR}
 echo ${TMP_DIR}
 
 echo "Cloning"
-git clone ${GIT}
+git clone https://github.com/servo/homebrew-servo.git
 cd homebrew-servo
 
 # Not using "/" as it's used in PACKAGEURL
@@ -43,5 +42,7 @@ cat ${SCRIPTDIR}/servo-binary-formula.rb.in | sed \
 git add ./Formula/servo-bin.rb
 git commit -m "Version bump: ${VERSION}"
 
-git push -q ${GIT} master
+git push -qf \
+    "https://${TOKEN}@github.com/servo/homebrew-servo.git" master \
+    >/dev/null 2>&1
 rm -rf ${TMP_DIR}
