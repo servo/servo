@@ -218,7 +218,7 @@ impl InlineFragmentsAccumulator {
             enclosing_node: Some(InlineFragmentNodeInfo {
                 address: node.opaque(),
                 pseudo: node.get_pseudo_element_type().strip(),
-                style: node.style(style_context).clone(),
+                style: node.style(style_context),
                 selected_style: node.selected_style(style_context).clone(),
                 flags: InlineFragmentNodeFlags::empty(),
             }),
@@ -355,7 +355,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         let style_context = self.style_context();
         if child.is_table_cell() {
-            let mut style = child_node.style(style_context).clone();
+            let mut style = child_node.style(style_context);
             properties::modify_style_for_anonymous_table_object(&mut style, display::T::table_row);
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
@@ -369,7 +369,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             *child = new_child
         }
         if child.is_table_row() || child.is_table_rowgroup() {
-            let mut style = child_node.style(style_context).clone();
+            let mut style = child_node.style(style_context);
             properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
@@ -383,7 +383,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             *child = new_child
         }
         if child.is_table() {
-            let mut style = child_node.style(style_context).clone();
+            let mut style = child_node.style(style_context);
             properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
             let fragment =
                 Fragment::from_opaque_node_and_style(child_node.opaque(),
@@ -477,7 +477,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             let (ascent, descent) =
                 inline_flow.compute_minimum_ascent_and_descent(&mut self.layout_context
                                                                         .font_context(),
-                                                               &**node.style(self.style_context()));
+                                                               &node.style(self.style_context()));
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;
         }
@@ -692,7 +692,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 }
             }
 
-            let mut style = node.style(self.style_context()).clone();
+            let mut style = node.style(self.style_context());
             if node_is_input_or_text_area {
                 style = self.style_context().stylist.
                     precomputed_values_for_pseudo(&PseudoElement::ServoInputText, Some(&style)).unwrap();
@@ -806,7 +806,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                       -> ConstructionResult {
         let mut opt_inline_block_splits: LinkedList<InlineBlockSplit> = LinkedList::new();
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node, self.style_context());
-        fragment_accumulator.bidi_control_chars = bidi_control_chars(&*node.style(self.style_context()));
+        fragment_accumulator.bidi_control_chars = bidi_control_chars(&node.style(self.style_context()));
 
         let mut abs_descendants = AbsoluteDescendants::new();
 
@@ -949,13 +949,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                 node.opaque(),
                 node.get_pseudo_element_type().strip(),
-                node.style(self.style_context()).clone(),
+                node.style(self.style_context()),
                 node.restyle_damage()))
         }
 
         // Modify the style as necessary. (See the comment in
         // `properties::modify_style_for_replaced_content()`.)
-        let mut style = node.style(self.style_context()).clone();
+        let mut style = node.style(self.style_context());
         match node.get_pseudo_element_type() {
             PseudoElementType::Before(_) |
             PseudoElementType::After(_) => {}
@@ -993,7 +993,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         };
 
         let style_context = self.style_context();
-        let mut modified_style = (*node.style(self.style_context())).clone();
+        let mut modified_style = node.style(self.style_context());
         properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
                 block_flow));
@@ -1030,7 +1030,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment_info = SpecificFragmentInfo::InlineAbsoluteHypothetical(
             InlineAbsoluteHypotheticalFragmentInfo::new(block_flow));
         let style_context = self.style_context();
-        let mut style = node.style(style_context).clone();
+        let mut style = node.style(style_context);
         properties::modify_style_for_inline_absolute_hypothetical_fragment(&mut style);
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             PseudoElementType::Normal,
@@ -1412,7 +1412,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         let mut set_has_newly_constructed_flow_flag = false;
         let result = {
-            let mut style = node.style(self.style_context()).clone();
+            let mut style = node.style(self.style_context());
             let mut data = node.mutate_layout_data().unwrap();
             let damage = data.restyle_damage;
 
