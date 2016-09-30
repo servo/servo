@@ -6,11 +6,10 @@
 
 #![allow(unsafe_code)]
 
-use context::SharedStyleContext;
-use data::PrivateStyleData;
+use atomic_refcell::{AtomicRef, AtomicRefMut};
+use data::PersistentStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement};
 use selector_matching::ApplicableDeclarationBlock;
@@ -139,17 +138,13 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
-    /// Borrows the PrivateStyleData without checks.
+    /// Borrows the style data immutably. Fails on a conflicting borrow.
     #[inline(always)]
-    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData>;
+    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>>;
 
-    /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
+    /// Borrows the style data mutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>>;
-
-    /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
-    #[inline(always)]
-    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>>;
+    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;

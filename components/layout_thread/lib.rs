@@ -86,7 +86,7 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
-use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
+use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
@@ -104,6 +104,7 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
+use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::{filter, mix_blend_mode};
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
@@ -112,7 +113,6 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::parser::ParserContextExtraData;
-use style::refcell::RefCell;
 use style::selector_matching::Stylist;
 use style::stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet, UserAgentStylesheets};
 use style::thread_state;
@@ -1594,7 +1594,7 @@ impl LayoutThread {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        let ptr: *mut RefCell<PartialStyleAndLayoutData> = *data.ptr;
+        let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = *data.ptr;
         let non_opaque: NonOpaqueStyleAndLayoutData = ptr as *mut _;
         let _ = Box::from_raw(non_opaque);
     }
