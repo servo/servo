@@ -865,7 +865,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style(style_context).clone(),
+            selected_style: node.selected_style(style_context),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
