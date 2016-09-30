@@ -18,7 +18,7 @@ use style::context::SharedStyleContext;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
-use style::refcell::{Ref, RefCell};
+use style::refcell::RefCell;
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
 use url::Url;
 
@@ -303,24 +303,22 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     /// This should be used just for querying layout, or when we know the
     /// element style is precomputed, not from general layout itself.
     #[inline]
-    fn resolved_style(&self) -> Ref<Arc<ServoComputedValues>> {
-        Ref::map(self.get_style_data().unwrap().borrow(), |data| {
-            match self.get_pseudo_element_type() {
-                PseudoElementType::Normal
-                    => data.style_data.style.as_ref().unwrap(),
-                other
-                    => data.style_data.per_pseudo.get(&other.style_pseudo_element()).unwrap(),
-            }
-        })
+    fn resolved_style(&self) -> Arc<ServoComputedValues> {
+        let data = self.get_style_data().unwrap().borrow();
+        match self.get_pseudo_element_type() {
+            PseudoElementType::Normal
+                => data.style_data.style.as_ref().unwrap().clone(),
+            other
+                => data.style_data.per_pseudo.get(&other.style_pseudo_element()).unwrap().clone(),
+        }
     }
 
     #[inline]
-    fn selected_style(&self, _context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
-        Ref::map(self.get_style_data().unwrap().borrow(), |data| {
-            data.style_data.per_pseudo
-                .get(&PseudoElement::Selection)
-                .unwrap_or(data.style_data.style.as_ref().unwrap())
-        })
+    fn selected_style(&self, _context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+        let data = self.get_style_data().unwrap().borrow();
+        data.style_data.per_pseudo
+            .get(&PseudoElement::Selection)
+            .unwrap_or(data.style_data.style.as_ref().unwrap()).clone()
     }
 
     /// Removes the style from this node.
