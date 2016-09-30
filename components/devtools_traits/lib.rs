@@ -145,7 +145,7 @@ pub struct TimelineMarker {
     pub end_stack: Option<Vec<()>>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
+#[derive(PartialEq, Eq, Hash, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
