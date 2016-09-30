@@ -224,10 +224,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 _parent_id: StackingContextId,
-                                 _: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId;
+    fn collect_stacking_contexts(&mut self, _parent: &mut StackingContext);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -241,7 +238,8 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// it as laid out by its parent.
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8)
+                                                            parent_thread_id: u8,
+                                                            _content_box: LogicalRect<Au>)
                                                             -> bool {
         let might_have_floats_in_or_out = base(self).might_have_floats_in() ||
             base(self).might_have_floats_out();
@@ -1160,11 +1158,9 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self,
-                                                  parent_id: StackingContextId,
-                                                  contexts: &mut Vec<Box<StackingContext>>) {
+    pub fn collect_stacking_contexts_for_children(&mut self, parent: &mut StackingContext) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(parent_id, contexts);
+            kid.collect_stacking_contexts(parent);
         }
     }
 
@@ -1404,7 +1400,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn baseline_offset_of_last_line_box_in_flow(self) -> Option<Au> {
         for kid in base(self).children.iter().rev() {
             if kid.is_inline_flow() {
-                return kid.as_inline().baseline_offset_of_last_line()
+                if let Some(baseline_offset) = kid.as_inline().baseline_offset_of_last_line() {
+                    return Some(baseline_offset)
+                }
             }
             if kid.is_block_like() &&
                     kid.as_block().formatting_context_type() == FormattingContextType::None &&

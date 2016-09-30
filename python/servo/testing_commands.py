@@ -434,7 +434,7 @@ class MachCommands(CommandBase):
         # add it to the dynamic linker search path.
         if sys.platform.startswith('linux'):
             try:
-                args = [self.get_binary_path(True, False)]
+                args = [self.get_binary_path(kwargs["release"], not kwargs["release"])]
                 osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]), "out", "lib", "gallium")
                 os.environ["LD_LIBRARY_PATH"] = osmesa_path
                 os.environ["GALLIUM_DRIVER"] = "softpipe"
@@ -444,7 +444,7 @@ class MachCommands(CommandBase):
                 pass
         if sys.platform.startswith('darwin'):
             try:
-                args = [self.get_binary_path(True, False)]
+                args = [self.get_binary_path(kwargs["release"], not kwargs["release"])]
                 osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
                                         "out", "src", "gallium", "targets", "osmesa", ".libs")
                 glapi_path = path.join(find_dep_path_newest('osmesa-src', args[0]),

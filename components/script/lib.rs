@@ -92,11 +92,13 @@ extern crate websocket;
 extern crate xml5ever;
 
 pub mod bluetooth_blacklist;
+mod body;
 pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
+pub mod fetch;
 pub mod layout_wrapper;
 mod mem;
 mod network_listener;

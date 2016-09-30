@@ -18,21 +18,16 @@ else
   export LIBCLANG_PATH="$(brew --prefix llvm38)/lib/llvm-3.8/lib"
 fi
 
-# Make sure we have llvm38.
+# Make sure we have llvm-3.8.
 if [[ ! -x "$(command -v clang-3.8)" ]]; then
-    echo "llmv38 must be installed." \
-         "Mac users should |brew install llvm38|, Linux varies by distro."
-    exit 1
+  echo "llvm-3.8 is required." \
+       "Mac users should |brew install llvm38|," \
+       "Linux users can find it in clang-3.8."
+  exit 1
 fi
 
 export LD_LIBRARY_PATH="${LIBCLANG_PATH}"
 export DYLD_LIBRARY_PATH="${LIBCLANG_PATH}"
-
-# Check for multirust
-if [[ ! -x "$(command -v multirust)" ]]; then
-    echo "multirust must be installed."
-    exit 1
-fi
 
 # Don't try to clone twice.
 if [[ ! -d rust-bindgen ]]; then
@@ -40,6 +35,4 @@ if [[ ! -d rust-bindgen ]]; then
 fi
 
 cd rust-bindgen
-
-multirust override nightly
 cargo build --features llvm_stable

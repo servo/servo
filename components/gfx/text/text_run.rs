@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
-use font::ShapingOptions;
+use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, KEEP_ALL_FLAG};
+use font::{RunMetrics, ShapingOptions};
 use platform::font_template::FontTemplateData;
 use range::Range;
 use std::cell::Cell;
@@ -206,11 +206,14 @@ impl<'a> TextRun {
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
             if let Some((i, _)) = word.char_indices().rev()
-                                     .take_while(|&(_, c)| char_is_whitespace(c)).last() {
-                whitespace.start = slice.start + i;
-                slice.end = whitespace.start;
-            }
-
+                .take_while(|&(_, c)| char_is_whitespace(c)).last() {
+                    whitespace.start = slice.start + i;
+                    slice.end = whitespace.start;
+                } else if idx != text.len() && options.flags.contains(KEEP_ALL_FLAG) {
+                    // If there's no whitespace and word-break is set to
+                    // keep-all, try increasing the slice.
+                    continue;
+                }
             if slice.len() > 0 {
                 glyphs.push(GlyphRun {
                     glyph_store: font.shape_text(&text[slice.clone()], options),
