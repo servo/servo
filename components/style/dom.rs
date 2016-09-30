@@ -167,13 +167,6 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     fn next_sibling(&self) -> Option<Self>;
 
-
-    /// Returns the style results for the given node. If CSS selector matching
-    /// has not yet been performed, fails.
-    fn style(&self, _context: &SharedStyleContext) -> Ref<Arc<ComputedValues>> {
-        Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
-    }
-
     /// Removes the style from this node.
     fn unstyle(self) {
         self.mutate_data().unwrap().style = None;

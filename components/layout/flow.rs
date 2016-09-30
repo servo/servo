@@ -1272,7 +1272,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// as it's harder to understand.
     fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N, ctx: &LayoutContext) -> FlowRef {
         let style_context = ctx.style_context();
-        let mut style = node.style(style_context).clone();
+        let mut style = node.style(style_context);
         match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 properties::modify_style_for_anonymous_table_object(

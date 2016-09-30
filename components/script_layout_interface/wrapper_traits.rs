@@ -240,12 +240,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     ///
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
-    fn style(&self, context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
+    fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
-                Ref::map(self.get_style_data().unwrap().borrow(), |data| {
-                    data.style_data.style.as_ref().unwrap()
-                })
+                self.get_style_data().unwrap().borrow()
+                    .style_data.style.as_ref().unwrap().clone()
             },
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
@@ -289,9 +288,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
                     }
                 }
 
-                Ref::map(self.get_style_data().unwrap().borrow(), |data| {
-                    data.style_data.per_pseudo.get(&style_pseudo).unwrap()
-                })
+                self.get_style_data().unwrap().borrow()
+                    .style_data.per_pseudo.get(&style_pseudo)
+                    .unwrap().clone()
             }
         }
     }
