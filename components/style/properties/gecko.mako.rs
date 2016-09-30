@@ -1459,7 +1459,7 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-shadow line-height word-spacing">
+                  skip_longhands="text-align text-shadow line-height letter-spacing word-spacing">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -1537,6 +1537,15 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
+
+    pub fn set_letter_spacing(&mut self, v: longhands::letter_spacing::computed_value::T) {
+        match v.0 {
+            Some(au) => self.gecko.mLetterSpacing.set_value(CoordDataValue::Coord(au.0)),
+            None => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
+        }
+    }
+
+    <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
 
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
         use values::computed::LengthOrPercentage::*;
