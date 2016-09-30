@@ -61,7 +61,7 @@ impl PseudoElement {
     }
 
     #[inline]
-    fn from_atom(atom: &WeakAtom, in_ua: bool) -> Option<Self> {
+    fn from_atom(atom: &WeakAtom, _in_ua: bool) -> Option<Self> {
         macro_rules! pseudo_element {
             ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
                 if atom == &*$atom {
