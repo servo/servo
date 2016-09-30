@@ -1220,6 +1220,18 @@
             "url": "/_mozilla/css/button_css_width.html"
           }
         ],
+        "css/button_whitespace_a.html": [
+          {
+            "path": "css/button_whitespace_a.html",
+            "references": [
+              [
+                "/_mozilla/css/button_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/button_whitespace_a.html"
+          }
+        ],
         "css/calc-basic.html": [
           {
             "path": "css/calc-basic.html",
@@ -14916,6 +14928,18 @@
             ]
           ],
           "url": "/_mozilla/css/button_css_width.html"
+        }
+      ],
+      "css/button_whitespace_a.html": [
+        {
+          "path": "css/button_whitespace_a.html",
+          "references": [
+            [
+              "/_mozilla/css/button_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/button_whitespace_a.html"
         }
       ],
       "css/calc-basic.html": [
