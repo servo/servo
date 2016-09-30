@@ -195,7 +195,6 @@ pub struct Window {
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
-    #[ignore_heap_size_of = "TODO(#6909) need to measure HashSet"]
     devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
     devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
