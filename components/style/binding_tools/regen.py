@@ -270,7 +270,6 @@ def platform_dependent_defines():
     elif system == "Windows":
         ret.append("-DOS_WIN=1")
         ret.append("-DWIN32=1")
-        ret.append("-use-msvc-mangling")
         msvc_platform = os.environ["PLATFORM"]
         if msvc_platform == "X86":
             ret.append("--target=i686-pc-win32")
@@ -391,6 +390,9 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         clang_flags.extend(current_target["clang_flags"])
 
     clang_flags.extend(platform_dependent_defines())
+
+    if platform.system() == "Windows":
+        flags.append("--use-msvc-mangling")
 
     if "raw_lines" in current_target:
         for raw_line in current_target["raw_lines"]:
