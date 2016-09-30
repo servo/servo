@@ -438,7 +438,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = \
-                          ::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             flags.append("--blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
@@ -455,7 +455,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = \
-                          ::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             # Right now the only immutable borrow types are ones which we import
             # from the |structs| module. As such, we don't need to create an opaque
             # type with zero_size_type. If we ever introduce immutable borrow types
