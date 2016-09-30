@@ -90,7 +90,7 @@ required for the SpiderMonkey build on Windows.
 
 Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
 window and update the core libraries and install new packages. The extra step at the end is to
-downgrate GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
+downgrade GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
 dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
 
 ```sh
