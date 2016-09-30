@@ -29,6 +29,7 @@
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "gecko", feature(stmt_expr_attributes))]
 
 #![deny(unsafe_code)]
 
