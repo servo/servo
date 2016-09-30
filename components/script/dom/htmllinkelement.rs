@@ -154,7 +154,9 @@ impl VirtualMethods for HTMLLinkElement {
             },
             &atom!("media") => {
                 if string_is_stylesheet(&rel) {
-                    self.handle_stylesheet_url(&attr.value());
+                    if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href")) {
+                        self.handle_stylesheet_url(&href.value());
+                    }
                 }
             },
             _ => {},
