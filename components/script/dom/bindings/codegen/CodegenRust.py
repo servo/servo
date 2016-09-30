@@ -1605,7 +1605,7 @@ class MethodDefiner(PropertyDefiner):
                 "name": "forEach",
                 "methodInfo": False,
                 "selfHostedName": "ArrayForEach",
-                "length": 0,
+                "length": 1,
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
