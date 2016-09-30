@@ -13,7 +13,7 @@ from windows_msvc import WindowsMsvcBootstrapper
 class Bootstrapper(object):
     """Main class that performs system bootstrap."""
 
-    def __init__(self):
+    def __init__(self, context):
         self.instance = None
         cls = None
         args = {}
@@ -28,6 +28,7 @@ class Bootstrapper(object):
             sys.exit('Bootstrap support is not yet available for your OS.')
 
         self.instance = cls(**args)
+        self.instance.context = context
 
     def bootstrap(self, android=False, interactive=False, force=False):
         self.instance.interactive = interactive
