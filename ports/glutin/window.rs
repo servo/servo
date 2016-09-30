@@ -317,7 +317,7 @@ impl Window {
         }
     }
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
     fn gl_version() -> GlRequest {
         if opts::get().use_webrender {
             return GlRequest::Specific(Api::OpenGl, (3, 2));
@@ -332,7 +332,7 @@ impl Window {
         }
     }
 
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
