@@ -1637,8 +1637,8 @@ impl Fragment {
         }
 
         match self.style().get_inheritedtext().word_break {
-            word_break::T::normal => {
-                // Break at normal word boundaries.
+            word_break::T::normal | word_break::T::keep_all => {
+                // Break at normal word boundaries. keep-all forbids soft wrap opportunities.
                 let natural_word_breaking_strategy =
                     text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
                 self.calculate_split_position_using_breaking_strategy(
