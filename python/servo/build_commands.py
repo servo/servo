@@ -259,9 +259,11 @@ class MachCommands(CommandBase):
                             servo_exe_dir)
                 if "msvc" in (target or host_triple()):
                     msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
-                    # on msvc builds, use editbin to change the subsystem to windows
-                    call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
-                         verbose=verbose)
+                    # on msvc builds, use editbin to change the subsystem to windows, but only
+                    # on release builds -- on debug builds, it hides log output
+                    if not dev:
+                        call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
+                             verbose=verbose)
                     # on msvc, we need to copy in some DLLs in to the servo.exe dir
                     for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
