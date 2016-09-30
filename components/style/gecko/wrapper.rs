@@ -5,7 +5,8 @@
 #![allow(unsafe_code)]
 
 
-use data::PrivateStyleData;
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use data::PersistentStyleData;
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -34,7 +35,6 @@ use libc::uintptr_t;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
-use refcell::{Ref, RefCell, RefMut};
 use selector_impl::ElementExt;
 use selector_matching::ApplicableDeclarationBlock;
 use selectors::Element;
@@ -48,11 +48,11 @@ use std::sync::atomic::{AtomicBool, AtomicPtr};
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use url::Url;
 
-pub struct NonOpaqueStyleData(RefCell<PrivateStyleData>);
+pub struct NonOpaqueStyleData(AtomicRefCell<PersistentStyleData>);
 
 impl NonOpaqueStyleData {
     pub fn new() -> Self {
-        NonOpaqueStyleData(RefCell::new(PrivateStyleData::new()))
+        NonOpaqueStyleData(AtomicRefCell::new(PersistentStyleData::new()))
     }
 }
 
@@ -302,18 +302,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     #[inline(always)]
-    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
-        self.get_node_data().as_ref().map(|d| d.0.as_unsafe_cell().get()
-                                                  as *const PrivateStyleData)
-    }
-
-    #[inline(always)]
-    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
+    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
         self.get_node_data().as_ref().map(|d| d.0.borrow())
     }
 
     #[inline(always)]
-    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
+    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
         self.get_node_data().as_ref().map(|d| d.0.borrow_mut())
     }
 

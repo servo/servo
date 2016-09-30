@@ -11,7 +11,7 @@ use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData {
+pub struct PersistentStyleData {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ComputedValues>>,
 
@@ -23,9 +23,9 @@ pub struct PrivateStyleData {
     pub parallel: DomParallelInfo,
 }
 
-impl PrivateStyleData {
+impl PersistentStyleData {
     pub fn new() -> Self {
-        PrivateStyleData {
+        PersistentStyleData {
             style: None,
             per_pseudo: HashMap::with_hasher(Default::default()),
             parallel: DomParallelInfo::new(),
