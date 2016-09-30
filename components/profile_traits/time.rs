@@ -7,6 +7,8 @@ extern crate time as std_time;
 use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
+use signpost;
+use util::opts;
 
 #[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Debug, Deserialize, Serialize)]
 pub struct TimerMetadata {
@@ -37,51 +39,51 @@ pub enum ProfilerMsg {
 #[repr(u32)]
 #[derive(PartialEq, Clone, Copy, PartialOrd, Eq, Ord, Deserialize, Serialize, Debug, Hash)]
 pub enum ProfilerCategory {
-    Compositing,
-    LayoutPerform,
-    LayoutStyleRecalc,
-    LayoutTextShaping,
-    LayoutRestyleDamagePropagation,
-    LayoutNonIncrementalReset,
-    LayoutSelectorMatch,
-    LayoutTreeBuilder,
-    LayoutDamagePropagate,
-    LayoutGeneratedContent,
-    LayoutDisplayListSorting,
-    LayoutFloatPlacementSpeculation,
-    LayoutMain,
-    LayoutStoreOverflow,
-    LayoutParallelWarmup,
-    LayoutDispListBuild,
-    NetHTTPRequestResponse,
-    PaintingPerTile,
-    PaintingPrepBuff,
-    Painting,
-    ImageDecoding,
-    ImageSaving,
-    ScriptAttachLayout,
-    ScriptConstellationMsg,
-    ScriptDevtoolsMsg,
-    ScriptDocumentEvent,
-    ScriptDomEvent,
-    ScriptEvaluate,
-    ScriptEvent,
-    ScriptFileRead,
-    ScriptImageCacheMsg,
-    ScriptInputEvent,
-    ScriptNetworkEvent,
-    ScriptParseHTML,
-    ScriptPlannedNavigation,
-    ScriptResize,
-    ScriptSetScrollState,
-    ScriptSetViewport,
-    ScriptTimerEvent,
-    ScriptStylesheetLoad,
-    ScriptUpdateReplacedElement,
-    ScriptWebSocketEvent,
-    ScriptWorkerEvent,
-    ScriptServiceWorkerEvent,
-    ApplicationHeartbeat,
+    Compositing = 0x00,
+    LayoutPerform = 0x10,
+    LayoutStyleRecalc = 0x11,
+    LayoutTextShaping = 0x12,
+    LayoutRestyleDamagePropagation = 0x13,
+    LayoutNonIncrementalReset = 0x14,
+    LayoutSelectorMatch = 0x15,
+    LayoutTreeBuilder = 0x16,
+    LayoutDamagePropagate = 0x17,
+    LayoutGeneratedContent = 0x18,
+    LayoutDisplayListSorting = 0x19,
+    LayoutFloatPlacementSpeculation = 0x1a,
+    LayoutMain = 0x1b,
+    LayoutStoreOverflow = 0x1c,
+    LayoutParallelWarmup = 0x1d,
+    LayoutDispListBuild = 0x1e,
+    NetHTTPRequestResponse = 0x30,
+    PaintingPerTile = 0x41,
+    PaintingPrepBuff = 0x42,
+    Painting = 0x43,
+    ImageDecoding = 0x50,
+    ImageSaving = 0x51,
+    ScriptAttachLayout = 0x60,
+    ScriptConstellationMsg = 0x61,
+    ScriptDevtoolsMsg = 0x62,
+    ScriptDocumentEvent = 0x63,
+    ScriptDomEvent = 0x64,
+    ScriptEvaluate = 0x65,
+    ScriptEvent = 0x66,
+    ScriptFileRead = 0x67,
+    ScriptImageCacheMsg = 0x68,
+    ScriptInputEvent = 0x69,
+    ScriptNetworkEvent = 0x6a,
+    ScriptParseHTML = 0x6b,
+    ScriptPlannedNavigation = 0x6c,
+    ScriptResize = 0x6d,
+    ScriptSetScrollState = 0x6e,
+    ScriptSetViewport = 0x6f,
+    ScriptTimerEvent = 0x70,
+    ScriptStylesheetLoad = 0x71,
+    ScriptUpdateReplacedElement = 0x72,
+    ScriptWebSocketEvent = 0x73,
+    ScriptWorkerEvent = 0x74,
+    ScriptServiceWorkerEvent = 0x75,
+    ApplicationHeartbeat = 0x90,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
@@ -103,11 +105,20 @@ pub fn profile<T, F>(category: ProfilerCategory,
                   -> T
     where F: FnOnce() -> T
 {
+    if opts::get().signpost {
+        signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
+    }
     let start_energy = read_energy_uj();
     let start_time = precise_time_ns();
+
     let val = callback();
+
     let end_time = precise_time_ns();
     let end_energy = read_energy_uj();
+    if opts::get().signpost {
+        signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
+    }
+
     send_profile_data(category,
                       meta,
                       profiler_chan,

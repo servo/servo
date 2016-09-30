@@ -14,6 +14,8 @@
 
 extern crate ipc_channel;
 extern crate serde;
+extern crate signpost;
+extern crate util;
 
 pub mod energy;
 pub mod mem;
