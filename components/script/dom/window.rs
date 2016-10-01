@@ -170,8 +170,6 @@ pub struct Window {
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
     status: DOMRefCell<DOMString>,
-    #[ignore_heap_size_of = "channels are hard"]
-    scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
 
     /// For sending timeline markers. Will be ignored if
@@ -1387,10 +1385,6 @@ impl Window {
         &self.layout_chan
     }
 
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
-        &self.scheduler_chan
-    }
-
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
@@ -1594,7 +1588,11 @@ impl Window {
         let win = box Window {
             globalscope:
                 GlobalScope::new_inherited(
-                    devtools_chan, mem_profiler_chan, time_profiler_chan, constellation_chan),
+                    devtools_chan,
+                    mem_profiler_chan,
+                    time_profiler_chan,
+                    constellation_chan,
+                    scheduler_chan.clone()),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1613,7 +1611,6 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             status: DOMRefCell::new(DOMString::new()),
-            scheduler_chan: scheduler_chan.clone(),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             id: id,
             parent_info: parent_info,

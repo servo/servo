@@ -16,7 +16,6 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::globalscope::GlobalScope;
 use dom::window;
 use dom::workerglobalscope::WorkerGlobalScope;
-use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, Evaluate2, GetGlobalForObjectCrossCompartment};
@@ -30,7 +29,7 @@ use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
-use script_traits::{MsDuration, TimerEventRequest};
+use script_traits::MsDuration;
 use std::ffi::CString;
 use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
@@ -86,14 +85,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.pipeline_id(),
             GlobalRef::Worker(worker) => worker.pipeline_id(),
-        }
-    }
-
-    /// Get the scheduler channel to request timer events.
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
-        match *self {
-            GlobalRef::Window(window) => window.scheduler_chan(),
-            GlobalRef::Worker(worker) => worker.scheduler_chan(),
         }
     }
 

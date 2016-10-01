@@ -12,7 +12,7 @@ use dom::eventtarget::EventTarget;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
 use profile_traits::{mem, time};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -46,6 +46,9 @@ pub struct GlobalScope {
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: IpcSender<ConstellationMsg>,
+
+    #[ignore_heap_size_of = "channels are hard"]
+    scheduler_chan: IpcSender<TimerEventRequest>,
 }
 
 impl GlobalScope {
@@ -53,7 +56,8 @@ impl GlobalScope {
             devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
-            constellation_chan: IpcSender<ConstellationMsg>)
+            constellation_chan: IpcSender<ConstellationMsg>,
+            scheduler_chan: IpcSender<TimerEventRequest>)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -65,6 +69,7 @@ impl GlobalScope {
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
             constellation_chan: constellation_chan,
+            scheduler_chan: scheduler_chan,
         }
     }
 
@@ -139,6 +144,10 @@ impl GlobalScope {
     /// Get a sender to the constellation thread.
     pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         &self.constellation_chan
+    }
+
+    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
+        &self.scheduler_chan
     }
 }
 

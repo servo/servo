@@ -38,7 +38,7 @@ use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
-use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerSource};
 use script_traits::WorkerGlobalScopeInit;
 use std::cell::Cell;
 use std::default::Default;
@@ -59,6 +59,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
     let mem_profiler_chan = global_scope.mem_profiler_chan().clone();
     let time_profiler_chan = global_scope.time_profiler_chan().clone();
     let constellation_chan = global_scope.constellation_chan().clone();
+    let scheduler_chan = global_scope.scheduler_chan().clone();
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: mem_profiler_chan,
@@ -66,7 +67,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             time_profiler_chan: time_profiler_chan,
             from_devtools_sender: devtools_sender,
             constellation_chan: constellation_chan,
-            scheduler_chan: global.scheduler_chan().clone(),
+            scheduler_chan: scheduler_chan,
             worker_id: worker_id,
             pipeline_id: global.pipeline_id(),
         };
@@ -102,9 +103,6 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    #[ignore_heap_size_of = "Defined in std"]
-    scheduler_chan: IpcSender<TimerEventRequest>,
-
     promise_job_queue: PromiseJobQueue,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
@@ -125,7 +123,8 @@ impl WorkerGlobalScope {
                     init.to_devtools_sender,
                     init.mem_profiler_chan,
                     init.time_profiler_chan,
-                    init.constellation_chan),
+                    init.constellation_chan,
+                    init.scheduler_chan.clone()),
             worker_id: init.worker_id,
             pipeline_id: init.pipeline_id,
             worker_url: worker_url,
@@ -134,10 +133,9 @@ impl WorkerGlobalScope {
             resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
-            timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
+            timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
-            scheduler_chan: init.scheduler_chan,
             promise_job_queue: PromiseJobQueue::new(),
             in_error_reporting_mode: Default::default(),
         }
@@ -149,10 +147,6 @@ impl WorkerGlobalScope {
 
     pub fn from_devtools_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
         &self.from_devtools_receiver
-    }
-
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
-        &self.scheduler_chan
     }
 
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
