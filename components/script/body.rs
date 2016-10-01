@@ -98,13 +98,14 @@ fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
                                                                body_type: BodyType,
                                                                mime_type: Ref<Vec<u8>>)
                                                                -> Fallible<FetchedData> {
-    let cx = object.global().r().get_cx();
+    let global = object.global_scope();
+    let cx = global.get_cx();
     let mime = &*mime_type;
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
-        BodyType::Blob => run_blob_data_algorithm(object.global().r().as_global_scope(), bytes, mime),
-        BodyType::FormData => run_form_data_algorithm(object.global().r().as_global_scope(), bytes, mime),
+        BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
+        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
     }
 }
 

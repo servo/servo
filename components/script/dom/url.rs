@@ -285,7 +285,7 @@ impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-searchparams
     fn SearchParams(&self) -> Root<URLSearchParams> {
         self.search_params.or_init(|| {
-            URLSearchParams::new(self.global().r().as_global_scope(), Some(self))
+            URLSearchParams::new(&self.global_scope(), Some(self))
         })
     }
 

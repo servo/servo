@@ -230,7 +230,7 @@ impl WebGLProgram {
             .unwrap();
 
         receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(self.global().r().as_global_scope(), size, ty, DOMString::from(name)))
+            WebGLActiveInfo::new(&self.global_scope(), size, ty, DOMString::from(name)))
     }
 
     /// glGetActiveAttrib
@@ -244,7 +244,7 @@ impl WebGLProgram {
             .unwrap();
 
         receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(self.global().r().as_global_scope(), size, ty, DOMString::from(name)))
+            WebGLActiveInfo::new(&self.global_scope(), size, ty, DOMString::from(name)))
     }
 
     /// glGetAttribLocation

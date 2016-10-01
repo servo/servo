@@ -280,28 +280,42 @@ impl GlobalRoot {
     }
 }
 
+/// Returns the global scope of the realm that the given DOM object's reflector was created in.
+pub fn global_scope_from_reflector<T: Reflectable>(reflector: &T) -> Root<GlobalScope> {
+    unsafe { global_scope_from_object(*reflector.reflector().get_jsobject()) }
+}
+
 /// Returns the global object of the realm that the given DOM object's reflector was created in.
 pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
     unsafe { global_root_from_object(*reflector.reflector().get_jsobject()) }
 }
 
-/// Returns the Rust global object from a JS global object.
-#[allow(unrooted_must_root)]
-unsafe fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
+/// Returns the Rust global scope from a JS global object.
+unsafe fn global_scope_from_global(global: *mut JSObject) -> Root<GlobalScope> {
     assert!(!global.is_null());
     let clasp = JS_GetClass(global);
     assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-    match root_from_object(global) {
-        Ok(window) => return GlobalRoot::Window(window),
-        Err(_) => (),
-    }
+    root_from_object(global).unwrap()
+}
 
-    match root_from_object(global) {
-        Ok(worker) => return GlobalRoot::Worker(worker),
-        Err(_) => (),
+/// Returns the Rust global object from a JS global object.
+#[allow(unrooted_must_root)]
+unsafe fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
+    let global_scope = global_scope_from_global(global);
+    if let Some(window) = global_scope.downcast::<window::Window>() {
+        return GlobalRoot::Window(Root::from_ref(window));
     }
-
+    if let Some(worker) = Root::downcast(global_scope) {
+        return GlobalRoot::Worker(worker);
+    }
     panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+}
+
+/// Returns the global scope of the realm that the given JS object was created in.
+pub unsafe fn global_scope_from_object(obj: *mut JSObject) -> Root<GlobalScope> {
+    assert!(!obj.is_null());
+    let global = GetGlobalForObjectCrossCompartment(obj);
+    global_scope_from_global(global)
 }
 
 /// Returns the global object of the realm that the given JS object was created in.

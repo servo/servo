@@ -117,7 +117,7 @@ impl Blob {
             }
         };
 
-        Blob::new(parent.global().r().as_global_scope(), blob_impl, relative_content_type.into())
+        Blob::new(&parent.global_scope(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob

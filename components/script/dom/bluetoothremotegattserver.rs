@@ -80,7 +80,7 @@ impl BluetoothRemoteGATTServer {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
+                Ok(BluetoothRemoteGATTService::new(&self.global_scope(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -112,7 +112,7 @@ impl BluetoothRemoteGATTServer {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
+                              .map(|service| BluetoothRemoteGATTService::new(&self.global_scope(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,

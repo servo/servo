@@ -267,7 +267,7 @@ impl HTMLLinkElement {
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
             origin: document.url().clone(),
-            pipeline_id: Some(self.global().r().as_global_scope().pipeline_id()),
+            pipeline_id: Some(self.global_scope().pipeline_id()),
             referrer_url: Some(document.url().clone()),
             referrer_policy: referrer_policy,
             .. RequestInit::default()

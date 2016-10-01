@@ -95,7 +95,7 @@ impl BluetoothRemoteGATTCharacteristic {
         let descriptor = receiver.recv().unwrap();
         match descriptor {
             Ok(descriptor) => {
-                Ok(BluetoothRemoteGATTDescriptor::new(self.global().r().as_global_scope(),
+                Ok(BluetoothRemoteGATTDescriptor::new(&self.global_scope(),
                                                       self,
                                                       DOMString::from(descriptor.uuid),
                                                       descriptor.instance_id))
@@ -126,7 +126,7 @@ impl BluetoothRemoteGATTCharacteristic {
         match descriptors_vec {
             Ok(descriptor_vec) => {
                 Ok(descriptor_vec.into_iter()
-                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(self.global().r().as_global_scope(),
+                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(&self.global_scope(),
                                                                                 self,
                                                                                 DOMString::from(desc.uuid),
                                                                                 desc.instance_id))

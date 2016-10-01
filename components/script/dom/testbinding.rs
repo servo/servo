@@ -114,7 +114,7 @@ impl TestBindingMethods for TestBinding {
     fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
-        Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -210,7 +210,7 @@ impl TestBindingMethods for TestBinding {
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
@@ -265,7 +265,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
-        Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
@@ -288,7 +288,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
-        vec![Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
+        vec![Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
     }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
@@ -309,7 +309,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
         self.GetObjectAttributeNullable(cx)

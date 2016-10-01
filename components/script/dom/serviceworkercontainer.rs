@@ -95,14 +95,12 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
         }
 
-        let global = self.global();
-        let global = global.r();
-        let global_scope = global.as_global_scope();
-        let worker_registration = ServiceWorkerRegistration::new(global_scope,
+        let global = self.global_scope();
+        let worker_registration = ServiceWorkerRegistration::new(&global,
                                                                  script_url,
                                                                  scope.clone(),
                                                                  self);
-        ScriptThread::set_registration(scope, &*worker_registration, global_scope.pipeline_id());
+        ScriptThread::set_registration(scope, &*worker_registration, global.pipeline_id());
         Ok(worker_registration)
     }
 }

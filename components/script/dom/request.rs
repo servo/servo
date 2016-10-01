@@ -305,7 +305,7 @@ impl Request {
         let r = Request::from_net_request(global,
                                           false,
                                           request);
-        r.headers.or_init(|| Headers::for_request(r.global().r().as_global_scope()));
+        r.headers.or_init(|| Headers::for_request(&r.global_scope()));
 
         // Step 27
         let mut headers_copy = r.Headers();
@@ -549,7 +549,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers.or_init(|| Headers::new(self.global().r().as_global_scope()))
+        self.headers.or_init(|| Headers::new(&self.global_scope()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type

@@ -146,8 +146,6 @@ impl FormDataMethods for FormData {
 
 impl FormData {
     fn get_file(&self, blob: &Blob, opt_filename: Option<USVString>) -> Root<File> {
-        let global = self.global();
-
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
             None => DOMString::from(""),
@@ -155,7 +153,7 @@ impl FormData {
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
-        File::new(global.r().as_global_scope(), BlobImpl::new_from_bytes(bytes), name, None, "")
+        File::new(&self.global_scope(), BlobImpl::new_from_bytes(bytes), name, None, "")
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {

@@ -90,8 +90,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         let data = try!(StructuredCloneData::write(cx, message));
         let msg_vec = DOMMessage(data.move_to_arraybuffer());
         let _ =
-            self.global().r()
-                .as_global_scope()
+            self.global_scope()
                 .constellation_chan()
                 .send(ScriptMsg::ForwardDOMMessage(msg_vec, self.scope_url.clone()));
         Ok(())

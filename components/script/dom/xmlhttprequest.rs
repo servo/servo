@@ -283,8 +283,7 @@ impl LoadOrigin for XMLHttpRequest {
     }
 
     fn pipeline_id(&self) -> Option<PipelineId> {
-        let global = self.global();
-        Some(global.r().as_global_scope().pipeline_id())
+        Some(self.global_scope().pipeline_id())
     }
 }
 
@@ -859,8 +858,7 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
-        let global = self.global();
-        let event = Event::new(global.r().as_global_scope(),
+        let event = Event::new(&self.global_scope(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
@@ -1049,8 +1047,7 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let global = self.global();
-        let progressevent = ProgressEvent::new(global.r().as_global_scope(),
+        let progressevent = ProgressEvent::new(&self.global_scope(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
@@ -1118,7 +1115,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(self.global().r().as_global_scope(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }

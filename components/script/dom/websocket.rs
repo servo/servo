@@ -535,8 +535,6 @@ impl Runnable for CloseTask {
 
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        let ws = ws.r();
-        let global = ws.global();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
             // Do nothing if already closed.
@@ -558,7 +556,7 @@ impl Runnable for CloseTask {
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
-        let close_event = CloseEvent::new(global.r().as_global_scope(),
+        let close_event = CloseEvent::new(&ws.global_scope(),
                                           atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,

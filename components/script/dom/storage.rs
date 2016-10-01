@@ -185,13 +185,11 @@ impl Runnable for StorageEventRunnable {
         let this = *self;
         let storage_root = this.element.root();
         let storage = storage_root.r();
-        let global_root = storage.global();
-        let global_ref = global_root.r();
-        let ev_window = global_ref.as_window();
+        let global = storage.global_scope();
         let ev_url = storage.get_url();
 
         let storage_event = StorageEvent::new(
-            global_ref.as_global_scope(),
+            &global,
             atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
@@ -206,7 +204,7 @@ impl Runnable for StorageEventRunnable {
             assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
-            if ev_window.upcast::<GlobalScope>().pipeline_id() != it_window.upcast::<GlobalScope>().pipeline_id() {
+            if global.pipeline_id() != it_window.upcast::<GlobalScope>().pipeline_id() {
                 storage_event.upcast::<Event>().fire(it_window.upcast());
             }
         }

@@ -106,14 +106,12 @@ impl Bluetooth {
         // Step 12-13.
         match device {
             Ok(device) => {
-                let global = self.global();
-                let global = global.r();
-                let global = global.as_global_scope();
-                let ad_data = BluetoothAdvertisingData::new(global,
+                let global = self.global_scope();
+                let ad_data = BluetoothAdvertisingData::new(&global,
                                                             device.appearance,
                                                             device.tx_power,
                                                             device.rssi);
-                Ok(BluetoothDevice::new(global,
+                Ok(BluetoothDevice::new(&global,
                                         DOMString::from(device.id),
                                         device.name.map(DOMString::from),
                                         &ad_data))

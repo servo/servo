@@ -67,7 +67,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
     fn Gatt(&self) -> Root<BluetoothRemoteGATTServer> {
         self.gatt.or_init(|| {
-            BluetoothRemoteGATTServer::new(self.global().r().as_global_scope(), self)
+            BluetoothRemoteGATTServer::new(&self.global_scope(), self)
         })
     }
 }

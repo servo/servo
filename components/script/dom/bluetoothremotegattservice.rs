@@ -84,10 +84,8 @@ impl BluetoothRemoteGATTService {
         let characteristic = receiver.recv().unwrap();
         match characteristic {
             Ok(characteristic) => {
-                let global = self.global();
-                let global = global.r();
-                let global = global.as_global_scope();
-                let properties = BluetoothCharacteristicProperties::new(global,
+                let global = self.global_scope();
+                let properties = BluetoothCharacteristicProperties::new(&global,
                                                                         characteristic.broadcast,
                                                                         characteristic.read,
                                                                         characteristic.write_without_response,
@@ -97,7 +95,7 @@ impl BluetoothRemoteGATTService {
                                                                         characteristic.authenticated_signed_writes,
                                                                         characteristic.reliable_write,
                                                                         characteristic.writable_auxiliaries);
-                Ok(BluetoothRemoteGATTCharacteristic::new(global,
+                Ok(BluetoothRemoteGATTCharacteristic::new(&global,
                                                           self,
                                                           DOMString::from(characteristic.uuid),
                                                           &properties,
@@ -130,10 +128,8 @@ impl BluetoothRemoteGATTService {
         match characteristics_vec {
             Ok(characteristic_vec) => {
                 for characteristic in characteristic_vec {
-                    let global = self.global();
-                    let global = global.r();
-                    let global = global.as_global_scope();
-                    let properties = BluetoothCharacteristicProperties::new(global,
+                    let global = self.global_scope();
+                    let properties = BluetoothCharacteristicProperties::new(&global,
                                                                             characteristic.broadcast,
                                                                             characteristic.read,
                                                                             characteristic.write_without_response,
@@ -143,7 +139,7 @@ impl BluetoothRemoteGATTService {
                                                                             characteristic.authenticated_signed_writes,
                                                                             characteristic.reliable_write,
                                                                             characteristic.writable_auxiliaries);
-                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(global,
+                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(&global,
                                                                                 self,
                                                                                 DOMString::from(characteristic.uuid),
                                                                                 &properties,
@@ -173,7 +169,7 @@ impl BluetoothRemoteGATTService {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
+                Ok(BluetoothRemoteGATTService::new(&self.global_scope(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -207,7 +203,7 @@ impl BluetoothRemoteGATTService {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(self.global().r().as_global_scope(),
+                              .map(|service| BluetoothRemoteGATTService::new(&self.global_scope(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,
