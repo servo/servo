@@ -18,6 +18,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
+use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
@@ -70,7 +71,7 @@ impl Drop for Promise {
 
 impl Promise {
     #[allow(unsafe_code)]
-    pub fn new(global: GlobalRef) -> Rc<Promise> {
+    pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut());
         unsafe {

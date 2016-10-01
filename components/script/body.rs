@@ -42,7 +42,7 @@ pub enum FetchedData {
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let promise = Promise::new(object.global().r());
+    let promise = Promise::new(&object.global_scope());
 
     // Step 1
     if object.get_body_used() || object.is_locked() {

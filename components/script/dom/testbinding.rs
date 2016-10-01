@@ -691,11 +691,11 @@ impl TestBindingMethods for TestBinding {
     fn PromiseNativeHandler(&self,
                             resolve: Option<Rc<SimpleCallback>>,
                             reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
-        let global = self.global();
-        let handler = PromiseNativeHandler::new(global.r().as_global_scope(),
+        let global = self.global_scope();
+        let handler = PromiseNativeHandler::new(&global,
                                                 resolve.map(SimpleHandler::new),
                                                 reject.map(SimpleHandler::new));
-        let p = Promise::new(global.r());
+        let p = Promise::new(&global);
         p.append_native_handler(&handler);
         return p;
 
@@ -720,7 +720,7 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unrooted_must_root)]
     fn PromiseAttribute(&self) -> Rc<Promise> {
-        Promise::new(self.global().r())
+        Promise::new(&self.global_scope())
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {

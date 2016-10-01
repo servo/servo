@@ -70,8 +70,9 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new(global);
-    let response = Response::new(global.as_global_scope());
+    let global_scope = global.as_global_scope();
+    let promise = Promise::new(global_scope);
+    let response = Response::new(global_scope);
 
     // Step 2
     let request = match Request::Constructor(global, input, init) {

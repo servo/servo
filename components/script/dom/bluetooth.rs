@@ -276,7 +276,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
 pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
                                                 bluetooth_result: Fallible<T>)
                                                 -> Rc<Promise> {
-    let p = Promise::new(global_ref);
+    let p = Promise::new(global_ref.as_global_scope());
     match bluetooth_result {
         Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
         Err(e) => p.reject_error(p.global().r().get_cx(), e),
