@@ -22,19 +22,21 @@
         if (characteristicUuid.startsWith('0x'))
             characteristicUuid = parseInt(characteristicUuid, 16);
 
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: [serviceUuid]}]});
-
-            log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: [serviceUuid]}]})
+        .then(device => {
+            log('Connecting to GATT Server on device...');
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service...');
-            var primaryService = server.getPrimaryService(serviceUuid);
-
+            return server.getPrimaryService(serviceUuid);
+        })
+        .then(service => {
             log('Getting Characteristic...');
-            var characteristic = primaryService.getCharacteristic(characteristicUuid);
-
+            return service.getCharacteristic(characteristicUuid);
+        })
+        .then(characteristic => {
             log('Characteristic found!');
             log('> Characteristic service: ' + characteristic.service.uuid);
             log('> Characteristic UUID:    ' + characteristic.uuid);
@@ -47,11 +49,14 @@
             log('> Signed Write:           ' + characteristic.properties.authenticatedSignedWrites);
             log('> Queued Write:           ' + characteristic.properties.reliableWrite);
             log('> Writable Auxiliaries:   ' + characteristic.properties.writableAuxiliaries);
-            characteristic.readValue();
-            log('> Characteristic value:   ' + asciiToDecimal(characteristic.value));
-        } catch(err) {
+            return characteristic.readValue();
+        })
+        .then(value => {
+            log('> Characteristic value:   ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
     </script>
 </body>

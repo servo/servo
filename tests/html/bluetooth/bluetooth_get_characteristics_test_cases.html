@@ -43,21 +43,25 @@
     testCases.push({characteristic: '00002a03-0000-1000-8000-00805f9b34fb', service: 'heart_rate', options: {filters: [{services: ['heart_rate']}], optionalServices: ['cycling_power']} });
     //Test 18
     testCases.push({characteristic: '00002a25-0000-1000-8000-00805f9b34fb', service: 'heart_rate', options: {filters: [{services: ['heart_rate']}], optionalServices: ['cycling_power']} });
+
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(testCases[testNumber].options);
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(testCases[testNumber].options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "' + testCases[testNumber].service + '"...');
-            var primaryService = server.getPrimaryService(testCases[testNumber].service);
-
+            return server.getPrimaryService(testCases[testNumber].service);
+        })
+        .then(service => {
             log('Getting Characteristic "' + testCases[testNumber].characteristic + '"...');
-            var characteristics = primaryService.getCharacteristics(testCases[testNumber].characteristic);
-
+            return service.getCharacteristics(testCases[testNumber].characteristic);
+        })
+        .then(characteristics => {
             log('> List of Characteristics on the current device:');
 
             for(i = 0; i < characteristics.length; ++i) {
@@ -73,12 +77,15 @@
                 log('> Signed Write:           ' + characteristics[i].properties.authenticatedSignedWrites);
                 log('> Queued Write:           ' + characteristics[i].properties.reliableWrite);
                 log('> Writable Auxiliaries:   ' + characteristics[i].properties.writableAuxiliaries);
-                characteristics[i].readValue();
-                log('> Characteristic value:   ' + asciiToDecimal(characteristics[i].value));
+                characteristics[i].readValue()
+                .then(value => {
+                    log('> #' + (i+1) + ' Characteristic value:   ' + asciiToDecimal(characteristics[i].value));
+                });
             }
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

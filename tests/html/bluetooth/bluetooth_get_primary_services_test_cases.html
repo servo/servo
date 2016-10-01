@@ -47,26 +47,30 @@
     testCases.push({ requestedService: 'cycling_power', options: {filters: [{services: ['battery_service']}], optionalServices: ['cycling_power']} });
     //Test 20
     testCases.push({ requestedService: '00001818-0000-1000-8000-00805f9b34fb', options: {filters: [{services: ['battery_service']}], optionalServices: ['cycling_power']} });
+
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(testCases[testNumber].options);
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(testCases[testNumber].options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "' + testCases[testNumber].requestedService + '"...');
-            var primaryServices = server.getPrimaryServices(testCases[testNumber].requestedService);
-
-            for(i = 0; i < primaryServices.length; ++i) {
+            return server.getPrimaryServices(testCases[testNumber].requestedService);
+        })
+        .then(services => {
+            for(i = 0; i < services.length; ++i) {
                 log('> #' + (i+1));
-                log('> UUID:                          ' + primaryServices[i].uuid);
-                log('> Is primary:                    ' + primaryServices[i].isPrimary);
+                log('> UUID:                          ' + services[i].uuid);
+                log('> Is primary:                    ' + services[i].isPrimary);
             }
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

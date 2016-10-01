@@ -44,19 +44,22 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(testCases[testNumber].options);
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(testCases[testNumber].options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "' + testCases[testNumber].service + '"...');
-            var primaryService = server.getPrimaryService(testCases[testNumber].service);
-
+            return server.getPrimaryService(testCases[testNumber].service);
+        })
+        .then(service => {
             log('Getting Characteristic "' + testCases[testNumber].characteristic + '"...');
-            var characteristic = primaryService.getCharacteristic(testCases[testNumber].characteristic);
-
+            return service.getCharacteristic(testCases[testNumber].characteristic);
+        })
+        .then(characteristic => {
             log('Characteristic found!');
             log('> Characteristic service: ' + characteristic.service.uuid);
             log('> Characteristic UUID:    ' + characteristic.uuid);
@@ -69,11 +72,14 @@
             log('> Signed Write:           ' + characteristic.properties.authenticatedSignedWrites);
             log('> Queued Write:           ' + characteristic.properties.reliableWrite);
             log('> Writable Auxiliaries:   ' + characteristic.properties.writableAuxiliaries);
-            characteristic.readValue();
-            log('> Characteristic value:   ' + asciiToDecimal(characteristic.value));
-        } catch(err) {
+            return characteristic.readValue();
+        })
+        .then(value => {
+            log('> Characteristic value:   ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

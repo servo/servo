@@ -34,30 +34,38 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]})
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "heart_rate"...');
-            var primaryService = server.getPrimaryService('heart_rate');
+            return server.getPrimaryService('heart_rate');
+        })
+        .then(service => {
 
             log('Getting Characteristic "heart_rate_measurement"...');
-            var characteristic = primaryService.getCharacteristic('heart_rate_measurement');
-
+            return service.getCharacteristic('heart_rate_measurement');
+        })
+        .then(characteristic => {
             log('Getting Descriptor "' + testCases[testNumber] + '"...');
-            var descriptor = characteristic.getDescriptor(testCases[testNumber]);
-
+            return characteristic.getDescriptor(testCases[testNumber]);
+        })
+        .then(descriptor => {
             log('Descriptor found!');
             log('> Descriptor characteristic: ' + descriptor.characteristic.uuid);
             log('> Descriptor UUID:           ' + descriptor.uuid);
-            descriptor.readValue();
-            log('> Descriptor value:          ' + asciiToDecimal(descriptor.value));
-        } catch(err) {
+            return descriptor.readValue();
+        })
+        .then(value => {
+            log('> Descriptor value:          ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);
