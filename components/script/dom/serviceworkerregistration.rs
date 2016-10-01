@@ -57,13 +57,15 @@ impl ServiceWorkerRegistration {
             pipeline_id: Some(global.pipeline_id())
         };
 
-        let worker_id = global.as_global_scope().get_next_worker_id();
+        let global_scope = global.as_global_scope();
+        let worker_id = global_scope.get_next_worker_id();
+        let devtools_chan = global_scope.devtools_chan().cloned();
         let init = prepare_workerscope_init(global, None);
         ScopeThings {
             script_url: script_url,
             init: init,
             worker_load_origin: worker_load_origin,
-            devtools_chan: global.devtools_chan(),
+            devtools_chan: devtools_chan,
             worker_id: worker_id
         }
     }

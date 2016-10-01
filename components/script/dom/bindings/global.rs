@@ -7,7 +7,6 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
@@ -119,15 +118,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.scheduler_chan(),
             GlobalRef::Worker(worker) => worker.scheduler_chan(),
-        }
-    }
-
-    /// Get an `IpcSender<ScriptToDevtoolsControlMsg>` to send messages to Devtools
-    /// thread when available.
-    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
-        match *self {
-            GlobalRef::Window(window) => window.devtools_chan(),
-            GlobalRef::Worker(worker) => worker.devtools_chan(),
         }
     }
 

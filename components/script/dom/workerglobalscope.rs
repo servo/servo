@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
@@ -55,11 +55,13 @@ use url::Url;
 
 pub fn prepare_workerscope_init(global: GlobalRef,
                                 devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
-    let worker_id = global.as_global_scope().get_next_worker_id();
+    let global_scope = global.as_global_scope();
+    let worker_id = global_scope.get_next_worker_id();
+    let to_devtools_sender = global_scope.devtools_chan().cloned();
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: global.mem_profiler_chan().clone(),
-            to_devtools_sender: global.devtools_chan(),
+            to_devtools_sender: to_devtools_sender,
             time_profiler_chan: global.time_profiler_chan().clone(),
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
@@ -93,8 +95,6 @@ pub struct WorkerGlobalScope {
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in std"]
     time_profiler_chan: time::ProfilerChan,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
@@ -127,7 +127,7 @@ impl WorkerGlobalScope {
                          closing: Option<Arc<AtomicBool>>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
-            globalscope: GlobalScope::new_inherited(),
+            globalscope: GlobalScope::new_inherited(init.to_devtools_sender),
             worker_id: init.worker_id,
             pipeline_id: init.pipeline_id,
             worker_url: worker_url,
@@ -139,7 +139,6 @@ impl WorkerGlobalScope {
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
             time_profiler_chan: init.time_profiler_chan,
-            to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             constellation_chan: init.constellation_chan,
@@ -155,10 +154,6 @@ impl WorkerGlobalScope {
 
     pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
         &self.time_profiler_chan
-    }
-
-    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
-        self.to_devtools_sender.clone()
     }
 
     pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {

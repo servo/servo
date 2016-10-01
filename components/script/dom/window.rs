@@ -182,9 +182,6 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     time_profiler_chan: ProfilerChan,
 
-    /// For providing instructions to an optional devtools server.
-    #[ignore_heap_size_of = "channels are hard"]
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
@@ -1391,10 +1388,6 @@ impl Window {
         &self.time_profiler_chan
     }
 
-    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
-        self.devtools_chan.clone()
-    }
-
     pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
     }
@@ -1608,7 +1601,7 @@ impl Window {
         };
         let current_time = time::get_time();
         let win = box Window {
-            globalscope: GlobalScope::new_inherited(),
+            globalscope: GlobalScope::new_inherited(devtools_chan),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1620,7 +1613,6 @@ impl Window {
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
-            devtools_chan: devtools_chan,
             history: Default::default(),
             browsing_context: Default::default(),
             performance: Default::default(),

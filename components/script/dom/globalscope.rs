@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::WorkerId;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -27,16 +28,23 @@ pub struct GlobalScope {
 
     /// Timers used by the Console API.
     console_timers: DOMRefCell<HashMap<DOMString, u64>>,
+
+    /// For providing instructions to an optional devtools server.
+    #[ignore_heap_size_of = "channels are hard"]
+    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 }
 
 impl GlobalScope {
-    pub fn new_inherited() -> GlobalScope {
+    pub fn new_inherited(
+            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>)
+            -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
             devtools_wants_updates: Default::default(),
             console_timers: DOMRefCell::new(Default::default()),
+            devtools_chan: devtools_chan,
         }
     }
 
@@ -90,6 +98,12 @@ impl GlobalScope {
         self.console_timers.borrow_mut().remove(label).ok_or(()).map(|start| {
             timestamp_in_ms(get_time()) - start
         })
+    }
+
+    /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
+    /// to the devtools thread when available.
+    pub fn devtools_chan(&self) -> Option<&IpcSender<ScriptToDevtoolsControlMsg>> {
+        self.devtools_chan.as_ref()
     }
 }
 

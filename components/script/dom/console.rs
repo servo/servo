@@ -11,7 +11,7 @@ pub struct Console(());
 
 impl Console {
     fn send_to_devtools(global: GlobalRef, level: LogLevel, message: DOMString) {
-        if let Some(chan) = global.devtools_chan() {
+        if let Some(chan) = global.as_global_scope().devtools_chan() {
             let console_message = prepare_message(level, message);
             let worker_id = if let GlobalRef::Worker(worker) = global {
                 Some(worker.get_worker_id())

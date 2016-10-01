@@ -272,7 +272,8 @@ pub fn handle_request_animation_frame(context: &BrowsingContext,
     };
 
     let doc = context.active_document();
-    let devtools_sender = context.active_window().devtools_chan().unwrap();
+    let devtools_sender =
+        context.active_window().upcast::<GlobalScope>().devtools_chan().unwrap().clone();
     doc.request_animation_frame(box move |time| {
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();

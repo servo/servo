@@ -91,8 +91,9 @@ impl Worker {
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let worker_id = global.as_global_scope().get_next_worker_id();
-        if let Some(ref chan) = global.devtools_chan() {
+        let global_scope = global.as_global_scope();
+        let worker_id = global_scope.get_next_worker_id();
+        if let Some(ref chan) = global_scope.devtools_chan() {
             let pipeline_id = global.pipeline_id();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
