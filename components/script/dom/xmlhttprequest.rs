@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMetho
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, GlobalRoot};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -30,6 +30,7 @@ use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::progressevent::ProgressEvent;
 use dom::window::Window;
+use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use encoding::all::UTF_8;
@@ -210,10 +211,7 @@ impl XMLHttpRequest {
     }
 
     fn sync_in_window(&self) -> bool {
-        match self.global() {
-            GlobalRoot::Window(_) if self.sync.get() => true,
-            _ => false
-        }
+        self.sync.get() && self.global_scope().is::<Window>()
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
@@ -308,11 +306,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
              username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
         // Step 1
-        match self.global() {
-            GlobalRoot::Window(ref window) => {
-                if !window.Document().r().is_fully_active() { return Err(Error::InvalidState); }
+        if let Some(window) = Root::downcast::<Window>(self.global_scope()) {
+            if !window.Document().r().is_fully_active() {
+                return Err(Error::InvalidState);
             }
-            _ => {}
         }
 
         // Step 5
@@ -575,7 +572,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // preference is enabled, we allow bypassing the CORS check.
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
-            if let GlobalRoot::Window(win) = self.global() {
+            if let Some(win) = Root::downcast::<Window>(self.global_scope()) {
                 let is_root_pipeline = win.parent_info().is_none();
                 is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
@@ -744,9 +741,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
-        match self.global() {
-            GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document => return Ok(()),
-            _ => {}
+        if self.global_scope().is::<WorkerGlobalScope>() && response_type == XMLHttpRequestResponseType::Document {
+            return Ok(());
         }
         match self.ready_state.get() {
             // Step 2
@@ -829,7 +825,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
         //              explicitly in the worker scope.
-        if let GlobalRoot::Worker(_) = self.global() {
+        if self.global_scope().is::<WorkerGlobalScope>() {
             return Ok(None);
         }
 
