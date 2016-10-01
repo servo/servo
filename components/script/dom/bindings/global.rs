@@ -140,14 +140,6 @@ impl<'a> GlobalRef<'a> {
         self.resource_threads().sender()
     }
 
-    /// Get the worker's id.
-    pub fn get_worker_id(&self) -> Option<WorkerId> {
-        match *self {
-            GlobalRef::Window(_) => None,
-            GlobalRef::Worker(ref worker) => Some(worker.get_worker_id()),
-        }
-    }
-
     /// Get next worker id.
     pub fn get_next_worker_id(&self) -> WorkerId {
         match *self {
