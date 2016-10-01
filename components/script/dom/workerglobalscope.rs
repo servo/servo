@@ -15,7 +15,6 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
@@ -113,9 +112,6 @@ pub struct WorkerGlobalScope {
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
 
-    /// Timers used by the Console API.
-    console_timers: TimerSet,
-
     promise_job_queue: PromiseJobQueue,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
@@ -148,14 +144,9 @@ impl WorkerGlobalScope {
             from_devtools_receiver: from_devtools_receiver,
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
-            console_timers: TimerSet::new(),
             promise_job_queue: PromiseJobQueue::new(),
             in_error_reporting_mode: Default::default(),
         }
-    }
-
-    pub fn console_timers(&self) -> &TimerSet {
-        &self.console_timers
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {

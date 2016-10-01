@@ -14,7 +14,6 @@ use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
-use dom::console::TimerSet;
 use dom::globalscope::GlobalScope;
 use dom::window;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -275,14 +274,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.unschedule_callback(handle),
             GlobalRef::Worker(worker) => worker.unschedule_callback(handle),
-        }
-    }
-
-    /// Returns the global's timers for the Console API.
-    pub fn console_timers(&self) -> &TimerSet {
-        match *self {
-            GlobalRef::Window(ref window) => window.console_timers(),
-            GlobalRef::Worker(ref worker) => worker.console_timers(),
         }
     }
 

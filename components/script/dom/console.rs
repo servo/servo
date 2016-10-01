@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::str::DOMString;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use time::{Timespec, get_time};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
@@ -83,7 +79,7 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
     pub fn Time(global: GlobalRef, label: DOMString) {
-        if let Ok(()) = global.console_timers().time(label.clone()) {
+        if let Ok(()) = global.as_global_scope().time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
             Self::send_to_devtools(global, LogLevel::Log, message);
@@ -92,7 +88,7 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
     pub fn TimeEnd(global: GlobalRef, label: DOMString) {
-        if let Ok(delta) = global.console_timers().time_end(&label) {
+        if let Ok(delta) = global.as_global_scope().time_end(&label) {
             let message = DOMString::from(
                 format!("{}: {}ms", label, delta)
             );
@@ -100,10 +96,6 @@ impl Console {
             Self::send_to_devtools(global, LogLevel::Log, message);
         };
     }
-}
-
-fn timestamp_in_ms(time: Timespec) -> u64 {
-    (time.sec * 1000 + (time.nsec / 1000000) as i64) as u64
 }
 
 fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
@@ -114,34 +106,5 @@ fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
         filename: "test".to_owned(),
         lineNumber: 1,
         columnNumber: 1,
-    }
-}
-
-#[derive(HeapSizeOf, JSTraceable)]
-pub struct TimerSet(DOMRefCell<HashMap<DOMString, u64>>);
-
-impl TimerSet {
-    pub fn new() -> Self {
-        TimerSet(DOMRefCell::new(Default::default()))
-    }
-
-    fn time(&self, label: DOMString) -> Result<(), ()> {
-        let mut timers = self.0.borrow_mut();
-        if timers.len() >= 10000 {
-            return Err(());
-        }
-        match timers.entry(label) {
-            Entry::Vacant(entry) => {
-                entry.insert(timestamp_in_ms(get_time()));
-                Ok(())
-            },
-            Entry::Occupied(_) => Err(()),
-        }
-    }
-
-    fn time_end(&self, label: &str) -> Result<u64, ()> {
-        self.0.borrow_mut().remove(label).ok_or(()).map(|start| {
-            timestamp_in_ms(get_time()) - start
-        })
     }
 }

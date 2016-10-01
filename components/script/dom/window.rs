@@ -27,7 +27,6 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
-use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
@@ -266,9 +265,6 @@ pub struct Window {
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
     in_error_reporting_mode: Cell<bool>,
-
-    /// Timers used by the Console API.
-    console_timers: TimerSet,
 }
 
 impl Window {
@@ -1661,14 +1657,9 @@ impl Window {
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             in_error_reporting_mode: Cell::new(false),
-            console_timers: TimerSet::new(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
-    }
-
-    pub fn console_timers(&self) -> &TimerSet {
-        &self.console_timers
     }
 
     /// https://html.spec.whatwg.org/multipage/#report-the-error

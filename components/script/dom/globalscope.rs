@@ -3,12 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::WorkerId;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use time::{Timespec, get_time};
 
 #[dom_struct]
 pub struct GlobalScope {
@@ -19,6 +24,9 @@ pub struct GlobalScope {
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the worker.
     devtools_wants_updates: Cell<bool>,
+
+    /// Timers used by the Console API.
+    console_timers: DOMRefCell<HashMap<DOMString, u64>>,
 }
 
 impl GlobalScope {
@@ -28,6 +36,7 @@ impl GlobalScope {
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
             devtools_wants_updates: Default::default(),
+            console_timers: DOMRefCell::new(Default::default()),
         }
     }
 
@@ -62,4 +71,28 @@ impl GlobalScope {
     pub fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }
+
+    pub fn time(&self, label: DOMString) -> Result<(), ()> {
+        let mut timers = self.console_timers.borrow_mut();
+        if timers.len() >= 10000 {
+            return Err(());
+        }
+        match timers.entry(label) {
+            Entry::Vacant(entry) => {
+                entry.insert(timestamp_in_ms(get_time()));
+                Ok(())
+            },
+            Entry::Occupied(_) => Err(()),
+        }
+    }
+
+    pub fn time_end(&self, label: &str) -> Result<u64, ()> {
+        self.console_timers.borrow_mut().remove(label).ok_or(()).map(|start| {
+            timestamp_in_ms(get_time()) - start
+        })
+    }
+}
+
+fn timestamp_in_ms(time: Timespec) -> u64 {
+    (time.sec * 1000 + (time.nsec / 1000000) as i64) as u64
 }
