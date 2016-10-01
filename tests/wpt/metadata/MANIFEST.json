@@ -37714,6 +37714,20 @@
     "deleted": [],
     "deleted_reftests": {},
     "items": {
+      "reftest": {
+        "html/semantics/document-metadata/the-link-element/stylesheet-media.html": [
+          {
+            "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
+            "references": [
+              [
+                "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
+          }
+        ]
+      },
       "testharness": {
         "html/semantics/forms/the-form-element/form-action-url.html": [
           {
@@ -37729,7 +37743,20 @@
         ]
       }
     },
-    "reftest_nodes": {}
+    "reftest_nodes": {
+      "html/semantics/document-metadata/the-link-element/stylesheet-media.html": [
+        {
+          "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
+          "references": [
+            [
+              "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [

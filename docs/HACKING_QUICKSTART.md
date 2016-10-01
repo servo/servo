@@ -94,7 +94,7 @@ name = "stb_image"
 source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e2518aa044397894b"
 ```
 
-This file should not be edited by hand. In a normal Rust project, to update the git revision, you would use `cargo update -p stb_image`, but in Servo, use `./mach cargo-update -p stb_image`.
+This file should not be edited by hand. In a normal Rust project, to update the git revision, you would use `cargo update -p stb_image`, but in Servo, use `./mach cargo-update -p stb_image`. Other arguments to cargo are also understood, e.g. use --precise '0.2.3' to update that crate to version 0.2.3.
 
 See [Cargo's documentation about Cargo.toml and Cargo.lock files](http://doc.crates.io/guide.html#cargotoml-vs-cargolock).
 

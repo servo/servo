@@ -6,7 +6,6 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsTArray, nsTArrayHeader};
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use std::os::raw::c_void;
 use std::slice;
 
 impl<T> Deref for nsTArray<T> {

@@ -80,7 +80,7 @@ name = "audio-video-metadata"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "mp3-metadata 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mp3-metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mp4parse 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ogg_metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1302,7 +1302,7 @@ dependencies = [
 
 [[package]]
 name = "mp3-metadata"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -2759,7 +2759,7 @@ dependencies = [
 "checksum mime_guess 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e9a7d89cb3bce9145b0d0339a0588b044e3e3e3faa1dcd74822ebdc36bfac020"
 "checksum miniz-sys 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "9d1f4d337a01c32e1f2122510fed46393d53ca35a7f429cb0450abaedfa3ed54"
 "checksum mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)" = "<none>"
-"checksum mp3-metadata 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8ceb0f016543197868f060e560c0bd9fbdcf6fe4c7555e04b5d8b34ecd81e7aa"
+"checksum mp3-metadata 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2f61cf32f7fc3cec83a15a255ac60bceb6cac59a7ce190cb824ca25c0fce0feb"
 "checksum mp4parse 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1e3d4b79704ee1a9d307a92d2cb2c7186a8eb7e40bfca41e1c2fa9fcb152390a"
 "checksum net2 0.2.26 (registry+https://github.com/rust-lang/crates.io-index)" = "5edf9cb6be97212423aed9413dd4729d62b370b5e1c571750e882cebbbc1e3e2"
 "checksum nodrop 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "0dbbadd3f4c98dea0bd3d9b4be4c0cdaf1ab57035cb2e41fce3983db5add7cc5"

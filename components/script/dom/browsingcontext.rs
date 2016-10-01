@@ -256,7 +256,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         desc.value = val.get();
-        fill_property_descriptor(&mut desc, proxy.get(), JSPROP_READONLY);
+        fill_property_descriptor(desc, proxy.get(), JSPROP_READONLY);
         return true;
     }
 
