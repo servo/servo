@@ -198,8 +198,8 @@ URL with servo).
 
 ### Keyboard Shortcuts
 
-- `Ctrl--` zooms out
-- `Ctrl-=` zooms in
+- `Ctrl`+`-` zooms out
+- `Ctrl`+`=` zooms in
 - `Alt`+`left arrow` goes backwards in the history
 - `Alt`+`right arrow` goes forwards in the history
 - `Esc` exits servo
