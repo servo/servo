@@ -11,6 +11,7 @@ use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
+use profile_traits::mem;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -32,11 +33,16 @@ pub struct GlobalScope {
     /// For providing instructions to an optional devtools server.
     #[ignore_heap_size_of = "channels are hard"]
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+
+    /// For sending messages to the memory profiler.
+    #[ignore_heap_size_of = "channels are hard"]
+    mem_profiler_chan: mem::ProfilerChan,
 }
 
 impl GlobalScope {
     pub fn new_inherited(
-            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>)
+            devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+            mem_profiler_chan: mem::ProfilerChan)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -45,6 +51,7 @@ impl GlobalScope {
             devtools_wants_updates: Default::default(),
             console_timers: DOMRefCell::new(Default::default()),
             devtools_chan: devtools_chan,
+            mem_profiler_chan: mem_profiler_chan,
         }
     }
 
@@ -104,6 +111,11 @@ impl GlobalScope {
     /// to the devtools thread when available.
     pub fn devtools_chan(&self) -> Option<&IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.as_ref()
+    }
+
+    /// Get a sender to the memory profiler thread.
+    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
+        &self.mem_profiler_chan
     }
 }
 

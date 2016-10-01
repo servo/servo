@@ -26,7 +26,7 @@ use js::rust::CompileOptionsWrapper;
 use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
-use profile_traits::{mem, time};
+use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
@@ -86,14 +86,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.pipeline_id(),
             GlobalRef::Worker(worker) => worker.pipeline_id(),
-        }
-    }
-
-    /// Get a `mem::ProfilerChan` to send messages to the memory profiler thread.
-    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
-        match *self {
-            GlobalRef::Window(window) => window.mem_profiler_chan(),
-            GlobalRef::Worker(worker) => worker.mem_profiler_chan(),
         }
     }
 

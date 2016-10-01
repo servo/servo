@@ -17,6 +17,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
 use dom::extendablemessageevent::ExtendableMessageEvent;
+use dom::globalscope::GlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -192,7 +193,7 @@ impl ServiceWorkerGlobalScope {
 
             global.dispatch_activate();
             let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
-            scope.mem_profiler_chan().run_with_memory_reporting(|| {
+            scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
                     if !global.handle_event(event) {
                         break;

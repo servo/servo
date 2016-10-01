@@ -176,10 +176,6 @@ pub struct Window {
 
     /// For sending messages to the memory profiler.
     #[ignore_heap_size_of = "channels are hard"]
-    mem_profiler_chan: mem::ProfilerChan,
-
-    /// For sending messages to the memory profiler.
-    #[ignore_heap_size_of = "channels are hard"]
     time_profiler_chan: ProfilerChan,
 
     /// For sending timeline markers. Will be ignored if
@@ -1380,10 +1376,6 @@ impl Window {
         &self.resource_threads
     }
 
-    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
-        &self.mem_profiler_chan
-    }
-
     pub fn time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
     }
@@ -1601,7 +1593,7 @@ impl Window {
         };
         let current_time = time::get_time();
         let win = box Window {
-            globalscope: GlobalScope::new_inherited(devtools_chan),
+            globalscope: GlobalScope::new_inherited(devtools_chan, mem_profiler_chan),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1611,7 +1603,6 @@ impl Window {
             image_cache_chan: image_cache_chan,
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
-            mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
             history: Default::default(),
             browsing_context: Default::default(),
