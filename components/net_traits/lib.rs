@@ -56,6 +56,7 @@ pub mod filemanager_thread;
 pub mod hosts;
 pub mod image_cache_thread;
 pub mod net_error_list;
+pub mod pub_domains;
 pub mod request;
 pub mod response;
 pub mod storage_thread;
