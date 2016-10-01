@@ -20,7 +20,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
@@ -28,6 +27,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
+use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
@@ -117,12 +117,12 @@ impl CanvasContextState {
 }
 
 impl CanvasRenderingContext2D {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      canvas: &HTMLCanvasElement,
                      size: Size2D<i32>)
                      -> CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = global.as_global_scope().constellation_chan();
+        let constellation_chan = global.constellation_chan();
         constellation_chan.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
         let ipc_renderer = receiver.recv().unwrap();
         CanvasRenderingContext2D {
@@ -135,12 +135,12 @@ impl CanvasRenderingContext2D {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                canvas: &HTMLCanvasElement,
                size: Size2D<i32>)
                -> Root<CanvasRenderingContext2D> {
         reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, canvas, size),
-                           global.as_global_scope(),
+                           global,
                            CanvasRenderingContext2DBinding::Wrap)
     }
 

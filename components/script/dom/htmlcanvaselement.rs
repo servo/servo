@@ -20,6 +20,7 @@ use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -142,7 +143,7 @@ impl HTMLCanvasElement {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
-            let context = CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size);
+            let context = CanvasRenderingContext2D::new(window.upcast::<GlobalScope>(), self, size);
             *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_ref(&*context)));
         }
 
