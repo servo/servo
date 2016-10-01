@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use angle::hl::{BuiltInResources, Output, ShaderValidator};
+use angle::hl::{BuiltInResources, Output, ShaderValidator, ShaderSpec};
 use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -103,9 +104,11 @@ impl WebGLShader {
         }
 
         if let Some(ref source) = *self.source.borrow() {
-            let validator = ShaderValidator::for_webgl(self.gl_type,
+            let validator = ShaderValidator::new(self.gl_type,
+                                                       ShaderSpec::Gles2,
                                                        SHADER_OUTPUT_FORMAT,
                                                        &BuiltInResources::default()).unwrap();
+            let mut log = String::new();
             match validator.compile_and_translate(&[source]) {
                 Ok(translated_source) => {
                     debug!("Shader translated: {}", translated_source);
@@ -114,15 +117,28 @@ impl WebGLShader {
                     // It could be interesting to retrieve the info log from the paint thread though
                     let msg = WebGLCommand::CompileShader(self.id, translated_source);
                     self.renderer.send(CanvasMsg::WebGL(msg)).unwrap();
-                    self.compilation_status.set(ShaderCompilationStatus::Succeeded);
+
+                    match self.parameter(constants::COMPILE_STATUS) {
+                        Ok(WebGLParameter::Bool(compiled)) => {
+                            if compiled {
+                                self.compilation_status.set(ShaderCompilationStatus::Succeeded);
+                            } else {
+                                self.compilation_status.set(ShaderCompilationStatus::Failed);
+                                log = self.get_gpu_info_log().unwrap_or("".to_string());
+                                debug!("Shader {} passed validation but, GPU compilation failed: {}", self.id, log);
+                            }
+                        }
+                        _ => panic!("gl::COMPILE_STATUS must be boolean!")
+                    }
                 },
                 Err(error) => {
                     self.compilation_status.set(ShaderCompilationStatus::Failed);
+                    log = validator.info_log();
                     debug!("Shader {} compilation failed: {}", self.id, error);
                 },
             }
 
-            *self.info_log.borrow_mut() = Some(validator.info_log());
+            *self.info_log.borrow_mut() = Some(log);
             // TODO(emilio): More data (like uniform data) should be collected
             // here to properly validate uniforms.
             //
@@ -161,6 +177,12 @@ impl WebGLShader {
     /// glGetShaderInfoLog
     pub fn info_log(&self) -> Option<String> {
         self.info_log.borrow().clone()
+    }
+
+    pub fn get_gpu_info_log(&self) -> WebGLResult<String> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderInfoLog(self.id, sender))).unwrap();
+        Ok(receiver.recv().unwrap())
     }
 
     /// glGetParameter
