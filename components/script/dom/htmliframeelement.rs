@@ -126,9 +126,10 @@ impl HTMLIFrameElement {
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
+        let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
             load_data: load_data,
-            parent_pipeline_id: window.pipeline_id(),
+            parent_pipeline_id: global_scope.pipeline_id(),
             old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
@@ -136,7 +137,7 @@ impl HTMLIFrameElement {
             frame_type: frame_type,
             replace: replace,
         };
-        window.upcast::<GlobalScope>()
+        global_scope
               .constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
               .unwrap();

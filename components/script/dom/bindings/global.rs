@@ -23,7 +23,6 @@ use js::jsapi::{HandleValue, JS_GetClass, JSAutoCompartment, JSContext};
 use js::jsapi::{JSObject, MutableHandleValue};
 use js::rust::CompileOptionsWrapper;
 use libc;
-use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
@@ -77,14 +76,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
-        }
-    }
-
-    /// Get the `PipelineId` for this global scope.
-    pub fn pipeline_id(&self) -> PipelineId {
-        match *self {
-            GlobalRef::Window(window) => window.pipeline_id(),
-            GlobalRef::Worker(worker) => worker.pipeline_id(),
         }
     }
 

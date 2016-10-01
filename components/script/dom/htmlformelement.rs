@@ -24,6 +24,7 @@ use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
+use dom::globalscope::GlobalScope;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -436,7 +437,7 @@ impl HTMLFormElement {
         // Step 2
         let nav = box PlannedNavigation {
             load_data: load_data,
-            pipeline_id: window.pipeline_id(),
+            pipeline_id: window.upcast::<GlobalScope>().pipeline_id(),
             script_chan: window.main_thread_script_chan().clone(),
             generation_id: self.generation_id.get(),
             form: Trusted::new(self)

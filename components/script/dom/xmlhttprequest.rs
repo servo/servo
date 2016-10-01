@@ -284,7 +284,7 @@ impl LoadOrigin for XMLHttpRequest {
 
     fn pipeline_id(&self) -> Option<PipelineId> {
         let global = self.global();
-        Some(global.r().pipeline_id())
+        Some(global.r().as_global_scope().pipeline_id())
     }
 }
 
@@ -1208,7 +1208,10 @@ impl XMLHttpRequest {
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
-        parse_html(document.r(), DOMString::from(decoded), wr.get_url(), ParseContext::Owner(Some(wr.pipeline_id())));
+        parse_html(document.r(),
+                   DOMString::from(decoded),
+                   wr.get_url(),
+                   ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
         document
     }
 
@@ -1222,7 +1225,7 @@ impl XMLHttpRequest {
         parse_xml(document.r(),
                   DOMString::from(decoded),
                   wr.get_url(),
-                  xml::ParseContext::Owner(Some(wr.pipeline_id())));
+                  xml::ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
         document
     }
 

@@ -651,8 +651,9 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let event = ConstellationMsg::Focus(self.window.pipeline_id());
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let global_scope = self.window.upcast::<GlobalScope>();
+                let event = ConstellationMsg::Focus(global_scope.pipeline_id());
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -670,9 +671,10 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        window.upcast::<GlobalScope>()
+        let global_scope = window.upcast::<GlobalScope>();
+        global_scope
               .constellation_chan()
-              .send(ConstellationMsg::SetTitle(window.pipeline_id(),
+              .send(ConstellationMsg::SetTitle(global_scope.pipeline_id(),
                                                Some(String::from(self.Title()))))
               .unwrap();
     }
@@ -1358,10 +1360,11 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
+                let global_scope = self.window.upcast::<GlobalScope>();
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              Some(self.window.pipeline_id()),
+                                                              Some(global_scope.pipeline_id()),
                                                               event);
-                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1381,10 +1384,11 @@ impl Document {
         //
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
+            let global_scope = self.window.upcast::<GlobalScope>();
             let event = ConstellationMsg::ChangeRunningAnimationsState(
-                self.window.pipeline_id(),
+                global_scope.pipeline_id(),
                 AnimationState::AnimationCallbacksPresent);
-            self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         ident
@@ -1420,9 +1424,10 @@ impl Document {
         if self.animation_frame_list.borrow().is_empty() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut animation_frame_list);
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline_id(),
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(global_scope.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         self.running_animation_callbacks.set(false);
@@ -1480,7 +1485,8 @@ impl Document {
         let loader = self.loader.borrow();
         if !loader.is_blocked() && !loader.events_inhibited() {
             let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline_id());
+            let msg = MainThreadScriptMsg::DocumentLoadsComplete(
+                win.upcast::<GlobalScope>().pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
     }
@@ -1578,9 +1584,10 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let pipeline_id = self.window.pipeline_id();
+        let global_scope = self.window.upcast::<GlobalScope>();
+        let pipeline_id = global_scope.pipeline_id();
         let load_event = ConstellationMsg::LoadComplete(pipeline_id);
-        self.window.upcast::<GlobalScope>().constellation_chan().send(load_event).unwrap();
+        global_scope.constellation_chan().send(load_event).unwrap();
     }
 
     pub fn set_current_parser(&self, script: Option<ParserRef>) {

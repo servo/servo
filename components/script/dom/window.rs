@@ -181,9 +181,6 @@ pub struct Window {
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
-    /// Pipeline id associated with this page.
-    id: PipelineId,
-
     /// Parent id associated with this page, if any.
     parent_info: Option<(PipelineId, FrameType)>,
 
@@ -291,10 +288,6 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
-    }
-
-    pub fn pipeline_id(&self) -> PipelineId {
-        self.id
     }
 
     pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
@@ -430,9 +423,10 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.upcast::<GlobalScope>()
+        let global_scope = self.upcast::<GlobalScope>();
+        global_scope
             .constellation_chan()
-            .send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender))
+            .send(ConstellationMsg::Alert(global_scope.pipeline_id(), s.to_string(), sender))
             .unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
@@ -443,7 +437,9 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        self.main_thread_script_chan()
+            .send(MainThreadScriptMsg::ExitWindow(self.upcast::<GlobalScope>().pipeline_id()))
+            .unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
@@ -493,7 +489,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -503,7 +499,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
@@ -518,7 +514,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -528,7 +524,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -976,8 +972,10 @@ impl Window {
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
-        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline_id(), layer_id, point, smooth);
-        self.upcast::<GlobalScope>().constellation_chan().send(message).unwrap();
+        let global_scope = self.upcast::<GlobalScope>();
+        let message = ConstellationMsg::ScrollFragmentPoint(
+            global_scope.pipeline_id(), layer_id, point, smooth);
+        global_scope.constellation_chan().send(message).unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1032,7 +1030,7 @@ impl Window {
         let for_display = query_type == ReflowQueryType::NoQuery;
         if for_display && self.suppress_reflow.get() {
             debug!("Suppressing reflow pipeline {} for goal {:?} reason {:?} before FirstLoad or RefreshTick",
-                   self.id, goal, reason);
+                   self.upcast::<GlobalScope>().pipeline_id(), goal, reason);
             return false;
         }
 
@@ -1049,7 +1047,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
-            debug_reflow_events(self.id, &goal, &query_type, &reason);
+            debug_reflow_events(self.upcast::<GlobalScope>().pipeline_id(), &goal, &query_type, &reason);
         }
 
         let document = self.Document();
@@ -1154,8 +1152,9 @@ impl Window {
             let ready_state = document.ReadyState();
 
             if ready_state == DocumentReadyState::Complete && !reftest_wait {
-                let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+                let global_scope = self.upcast::<GlobalScope>();
+                let event = ConstellationMsg::SetDocumentState(global_scope.pipeline_id(), DocumentState::Idle);
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
 
@@ -1264,12 +1263,12 @@ impl Window {
         }
 
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
-        let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.upcast::<GlobalScope>()
+        let global_scope = self.upcast::<GlobalScope>();
+        global_scope
             .constellation_chan()
-            .send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send))
+            .send(ConstellationMsg::GetScrollOffset(global_scope.pipeline_id(), layer_id, send))
             .unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
@@ -1345,7 +1344,7 @@ impl Window {
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
         self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(self.id,
+            MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
                 LoadData::new(url, referrer_policy, Some(doc.url().clone())),
                 replace)).unwrap();
     }
@@ -1388,7 +1387,7 @@ impl Window {
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
-                                      TimerSource::FromWindow(self.id.clone()))
+                                      TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
     }
 
     pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
@@ -1588,6 +1587,7 @@ impl Window {
         let win = box Window {
             globalscope:
                 GlobalScope::new_inherited(
+                    id,
                     devtools_chan,
                     mem_profiler_chan,
                     time_profiler_chan,
@@ -1612,7 +1612,6 @@ impl Window {
             local_storage: Default::default(),
             status: DOMRefCell::new(DOMString::new()),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
-            id: id,
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),

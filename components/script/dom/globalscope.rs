@@ -11,6 +11,7 @@ use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
+use msg::constellation_msg::PipelineId;
 use profile_traits::{mem, time};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
@@ -23,6 +24,9 @@ pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableHeap<JS<Crypto>>,
     next_worker_id: Cell<WorkerId>,
+
+    /// Pipeline id associated with this global.
+    pipeline_id: PipelineId,
 
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the worker.
@@ -53,6 +57,7 @@ pub struct GlobalScope {
 
 impl GlobalScope {
     pub fn new_inherited(
+            pipeline_id: PipelineId,
             devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
@@ -63,6 +68,7 @@ impl GlobalScope {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
+            pipeline_id: pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DOMRefCell::new(Default::default()),
             devtools_chan: devtools_chan,
@@ -148,6 +154,11 @@ impl GlobalScope {
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
         &self.scheduler_chan
+    }
+
+    /// Get the `PipelineId` for this global scope.
+    pub fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id
     }
 }
 

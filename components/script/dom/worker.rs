@@ -84,17 +84,17 @@ impl Worker {
         let worker = Worker::new(global.as_global_scope(), sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
 
+        let global_scope = global.as_global_scope();
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id()),
+            pipeline_id: Some(global_scope.pipeline_id()),
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let global_scope = global.as_global_scope();
         let worker_id = global_scope.get_next_worker_id();
         if let Some(ref chan) = global_scope.devtools_chan() {
-            let pipeline_id = global.pipeline_id();
+            let pipeline_id = global_scope.pipeline_id();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
                     title: title,

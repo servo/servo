@@ -60,6 +60,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
     let time_profiler_chan = global_scope.time_profiler_chan().clone();
     let constellation_chan = global_scope.constellation_chan().clone();
     let scheduler_chan = global_scope.scheduler_chan().clone();
+    let pipeline_id = global_scope.pipeline_id();
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: mem_profiler_chan,
@@ -69,7 +70,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
             worker_id: worker_id,
-            pipeline_id: global.pipeline_id(),
+            pipeline_id: pipeline_id,
         };
 
     init
@@ -81,7 +82,6 @@ pub struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
     worker_id: WorkerId,
-    pipeline_id: PipelineId,
     worker_url: Url,
     #[ignore_heap_size_of = "Arc"]
     closing: Option<Arc<AtomicBool>>,
@@ -120,13 +120,13 @@ impl WorkerGlobalScope {
         WorkerGlobalScope {
             globalscope:
                 GlobalScope::new_inherited(
+                    init.pipeline_id,
                     init.to_devtools_sender,
                     init.mem_profiler_chan,
                     init.time_profiler_chan,
                     init.constellation_chan,
                     init.scheduler_chan.clone()),
             worker_id: init.worker_id,
-            pipeline_id: init.pipeline_id,
             worker_url: worker_url,
             closing: closing,
             runtime: runtime,
@@ -207,7 +207,7 @@ impl WorkerGlobalScope {
 
     fn do_flush_promise_jobs(&self) {
         self.promise_job_queue.flush_promise_jobs(|id| {
-            assert_eq!(self.pipeline_id(), id);
+            assert_eq!(self.upcast::<GlobalScope>().pipeline_id(), id);
             Some(GlobalRoot::Worker(Root::from_ref(self)))
         });
     }
@@ -221,7 +221,7 @@ impl LoadOrigin for WorkerGlobalScope {
         None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.pipeline_id())
+        Some(self.upcast::<GlobalScope>().pipeline_id())
     }
 }
 
@@ -399,10 +399,6 @@ impl WorkerGlobalScope {
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         FileReadingTaskSource(self.script_chan())
-    }
-
-    pub fn pipeline_id(&self) -> PipelineId {
-        self.pipeline_id
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {

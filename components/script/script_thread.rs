@@ -650,7 +650,7 @@ impl ScriptThread {
                 let window = context.active_window();
                 let resize_event = window.steal_resize_event();
                 match resize_event {
-                    Some(size) => resizes.push((window.pipeline_id(), size)),
+                    Some(size) => resizes.push((window.upcast::<GlobalScope>().pipeline_id(), size)),
                     None => ()
                 }
             }
@@ -1501,7 +1501,7 @@ impl ScriptThread {
         // If root is being exited, shut down all contexts
         let context = self.root_browsing_context();
         let window = context.active_window();
-        if window.pipeline_id() == id {
+        if window.upcast::<GlobalScope>().pipeline_id() == id {
             debug!("shutting down layout for root context {:?}", id);
             shut_down_layout(&context);
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));

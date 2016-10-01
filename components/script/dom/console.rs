@@ -11,7 +11,8 @@ pub struct Console(());
 
 impl Console {
     fn send_to_devtools(global: GlobalRef, level: LogLevel, message: DOMString) {
-        if let Some(chan) = global.as_global_scope().devtools_chan() {
+        let global_scope = global.as_global_scope();
+        if let Some(chan) = global_scope.devtools_chan() {
             let console_message = prepare_message(level, message);
             let worker_id = if let GlobalRef::Worker(worker) = global {
                 Some(worker.get_worker_id())
@@ -19,7 +20,7 @@ impl Console {
                 None
             };
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
-                global.pipeline_id(),
+                global_scope.pipeline_id(),
                 console_message,
                 worker_id);
             chan.send(devtools_message).unwrap();

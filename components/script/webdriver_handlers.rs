@@ -19,6 +19,7 @@ use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -142,7 +143,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.pipeline_id()));
+    let frame_id = window.map(|x| x.map(|x| x.upcast::<GlobalScope>().pipeline_id()));
     reply.send(frame_id).unwrap()
 }
 

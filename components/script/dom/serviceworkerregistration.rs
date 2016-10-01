@@ -51,13 +51,13 @@ impl ServiceWorkerRegistration {
     }
 
     pub fn create_scope_things(global: GlobalRef, script_url: Url) -> ScopeThings {
+        let global_scope = global.as_global_scope();
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline_id())
+            pipeline_id: Some(global_scope.pipeline_id())
         };
 
-        let global_scope = global.as_global_scope();
         let worker_id = global_scope.get_next_worker_id();
         let devtools_chan = global_scope.devtools_chan().cloned();
         let init = prepare_workerscope_init(global, None);
