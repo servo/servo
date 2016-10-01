@@ -1771,7 +1771,7 @@ impl Runnable for PostMessageHandler {
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
 
         rooted!(in(cx) let mut message = UndefinedValue());
-        this.message.read(GlobalRef::Window(&*window), message.handle_mut());
+        this.message.read(window.upcast(), message.handle_mut());
 
         // Step 11-12.
         // TODO(#12719): set the other attributes.
