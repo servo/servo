@@ -55,7 +55,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertTrue('links to WHATWG single-page url, change to multi page:' in errors.next()[2])
         self.assertNoMoreErrors(errors)
 
-    def test_licence(self):
+    def test_license(self):
         errors = tidy.collect_errors_for_files(iterFile('incorrect_license.rs'), [], [tidy.check_license], print_text=False)
         self.assertEqual('incorrect license', errors.next()[2])
         self.assertNoMoreErrors(errors)
