@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use angle::hl::{BuiltInResources, Output, ShaderValidator};
+use angle::hl::{BuiltInResources, Output, ShaderValidator, ShaderSpec};
 use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
@@ -161,6 +161,12 @@ impl WebGLShader {
     /// glGetShaderInfoLog
     pub fn info_log(&self) -> Option<String> {
         self.info_log.borrow().clone()
+    }
+
+    pub fn get_gpu_info_log(&self) -> WebGLResult<String> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderInfoLog(self.id, sender))).unwrap();
+        Ok(receiver.recv().unwrap())
     }
 
     /// glGetParameter
