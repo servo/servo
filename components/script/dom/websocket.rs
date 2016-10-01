@@ -587,10 +587,10 @@ impl Runnable for MessageReceivedTask {
         }
 
         // Step 2-5.
-        let global = ws.r().global();
+        let global = ws.global_scope();
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
-            let cx = global.r().get_cx();
+            let cx = global.get_cx();
             let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
             rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
@@ -598,10 +598,7 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(
-                                global.r().as_global_scope(),
-                                BlobImpl::new_from_bytes(data),
-                                "".to_owned());
+                            let blob = Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
@@ -617,7 +614,7 @@ impl Runnable for MessageReceivedTask {
                     }
                 },
             }
-            MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
+            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle());
         }
     }
 }

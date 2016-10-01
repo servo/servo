@@ -130,12 +130,12 @@ impl Worker {
             return;
         }
 
-        let global = worker.r().global();
+        let global = worker.global_scope();
         let target = worker.upcast();
-        let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
-        rooted!(in(global.r().get_cx()) let mut message = UndefinedValue());
-        data.read(global.r().as_global_scope(), message.handle_mut());
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
+        data.read(&global, message.handle_mut());
+        MessageEvent::dispatch_jsval(target, &global, message.handle());
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {

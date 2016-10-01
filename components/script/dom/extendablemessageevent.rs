@@ -65,10 +65,10 @@ impl ExtendableMessageEvent {
 
 impl ExtendableMessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
-                          scope: GlobalRef,
+                          scope: &GlobalScope,
                           message: HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
-            scope.as_global_scope(), atom!("message"), false, false, message,
+            scope, atom!("message"), false, false, message,
             DOMString::new(), DOMString::new());
         Extendablemessageevent.upcast::<Event>().fire(target);
     }

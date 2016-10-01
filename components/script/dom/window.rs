@@ -1776,7 +1776,7 @@ impl Runnable for PostMessageHandler {
         // Step 11-12.
         // TODO(#12719): set the other attributes.
         MessageEvent::dispatch_jsval(window.upcast(),
-                                     GlobalRef::Window(&*window),
+                                     window.upcast(),
                                      message.handle());
     }
 }

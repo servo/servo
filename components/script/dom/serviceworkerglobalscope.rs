@@ -239,7 +239,7 @@ impl ServiceWorkerGlobalScope {
                 let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(scope.upcast(), message.handle_mut());
-                ExtendableMessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
+                ExtendableMessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },
             CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
                 runnable.handler()

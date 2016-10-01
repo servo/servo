@@ -81,10 +81,10 @@ impl MessageEvent {
 
 impl MessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
-                          scope: GlobalRef,
+                          scope: &GlobalScope,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
-            scope.as_global_scope(),
+            scope,
             atom!("message"),
             false,
             false,
