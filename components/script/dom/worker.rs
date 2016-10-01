@@ -106,7 +106,7 @@ impl Worker {
         let init = prepare_workerscope_init(global, Some(devtools_sender));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, global.pipeline_id(), devtools_receiver, worker.runtime.clone(), worker_ref,
+            init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,
             global.script_chan(), sender, receiver, worker_load_origin, closing);
 
         Ok(worker)

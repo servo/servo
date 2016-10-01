@@ -663,6 +663,8 @@ pub struct WorkerGlobalScopeInit {
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// The worker id
     pub worker_id: WorkerId,
+    /// The pipeline id
+    pub pipeline_id: PipelineId,
 }
 
 /// Common entities representing a network load origin

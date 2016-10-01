@@ -66,7 +66,8 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
-            worker_id: worker_id
+            worker_id: worker_id,
+            pipeline_id: global.pipeline_id(),
         };
 
     init
@@ -77,6 +78,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
+    pipeline_id: PipelineId,
     worker_url: Url,
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
@@ -134,6 +136,7 @@ impl WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
+            pipeline_id: init.pipeline_id,
             worker_url: worker_url,
             closing: closing,
             runtime: runtime,
@@ -447,15 +450,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn pipeline_id(&self) -> PipelineId {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
-        if let Some(dedicated) = dedicated {
-            return dedicated.pipeline_id();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.pipeline_id();
-        } else {
-            panic!("need to implement a sender for SharedWorker")
-        }
+        self.pipeline_id
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
