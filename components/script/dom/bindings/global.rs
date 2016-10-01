@@ -28,7 +28,6 @@ use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, EnqueuedPromiseCallback};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
-use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
@@ -178,15 +177,6 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Window(ref window) =>
                 MainThreadScriptChan(window.main_thread_script_chan().clone()).clone(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
-        }
-    }
-
-    /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
-    /// thread.
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        match *self {
-            GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
-            GlobalRef::Worker(_) => unimplemented!(),
         }
     }
 
