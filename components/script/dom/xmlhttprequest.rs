@@ -973,9 +973,8 @@ impl XMLHttpRequest {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
                     }
-                    let global = self.global();
                     let event = Event::new(
-                        global.r().as_global_scope(),
+                        &self.global_scope(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable);

@@ -826,7 +826,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                   match Promise::Resolve(promiseGlobal.r(), cx, valueToResolve.handle()) {
                       Ok(value) => value,
                       Err(error) => {
-                        throw_dom_exception(cx, promiseGlobal.r(), error);
+                        throw_dom_exception(cx, promiseGlobal.r().as_global_scope(), error);
                         $*{exceptionCode}
                       }
                   }
@@ -3168,16 +3168,15 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             if static:
-                glob = ""
+                glob = "global.r().as_global_scope()"
             else:
-                glob = "        let global = global_root_from_reflector(this);\n"
+                glob = "&global_scope_from_reflector(this)"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                "%s"
-                "        throw_dom_exception(cx, global.r(), e);\n"
+                "        throw_dom_exception(cx, %s, e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -5504,6 +5503,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_root_from_object_maybe_wrapped',
         'dom::bindings::global::global_root_from_reflector',
+        'dom::bindings::global::global_scope_from_reflector',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',

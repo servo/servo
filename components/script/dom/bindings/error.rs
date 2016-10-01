@@ -11,6 +11,7 @@ use dom::bindings::conversions::root_from_object;
 use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
+use dom::globalscope::GlobalScope;
 use js::error::{throw_range_error, throw_type_error};
 use js::jsapi::HandleObject;
 use js::jsapi::JSContext;
@@ -87,7 +88,7 @@ pub type Fallible<T> = Result<T, Error>;
 pub type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
-pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result: Error) {
+pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, result: Error) {
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -127,7 +128,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
     };
 
     assert!(!JS_IsExceptionPending(cx));
-    let exception = DOMException::new(global.as_global_scope(), code);
+    let exception = DOMException::new(global, code);
     rooted!(in(cx) let mut thrown = UndefinedValue());
     exception.to_jsval(cx, thrown.handle_mut());
     JS_SetPendingException(cx, thrown.handle());
@@ -272,7 +273,7 @@ impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
     pub unsafe fn to_jsval(self, cx: *mut JSContext, global: GlobalRef, rval: MutableHandleValue) {
         assert!(!JS_IsExceptionPending(cx));
-        throw_dom_exception(cx, global, self);
+        throw_dom_exception(cx, global.as_global_scope(), self);
         assert!(JS_IsExceptionPending(cx));
         assert!(JS_GetPendingException(cx, rval));
         JS_ClearPendingException(cx);
