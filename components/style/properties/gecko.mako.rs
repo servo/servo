@@ -195,20 +195,20 @@ pub struct ${style_struct.gecko_struct_name} {
 </%def>
 
 <%!
-def is_border_style_masked(ffi_name):
-    return ffi_name.split("[")[0] in ["mBorderStyle", "mOutlineStyle", "mTextDecorationStyle"]
-
-def get_gecko_property(ffi_name):
-    if is_border_style_masked(ffi_name):
-        return "(self.gecko.%s & (structs::BORDER_STYLE_MASK as u8))" % ffi_name
-    return "self.gecko.%s" % ffi_name
+def get_gecko_property(ffi_name, self_param = "self"):
+    if "mBorderColor" in ffi_name:
+        return ffi_name.replace("mBorderColor",
+                                "unsafe { *%s.gecko.__bindgen_anon_1.mBorderColor.as_ref() }"
+                                % self_param)
+    return "%s.gecko.%s" % (self_param, ffi_name)
 
 def set_gecko_property(ffi_name, expr):
-    if is_border_style_masked(ffi_name):
-        return "self.gecko.%s &= !(structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
-               "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
-    elif ffi_name == "__LIST_STYLE_TYPE__":
+    if ffi_name == "__LIST_STYLE_TYPE__":
         return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
+    if "mBorderColor" in ffi_name:
+        ffi_name = ffi_name.replace("mBorderColor",
+                                    "*self.gecko.__bindgen_anon_1.mBorderColor.as_mut()")
+        return "unsafe { %s = %s };" % (ffi_name, expr)
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
@@ -240,71 +240,41 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="clear_color_flags(color_flags_ffi_name)">
-    % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} &= !(structs::BORDER_COLOR_SPECIAL as u8);
-    % endif
-</%def>
-
-<%def name="set_current_color_flag(color_flags_ffi_name)">
-    % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} |= structs::BORDER_COLOR_FOREGROUND as u8;
-    % else:
-    // FIXME(heycam): This is a Gecko property that doesn't store currentColor
-    // as a computed value.  These are currently handled by converting
-    // currentColor to the current value of the color property at computed
-    // value time, but we don't have access to the Color struct here.
-    // In the longer term, Gecko should store currentColor as a computed
-    // value, so that we don't need to do this:
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-    warn!("stylo: mishandling currentColor");
-    % endif
-</%def>
-
-<%def name="get_current_color_flag_from(field)">
-    (${field} & (structs::BORDER_COLOR_FOREGROUND as u8)) != 0
-</%def>
-
-<%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use cssparser::Color;
-        ${clear_color_flags(color_flags_ffi_name)}
-        let result = match v {
-            Color::CurrentColor => {
-                ${set_current_color_flag(color_flags_ffi_name)}
-                0
-            },
-            Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-        };
+        % if complex_color:
+            let result = v.into();
+        % else:
+            use cssparser::Color;
+            let result = match v {
+                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
+                // FIXME #13547
+                Color::CurrentColor => 0,
+            };
+        % endif
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
 </%def>
 
-<%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_copy(ident, gecko_ffi_name, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        % if color_flags_ffi_name:
-            ${clear_color_flags(color_flags_ffi_name)}
-            if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
-                ${set_current_color_flag(color_flags_ffi_name)}
-            }
-        % endif
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}
+        let color = ${get_gecko_property(gecko_ffi_name, self_param = "other")};
+        ${set_gecko_property(gecko_ffi_name, "color")};
     }
 </%def>
 
-<%def name="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_clone(ident, gecko_ffi_name, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use cssparser::Color;
-        % if color_flags_ffi_name:
-            if ${get_current_color_flag_from("self.gecko." + color_flags_ffi_name)} {
-                return Color::CurrentColor
-            }
+        % if complex_color:
+            ${get_gecko_property(gecko_ffi_name)}.into()
+        % else:
+            use cssparser::Color;
+            Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
         % endif
-        Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
     }
 </%def>
 
@@ -324,11 +294,11 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None, need_clone=False)">
-<%call expr="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
-<%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+<%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
+<%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
+<%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
 % if need_clone:
-    <%call expr="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+    <%call expr="impl_color_clone(ident, gecko_ffi_name, complex_color)"></%call>
 % endif
 </%def>
 
@@ -645,8 +615,7 @@ fn static_assert() {
     <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
                     need_clone=True) %>
 
-    <% impl_color("border_%s_color" % side.ident, "mBorderColor[%s]" % side.index,
-                  color_flags_ffi_name="mBorderStyle[%s]" % side.index, need_clone=True) %>
+    <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index, need_clone=True) %>
 
     <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=True,
                       round_to_pixels=True) %>
@@ -752,7 +721,7 @@ fn static_assert() {
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
-    <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle", need_clone=True) %>
+    <% impl_color("outline_color", "mOutlineColor", need_clone=True) %>
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
@@ -1365,7 +1334,7 @@ fn static_assert() {
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
 
-    <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
+    <% impl_color("background_color", "mBackgroundColor", need_clone=True, complex_color=False) %>
 
     <% impl_common_image_layer_properties("background") %>
 
@@ -1569,8 +1538,7 @@ fn static_assert() {
                   skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
-    ${impl_color("text_decoration_color", "mTextDecorationColor",
-                  color_flags_ffi_name="mTextDecorationStyle", need_clone=True)}
+    ${impl_color("text_decoration_color", "mTextDecorationColor", need_clone=True)}
 
     pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
@@ -1614,11 +1582,11 @@ clip-path
                   skip_longhands="${skip_svg_longhands}"
                   skip_additionals="*">
 
-    <% impl_color("flood_color", "mFloodColor") %>
+    <% impl_color("flood_color", "mFloodColor", complex_color=False) %>
 
-    <% impl_color("lighting_color", "mLightingColor") %>
+    <% impl_color("lighting_color", "mLightingColor", complex_color=False) %>
 
-    <% impl_color("stop_color", "mStopColor") %>
+    <% impl_color("stop_color", "mStopColor", complex_color=False) %>
 
     <% impl_common_image_layer_properties("mask") %>
 
