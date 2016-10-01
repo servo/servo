@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContext
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
@@ -178,7 +177,7 @@ impl HTMLCanvasElement {
                 GLContextAttributes::default()
             };
 
-            let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs);
+            let maybe_ctx = WebGLRenderingContext::new(window.upcast(), self, size, attrs);
 
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
         }

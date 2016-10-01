@@ -10,12 +10,12 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data, array_buffer_view_data_checked};
 use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{Node, NodeDamage, window_from_node};
@@ -127,13 +127,13 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      canvas: &HTMLCanvasElement,
                      size: Size2D<i32>,
                      attrs: GLContextAttributes)
                      -> Result<WebGLRenderingContext, String> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = global.as_global_scope().constellation_chan();
+        let constellation_chan = global.constellation_chan();
         constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
                           .unwrap();
         let result = receiver.recv().unwrap();
@@ -159,14 +159,13 @@ impl WebGLRenderingContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
+    pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Root<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(global, canvas, size, attrs) {
-            Ok(ctx) => Some(reflect_dom_object(box ctx, global.as_global_scope(),
-                                               WebGLRenderingContextBinding::Wrap)),
+            Ok(ctx) => Some(reflect_dom_object(box ctx, global, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
-                let event = WebGLContextEvent::new(global.as_global_scope(),
+                let event = WebGLContextEvent::new(global,
                                                    atom!("webglcontextcreationerror"),
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
