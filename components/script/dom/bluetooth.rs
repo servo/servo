@@ -88,7 +88,7 @@ impl Bluetooth {
         // TODO: Step 1: Triggered by user activation.
 
         // Step 2.
-        let option = try!(convert_request_device_options(self.global().r(), filters, optional_services));
+        let option = try!(convert_request_device_options(filters, optional_services));
 
         // TODO: Step 3-5: Implement the permission API.
 
@@ -123,8 +123,7 @@ impl Bluetooth {
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn convert_request_device_options(global: GlobalRef,
-                                  filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
+fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
                                   optional_services: &Option<Vec<BluetoothServiceUUID>>)
                                   -> Fallible<RequestDeviceoptions> {
     // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
@@ -141,7 +140,7 @@ fn convert_request_device_options(global: GlobalRef,
         // Step 2.4.
         for filter in filters {
             // Step 2.4.8.
-            uuid_filters.push(try!(canonicalize_filter(&filter, global)));
+            uuid_filters.push(try!(canonicalize_filter(&filter)));
         }
     }
 
@@ -149,7 +148,7 @@ fn convert_request_device_options(global: GlobalRef,
     if let &Some(ref opt_services) = optional_services {
         for opt_service in opt_services {
             // Step 2.5 - 2.6.
-            let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
+            let uuid = try!(BluetoothUUID::service(opt_service.clone())).to_string();
 
             // Step 2.7.
             // Note: What we are doing here is adding the not blacklisted UUIDs to the result vector,
@@ -165,7 +164,7 @@ fn convert_request_device_options(global: GlobalRef,
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
+fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<BluetoothScanfilter> {
     // Step 2.4.1.
     if filter.services.is_none() &&
        filter.name.is_none() &&
@@ -190,7 +189,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
 
             for service in services {
                 // Step 2.4.3.2 - 2.4.3.3.
-                let uuid = try!(BluetoothUUID::GetService(global, service.clone())).to_string();
+                let uuid = try!(BluetoothUUID::service(service.clone())).to_string();
 
                 // Step 2.4.3.4.
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
@@ -251,7 +250,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
     let service_data_uuid = match filter.serviceDataUUID {
         Some(ref service_data_uuid) => {
             // Step 2.4.7.1 - 2.4.7.2.
-            let uuid = try!(BluetoothUUID::GetService(global, service_data_uuid.clone())).to_string();
+            let uuid = try!(BluetoothUUID::service(service_data_uuid.clone())).to_string();
 
             // Step 2.4.7.3.
             if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {

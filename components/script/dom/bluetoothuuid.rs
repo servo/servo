@@ -272,60 +272,36 @@ const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 impl BluetoothUUID {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
     pub fn CanonicalUUID(_: GlobalRef, alias: u32) -> UUID {
-        DOMString::from(format!("{:08x}", &alias) + BASE_UUID)
+        canonical_uuid(alias)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
-    pub fn GetService(globalref: GlobalRef, name: BluetoothServiceUUID) -> Fallible<UUID> {
-      BluetoothUUID::resolve_uuid_name(globalref,
-                                       name,
-                                       BLUETOOTH_ASSIGNED_SERVICES,
-                                       DOMString::from(SERVICE_PREFIX))
+    pub fn GetService(_: GlobalRef, name: BluetoothServiceUUID) -> Fallible<UUID> {
+        Self::service(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
-    pub fn GetCharacteristic(globalref: GlobalRef, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
-        BluetoothUUID::resolve_uuid_name(globalref,
-                                         name,
-                                         BLUETOOTH_ASSIGNED_CHARCTERISTICS,
-                                         DOMString::from(CHARACTERISTIC_PREFIX))
+    pub fn GetCharacteristic(_: GlobalRef, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
+        Self::characteristic(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
-    pub fn GetDescriptor(globalref: GlobalRef, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
-        BluetoothUUID::resolve_uuid_name(globalref,
-                                         name,
-                                         BLUETOOTH_ASSIGNED_DESCRIPTORS,
-                                         DOMString::from(DESCRIPTOR_PREFIX))
+    pub fn GetDescriptor(_: GlobalRef, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
+        Self::descriptor(name)
+    }
+}
+
+impl BluetoothUUID {
+    pub fn service(name: BluetoothServiceUUID) -> Fallible<UUID> {
+        resolve_uuid_name(name, BLUETOOTH_ASSIGNED_SERVICES, SERVICE_PREFIX)
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#resolveuuidname
-    pub fn resolve_uuid_name(globalref: GlobalRef,
-                             name: StringOrUnsignedLong,
-                             assigned_numbers_table: &'static [(&'static str, u32)],
-                             prefix: DOMString)
-                             -> Fallible<DOMString> {
-        match name {
-            // Step 1
-            StringOrUnsignedLong::UnsignedLong(unsigned32) => {
-                Ok(BluetoothUUID::CanonicalUUID(globalref, unsigned32))
-            },
-            StringOrUnsignedLong::String(dstring) => {
-            // Step 2
-                let regex = Regex::new(VALID_UUID_REGEX).unwrap();
-                if regex.is_match(&*dstring) {
-                    Ok(dstring)
-                } else {
-                // Step 3
-                    let concatenated = format!("{}.{}", prefix, dstring);
-                    let is_in_table = assigned_numbers_table.iter().find(|p| p.0 == concatenated);
-                    match is_in_table {
-                        Some(&(_, alias)) => Ok(BluetoothUUID::CanonicalUUID(globalref, alias)),
-                        None => Err(Syntax),
-                    }
-                }
-            },
-        }
+    pub fn characteristic(name: BluetoothServiceUUID) -> Fallible<UUID> {
+        resolve_uuid_name(name, BLUETOOTH_ASSIGNED_CHARCTERISTICS, CHARACTERISTIC_PREFIX)
+    }
+
+    pub fn descriptor(name: BluetoothDescriptorUUID) -> Fallible<UUID> {
+        resolve_uuid_name(name, BLUETOOTH_ASSIGNED_DESCRIPTORS, DESCRIPTOR_PREFIX)
     }
 }
 
@@ -335,5 +311,38 @@ impl Clone for StringOrUnsignedLong {
             &StringOrUnsignedLong::String(ref s) => StringOrUnsignedLong::String(s.clone()),
             &StringOrUnsignedLong::UnsignedLong(ul) => StringOrUnsignedLong::UnsignedLong(ul),
         }
+    }
+}
+
+fn canonical_uuid(alias: u32) -> UUID {
+    UUID::from(format!("{:08x}", &alias) + BASE_UUID)
+}
+
+// https://webbluetoothcg.github.io/web-bluetooth/#resolveuuidname
+fn resolve_uuid_name(
+        name: StringOrUnsignedLong,
+        assigned_numbers_table: &'static [(&'static str, u32)],
+        prefix: &str)
+        -> Fallible<DOMString> {
+    match name {
+        // Step 1
+        StringOrUnsignedLong::UnsignedLong(unsigned32) => {
+            Ok(canonical_uuid(unsigned32))
+        },
+        StringOrUnsignedLong::String(dstring) => {
+        // Step 2
+            let regex = Regex::new(VALID_UUID_REGEX).unwrap();
+            if regex.is_match(&*dstring) {
+                Ok(dstring)
+            } else {
+            // Step 3
+                let concatenated = format!("{}.{}", prefix, dstring);
+                let is_in_table = assigned_numbers_table.iter().find(|p| p.0 == concatenated);
+                match is_in_table {
+                    Some(&(_, alias)) => Ok(canonical_uuid(alias)),
+                    None => Err(Syntax),
+                }
+            }
+        },
     }
 }
