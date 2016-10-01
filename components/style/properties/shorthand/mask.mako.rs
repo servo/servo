@@ -10,6 +10,19 @@
     use properties::longhands::{mask_mode, mask_repeat, mask_clip, mask_origin, mask_composite, mask_position};
     use properties::longhands::{mask_size, mask_image};
 
+    impl From<mask_origin::single_value::SpecifiedValue> for mask_clip::single_value::SpecifiedValue {
+        fn from(origin: mask_origin::single_value::SpecifiedValue) -> mask_clip::single_value::SpecifiedValue {
+            match origin {
+                mask_origin::single_value::SpecifiedValue::content_box =>
+                    mask_clip::single_value::SpecifiedValue::content_box,
+                mask_origin::single_value::SpecifiedValue::padding_box =>
+                    mask_clip::single_value::SpecifiedValue::padding_box,
+                mask_origin::single_value::SpecifiedValue::border_box =>
+                    mask_clip::single_value::SpecifiedValue::border_box,
+            }
+        }
+    }
+
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         % for name in "image mode position size repeat origin clip composite".split():
             let mut mask_${name} = mask_${name}::SpecifiedValue(Vec::new());
@@ -55,6 +68,11 @@
                     }
                 % endfor
                 break
+            }
+            if clip.is_none() {
+                if let Some(origin) = origin {
+                    clip = Some(mask_clip::single_value::SpecifiedValue::from(origin));
+                }
             }
             let mut any = false;
             % for name in "image mode position size repeat origin clip composite".split():
@@ -168,14 +186,6 @@
                                 try!(clip.to_css(dest));
                             }
                         }
-                    },
-                    (Some(origin), _) => {
-                        try!(write!(dest, " "));
-                        try!(origin.to_css(dest));
-                    },
-                    (_, Some(clip)) => {
-                        try!(write!(dest, " "));
-                        try!(clip.to_css(dest));
                     },
                     _ => {}
                 };
