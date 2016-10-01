@@ -265,6 +265,9 @@ impl WebGLRenderingContext {
         if indx > self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
+        if indx > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
 
         if indx == 0 {
             self.current_vertex_attrib_0.set((x, y, z, w))
@@ -644,6 +647,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         } else {
             constants::NO_ERROR
+            //Todo(Mortimer): Enable GPU getError() when the webtraits repo is merged
+            //let (sender, receiver) = ipc::channel().unwrap();
+            //self.ipc_renderer
+            //.send(CanvasMsg::WebGL(WebGLCommand::GetError(sender)))
+            //.unwrap();
+            //receiver.recv().unwrap()
         };
         self.last_error.set(None);
         error_code
@@ -1270,7 +1279,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
         // From the GLES 2.0.25 spec, page 21:
         //
-        //     "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
+        // "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
@@ -1281,15 +1290,26 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        if count <= 0 {
-            return self.webgl_error(InvalidOperation);
+        if count < 0 {
+            return self.webgl_error(InvalidValue);
         }
 
         if offset < 0 {
             return self.webgl_error(InvalidValue);
         }
 
-        if self.current_program.get().is_none() || self.bound_buffer_element_array.get().is_none() {
+        if self.current_program.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+            // Check buffer overflow
+            let val = offset as u64 + (count as u64 * type_size as u64);
+            if val > array_buffer.capacity() as u64{
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+        else {
             return self.webgl_error(InvalidOperation);
         }
 
@@ -1323,25 +1343,46 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn DisableVertexAttribArray(&self, attrib_id: u32) {
+        if attrib_id > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::DisableVertexAttribArray(attrib_id)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveUniform(&self, program: Option<&WebGLProgram>, index: u32) -> Option<Root<WebGLActiveInfo>> {
-        program.and_then(|p| match p.get_active_uniform(index) {
-            Ok(ret) => Some(ret),
-            Err(error) => {
-                self.webgl_error(error);
-                None
-            },
-        })
+        if let Some(program) = program {
+            match program.get_active_uniform(index) {
+                Ok(ret) => Some(ret),
+                Err(error) => {
+                    self.webgl_error(error);
+                    None
+                }
+            }
+        } else {
+            self.webgl_error(InvalidValue);
+            None
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveAttrib(&self, program: Option<&WebGLProgram>, index: u32) -> Option<Root<WebGLActiveInfo>> {
-        program.and_then(|p| match p.get_active_attrib(index) {
-            Ok(ret) => Some(ret),
-            Err(error) => {
-                self.webgl_error(error);
-                None
-            },
-        })
+        if let Some(program) = program {
+            match program.get_active_attrib(index) {
+                Ok(ret) => Some(ret),
+                Err(error) => {
+                    self.webgl_error(error);
+                    None
+                }
+            }
+        } else {
+            self.webgl_error(InvalidValue);
+            None
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1355,7 +1396,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetProgramInfoLog(&self, program: Option<&WebGLProgram>) -> Option<DOMString> {
-        program.map(|p| p.get_info_log()).map(DOMString::from)
+        if let Some(program) = program {
+            match program.get_info_log() {
+                Ok(value) => Some(DOMString::from(value)),
+                Err(e) => {
+                    self.webgl_error(e);
+                    None
+                }
+            }
+        } else {
+            self.webgl_error(WebGLError::InvalidValue);
+            None
+        }             
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1704,7 +1756,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            program.link()
+            if let Err(e) = program.link() {
+                self.webgl_error(e);
+            }
         }
     }
 
@@ -1948,7 +2002,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn ValidateProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            program.validate();
+            if let Err(e) = program.validate() {
+                self.webgl_error(e);
+            }
         }
     }
 
@@ -2027,14 +2083,36 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if attrib_id > self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
-
-        if let constants::FLOAT = data_type {
-           let msg = CanvasMsg::WebGL(
-               WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset as u32));
-            self.ipc_renderer.send(msg).unwrap()
-        } else {
-            panic!("VertexAttribPointer: Data Type not supported")
+        if stride < 0 || stride > 255 || offset < 0 {
+            return self.webgl_error(InvalidValue);
         }
+        if size < 1 || size > 4 {
+            return self.webgl_error(InvalidValue);
+        }
+        if self.bound_buffer_array.get().is_none() {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        // stride and offset must be multiple of data_type
+        match data_type {
+            constants::BYTE | constants::UNSIGNED_BYTE => {},
+            constants::SHORT | constants::UNSIGNED_SHORT => {
+                if offset % 2 > 0 || stride % 2 > 0 {
+                    return self.webgl_error(InvalidOperation);
+                }
+            },
+            constants::FLOAT => {
+                if offset % 4 > 0 || stride % 4 > 0 {
+                    return self.webgl_error(InvalidOperation);
+                }
+            },
+            _ =>  return self.webgl_error(InvalidEnum),
+
+        }
+
+        let msg = CanvasMsg::WebGL(
+                    WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32));
+        self.ipc_renderer.send(msg).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4

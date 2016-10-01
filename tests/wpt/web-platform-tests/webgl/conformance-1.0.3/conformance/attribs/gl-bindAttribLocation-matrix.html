@@ -82,7 +82,11 @@ function createAndLinkProgram(glVertexShader, matrixLocation, vectorLocation) {
     gl.attachShader(glProgram, glVertexShader);
     gl.attachShader(glProgram, glFragmentShader);
     gl.linkProgram(glProgram);
-    return gl.getProgramParameter(glProgram, gl.LINK_STATUS);
+    var linked =  gl.getProgramParameter(glProgram, gl.LINK_STATUS);
+    if (!linked) {
+        //alert("Mangu: " + gl.getProgramInfoLog(glProgram));
+    }
+    return linked;
 }
 
 // For each matrix dimension (mat2, mat3 and mat4)
