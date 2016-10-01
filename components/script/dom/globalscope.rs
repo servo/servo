@@ -4,11 +4,15 @@
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
+use dom::window::Window;
+use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
 use msg::constellation_msg::PipelineId;
@@ -18,6 +22,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use time::{Timespec, get_time};
+use url::Url;
 
 #[dom_struct]
 pub struct GlobalScope {
@@ -159,6 +164,20 @@ impl GlobalScope {
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
+    }
+
+    /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
+    /// for this global scope.
+    pub fn api_base_url(&self) -> Url {
+        if let Some(window) = self.downcast::<Window>() {
+            // https://html.spec.whatwg.org/multipage/#script-settings-for-browsing-contexts:api-base-url
+            return window.Document().base_url();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
+            return worker.get_url().clone();
+        }
+        unreachable!();
     }
 }
 

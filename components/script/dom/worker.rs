@@ -73,18 +73,18 @@ impl Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
+        let global_scope = global.as_global_scope();
         // Step 2-4.
-        let worker_url = match global.api_base_url().join(&script_url) {
+        let worker_url = match global_scope.api_base_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global.as_global_scope(), sender.clone(), closing.clone());
+        let worker = Worker::new(global_scope, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
 
-        let global_scope = global.as_global_scope();
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,

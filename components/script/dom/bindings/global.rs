@@ -7,7 +7,6 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
@@ -96,17 +95,6 @@ impl<'a> GlobalRef<'a> {
     pub fn get_url(&self) -> Url {
         match *self {
             GlobalRef::Window(ref window) => window.get_url(),
-            GlobalRef::Worker(ref worker) => worker.get_url().clone(),
-        }
-    }
-
-    /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
-    /// for this global scope.
-    pub fn api_base_url(&self) -> Url {
-        match *self {
-            // https://html.spec.whatwg.org/multipage/#script-settings-for-browsing-contexts:api-base-url
-            GlobalRef::Window(ref window) => window.Document().base_url(),
-            // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
             GlobalRef::Worker(ref worker) => worker.get_url().clone(),
         }
     }

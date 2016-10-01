@@ -58,8 +58,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
         let USVString(ref script_url) = script_url;
+        let api_base_url = self.global_scope().api_base_url();
         // Step 3-4
-        let script_url = match self.global().r().api_base_url().join(script_url) {
+        let script_url = match api_base_url.join(script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Type("Invalid script URL".to_owned()))
         };
@@ -77,7 +78,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         let scope = match options.scope {
             Some(ref scope) => {
                 let &USVString(ref inner_scope) = scope;
-                match self.global().r().api_base_url().join(inner_scope) {
+                match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => return Err(Error::Type("Invalid scope URL".to_owned()))
                 }
