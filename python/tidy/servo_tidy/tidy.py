@@ -149,8 +149,9 @@ def check_license(file_name, lines):
         l = l.rstrip('\n')
         if not l.strip():
             blank_lines += 1
-        if blank_lines >= max_blank_lines:
-            break
+            if blank_lines >= max_blank_lines:
+                break
+            continue
         line = uncomment(l)
         if line is not None:
             license_block.append(line)
