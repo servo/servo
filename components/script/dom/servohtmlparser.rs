@@ -11,12 +11,14 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
+use dom::globalscope::GlobalScope;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::node::Node;
 use dom::window::Window;
@@ -343,7 +345,7 @@ impl ServoHTMLParser {
         };
         profile(ProfilerCategory::ScriptParseHTML,
                 Some(metadata),
-                self.document.window().time_profiler_chan().clone(),
+                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
                 || self.do_parse_sync())
     }
 

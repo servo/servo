@@ -11,7 +11,7 @@ use dom::crypto::Crypto;
 use dom::eventtarget::EventTarget;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
-use profile_traits::mem;
+use profile_traits::{mem, time};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -37,12 +37,17 @@ pub struct GlobalScope {
     /// For sending messages to the memory profiler.
     #[ignore_heap_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
+
+    /// For sending messages to the time profiler.
+    #[ignore_heap_size_of = "channels are hard"]
+    time_profiler_chan: time::ProfilerChan,
 }
 
 impl GlobalScope {
     pub fn new_inherited(
             devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-            mem_profiler_chan: mem::ProfilerChan)
+            mem_profiler_chan: mem::ProfilerChan,
+            time_profiler_chan: time::ProfilerChan)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -52,6 +57,7 @@ impl GlobalScope {
             console_timers: DOMRefCell::new(Default::default()),
             devtools_chan: devtools_chan,
             mem_profiler_chan: mem_profiler_chan,
+            time_profiler_chan: time_profiler_chan,
         }
     }
 
@@ -116,6 +122,11 @@ impl GlobalScope {
     /// Get a sender to the memory profiler thread.
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
         &self.mem_profiler_chan
+    }
+
+    /// Get a sender to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+        &self.time_profiler_chan
     }
 }
 

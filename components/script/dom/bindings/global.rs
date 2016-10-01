@@ -89,14 +89,6 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get a `time::ProfilerChan` to send messages to the time profiler thread.
-    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
-        match *self {
-            GlobalRef::Window(window) => window.time_profiler_chan(),
-            GlobalRef::Worker(worker) => worker.time_profiler_chan(),
-        }
-    }
-
     /// Get a `IpcSender` to send messages to the constellation when available.
     pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         match *self {
@@ -214,7 +206,7 @@ impl<'a> GlobalRef<'a> {
         time::profile(
             time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
-            self.time_profiler_chan().clone(),
+            self.as_global_scope().time_profiler_chan().clone(),
             || {
                 let cx = self.get_cx();
                 let globalhandle = self.reflector().get_jsobject();

@@ -35,7 +35,6 @@ use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{IpcSend, LoadOrigin};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
-use profile_traits::time;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
@@ -59,11 +58,12 @@ pub fn prepare_workerscope_init(global: GlobalRef,
     let worker_id = global_scope.get_next_worker_id();
     let to_devtools_sender = global_scope.devtools_chan().cloned();
     let mem_profiler_chan = global_scope.mem_profiler_chan().clone();
+    let time_profiler_chan = global_scope.time_profiler_chan().clone();
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: mem_profiler_chan,
             to_devtools_sender: to_devtools_sender,
-            time_profiler_chan: global.time_profiler_chan().clone(),
+            time_profiler_chan: time_profiler_chan,
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
@@ -91,9 +91,6 @@ pub struct WorkerGlobalScope {
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     timers: OneshotTimers,
-
-    #[ignore_heap_size_of = "Defined in std"]
-    time_profiler_chan: time::ProfilerChan,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
@@ -127,7 +124,8 @@ impl WorkerGlobalScope {
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             globalscope:
-                GlobalScope::new_inherited(init.to_devtools_sender, init.mem_profiler_chan),
+                GlobalScope::new_inherited(
+                    init.to_devtools_sender, init.mem_profiler_chan, init.time_profiler_chan),
             worker_id: init.worker_id,
             pipeline_id: init.pipeline_id,
             worker_url: worker_url,
@@ -137,7 +135,6 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
-            time_profiler_chan: init.time_profiler_chan,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             constellation_chan: init.constellation_chan,
@@ -145,10 +142,6 @@ impl WorkerGlobalScope {
             promise_job_queue: PromiseJobQueue::new(),
             in_error_reporting_mode: Default::default(),
         }
-    }
-
-    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
-        &self.time_profiler_chan
     }
 
     pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
