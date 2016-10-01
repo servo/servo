@@ -25,9 +25,11 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::progressevent::ProgressEvent;
+use dom::window::Window;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use encoding::all::UTF_8;
@@ -153,9 +155,9 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
-        let (referrer_url, referrer_policy) = if let GlobalRef::Window(window) = global {
+        let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
             let document = window.Document();
             (Some(document.url().clone()), document.get_referrer_policy())
         } else {
@@ -167,7 +169,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global.as_global_scope())),
+            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DOMRefCell::new(String::from("")),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -196,15 +198,15 @@ impl XMLHttpRequest {
             referrer_policy: referrer_policy,
         }
     }
-    pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
+    pub fn new(global: &GlobalScope) -> Root<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
-                           global.as_global_scope(),
+                           global,
                            XMLHttpRequestBinding::Wrap)
     }
 
     // https://xhr.spec.whatwg.org/#constructors
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global))
+        Ok(XMLHttpRequest::new(global.as_global_scope()))
     }
 
     fn sync_in_window(&self) -> bool {
