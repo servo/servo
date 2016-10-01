@@ -4,23 +4,23 @@
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
+use dom::workerglobalscope::WorkerGlobalScope;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
 
 impl Console {
-    fn send_to_devtools(global: GlobalRef, level: LogLevel, message: DOMString) {
-        let global_scope = global.as_global_scope();
-        if let Some(chan) = global_scope.devtools_chan() {
+    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
+        if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);
-            let worker_id = if let GlobalRef::Worker(worker) = global {
-                Some(worker.get_worker_id())
-            } else {
-                None
-            };
+            let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
+                worker.get_worker_id()
+            });
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
-                global_scope.pipeline_id(),
+                global.pipeline_id(),
                 console_message,
                 worker_id);
             chan.send(devtools_message).unwrap();
@@ -33,7 +33,7 @@ impl Console {
     pub fn Log(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
         }
     }
 
@@ -41,7 +41,7 @@ impl Console {
     pub fn Debug(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Debug, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Debug, message);
         }
     }
 
@@ -49,7 +49,7 @@ impl Console {
     pub fn Info(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Info, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Info, message);
         }
     }
 
@@ -57,7 +57,7 @@ impl Console {
     pub fn Warn(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Warn, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Warn, message);
         }
     }
 
@@ -65,7 +65,7 @@ impl Console {
     pub fn Error(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Error, message);
         }
     }
 
@@ -74,7 +74,7 @@ impl Console {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            Self::send_to_devtools(global, LogLevel::Error, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Error, message);
         }
     }
 
@@ -83,7 +83,7 @@ impl Console {
         if let Ok(()) = global.as_global_scope().time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
         }
     }
 
@@ -94,7 +94,7 @@ impl Console {
                 format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
-            Self::send_to_devtools(global, LogLevel::Log, message);
+            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
         };
     }
 }
