@@ -44,7 +44,6 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         url: request.url(),
         headers: request.headers.borrow().clone(),
         unsafe_request: request.unsafe_request,
-        same_origin_data: request.same_origin_data.get(),
         body: request.body.borrow().clone(),
         type_: request.type_,
         destination: request.destination,

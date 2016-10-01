@@ -144,7 +144,6 @@ fn test_fetch_data() {
     let url = Url::parse("data:text/html,<p>Servo</p>").unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
-    request.same_origin_data.set(true);
     let expected_resp_body = "<p>Servo</p>".to_owned();
     let fetch_response = fetch_sync(request, None);
 
@@ -173,7 +172,6 @@ fn test_fetch_file() {
     let url = Url::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
-    request.same_origin_data.set(true);
 
     let fetch_response = fetch_sync(request, None);
     assert!(!fetch_response.is_network_error());

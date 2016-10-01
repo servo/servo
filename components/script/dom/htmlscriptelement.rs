@@ -244,8 +244,6 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         },
         origin: doc.url().clone(),
         pipeline_id: Some(script.global().r().pipeline_id()),
-        // FIXME: Set to true for now, discussion in https://github.com/whatwg/fetch/issues/381
-        same_origin_data: true,
         referrer_url: Some(doc.url().clone()),
         referrer_policy: doc.get_referrer_policy(),
         .. RequestInit::default()
