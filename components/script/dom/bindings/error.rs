@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::global::{GlobalRef, global_root_from_context};
+use dom::bindings::global::global_root_from_context;
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::globalscope::GlobalScope;
@@ -271,9 +271,9 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
 
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
-    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: GlobalRef, rval: MutableHandleValue) {
+    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: &GlobalScope, rval: MutableHandleValue) {
         assert!(!JS_IsExceptionPending(cx));
-        throw_dom_exception(cx, global.as_global_scope(), self);
+        throw_dom_exception(cx, global, self);
         assert!(JS_IsExceptionPending(cx));
         assert!(JS_GetPendingException(cx, rval));
         JS_ClearPendingException(cx);

@@ -167,7 +167,7 @@ impl Promise {
     pub fn reject_error(&self, cx: *mut JSContext, error: Error) {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            error.to_jsval(cx, self.global().r(), v.handle_mut());
+            error.to_jsval(cx, &self.global_scope(), v.handle_mut());
         }
         self.reject(cx, v.handle());
     }
