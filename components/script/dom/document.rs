@@ -45,6 +45,7 @@ use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
 use dom::forcetouchevent::ForceTouchEvent;
+use dom::globalscope::GlobalScope;
 use dom::hashchangeevent::HashChangeEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
@@ -651,7 +652,7 @@ impl Document {
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
                 let event = ConstellationMsg::Focus(self.window.pipeline_id());
-                self.window.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -669,7 +670,8 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        window.constellation_chan()
+        window.upcast::<GlobalScope>()
+              .constellation_chan()
               .send(ConstellationMsg::SetTitle(window.pipeline_id(),
                                                Some(String::from(self.Title()))))
               .unwrap();
@@ -723,7 +725,7 @@ impl Document {
                 let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
                                                                       mouse_event_type,
                                                                       button, child_point);
-                self.window.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
             return;
         }
@@ -961,7 +963,7 @@ impl Document {
                     let child_point = client_point - child_origin;
 
                     let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
-                    self.window.constellation_chan().send(event).unwrap();
+                    self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
                 }
                 return;
             }
@@ -1359,7 +1361,7 @@ impl Document {
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
                                                               Some(self.window.pipeline_id()),
                                                               event);
-                self.window.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1382,7 +1384,7 @@ impl Document {
             let event = ConstellationMsg::ChangeRunningAnimationsState(
                 self.window.pipeline_id(),
                 AnimationState::AnimationCallbacksPresent);
-            self.window.constellation_chan().send(event).unwrap();
+            self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
         }
 
         ident
@@ -1420,7 +1422,7 @@ impl Document {
                       &mut animation_frame_list);
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            self.window.constellation_chan().send(event).unwrap();
+            self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
         }
 
         self.running_animation_callbacks.set(false);
@@ -1578,7 +1580,7 @@ impl Document {
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline_id();
         let load_event = ConstellationMsg::LoadComplete(pipeline_id);
-        self.window.constellation_chan().send(load_event).unwrap();
+        self.window.upcast::<GlobalScope>().constellation_chan().send(load_event).unwrap();
     }
 
     pub fn set_current_parser(&self, script: Option<ParserRef>) {

@@ -215,10 +215,6 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
 
-    /// A handle for communicating messages to the constellation thread.
-    #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: IpcSender<ConstellationMsg>,
-
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
 
@@ -436,7 +432,10 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender)).unwrap();
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender))
+            .unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -797,7 +796,10 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.constellation_chan.send(ConstellationMsg::ResizeTo(size)).unwrap()
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::ResizeTo(size))
+            .unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -812,7 +814,10 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.constellation_chan.send(ConstellationMsg::MoveTo(point)).unwrap()
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::MoveTo(point))
+            .unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -974,7 +979,7 @@ impl Window {
         self.update_viewport_for_scroll(x, y);
 
         let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline_id(), layer_id, point, smooth);
-        self.constellation_chan.send(message).unwrap();
+        self.upcast::<GlobalScope>().constellation_chan().send(message).unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -985,7 +990,10 @@ impl Window {
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::GetClientWindow(send))
+            .unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1149,7 +1157,7 @@ impl Window {
 
             if ready_state == DocumentReadyState::Complete && !reftest_wait {
                 let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.constellation_chan().send(event).unwrap();
+                self.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
         }
 
@@ -1261,7 +1269,10 @@ impl Window {
         let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.constellation_chan.send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send))
+            .unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
 
@@ -1374,10 +1385,6 @@ impl Window {
 
     pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
-    }
-
-    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
-        &self.constellation_chan
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
@@ -1586,7 +1593,8 @@ impl Window {
         let current_time = time::get_time();
         let win = box Window {
             globalscope:
-                GlobalScope::new_inherited(devtools_chan, mem_profiler_chan, time_profiler_chan),
+                GlobalScope::new_inherited(
+                    devtools_chan, mem_profiler_chan, time_profiler_chan, constellation_chan),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1613,7 +1621,6 @@ impl Window {
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
-            constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(max_rect()),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),

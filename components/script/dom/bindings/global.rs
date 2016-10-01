@@ -30,7 +30,7 @@ use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
-use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
+use script_traits::{MsDuration, TimerEventRequest};
 use std::ffi::CString;
 use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
@@ -86,14 +86,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.pipeline_id(),
             GlobalRef::Worker(worker) => worker.pipeline_id(),
-        }
-    }
-
-    /// Get a `IpcSender` to send messages to the constellation when available.
-    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
-        match *self {
-            GlobalRef::Window(window) => window.constellation_chan(),
-            GlobalRef::Worker(worker) => worker.constellation_chan(),
         }
     }
 

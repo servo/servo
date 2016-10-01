@@ -6,8 +6,10 @@ use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use ipc_channel::ipc;
 use msg::constellation_msg::TraversalDirection;
@@ -39,7 +41,7 @@ impl History {
     fn traverse_history(&self, direction: TraversalDirection) {
         let pipeline = self.window.pipeline_id();
         let msg = ConstellationMsg::TraverseHistory(Some(pipeline), direction);
-        let _ = self.window.constellation_chan().send(msg);
+        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
     }
 }
 
@@ -49,7 +51,7 @@ impl HistoryMethods for History {
         let pipeline = self.window.pipeline_id();
         let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
         let msg = ConstellationMsg::JointSessionHistoryLength(pipeline, sender);
-        let _ = self.window.constellation_chan().send(msg);
+        let _ = self.window.upcast::<GlobalScope>().constellation_chan().send(msg);
         recv.recv().unwrap()
     }
 

@@ -122,7 +122,7 @@ impl CanvasRenderingContext2D {
                      size: Size2D<i32>)
                      -> CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = global.constellation_chan();
+        let constellation_chan = global.as_global_scope().constellation_chan();
         constellation_chan.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
         let ipc_renderer = receiver.recv().unwrap();
         CanvasRenderingContext2D {

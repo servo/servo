@@ -29,6 +29,7 @@ use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -135,7 +136,8 @@ impl HTMLIFrameElement {
             frame_type: frame_type,
             replace: replace,
         };
-        window.constellation_chan()
+        window.upcast::<GlobalScope>()
+              .constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
               .unwrap();
 
@@ -216,7 +218,7 @@ impl HTMLIFrameElement {
             let window = window_from_node(self);
             let window = window.r();
             let msg = ConstellationMsg::SetVisible(pipeline_id, visible);
-            window.constellation_chan().send(msg).unwrap();
+            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
         }
     }
 
@@ -407,7 +409,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> Er
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
             let msg = ConstellationMsg::TraverseHistory(iframe.pipeline_id(), direction);
-            window.constellation_chan().send(msg).unwrap();
+            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
         }
 
         Ok(())
@@ -641,7 +643,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 (Some(sender), Some(receiver))
             };
             let msg = ConstellationMsg::RemoveIFrame(pipeline_id, sender);
-            window.constellation_chan().send(msg).unwrap();
+            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
             if let Some(receiver) = receiver {
                 receiver.recv().unwrap()
             }

@@ -133,7 +133,7 @@ impl WebGLRenderingContext {
                      attrs: GLContextAttributes)
                      -> Result<WebGLRenderingContext, String> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let constellation_chan = global.constellation_chan();
+        let constellation_chan = global.as_global_scope().constellation_chan();
         constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
                           .unwrap();
         let result = receiver.recv().unwrap();

@@ -15,6 +15,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::element::RawLayoutElementHelpers;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -99,7 +100,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().constellation_chan().clone();
+        let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,

@@ -18,6 +18,7 @@ use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -280,7 +281,7 @@ impl HTMLLinkElement {
         match document.base_url().join(href) {
             Ok(url) => {
                 let event = ConstellationMsg::NewFavicon(url.clone());
-                document.window().constellation_chan().send(event).unwrap();
+                document.window().upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
 
                 let mozbrowser_event = match *sizes {
                     Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
