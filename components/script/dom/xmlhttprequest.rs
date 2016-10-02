@@ -1197,29 +1197,27 @@ impl XMLHttpRequest {
 
     fn document_text_html(&self) -> Root<Document>{
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global();
-        let wr = wr.r();
+        let wr = self.global_scope();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
         parse_html(document.r(),
                    DOMString::from(decoded),
-                   wr.as_global_scope().get_url(),
-                   ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
+                   wr.get_url(),
+                   ParseContext::Owner(Some(wr.pipeline_id())));
         document
     }
 
     fn handle_xml(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global();
-        let wr = wr.r();
+        let wr = self.global_scope();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
         parse_xml(document.r(),
                   DOMString::from(decoded),
-                  wr.as_global_scope().get_url(),
-                  xml::ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
+                  wr.get_url(),
+                  xml::ParseContext::Owner(Some(wr.pipeline_id())));
         document
     }
 
