@@ -76,7 +76,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build
+    python-pip python-virtualenv rpm-build glu-devel
 ```
 #### On Arch Linux
 
