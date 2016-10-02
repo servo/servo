@@ -87,7 +87,8 @@ impl MouseEvent {
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let event = MouseEvent::new(global.as_window(), type_,
+        let event = MouseEvent::new(global.as_global_scope().as_window(),
+                                    type_,
                                     bubbles,
                                     cancelable,
                                     init.parent.parent.view.r(),

@@ -190,6 +190,11 @@ impl GlobalScope {
         }
         unreachable!();
     }
+
+    /// Extract a `Window`, panic if the global object is not a `Window`.
+    pub fn as_window(&self) -> &Window {
+        self.downcast::<Window>().expect("expected a Window scope")
+    }
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {

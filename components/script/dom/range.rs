@@ -71,7 +71,7 @@ impl Range {
 
     // https://dom.spec.whatwg.org/#dom-range
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Range>> {
-        let document = global.as_window().Document();
+        let document = global.as_global_scope().as_window().Document();
         Ok(Range::new_with_doc(document.r()))
     }
 

@@ -228,7 +228,7 @@ impl HTMLImageElement {
     pub fn Image(global: GlobalRef,
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
-        let document = global.as_window().Document();
+        let document = global.as_global_scope().as_window().Document();
         let image = HTMLImageElement::new(atom!("img"), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);

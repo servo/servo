@@ -60,9 +60,7 @@ impl Bluetooth {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        global_ref.as_window().bluetooth_thread()
+        self.global_scope().as_window().bluetooth_thread()
     }
 
     fn request_device(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {

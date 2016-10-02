@@ -59,7 +59,8 @@ impl FocusEvent {
                        init: &FocusEventBinding::FocusEventInit) -> Fallible<Root<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(global.as_window(), type_,
+        let event = FocusEvent::new(global.as_global_scope().as_window(),
+                                    type_,
                                     bubbles,
                                     cancelable,
                                     init.parent.view.r(),

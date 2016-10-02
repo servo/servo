@@ -68,15 +68,6 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Extract a `Window`, causing thread failure if the global object is not
-    /// a `Window`.
-    pub fn as_window(&self) -> &window::Window {
-        match *self {
-            GlobalRef::Window(window) => window,
-            GlobalRef::Worker(_) => panic!("expected a Window scope"),
-        }
-    }
-
     /// Get the `ResourceThreads` for this global scope.
     pub fn resource_threads(&self) -> ResourceThreads {
         match *self {

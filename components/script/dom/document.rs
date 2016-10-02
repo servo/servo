@@ -1820,7 +1820,7 @@ impl Document {
 
     // https://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Document>> {
-        let win = global.as_window();
+        let win = global.as_global_scope().as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());

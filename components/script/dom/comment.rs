@@ -32,7 +32,7 @@ impl Comment {
     }
 
     pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Root<Comment>> {
-        let document = global.as_window().Document();
+        let document = global.as_global_scope().as_window().Document();
         Ok(Comment::new(data, document.r()))
     }
 }

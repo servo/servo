@@ -1224,7 +1224,7 @@ impl XMLHttpRequest {
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
         let wr = self.global();
         let wr = wr.r();
-        let win = wr.as_window();
+        let win = wr.as_global_scope().as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());

@@ -43,7 +43,7 @@ impl DOMParser {
     }
 
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<DOMParser>> {
-        Ok(DOMParser::new(global.as_window()))
+        Ok(DOMParser::new(global.as_global_scope().as_window()))
     }
 }
 

@@ -44,9 +44,7 @@ impl Storage {
     }
 
     fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        global_ref.as_window().resource_threads().sender()
+        self.global_scope().as_window().resource_threads().sender()
     }
 
 }
@@ -154,7 +152,7 @@ impl Storage {
                                      new_value: Option<String>) {
         let global_root = self.global();
         let global_ref = global_root.r();
-        let window = global_ref.as_window();
+        let window = global_ref.as_global_scope().as_window();
         let task_source = window.dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
         task_source.queue(box StorageEventRunnable::new(trusted_storage, key, old_value, new_value),

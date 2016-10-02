@@ -57,7 +57,8 @@ impl UIEvent {
                        init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = UIEvent::new(global.as_window(), type_,
+        let event = UIEvent::new(global.as_global_scope().as_window(),
+                                 type_,
                                  bubbles, cancelable,
                                  init.view.r(), init.detail);
         Ok(event)

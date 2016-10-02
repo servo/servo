@@ -104,7 +104,8 @@ impl KeyboardEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Root<KeyboardEvent>> {
-        let event = KeyboardEvent::new(global.as_window(), type_,
+        let event = KeyboardEvent::new(global.as_global_scope().as_window(),
+                                       type_,
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,
                                        init.parent.parent.view.r(),

@@ -65,8 +65,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 // Step 4-5
                 let once = iter::once(Root::upcast::<Node>(elem));
                 let list = once.chain(peekable.map(Root::upcast));
-                let global = self.global();
-                let global = global.r();
+                let global = self.global_scope();
                 let window = global.as_window();
                 Some(RadioNodeListOrElement::RadioNodeList(RadioNodeList::new_simple_list(window, list)))
             }
