@@ -1222,13 +1222,12 @@ impl XMLHttpRequest {
     }
 
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
-        let wr = self.global();
-        let wr = wr.r();
-        let win = wr.as_global_scope().as_window();
+        let wr = self.global_scope();
+        let win = wr.as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
-        let base = self.global_scope().get_url();
+        let base = wr.get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7
