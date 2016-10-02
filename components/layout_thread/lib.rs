@@ -1057,6 +1057,7 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+        let entry_node;
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
         debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&
@@ -1107,7 +1108,15 @@ impl LayoutThread {
                 }
                 return;
             },
-            Some(x) => x,
+            Some(x) => {
+                match data.entry_node {
+                    Some(node) => {
+                        entry_node = node;
+                        unsafe { ServoLayoutNode::new(&entry_node) }
+                    },
+                    None => x,
+                }
+            },
         };
 
         debug!("layout: received layout request for: {}", self.url);

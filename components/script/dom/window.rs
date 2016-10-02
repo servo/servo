@@ -142,6 +142,7 @@ pub enum ReflowReason {
     IFrameLoadEvent,
     MissingExplicitReflow,
     ElementStateChanged,
+    FullscreenChanged,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -1137,6 +1138,15 @@ impl Window {
         let document = self.Document();
         let stylesheets_changed = document.get_and_reset_stylesheets_changed_since_reflow();
 
+        // fullscreen actions
+        let entry_node = match self.Document().GetFullscreenElement() {
+            None => None,
+            Some(fullscreen_element) => {
+                let fullscreen_element = fullscreen_element.upcast::<Node>().to_trusted_node_address();
+                Some(fullscreen_element)
+            }
+        };
+
         // Send new document and relevant styles to layout.
         let reflow = ScriptReflow {
             reflow_info: Reflow {
@@ -1144,6 +1154,7 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
+            entry_node: entry_node,
             document_stylesheets: document.stylesheets(),
             stylesheets_changed: stylesheets_changed,
             window_size: window_size,
@@ -1844,6 +1855,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
         ReflowReason::ElementStateChanged => "\tElementStateChanged",
+        ReflowReason::FullscreenChanged => "\tFullscreenChanged",
     });
 
     println!("{}", debug_msg);

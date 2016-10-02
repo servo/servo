@@ -22,6 +22,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -62,6 +63,7 @@ use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::promise::Promise;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -79,6 +81,7 @@ use std::cell::Cell;
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, Namespace, QualName};
@@ -2107,6 +2110,13 @@ impl ElementMethods for Element {
             },
             None => return Err(Error::NotSupported)
         }
+    }
+
+    #[allow(unrooted_must_root)]
+    fn RequestFullscreen(&self) -> Rc<Promise> {
+        let doc = document_from_node(self);
+        doc.set_fullscreen_element(Some(self));
+        Promise::new(self.global().r())
     }
 }
 

@@ -121,6 +121,8 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
+    /// The render entry point need for fullscreen.
+    pub entry_node: Option<TrustedNodeAddress>,
     /// The document's list of stylesheets.
     pub document_stylesheets: Vec<Arc<Stylesheet>>,
     /// Whether the document's stylesheets have changed since the last script reflow.

@@ -73,6 +73,7 @@ use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
 use dom::popstateevent::PopStateEvent;
+use dom::promise::Promise;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
 use dom::range::Range;
@@ -253,6 +254,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// Entry node for fullscreen.
+    fullscreen_element: MutNullableHeap<JS<Element>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1811,6 +1814,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            fullscreen_element: MutNullableHeap::new(None),
         }
     }
 
@@ -1977,6 +1981,17 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::ElementStateChanged);
+    }
+
+    pub fn set_fullscreen_element(&self, node: Option<&Element>) {
+        self.fullscreen_element.set(node);
+
+        self.upcast::<EventTarget>().fire_simple_event("fullscreenchange");
+        println!("test");
+
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::FullscreenChanged);
     }
 }
 
@@ -2951,6 +2966,28 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
     document_and_element_event_handlers!();
+
+    event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
+
+    event_handler!(fullscreenchange, GetOnfullscreenchange, SetOnfullscreenchange);
+
+    fn FullscreenEnabled(&self) -> bool {
+        self.fullscreen_element.get().is_some()
+    }
+
+    fn Fullscreen(&self) -> bool {
+        self.FullscreenEnabled()
+    }
+
+    fn GetFullscreenElement(&self) -> Option<Root<Element>> {
+        self.fullscreen_element.get()
+    }
+
+    #[allow(unrooted_must_root)]
+    fn ExitFullscreen(&self) -> Rc<Promise> {
+        self.set_fullscreen_element(None);
+        Promise::new(self.global().r())
+    }
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
