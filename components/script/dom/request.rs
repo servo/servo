@@ -21,6 +21,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
@@ -51,7 +52,7 @@ pub struct Request {
 }
 
 impl Request {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      url: Url,
                      is_service_worker_global_scope: bool) -> Request {
         Request {
@@ -67,13 +68,13 @@ impl Request {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                url: Url,
                is_service_worker_global_scope: bool) -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(global,
                                                       url,
                                                       is_service_worker_global_scope),
-                           global.as_global_scope(), RequestBinding::Wrap)
+                           global, RequestBinding::Wrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
@@ -81,6 +82,8 @@ impl Request {
                        input: RequestInfo,
                        init: &RequestInit)
                        -> Fallible<Root<Request>> {
+        let global_scope = global.as_global_scope();
+
         // Step 1
         let temporary_request: NetTraitsRequest;
 
@@ -92,7 +95,7 @@ impl Request {
 
         // Step 4
         // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.as_global_scope().get_url();
+        let base_url = global_scope.get_url();
 
         match input {
             // Step 5
@@ -109,7 +112,7 @@ impl Request {
                     return Err(Error::Type("Url includes credentials".to_string()))
                 }
                 // Step 5.4
-                temporary_request = net_request_from_global(global,
+                temporary_request = net_request_from_global(&global_scope,
                                                             url,
                                                             false);
                 // Step 5.5
@@ -150,7 +153,7 @@ impl Request {
 
         // Step 12
         let mut request: NetTraitsRequest;
-        request = net_request_from_global(global,
+        request = net_request_from_global(&global_scope,
                                           temporary_request.current_url(),
                                           false);
         request.method = temporary_request.method;
@@ -302,7 +305,7 @@ impl Request {
         }
 
         // Step 26
-        let r = Request::from_net_request(global,
+        let r = Request::from_net_request(&global_scope,
                                           false,
                                           request);
         r.headers.or_init(|| Headers::for_request(&r.global_scope()));
@@ -412,7 +415,7 @@ impl Request {
 }
 
 impl Request {
-    fn from_net_request(global: GlobalRef,
+    fn from_net_request(global: &GlobalScope,
                         is_service_worker_global_scope: bool,
                         net_request: NetTraitsRequest) -> Root<Request> {
         let r = Request::new(global,
@@ -429,7 +432,7 @@ impl Request {
         let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
-        let r_clone = Request::new(r.global().r(), url, is_service_worker_global_scope);
+        let r_clone = Request::new(&r.global_scope(), url, is_service_worker_global_scope);
         r_clone.request.borrow_mut().pipeline_id.set(req.pipeline_id.get());
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();
@@ -447,12 +450,11 @@ impl Request {
     }
 }
 
-fn net_request_from_global(global: GlobalRef,
+fn net_request_from_global(global: &GlobalScope,
                            url: Url,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
-    let global_scope = global.as_global_scope();
-    let origin = Origin::Origin(global_scope.get_url().origin());
-    let pipeline_id = global_scope.pipeline_id();
+    let origin = Origin::Origin(global.get_url().origin());
+    let pipeline_id = global.pipeline_id();
     NetTraitsRequest::new(url,
                           Some(origin),
                           is_service_worker_global_scope,
