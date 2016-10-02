@@ -197,62 +197,69 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
+    /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
         if document.browsing_context().is_none() {
             return;
         }
 
-        match document.base_url().join(href) {
-            Ok(url) => {
-                let element = self.upcast::<Element>();
-
-                let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
-                let value = mq_attribute.r().map(|a| a.value());
-                let mq_str = match value {
-                    Some(ref value) => &***value,
-                    None => "",
-                };
-                let mut css_parser = CssParser::new(&mq_str);
-                let media = parse_media_query_list(&mut css_parser);
-
-                // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-                let elem = Trusted::new(self);
-
-                let context = Arc::new(Mutex::new(StylesheetContext {
-                    elem: elem,
-                    media: Some(media),
-                    data: vec!(),
-                    metadata: None,
-                    url: url.clone(),
-                }));
-
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let listener = NetworkListener {
-                    context: context,
-                    script_chan: document.window().networking_task_source(),
-                    wrapper: Some(document.window().get_runnable_wrapper()),
-                };
-                let response_target = AsyncResponseTarget {
-                    sender: action_sender,
-                };
-                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify_action(message.to().unwrap());
-                });
-
-                if self.parser_inserted.get() {
-                    document.increment_script_blocking_stylesheet_count();
-                }
-
-                let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-                    true => Some(ReferrerPolicy::NoReferrer),
-                    false => None,
-                };
-
-                document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
-            }
-            Err(e) => debug!("Parsing url {} failed: {}", href, e)
+        // Step 1.
+        if href.is_empty() {
+            return;
         }
+
+        // Step 2.
+        let url = match document.base_url().join(href) {
+            Err(e) => return debug!("Parsing url {} failed: {}", href, e),
+            Ok(url) => url,
+        };
+
+        let element = self.upcast::<Element>();
+
+        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
+        let value = mq_attribute.r().map(|a| a.value());
+        let mq_str = match value {
+            Some(ref value) => &***value,
+            None => "",
+        };
+        let mut css_parser = CssParser::new(&mq_str);
+        let media = parse_media_query_list(&mut css_parser);
+
+        // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
+        let elem = Trusted::new(self);
+
+        let context = Arc::new(Mutex::new(StylesheetContext {
+            elem: elem,
+            media: Some(media),
+            data: vec!(),
+            metadata: None,
+            url: url.clone(),
+        }));
+
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let listener = NetworkListener {
+            context: context,
+            script_chan: document.window().networking_task_source(),
+            wrapper: Some(document.window().get_runnable_wrapper()),
+        };
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify_action(message.to().unwrap());
+        });
+
+        if self.parser_inserted.get() {
+            document.increment_script_blocking_stylesheet_count();
+        }
+
+        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+            true => Some(ReferrerPolicy::NoReferrer),
+            false => None,
+        };
+
+        document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
