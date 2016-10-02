@@ -106,8 +106,8 @@ fn mask_shorthand_should_parse_origin_and_clip_correctly() {
     let mut parser = Parser::new("padding-box");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
-    // TODO(#13466): We should fix origin/clip parsing behavior.
     assert_eq!(result.mask_origin.unwrap(), parse_longhand!(mask_origin, "padding-box"));
+    assert_eq!(result.mask_clip.unwrap(), parse_longhand!(mask_clip, "padding-box"));
 }
 
 #[test]
