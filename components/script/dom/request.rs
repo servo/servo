@@ -24,7 +24,7 @@ use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
-use hyper;
+use hyper::method::Method as HttpMethod;
 use msg::constellation_msg::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
@@ -359,9 +359,9 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = req.method.borrow();
                 match &*req_method {
-                    &hyper::method::Method::Get => return Err(Error::Type(
+                    &HttpMethod::Get => return Err(Error::Type(
                         "Init's body is non-null, and request method is GET".to_string())),
-                    &hyper::method::Method::Head => return Err(Error::Type(
+                    &HttpMethod::Head => return Err(Error::Type(
                         "Init's body is non-null, and request method is HEAD".to_string())),
                     _ => {},
                 }
@@ -461,15 +461,15 @@ fn net_request_from_global(global: GlobalRef,
                           Some(pipeline_id))
 }
 
-fn normalized_method_to_typed_method(m: &str) -> hyper::method::Method {
+fn normalized_method_to_typed_method(m: &str) -> HttpMethod {
     match m {
-        "DELETE" => hyper::method::Method::Delete,
-        "GET" => hyper::method::Method::Get,
-        "HEAD" => hyper::method::Method::Head,
-        "OPTIONS" => hyper::method::Method::Options,
-        "POST" => hyper::method::Method::Post,
-        "PUT" => hyper::method::Method::Put,
-        a => hyper::method::Method::Extension(a.to_string())
+        "DELETE" => HttpMethod::Delete,
+        "GET" => HttpMethod::Get,
+        "HEAD" => HttpMethod::Head,
+        "OPTIONS" => HttpMethod::Options,
+        "POST" => HttpMethod::Post,
+        "PUT" => HttpMethod::Put,
+        a => HttpMethod::Extension(a.to_string())
     }
 }
 
@@ -512,10 +512,10 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
-fn is_cors_safelisted_method(m: &hyper::method::Method) -> bool {
-    m == &hyper::method::Method::Get ||
-        m == &hyper::method::Method::Head ||
-        m == &hyper::method::Method::Post
+fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
+    m == &HttpMethod::Get ||
+        m == &HttpMethod::Head ||
+        m == &HttpMethod::Post
 }
 
 // https://url.spec.whatwg.org/#include-credentials
