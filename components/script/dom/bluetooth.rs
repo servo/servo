@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods,
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
 use dom::bindings::error::Error::{self, Security, Type};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -271,10 +270,10 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
 }
 
 #[allow(unrooted_must_root)]
-pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
+pub fn result_to_promise<T: ToJSValConvertible>(global: &GlobalScope,
                                                 bluetooth_result: Fallible<T>)
                                                 -> Rc<Promise> {
-    let p = Promise::new(global_ref.as_global_scope());
+    let p = Promise::new(global);
     match bluetooth_result {
         Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
         Err(e) => p.reject_error(p.global().r().get_cx(), e),
@@ -298,6 +297,6 @@ impl BluetoothMethods for Bluetooth {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.request_device(option))
+        result_to_promise(&self.global_scope(), self.request_device(option))
     }
 }

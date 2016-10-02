@@ -236,7 +236,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
                          -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_characteristic(characteristic))
+        result_to_promise(&self.global_scope(), self.get_characteristic(characteristic))
     }
 
     #[allow(unrooted_must_root)]
@@ -244,7 +244,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetCharacteristics(&self,
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_characteristics(characteristic))
+        result_to_promise(&self.global_scope(), self.get_characteristics(characteristic))
     }
 
     #[allow(unrooted_must_root)]
@@ -252,7 +252,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetIncludedService(&self,
                           service: BluetoothServiceUUID)
                           -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_included_service(service))
+        result_to_promise(&self.global_scope(), self.get_included_service(service))
     }
 
     #[allow(unrooted_must_root)]
@@ -260,6 +260,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetIncludedServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_included_services(service))
+        result_to_promise(&self.global_scope(), self.get_included_services(service))
     }
 }
