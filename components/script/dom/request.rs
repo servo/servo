@@ -92,7 +92,7 @@ impl Request {
 
         // Step 4
         // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.get_url();
+        let base_url = global.as_global_scope().get_url();
 
         match input {
             // Step 5
@@ -130,7 +130,7 @@ impl Request {
 
         // Step 7
         // TODO: `entry settings object` is not implemented yet.
-        let origin = global.get_url().origin();
+        let origin = base_url.origin();
 
         // Step 8
         let mut window = Window::Client;
@@ -450,8 +450,9 @@ impl Request {
 fn net_request_from_global(global: GlobalRef,
                            url: Url,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
-    let origin = Origin::Origin(global.get_url().origin());
-    let pipeline_id = global.as_global_scope().pipeline_id();
+    let global_scope = global.as_global_scope();
+    let origin = Origin::Origin(global_scope.get_url().origin());
+    let pipeline_id = global_scope.pipeline_id();
     NetTraitsRequest::new(url,
                           Some(origin),
                           is_service_worker_global_scope,

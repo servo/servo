@@ -179,6 +179,17 @@ impl GlobalScope {
         }
         unreachable!();
     }
+
+    /// Get the URL for this global scope.
+    pub fn get_url(&self) -> Url {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.get_url();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.get_url().clone();
+        }
+        unreachable!();
+    }
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {

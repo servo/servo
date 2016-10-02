@@ -118,7 +118,7 @@ impl URL {
     pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
         /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = get_blob_origin(&global.get_url());
+        let origin = get_blob_origin(&global.as_global_scope().get_url());
 
         if blob.IsClosed() {
             // Generate a dummy id
@@ -142,7 +142,7 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
-        let origin = get_blob_origin(&global.get_url());
+        let origin = get_blob_origin(&global.as_global_scope().get_url());
 
         if let Ok(url) = Url::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {

@@ -190,6 +190,7 @@ impl Blob {
     /// valid or invalid Blob URL.
     fn promote(&self, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
+        let global_url = self.global_scope().get_url();
 
         match *self.blob_impl.borrow_mut() {
             BlobImpl::Sliced(_, _) => {
@@ -199,8 +200,7 @@ impl Blob {
             }
             BlobImpl::File(ref f) => {
                 if set_valid {
-                    let global = self.global();
-                    let origin = get_blob_origin(&global.r().get_url());
+                    let origin = get_blob_origin(&global_url);
                     let (tx, rx) = ipc::channel().unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
@@ -219,8 +219,7 @@ impl Blob {
             BlobImpl::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let global = self.global();
-        let origin = get_blob_origin(&global.r().get_url());
+        let origin = get_blob_origin(&global_url);
 
         let blob_buf = BlobBuf {
             filename: None,
@@ -251,9 +250,7 @@ impl Blob {
     /// Get a FileID representing sliced parent-blob content
     fn create_sliced_url_id(&self, parent_id: &Uuid,
                             rel_pos: &RelativePos, parent_len: u64) -> Uuid {
-        let global = self.global();
-
-        let origin = get_blob_origin(&global.r().get_url());
+        let origin = get_blob_origin(&self.global_scope().get_url());
 
         let (tx, rx) = ipc::channel().unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
@@ -282,8 +279,7 @@ impl Blob {
     /// Cleanups at the time of destruction/closing
     fn clean_up_file_resource(&self) {
         if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
-            let global = self.global();
-            let origin = get_blob_origin(&global.r().get_url());
+            let origin = get_blob_origin(&self.global_scope().get_url());
 
             let (tx, rx) = ipc::channel().unwrap();
 
@@ -311,7 +307,7 @@ impl Drop for Blob {
 fn read_file(global: GlobalRef, id: Uuid) -> Result<Vec<u8>, ()> {
     let resource_threads = global.resource_threads();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
-    let origin = get_blob_origin(&global.get_url());
+    let origin = get_blob_origin(&global.as_global_scope().get_url());
     let check_url_validity = false;
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
     let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));

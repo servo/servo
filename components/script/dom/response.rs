@@ -149,9 +149,10 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
     pub fn Redirect(global: GlobalRef, url: USVString, status: u16) -> Fallible<Root<Response>> {
+        let global_scope = global.as_global_scope();
         // Step 1
         // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.get_url();
+        let base_url = global_scope.get_url();
         let parsed_url = base_url.join(&url.0);
 
         // Step 2
@@ -167,7 +168,7 @@ impl Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global.as_global_scope());
+        let r = Response::new(global_scope);
 
         // Step 5
         *r.status.borrow_mut() = Some(StatusCode::from_u16(status));

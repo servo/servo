@@ -40,9 +40,7 @@ impl Storage {
     }
 
     fn get_url(&self) -> Url {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        global_ref.get_url()
+        self.global_scope().get_url()
     }
 
     fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {

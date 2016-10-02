@@ -595,7 +595,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             use_cors_preflight: has_handlers,
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
-            origin: self.global().r().get_url(),
+            origin: self.global_scope().get_url(),
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: self.pipeline_id(),
@@ -1204,7 +1204,7 @@ impl XMLHttpRequest {
         // TODO: Disable scripting while parsing
         parse_html(document.r(),
                    DOMString::from(decoded),
-                   wr.get_url(),
+                   wr.as_global_scope().get_url(),
                    ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
         document
     }
@@ -1218,7 +1218,7 @@ impl XMLHttpRequest {
         // TODO: Disable scripting while parsing
         parse_xml(document.r(),
                   DOMString::from(decoded),
-                  wr.get_url(),
+                  wr.as_global_scope().get_url(),
                   xml::ParseContext::Owner(Some(wr.as_global_scope().pipeline_id())));
         document
     }
@@ -1230,7 +1230,7 @@ impl XMLHttpRequest {
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
-        let base = self.global().r().get_url();
+        let base = self.global_scope().get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7

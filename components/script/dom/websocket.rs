@@ -239,10 +239,11 @@ impl WebSocket {
         }
 
         // Step 6: Origin.
-        let origin = UrlHelper::Origin(&global.get_url()).0;
+        let global_scope = global.as_global_scope();
+        let origin = UrlHelper::Origin(&global_scope.get_url()).0;
 
         // Step 7.
-        let ws = WebSocket::new(global.as_global_scope(), resource_url.clone());
+        let ws = WebSocket::new(global_scope, resource_url.clone());
         let address = Trusted::new(ws.r());
 
         let connect_data = WebSocketConnectData {

@@ -32,7 +32,6 @@ use std::ffi::CString;
 use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
-use url::Url;
 
 /// A freely-copyable reference to a rooted global object.
 #[derive(Copy, Clone)]
@@ -89,14 +88,6 @@ impl<'a> GlobalRef<'a> {
     /// Get the `CoreResourceThread` for this global scope
     pub fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
-    }
-
-    /// Get the URL for this global scope.
-    pub fn get_url(&self) -> Url {
-        match *self {
-            GlobalRef::Window(ref window) => window.get_url(),
-            GlobalRef::Worker(ref worker) => worker.get_url().clone(),
-        }
     }
 
     /// `ScriptChan` used to send messages to the event loop of this global's
@@ -158,7 +149,7 @@ impl<'a> GlobalRef<'a> {
             &self, code: &str, filename: &str, rval: MutableHandleValue) {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
-                self.get_url().as_str().into()
+                self.as_global_scope().get_url().as_str().into()
             } else {
                 filename.into()
             },
