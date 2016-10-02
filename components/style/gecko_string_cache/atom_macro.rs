@@ -1726,6 +1726,8 @@ cfg_if! {
             pub static nsGkAtoms_onpopuphidden: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13onpopuphidingE"]
             pub static nsGkAtoms_onpopuphiding: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17onpopuppositionedE"]
+            pub static nsGkAtoms_onpopuppositioned: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14onpopupshowingE"]
             pub static nsGkAtoms_onpopupshowing: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12onpopupshownE"]
@@ -4316,10 +4318,6 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms28scrollbar_thumb_proportionalE"]
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms15images_in_menusE"]
-            pub static nsGkAtoms_images_in_menus: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms17images_in_buttonsE"]
-            pub static nsGkAtoms_images_in_buttons: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18overlay_scrollbarsE"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21windows_default_themeE"]
@@ -4370,10 +4368,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms33_moz_scrollbar_thumb_proportionalE"]
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20_moz_images_in_menusE"]
-            pub static nsGkAtoms__moz_images_in_menus: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22_moz_images_in_buttonsE"]
-            pub static nsGkAtoms__moz_images_in_buttons: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms23_moz_overlay_scrollbarsE"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms26_moz_windows_default_themeE"]
@@ -6647,6 +6641,8 @@ cfg_if! {
             pub static nsGkAtoms_onpopuphidden: *mut nsIAtom;
             #[link_name = "?onpopuphiding@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onpopuphiding: *mut nsIAtom;
+            #[link_name = "?onpopuppositioned@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onpopuppositioned: *mut nsIAtom;
             #[link_name = "?onpopupshowing@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onpopupshowing: *mut nsIAtom;
             #[link_name = "?onpopupshown@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9237,10 +9233,6 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "?scrollbar_thumb_proportional@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "?images_in_menus@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_images_in_menus: *mut nsIAtom;
-            #[link_name = "?images_in_buttons@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_images_in_buttons: *mut nsIAtom;
             #[link_name = "?overlay_scrollbars@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "?windows_default_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9291,10 +9283,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "?_moz_scrollbar_thumb_proportional@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "?_moz_images_in_menus@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms__moz_images_in_menus: *mut nsIAtom;
-            #[link_name = "?_moz_images_in_buttons@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms__moz_images_in_buttons: *mut nsIAtom;
             #[link_name = "?_moz_overlay_scrollbars@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "?_moz_windows_default_theme@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11568,6 +11556,8 @@ cfg_if! {
             pub static nsGkAtoms_onpopuphidden: *mut nsIAtom;
             #[link_name = "\x01?onpopuphiding@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onpopuphiding: *mut nsIAtom;
+            #[link_name = "\x01?onpopuppositioned@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onpopuppositioned: *mut nsIAtom;
             #[link_name = "\x01?onpopupshowing@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onpopupshowing: *mut nsIAtom;
             #[link_name = "\x01?onpopupshown@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14158,10 +14148,6 @@ cfg_if! {
             pub static nsGkAtoms_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "\x01?scrollbar_thumb_proportional@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "\x01?images_in_menus@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_images_in_menus: *mut nsIAtom;
-            #[link_name = "\x01?images_in_buttons@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_images_in_buttons: *mut nsIAtom;
             #[link_name = "\x01?overlay_scrollbars@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "\x01?windows_default_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14212,10 +14198,6 @@ cfg_if! {
             pub static nsGkAtoms__moz_scrollbar_end_forward: *mut nsIAtom;
             #[link_name = "\x01?_moz_scrollbar_thumb_proportional@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_scrollbar_thumb_proportional: *mut nsIAtom;
-            #[link_name = "\x01?_moz_images_in_menus@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms__moz_images_in_menus: *mut nsIAtom;
-            #[link_name = "\x01?_moz_images_in_buttons@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms__moz_images_in_buttons: *mut nsIAtom;
             #[link_name = "\x01?_moz_overlay_scrollbars@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_overlay_scrollbars: *mut nsIAtom;
             #[link_name = "\x01?_moz_windows_default_theme@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15639,6 +15621,7 @@ macro_rules! atom {
 ("onpointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerlockerror as *mut _) };
 ("onpopuphidden") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphidden as *mut _) };
 ("onpopuphiding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphiding as *mut _) };
+("onpopuppositioned") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuppositioned as *mut _) };
 ("onpopupshowing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshowing as *mut _) };
 ("onpopupshown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshown as *mut _) };
 ("onposter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onposter as *mut _) };
@@ -16934,8 +16917,6 @@ macro_rules! atom {
 ("scrollbar-end-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_backward as *mut _) };
 ("scrollbar-end-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_forward as *mut _) };
 ("scrollbar-thumb-proportional") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_thumb_proportional as *mut _) };
-("images-in-menus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_images_in_menus as *mut _) };
-("images-in-buttons") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_images_in_buttons as *mut _) };
 ("overlay-scrollbars") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay_scrollbars as *mut _) };
 ("windows-default-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_default_theme as *mut _) };
 ("mac-graphite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mac_graphite_theme as *mut _) };
@@ -16961,8 +16942,6 @@ macro_rules! atom {
 ("-moz-scrollbar-end-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_backward as *mut _) };
 ("-moz-scrollbar-end-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_forward as *mut _) };
 ("-moz-scrollbar-thumb-proportional") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_thumb_proportional as *mut _) };
-("-moz-images-in-menus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_images_in_menus as *mut _) };
-("-moz-images-in-buttons") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_images_in_buttons as *mut _) };
 ("-moz-overlay-scrollbars") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_overlay_scrollbars as *mut _) };
 ("-moz-windows-default-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_default_theme as *mut _) };
 ("-moz-mac-graphite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_mac_graphite_theme as *mut _) };
