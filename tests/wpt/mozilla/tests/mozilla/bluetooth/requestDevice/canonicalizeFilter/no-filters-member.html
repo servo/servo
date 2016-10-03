@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    try {
+        window.navigator.bluetooth.requestDevice([{}, {optionalServices: ['wrong_service']}])
+        .then(() => assert_unreached('requestDevice() should have thrown an error'));
+    } catch(error) {
+        assert_equals('TypeError', error.name);
+    }
+}, 'RequestDeviceOptions requires a |filters| member.');
+</script>
