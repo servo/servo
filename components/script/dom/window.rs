@@ -45,6 +45,7 @@ use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
+use dom::testrunner::TestRunner;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use ipc_channel::ipc::{self, IpcSender};
@@ -239,6 +240,8 @@ pub struct Window {
 
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
+
+    test_runner: MutNullableHeap<JS<TestRunner>>,
 }
 
 impl Window {
@@ -880,6 +883,10 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
+    }
+
+    fn TestRunner(&self) -> Root<TestRunner> {
+        self.test_runner.or_init(|| TestRunner::new(self.upcast()))
     }
 }
 
@@ -1588,6 +1595,7 @@ impl Window {
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
+            test_runner: Default::default(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

@@ -86,5 +86,6 @@ pub enum BluetoothMethodMsg {
     GetDescriptors(String, Option<String>, IpcSender<BluetoothResult<BluetoothDescriptorsMsg>>),
     ReadValue(String, IpcSender<BluetoothResult<Vec<u8>>>),
     WriteValue(String, Vec<u8>, IpcSender<BluetoothResult<bool>>),
+    Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
