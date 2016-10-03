@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
@@ -50,17 +49,16 @@ impl ServiceWorkerRegistration {
         self.active.as_ref().unwrap()
     }
 
-    pub fn create_scope_things(global: GlobalRef, script_url: Url) -> ScopeThings {
-        let global_scope = global.as_global_scope();
+    pub fn create_scope_things(global: &GlobalScope, script_url: Url) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global_scope.pipeline_id())
+            pipeline_id: Some(global.pipeline_id())
         };
 
-        let worker_id = global_scope.get_next_worker_id();
-        let devtools_chan = global_scope.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global_scope, None);
+        let worker_id = global.get_next_worker_id();
+        let devtools_chan = global.devtools_chan().cloned();
+        let init = prepare_workerscope_init(global, None);
         ScopeThings {
             script_url: script_url,
             init: init,

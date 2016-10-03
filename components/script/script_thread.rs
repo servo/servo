@@ -1449,10 +1449,9 @@ impl ScriptThread {
             None => return
         };
         if let Some(context) = self.root_browsing_context().find(pipeline_id) {
-            let window = context.active_window();
-            let global_ref = GlobalRef::Window(window.r());
             let script_url = maybe_registration.get_installed().get_script_url();
-            let scope_things = ServiceWorkerRegistration::create_scope_things(global_ref, script_url);
+            let scope_things = ServiceWorkerRegistration::create_scope_things(
+                context.active_window().upcast(), script_url);
             let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope));
         } else {
             warn!("Registration failed for {}", scope);
