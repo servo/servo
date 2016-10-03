@@ -1303,7 +1303,7 @@ impl XMLHttpRequest {
             (global.networking_task_source(), None)
         };
 
-        let core_resource_thread = global.core_resource_thread();
+        let core_resource_thread = global.as_global_scope().core_resource_thread();
         XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
                                            core_resource_thread, init);
 

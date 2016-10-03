@@ -67,10 +67,10 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
 pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
-    let core_resource_thread = global.core_resource_thread();
+    let global_scope = global.as_global_scope();
+    let core_resource_thread = global_scope.core_resource_thread();
 
     // Step 1
-    let global_scope = global.as_global_scope();
     let promise = Promise::new(global_scope);
     let response = Response::new(global_scope);
 

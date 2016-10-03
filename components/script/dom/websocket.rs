@@ -265,7 +265,7 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
 
-        let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
+        let _ = global_scope.core_resource_thread().send(WebsocketConnect(connect, connect_data));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
@@ -492,9 +492,8 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(ws.url.clone(),
-                                                                                         cookie_value,
-                                                                                         HTTP));
+                    let _ = ws.global_scope().core_resource_thread().send(
+                        SetCookiesForUrl(ws.url.clone(), cookie_value, HTTP));
                 }
             }
         }

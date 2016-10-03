@@ -21,7 +21,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JS_GetContext, JS_GetObjectRuntime, JSContext};
 use msg::constellation_msg::PipelineId;
-use net_traits::ResourceThreads;
+use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
@@ -251,6 +251,11 @@ impl GlobalScope {
     /// Get the `&ResourceThreads` for this global scope.
     pub fn resource_threads(&self) -> &ResourceThreads {
         &self.resource_threads
+    }
+
+    /// Get the `CoreResourceThread` for this global scope.
+    pub fn core_resource_thread(&self) -> CoreResourceThread {
+        self.resource_threads().sender()
     }
 }
 
