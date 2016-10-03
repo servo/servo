@@ -144,8 +144,7 @@ impl Blob {
                 let (buffer, is_new_buffer) = match *f.cache.borrow() {
                     Some(ref bytes) => (bytes.clone(), false),
                     None => {
-                        let global = self.global();
-                        let bytes = read_file(global.r(), f.id.clone())?;
+                        let bytes = read_file(&self.global_scope(), f.id.clone())?;
                         (bytes, true)
                     }
                 };
@@ -304,10 +303,10 @@ impl Drop for Blob {
     }
 }
 
-fn read_file(global: GlobalRef, id: Uuid) -> Result<Vec<u8>, ()> {
-    let resource_threads = global.as_global_scope().resource_threads();
+fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
+    let resource_threads = global.resource_threads();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
-    let origin = get_blob_origin(&global.as_global_scope().get_url());
+    let origin = get_blob_origin(&global.get_url());
     let check_url_validity = false;
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
     let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
