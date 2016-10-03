@@ -48,6 +48,7 @@ COMPILATION_TARGETS = {
             "--ignore-methods",
         ],
         "includes": [
+            "{}/dist/include/gfxFontConstants.h",
             "{}/dist/include/nsThemeConstants.h",
             "{}/dist/include/mozilla/dom/AnimationEffectReadOnlyBinding.h",
             "{}/dist/include/mozilla/ServoElementSnapshot.h",
@@ -73,6 +74,7 @@ COMPILATION_TARGETS = {
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
+            "NS_FONT_STRETCH_.*",
             "NS_FONT_STYLE_.*",
             "NS_STYLE_.*",
             "NS_CORNER_.*",
