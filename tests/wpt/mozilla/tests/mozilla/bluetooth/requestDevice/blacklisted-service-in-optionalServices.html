@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    let expected = 'SecurityError';
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [blacklist_test_service_uuid]}],
+        optionalServices: [human_interface_device.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => Promise.all([
+          promise_rejects(t, expected, gattServer.getPrimaryService(human_interface_device.name)),
+          promise_rejects(t, expected, gattServer.getPrimaryServices(human_interface_device.name))]))
+    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+}, 'Blacklisted UUID in optionalServices is removed and access not granted.');
+</script>

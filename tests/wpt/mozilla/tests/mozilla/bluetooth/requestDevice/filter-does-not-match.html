@@ -1,0 +1,97 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let matching_services = [heart_rate.uuid];
+let matching_name = mock_device_name.heart_rate;
+let matching_namePrefix = 'Heart';
+
+let non_matching_services = [battery_service.name];
+let non_matching_name = 'Some Device';
+let non_matching_namePrefix = 'Some';
+
+let test_specs = [{
+    filters: [{
+        services: non_matching_services,
+        name: non_matching_name,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: matching_services,
+        name: non_matching_name,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+        name: matching_name,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: matching_services,
+        name: matching_name,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+        name: non_matching_name,
+        namePrefix: matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: matching_services,
+        name: non_matching_name,
+        namePrefix: matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+        name: matching_name,
+        namePrefix: matching_namePrefix
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+        name: non_matching_name,
+    }]
+}, {
+    filters: [{
+        services: non_matching_services,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        name: non_matching_name,
+    }]
+}, {
+    filters: [{
+        name: non_matching_name,
+        namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        namePrefix: non_matching_namePrefix
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let test_promises = Promise.resolve();
+    test_specs.forEach(args => {
+        test_promises = test_promises
+            .then(() => promise_rejects(
+                t, 'NotFoundError', window.navigator.bluetooth.requestDevice(args)))
+            .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
+    return test_promises;
+}, 'If at least one filter member doesn\'t match the promise must reject.');
+</script>
