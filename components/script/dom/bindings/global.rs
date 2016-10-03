@@ -22,7 +22,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsapi::{JS_GetClass, MutableHandleValue};
 use js::rust::CompileOptionsWrapper;
 use libc;
-use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
+use net_traits::{CoreResourceThread, IpcSend};
 use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
@@ -68,17 +68,9 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get the `ResourceThreads` for this global scope.
-    pub fn resource_threads(&self) -> ResourceThreads {
-        match *self {
-            GlobalRef::Window(ref window) => window.resource_threads().clone(),
-            GlobalRef::Worker(ref worker) => worker.resource_threads().clone(),
-        }
-    }
-
     /// Get the `CoreResourceThread` for this global scope
     pub fn core_resource_thread(&self) -> CoreResourceThread {
-        self.resource_threads().sender()
+        self.as_global_scope().resource_threads().sender()
     }
 
     /// `ScriptChan` used to send messages to the event loop of this global's

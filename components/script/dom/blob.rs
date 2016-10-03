@@ -290,8 +290,8 @@ impl Blob {
     }
 
     fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
-        let global = self.global();
-        let resource_threads = global.r().resource_threads();
+        let global = self.global_scope();
+        let resource_threads = global.resource_threads();
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
     }
 }
@@ -305,7 +305,7 @@ impl Drop for Blob {
 }
 
 fn read_file(global: GlobalRef, id: Uuid) -> Result<Vec<u8>, ()> {
-    let resource_threads = global.resource_threads();
+    let resource_threads = global.as_global_scope().resource_threads();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
     let origin = get_blob_origin(&global.as_global_scope().get_url());
     let check_url_validity = false;

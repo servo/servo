@@ -133,6 +133,7 @@ impl URL {
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
     pub fn RevokeObjectURL(global: GlobalRef, url: DOMString) {
+        let global_scope = global.as_global_scope();
         /*
             If the url refers to a Blob that has a readability state of CLOSED OR
             if the value provided for the url argument is not a Blob URL, OR
@@ -142,11 +143,11 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
-        let origin = get_blob_origin(&global.as_global_scope().get_url());
+        let origin = get_blob_origin(&global_scope.get_url());
 
         if let Ok(url) = Url::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {
-                let resource_threads = global.resource_threads();
+                let resource_threads = global_scope.resource_threads();
                 let (tx, rx) = ipc::channel().unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
                 let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));

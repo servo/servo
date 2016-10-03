@@ -44,7 +44,7 @@ impl Storage {
     }
 
     fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
-        self.global_scope().as_window().resource_threads().sender()
+        self.global_scope().resource_threads().sender()
     }
 
 }

@@ -21,6 +21,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JS_GetContext, JS_GetObjectRuntime, JSContext};
 use msg::constellation_msg::PipelineId;
+use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
@@ -66,6 +67,10 @@ pub struct GlobalScope {
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
     in_error_reporting_mode: Cell<bool>,
+
+    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
+    /// including resource_thread, filemanager_thread and storage_thread
+    resource_threads: ResourceThreads,
 }
 
 impl GlobalScope {
@@ -75,7 +80,8 @@ impl GlobalScope {
             mem_profiler_chan: mem::ProfilerChan,
             time_profiler_chan: time::ProfilerChan,
             constellation_chan: IpcSender<ConstellationMsg>,
-            scheduler_chan: IpcSender<TimerEventRequest>)
+            scheduler_chan: IpcSender<TimerEventRequest>,
+            resource_threads: ResourceThreads)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -90,6 +96,7 @@ impl GlobalScope {
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
             in_error_reporting_mode: Default::default(),
+            resource_threads: resource_threads,
         }
     }
 
@@ -239,6 +246,11 @@ impl GlobalScope {
 
         // Step 14
         self.in_error_reporting_mode.set(false);
+    }
+
+    /// Get the `&ResourceThreads` for this global scope.
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 }
 

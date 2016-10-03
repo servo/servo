@@ -795,7 +795,7 @@ impl HTMLInputElement {
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
         let window = window_from_node(self);
         let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.resource_threads();
+        let resource_threads = window.upcast::<GlobalScope>().resource_threads();
 
         let mut files: Vec<Root<File>> = vec![];
         let mut error = None;

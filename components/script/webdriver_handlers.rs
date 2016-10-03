@@ -209,7 +209,7 @@ pub fn handle_get_cookies(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();
-    let _ = document.window().resource_threads().send(
+    let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
         GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
         );
     let cookies = receiver.recv().unwrap();
@@ -224,7 +224,7 @@ pub fn handle_get_cookie(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();
-    let _ = document.window().resource_threads().send(
+    let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
         GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
         );
     let cookies = receiver.recv().unwrap();
@@ -246,13 +246,13 @@ pub fn handle_add_cookie(context: &BrowsingContext,
     reply.send(match (document.is_cookie_averse(), cookie.domain.clone()) {
         (true, _) => Err(WebDriverCookieError::InvalidDomain),
         (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
-            let _ = document.window().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
                 SetCookiesForUrlWithData(url.clone(), cookie, method)
                 );
             Ok(())
         },
         (false, None) => {
-            let _ = document.window().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
                 SetCookiesForUrlWithData(url.clone(), cookie, method)
                 );
             Ok(())

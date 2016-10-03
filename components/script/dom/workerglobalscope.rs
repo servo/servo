@@ -30,7 +30,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{IpcSend, LoadOrigin};
-use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
+use net_traits::{LoadContext, load_whole_resource};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
@@ -56,8 +56,9 @@ pub fn prepare_workerscope_init(global: GlobalRef,
     let constellation_chan = global_scope.constellation_chan().clone();
     let scheduler_chan = global_scope.scheduler_chan().clone();
     let pipeline_id = global_scope.pipeline_id();
+    let resource_threads = global_scope.resource_threads().clone();
     let init = WorkerGlobalScopeInit {
-            resource_threads: global.resource_threads(),
+            resource_threads: resource_threads,
             mem_profiler_chan: mem_profiler_chan,
             to_devtools_sender: to_devtools_sender,
             time_profiler_chan: time_profiler_chan,
@@ -82,8 +83,6 @@ pub struct WorkerGlobalScope {
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
-    #[ignore_heap_size_of = "Defined in std"]
-    resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     timers: OneshotTimers,
@@ -117,12 +116,12 @@ impl WorkerGlobalScope {
                     init.mem_profiler_chan,
                     init.time_profiler_chan,
                     init.constellation_chan,
-                    init.scheduler_chan.clone()),
+                    init.scheduler_chan.clone(),
+                    init.resource_threads),
             worker_id: init.worker_id,
             worker_url: worker_url,
             closing: closing,
             runtime: runtime,
-            resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan),
@@ -164,10 +163,6 @@ impl WorkerGlobalScope {
         } else {
             false
         }
-    }
-
-    pub fn resource_threads(&self) -> &ResourceThreads {
-        &self.resource_threads
     }
 
     pub fn get_url(&self) -> &Url {
@@ -245,8 +240,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         for url in urls {
+            let global_scope = self.upcast::<GlobalScope>();
             let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &self.resource_threads.sender(),
+                                                          &global_scope.resource_threads().sender(),
                                                           url,
                                                           self) {
                 Err(_) => return Err(Error::Network),

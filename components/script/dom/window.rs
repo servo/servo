@@ -200,10 +200,6 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
-    /// including resource_thread, filemanager_thread and storage_thread
-    resource_threads: ResourceThreads,
-
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
@@ -1371,10 +1367,6 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_threads(&self) -> &ResourceThreads {
-        &self.resource_threads
-    }
-
     pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
     }
@@ -1587,7 +1579,8 @@ impl Window {
                     mem_profiler_chan,
                     time_profiler_chan,
                     constellation_chan,
-                    scheduler_chan.clone()),
+                    scheduler_chan.clone(),
+                    resource_threads),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1610,7 +1603,6 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
             page_clip_rect: Cell::new(max_rect()),
             fragment_name: DOMRefCell::new(None),
