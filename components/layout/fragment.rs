@@ -856,7 +856,7 @@ impl Fragment {
     /// Constructs a new `Fragment` instance.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
         let style_context = ctx.style_context();
-        let style = node.style(style_context).clone();
+        let style = node.style(style_context);
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
@@ -865,7 +865,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style(style_context).clone(),
+            selected_style: node.selected_style(style_context),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),

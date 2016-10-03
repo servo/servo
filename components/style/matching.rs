@@ -11,7 +11,7 @@ use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
-use data::PrivateStyleData;
+use data::PersistentStyleData;
 use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
 use properties::longhands::display::computed_value as display;
@@ -874,19 +874,9 @@ pub trait MatchMethods : TNode {
                                     -> RestyleResult
         where Ctx: StyleContext<'a>
     {
-        // Get our parent's style. This must be unsafe so that we don't touch the parent's
-        // borrow flags.
-        //
-        // FIXME(pcwalton): Isolate this unsafety into the `wrapper` module to allow
-        // enforced safe, race-free access to the parent style.
-        let parent_style = match parent {
-            Some(parent_node) => {
-                let parent_style = (*parent_node.borrow_data_unchecked().unwrap()).style.as_ref().unwrap();
-                Some(parent_style)
-            }
-            None => None,
-        };
-
+        // Get our parent's style.
+        let parent_node_data = parent.as_ref().and_then(|x| x.borrow_data());
+        let parent_style = parent_node_data.as_ref().map(|x| x.style.as_ref().unwrap());
 
         // In the case we're styling a text node, we don't need to compute the
         // restyle damage, since it's a subset of the restyle damage of the
@@ -945,7 +935,7 @@ pub trait MatchMethods : TNode {
 
     fn compute_damage_and_cascade_pseudos<'a, Ctx>(&self,
                                                    final_style: Arc<ComputedValues>,
-                                                   data: &mut PrivateStyleData,
+                                                   data: &mut PersistentStyleData,
                                                    context: &Ctx,
                                                    applicable_declarations: &ApplicableDeclarations,
                                                    mut applicable_declarations_cache: &mut ApplicableDeclarationsCache)

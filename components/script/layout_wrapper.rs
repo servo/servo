@@ -43,7 +43,7 @@ use gfx_traits::ByteIndex;
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
-use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
+use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::restyle_damage::RestyleDamage;
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, LayoutNode, PseudoElementType};
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
@@ -54,15 +54,15 @@ use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
+use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::PrivateStyleData;
+use style::data::PersistentStyleData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
 use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
@@ -220,30 +220,20 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.node.set_flag(CAN_BE_FRAGMENTED, value)
     }
 
-    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
-        self.get_style_data().map(|d| {
-            &(*d.as_unsafe_cell().get()).style_data as *const _
-        })
+    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
+        self.get_style_data().map(|d| d.borrow())
     }
 
-    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        self.get_style_data().map(|d| {
-            Ref::map(d.borrow(), |d| &d.style_data)
-        })
-    }
-
-    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        self.get_style_data().map(|d| {
-            RefMut::map(d.borrow_mut(), |d| &mut d.style_data)
-        })
+    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
+        self.get_style_data().map(|d| d.borrow_mut())
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        self.get_style_data().unwrap().borrow().restyle_damage
+        self.get_partial_layout_data().unwrap().borrow().restyle_damage
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.get_style_data().unwrap().borrow_mut().restyle_damage = damage;
+        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -309,10 +299,12 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.script_type_id().into()
     }
 
-    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>> {
         unsafe {
             self.get_jsmanaged().get_style_and_layout_data().map(|d| {
-                &**d.ptr
+                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
+                let psd: &AtomicRefCell<PersistentStyleData> = transmute(ppld);
+                psd
             })
         }
     }
@@ -331,6 +323,14 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 }
 
 impl<'ln> ServoLayoutNode<'ln> {
+    fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
+        unsafe {
+            self.get_jsmanaged().get_style_and_layout_data().map(|d| {
+                &**d.ptr
+            })
+        }
+    }
+
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
@@ -871,7 +871,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>> {
         self.node.get_style_data()
     }
 }

@@ -4,15 +4,15 @@
 
 use construct::ConstructionResult;
 use script_layout_interface::restyle_damage::RestyleDamage;
-use style::data::PrivateStyleData;
+use style::data::PersistentStyleData;
 
 /// Data that layout associates with a node.
-pub struct PrivateLayoutData {
+pub struct PersistentLayoutData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
-    /// transmuations between PrivateStyleData PrivateLayoutData.
-    pub style_data: PrivateStyleData,
+    /// transmutations between PersistentStyleData and PersistentLayoutData.
+    pub style_data: PersistentStyleData,
 
     /// Description of how to account for recent style changes.
     pub restyle_damage: RestyleDamage,
@@ -34,11 +34,11 @@ pub struct PrivateLayoutData {
     pub flags: LayoutDataFlags,
 }
 
-impl PrivateLayoutData {
+impl PersistentLayoutData {
     /// Creates new layout data.
-    pub fn new() -> PrivateLayoutData {
-        PrivateLayoutData {
-            style_data: PrivateStyleData::new(),
+    pub fn new() -> PersistentLayoutData {
+        PersistentLayoutData {
+            style_data: PersistentStyleData::new(),
             restyle_damage: RestyleDamage::empty(),
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
