@@ -270,6 +270,18 @@ impl GlobalScope {
         }
         unreachable!();
     }
+
+    /// `ScriptChan` to send messages to the networking task source of
+    /// this of this global scope.
+    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.networking_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.script_chan();
+        }
+        unreachable!();
+    }
 }
 
 fn timestamp_in_ms(time: Timespec) -> u64 {

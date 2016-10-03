@@ -270,7 +270,7 @@ impl WebSocket {
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let moved_address = address.clone();
-        let sender = global.networking_task_source();
+        let sender = global_scope.networking_task_source();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -438,7 +438,7 @@ impl WebSocketMethods for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
-                let sender = self.global().r().networking_task_source();
+                let sender = self.global_scope().networking_task_source();
                 fail_the_websocket_connection(address, sender);
             }
             WebSocketRequestState::Open => {
@@ -469,11 +469,10 @@ impl Runnable for ConnectionEstablishedTask {
 
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        let global = ws.r().global();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            let sender = global.r().networking_task_source();
+            let sender = ws.global_scope().networking_task_source();
             fail_the_websocket_connection(self.address, sender);
             return;
         }

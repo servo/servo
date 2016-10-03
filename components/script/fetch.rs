@@ -96,7 +96,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     }));
     let listener = NetworkListener {
         context: fetch_context,
-        script_chan: global.networking_task_source(),
+        script_chan: global_scope.networking_task_source(),
         wrapper: None,
     };
 

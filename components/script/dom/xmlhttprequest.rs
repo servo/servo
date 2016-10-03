@@ -1296,14 +1296,15 @@ impl XMLHttpRequest {
             sync_status: DOMRefCell::new(None),
         }));
 
+        let global_scope = global.as_global_scope();
         let (script_chan, script_port) = if self.sync.get() {
             let (tx, rx) = global.new_script_pair();
             (tx, Some(rx))
         } else {
-            (global.networking_task_source(), None)
+            (global_scope.networking_task_source(), None)
         };
 
-        let core_resource_thread = global.as_global_scope().core_resource_thread();
+        let core_resource_thread = global_scope.core_resource_thread();
         XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
                                            core_resource_thread, init);
 
