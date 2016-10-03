@@ -18,6 +18,9 @@ use dom::bindings::str::DOMString;
 use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::promise::Promise;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -122,6 +125,9 @@ pub struct WorkerGlobalScope {
     console_timers: TimerSet,
 
     promise_job_queue: PromiseJobQueue,
+
+    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
+    in_error_reporting_mode: Cell<bool>
 }
 
 impl WorkerGlobalScope {
@@ -155,6 +161,7 @@ impl WorkerGlobalScope {
             scheduler_chan: init.scheduler_chan,
             console_timers: TimerSet::new(),
             promise_job_queue: PromiseJobQueue::new(),
+            in_error_reporting_mode: Default::default(),
         }
     }
 
@@ -490,9 +497,38 @@ impl WorkerGlobalScope {
 
     /// https://html.spec.whatwg.org/multipage/#report-the-error
     pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        self.downcast::<DedicatedWorkerGlobalScope>()
-            .expect("Should implement report_an_error for this worker")
-            .report_an_error(error_info, value);
+        // Step 1.
+        if self.in_error_reporting_mode.get() {
+            return;
+        }
+
+        // Step 2.
+        self.in_error_reporting_mode.set(true);
+
+        // Steps 3-12.
+        // FIXME(#13195): muted errors.
+        let event = ErrorEvent::new(GlobalRef::Worker(self),
+                                    atom!("error"),
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::Cancelable,
+                                    error_info.message.as_str().into(),
+                                    error_info.filename.as_str().into(),
+                                    error_info.lineno,
+                                    error_info.column,
+                                    value);
+
+        // Step 13.
+        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+        // Step 15
+        if event_status == EventStatus::NotCanceled {
+            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+                dedicated.forward_error_to_worker_object(error_info);
+            }
+        }
+
+        // Step 14
+        self.in_error_reporting_mode.set(false);
     }
 }
 
