@@ -145,8 +145,8 @@ impl Worker {
 
     #[allow(unsafe_code)]
     fn dispatch_error(&self, error_info: ErrorInfo) {
-        let global = self.global();
-        let event = ErrorEvent::new(global.r().as_global_scope(),
+        let global = self.global_scope();
+        let event = ErrorEvent::new(&global,
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable,
@@ -161,7 +161,7 @@ impl Worker {
             return;
         }
 
-        global.r().report_an_error(error_info, unsafe { NullHandleValue });
+        global.report_an_error(error_info, unsafe { NullHandleValue });
     }
 }
 

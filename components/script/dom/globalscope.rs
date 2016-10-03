@@ -5,16 +5,21 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::ErrorInfo;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JS_GetContext, JS_GetObjectRuntime, JSContext};
+use js::jsapi::{HandleValue, JS_GetContext, JS_GetObjectRuntime, JSContext};
 use msg::constellation_msg::PipelineId;
 use profile_traits::{mem, time};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
@@ -58,6 +63,9 @@ pub struct GlobalScope {
 
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
+    in_error_reporting_mode: Cell<bool>,
 }
 
 impl GlobalScope {
@@ -81,6 +89,7 @@ impl GlobalScope {
             time_profiler_chan: time_profiler_chan,
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
+            in_error_reporting_mode: Default::default(),
         }
     }
 
@@ -194,6 +203,42 @@ impl GlobalScope {
     /// Extract a `Window`, panic if the global object is not a `Window`.
     pub fn as_window(&self) -> &Window {
         self.downcast::<Window>().expect("expected a Window scope")
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#report-the-error
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+        // Step 1.
+        if self.in_error_reporting_mode.get() {
+            return;
+        }
+
+        // Step 2.
+        self.in_error_reporting_mode.set(true);
+
+        // Steps 3-12.
+        // FIXME(#13195): muted errors.
+        let event = ErrorEvent::new(self,
+                                    atom!("error"),
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::Cancelable,
+                                    error_info.message.as_str().into(),
+                                    error_info.filename.as_str().into(),
+                                    error_info.lineno,
+                                    error_info.column,
+                                    value);
+
+        // Step 13.
+        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+        // Step 15
+        if event_status == EventStatus::NotCanceled {
+            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+                dedicated.forward_error_to_worker_object(error_info);
+            }
+        }
+
+        // Step 14
+        self.in_error_reporting_mode.set(false);
     }
 }
 

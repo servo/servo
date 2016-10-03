@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception};
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -17,10 +17,6 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventdispatcher::EventStatus;
-use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -40,7 +36,6 @@ use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromise
 use script_thread::{Runnable, RunnableWrapper};
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerSource};
 use script_traits::WorkerGlobalScopeInit;
-use std::cell::Cell;
 use std::default::Default;
 use std::panic;
 use std::rc::Rc;
@@ -104,9 +99,6 @@ pub struct WorkerGlobalScope {
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
     promise_job_queue: PromiseJobQueue,
-
-    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>
 }
 
 impl WorkerGlobalScope {
@@ -137,7 +129,6 @@ impl WorkerGlobalScope {
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             promise_job_queue: PromiseJobQueue::new(),
-            in_error_reporting_mode: Default::default(),
         }
     }
 
@@ -430,42 +421,6 @@ impl WorkerGlobalScope {
         if let Some(ref closing) = self.closing {
             closing.store(true, Ordering::SeqCst);
         }
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        // Step 1.
-        if self.in_error_reporting_mode.get() {
-            return;
-        }
-
-        // Step 2.
-        self.in_error_reporting_mode.set(true);
-
-        // Steps 3-12.
-        // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(self.upcast(),
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
-
-        // Step 13.
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-        // Step 15
-        if event_status == EventStatus::NotCanceled {
-            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
-                dedicated.forward_error_to_worker_object(error_info);
-            }
-        }
-
-        // Step 14
-        self.in_error_reporting_mode.set(false);
     }
 }
 

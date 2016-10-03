@@ -8,7 +8,7 @@
 //! code that works in workers as well as window scopes.
 
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::error::{ErrorInfo, report_pending_exception};
+use dom::bindings::error::report_pending_exception;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
@@ -18,8 +18,8 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, Evaluate2, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleValue, JS_GetClass, JSAutoCompartment, JSContext};
-use js::jsapi::{JSObject, MutableHandleValue};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::{JS_GetClass, MutableHandleValue};
 use js::rust::CompileOptionsWrapper;
 use libc;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
@@ -220,14 +220,6 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(ref worker) => worker.flush_promise_jobs(),
         }
     }
-
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        match *self {
-            GlobalRef::Window(ref window) => window.report_an_error(error_info, value),
-            GlobalRef::Worker(ref worker) => worker.report_an_error(error_info, value),
-        }
-    }
 }
 
 impl<'a> Reflectable for GlobalRef<'a> {
@@ -294,6 +286,13 @@ pub unsafe fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
     assert!(!obj.is_null());
     let global = GetGlobalForObjectCrossCompartment(obj);
     global_root_from_global(global)
+}
+
+/// Returns the global scope for the given JSContext
+#[allow(unrooted_must_root)]
+pub unsafe fn global_scope_from_context(cx: *mut JSContext) -> Root<GlobalScope> {
+    let global = CurrentGlobalOrNull(cx);
+    global_scope_from_global(global)
 }
 
 /// Returns the global object for the given JSContext

@@ -16,7 +16,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -31,9 +31,7 @@ use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
+use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom::history::History;
 use dom::htmliframeelement::build_mozbrowser_custom_event;
@@ -242,9 +240,6 @@ pub struct Window {
 
     /// A list of scroll offsets for each scrollable element.
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
-
-    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>,
 }
 
 impl Window {
@@ -1634,39 +1629,9 @@ impl Window {
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
-            in_error_reporting_mode: Cell::new(false),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        // Step 1.
-        if self.in_error_reporting_mode.get() {
-            return;
-        }
-
-        // Step 2.
-        self.in_error_reporting_mode.set(true);
-
-        // Steps 3-12.
-        // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(self.upcast(),
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.into(),
-                                    error_info.filename.into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
-
-        // Step 13.
-        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-        // Step 14.
-        self.in_error_reporting_mode.set(false);
     }
 }
 
