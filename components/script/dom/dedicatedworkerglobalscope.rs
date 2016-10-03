@@ -17,10 +17,6 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventdispatcher::EventStatus;
-use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerErrorHandler, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -36,7 +32,6 @@ use rand::random;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
-use std::cell::Cell;
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
@@ -92,8 +87,6 @@ pub struct DedicatedWorkerGlobalScope {
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
-    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -120,7 +113,6 @@ impl DedicatedWorkerGlobalScope {
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DOMRefCell::new(None),
-            in_error_reporting_mode: Cell::new(false),
         }
     }
 
@@ -338,43 +330,13 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        // Step 1.
-        if self.in_error_reporting_mode.get() {
-            return;
-        }
-
-        // Step 2.
-        self.in_error_reporting_mode.set(true);
-
-        // Steps 3-12.
-        // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(GlobalRef::Worker(self.upcast()),
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.as_str().into(),
-                                    error_info.filename.as_str().into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
-
-        // Step 13.
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-        // Step 15
-        if event_status == EventStatus::NotCanceled {
-            let worker = self.worker.borrow().as_ref().unwrap().clone();
-            // TODO: Should use the DOM manipulation task source.
-            self.parent_sender
-                .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
-                                                   box WorkerErrorHandler::new(worker, error_info)))
-                .unwrap();
-        }
-
-        // Step 14
-        self.in_error_reporting_mode.set(false);
+    pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        // TODO: Should use the DOM manipulation task source.
+        self.parent_sender
+            .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                                               box WorkerErrorHandler::new(worker, error_info)))
+            .unwrap();
     }
 }
 
