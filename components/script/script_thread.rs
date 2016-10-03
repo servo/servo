@@ -985,8 +985,7 @@ impl ScriptThread {
                     Some(browsing_context) => browsing_context.active_window(),
                     None => return warn!("Message sent to closed pipeline {}.", id),
                 };
-                let global_ref = GlobalRef::Window(window.r());
-                devtools::handle_evaluate_js(&global_ref, s, reply)
+                devtools::handle_evaluate_js(window.upcast(), s, reply)
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
                 devtools::handle_get_root_node(&context, id, reply),

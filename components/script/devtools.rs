@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
@@ -34,14 +33,14 @@ use uuid::Uuid;
 
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {
+pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         rooted!(in(cx) let mut rval = UndefinedValue());
-        global.as_global_scope().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+        global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
         if rval.is_undefined() {
             EvaluateJSReply::VoidValue

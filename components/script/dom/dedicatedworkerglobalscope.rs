@@ -301,10 +301,9 @@ impl DedicatedWorkerGlobalScope {
     fn handle_event(&self, event: MixedMessage) {
         match event {
             MixedMessage::FromDevtools(msg) => {
-                let global_ref = GlobalRef::Worker(self.upcast());
                 match msg {
                     DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
-                        devtools::handle_evaluate_js(&global_ref, string, sender),
+                        devtools::handle_evaluate_js(self.upcast(), string, sender),
                     DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
                         devtools::handle_get_cached_messages(pipe_id, message_types, sender),
                     DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
