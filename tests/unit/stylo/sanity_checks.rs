@@ -30,7 +30,7 @@ macro_rules! check_enum_value_non_static {
 #[test]
 fn assert_restyle_hints_match() {
     use style::restyle_hints::*; // For flags
-    use gecko_bindings::structs::nsRestyleHint;
+    use style::gecko_bindings::structs::nsRestyleHint;
 
     check_enum_value_non_static!(nsRestyleHint::eRestyle_Self, RESTYLE_SELF.bits());
     // XXX This for Servo actually means something like an hypothetical
@@ -62,7 +62,7 @@ fn assert_basic_pseudo_elements() {
         };
     }
 
-    include!("../../../components/style/generated/gecko_pseudo_element_helper.rs");
+    include!("../../../components/style/gecko/generated/gecko_pseudo_element_helper.rs");
 
     assert!(saw_before);
     assert!(saw_after);
