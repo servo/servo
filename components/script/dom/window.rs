@@ -45,6 +45,7 @@ use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
+use dom::testrunner::TestRunner;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::LayerId;
@@ -275,6 +276,8 @@ pub struct Window {
 
     /// Timers used by the Console API.
     console_timers: TimerSet,
+
+    test_runner: MutNullableHeap<JS<TestRunner>>,
 }
 
 impl Window {
@@ -905,6 +908,10 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
         fetch::Fetch(self.global().r(), input, init)
+    }
+
+    fn TestRunner(&self) -> Root<TestRunner> {
+        self.test_runner.or_init(|| TestRunner::new(GlobalRef::Window(self)))
     }
 }
 
@@ -1682,6 +1689,7 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             in_error_reporting_mode: Cell::new(false),
             console_timers: TimerSet::new(),
+            test_runner: Default::default(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

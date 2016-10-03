@@ -14,7 +14,7 @@ bitflags = "0.7"
 brotli = "1.0.6"
 content-blocker = "0.2.1"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
-device = {git = "https://github.com/szeged/devices", branch = "test-api"}
+device = {git = "https://github.com/szeged/devices", branch = "test-api", features = ["bluetooth-test"]}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
