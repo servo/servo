@@ -1767,7 +1767,7 @@ impl ScriptThread {
             unsafe {
                 let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
                 rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
-                GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+                window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
                     &script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
                                                    jsval.handle(),

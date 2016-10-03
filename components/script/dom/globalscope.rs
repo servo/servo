@@ -5,7 +5,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::error::ErrorInfo;
+use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
@@ -19,16 +19,21 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JS_GetContext, JS_GetObjectRuntime, JSContext};
+use js::jsapi::{HandleValue, Evaluate2, JS_GetContext, JS_GetObjectRuntime};
+use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
+use js::rust::CompileOptionsWrapper;
+use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::ScriptChan;
+use script_runtime::{ScriptChan, maybe_take_panic_result};
 use script_thread::MainThreadScriptChan;
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::ffi::CString;
+use std::panic;
 use time::{Timespec, get_time};
 use url::Url;
 
@@ -281,6 +286,53 @@ impl GlobalScope {
             return worker.script_chan();
         }
         unreachable!();
+    }
+
+    /// Evaluate JS code on this global scope.
+    pub fn evaluate_js_on_global_with_result(
+            &self, code: &str, rval: MutableHandleValue) {
+        self.evaluate_script_on_global_with_result(code, "", rval)
+    }
+
+    /// Evaluate a JS script on this global scope.
+    #[allow(unsafe_code)]
+    pub fn evaluate_script_on_global_with_result(
+            &self, code: &str, filename: &str, rval: MutableHandleValue) {
+        let metadata = time::TimerMetadata {
+            url: if filename.is_empty() {
+                self.get_url().as_str().into()
+            } else {
+                filename.into()
+            },
+            iframe: time::TimerMetadataFrameType::RootWindow,
+            incremental: time::TimerMetadataReflowType::FirstReflow,
+        };
+        time::profile(
+            time::ProfilerCategory::ScriptEvaluate,
+            Some(metadata),
+            self.time_profiler_chan().clone(),
+            || {
+                let cx = self.get_cx();
+                let globalhandle = self.reflector().get_jsobject();
+                let code: Vec<u16> = code.encode_utf16().collect();
+                let filename = CString::new(filename).unwrap();
+
+                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
+                unsafe {
+                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                                  code.len() as libc::size_t,
+                                  rval) {
+                        debug!("error evaluating JS string");
+                        report_pending_exception(cx, true);
+                    }
+                }
+
+                if let Some(error) = maybe_take_panic_result() {
+                    panic::resume_unwind(error);
+                }
+            }
+        )
     }
 }
 

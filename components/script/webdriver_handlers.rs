@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
@@ -93,7 +92,7 @@ pub fn handle_execute_script(context: &BrowsingContext,
     let result = unsafe {
         let cx = window.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
-        GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+        window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
             &eval, rval.handle_mut());
         jsval_to_webdriver(cx, rval.handle())
     };
@@ -113,7 +112,7 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
     rooted!(in(cx) let mut rval = UndefinedValue());
-    GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+    window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
         &eval, rval.handle_mut());
 }
 

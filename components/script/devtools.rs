@@ -41,7 +41,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         rooted!(in(cx) let mut rval = UndefinedValue());
-        global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+        global.as_global_scope().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
         if rval.is_undefined() {
             EvaluateJSReply::VoidValue

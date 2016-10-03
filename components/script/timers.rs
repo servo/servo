@@ -489,11 +489,11 @@ impl JsTimerTask {
         // step 4.2
         match *&self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
-                let global = this.global();
-                let cx = global.r().get_cx();
+                let global = this.global_scope();
+                let cx = global.get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
 
-                global.r().evaluate_js_on_global_with_result(
+                global.evaluate_js_on_global_with_result(
                     code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

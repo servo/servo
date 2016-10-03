@@ -8,7 +8,6 @@
 //! code that works in workers as well as window scopes.
 
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::error::report_pending_exception;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
@@ -17,18 +16,11 @@ use dom::window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
-use js::jsapi::{CurrentGlobalOrNull, Evaluate2, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
-use js::jsapi::{JS_GetClass, MutableHandleValue};
-use js::rust::CompileOptionsWrapper;
-use libc;
-use profile_traits::time;
-use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
-use script_runtime::{ScriptPort, maybe_take_panic_result};
+use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{JSContext, JSObject, JS_GetClass};
+use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
 use script_thread::{RunnableWrapper, ScriptThread};
 use script_traits::MsDuration;
-use std::ffi::CString;
-use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 
@@ -93,53 +85,6 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Window(_) => ScriptThread::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
         }
-    }
-
-    /// Evaluate JS code on this global.
-    pub fn evaluate_js_on_global_with_result(
-            &self, code: &str, rval: MutableHandleValue) {
-        self.evaluate_script_on_global_with_result(code, "", rval)
-    }
-
-    /// Evaluate a JS script on this global.
-    #[allow(unsafe_code)]
-    pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue) {
-        let metadata = time::TimerMetadata {
-            url: if filename.is_empty() {
-                self.as_global_scope().get_url().as_str().into()
-            } else {
-                filename.into()
-            },
-            iframe: time::TimerMetadataFrameType::RootWindow,
-            incremental: time::TimerMetadataReflowType::FirstReflow,
-        };
-        time::profile(
-            time::ProfilerCategory::ScriptEvaluate,
-            Some(metadata),
-            self.as_global_scope().time_profiler_chan().clone(),
-            || {
-                let cx = self.get_cx();
-                let globalhandle = self.reflector().get_jsobject();
-                let code: Vec<u16> = code.encode_utf16().collect();
-                let filename = CString::new(filename).unwrap();
-
-                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
-                unsafe {
-                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
-                                  code.len() as libc::size_t,
-                                  rval) {
-                        debug!("error evaluating JS string");
-                        report_pending_exception(cx, true);
-                    }
-                }
-
-                if let Some(error) = maybe_take_panic_result() {
-                    panic::resume_unwind(error);
-                }
-            }
-        )
     }
 
     /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
