@@ -1,0 +1,11 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+test(() => {
+    //assert_throws('ReferenceError', function () { new Bluetooth() });
+    //assert_throws(null, function () { Bluetooth() });
+    assert_true('requestDevice' in window.navigator.bluetooth);
+}, 'Bluetooth IDL test');
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{name: mock_device_name.heart_rate}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryServices()))
+    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+}, 'Request for present service without permission. Reject with NotFoundError.');
+</script>

@@ -1,0 +1,11 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+    return promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice({filters: [{}]}));
+}, 'A filter must restrict the devices in some way.');
+</script>

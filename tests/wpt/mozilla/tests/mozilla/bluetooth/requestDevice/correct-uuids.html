@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [glucose.name]}],
+        optionalServices: [tx_power.name]
+    })
+    .then(device => {
+        assert_equals(device.uuids.length, 2);
+        assert_in_array(glucose.uuid, device.uuids);
+        assert_in_array(tx_power.uuid, device.uuids);
+    })
+    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+}, 'We should only see UUID\'s that we\'ve been given permission for.');
+</script>
