@@ -60,7 +60,6 @@ impl ServiceWorkerRegistration {
         let init = prepare_workerscope_init(global, None);
         ScopeThings {
             script_url: script_url,
-            pipeline_id: global.pipeline_id(),
             init: init,
             worker_load_origin: worker_load_origin,
             devtools_chan: global.devtools_chan(),
