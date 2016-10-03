@@ -1238,6 +1238,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn DisableVertexAttribArray(&self, attrib_id: u32) {
+        if attrib_id > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::DisableVertexAttribArray(attrib_id)))
+            .unwrap()
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         match mode {
@@ -2016,13 +2027,51 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        if let constants::FLOAT = data_type {
-           let msg = CanvasMsg::WebGL(
-               WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset as u32));
-            self.ipc_renderer.send(msg).unwrap()
-        } else {
-            panic!("VertexAttribPointer: Data Type not supported")
+        //     "If no WebGLBuffer is bound to the ARRAY_BUFFER target,
+        //      an INVALID_OPERATION error will be generated."
+        if self.bound_buffer_array.get().is_none() {
+            return self.webgl_error(InvalidOperation);
         }
+
+        // From the WebGL spec, 6.11 "Vertex Attribute Data Stride":
+        //
+        //    "The WebGL API supports vertex attribute data strides up
+        //     to 255 bytes. A call to vertexAttribPointer will
+        //     generate an INVALID_VALUE error if the value for the
+        //     stride parameter exceeds 255."
+        if stride as u32 > 255 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        // From the WebGL spec, 6.14 "Fixed point support":
+        //
+        //    "The WebGL API does not support the GL_FIXED data type".
+        //
+        // Other than that, WebGL uses the valid vertex attrib types
+        // from GLES 2.0.25 spec, page 20.  Additionally, we have to
+        // do type-specific stride mathcing from 6.4 "Buffer Offset
+        // and Stride Requirements":
+        //
+        //    "The offset arguments to drawElements and
+        //     vertexAttribPointer, and the stride argument to
+        //     vertexAttribPointer, must be a multiple of the size of
+        //     the data type passed to the call, or an
+        //     INVALID_OPERATION error is generated."
+        let cpp = match data_type {
+            constants::BYTE |
+            constants::UNSIGNED_BYTE => 1,
+            constants::SHORT |
+            constants::UNSIGNED_SHORT => 2,
+            constants::FLOAT => 4,
+            _ => return self.webgl_error(InvalidEnum),
+        };
+        if stride % cpp != 0 || offset % cpp as i64 != 0 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        let msg = CanvasMsg::WebGL(
+            WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32));
+        self.ipc_renderer.send(msg).unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
