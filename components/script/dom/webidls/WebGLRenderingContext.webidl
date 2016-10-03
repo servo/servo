@@ -552,7 +552,7 @@ interface WebGLRenderingContextBase
     void depthRange(GLclampf zNear, GLclampf zFar);
     void detachShader(WebGLProgram? program, WebGLShader? shader);
     void disable(GLenum cap);
-    //void disableVertexAttribArray(GLuint index);
+    void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
     void drawElements(GLenum mode, GLsizei count, GLenum type, GLintptr offset);
 
@@ -583,7 +583,7 @@ interface WebGLRenderingContextBase
     //any getFramebufferAttachmentParameter(GLenum target, GLenum attachment,
     //                                      GLenum pname);
     any getProgramParameter(WebGLProgram? program, GLenum pname);
-    //DOMString? getProgramInfoLog(WebGLProgram? program);
+    DOMString? getProgramInfoLog(WebGLProgram? program);
     //any getRenderbufferParameter(GLenum target, GLenum pname);
     any getShaderParameter(WebGLShader? shader, GLenum pname);
     //WebGLShaderPrecisionFormat? getShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype);
@@ -704,7 +704,7 @@ interface WebGLRenderingContextBase
     //                      sequence<GLfloat> value);
 
     void useProgram(WebGLProgram? program);
-    //void validateProgram(WebGLProgram? program);
+    void validateProgram(WebGLProgram? program);
 
     // FIXME(dmarcos)
     // The code generator doesn't handle Float32Array so we're using 'object'
