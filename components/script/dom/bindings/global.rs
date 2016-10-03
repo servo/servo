@@ -25,7 +25,7 @@ use libc;
 use profile_traits::time;
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
-use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
+use script_thread::{RunnableWrapper, ScriptThread};
 use script_traits::MsDuration;
 use std::ffi::CString;
 use std::panic;
@@ -64,16 +64,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.get_cx(),
             GlobalRef::Worker(ref worker) => worker.get_cx(),
-        }
-    }
-
-    /// `ScriptChan` used to send messages to the event loop of this global's
-    /// thread.
-    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
-        match *self {
-            GlobalRef::Window(ref window) =>
-                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
         }
     }
 

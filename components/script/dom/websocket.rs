@@ -330,8 +330,10 @@ impl WebSocket {
                 address: address,
             };
 
-            let global = self.global();
-            global.r().script_chan().send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            self.global_scope()
+                .script_chan()
+                .send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task))
+                .unwrap();
         }
 
         Ok(true)

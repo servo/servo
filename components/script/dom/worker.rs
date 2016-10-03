@@ -109,7 +109,7 @@ impl Worker {
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver, worker_load_origin, closing);
+            global_scope.script_chan(), sender, receiver, worker_load_origin, closing);
 
         Ok(worker)
     }

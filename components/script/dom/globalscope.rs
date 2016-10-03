@@ -23,6 +23,8 @@ use js::jsapi::{HandleValue, JS_GetContext, JS_GetObjectRuntime, JSContext};
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
+use script_runtime::ScriptChan;
+use script_thread::MainThreadScriptChan;
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -256,6 +258,17 @@ impl GlobalScope {
     /// Get the `CoreResourceThread` for this global scope.
     pub fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
+    }
+
+    /// `ScriptChan` to send messages to the event loop of this global scope.
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
+        if let Some(window) = self.downcast::<Window>() {
+            return MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.script_chan();
+        }
+        unreachable!();
     }
 }
 
