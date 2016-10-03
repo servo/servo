@@ -45,6 +45,7 @@ def run(path, session, timeout=0):
 
     recorder = SubtestResultRecorder()
     plugins = [recorder,
+               fixtures,
                fixtures.Session(session)]
 
     # TODO(ato): Deal with timeouts

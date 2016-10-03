@@ -4,9 +4,16 @@
 
 import unittest
 import sys
-sys.path.insert(0, "..")
+from os.path import join, dirname
+from mozlog import structured
 
-from wptrunner import wptrunner
+import pytest
+
+sys.path.insert(0, join(dirname(__file__), "..", ".."))
+
+from wptrunner.testloader import EqualTimeChunker
+
+structured.set_default_logger(structured.structuredlog.StructuredLogger("TestChunker"))
 
 class MockTest(object):
     def __init__(self, id, timeout=10):
@@ -28,9 +35,9 @@ class TestEqualTimeChunker(unittest.TestCase):
     def test_include_all(self):
         tests = make_mock_manifest(("a", 10), ("a/b", 10), ("c", 10))
 
-        chunk_1 = list(wptrunner.EqualTimeChunker(3, 1)(tests))
-        chunk_2 = list(wptrunner.EqualTimeChunker(3, 2)(tests))
-        chunk_3 = list(wptrunner.EqualTimeChunker(3, 3)(tests))
+        chunk_1 = list(EqualTimeChunker(3, 1)(tests))
+        chunk_2 = list(EqualTimeChunker(3, 2)(tests))
+        chunk_3 = list(EqualTimeChunker(3, 3)(tests))
 
         self.assertEquals(tests[:10], chunk_1)
         self.assertEquals(tests[10:20], chunk_2)
@@ -39,9 +46,9 @@ class TestEqualTimeChunker(unittest.TestCase):
     def test_include_all_1(self):
         tests = make_mock_manifest(("a", 5), ("a/b", 5), ("c", 10), ("d", 10))
 
-        chunk_1 = list(wptrunner.EqualTimeChunker(3, 1)(tests))
-        chunk_2 = list(wptrunner.EqualTimeChunker(3, 2)(tests))
-        chunk_3 = list(wptrunner.EqualTimeChunker(3, 3)(tests))
+        chunk_1 = list(EqualTimeChunker(3, 1)(tests))
+        chunk_2 = list(EqualTimeChunker(3, 2)(tests))
+        chunk_3 = list(EqualTimeChunker(3, 3)(tests))
 
         self.assertEquals(tests[:10], chunk_1)
         self.assertEquals(tests[10:20], chunk_2)
@@ -50,9 +57,9 @@ class TestEqualTimeChunker(unittest.TestCase):
     def test_long(self):
         tests = make_mock_manifest(("a", 100), ("a/b", 1), ("c", 1))
 
-        chunk_1 = list(wptrunner.EqualTimeChunker(3, 1)(tests))
-        chunk_2 = list(wptrunner.EqualTimeChunker(3, 2)(tests))
-        chunk_3 = list(wptrunner.EqualTimeChunker(3, 3)(tests))
+        chunk_1 = list(EqualTimeChunker(3, 1)(tests))
+        chunk_2 = list(EqualTimeChunker(3, 2)(tests))
+        chunk_3 = list(EqualTimeChunker(3, 3)(tests))
 
         self.assertEquals(tests[:100], chunk_1)
         self.assertEquals(tests[100:101], chunk_2)
@@ -61,9 +68,9 @@ class TestEqualTimeChunker(unittest.TestCase):
     def test_long_1(self):
         tests = make_mock_manifest(("a", 1), ("a/b", 100), ("c", 1))
 
-        chunk_1 = list(wptrunner.EqualTimeChunker(3, 1)(tests))
-        chunk_2 = list(wptrunner.EqualTimeChunker(3, 2)(tests))
-        chunk_3 = list(wptrunner.EqualTimeChunker(3, 3)(tests))
+        chunk_1 = list(EqualTimeChunker(3, 1)(tests))
+        chunk_2 = list(EqualTimeChunker(3, 2)(tests))
+        chunk_3 = list(EqualTimeChunker(3, 3)(tests))
 
         self.assertEquals(tests[:1], chunk_1)
         self.assertEquals(tests[1:101], chunk_2)
@@ -72,7 +79,7 @@ class TestEqualTimeChunker(unittest.TestCase):
     def test_too_few_dirs(self):
         with self.assertRaises(ValueError):
             tests = make_mock_manifest(("a", 1), ("a/b", 100), ("c", 1))
-            list(wptrunner.EqualTimeChunker(4, 1)(tests))
+            list(EqualTimeChunker(4, 1)(tests))
 
 
 if __name__ == "__main__":
