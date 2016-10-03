@@ -1,3 +1,2 @@
 mozprocess >= 0.19
-Mako >= 1.0.4
 
