@@ -5,7 +5,6 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -49,9 +48,9 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
-    pub fn Constructor(global: GlobalRef, init: Option<HeadersInit>)
+    pub fn Constructor(global: &GlobalScope, init: Option<HeadersInit>)
                        -> Fallible<Root<Headers>> {
-        let dom_headers_new = Headers::new(global.as_global_scope());
+        let dom_headers_new = Headers::new(global);
         try!(dom_headers_new.fill(init));
         Ok(dom_headers_new)
     }

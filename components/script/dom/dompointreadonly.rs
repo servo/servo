@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::{DOMPointReadOnlyMethods, Wrap};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
@@ -37,13 +36,13 @@ impl DOMPointReadOnly {
                            Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        x: f64,
                        y: f64,
                        z: f64,
                        w: f64)
                        -> Fallible<Root<DOMPointReadOnly>> {
-        Ok(DOMPointReadOnly::new(global.as_global_scope(), x, y, z, w))
+        Ok(DOMPointReadOnly::new(global, x, y, z, w))
     }
 }
 

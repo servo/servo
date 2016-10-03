@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -58,13 +57,13 @@ impl CloseEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Root<CloseEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        Ok(CloseEvent::new(global.as_global_scope(),
+        Ok(CloseEvent::new(global,
                            Atom::from(type_),
                            bubbles,
                            cancelable,

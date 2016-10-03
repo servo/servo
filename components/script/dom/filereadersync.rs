@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::FileReaderSyncBinding;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
@@ -27,7 +26,7 @@ impl FileReaderSync {
                            global, FileReaderSyncBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<FileReaderSync>> {
-        Ok(FileReaderSync::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<FileReaderSync>> {
+        Ok(FileReaderSync::new(global))
     }
 }

@@ -6,7 +6,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -131,12 +130,12 @@ impl Event {
         event
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);
         let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new(global.as_global_scope(), Atom::from(type_), bubbles, cancelable))
+        Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {

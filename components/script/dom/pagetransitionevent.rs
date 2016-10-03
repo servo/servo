@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::PageTransitionEventBinding;
 use dom::bindings::codegen::Bindings::PageTransitionEventBinding::PageTransitionEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -52,11 +51,11 @@ impl PageTransitionEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
                        -> Fallible<Root<PageTransitionEvent>> {
-        Ok(PageTransitionEvent::new(global.as_global_scope(),
+        Ok(PageTransitionEvent::new(global,
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,

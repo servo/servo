@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{DOMMatrixReadOn
 use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use dom::bindings::error;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{reflect_dom_object, Reflectable, Reflector};
 use dom::dommatrix::DOMMatrix;
@@ -41,23 +40,23 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Self>> {
-        Ok(Self::new(global.as_global_scope(), true, Matrix4D::identity()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Self>> {
+        Ok(Self::new(global, true, Matrix4D::identity()))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
-    pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<Self>> {
+    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<Root<Self>> {
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
-                Self::new(global.as_global_scope(), is2D, matrix)
+                Self::new(global, is2D, matrix)
             })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
-    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
+    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
         dommatrixinit_to_matrix(&other)
             .map(|(is2D, matrix)| {
-                Self::new(global.as_global_scope(), is2D, matrix)
+                Self::new(global, is2D, matrix)
             })
     }
 

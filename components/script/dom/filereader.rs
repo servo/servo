@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -94,8 +93,8 @@ impl FileReader {
                            global, FileReaderBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<FileReader>> {
-        Ok(FileReader::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<FileReader>> {
+        Ok(FileReader::new(global))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps

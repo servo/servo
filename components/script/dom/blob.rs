@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -121,7 +120,7 @@ impl Blob {
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        blobParts: Option<Vec<BlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
                        -> Fallible<Root<Blob>> {
@@ -134,7 +133,7 @@ impl Blob {
             }
         };
 
-        Ok(Blob::new(global.as_global_scope(), BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
+        Ok(Blob::new(global, BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching

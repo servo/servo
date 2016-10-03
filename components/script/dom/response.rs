@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
@@ -71,7 +70,7 @@ impl Response {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
+    pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
                        -> Fallible<Root<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
@@ -87,7 +86,7 @@ impl Response {
         }
 
         // Step 3
-        let r = Response::new(global.as_global_scope());
+        let r = Response::new(global);
 
         // Step 4
         *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status));
@@ -139,8 +138,8 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: GlobalRef) -> Root<Response> {
-        let r = Response::new(global.as_global_scope());
+    pub fn Error(global: &GlobalScope) -> Root<Response> {
+        let r = Response::new(global);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
         *r.raw_status.borrow_mut() = Some((0, b"".to_vec()));
@@ -148,11 +147,10 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: GlobalRef, url: USVString, status: u16) -> Fallible<Root<Response>> {
-        let global_scope = global.as_global_scope();
+    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<Root<Response>> {
         // Step 1
         // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global_scope.get_url();
+        let base_url = global.get_url();
         let parsed_url = base_url.join(&url.0);
 
         // Step 2
@@ -168,7 +166,7 @@ impl Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global_scope);
+        let r = Response::new(global);
 
         // Step 5
         *r.status.borrow_mut() = Some(StatusCode::from_u16(status));

@@ -7,7 +7,6 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::TestBindingIterableBinding::{self, TestBindingIterableMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -27,8 +26,8 @@ impl TestBindingIterable {
         }, global, TestBindingIterableBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBindingIterable>> {
-        Ok(TestBindingIterable::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBindingIterable>> {
+        Ok(TestBindingIterable::new(global))
     }
 }
 

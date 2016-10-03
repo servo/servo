@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::StorageEventBinding;
 use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
@@ -71,7 +70,7 @@ impl StorageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &StorageEventBinding::StorageEventInit) -> Fallible<Root<StorageEvent>> {
         let key = init.key.clone();
@@ -81,7 +80,7 @@ impl StorageEvent {
         let storageArea = init.storageArea.r();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = StorageEvent::new(global.as_global_scope(), Atom::from(type_),
+        let event = StorageEvent::new(global, Atom::from(type_),
                                       bubbles, cancelable,
                                       key, oldValue, newValue,
                                       url, storageArea);

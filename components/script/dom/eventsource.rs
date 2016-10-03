@@ -6,7 +6,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
@@ -49,18 +48,17 @@ impl EventSource {
                            Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        url_str: DOMString,
                        event_source_init: &EventSourceInit) -> Fallible<Root<EventSource>> {
-        let global_scope = global.as_global_scope();
         // Steps 1-2
-        let base_url = global_scope.get_url();
+        let base_url = global.get_url();
         let url = match base_url.join(&*url_str) {
             Ok(u) => u,
             Err(_) => return Err(Error::Syntax)
         };
         // Step 3
-        let event_source = EventSource::new(global_scope, url, event_source_init.withCredentials);
+        let event_source = EventSource::new(global, url, event_source_init.withCredentials);
         // Step 4
         // Step 5
         // Step 6

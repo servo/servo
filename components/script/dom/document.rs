@@ -21,7 +21,6 @@ use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::js::RootedReference;
@@ -1819,8 +1818,8 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Document>> {
-        let win = global.as_global_scope().as_window();
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Document>> {
+        let win = global.as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());

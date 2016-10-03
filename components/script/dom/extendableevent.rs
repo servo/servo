@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -42,10 +41,10 @@ impl ExtendableEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(global.as_global_scope(),
+        Ok(ExtendableEvent::new(global,
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable))

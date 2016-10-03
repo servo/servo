@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
@@ -28,13 +27,13 @@ impl DOMPoint {
         reflect_dom_object(box DOMPoint::new_inherited(x, y, z, w), global, Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        x: f64,
                        y: f64,
                        z: f64,
                        w: f64)
                        -> Fallible<Root<DOMPoint>> {
-        Ok(DOMPoint::new(global.as_global_scope(), x, y, z, w))
+        Ok(DOMPoint::new(global, x, y, z, w))
     }
 
     pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> Root<DOMPoint> {

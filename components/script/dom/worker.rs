@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, ErrorInfo};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -72,29 +71,28 @@ impl Worker {
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
-        let global_scope = global.as_global_scope();
+    pub fn Constructor(global: &GlobalScope, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
-        let worker_url = match global_scope.api_base_url().join(&script_url) {
+        let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global_scope, sender.clone(), closing.clone());
+        let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
 
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global_scope.pipeline_id()),
+            pipeline_id: Some(global.pipeline_id()),
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let worker_id = global_scope.get_next_worker_id();
-        if let Some(ref chan) = global_scope.devtools_chan() {
-            let pipeline_id = global_scope.pipeline_id();
+        let worker_id = global.get_next_worker_id();
+        if let Some(ref chan) = global.devtools_chan() {
+            let pipeline_id = global.pipeline_id();
                 let title = format!("Worker for {}", worker_url);
                 let page_info = DevtoolsPageInfo {
                     title: title,
@@ -105,11 +103,11 @@ impl Worker {
                                                                 page_info));
         }
 
-        let init = prepare_workerscope_init(global_scope, Some(devtools_sender));
+        let init = prepare_workerscope_init(global, Some(devtools_sender));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,
-            global_scope.script_chan(), sender, receiver, worker_load_origin, closing);
+            global.script_chan(), sender, receiver, worker_load_origin, closing);
 
         Ok(worker)
     }

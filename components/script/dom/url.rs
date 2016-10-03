@@ -6,7 +6,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -62,7 +61,7 @@ impl URL {
 
 impl URL {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef, url: USVString,
+    pub fn Constructor(global: &GlobalScope, url: USVString,
                        base: Option<USVString>)
                        -> Fallible<Root<URL>> {
         let parsed_base = match base {
@@ -90,7 +89,7 @@ impl URL {
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
-        let result = URL::new(global.as_global_scope(), parsed_url);
+        let result = URL::new(global, parsed_url);
         // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
@@ -98,7 +97,7 @@ impl URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-domaintoasciidomain
-    pub fn DomainToASCII(_: GlobalRef, origin: USVString) -> USVString {
+    pub fn DomainToASCII(_: &GlobalScope, origin: USVString) -> USVString {
         // Step 1.
         let ascii_domain = Host::parse(&origin.0);
         if let Ok(Host::Domain(string)) = ascii_domain {
@@ -110,15 +109,15 @@ impl URL {
         }
     }
 
-    pub fn DomainToUnicode(_: GlobalRef, origin: USVString) -> USVString {
+    pub fn DomainToUnicode(_: &GlobalScope, origin: USVString) -> USVString {
         USVString(domain_to_unicode(&origin.0))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
-    pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
+    pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = get_blob_origin(&global.as_global_scope().get_url());
+        let origin = get_blob_origin(&global.get_url());
 
         if blob.IsClosed() {
             // Generate a dummy id
@@ -132,8 +131,7 @@ impl URL {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
-    pub fn RevokeObjectURL(global: GlobalRef, url: DOMString) {
-        let global_scope = global.as_global_scope();
+    pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         /*
             If the url refers to a Blob that has a readability state of CLOSED OR
             if the value provided for the url argument is not a Blob URL, OR
@@ -143,11 +141,11 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
-        let origin = get_blob_origin(&global_scope.get_url());
+        let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = Url::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {
-                let resource_threads = global_scope.resource_threads();
+                let resource_threads = global.resource_threads();
                 let (tx, rx) = ipc::channel().unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
                 let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));

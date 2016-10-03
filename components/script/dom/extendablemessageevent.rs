@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -47,12 +46,12 @@ impl ExtendableMessageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
                        -> Fallible<Root<ExtendableMessageEvent>> {
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = ExtendableMessageEvent::new(global.as_global_scope(),
+        let ev = ExtendableMessageEvent::new(global,
                                              Atom::from(type_),
                                              init.parent.parent.bubbles,
                                              init.parent.parent.cancelable,

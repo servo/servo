@@ -17,6 +17,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
@@ -225,10 +226,10 @@ impl HTMLImageElement {
                            HTMLImageElementBinding::Wrap)
     }
 
-    pub fn Image(global: GlobalRef,
+    pub fn Image(global: &GlobalScope,
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
-        let document = global.as_global_scope().as_window().Document();
+        let document = global.as_window().Document();
         let image = HTMLImageElement::new(atom!("img"), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);

@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
@@ -23,6 +22,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, UnbindContext};
@@ -70,8 +70,8 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Range>> {
-        let document = global.as_global_scope().as_window().Document();
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Range>> {
+        let document = global.as_window().Document();
         Ok(Range::new_with_doc(document.r()))
     }
 

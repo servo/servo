@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMe
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -196,7 +195,7 @@ impl WebSocket {
                            global, WebSocketBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
                        -> Fallible<Root<WebSocket>> {
@@ -239,11 +238,10 @@ impl WebSocket {
         }
 
         // Step 6: Origin.
-        let global_scope = global.as_global_scope();
-        let origin = UrlHelper::Origin(&global_scope.get_url()).0;
+        let origin = UrlHelper::Origin(&global.get_url()).0;
 
         // Step 7.
-        let ws = WebSocket::new(global_scope, resource_url.clone());
+        let ws = WebSocket::new(global, resource_url.clone());
         let address = Trusted::new(ws.r());
 
         let connect_data = WebSocketConnectData {
@@ -265,12 +263,12 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
 
-        let _ = global_scope.core_resource_thread().send(WebsocketConnect(connect, connect_data));
+        let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let moved_address = address.clone();
-        let sender = global_scope.networking_task_source();
+        let sender = global.networking_task_source();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {

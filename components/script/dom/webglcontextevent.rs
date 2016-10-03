@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -71,7 +70,7 @@ impl WebGLContextEvent {
         event
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
@@ -83,7 +82,7 @@ impl WebGLContextEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        Ok(WebGLContextEvent::new(global.as_global_scope(),
+        Ok(WebGLContextEvent::new(global,
                                   Atom::from(type_),
                                   bubbles,
                                   cancelable,

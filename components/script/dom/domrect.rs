@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::domrectreadonly::DOMRectReadOnly;
@@ -30,13 +29,13 @@ impl DOMRect {
                            DOMRectBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        x: f64,
                        y: f64,
                        width: f64,
                        height: f64)
                        -> Fallible<Root<DOMRect>> {
-        Ok(DOMRect::new(global.as_global_scope(), x, y, width, height))
+        Ok(DOMRect::new(global, x, y, width, height))
     }
 }
 

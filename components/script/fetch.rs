@@ -75,7 +75,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     let response = Response::new(global_scope);
 
     // Step 2
-    let request = match Request::Constructor(global, input, init) {
+    let request = match Request::Constructor(global_scope, input, init) {
         Err(e) => {
             promise.reject_error(promise.global().r().get_cx(), e);
             return promise;

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
@@ -30,71 +29,71 @@ impl Console {
 
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    pub fn Log(global: GlobalRef, messages: Vec<DOMString>) {
+    pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    pub fn Debug(global: GlobalRef, messages: Vec<DOMString>) {
+    pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Debug, message);
+            Self::send_to_devtools(global, LogLevel::Debug, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    pub fn Info(global: GlobalRef, messages: Vec<DOMString>) {
+    pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Info, message);
+            Self::send_to_devtools(global, LogLevel::Info, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    pub fn Warn(global: GlobalRef, messages: Vec<DOMString>) {
+    pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Warn, message);
+            Self::send_to_devtools(global, LogLevel::Warn, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    pub fn Error(global: GlobalRef, messages: Vec<DOMString>) {
+    pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    pub fn Assert(global: GlobalRef, condition: bool, message: Option<DOMString>) {
+    pub fn Assert(global: &GlobalScope, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
-    pub fn Time(global: GlobalRef, label: DOMString) {
-        if let Ok(()) = global.as_global_scope().time(label.clone()) {
+    pub fn Time(global: &GlobalScope, label: DOMString) {
+        if let Ok(()) = global.time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
-    pub fn TimeEnd(global: GlobalRef, label: DOMString) {
-        if let Ok(delta) = global.as_global_scope().time_end(&label) {
+    pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
+        if let Ok(delta) = global.time_end(&label) {
             let message = DOMString::from(
                 format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
-            Self::send_to_devtools(global.as_global_scope(), LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         };
     }
 }

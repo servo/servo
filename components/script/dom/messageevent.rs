@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -61,14 +60,14 @@ impl MessageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = MessageEvent::new(global.as_global_scope(),
+        let ev = MessageEvent::new(global,
                                    Atom::from(type_),
                                    init.parent.bubbles,
                                    init.parent.cancelable,

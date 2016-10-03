@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -59,7 +58,7 @@ impl File {
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        fileBits: Vec<BlobOrString>,
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
@@ -76,11 +75,11 @@ impl File {
         // NOTE: Following behaviour might be removed in future,
         // see https://github.com/w3c/FileAPI/issues/41
         let replaced_filename = DOMString::from_string(filename.replace("/", ":"));
-        Ok(File::new(global.as_global_scope(),
-                    BlobImpl::new_from_bytes(bytes),
-                    replaced_filename,
-                    modified,
-                    typeString))
+        Ok(File::new(global,
+                     BlobImpl::new_from_bytes(bytes),
+                     replaced_filename,
+                     modified,
+                     typeString))
     }
 
     pub fn name(&self) -> &DOMString {

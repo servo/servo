@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -55,11 +54,11 @@ impl PopStateEvent {
     }
 
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &PopStateEventBinding::PopStateEventInit)
                        -> Fallible<Root<PopStateEvent>> {
-        Ok(PopStateEvent::new(global.as_global_scope(),
+        Ok(PopStateEvent::new(global,
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,

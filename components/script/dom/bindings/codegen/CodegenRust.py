@@ -3438,7 +3438,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
-        call = CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
+        call = CGMethodCall(["global.r().as_global_scope()"], nativeName, True, self.descriptor, self.method)
         return CGList([setupArgs, call])
 
 
@@ -3492,7 +3492,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
-        call = CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
+        call = CGGetterCall(["global.r().as_global_scope()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([setupArgs, call])
 
@@ -3545,7 +3545,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return false;\n"
             "}" % self.attr.identifier.name)
-        call = CGSetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
+        call = CGSetterCall(["global.r().as_global_scope()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([checkForArg, call])
 
@@ -5257,7 +5257,7 @@ let args = CallArgs::from_vp(vp, argc);
 """)
         name = self.constructor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-        callGenerator = CGMethodCall(["global.r()"], nativeName, True,
+        callGenerator = CGMethodCall(["global.r().as_global_scope()"], nativeName, True,
                                      self.descriptor, self.constructor)
         return CGList([preamble, callGenerator])
 

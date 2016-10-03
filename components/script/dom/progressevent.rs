@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -49,13 +48,13 @@ impl ProgressEvent {
         }
         ev
     }
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Root<ProgressEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let ev = ProgressEvent::new(global.as_global_scope(), Atom::from(type_), bubbles, cancelable,
+        let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

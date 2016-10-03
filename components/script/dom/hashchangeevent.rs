@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding::HashChangeEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -55,11 +54,11 @@ impl HashChangeEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
                        -> Fallible<Root<HashChangeEvent>> {
-        Ok(HashChangeEvent::new(global.as_global_scope(),
+        Ok(HashChangeEvent::new(global,
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable,

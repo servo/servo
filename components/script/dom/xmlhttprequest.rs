@@ -206,8 +206,8 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<XMLHttpRequest>> {
+        Ok(XMLHttpRequest::new(global))
     }
 
     fn sync_in_window(&self) -> bool {

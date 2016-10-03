@@ -21,7 +21,7 @@ use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBool
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_context};
+use dom::bindings::global::global_root_from_context;
 use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
@@ -63,18 +63,18 @@ impl TestBinding {
                            global, TestBindingBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor_(global: GlobalRef, nums: Vec<f64>) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global.as_global_scope()))
+    pub fn Constructor_(global: &GlobalScope, nums: Vec<f64>) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor__(global: GlobalRef, num: f64) -> Fallible<Root<TestBinding>> {
-        Ok(TestBinding::new(global.as_global_scope()))
+    pub fn Constructor__(global: &GlobalScope, num: f64) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
     }
 }
 
@@ -757,17 +757,17 @@ impl TestBindingMethods for TestBinding {
 }
 
 impl TestBinding {
-    pub fn BooleanAttributeStatic(_: GlobalRef) -> bool { false }
-    pub fn SetBooleanAttributeStatic(_: GlobalRef, _: bool) {}
-    pub fn ReceiveVoidStatic(_: GlobalRef) {}
-    pub fn PrefControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
-    pub fn PrefControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
-    pub fn PrefControlledStaticMethodDisabled(_: GlobalRef) {}
-    pub fn PrefControlledStaticMethodEnabled(_: GlobalRef) {}
-    pub fn FuncControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
-    pub fn FuncControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
-    pub fn FuncControlledStaticMethodDisabled(_: GlobalRef) {}
-    pub fn FuncControlledStaticMethodEnabled(_: GlobalRef) {}
+    pub fn BooleanAttributeStatic(_: &GlobalScope) -> bool { false }
+    pub fn SetBooleanAttributeStatic(_: &GlobalScope, _: bool) {}
+    pub fn ReceiveVoidStatic(_: &GlobalScope) {}
+    pub fn PrefControlledStaticAttributeDisabled(_: &GlobalScope) -> bool { false }
+    pub fn PrefControlledStaticAttributeEnabled(_: &GlobalScope) -> bool { false }
+    pub fn PrefControlledStaticMethodDisabled(_: &GlobalScope) {}
+    pub fn PrefControlledStaticMethodEnabled(_: &GlobalScope) {}
+    pub fn FuncControlledStaticAttributeDisabled(_: &GlobalScope) -> bool { false }
+    pub fn FuncControlledStaticAttributeEnabled(_: &GlobalScope) -> bool { false }
+    pub fn FuncControlledStaticMethodDisabled(_: &GlobalScope) {}
+    pub fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
 }
 
 #[allow(unsafe_code)]

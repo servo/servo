@@ -8,7 +8,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -43,8 +42,8 @@ impl TestBindingPairIterable {
         }, global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBindingPairIterable>> {
-        Ok(TestBindingPairIterable::new(global.as_global_scope()))
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBindingPairIterable>> {
+        Ok(TestBindingPairIterable::new(global))
     }
 }
 

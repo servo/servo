@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::FocusEventBinding;
 use dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
@@ -54,12 +53,12 @@ impl FocusEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &FocusEventBinding::FocusEventInit) -> Fallible<Root<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(global.as_global_scope().as_window(),
+        let event = FocusEvent::new(global.as_window(),
                                     type_,
                                     bubbles,
                                     cancelable,

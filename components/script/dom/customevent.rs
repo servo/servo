@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -48,12 +47,13 @@ impl CustomEvent {
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
+
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit)
                        -> Fallible<Root<CustomEvent>> {
-        Ok(CustomEvent::new(global.as_global_scope(),
+        Ok(CustomEvent::new(global,
                             Atom::from(type_),
                             init.parent.bubbles,
                             init.parent.cancelable,

@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMe
 use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, JS};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::dompoint::DOMPoint;
@@ -48,13 +47,12 @@ impl DOMQuad {
                            Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        p1: &DOMPointInit,
                        p2: &DOMPointInit,
                        p3: &DOMPointInit,
                        p4: &DOMPointInit)
                        -> Fallible<Root<DOMQuad>> {
-        let global = global.as_global_scope();
         Ok(DOMQuad::new(global,
                         &*DOMPoint::new_from_init(global, p1),
                         &*DOMPoint::new_from_init(global, p2),
@@ -63,8 +61,7 @@ impl DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
-    pub fn FromRect(global: GlobalRef, other: &DOMRectInit) -> Root<DOMQuad> {
-        let global = global.as_global_scope();
+    pub fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> Root<DOMQuad> {
         DOMQuad::new(global,
                      &*DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
                      &*DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
@@ -73,8 +70,7 @@ impl DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
-    pub fn FromQuad(global: GlobalRef, other: &DOMQuadInit) -> Root<DOMQuad> {
-        let global = global.as_global_scope();
+    pub fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> Root<DOMQuad> {
         DOMQuad::new(global,
                      &DOMPoint::new_from_init(global, &other.p1),
                      &DOMPoint::new_from_init(global, &other.p2),

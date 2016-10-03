@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
@@ -51,9 +50,9 @@ impl FormData {
                            global, FormDataWrap)
     }
 
-    pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
+    pub fn Constructor(global: &GlobalScope, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
         // TODO: Construct form data set for form if it is supplied
-        Ok(FormData::new(form, global.as_global_scope()))
+        Ok(FormData::new(form, global))
     }
 }
 

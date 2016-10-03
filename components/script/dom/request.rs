@@ -17,7 +17,6 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
@@ -78,12 +77,10 @@ impl Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
                        init: &RequestInit)
                        -> Fallible<Root<Request>> {
-        let global_scope = global.as_global_scope();
-
         // Step 1
         let temporary_request: NetTraitsRequest;
 
@@ -95,7 +92,7 @@ impl Request {
 
         // Step 4
         // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global_scope.get_url();
+        let base_url = global.get_url();
 
         match input {
             // Step 5
@@ -112,7 +109,7 @@ impl Request {
                     return Err(Error::Type("Url includes credentials".to_string()))
                 }
                 // Step 5.4
-                temporary_request = net_request_from_global(&global_scope,
+                temporary_request = net_request_from_global(global,
                                                             url,
                                                             false);
                 // Step 5.5
@@ -153,7 +150,7 @@ impl Request {
 
         // Step 12
         let mut request: NetTraitsRequest;
-        request = net_request_from_global(&global_scope,
+        request = net_request_from_global(global,
                                           temporary_request.current_url(),
                                           false);
         request.method = temporary_request.method;
@@ -305,7 +302,7 @@ impl Request {
         }
 
         // Step 26
-        let r = Request::from_net_request(&global_scope,
+        let r = Request::from_net_request(global,
                                           false,
                                           request);
         r.headers.or_init(|| Headers::for_request(&r.global_scope()));

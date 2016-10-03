@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -71,7 +70,7 @@ impl ErrorEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
         let msg = match init.message.as_ref() {
@@ -96,7 +95,7 @@ impl ErrorEvent {
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let error = init.error);
         let event = ErrorEvent::new(
-                global.as_global_scope(),
+                global,
                 Atom::from(type_),
                 bubbles,
                 cancelable,
