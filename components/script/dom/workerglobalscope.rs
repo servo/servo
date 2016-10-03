@@ -46,27 +46,18 @@ use task_source::file_reading::FileReadingTaskSource;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 
-pub fn prepare_workerscope_init(global: GlobalRef,
+pub fn prepare_workerscope_init(global: &GlobalScope,
                                 devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
-    let global_scope = global.as_global_scope();
-    let worker_id = global_scope.get_next_worker_id();
-    let to_devtools_sender = global_scope.devtools_chan().cloned();
-    let mem_profiler_chan = global_scope.mem_profiler_chan().clone();
-    let time_profiler_chan = global_scope.time_profiler_chan().clone();
-    let constellation_chan = global_scope.constellation_chan().clone();
-    let scheduler_chan = global_scope.scheduler_chan().clone();
-    let pipeline_id = global_scope.pipeline_id();
-    let resource_threads = global_scope.resource_threads().clone();
     let init = WorkerGlobalScopeInit {
-            resource_threads: resource_threads,
-            mem_profiler_chan: mem_profiler_chan,
-            to_devtools_sender: to_devtools_sender,
-            time_profiler_chan: time_profiler_chan,
+            resource_threads: global.resource_threads().clone(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            to_devtools_sender: global.devtools_chan().cloned(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
             from_devtools_sender: devtools_sender,
-            constellation_chan: constellation_chan,
-            scheduler_chan: scheduler_chan,
-            worker_id: worker_id,
-            pipeline_id: pipeline_id,
+            constellation_chan: global.constellation_chan().clone(),
+            scheduler_chan: global.scheduler_chan().clone(),
+            worker_id: global.get_next_worker_id(),
+            pipeline_id: global.pipeline_id(),
         };
 
     init

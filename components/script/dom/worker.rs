@@ -105,7 +105,7 @@ impl Worker {
                                                                 page_info));
         }
 
-        let init = prepare_workerscope_init(global, Some(devtools_sender));
+        let init = prepare_workerscope_init(global_scope, Some(devtools_sender));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,

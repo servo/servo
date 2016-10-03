@@ -60,7 +60,7 @@ impl ServiceWorkerRegistration {
 
         let worker_id = global_scope.get_next_worker_id();
         let devtools_chan = global_scope.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global, None);
+        let init = prepare_workerscope_init(global_scope, None);
         ScopeThings {
             script_url: script_url,
             init: init,
