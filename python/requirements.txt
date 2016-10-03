@@ -5,6 +5,7 @@ mozinfo == 0.8
 mozlog == 3.3
 setuptools == 18.5
 toml == 0.9.1
+Mako == 1.0.4
 
 # For Python linting
 flake8 == 2.4.1
