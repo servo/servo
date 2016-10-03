@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
@@ -23,7 +24,6 @@ use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
-use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -92,7 +92,8 @@ pub fn handle_execute_script(context: &BrowsingContext,
     let result = unsafe {
         let cx = window.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
-        window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+        GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+            &eval, rval.handle_mut());
         jsval_to_webdriver(cx, rval.handle())
     };
     reply.send(result).unwrap();
@@ -111,7 +112,8 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
     rooted!(in(cx) let mut rval = UndefinedValue());
-    window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+    GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+        &eval, rval.handle_mut());
 }
 
 pub fn handle_get_frame_id(context: &BrowsingContext,
