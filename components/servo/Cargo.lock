@@ -2281,7 +2281,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "signpost"
 version = "0.1.0"
-source = "git+https://github.com/pcwalton/signpost.git#636f31b996ebec3f9d98e4d3973423a5d779666e"
+source = "git+https://github.com/pcwalton/signpost.git#81803b4d09af51a3a1133a62ef8dbb3cf0595de9"
 
 [[package]]
 name = "simd"
