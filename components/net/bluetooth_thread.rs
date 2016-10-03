@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use device::bluetooth::BluetoothAdapter;
-use device::bluetooth::BluetoothDevice;
-use device::bluetooth::BluetoothGATTCharacteristic;
-use device::bluetooth::BluetoothGATTDescriptor;
-use device::bluetooth::BluetoothGATTService;
+use bluetooth_test;
+use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
+use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
 use net_traits::bluetooth_thread::{BluetoothCharacteristicMsg, BluetoothCharacteristicsMsg};
@@ -24,6 +22,8 @@ use tinyfiledialogs;
 use util::thread::spawn_named;
 
 const ADAPTER_ERROR: &'static str = "No adapter found";
+
+const ADAPTER_NOT_POWERED_ERROR: &'static str = "Bluetooth adapter not powered";
 
 // A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)
@@ -63,8 +63,22 @@ macro_rules! return_if_cached(
 macro_rules! get_adapter_or_return_error(
     ($bl_manager:expr, $sender:expr) => (
         match $bl_manager.get_or_create_adapter() {
-            Some(adapter) => adapter,
+            Some(adapter) => {
+                if !adapter.is_powered().unwrap_or(false) {
+                    return drop($sender.send(Err(BluetoothError::Type(ADAPTER_NOT_POWERED_ERROR.to_string()))))
+                }
+                adapter
+            },
             None => return drop($sender.send(Err(BluetoothError::Type(ADAPTER_ERROR.to_string())))),
+        }
+    );
+);
+
+macro_rules! set_attribute_or_return_error(
+    ($function:expr, $sender:expr) => (
+        match $function {
+            Ok(_) => (),
+            Err(_) => return drop($sender.send(Err(BluetoothError::Type(FAILED_SET_ERROR.to_string())))),
         }
     );
 );
@@ -147,6 +161,13 @@ fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequen
     return filters.iter().any(|f| matches_filter(device, f))
 }
 
+fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {
+    match adapter {
+        &BluetoothAdapter::Mock(_) => true,
+        _ => false,
+    }
+}
+
 pub struct BluetoothManager {
     receiver: IpcReceiver<BluetoothMethodMsg>,
     adapter: Option<BluetoothAdapter>,
@@ -220,6 +241,9 @@ impl BluetoothManager {
                 BluetoothMethodMsg::WriteValue(id, value, sender) => {
                     self.write_value(id, value, sender)
                 },
+                BluetoothMethodMsg::Test(data_set_name, sender) => {
+                    self.test(data_set_name, sender)
+                }
                 BluetoothMethodMsg::Exit => {
                     break
                 },
@@ -227,13 +251,39 @@ impl BluetoothManager {
         }
     }
 
+    // Test
+
+    fn test(&mut self, data_set_name: String, sender: IpcSender<BluetoothResult<()>>) {
+        self.address_to_id.clear();
+        self.service_to_device.clear();
+        self.characteristic_to_service.clear();
+        self.descriptor_to_characteristic.clear();
+        self.cached_devices.clear();
+        self.cached_services.clear();
+        self.cached_characteristics.clear();
+        self.cached_descriptors.clear();
+        self.allowed_services.clear();
+        self.adapter = BluetoothAdapter::init_mock().ok();
+        bluetooth_test::test(self, data_set_name, &sender);
+    }
+
     // Adapter
 
-    fn get_or_create_adapter(&mut self) -> Option<BluetoothAdapter> {
+    pub fn get_or_create_adapter(&mut self) -> Option<BluetoothAdapter> {
         let adapter_valid = self.adapter.as_ref().map_or(false, |a| a.get_address().is_ok());
         if !adapter_valid {
             self.adapter = BluetoothAdapter::init().ok();
         }
+
+        let adapter = match self.adapter.as_ref() {
+            Some(adapter) => adapter,
+            None => return None,
+        };
+
+        if is_mock_adapter(adapter) && !adapter.is_present().unwrap_or(false) {
+            return None;
+        }
+
         self.adapter.clone()
     }
 
@@ -262,7 +312,16 @@ impl BluetoothManager {
     }
 
     #[cfg(target_os = "linux")]
-    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>, adapter: &BluetoothAdapter) -> Option<String> {
+        if is_mock_adapter(adapter) {
+            for device in devices {
+                if let Ok(address) = device.get_address() {
+                    return Some(address);
+                }
+            }
+            return None;
+        }
+
         let mut dialog_rows: Vec<String> = vec!();
         for device in devices {
             dialog_rows.extend_from_slice(&[device.get_address().unwrap_or("".to_string()),
@@ -283,7 +342,7 @@ impl BluetoothManager {
     }
 
     #[cfg(not(target_os = "linux"))]
-    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>, _adapter: &BluetoothAdapter) -> Option<String> {
         for device in devices {
             if let Ok(address) = device.get_address() {
                 return Some(address);
@@ -456,7 +515,9 @@ impl BluetoothManager {
         let mut adapter = get_adapter_or_return_error!(self, sender);
         if let Ok(ref session) = adapter.create_discovery_session() {
             if session.start_discovery().is_ok() {
-                thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT_MS));
+                if !is_mock_adapter(&adapter) {
+                    thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT_MS));
+                }
             }
             let _ = session.stop_discovery();
         }
@@ -473,7 +534,7 @@ impl BluetoothManager {
         }
 
         // Step 8.
-        if let Some(address) = self.select_device(matched_devices) {
+        if let Some(address) = self.select_device(matched_devices, &adapter) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),
                 None => return drop(sender.send(Err(BluetoothError::NotFound))),
@@ -509,7 +570,12 @@ impl BluetoothManager {
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
                     match d.is_connected().unwrap_or(false) {
                         true => return drop(sender.send(Ok(true))),
-                        false => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
+                        false => {
+                            if is_mock_adapter(&adapter) {
+                                break;
+                            }
+                            thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS));
+                        },
                     }
                 }
                 return drop(sender.send(Err(BluetoothError::Network)));

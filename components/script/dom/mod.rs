@@ -399,6 +399,7 @@ pub mod testbinding;
 pub mod testbindingiterable;
 pub mod testbindingpairiterable;
 pub mod testbindingproxy;
+pub mod testrunner;
 pub mod text;
 pub mod textdecoder;
 pub mod textencoder;

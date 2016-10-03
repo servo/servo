@@ -50,6 +50,7 @@ extern crate websocket;
 
 pub mod about_loader;
 pub mod blob_loader;
+pub mod bluetooth_test;
 pub mod bluetooth_thread;
 pub mod chrome_loader;
 pub mod connector;
