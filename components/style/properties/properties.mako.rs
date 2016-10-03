@@ -313,6 +313,36 @@ impl PropertyDeclarationBlock {
     }
 }
 
+impl PropertyDeclarationBlock {
+    pub fn to_css_single_value<W>(&self, dest: &mut W, name: &str)
+        -> fmt::Result where W: fmt::Write {
+        if self.declarations.len() == 0 {
+            Err(fmt::Error)
+        } else if self.declarations.len() == 1 &&
+                  self.declarations[0].0.name().to_string() == name {
+            self.declarations[0].0.to_css(dest)
+        } else {
+            let shorthand = try!(Shorthand::from_name(name).ok_or(fmt::Error));
+            if self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
+                // we must `.collect().iter()` because closures aren't Clone
+                let success = try!(shorthand.serialize_shorthand_to_buffer(dest,
+                                                                           self.declarations.iter()
+                                                                               .map((|d| &d.0))
+                                                                               .collect::<Vec<_>>()
+                                                                               .into_iter(),
+                                                                           &mut true));
+                if success {
+                    Ok(())
+                } else {
+                    Err(fmt::Error)
+                }
+            } else {
+                Err(fmt::Error)
+            }
+        }
+    }
+}
+
 impl ToCss for PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
