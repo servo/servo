@@ -70,8 +70,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "angle"
-version = "0.1.1"
-source = "git+https://github.com/servo/angle?branch=servo#f19aefbf3db45952480e7255cdf844db827c0bcb"
+version = "0.1.2"
+source = "git+https://github.com/servo/angle?branch=servo#99128001400771ee9c8a74dcf54cf6fe11b1e532"
 dependencies = [
  "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1986,7 +1986,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "script"
 version = "0.0.1"
 dependencies = [
- "angle 0.1.1 (git+https://github.com/servo/angle?branch=servo)",
+ "angle 0.1.2 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "audio-video-metadata 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2825,7 +2825,7 @@ dependencies = [
 "checksum aho-corasick 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ca972c2ea5f742bfce5687b9aef75506a764f61d37f8f649047846a9686ddb66"
 "checksum alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b21f6ad9c9957eb5d70c3dee16d31c092b3cab339628f821766b05e6833d72b8"
 "checksum android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e2b80445d331077679dfc6f3014f3e9ab7083e588423d35041d3fc017198189"
-"checksum angle 0.1.1 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
+"checksum angle 0.1.2 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
 "checksum app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "636ee56f12e31dbc11dc0a1ac6004f08b04e6e6595963716fc8130e90d4e04cf"
 "checksum arrayvec 0.3.17 (registry+https://github.com/rust-lang/crates.io-index)" = "80a137392e2e92ce7387c063d98a11f0d47115426c5f8759657af3c7b385c860"
 "checksum aster 0.27.0 (registry+https://github.com/rust-lang/crates.io-index)" = "258989846dd255a1e0eeef92d425d345477c9999433cecc9f0879f4549d5e5c9"
