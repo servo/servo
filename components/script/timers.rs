@@ -9,7 +9,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::testbinding::TestBindingCallback;
-use dom::window::ScriptHelpers;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
 use heapsize::HeapSizeOf;
@@ -490,10 +489,12 @@ impl JsTimerTask {
         // step 4.2
         match *&self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
-                let cx = this.global().r().get_cx();
+                let global = this.global();
+                let cx = global.r().get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
 
-                this.evaluate_js_on_global_with_result(code_str, rval.handle_mut());
+                global.r().evaluate_js_on_global_with_result(
+                    code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments: Vec<JSVal> = arguments.iter().map(|arg| arg.get()).collect();

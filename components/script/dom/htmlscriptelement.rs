@@ -25,7 +25,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
@@ -507,9 +506,8 @@ impl HTMLScriptElement {
         // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        window.evaluate_script_on_global_with_result(&script.text,
-                                                     script.url.as_str(),
-                                                     rval.handle_mut());
+        GlobalRef::Window(&window).evaluate_script_on_global_with_result(
+            &script.text, script.url.as_str(), rval.handle_mut());
 
         // Step 6.
         document.set_current_script(old_script.r());
