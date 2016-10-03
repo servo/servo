@@ -46,7 +46,7 @@ use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
-use dom::window::{ReflowReason, ScriptHelpers, Window};
+use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
@@ -1775,7 +1775,8 @@ impl ScriptThread {
             unsafe {
                 let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
                 rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
-                window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+                GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+                    &script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
                                                    jsval.handle(),
                                                    StringificationBehavior::Empty);

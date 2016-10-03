@@ -16,7 +16,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception};
+use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -49,12 +49,10 @@ use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GC, JS_GetRuntime, MutableHandleValue, SetWindowProxy};
+use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::jsval::UndefinedValue;
-use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
-use libc;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, ReferrerPolicy, WindowSizeType};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -64,15 +62,14 @@ use num_traits::ToPrimitive;
 use open;
 use origin::Origin;
 use profile_traits::mem;
-use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameType};
-use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
+use profile_traits::time::ProfilerChan;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_layout_interface::TrustedNodeAddress;
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, maybe_take_panic_result};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
@@ -84,9 +81,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
-use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
-use std::panic;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -910,61 +905,6 @@ impl WindowMethods for Window {
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
         fetch::Fetch(self.global().r(), input, init)
-    }
-}
-
-pub trait ScriptHelpers {
-    fn evaluate_js_on_global_with_result(self, code: &str,
-                                         rval: MutableHandleValue);
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
-                                             rval: MutableHandleValue);
-}
-
-impl<'a, T: Reflectable> ScriptHelpers for &'a T {
-    fn evaluate_js_on_global_with_result(self, code: &str,
-                                         rval: MutableHandleValue) {
-        self.evaluate_script_on_global_with_result(code, "", rval)
-    }
-
-    #[allow(unsafe_code)]
-    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
-                                             rval: MutableHandleValue) {
-        let global = self.global();
-        let metadata = TimerMetadata {
-            url: if filename.is_empty() {
-                global.r().get_url().as_str().into()
-            } else {
-                filename.into()
-            },
-            iframe: TimerMetadataFrameType::RootWindow,
-            incremental: TimerMetadataReflowType::FirstReflow,
-        };
-        profile(
-            ProfilerCategory::ScriptEvaluate,
-            Some(metadata),
-            global.r().time_profiler_chan().clone(),
-            || {
-                let cx = global.r().get_cx();
-                let globalhandle = global.r().reflector().get_jsobject();
-                let code: Vec<u16> = code.encode_utf16().collect();
-                let filename = CString::new(filename).unwrap();
-
-                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
-                unsafe {
-                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
-                                  code.len() as libc::size_t,
-                                  rval) {
-                        debug!("error evaluating JS string");
-                        report_pending_exception(cx, true);
-                    }
-                }
-
-                if let Some(error) = maybe_take_panic_result() {
-                    panic::resume_unwind(error);
-                }
-            }
-        )
     }
 }
 

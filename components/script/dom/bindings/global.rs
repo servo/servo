@@ -10,25 +10,29 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::error::ErrorInfo;
+use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::console::TimerSet;
-use dom::window::{self, ScriptHelpers};
+use dom::window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
-use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
-use js::jsapi::HandleValue;
+use js::jsapi::{CurrentGlobalOrNull, Evaluate2, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleValue, JS_GetClass, JSAutoCompartment, JSContext};
+use js::jsapi::{JSObject, MutableHandleValue};
+use js::rust::CompileOptionsWrapper;
+use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, EnqueuedPromiseCallback};
+use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
+use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
-use task_source::dom_manipulation::DOMManipulationTaskSource;
+use std::ffi::CString;
+use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
@@ -181,29 +185,11 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
-    /// thread.
-    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
-        match *self {
-            GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
-            GlobalRef::Worker(_) => unimplemented!(),
-        }
-    }
-
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
     pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.networking_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
-        }
-    }
-
-    /// `ScriptChan` used to send messages to the event loop of this global's
-    /// thread.
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
-        match *self {
-            GlobalRef::Window(ref window) => window.history_traversal_task_source(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
         }
     }
@@ -236,12 +222,51 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Evaluate the JS messages on the `RootedValue` of this global
-    pub fn evaluate_js_on_global_with_result(&self, code: &str, rval: MutableHandleValue) {
-        match *self {
-            GlobalRef::Window(window) => window.evaluate_js_on_global_with_result(code, rval),
-            GlobalRef::Worker(worker) => worker.evaluate_js_on_global_with_result(code, rval),
-        }
+    /// Evaluate JS code on this global.
+    pub fn evaluate_js_on_global_with_result(
+            &self, code: &str, rval: MutableHandleValue) {
+        self.evaluate_script_on_global_with_result(code, "", rval)
+    }
+
+    /// Evaluate a JS script on this global.
+    #[allow(unsafe_code)]
+    pub fn evaluate_script_on_global_with_result(
+            &self, code: &str, filename: &str, rval: MutableHandleValue) {
+        let metadata = time::TimerMetadata {
+            url: if filename.is_empty() {
+                self.get_url().as_str().into()
+            } else {
+                filename.into()
+            },
+            iframe: time::TimerMetadataFrameType::RootWindow,
+            incremental: time::TimerMetadataReflowType::FirstReflow,
+        };
+        time::profile(
+            time::ProfilerCategory::ScriptEvaluate,
+            Some(metadata),
+            self.time_profiler_chan().clone(),
+            || {
+                let cx = self.get_cx();
+                let globalhandle = self.reflector().get_jsobject();
+                let code: Vec<u16> = code.encode_utf16().collect();
+                let filename = CString::new(filename).unwrap();
+
+                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
+                unsafe {
+                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                                  code.len() as libc::size_t,
+                                  rval) {
+                        debug!("error evaluating JS string");
+                        report_pending_exception(cx, true);
+                    }
+                }
+
+                if let Some(error) = maybe_take_panic_result() {
+                    panic::resume_unwind(error);
+                }
+            }
+        )
     }
 
     /// Set the `bool` value to indicate whether developer tools has requested

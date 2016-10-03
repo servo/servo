@@ -70,7 +70,7 @@ impl BluetoothRemoteGATTServer {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn get_primary_service(&self, service: BluetoothServiceUUID) -> Fallible<Root<BluetoothRemoteGATTService>> {
-        let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
+        let uuid = try!(BluetoothUUID::service(service)).to_string();
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
@@ -98,7 +98,7 @@ impl BluetoothRemoteGATTServer {
                             -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
         if let Some(s) = service {
-            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string());
+            uuid = Some(try!(BluetoothUUID::service(s)).to_string());
             if let Some(ref uuid) = uuid {
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
                     return Err(Security)

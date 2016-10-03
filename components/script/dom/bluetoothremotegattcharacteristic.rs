@@ -85,7 +85,7 @@ impl BluetoothRemoteGATTCharacteristic {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
     fn get_descriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
-        let uuid = try!(BluetoothUUID::GetDescriptor(self.global().r(), descriptor)).to_string();
+        let uuid = try!(BluetoothUUID::descriptor(descriptor)).to_string();
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
@@ -112,7 +112,7 @@ impl BluetoothRemoteGATTCharacteristic {
                        -> Fallible<Vec<Root<BluetoothRemoteGATTDescriptor>>> {
         let mut uuid: Option<String> = None;
         if let Some(d) = descriptor {
-            uuid = Some(try!(BluetoothUUID::GetDescriptor(self.global().r(), d)).to_string());
+            uuid = Some(try!(BluetoothUUID::descriptor(d)).to_string());
             if let Some(ref uuid) = uuid {
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
                     return Err(Security)

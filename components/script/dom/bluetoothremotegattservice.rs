@@ -74,7 +74,7 @@ impl BluetoothRemoteGATTService {
     fn get_characteristic(&self,
                           characteristic: BluetoothCharacteristicUUID)
                           -> Fallible<Root<BluetoothRemoteGATTCharacteristic>> {
-        let uuid = try!(BluetoothUUID::GetCharacteristic(self.global().r(), characteristic)).to_string();
+        let uuid = try!(BluetoothUUID::characteristic(characteristic)).to_string();
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
@@ -112,7 +112,7 @@ impl BluetoothRemoteGATTService {
                            -> Fallible<Vec<Root<BluetoothRemoteGATTCharacteristic>>> {
         let mut uuid: Option<String> = None;
         if let Some(c) = characteristic {
-            uuid = Some(try!(BluetoothUUID::GetCharacteristic(self.global().r(), c)).to_string());
+            uuid = Some(try!(BluetoothUUID::characteristic(c)).to_string());
             if let Some(ref uuid) = uuid {
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
                     return Err(Security)
@@ -155,7 +155,7 @@ impl BluetoothRemoteGATTService {
     fn get_included_service(&self,
                            service: BluetoothServiceUUID)
                            -> Fallible<Root<BluetoothRemoteGATTService>> {
-        let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
+        let uuid = try!(BluetoothUUID::service(service)).to_string();
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
@@ -185,7 +185,7 @@ impl BluetoothRemoteGATTService {
                              -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
         if let Some(s) = service {
-            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string());
+            uuid = Some(try!(BluetoothUUID::service(s)).to_string());
             if let Some(ref uuid) = uuid {
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
                     return Err(Security)

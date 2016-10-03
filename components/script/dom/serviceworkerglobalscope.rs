@@ -23,7 +23,6 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
 use net_traits::{LoadContext, load_whole_resource, IpcSend, CustomResponseMediator};
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
@@ -72,7 +71,6 @@ impl ScriptChan for ServiceWorkerChan {
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
-    id: PipelineId,
     #[ignore_heap_size_of = "Defined in std"]
     receiver: Receiver<ServiceWorkerScriptMsg>,
     #[ignore_heap_size_of = "Defined in std"]
@@ -87,7 +85,6 @@ pub struct ServiceWorkerGlobalScope {
 impl ServiceWorkerGlobalScope {
     fn new_inherited(init: WorkerGlobalScopeInit,
                      worker_url: Url,
-                     id: PipelineId,
                      from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                      runtime: Runtime,
                      own_sender: Sender<ServiceWorkerScriptMsg>,
@@ -104,7 +101,6 @@ impl ServiceWorkerGlobalScope {
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
                                                                 None),
-            id: id,
             receiver: receiver,
             timer_event_port: timer_event_port,
             own_sender: own_sender,
@@ -115,7 +111,6 @@ impl ServiceWorkerGlobalScope {
 
     pub fn new(init: WorkerGlobalScopeInit,
                worker_url: Url,
-               id: PipelineId,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
                own_sender: Sender<ServiceWorkerScriptMsg>,
@@ -128,7 +123,6 @@ impl ServiceWorkerGlobalScope {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
                                                                   worker_url,
-                                                                  id,
                                                                   from_devtools_receiver,
                                                                   runtime,
                                                                   own_sender,
@@ -148,7 +142,6 @@ impl ServiceWorkerGlobalScope {
                             swmanager_sender: IpcSender<ServiceWorkerMsg>,
                             scope_url: Url) {
         let ScopeThings { script_url,
-                          pipeline_id,
                           init,
                           worker_load_origin,
                           .. } = scope_things;
@@ -179,7 +172,7 @@ impl ServiceWorkerGlobalScope {
             let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
             let (timer_chan, timer_port) = channel();
             let global = ServiceWorkerGlobalScope::new(
-                init, url, pipeline_id, devtools_mpsc_port, runtime,
+                init, url, devtools_mpsc_port, runtime,
                 own_sender, receiver,
                 timer_ipc_chan, timer_port, swmanager_sender, scope_url);
             let scope = global.upcast::<WorkerGlobalScope>();
@@ -296,10 +289,6 @@ impl ServiceWorkerGlobalScope {
         } else {
             panic!("unexpected select result!")
         }
-    }
-
-    pub fn pipeline_id(&self) -> PipelineId {
-        self.id
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
