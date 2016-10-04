@@ -95,10 +95,16 @@ pub enum LayoutElementType {
     HTMLTableRowElement,
     HTMLTableSectionElement,
     HTMLTextAreaElement,
+    SVGSVGElement,
 }
 
 pub struct HTMLCanvasData {
     pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub width: u32,
+    pub height: u32,
+}
+
+pub struct SVGSVGData {
     pub width: u32,
     pub height: u32,
 }
