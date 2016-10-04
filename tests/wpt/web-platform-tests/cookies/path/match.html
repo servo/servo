@@ -49,7 +49,7 @@ var testCookiePathFromHeader = function (testCase, test) {
       }
 
       test.done();
-    });
+    }).catch(test.unreached_func());
   });
 };
 
