@@ -153,12 +153,12 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _chunk: Vec<u8>) {
         // TODO when body is implemented
         // ... this will append the chunk to Response's body.
     }
 
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }

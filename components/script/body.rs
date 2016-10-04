@@ -25,7 +25,6 @@ use std::str;
 use url::form_urlencoded;
 
 pub enum BodyType {
-    ArrayBuffer,
     Blob,
     FormData,
     Json,
@@ -92,7 +91,6 @@ fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(object.global().r(), bytes, mime),
         BodyType::FormData => run_form_data_algorithm(object.global().r(), bytes, mime),
-        _ => Err(Error::Type("Unable to process body type".to_string()))
     }
 }
 
