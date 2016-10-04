@@ -21,7 +21,7 @@ var createIframeThen = function (callback) {
   iframe.onload = callback;
   return iframe;
 };
-var testCookiePathFromDOM = function (testCase, ctx) {
+var testCookiePathFromDOM = function (testCase, test) {
   var iframe = createIframeThen(function () {
     iframe.contentWindow.setCookie(testCase.name, testCase.path);
     var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
@@ -32,26 +32,23 @@ var testCookiePathFromDOM = function (testCase, ctx) {
     }
 
     iframe.contentWindow.expireCookie(testCase.name, testCase.path);
-    ctx.done();
+    test.done();
   });
 };
-var testCookiePathFromHeader = function (testCase, ctx) {
+var testCookiePathFromHeader = function (testCase, test) {
   var iframe = createIframeThen(function () {
-    iframe.contentWindow.fetchCookieThen(testCase.name, testCase.path, function (response) {
-      assert_equals(response.ok, true);
+    iframe.contentWindow.fetchCookieThen(testCase.name, testCase.path).then(function (response) {
+      assert_true(response.ok);
 
       var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
+      iframe.contentWindow.expireCookie(testCase.name, testCase.path);
       if (testCase.match === false) {
         assert_equals(cookieSet, null);
       } else {
         assert_not_equals(cookieSet, null);
       }
 
-      iframe.contentWindow.expireCookie(testCase.name, testCase.path);
-      ctx.done();
-    }, function (err) {
-      assert_equals(err.message, -1);
-      ctx.done();
+      test.done();
     });
   });
 };
