@@ -7,12 +7,14 @@ use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::Registratio
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
+use dom::serviceworkerjob::{Job, JobType};
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
 use std::ascii::AsciiExt;
@@ -117,12 +119,16 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
 
         let global = self.global();
         let worker_registration = ServiceWorkerRegistration::new(&global,
-                                                                 script_url,
+                                                                 script_url.clone(),
                                                                  scope.clone(),
                                                                  self);
-        ScriptThread::set_registration(scope, &*worker_registration, self.global().pipeline_id());
+        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone());
 
-        promise.resolve_native(ctx, &*worker_registration);
+        ScriptThread::schedule_job(job, &*worker_registration);
         promise
+        //ScriptThread::set_registration(scope, &*worker_registration, global.pipeline_id());
+        //Ok(worker_registration)
+        // ScriptThread::set_registration(scope.clone(), &*worker_registration, self.global().r().pipeline_id());
+        //promise.resolve_native(ctx, &*worker_registration);
     }
 }
