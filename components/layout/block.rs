@@ -678,6 +678,7 @@ impl BlockFlow {
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::InlineBlock(_) => true,
