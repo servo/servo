@@ -125,12 +125,7 @@ impl<'a> GlobalRef<'a> {
     /// Get the `ResourceThreads` for this global scope.
     pub fn resource_threads(&self) -> ResourceThreads {
         match *self {
-            GlobalRef::Window(ref window) => {
-                let doc = window.Document();
-                let doc = doc.r();
-                let loader = doc.loader();
-                loader.resource_threads().clone()
-            }
+            GlobalRef::Window(ref window) => window.resource_threads().clone(),
             GlobalRef::Worker(ref worker) => worker.resource_threads().clone(),
         }
     }
@@ -138,14 +133,6 @@ impl<'a> GlobalRef<'a> {
     /// Get the `CoreResourceThread` for this global scope
     pub fn core_resource_thread(&self) -> CoreResourceThread {
         self.resource_threads().sender()
-    }
-
-    /// Get the worker's id.
-    pub fn get_worker_id(&self) -> Option<WorkerId> {
-        match *self {
-            GlobalRef::Window(_) => None,
-            GlobalRef::Worker(ref worker) => Some(worker.get_worker_id()),
-        }
     }
 
     /// Get next worker id.

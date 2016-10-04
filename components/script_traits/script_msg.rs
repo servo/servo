@@ -151,8 +151,6 @@ pub enum ScriptMsg {
 pub struct ScopeThings {
     /// script resource url
     pub script_url: Url,
-    /// pipeline which requested the activation
-    pub pipeline_id: PipelineId,
     /// network load origin of the resource
     pub worker_load_origin: WorkerScriptLoadOrigin,
     /// base resources required to create worker global scopes
