@@ -269,7 +269,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
         listener.notify_fetch(message.to().unwrap());
     });
-    doc.fetch_async(LoadType::Script(url), request, action_sender, None);
+    doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 
 impl HTMLScriptElement {
