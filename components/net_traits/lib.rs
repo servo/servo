@@ -44,7 +44,6 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use std::io::Error as IOError;
-use std::thread;
 use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
@@ -467,35 +466,13 @@ pub enum CoreResourceMsg {
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
 /// the resource thread to make a new request. The `load` method *must* be called before
 /// destruction or the thread will panic.
-pub struct PendingAsyncLoad {
-    core_resource_thread: CoreResourceThread,
-    url: Url,
+struct LoadOriginData {
     pipeline: Option<PipelineId>,
-    guard: PendingLoadGuard,
-    context: LoadContext,
     referrer_policy: Option<ReferrerPolicy>,
     referrer_url: Option<Url>
 }
 
-struct PendingLoadGuard {
-    loaded: bool,
-}
-
-impl PendingLoadGuard {
-    fn neuter(&mut self) {
-        self.loaded = true;
-    }
-}
-
-impl Drop for PendingLoadGuard {
-    fn drop(&mut self) {
-        if !thread::panicking() {
-            assert!(self.loaded)
-        }
-    }
-}
-
-impl LoadOrigin for PendingAsyncLoad {
+impl LoadOrigin for LoadOriginData {
     fn referrer_url(&self) -> Option<Url> {
         self.referrer_url.clone()
     }
@@ -507,42 +484,22 @@ impl LoadOrigin for PendingAsyncLoad {
     }
 }
 
-impl PendingAsyncLoad {
-    pub fn new(context: LoadContext,
-               core_resource_thread: CoreResourceThread,
-               url: Url,
-               pipeline: Option<PipelineId>,
-               referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>)
-               -> PendingAsyncLoad {
-        PendingAsyncLoad {
-            core_resource_thread: core_resource_thread,
-            url: url,
-            pipeline: pipeline,
-            guard: PendingLoadGuard { loaded: false, },
-            context: context,
-            referrer_policy: referrer_policy,
-            referrer_url: referrer_url
-        }
-    }
-
-    /// Initiate the network request associated with this pending load, using the provided target.
-    pub fn load_async(mut self, listener: AsyncResponseTarget) {
-        self.guard.neuter();
-
-        let load_data = LoadData::new(self.context.clone(),
-                                      self.url.clone(),
-                                      &self);
-        let consumer = LoadConsumer::Listener(listener);
-        self.core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
-    }
-
-    /// Initiate the fetch associated with this pending load.
-    pub fn fetch_async(mut self, request: RequestInit, fetch_target: IpcSender<FetchResponseMsg>) {
-        self.guard.neuter();
-
-        self.core_resource_thread.send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
-    }
+/// Instruct the resource thread to make a new request.
+pub fn load_async(context: LoadContext,
+                  core_resource_thread: CoreResourceThread,
+                  url: Url,
+                  pipeline: Option<PipelineId>,
+                  referrer_policy: Option<ReferrerPolicy>,
+                  referrer_url: Option<Url>,
+                  listener: AsyncResponseTarget) {
+    let load = LoadOriginData {
+        pipeline: pipeline,
+        referrer_policy: referrer_policy,
+        referrer_url: referrer_url
+    };
+    let load_data = LoadData::new(context, url, &load);
+    let consumer = LoadConsumer::Listener(listener);
+    core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
 }
 
 /// Message sent in response to `Load`.  Contains metadata, and a port
