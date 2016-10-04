@@ -18,7 +18,7 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass};
-use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::ScriptThread;
 use task_source::file_reading::FileReadingTaskSource;
 
@@ -82,14 +82,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(_) => ScriptThread::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
-        }
-    }
-
-    /// Enqueue a promise callback for subsequent execution.
-    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
-        match *self {
-            GlobalRef::Window(_) => ScriptThread::enqueue_promise_job(job, *self),
-            GlobalRef::Worker(ref worker) => worker.enqueue_promise_job(job),
         }
     }
 }

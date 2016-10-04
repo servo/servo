@@ -8,7 +8,7 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::global::{global_root_from_object, GlobalRoot};
+use dom::bindings::global::{GlobalRoot, global_scope_from_object};
 use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
@@ -178,9 +178,9 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        let global = global_root_from_object(job.get());
-        let pipeline = global.r().as_global_scope().pipeline_id();
-        global.r().enqueue_promise_job(EnqueuedPromiseCallback {
+        let global = global_scope_from_object(job.get());
+        let pipeline = global.pipeline_id();
+        global.enqueue_promise_job(EnqueuedPromiseCallback {
             callback: PromiseJobCallback::new(job.get()),
             pipeline: pipeline,
         });

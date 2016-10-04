@@ -27,7 +27,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::{GlobalRef, GlobalRoot};
+use dom::bindings::global::GlobalRoot;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
@@ -2173,10 +2173,10 @@ impl ScriptThread {
         }
     }
 
-    pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: GlobalRef) {
+    pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.promise_job_queue.enqueue(job, global.as_global_scope());
+            script_thread.promise_job_queue.enqueue(job, global);
         });
     }
 

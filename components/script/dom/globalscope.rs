@@ -26,7 +26,7 @@ use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{ScriptChan, maybe_take_panic_result};
+use script_runtime::{EnqueuedPromiseCallback, ScriptChan, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
@@ -417,6 +417,17 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.flush_promise_jobs();
+        }
+        unreachable!();
+    }
+
+    /// Enqueue a promise callback for subsequent execution.
+    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+        if self.is::<Window>() {
+            return ScriptThread::enqueue_promise_job(job, self);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.enqueue_promise_job(job);
         }
         unreachable!();
     }
