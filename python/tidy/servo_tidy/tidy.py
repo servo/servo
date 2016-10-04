@@ -70,6 +70,7 @@ WEBIDL_STANDARDS = [
     "//w3c.github.io",
     "//heycam.github.io/webidl",
     "//webbluetoothcg.github.io/web-bluetooth/",
+    "//svgwg.org/svg2-draft",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."
