@@ -19,6 +19,6 @@ pub trait TaskSource {
                              -> Result<(), ()>
                              where T: Runnable + Send + 'static;
     fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, global: GlobalRef) -> Result<(), ()> {
-        self.queue_with_wrapper(msg, &global.get_runnable_wrapper())
+        self.queue_with_wrapper(msg, &global.as_global_scope().get_runnable_wrapper())
     }
 }

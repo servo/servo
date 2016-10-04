@@ -19,7 +19,7 @@ use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass};
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
-use script_thread::{RunnableWrapper, ScriptThread};
+use script_thread::ScriptThread;
 use task_source::file_reading::FileReadingTaskSource;
 
 /// A freely-copyable reference to a rooted global object.
@@ -82,15 +82,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(_) => ScriptThread::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
-        }
-    }
-
-    /// Returns a wrapper for runnables to ensure they are cancelled if the global
-    /// is being destroyed.
-    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
-        match *self {
-            GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
-            GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
         }
     }
 

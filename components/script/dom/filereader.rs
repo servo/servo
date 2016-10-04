@@ -354,7 +354,7 @@ impl FileReader {
         let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
-        let wrapper = self.global().r().get_runnable_wrapper();
+        let wrapper = self.global_scope().get_runnable_wrapper();
         let task_source = self.global().r().file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {

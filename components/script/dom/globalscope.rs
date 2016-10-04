@@ -27,7 +27,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{ScriptChan, maybe_take_panic_result};
-use script_thread::MainThreadScriptChan;
+use script_thread::{MainThreadScriptChan, RunnableWrapper};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
@@ -393,6 +393,18 @@ impl GlobalScope {
         }
         if self.is::<WorkerGlobalScope>() {
             return TimerSource::FromWorker;
+        }
+        unreachable!();
+    }
+
+    /// Returns a wrapper for runnables to ensure they are cancelled if
+    /// the global scope is being destroyed.
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.get_runnable_wrapper();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.get_runnable_wrapper();
         }
         unreachable!();
     }
