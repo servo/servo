@@ -259,8 +259,6 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         status: Ok(())
     }));
 
-    let doc = document_from_node(script);
-
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
         context: context,
