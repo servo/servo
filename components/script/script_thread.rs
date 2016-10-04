@@ -49,6 +49,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
+use dom::serviceworkerjob::{Job, JobQueue, ResolveJobHandler, RunJobHandler};
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
 use dom::transitionevent::TransitionEvent;
@@ -398,6 +399,8 @@ pub struct ScriptThread {
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A map to store service worker registrations for a given origin
     registration_map: DOMRefCell<HashMap<Url, JS<ServiceWorkerRegistration>>>,
+    /// A job queue for Service Workers keyed by their scope url
+    job_queue_map: DOMRefCell<JobQueue>,
     /// A handle to the image cache thread.
     image_cache_thread: ImageCacheThread,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -562,11 +565,27 @@ impl ScriptThread {
         })
     }
 
+    pub fn get_registration(scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.handle_get_registration(scope_url)
+        })
+    }
+
     // stores a service worker registration
     pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration, pipeline_id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_serviceworker_registration(scope_url, registration, pipeline_id);
+        });
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn schedule_job(job: Job, reg: &ServiceWorkerRegistration) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let job_queue = &mut *script_thread.job_queue_map.borrow_mut();
+            job_queue.schedule_job(job, reg, &script_thread);
         });
     }
 
@@ -639,6 +658,7 @@ impl ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
             incomplete_loads: DOMRefCell::new(vec!()),
             registration_map: DOMRefCell::new(HashMap::new()),
+            job_queue_map: DOMRefCell::new(JobQueue::new()),
 
             image_cache_thread: state.image_cache_thread,
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
@@ -1472,6 +1492,26 @@ impl ScriptThread {
         } else {
             warn!("Registration failed for {}", scope);
         }
+    }
+
+    pub fn queue_run_job(&self, run_job_handler: Box<RunJobHandler>, global: &GlobalScope) {
+        let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
+    }
+
+    pub fn queue_resolve_job(&self, resolve_job_handler: Box<ResolveJobHandler>) {
+        let reg = resolve_job_handler.reg.root();
+        let global = reg.global();
+        let _ = self.dom_manipulation_task_source.queue(resolve_job_handler, global.r());
+    }
+
+    pub fn invoke_run_job(&self, run_job_handler: Box<RunJobHandler>) {
+        let job_queue = &mut *self.job_queue_map.borrow_mut();
+        job_queue.run_job(run_job_handler, self);
+    }
+
+    fn handle_get_registration(&self, scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        maybe_registration_ref.get(scope_url).map(|ref x| Root::from_ref(&***x))
     }
 
     /// Handles a request for the window title.
