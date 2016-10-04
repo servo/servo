@@ -66,15 +66,14 @@
 
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
-                         experimental=True, animatable=False)}
+                         animatable=False)}
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
-                         experimental=True, animatable=False)}
+                         animatable=False)}
 
 // FIXME(stshine): The type of 'justify-content' and 'align-content' is uint16_t in gecko
 // FIXME(stshine): Its higher bytes are used to store fallback value. Disable them in geckolib for now
 ${helpers.single_keyword("justify-content", "flex-start flex-end center space-between space-around",
-                         experimental=True,
                          gecko_constant_prefix="NS_STYLE_JUSTIFY",
                          products="servo",
                          animatable=False)}
@@ -82,14 +81,12 @@ ${helpers.single_keyword("justify-content", "flex-start flex-end center space-be
 // FIXME(heycam): Disable align-items in geckolib since we don't support the Gecko initial value
 // 'normal' yet.
 ${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline",
-                         experimental=True,
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          animatable=False,
                          products="servo")}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
-                         experimental=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          products="servo",
                          animatable=False)}
@@ -97,14 +94,13 @@ ${helpers.single_keyword("align-content", "stretch flex-start flex-end center sp
 // Flex item properties
 ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
-                          experimental=True, animatable=True)}
+                          animatable=True)}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
-                          experimental=True, animatable=True)}
+                          animatable=True)}
 
 ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
-                         experimental=True,
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          animatable=False)}

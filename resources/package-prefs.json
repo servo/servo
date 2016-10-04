@@ -48,8 +48,6 @@
   "layout.column-width.enabled": false,
   "layout.column-count.enabled": false,
   "layout.column-gap.enabled": false,
-  "layout.flex.enabled": false,
-  "layout.flex-direction.enabled": false,
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
