@@ -8,11 +8,12 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::global::{global_root_from_object, GlobalRoot, GlobalRef};
+use dom::bindings::global::{global_root_from_object, GlobalRoot};
 use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
+use dom::globalscope::GlobalScope;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -138,11 +139,11 @@ impl PromiseJobQueue {
 
     /// Add a new promise job callback to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
-    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: GlobalRef) {
+    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: &GlobalScope) {
         self.promise_job_queue.borrow_mut().push(job);
         if !self.pending_promise_job_runnable.get() {
             self.pending_promise_job_runnable.set(true);
-            global.as_global_scope().flush_promise_jobs();
+            global.flush_promise_jobs();
         }
     }
 

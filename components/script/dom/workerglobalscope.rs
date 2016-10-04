@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
-use dom::bindings::global::{GlobalRef, GlobalRoot};
+use dom::bindings::global::GlobalRoot;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -160,7 +160,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
-        self.promise_job_queue.enqueue(job, GlobalRef::Worker(self));
+        self.promise_job_queue.enqueue(job, self.upcast());
     }
 
     pub fn flush_promise_jobs(&self) {

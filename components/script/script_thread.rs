@@ -2176,7 +2176,7 @@ impl ScriptThread {
     pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: GlobalRef) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.promise_job_queue.enqueue(job, global);
+            script_thread.promise_job_queue.enqueue(job, global.as_global_scope());
         });
     }
 
