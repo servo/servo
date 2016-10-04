@@ -76,20 +76,43 @@ use dom::htmltrackelement::HTMLTrackElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
+use dom::svgsvgelement::SVGSVGElement;
 use string_cache::{Atom, QualName};
+use util::prefs::PREFS;
 
-pub fn create_element(name: QualName,
-                      prefix: Option<Atom>,
+fn create_svg_element(name: QualName,
+                      prefix: Option<DOMString>,
+                      document: &Document)
+                      -> Root<Element> {
+    assert!(name.ns == ns!(svg));
+
+    macro_rules! make(
+        ($ctor:ident) => ({
+            let obj = $ctor::new(name.local, prefix, document);
+            Root::upcast(obj)
+        });
+        ($ctor:ident, $($arg:expr),+) => ({
+            let obj = $ctor::new(name.local, prefix, document, $($arg),+);
+            Root::upcast(obj)
+        })
+    );
+
+    if !PREFS.get("dom.svg.enabled").as_boolean().unwrap_or(false) {
+        return Element::new(name.local, name.ns, prefix, document);
+    }
+
+    match name.local {
+        atom!("svg")        => make!(SVGSVGElement),
+        _                   => Element::new(name.local, name.ns, prefix, document),
+    }
+}
+
+fn create_html_element(name: QualName,
+                      prefix: Option<DOMString>,
                       document: &Document,
                       creator: ElementCreator)
                       -> Root<Element> {
-    // FIXME(ajeffrey): Convert directly from Atom to DOMString.
-
-    let prefix = prefix.map(|p| DOMString::from(&*p));
-
-    if name.ns != ns!(html) {
-        return Element::new(name.local, name.ns, prefix, document);
-    }
+    assert!(name.ns == ns!(html));
 
     macro_rules! make(
         ($ctor:ident) => ({
@@ -247,5 +270,21 @@ pub fn create_element(name: QualName,
         atom!("wbr")        => make!(HTMLElement),
         atom!("xmp")        => make!(HTMLPreElement),
         _                   => make!(HTMLUnknownElement),
+    }
+}
+
+pub fn create_element(name: QualName,
+                      prefix: Option<Atom>,
+                      document: &Document,
+                      creator: ElementCreator)
+                      -> Root<Element> {
+    // FIXME(ajeffrey): Convert directly from Atom to DOMString.
+
+    let prefix = prefix.map(|p| DOMString::from(&*p));
+
+    match name.ns {
+        ns!(html)   => create_html_element(name, prefix, document, creator),
+        ns!(svg)    => create_svg_element(name, prefix, document),
+        _           => Element::new(name.local, name.ns, prefix, document)
     }
 }
