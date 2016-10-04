@@ -502,7 +502,13 @@ trait PrivateMatchMethods: TNode {
                                             -> Arc<ComputedValues>
         where Ctx: StyleContext<'a>
     {
-        let mut cacheable = true;
+        // Don’t cache applicable declarations for elements with a style attribute.
+        // Since the style attribute contributes to that set, no other element would have the same set
+        // and the cache would not be effective anyway.
+        // This also works around the test failures at
+        // https://github.com/servo/servo/pull/13459#issuecomment-250717584
+        let has_style_attribute = self.as_element().map_or(false, |e| e.style_attribute().is_some());
+        let mut cacheable = !has_style_attribute;
         let shared_context = context.shared_context();
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(shared_context,
