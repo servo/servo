@@ -467,7 +467,7 @@ pub enum CoreResourceMsg {
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
 /// the resource thread to make a new request. The `load` method *must* be called before
 /// destruction or the thread will panic.
-pub struct PendingAsyncLoad {
+struct PendingAsyncLoad {
     core_resource_thread: CoreResourceThread,
     url: Url,
     pipeline: Option<PipelineId>,
@@ -508,13 +508,13 @@ impl LoadOrigin for PendingAsyncLoad {
 }
 
 impl PendingAsyncLoad {
-    pub fn new(context: LoadContext,
-               core_resource_thread: CoreResourceThread,
-               url: Url,
-               pipeline: Option<PipelineId>,
-               referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>)
-               -> PendingAsyncLoad {
+    fn new(context: LoadContext,
+           core_resource_thread: CoreResourceThread,
+           url: Url,
+           pipeline: Option<PipelineId>,
+           referrer_policy: Option<ReferrerPolicy>,
+           referrer_url: Option<Url>)
+           -> PendingAsyncLoad {
         PendingAsyncLoad {
             core_resource_thread: core_resource_thread,
             url: url,
@@ -527,7 +527,7 @@ impl PendingAsyncLoad {
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
-    pub fn load_async(mut self, listener: AsyncResponseTarget) {
+    fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
 
         let load_data = LoadData::new(self.context.clone(),
@@ -536,6 +536,23 @@ impl PendingAsyncLoad {
         let consumer = LoadConsumer::Listener(listener);
         self.core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
     }
+}
+
+/// Instruct the resource thread to make a new request.
+pub fn load_async(context: LoadContext,
+                  core_resource_thread: CoreResourceThread,
+                  url: Url,
+                  pipeline: Option<PipelineId>,
+                  referrer_policy: Option<ReferrerPolicy>,
+                  referrer_url: Option<Url>,
+                  listener: AsyncResponseTarget) {
+    let load = PendingAsyncLoad::new(context,
+                                     core_resource_thread,
+                                     url,
+                                     pipeline,
+                                     referrer_policy,
+                                     referrer_url);
+    load.load_async(listener);
 }
 
 /// Message sent in response to `Load`.  Contains metadata, and a port
