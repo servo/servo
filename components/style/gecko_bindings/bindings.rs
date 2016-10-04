@@ -24,18 +24,18 @@ pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
-pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
+pub type RawServoStyleSetOwned = Box<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowedOrNull<'a> = Option<&'a RawServoStyleSet>;
 pub type RawServoStyleSetBorrowedMutOrNull<'a> = Option<&'a mut RawServoStyleSet>;
-pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
+pub type RawServoStyleSetOwnedOrNull = Option<Box<RawServoStyleSet>>;
 enum RawServoStyleSetVoid{ }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
 pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
 pub type StyleChildrenIteratorBorrowedMut<'a> = &'a mut StyleChildrenIterator;
-pub type StyleChildrenIteratorOwned = ::gecko_bindings::sugar::ownership::Owned<StyleChildrenIterator>;
+pub type StyleChildrenIteratorOwned = Box<StyleChildrenIterator>;
 pub type StyleChildrenIteratorBorrowedOrNull<'a> = Option<&'a StyleChildrenIterator>;
 pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut StyleChildrenIterator>;
-pub type StyleChildrenIteratorOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
+pub type StyleChildrenIteratorOwnedOrNull = Option<Box<StyleChildrenIterator>>;
 enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
 use gecko_bindings::structs::nsStyleFont;

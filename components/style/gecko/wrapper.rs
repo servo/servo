@@ -211,7 +211,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
-        if let Some(iter) = maybe_iter.into_owned_opt() {
+        if let Some(iter) = maybe_iter {
             LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
         } else {
             LayoutIterator(GeckoChildrenIterator::Current(self.first_child()))

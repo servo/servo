@@ -336,7 +336,7 @@ pub extern "C" fn Servo_StyleSet_Init() -> RawServoStyleSetOwned {
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
-    let _ = data.into_box::<PerDocumentStyleData>();
+    let _ = PerDocumentStyleData::from_ffi_box(data);
 }
 
 #[no_mangle]

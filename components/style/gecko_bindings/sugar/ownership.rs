@@ -57,19 +57,23 @@ pub unsafe trait HasSimpleFFI : HasFFI {
 /// as a Box
 pub unsafe trait HasBoxFFI : HasSimpleFFI {
     #[inline]
-    fn into_ffi(self: Box<Self>) -> Owned<Self::FFIType> {
+    fn into_ffi(self: Box<Self>) -> Box<Self::FFIType> {
         unsafe { transmute(self) }
+    }
+    #[inline]
+    fn from_ffi_box(other: Box<Self::FFIType>) -> Box<Self> {
+        unsafe { transmute(other) }
     }
 }
 
-/// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
+/// Helper trait for conversions between FFI Strong/borrowed types and Arcs
 ///
 /// Should be implemented by types which are passed over FFI as Arcs
-/// via Strong and Borrowed
+/// via `Strong`, `Option<&T>`, and `&T`
 ///
 /// In this case, the FFIType is the rough equivalent of ArcInner<Self>
 pub unsafe trait HasArcFFI : HasFFI {
-    // these methods can't be on Borrowed because it leads to an unspecified
+    // these methods can't be on `Option<&T>` because it leads to an unspecified
     // impl parameter
     /// Artificially increments the refcount of a (possibly null) borrowed Arc over FFI.
     unsafe fn addref_opt(ptr: Option<&Self::FFIType>) {
@@ -110,6 +114,7 @@ pub unsafe trait HasArcFFI : HasFFI {
     }
 
     #[inline]
+    /// Converts a possibly-null borrowed FFI reference to a reference to an Arc if non-null
     fn arc_from_borrowed<'a>(ptr: &'a Option<&Self::FFIType>) -> Option<&'a Arc<Self>> {
         unsafe {
             if let Some(ref reference) = *ptr {
@@ -190,76 +195,5 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
     fn as_borrowed_opt(&self) -> Option<&T::FFIType> {
         let borrowedptr = self as *const Arc<T> as *const Option<&T::FFIType>;
         unsafe { ptr::read(borrowedptr) }
-    }
-}
-
-#[repr(C)]
-/// Gecko-FFI-safe owned pointer
-/// Cannot be null
-/// Leaks on drop. Please don't drop this.
-pub struct Owned<T> {
-    ptr: *mut T,
-    _marker: PhantomData<T>,
-}
-
-impl<T> Owned<T> {
-    /// Owned<GeckoType> -> Box<ServoType>
-    pub fn into_box<U>(self) -> Box<T> where U: HasBoxFFI<FFIType = T> {
-        unsafe { transmute(self) }
-    }
-    pub fn maybe(self) -> OwnedOrNull<T> {
-        unsafe { transmute(self) }
-    }
-}
-
-impl<T> Deref for Owned<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        unsafe { &*self.ptr }
-    }
-}
-
-impl<T> DerefMut for Owned<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        unsafe { &mut *self.ptr }
-    }
-}
-
-#[repr(C)]
-/// Gecko-FFI-safe owned pointer
-/// Can be null
-pub struct OwnedOrNull<T> {
-    ptr: *mut T,
-    _marker: PhantomData<T>,
-}
-
-impl<T> OwnedOrNull<T> {
-    pub fn is_null(&self) -> bool {
-        self.ptr == ptr::null_mut()
-    }
-    /// OwnedOrNull<GeckoType> -> Option<Box<ServoType>>
-    pub fn into_box_opt<U>(self) -> Option<Box<T>> where U: HasBoxFFI<FFIType = T> {
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { transmute(self) })
-        }
-    }
-
-    /// OwnedOrNull<GeckoType> -> Option<Owned<GeckoType>>
-    pub fn into_owned_opt(self) -> Option<Owned<T>> {
-        if self.is_null() {
-            None
-        } else {
-            Some(unsafe { transmute(self) })
-        }
-    }
-
-    pub fn borrow(&self) -> Option<&T> {
-        unsafe { transmute(self) }
-    }
-
-    pub fn borrow_mut(&self) -> Option<&mut T> {
-        unsafe { transmute(self) }
     }
 }
