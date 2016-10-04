@@ -340,6 +340,7 @@ impl Sensitivities {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     selector: Arc<ComplexSelector<TheSelectorImpl>>,
     hint: RestyleHint,
     sensitivities: Sensitivities,

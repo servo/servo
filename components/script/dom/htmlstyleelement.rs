@@ -24,6 +24,7 @@ use style::stylesheets::{Stylesheet, Origin};
 #[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
+    #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 }
 

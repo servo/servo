@@ -3,12 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
+use parking_lot::RwLock;
 use selectors::parser::{LocalName, ParserContext, parse_selector_list};
 use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
 use style::selector_matching::{Rule, SelectorMap};
+use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
@@ -19,14 +21,14 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         .unwrap().into_iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                declarations: Arc::new(PropertyDeclarationBlock {
+                declarations: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                })),
                 specificity: s.specificity,
                 source_order: i,
             }
@@ -99,6 +101,7 @@ fn test_insert() {
 
 #[test]
 fn test_get_universal_rules() {
+    thread_state::initialize(thread_state::LAYOUT);
     let map = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
     let mut decls = vec![];
 

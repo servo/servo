@@ -13,7 +13,7 @@ use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::PersistentStyleData;
 use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
-use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
+use properties::{ComputedValues, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
@@ -24,6 +24,7 @@ use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::ops::Deref;
 use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -139,7 +140,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr: *const PropertyDeclarationBlock = &*declaration.mixed_declarations;
+            let ptr: *const _ = Arc::deref(&declaration.mixed_declarations);
             ptr.hash(state);
             declaration.importance.hash(state);
         }
@@ -502,7 +503,13 @@ trait PrivateMatchMethods: TNode {
                                             -> Arc<ComputedValues>
         where Ctx: StyleContext<'a>
     {
-        let mut cacheable = true;
+        // Don’t cache applicable declarations for elements with a style attribute.
+        // Since the style attribute contributes to that set, no other element would have the same set
+        // and the cache would not be effective anyway.
+        // This also works around the test failures at
+        // https://github.com/servo/servo/pull/13459#issuecomment-250717584
+        let has_style_attribute = self.as_element().map_or(false, |e| e.style_attribute().is_some());
+        let mut cacheable = !has_style_attribute;
         let shared_context = context.shared_context();
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(shared_context,

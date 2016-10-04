@@ -41,6 +41,7 @@ use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
 use msg::constellation_msg::PipelineId;
+use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
@@ -461,7 +462,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
+    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref()
         }

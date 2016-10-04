@@ -16,8 +16,8 @@ gecko = []
 servo = ["serde/unstable", "serde", "serde_macros", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "selectors/heap_size", "selectors/unstable", "string_cache",
-         "url/heap_size", "plugins"]
+         "selectors/unstable", "string_cache",
+         "url/heap_size", "plugins", "parking_lot/nightly"]
 testing = []
 
 [dependencies]

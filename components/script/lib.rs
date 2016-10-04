@@ -17,6 +17,7 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
+#![feature(try_borrow)]
 #![feature(try_from)]
 
 #![deny(unsafe_code)]
@@ -64,6 +65,7 @@ extern crate net_traits;
 extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate open;
+extern crate parking_lot;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;

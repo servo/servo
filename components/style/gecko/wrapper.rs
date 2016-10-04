@@ -32,6 +32,7 @@ use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsIContent, nsStyleContext}
 use gecko_bindings::structs::OpaqueStyleData;
 use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasFFI};
 use libc::uintptr_t;
+use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
@@ -58,7 +59,7 @@ impl NonOpaqueStyleData {
 
 
 pub struct GeckoDeclarationBlock {
-    pub declarations: Option<Arc<PropertyDeclarationBlock>>,
+    pub declarations: Option<Arc<RwLock<PropertyDeclarationBlock>>>,
     // XXX The following two fields are made atomic to work around the
     // ownership system so that they can be changed inside a shared
     // instance. It wouldn't provide safety as Rust usually promises,
@@ -468,7 +469,7 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
     }
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
+    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.0) };
         if declarations.is_null() {
             None

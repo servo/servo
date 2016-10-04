@@ -7,6 +7,7 @@
 use app_units::Au;
 use env_logger;
 use euclid::Size2D;
+use parking_lot::RwLock;
 use std::mem::transmute;
 use std::ptr;
 use std::slice;
@@ -344,7 +345,9 @@ pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             -> ServoDeclarationBlockStrong {
     let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
     Arc::new(GeckoDeclarationBlock {
-        declarations: GeckoElement::parse_style_attribute(value).map(Arc::new),
+        declarations: GeckoElement::parse_style_attribute(value).map(|block| {
+            Arc::new(RwLock::new(block))
+        }),
         cache: AtomicPtr::new(cache),
         immutable: AtomicBool::new(false),
     }).into_strong()

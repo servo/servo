@@ -4,6 +4,7 @@
 
 use cssparser::{self, Parser, SourcePosition};
 use media_queries::CSSErrorReporterTest;
+use parking_lot::RwLock;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
@@ -50,17 +51,7 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
-    macro_rules! assert_eq {
-        ($left: expr, $right: expr) => {
-            let left = $left;
-            let right = $right;
-            if left != right {
-                panic!("{:#?} != {:#?}", left, right)
-            }
-        }
-    }
-
-    assert_eq!(stylesheet, Stylesheet {
+    let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: None,
         dirty_on_viewport_size_change: false,
@@ -97,7 +88,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
@@ -106,7 +97,7 @@ fn test_parse_stylesheet() {
                          Importance::Important),
                     ],
                     important_count: 2,
-                }),
+                })),
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -145,14 +136,14 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                })),
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -180,7 +171,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
@@ -228,7 +219,7 @@ fn test_parse_stylesheet() {
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                })),
             })),
             CSSRule::Keyframes(Arc::new(KeyframesRule {
                 name: "foo".into(),
@@ -236,19 +227,19 @@ fn test_parse_stylesheet() {
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(PropertyDeclarationBlock {
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
                                  Importance::Normal),
                             ],
                             important_count: 0,
-                        })
+                        }))
                     }),
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(PropertyDeclarationBlock {
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
@@ -259,13 +250,15 @@ fn test_parse_stylesheet() {
                                  Importance::Normal),
                             ],
                             important_count: 0,
-                        }),
+                        })),
                     }),
                 ]
             }))
 
         ],
-    });
+    };
+
+    assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
 }
 
 struct CSSError {

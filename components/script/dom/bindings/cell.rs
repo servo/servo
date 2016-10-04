@@ -4,15 +4,14 @@
 
 //! A shareable mutable container for the DOM.
 
-use refcell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
-use thread_state;
+use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
+use style::thread_state;
 
 /// A mutable field in the DOM.
 ///
 /// This extends the API of `core::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
-#[derive(Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub struct DOMRefCell<T> {
     value: RefCell<T>,
 }

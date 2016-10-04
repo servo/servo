@@ -9,6 +9,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use data::PersistentStyleData;
 use element_state::ElementState;
+use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement};
@@ -202,7 +203,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>>;
+    fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
 
     fn get_state(&self) -> ElementState;
 

@@ -9,6 +9,7 @@ extern crate env_logger;
 extern crate euclid;
 extern crate libc;
 #[macro_use] extern crate log;
+extern crate parking_lot;
 extern crate url;
 
 #[allow(non_snake_case)]

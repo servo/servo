@@ -113,7 +113,7 @@ use script_traits::UntrustedNodeAddress;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::Cell;
+use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -125,7 +125,6 @@ use std::time::{Duration, Instant};
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::refcell::{Ref, RefMut};
 use style::selector_impl::ElementSnapshot;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
@@ -144,6 +143,14 @@ pub enum IsHTMLDocument {
 enum ParserBlockedByScript {
     Blocked,
     Unblocked,
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+struct StylesheetInDocument {
+    node: JS<Node>,
+    #[ignore_heap_size_of = "Arc"]
+    stylesheet: Arc<Stylesheet>,
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -174,7 +181,7 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<(JS<Node>, Arc<Stylesheet>)>>>,
+    stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
@@ -1879,13 +1886,16 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }.map(|stylesheet| (JS::from_ref(&*node), stylesheet))
+                        }.map(|stylesheet| StylesheetInDocument {
+                            node: JS::from_ref(&*node),
+                            stylesheet: stylesheet
+                        })
                     })
                     .collect());
             };
         }
         self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .map(|s| s.stylesheet.clone())
                         .collect()
     }
 

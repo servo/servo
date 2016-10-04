@@ -11,6 +11,7 @@ use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
 use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
+use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_impl::TheSelectorImpl;
@@ -42,8 +43,7 @@ pub enum Origin {
 }
 
 
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
@@ -62,8 +62,7 @@ pub struct UserAgentStylesheets {
 }
 
 
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub enum CSSRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
@@ -85,15 +84,13 @@ pub struct NamespaceRule {
     pub url: Namespace,
 }
 
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct KeyframesRule {
     pub name: Atom,
     pub keyframes: Vec<Arc<Keyframe>>,
 }
 
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<MediaQueryList>,
     pub rules: Vec<CSSRule>,
@@ -107,11 +104,10 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
-    pub declarations: Arc<PropertyDeclarationBlock>,
+    pub block: Arc<RwLock<PropertyDeclarationBlock>>,
 }
 
 
@@ -563,7 +559,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
                    -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
-            declarations: Arc::new(parse_property_declaration_list(self.context, input))
+            block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
         })))
     }
 }
