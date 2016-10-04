@@ -100,9 +100,9 @@ impl HandOverHandMutex {
         let guard_ptr = &mut *self.guard.get();
         let old_owner = self.owner();
         self.owner.store(None, Ordering::Relaxed);
-        // Make sure we release the lock before checking the assertions,
-        // in Servo, we protect logging by a re-entrant lock, so we don't want
-        // to do any logging while we hold a re-entrant lock.
+        // Make sure we release the lock before checking the assertions.
+        // We protect logging by a re-entrant lock, so we don't want
+        // to do any incidental logging while we the lock is held.
         drop(guard_ptr.take());
         // Now we have released the lock, it's okay to use logging.
         assert_eq!(old_owner, Some(ThreadId::current()));
