@@ -27,7 +27,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{ScriptChan, maybe_take_panic_result};
-use script_thread::{MainThreadScriptChan, RunnableWrapper};
+use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
@@ -405,6 +405,18 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.get_runnable_wrapper();
+        }
+        unreachable!();
+    }
+
+    /// Start the process of executing the pending promise callbacks. They will be invoked
+    /// in FIFO order, synchronously, at some point in the future.
+    pub fn flush_promise_jobs(&self) {
+        if self.is::<Window>() {
+            return ScriptThread::flush_promise_jobs(self);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.flush_promise_jobs();
         }
         unreachable!();
     }

@@ -2180,11 +2180,11 @@ impl ScriptThread {
         });
     }
 
-    pub fn flush_promise_jobs(global: GlobalRef) {
+    pub fn flush_promise_jobs(global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let _ = script_thread.dom_manipulation_task_source.queue(
-                box FlushPromiseJobs, global.as_global_scope());
+                box FlushPromiseJobs, global);
         })
     }
 

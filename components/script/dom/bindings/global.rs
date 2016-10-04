@@ -92,15 +92,6 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(ref worker) => worker.enqueue_promise_job(job),
         }
     }
-
-    /// Start the process of executing the pending promise callbacks. They will be invoked
-    /// in FIFO order, synchronously, at some point in the future.
-    pub fn flush_promise_jobs(&self) {
-        match *self {
-            GlobalRef::Window(_) => ScriptThread::flush_promise_jobs(*self),
-            GlobalRef::Worker(ref worker) => worker.flush_promise_jobs(),
-        }
-    }
 }
 
 impl<'a> Reflectable for GlobalRef<'a> {

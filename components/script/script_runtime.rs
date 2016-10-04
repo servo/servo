@@ -142,7 +142,7 @@ impl PromiseJobQueue {
         self.promise_job_queue.borrow_mut().push(job);
         if !self.pending_promise_job_runnable.get() {
             self.pending_promise_job_runnable.set(true);
-            global.flush_promise_jobs();
+            global.as_global_scope().flush_promise_jobs();
         }
     }
 
