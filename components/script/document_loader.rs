@@ -49,7 +49,7 @@ impl LoadType {
 }
 
 /// Canary value ensuring that manually added blocking loads (ie. ones that weren't
-/// created via DocumentLoader::prepare_async_load) are always removed by the time
+/// created via DocumentLoader::{load_async, fetch_async}) are always removed by the time
 /// that the owner is destroyed.
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
@@ -123,30 +123,21 @@ impl DocumentLoader {
         self.blocking_loads.push(load);
     }
 
-    /// Create a new pending network request, which can be initiated at some point in
-    /// the future.
-    pub fn prepare_async_load(&mut self,
-                              load: LoadType,
-                              referrer: &Document,
-                              referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
-        let context = load.to_load_context();
-        let url = load.url().clone();
-        self.add_blocking_load(load);
-        PendingAsyncLoad::new(context,
-                              self.resource_threads.sender(),
-                              url,
-                              self.pipeline,
-                              referrer_policy.or(referrer.get_referrer_policy()),
-                              Some(referrer.url().clone()))
-    }
-
     /// Create and initiate a new network request.
     pub fn load_async(&mut self,
                       load: LoadType,
                       listener: AsyncResponseTarget,
                       referrer: &Document,
                       referrer_policy: Option<ReferrerPolicy>) {
-        let pending = self.prepare_async_load(load, referrer, referrer_policy);
+        let context = load.to_load_context();
+        let url = load.url().clone();
+        self.add_blocking_load(load);
+        let pending = PendingAsyncLoad::new(context,
+                                            self.resource_threads.sender(),
+                                            url,
+                                            self.pipeline,
+                                            referrer_policy.or(referrer.get_referrer_policy()),
+                                            Some(referrer.url().clone()));
         pending.load_async(listener)
     }
 
