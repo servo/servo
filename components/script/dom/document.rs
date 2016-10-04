@@ -1441,10 +1441,9 @@ impl Document {
 
     pub fn fetch_async(&self, load: LoadType,
                        request: RequestInit,
-                       fetch_target: IpcSender<FetchResponseMsg>,
-                       referrer_policy: Option<ReferrerPolicy>) {
+                       fetch_target: IpcSender<FetchResponseMsg>) {
         let mut loader = self.loader.borrow_mut();
-        loader.fetch_async(load, request, fetch_target, self, referrer_policy);
+        loader.fetch_async(load, request, fetch_target);
     }
 
     pub fn finish_load(&self, load: LoadType) {
