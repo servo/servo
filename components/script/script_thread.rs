@@ -170,7 +170,7 @@ impl InProgressLoad {
 
 /// Encapsulated state required to create cancellable runnables from non-script threads.
 pub struct RunnableWrapper {
-    pub cancelled: Arc<AtomicBool>,
+    pub cancelled: Option<Arc<AtomicBool>>,
 }
 
 impl RunnableWrapper {
@@ -184,7 +184,7 @@ impl RunnableWrapper {
 
 /// A runnable that can be discarded by toggling a shared flag.
 pub struct CancellableRunnable<T: Runnable + Send> {
-    cancelled: Arc<AtomicBool>,
+    cancelled: Option<Arc<AtomicBool>>,
     inner: Box<T>,
 }
 
@@ -192,7 +192,9 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
     fn name(&self) -> &'static str { self.inner.name() }
 
     fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
+        self.cancelled.as_ref()
+            .map(|cancelled| cancelled.load(Ordering::SeqCst))
+            .unwrap_or(false)
     }
 
     fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {

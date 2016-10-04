@@ -868,7 +868,7 @@ impl WindowMethods for Window {
 impl Window {
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         RunnableWrapper {
-            cancelled: self.ignore_further_async_events.clone()
+            cancelled: Some(self.ignore_further_async_events.clone()),
         }
     }
 

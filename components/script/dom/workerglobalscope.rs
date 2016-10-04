@@ -155,7 +155,7 @@ impl WorkerGlobalScope {
 
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         RunnableWrapper {
-            cancelled: self.closing.clone().unwrap(),
+            cancelled: self.closing.clone(),
         }
     }
 
