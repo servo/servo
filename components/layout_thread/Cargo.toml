@@ -30,8 +30,8 @@ profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
+serde_derive = "0.8"
 serde_json = "0.8"
-serde_macros = "0.8"
 style = {path = "../style"}
 url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
@@ -39,4 +39,4 @@ util = {path = "../util"}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 gecko = []
-servo = ["serde/unstable", "serde", "serde_macros", "heapsize_plugin",
+servo = ["serde/unstable", "serde", "serde_derive", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
          "selectors/unstable", "string_cache",
@@ -45,7 +45,7 @@ rand = "0.3"
 rustc-serialize = "0.3"
 selectors = "0.13"
 serde = {version = "0.8", optional = true}
-serde_macros = {version = "0.8", optional = true}
+serde_derive = {version = "0.8", optional = true}
 smallvec = "0.1"
 string_cache = {version = "0.2.26", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}

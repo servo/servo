@@ -5,10 +5,10 @@
 #![feature(box_syntax)]
 #![feature(custom_derive)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
-#![plugin(serde_macros)]
 
 extern crate app_units;
 
@@ -26,6 +26,8 @@ extern crate net_traits;
 #[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
+#[macro_use]
+extern crate serde_derive;
 extern crate style_traits;
 extern crate time;
 extern crate url;

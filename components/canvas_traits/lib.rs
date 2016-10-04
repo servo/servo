@@ -6,7 +6,9 @@
 #![crate_type = "rlib"]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![plugin(heapsize_plugin, plugins, serde_macros)]
+#![feature(proc_macro)]
+#![feature(rustc_attrs)]
+#![plugin(heapsize_plugin, plugins)]
 
 #![deny(unsafe_code)]
 
@@ -18,6 +20,8 @@ extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate webrender_traits;
 
 use azure::azure::{AzColor, AzFloat};

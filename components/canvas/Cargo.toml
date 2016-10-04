@@ -25,4 +25,4 @@ util = {path = "../util"}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

@@ -4,10 +4,11 @@
 
 #![feature(custom_derive)]
 #![feature(plugin)]
+#![feature(proc_macro)]
+#![feature(rustc_attrs)]
 #![feature(step_trait)]
 
 #![plugin(heapsize_plugin)]
-#![plugin(serde_macros)]
 
 #![deny(unsafe_code)]
 
@@ -15,6 +16,8 @@ extern crate heapsize;
 extern crate num_traits;
 extern crate rustc_serialize;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 use std::cmp::{self, max, min};
 use std::fmt;

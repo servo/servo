@@ -17,7 +17,6 @@
 #![feature(question_mark)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
-#![feature(try_borrow)]
 #![feature(try_from)]
 #![feature(untagged_unions)]
 

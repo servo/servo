@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(custom_derive, plugin)]
-#![plugin(heapsize_plugin, plugins, serde_macros)]
+#![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
+#![plugin(heapsize_plugin, plugins)]
 
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
@@ -20,6 +20,8 @@ extern crate profile_traits;
 extern crate range;
 extern crate rustc_serialize;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod color;
 mod paint_listener;
