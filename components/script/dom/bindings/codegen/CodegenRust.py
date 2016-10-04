@@ -3168,7 +3168,7 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             if static:
-                glob = "global.r().as_global_scope()"
+                glob = "&global"
             else:
                 glob = "&global_scope_from_reflector(this)"
 
@@ -3386,7 +3386,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
+let global = global_scope_from_object(JS_CALLEE(cx, vp).to_object());
 """)
         return CGList([preamble, self.generate_code()])
 
@@ -3438,7 +3438,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
-        call = CGMethodCall(["global.r().as_global_scope()"], nativeName, True, self.descriptor, self.method)
+        call = CGMethodCall(["&global"], nativeName, True, self.descriptor, self.method)
         return CGList([setupArgs, call])
 
 
@@ -3492,7 +3492,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
-        call = CGGetterCall(["global.r().as_global_scope()"], self.attr.type, nativeName, self.descriptor,
+        call = CGGetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([setupArgs, call])
 
@@ -3545,7 +3545,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return false;\n"
             "}" % self.attr.identifier.name)
-        call = CGSetterCall(["global.r().as_global_scope()"], self.attr.type, nativeName, self.descriptor,
+        call = CGSetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([checkForArg, call])
 
@@ -5252,12 +5252,12 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
+let global = global_scope_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self.constructor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-        callGenerator = CGMethodCall(["global.r().as_global_scope()"], nativeName, True,
+        callGenerator = CGMethodCall(["&global"], nativeName, True,
                                      self.descriptor, self.constructor)
         return CGList([preamble, callGenerator])
 
@@ -5500,9 +5500,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::constant::ConstantSpec',
         'dom::bindings::constant::ConstantVal',
         'dom::bindings::global::GlobalRef',
-        'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_scope_from_object_maybe_wrapped',
         'dom::bindings::global::global_scope_from_reflector',
+        'dom::bindings::global::global_scope_from_object',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
