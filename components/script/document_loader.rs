@@ -9,7 +9,7 @@ use dom::bindings::js::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, CoreResourceMsg, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, load_async};
 use net_traits::{FetchResponseMsg, LoadContext, ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
 use std::thread;
@@ -132,13 +132,13 @@ impl DocumentLoader {
         let context = load.to_load_context();
         let url = load.url().clone();
         self.add_blocking_load(load);
-        let pending = PendingAsyncLoad::new(context,
-                                            self.resource_threads.sender(),
-                                            url,
-                                            self.pipeline,
-                                            referrer_policy.or(referrer.get_referrer_policy()),
-                                            Some(referrer.url().clone()));
-        pending.load_async(listener)
+        load_async(context,
+                   self.resource_threads.sender(),
+                   url,
+                   self.pipeline,
+                   referrer_policy.or(referrer.get_referrer_policy()),
+                   Some(referrer.url().clone()),
+                   listener);
     }
 
     /// Initiate a new fetch.
