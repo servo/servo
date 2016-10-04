@@ -15,7 +15,6 @@ use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
 use dom::globalscope::GlobalScope;
@@ -113,7 +112,7 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn Resolve(global: GlobalRef,
+    pub fn Resolve(global: &GlobalScope,
                    cx: *mut JSContext,
                    value: HandleValue) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
@@ -125,7 +124,7 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn Reject(global: GlobalRef,
+    pub fn Reject(global: &GlobalScope,
                   cx: *mut JSContext,
                   value: HandleValue) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());

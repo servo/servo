@@ -163,10 +163,12 @@ pub unsafe fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
 
 /// Returns the global object of the realm that the given JS object was created in,
 /// after unwrapping any wrappers.
-pub unsafe fn global_root_from_object_maybe_wrapped(mut obj: *mut JSObject) -> GlobalRoot {
+pub unsafe fn global_scope_from_object_maybe_wrapped(
+        mut obj: *mut JSObject)
+        -> Root<GlobalScope> {
     if IsWrapper(obj) {
         obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
         assert!(!obj.is_null());
     }
-    global_root_from_object(obj)
+    global_scope_from_object(obj)
 }

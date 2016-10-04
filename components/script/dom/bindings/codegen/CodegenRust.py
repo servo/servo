@@ -817,16 +817,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 { // Scope for our JSAutoCompartment.
 
                   rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
-                  let promiseGlobal = global_root_from_object_maybe_wrapped(globalObj.handle().get());
+                  let promiseGlobal = global_scope_from_object_maybe_wrapped(globalObj.handle().get());
 
                   rooted!(in(cx) let mut valueToResolve = $${val}.get());
                   if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
                     $*{exceptionCode}
                   }
-                  match Promise::Resolve(promiseGlobal.r(), cx, valueToResolve.handle()) {
+                  match Promise::Resolve(&promiseGlobal, cx, valueToResolve.handle()) {
                       Ok(value) => value,
                       Err(error) => {
-                        throw_dom_exception(cx, promiseGlobal.r().as_global_scope(), error);
+                        throw_dom_exception(cx, &promiseGlobal, error);
                         $*{exceptionCode}
                       }
                   }
@@ -5501,7 +5501,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::constant::ConstantVal',
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
-        'dom::bindings::global::global_root_from_object_maybe_wrapped',
+        'dom::bindings::global::global_scope_from_object_maybe_wrapped',
         'dom::bindings::global::global_scope_from_reflector',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',

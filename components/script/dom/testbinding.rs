@@ -656,12 +656,12 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unrooted_must_root)]
     fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Resolve(self.global().r(), cx, v)
+        Promise::Resolve(&self.global_scope(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Reject(self.global().r(), cx, v)
+        Promise::Reject(&self.global_scope(), cx, v)
     }
 
     fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
