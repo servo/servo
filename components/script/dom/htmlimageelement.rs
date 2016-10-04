@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, AU_PER_PX};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -28,6 +28,7 @@ use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
+use std::i32;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -443,7 +444,19 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     } else {
         value
     };
-    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
+
+    // FIXME: There are probably quite a few more cases of this. This is the
+    // only overflow that was hitting on automation, but we should consider what
+    // to do in the general case case.
+    //
+    // See <https://github.com/servo/app_units/issues/22>
+    let pixel_value = if value > (i32::MAX / AU_PER_PX) as u32 {
+        0
+    } else {
+        value
+    };
+
+    let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
     let value = AttrValue::Dimension(value.to_string(), dim);
     element.set_attribute(&attr, value);
 }

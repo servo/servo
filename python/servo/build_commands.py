@@ -216,6 +216,12 @@ class MachCommands(CommandBase):
         build_start = time()
         env = self.build_env(target=target, is_build=True)
 
+        # TODO: If this ends up making it, we should probably add a
+        # --release-with-debug-assertions option or similar, so it's easier to
+        # build locally.
+        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+            env["RUSTFLAGS"] = "-C debug_assertions"
+
         if android:
             # Build OpenSSL for android
             make_cmd = ["make"]

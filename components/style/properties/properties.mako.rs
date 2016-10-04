@@ -1532,14 +1532,19 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
+    pub fn border_width_for_writing_mode(&self, writing_mode: WritingMode) -> LogicalMargin<Au> {
         let border_style = self.get_border();
-        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+        LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
             border_style.border_top_width,
             border_style.border_right_width,
             border_style.border_bottom_width,
             border_style.border_left_width,
         ))
+    }
+
+    #[inline]
+    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
+        self.border_width_for_writing_mode(self.writing_mode)
     }
 
     #[inline]

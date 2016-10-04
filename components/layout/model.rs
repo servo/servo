@@ -12,7 +12,7 @@ use fragment::Fragment;
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
-use style::logical_geometry::LogicalMargin;
+use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ServoComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
@@ -463,10 +463,12 @@ pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) 
 }
 
 #[inline]
-pub fn padding_from_style(style: &ServoComputedValues, containing_block_inline_size: Au)
+pub fn padding_from_style(style: &ServoComputedValues,
+                          containing_block_inline_size: Au,
+                          writing_mode: WritingMode)
                           -> LogicalMargin<Au> {
     let padding_style = style.get_padding();
-    LogicalMargin::from_physical(style.writing_mode, SideOffsets2D::new(
+    LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
         specified(padding_style.padding_top, containing_block_inline_size),
         specified(padding_style.padding_right, containing_block_inline_size),
         specified(padding_style.padding_bottom, containing_block_inline_size),
@@ -478,9 +480,10 @@ pub fn padding_from_style(style: &ServoComputedValues, containing_block_inline_s
 ///
 /// This is used when calculating intrinsic inline sizes.
 #[inline]
-pub fn specified_margin_from_style(style: &ServoComputedValues) -> LogicalMargin<Au> {
+pub fn specified_margin_from_style(style: &ServoComputedValues,
+                                   writing_mode: WritingMode) -> LogicalMargin<Au> {
     let margin_style = style.get_margin();
-    LogicalMargin::from_physical(style.writing_mode, SideOffsets2D::new(
+    LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
         MaybeAuto::from_style(margin_style.margin_top, Au(0)).specified_or_zero(),
         MaybeAuto::from_style(margin_style.margin_right, Au(0)).specified_or_zero(),
         MaybeAuto::from_style(margin_style.margin_bottom, Au(0)).specified_or_zero(),
