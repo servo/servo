@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
 use dom::bindings::str::DOMString;
@@ -28,7 +27,6 @@ use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
-use url::Url;
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -40,15 +38,15 @@ pub struct BrowsingContext {
     /// Indicates if reflow is required when reloading.
     needs_reflow: Cell<bool>,
 
-    /// Stores this context's session history
-    history: DOMRefCell<Vec<SessionHistoryEntry>>,
-
-    /// The index of the active session history entry
-    active_index: Cell<usize>,
-
     /// Stores the child browsing contexts (ex. iframe browsing context)
     children: DOMRefCell<Vec<JS<BrowsingContext>>>,
 
+    /// The current active document.
+    /// Note that the session history is stored in the constellation,
+    /// in the script thread we just track the current active document.
+    active_document: MutNullableHeap<JS<Document>>,
+
+    /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,
 }
 
@@ -58,9 +56,8 @@ impl BrowsingContext {
             reflector: Reflector::new(),
             id: id,
             needs_reflow: Cell::new(true),
-            history: DOMRefCell::new(vec![]),
-            active_index: Cell::new(0),
             children: DOMRefCell::new(vec![]),
+            active_document: Default::default(),
             frame_element: frame_element.map(JS::from_ref),
         }
     }
@@ -91,28 +88,19 @@ impl BrowsingContext {
     }
 
     pub fn init(&self, document: &Document) {
-        assert!(self.history.borrow().is_empty());
-        assert_eq!(self.active_index.get(), 0);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        self.active_document.set(Some(document))
     }
 
     pub fn push_history(&self, document: &Document) {
-        let mut history = self.history.borrow_mut();
-        // Clear all session history entries after the active index
-        history.drain((self.active_index.get() + 1)..);
-        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
-        self.active_index.set(self.active_index.get() + 1);
-        assert_eq!(self.active_index.get(), history.len() - 1);
+        self.active_document.set(Some(document))
     }
 
     pub fn active_document(&self) -> Root<Document> {
-        Root::from_ref(&self.history.borrow()[self.active_index.get()].document)
+        self.active_document.get().expect("No active document.")
     }
 
     pub fn maybe_active_document(&self) -> Option<Root<Document>> {
-        self.history.borrow().get(self.active_index.get()).map(|entry| {
-            Root::from_ref(&*entry.document)
-        })
+        self.active_document.get()
     }
 
     pub fn active_window(&self) -> Root<Window> {
@@ -168,8 +156,7 @@ impl BrowsingContext {
     }
 
     pub fn clear_session_history(&self) {
-        self.active_index.set(0);
-        self.history.borrow_mut().clear();
+        self.active_document.set(None)
     }
 
     pub fn iter(&self) -> ContextIterator {
@@ -205,27 +192,6 @@ impl Iterator for ContextIterator {
                                               .map(|c| Root::from_ref(&**c)));
         }
         popped
-    }
-}
-
-// This isn't a DOM struct, just a convenience struct
-// without a reflector, so we don't mark this as #[dom_struct]
-#[must_root]
-#[privatize]
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct SessionHistoryEntry {
-    document: JS<Document>,
-    url: Url,
-    title: DOMString,
-}
-
-impl SessionHistoryEntry {
-    fn new(document: &Document, url: Url, title: DOMString) -> SessionHistoryEntry {
-        SessionHistoryEntry {
-            document: JS::from_ref(document),
-            url: url,
-            title: title,
-        }
     }
 }
 
