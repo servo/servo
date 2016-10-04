@@ -385,6 +385,7 @@ pub mod screen;
 pub mod serviceworker;
 pub mod serviceworkercontainer;
 pub mod serviceworkerglobalscope;
+pub mod serviceworkerjob;
 pub mod serviceworkerregistration;
 pub mod servoparser;
 pub mod storage;
