@@ -502,7 +502,8 @@ trait PrivateMatchMethods: TNode {
                                             -> Arc<ComputedValues>
         where Ctx: StyleContext<'a>
     {
-        let mut cacheable = true;
+        let has_style_attribute = self.as_element().map_or(false, |e| e.style_attribute().is_some());
+        let mut cacheable = !has_style_attribute;
         let shared_context = context.shared_context();
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(shared_context,
