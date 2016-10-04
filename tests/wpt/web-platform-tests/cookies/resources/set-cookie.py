@@ -21,11 +21,9 @@ def main(request, response):
     < Content-Length: 80
     """
     params = urlparse.parse_qs(request.url_parts.query)
-    print >> sys.stderr, params
     headers = [
         ("Content-Type", "application/json"),
         ("Set-Cookie", "{name[0]}=1; Path={path[0]}; Expires=Wed, 09 Jun 2021 10:18:14 GMT".format(**params))
     ]
     body = "{}"
-    print >> sys.stderr, headers
     return headers, body
