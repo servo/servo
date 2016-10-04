@@ -5502,7 +5502,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_root_from_object_maybe_wrapped',
-        'dom::bindings::global::global_root_from_reflector',
         'dom::bindings::global::global_scope_from_reflector',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
