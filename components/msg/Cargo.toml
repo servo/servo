@@ -19,10 +19,10 @@ hyper_serde = "0.1.4"
 ipc-channel = "0.5"
 plugins = {path = "../plugins"}
 serde = "0.8"
-serde_macros = "0.8"
+serde_derive = "0.8"
 url = {version = "1.2", features = ["heap_size", "serde"]}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

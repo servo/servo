@@ -36,7 +36,7 @@ rand = "0.3"
 range = {path = "../range"}
 rustc-serialize = "0.3"
 serde = "0.8"
-serde_macros = "0.8"
+serde_derive = "0.8"
 smallvec = "0.1"
 string_cache = {version = "0.2.26", features = ["heap_size"]}
 style = {path = "../style"}
@@ -50,7 +50,7 @@ xi-unicode = "0.0.1"
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "0.5"
