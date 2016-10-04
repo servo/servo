@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::Response
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::Error;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::Reflectable;
+use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
 use dom::promise::Promise;
 use dom::request::Request;
@@ -66,18 +66,17 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
-    let global_scope = global.as_global_scope();
-    let core_resource_thread = global_scope.core_resource_thread();
+pub fn Fetch(global: &GlobalScope, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+    let core_resource_thread = global.core_resource_thread();
 
     // Step 1
-    let promise = Promise::new(global_scope);
-    let response = Response::new(global_scope);
+    let promise = Promise::new(global);
+    let response = Response::new(global);
 
     // Step 2
-    let request = match Request::Constructor(global_scope, input, init) {
+    let request = match Request::Constructor(global, input, init) {
         Err(e) => {
-            promise.reject_error(promise.global().r().get_cx(), e);
+            promise.reject_error(promise.global_scope().get_cx(), e);
             return promise;
         },
         Ok(r) => r.get_request(),
@@ -96,7 +95,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     }));
     let listener = NetworkListener {
         context: fetch_context,
-        script_chan: global_scope.networking_task_source(),
+        script_chan: global.networking_task_source(),
         wrapper: None,
     };
 

@@ -861,7 +861,7 @@ impl WindowMethods for Window {
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
-        fetch::Fetch(self.global().r(), input, init)
+        fetch::Fetch(&self.upcast(), input, init)
     }
 }
 
