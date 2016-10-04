@@ -63,7 +63,7 @@ pub struct LoadBlocker {
 impl LoadBlocker {
     /// Mark the document's load event as blocked on this new load.
     pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
-        doc.add_blocking_load(load.clone());
+        doc.mut_loader().add_blocking_load(load.clone());
         LoadBlocker {
             doc: JS::from_ref(doc),
             load: Some(load),
@@ -119,7 +119,7 @@ impl DocumentLoader {
     }
 
     /// Add a load to the list of blocking loads.
-    pub fn add_blocking_load(&mut self, load: LoadType) {
+    fn add_blocking_load(&mut self, load: LoadType) {
         self.blocking_loads.push(load);
     }
 
