@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -444,7 +443,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(nav, GlobalRef::Window(&window)).unwrap();
+        window.dom_manipulation_task_source().queue(nav, window.upcast()).unwrap();
     }
 
     /// Interactively validate the constraints of form elements

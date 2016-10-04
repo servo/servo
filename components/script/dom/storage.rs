@@ -150,13 +150,14 @@ impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        let window = global_ref.as_global_scope().as_window();
+        let global = self.global_scope();
+        let window = global.as_window();
         let task_source = window.dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
-        task_source.queue(box StorageEventRunnable::new(trusted_storage, key, old_value, new_value),
-                          global_ref).unwrap();
+        task_source
+            .queue(
+                box StorageEventRunnable::new(trusted_storage, key, old_value, new_value), &global)
+            .unwrap();
     }
 }
 

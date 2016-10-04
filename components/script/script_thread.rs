@@ -1192,7 +1192,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
+        self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
             self.check_and_scroll_fragment(fragment, pipeline, doc);
@@ -2183,7 +2183,8 @@ impl ScriptThread {
     pub fn flush_promise_jobs(global: GlobalRef) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            let _ = script_thread.dom_manipulation_task_source.queue(box FlushPromiseJobs, global);
+            let _ = script_thread.dom_manipulation_task_source.queue(
+                box FlushPromiseJobs, global.as_global_scope());
         })
     }
 

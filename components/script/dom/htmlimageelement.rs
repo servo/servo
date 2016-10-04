@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -192,7 +191,7 @@ impl HTMLImageElement {
                         src: src.into(),
                     };
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(runnable, GlobalRef::Window(window));
+                    let _ = task.queue(runnable, window.upcast());
                 }
             }
         }
