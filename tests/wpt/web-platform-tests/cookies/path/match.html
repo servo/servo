@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>tests for matching cookie paths</title>
+  <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+</head>
+<body>
+<div id=log></div>
+
+<script>
+var body = document.getElementsByTagName('body')[0];
+var createIframeThen = function (callback) {
+  var iframe = document.createElement('iframe');
+  iframe.src = "echo-cookie.html";
+  body.appendChild(iframe);
+  iframe.onload = callback;
+  return iframe;
+};
+var testCookiePathFromDOM = function (testCase, ctx) {
+  var iframe = createIframeThen(function () {
+    iframe.contentWindow.setCookie(testCase.name, testCase.path);
+    var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
+    if (testCase.match === false) {
+      assert_equals(cookieSet, null);
+    } else {
+      assert_not_equals(cookieSet, null);
+    }
+
+    iframe.contentWindow.expireCookie(testCase.name, testCase.path);
+    ctx.done();
+  });
+};
+var testCookiePathFromHeader = function (testCase, ctx) {
+  var iframe = createIframeThen(function () {
+    iframe.contentWindow.fetchCookieThen(testCase.name, testCase.path, function (response) {
+      assert_equals(response.ok, true);
+
+      var cookieSet = iframe.contentWindow.isCookieSet(testCase.name, testCase.path);
+      if (testCase.match === false) {
+        assert_equals(cookieSet, null);
+      } else {
+        assert_not_equals(cookieSet, null);
+      }
+
+      iframe.contentWindow.expireCookie(testCase.name, testCase.path);
+      ctx.done();
+    }, function (err) {
+      assert_equals(err.message, -1);
+      ctx.done();
+    });
+  });
+};
+
+var tests = [{
+  "name": "match-slash",
+  "path": "/",
+}, {
+  "name": "match-page",
+  "path": "match.html",
+}, {
+  "name": "match-prefix",
+  "path": "cookies",
+}, {
+  "name": "match-slash-prefix",
+  "path": "/cookies",
+}, {
+  "name": "match-slash-prefix-slash",
+  "path": "/cookies/",
+}, {
+  "name": "match-exact-page",
+  "path": "/cookies/path/echo-cookie.html",
+}, {
+  "name": "no-match",
+  "path": "/cook",
+  "match": false
+}, {
+  "name": "no-match-subpath",
+  "path": "/w/",
+  "match": false
+}];
+
+var domTests = tests.map(function (testCase) {
+  var testName = "`document.cookie` on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+  if (testCase.match === false) {
+    testName = "`document.cookie` on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+  }
+  return [
+    testName,
+    function () {
+      testCookiePathFromDOM(testCase, this);
+    }
+  ];
+});
+
+var headerTests = tests.map(function (testCase) {
+  var testName = "`Set-Cookie` on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+  if (testCase.match === false) {
+    testName = "`Set-Cookie` on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+  }
+  return [
+    testName,
+    function () {
+      testCookiePathFromHeader(testCase, this);
+    }
+  ];
+});
+
+executeTestsSerially(domTests.concat(headerTests));
+</script>
+</body>
+</html>
