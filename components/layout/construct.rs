@@ -22,7 +22,7 @@ use floats::FloatKind;
 use flow::{self, AbsoluteDescendants, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow::{CAN_BE_FRAGMENTED, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
-use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
+use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
@@ -334,6 +334,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
                 SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data, self.style_context()))
+            }
+            Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {
+                let data = node.svg_data().unwrap();
+                SpecificFragmentInfo::Svg(box SvgFragmentInfo::new(node, data, self.style_context()))
             }
             _ => {
                 // This includes pseudo-elements.
@@ -1701,7 +1705,8 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
             Some(LayoutNodeType::Document) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) |
-            Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => true,
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |
+            Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => true,
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => self.has_object_data(),
             Some(LayoutNodeType::Element(_)) => false,
             None => self.get_pseudo_element_type().is_replaced_content(),
