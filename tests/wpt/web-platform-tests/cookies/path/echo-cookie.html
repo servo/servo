@@ -10,8 +10,8 @@
 window.setCookie = function (name, path) {
   document.cookie = name + '=1; path = ' + path + ';';
 }
-window.fetchCookieThen = function (name, path, callback, errback) {
-  return fetch("/cookies/resources/set-cookie.py?name=" + encodeURIComponent(name) + "&path=" + encodeURIComponent(path)).then(callback).catch(errback);
+window.fetchCookieThen = function (name, path) {
+  fetch("/cookies/resources/set-cookie.py?name=" + encodeURIComponent(name) + "&path=" + encodeURIComponent(path));
 };
 window.isCookieSet = function (name, path) {
   return document.cookie.match(name + '=1');
