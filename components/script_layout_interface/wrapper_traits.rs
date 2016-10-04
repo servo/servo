@@ -5,6 +5,7 @@
 use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
+use SVGSVGData;
 use gfx_traits::{ByteIndex, LayerId, LayerType};
 use msg::constellation_msg::PipelineId;
 use range::Range;
@@ -361,6 +362,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     fn image_url(&self) -> Option<Url>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
+
+    fn svg_data(&self) -> Option<SVGSVGData>;
 
     /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
