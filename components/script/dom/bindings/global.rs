@@ -20,9 +20,7 @@ use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass};
 use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
 use script_thread::{RunnableWrapper, ScriptThread};
-use script_traits::MsDuration;
 use task_source::file_reading::FileReadingTaskSource;
-use timers::{OneshotTimerCallback, OneshotTimerHandle};
 
 /// A freely-copyable reference to a rooted global object.
 #[derive(Copy, Clone)]
@@ -84,26 +82,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(_) => ScriptThread::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),
-        }
-    }
-
-    /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
-    /// passed.
-    pub fn schedule_callback(&self,
-                             callback: OneshotTimerCallback,
-                             duration: MsDuration)
-                             -> OneshotTimerHandle {
-        match *self {
-            GlobalRef::Window(window) => window.schedule_callback(callback, duration),
-            GlobalRef::Worker(worker) => worker.schedule_callback(callback, duration),
-        }
-    }
-
-    /// Unschedule a previously-scheduled callback.
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        match *self {
-            GlobalRef::Window(window) => window.unschedule_callback(handle),
-            GlobalRef::Worker(worker) => worker.unschedule_callback(handle),
         }
     }
 

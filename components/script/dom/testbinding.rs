@@ -683,8 +683,10 @@ impl TestBindingMethods for TestBinding {
             promise: TrustedPromise::new(promise),
             value: value,
         };
-        let _ = self.global().r().schedule_callback(OneshotTimerCallback::TestBindingCallback(cb),
-                                                    MsDuration::new(delay));
+        let _ = self.global_scope()
+            .schedule_callback(
+                OneshotTimerCallback::TestBindingCallback(cb),
+                MsDuration::new(delay));
     }
 
     #[allow(unrooted_must_root)]

@@ -1077,15 +1077,14 @@ impl XMLHttpRequest {
             xhr: Trusted::new(self),
             generation_id: self.generation_id.get(),
         });
-        let global = self.global();
         let duration = Length::new(duration_ms as u64);
-        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(callback, duration));
+        *self.timeout_cancel.borrow_mut() =
+            Some(self.global_scope().schedule_callback(callback, duration));
     }
 
     fn cancel_timeout(&self) {
         if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
-            let global = self.global();
-            global.r().unschedule_callback(handle);
+            self.global_scope().unschedule_callback(handle);
         }
     }
 

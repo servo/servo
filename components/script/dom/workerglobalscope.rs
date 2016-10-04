@@ -34,7 +34,7 @@ use net_traits::{LoadContext, load_whole_resource};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
-use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerSource};
+use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
 use std::default::Default;
 use std::panic;
@@ -43,7 +43,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use task_source::file_reading::FileReadingTaskSource;
-use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
+use timers::{IsInterval, TimerCallback};
 use url::Url;
 
 pub fn prepare_workerscope_init(global: &GlobalScope,
@@ -76,7 +76,6 @@ pub struct WorkerGlobalScope {
     runtime: Runtime,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
-    timers: OneshotTimers,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
@@ -107,15 +106,15 @@ impl WorkerGlobalScope {
                     init.mem_profiler_chan,
                     init.time_profiler_chan,
                     init.constellation_chan,
-                    init.scheduler_chan.clone(),
-                    init.resource_threads),
+                    init.scheduler_chan,
+                    init.resource_threads,
+                    timer_event_chan),
             worker_id: init.worker_id,
             worker_url: worker_url,
             closing: closing,
             runtime: runtime,
             location: Default::default(),
             navigator: Default::default(),
-            timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             promise_job_queue: PromiseJobQueue::new(),
@@ -128,16 +127,6 @@ impl WorkerGlobalScope {
 
     pub fn from_devtools_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
         &self.from_devtools_receiver
-    }
-
-    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
-        self.timers.schedule_callback(callback,
-                                      duration,
-                                      TimerSource::FromWorker)
-    }
-
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers.unschedule_callback(handle);
     }
 
     pub fn runtime(&self) -> *mut JSRuntime {
@@ -281,49 +270,45 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         base64_atob(atob)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWorker)
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWorker)
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(GlobalRef::Worker(self), handle);
+        self.upcast::<GlobalScope>().clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWorker)
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWorker)
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -401,7 +386,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.timers.fire_timer(timer_id, self);
+        self.upcast::<GlobalScope>().fire_timer(timer_id);
     }
 
     pub fn close(&self) {

@@ -71,8 +71,8 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventC
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
-use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
+use script_traits::{DocumentState, TimerEvent, TimerEventId};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -97,7 +97,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
-use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
+use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
@@ -168,7 +168,6 @@ pub struct Window {
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
     status: DOMRefCell<DOMString>,
-    timers: OneshotTimers,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -475,47 +474,43 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(GlobalRef::Window(self), handle);
+        self.upcast::<GlobalScope>().clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -1341,7 +1336,7 @@ impl Window {
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.timers.fire_timer(timer_id, self);
+        self.upcast::<GlobalScope>().fire_timer(timer_id);
         self.reflow(ReflowGoal::ForDisplay,
                     ReflowQueryType::NoQuery,
                     ReflowReason::Timer);
@@ -1369,16 +1364,6 @@ impl Window {
 
     pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
-    }
-
-    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
-        self.timers.schedule_callback(callback,
-                                      duration,
-                                      TimerSource::FromWindow(self.upcast::<GlobalScope>().pipeline_id()))
-    }
-
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers.unschedule_callback(handle);
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -1436,23 +1421,11 @@ impl Window {
     }
 
     pub fn thaw(&self) {
-        self.timers.resume();
+        self.upcast::<GlobalScope>().resume();
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
         self.Document().title_changed();
-    }
-
-    pub fn freeze(&self) {
-        self.timers.suspend();
-    }
-
-    pub fn slow_down_timers(&self) {
-        self.timers.slow_down();
-    }
-
-    pub fn speed_up_timers(&self) {
-        self.timers.speed_up();
     }
 
     pub fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
@@ -1579,8 +1552,9 @@ impl Window {
                     mem_profiler_chan,
                     time_profiler_chan,
                     constellation_chan,
-                    scheduler_chan.clone(),
-                    resource_threads),
+                    scheduler_chan,
+                    resource_threads,
+                    timer_event_chan),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1599,7 +1573,6 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             status: DOMRefCell::new(DOMString::new()),
-            timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),

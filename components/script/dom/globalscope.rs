@@ -28,13 +28,16 @@ use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{ScriptChan, maybe_take_panic_result};
 use script_thread::MainThreadScriptChan;
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest};
+use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
+use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::panic;
 use time::{Timespec, get_time};
+use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
+use timers::{OneshotTimers, TimerCallback};
 use url::Url;
 
 #[dom_struct]
@@ -78,6 +81,8 @@ pub struct GlobalScope {
     /// Associated resource threads for use by DOM objects like XMLHttpRequest,
     /// including resource_thread, filemanager_thread and storage_thread
     resource_threads: ResourceThreads,
+
+    timers: OneshotTimers,
 }
 
 impl GlobalScope {
@@ -88,7 +93,8 @@ impl GlobalScope {
             time_profiler_chan: time::ProfilerChan,
             constellation_chan: IpcSender<ConstellationMsg>,
             scheduler_chan: IpcSender<TimerEventRequest>,
-            resource_threads: ResourceThreads)
+            resource_threads: ResourceThreads,
+            timer_event_chan: IpcSender<TimerEvent>)
             -> Self {
         GlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -101,9 +107,10 @@ impl GlobalScope {
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
             constellation_chan: constellation_chan,
-            scheduler_chan: scheduler_chan,
+            scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
             resource_threads: resource_threads,
+            timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
         }
     }
 
@@ -333,6 +340,61 @@ impl GlobalScope {
                 }
             }
         )
+    }
+
+    pub fn schedule_callback(
+            &self, callback: OneshotTimerCallback, duration: MsDuration)
+            -> OneshotTimerHandle {
+        self.timers.schedule_callback(callback, duration, self.timer_source())
+    }
+
+    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
+        self.timers.unschedule_callback(handle);
+    }
+
+    pub fn set_timeout_or_interval(
+            &self,
+            callback: TimerCallback,
+            arguments: Vec<HandleValue>,
+            timeout: i32,
+            is_interval: IsInterval)
+            -> i32 {
+        self.timers.set_timeout_or_interval(
+            self, callback, arguments, timeout, is_interval, self.timer_source())
+    }
+
+    pub fn clear_timeout_or_interval(&self, handle: i32) {
+        self.timers.clear_timeout_or_interval(self, handle)
+    }
+
+    pub fn fire_timer(&self, handle: TimerEventId) {
+        self.timers.fire_timer(handle, self)
+    }
+
+    pub fn resume(&self) {
+        self.timers.resume()
+    }
+
+    pub fn suspend(&self) {
+        self.timers.suspend()
+    }
+
+    pub fn slow_down_timers(&self) {
+        self.timers.slow_down()
+    }
+
+    pub fn speed_up_timers(&self) {
+        self.timers.speed_up()
+    }
+
+    fn timer_source(&self) -> TimerSource {
+        if self.is::<Window>() {
+            return TimerSource::FromWindow(self.pipeline_id());
+        }
+        if self.is::<WorkerGlobalScope>() {
+            return TimerSource::FromWorker;
+        }
+        unreachable!();
     }
 }
 

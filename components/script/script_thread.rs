@@ -1244,9 +1244,9 @@ impl ScriptThread {
             if let Some(ref inner_context) = root_context.find(id) {
                 let window = inner_context.active_window();
                 if visible {
-                    window.speed_up_timers();
+                    window.upcast::<GlobalScope>().speed_up_timers();
                 } else {
-                    window.slow_down_timers();
+                    window.upcast::<GlobalScope>().slow_down_timers();
                 }
                 return true;
             }
@@ -1291,7 +1291,7 @@ impl ScriptThread {
         if let Some(root_context) = self.browsing_context.get() {
             if let Some(ref inner_context) = root_context.find(id) {
                 let window = inner_context.active_window();
-                window.freeze();
+                window.upcast::<GlobalScope>().suspend();
                 return;
             }
         }
@@ -1805,7 +1805,7 @@ impl ScriptThread {
         }
 
         if incomplete.is_frozen {
-            window.freeze();
+            window.upcast::<GlobalScope>().suspend();
         }
 
         if !incomplete.is_visible {
