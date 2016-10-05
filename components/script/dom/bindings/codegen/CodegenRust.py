@@ -817,7 +817,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 { // Scope for our JSAutoCompartment.
 
                   rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
-                  let promiseGlobal = global_scope_from_object_maybe_wrapped(globalObj.handle().get());
+                  let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get());
 
                   rooted!(in(cx) let mut valueToResolve = $${val}.get());
                   if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
@@ -3170,7 +3170,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "&global"
             else:
-                glob = "&global_scope_from_reflector(this)"
+                glob = "&this.global_scope()"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -3386,7 +3386,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_scope_from_object(JS_CALLEE(cx, vp).to_object());
+let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());
 """)
         return CGList([preamble, self.generate_code()])
 
@@ -5252,7 +5252,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_scope_from_object(JS_CALLEE(cx, vp).to_object());
+let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self.constructor.identifier.name
@@ -5499,10 +5499,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::codegen::InterfaceObjectMap',
         'dom::bindings::constant::ConstantSpec',
         'dom::bindings::constant::ConstantVal',
-        'dom::bindings::global::GlobalRef',
-        'dom::bindings::global::global_scope_from_object_maybe_wrapped',
-        'dom::bindings::global::global_scope_from_reflector',
-        'dom::bindings::global::global_scope_from_object',
         'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',

@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::global::global_scope_from_context;
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::globalscope::GlobalScope;
@@ -246,8 +245,8 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
                error_info.message);
 
         if dispatch_event {
-            let global = global_scope_from_context(cx);
-            global.report_an_error(error_info, value.handle());
+            GlobalScope::from_context(cx)
+                .report_an_error(error_info, value.handle());
         }
     }
 }

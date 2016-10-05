@@ -17,7 +17,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::global_scope_from_object;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
@@ -1496,7 +1495,7 @@ impl Window {
     /// in a top-level `Window` global.
     #[allow(unsafe_code)]
     pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
-        global_scope_from_object(obj.get())
+        GlobalScope::from_object(obj.get())
             .downcast::<Window>()
             .map_or(false, |window| window.is_mozbrowser())
     }

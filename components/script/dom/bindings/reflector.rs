@@ -5,7 +5,6 @@
 //! The `Reflector` struct.
 
 use dom::bindings::conversions::DerivedFrom;
-use dom::bindings::global::global_scope_from_reflector;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleObject, JSContext, JSObject};
@@ -82,7 +81,7 @@ pub trait Reflectable {
 
     /// Returns the global scope of the realm that the Reflectable was created in.
     fn global_scope(&self) -> Root<GlobalScope> where Self: Sized {
-        global_scope_from_reflector(self)
+        GlobalScope::from_reflector(self)
     }
 }
 

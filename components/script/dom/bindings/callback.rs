@@ -5,8 +5,8 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::global_scope_from_object;
 use dom::bindings::reflector::Reflectable;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject, RootedObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
@@ -165,7 +165,7 @@ impl<'a> CallSetup<'a> {
                                      callback: &T,
                                      handling: ExceptionHandling)
                                      -> CallSetup<'a> {
-        let global = unsafe { global_scope_from_object(callback.callback()) };
+        let global = unsafe { GlobalScope::from_object(callback.callback()) };
         let cx = global.get_cx();
 
         exception_compartment.ptr = unsafe {

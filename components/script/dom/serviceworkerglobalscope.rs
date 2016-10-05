@@ -8,7 +8,6 @@ use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
-use dom::bindings::global::global_scope_from_context;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::Reflectable;
@@ -311,7 +310,7 @@ impl ServiceWorkerGlobalScope {
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let worker =
-        Root::downcast::<WorkerGlobalScope>(global_scope_from_context(cx))
+        Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
             .expect("global is not a worker scope");
     assert!(worker.is::<ServiceWorkerGlobalScope>());
 

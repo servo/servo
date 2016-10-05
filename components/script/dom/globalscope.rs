@@ -5,6 +5,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -19,8 +20,12 @@ use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, Evaluate2, JS_GetContext, JS_GetObjectRuntime};
-use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
+use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use js::glue::{IsWrapper, UnwrapObject};
+use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
+use js::jsapi::{JSObject, JS_GetClass, JS_GetContext};
+use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::rust::CompileOptionsWrapper;
 use libc;
 use msg::constellation_msg::PipelineId;
@@ -114,6 +119,39 @@ impl GlobalScope {
             resource_threads: resource_threads,
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
         }
+    }
+
+    /// Returns the global scope of the realm that the given DOM object's reflector
+    /// was created in.
+    #[allow(unsafe_code)]
+    pub fn from_reflector<T: Reflectable>(reflector: &T) -> Root<Self> {
+        unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
+    }
+
+    /// Returns the global scope of the realm that the given JS object was created in.
+    #[allow(unsafe_code)]
+    pub unsafe fn from_object(obj: *mut JSObject) -> Root<Self> {
+        assert!(!obj.is_null());
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        global_scope_from_global(global)
+    }
+
+    /// Returns the global scope for the given JSContext
+    #[allow(unsafe_code)]
+    pub unsafe fn from_context(cx: *mut JSContext) -> Root<Self> {
+        let global = CurrentGlobalOrNull(cx);
+        global_scope_from_global(global)
+    }
+
+    /// Returns the global object of the realm that the given JS object
+    /// was created in, after unwrapping any wrappers.
+    #[allow(unsafe_code)]
+    pub unsafe fn from_object_maybe_wrapped(mut obj: *mut JSObject) -> Root<Self> {
+        if IsWrapper(obj) {
+            obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+            assert!(!obj.is_null());
+        }
+        GlobalScope::from_object(obj)
     }
 
     #[allow(unsafe_code)]
@@ -474,4 +512,13 @@ impl GlobalScope {
 
 fn timestamp_in_ms(time: Timespec) -> u64 {
     (time.sec * 1000 + (time.nsec / 1000000) as i64) as u64
+}
+
+/// Returns the Rust global scope from a JS global object.
+#[allow(unsafe_code)]
+unsafe fn global_scope_from_global(global: *mut JSObject) -> Root<GlobalScope> {
+    assert!(!global.is_null());
+    let clasp = JS_GetClass(global);
+    assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+    root_from_object(global).unwrap()
 }
