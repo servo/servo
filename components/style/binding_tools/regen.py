@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 
 import regen_atoms
+import check_bindings
 
 DESCRIPTION = 'Regenerate the rust version of the structs or the bindings file.'
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -254,6 +255,10 @@ COMPILATION_TARGETS = {
 
     "atoms": {
         "custom_build": regen_atoms.build,
+    },
+
+    "check_bindings": {
+        "custom_build": check_bindings.build,
     }
 }
 
