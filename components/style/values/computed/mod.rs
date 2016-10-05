@@ -9,13 +9,14 @@ use properties::ComputedValues;
 use std::fmt;
 use super::{CSSFloat, specified};
 use super::LocalToCss;
-use super::specified::AngleOrCorner;
-use url::Url;
 
 pub use cssparser::Color as CSSColor;
+pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
+pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData};
 
 pub mod basic_shape;
+pub mod image;
 pub mod position;
 
 pub struct Context<'a> {
@@ -640,175 +641,6 @@ impl ::cssparser::ToCss for LengthOrNone {
     }
 }
 
-impl ToComputedValue for specified::Image {
-    type ComputedValue = Image;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Image {
-        match *self {
-            specified::Image::Url(ref url, ref extra_data) => {
-                Image::Url(url.clone(), extra_data.clone())
-            },
-            specified::Image::LinearGradient(ref linear_gradient) => {
-                Image::LinearGradient(linear_gradient.to_computed_value(context))
-            }
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Image) -> Self {
-        match *computed {
-            Image::Url(ref url, ref extra_data) => {
-                specified::Image::Url(url.clone(), extra_data.clone())
-            },
-            Image::LinearGradient(ref linear_gradient) => {
-                specified::Image::LinearGradient(
-                    ToComputedValue::from_computed_value(linear_gradient)
-                )
-            }
-        }
-    }
-}
-
-
-/// Computed values for an image according to CSS-IMAGES.
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image {
-    Url(Url, UrlExtraData),
-    LinearGradient(LinearGradient),
-}
-
-impl fmt::Debug for Image {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Image::Url(ref url, ref _extra_data) => write!(f, "url(\"{}\")", url),
-            Image::LinearGradient(ref grad) => write!(f, "linear-gradient({:?})", grad),
-        }
-    }
-}
-
-impl ::cssparser::ToCss for Image {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
-        match *self {
-            Image::Url(ref url, _) => {
-                url.to_css(dest)
-            }
-            Image::LinearGradient(ref gradient) => gradient.to_css(dest)
-        }
-    }
-}
-
-/// Computed values for a CSS linear gradient.
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct LinearGradient {
-    /// The angle or corner of the gradient.
-    pub angle_or_corner: AngleOrCorner,
-
-    /// The color stops.
-    pub stops: Vec<ColorStop>,
-}
-
-impl ::cssparser::ToCss for LinearGradient {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("linear-gradient("));
-        try!(self.angle_or_corner.to_css(dest));
-        for stop in &self.stops {
-            try!(dest.write_str(", "));
-            try!(stop.to_css(dest));
-        }
-        try!(dest.write_str(")"));
-        Ok(())
-    }
-}
-
-impl fmt::Debug for LinearGradient {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _ = write!(f, "{:?}", self.angle_or_corner);
-        for stop in &self.stops {
-            let _ = write!(f, ", {:?}", stop);
-        }
-        Ok(())
-    }
-}
-
-/// Computed values for one color stop in a linear gradient.
-#[derive(Clone, PartialEq, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ColorStop {
-    /// The color of this stop.
-    pub color: CSSColor,
-
-    /// The position of this stop. If not specified, this stop is placed halfway between the
-    /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
-    pub position: Option<LengthOrPercentage>,
-}
-
-impl ::cssparser::ToCss for ColorStop {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.color.to_css(dest));
-        if let Some(position) = self.position {
-            try!(dest.write_str(" "));
-            try!(position.to_css(dest));
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for ColorStop {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _ = write!(f, "{:?}", self.color);
-        self.position.map(|pos| {
-            let _ = write!(f, " {:?}", pos);
-        });
-        Ok(())
-    }
-}
-
-impl ToComputedValue for specified::LinearGradient {
-    type ComputedValue = LinearGradient;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> LinearGradient {
-        let specified::LinearGradient {
-            angle_or_corner,
-            ref stops
-        } = *self;
-        LinearGradient {
-            angle_or_corner: angle_or_corner,
-            stops: stops.iter().map(|stop| {
-                ColorStop {
-                    color: stop.color.parsed,
-                    position: match stop.position {
-                        None => None,
-                        Some(value) => Some(value.to_computed_value(context)),
-                    },
-                }
-            }).collect()
-        }
-    }
-    #[inline]
-    fn from_computed_value(computed: &LinearGradient) -> Self {
-        let LinearGradient {
-            angle_or_corner,
-            ref stops
-        } = *computed;
-        specified::LinearGradient {
-            angle_or_corner: angle_or_corner,
-            stops: stops.iter().map(|stop| {
-                specified::ColorStop {
-                    color: ToComputedValue::from_computed_value(&stop.color),
-                    position: match stop.position {
-                        None => None,
-                        Some(value) => Some(ToComputedValue::from_computed_value(&value)),
-                    },
-                }
-            }).collect()
-        }
-    }
-}
 pub type Length = Au;
 pub type Number = CSSFloat;
 pub type Opacity = CSSFloat;
