@@ -279,6 +279,9 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 thread_local!(pub static PIPELINE_ID: Cell<Option<PipelineId>> = Cell::new(None));
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct HistoryStateId(pub u32);
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
