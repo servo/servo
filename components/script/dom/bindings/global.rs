@@ -18,8 +18,6 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass};
-use script_runtime::CommonScriptMsg;
-use script_thread::ScriptThread;
 use task_source::file_reading::FileReadingTaskSource;
 
 /// A freely-copyable reference to a rooted global object.
@@ -63,15 +61,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.file_reading_task_source(),
             GlobalRef::Worker(ref worker) => worker.file_reading_task_source(),
-        }
-    }
-
-    /// Process a single event as if it were the next event in the thread queue for
-    /// this global.
-    pub fn process_event(&self, msg: CommonScriptMsg) {
-        match *self {
-            GlobalRef::Window(_) => ScriptThread::process_event(msg),
-            GlobalRef::Worker(ref worker) => worker.process_event(msg),
         }
     }
 }

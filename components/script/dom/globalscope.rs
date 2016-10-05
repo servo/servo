@@ -26,7 +26,7 @@ use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{EnqueuedPromiseCallback, ScriptChan};
+use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
 use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
@@ -442,6 +442,18 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.new_script_pair();
+        }
+        unreachable!();
+    }
+
+    /// Process a single event as if it were the next event
+    /// in the thread queue for this global scope.
+    pub fn process_event(&self, msg: CommonScriptMsg) {
+        if self.is::<Window>() {
+            return ScriptThread::process_event(msg);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.process_event(msg);
         }
         unreachable!();
     }
