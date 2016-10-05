@@ -7,8 +7,9 @@ use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::globalscope::GlobalScope;
+use dom::globalscope::GlobalScope;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -56,7 +57,7 @@ impl History {
         // Step 5
         let cloned_data = try!(StructuredCloneData::write(cx, data));
         rooted!(in(cx) let mut state = NullValue());
-        cloned_data.read(GlobalRef::Window(&*self.window), state.handle_mut());
+        cloned_data.read(self.window.upcast::<GlobalScope>(), state.handle_mut());
         let url = match url {
             Some(url) => {
                 // Step 6
@@ -78,7 +79,7 @@ impl History {
                 }
 
                 // 6.5
-                if !UrlHelper::SameOrigin(&url, document_url) &&
+                if !UrlHelper::SameOrigin(&url, &document_url) &&
                    (url.path() != document_url.path() || url.query() != document_url.query()) {
                     return Err(Error::Security);
                 }
@@ -121,7 +122,8 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-state
-    fn State(&self, _cx: *mut JSContext) -> JSVal {
+    #[allow(unsafe_code)]
+    unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
         self.window.browsing_context().state()
     }
 
@@ -149,8 +151,9 @@ impl HistoryMethods for History {
         self.traverse_history(TraversalDirection::Forward(1));
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-pushtstae
-    fn PushState(&self,
+    // https://html.spec.whatwg.org/multipage/#dom-history-pushtstate
+    #[allow(unsafe_code)]
+    unsafe fn PushState(&self,
                  cx: *mut JSContext,
                  data: HandleValue,
                  title: DOMString,
@@ -159,7 +162,8 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
-    fn ReplaceState(&self,
+    #[allow(unsafe_code)]
+    unsafe fn ReplaceState(&self,
                     cx: *mut JSContext,
                     data: HandleValue,
                     title: DOMString,
