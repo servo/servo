@@ -324,9 +324,18 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join("servo/" + x for x in servo_features)]
 
         build_start = time()
+        env = self.build_env(is_build=True)
+
+        # TODO: If this ends up making it, we should probably add a
+        # --release-with-debug-assertions option or similar, so it's easier to
+        # build locally.
+        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+            env["RUSTFLAGS"] = "-C debug_assertions"
+
         with cd(path.join("ports", "cef")):
             ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(is_build=True), verbose=verbose)
+                       env=env,
+                       verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
