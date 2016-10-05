@@ -1576,7 +1576,7 @@ impl ContainingBlockLink {
                 if flow.is_block_like() {
                     flow.as_block().explicit_block_containing_size(shared_context)
                 } else if flow.is_inline_flow() {
-                    Some(flow.as_inline().minimum_block_size_above_baseline)
+                    Some(flow.as_inline().minimum_line_metrics.space_above_baseline)
                 } else {
                     None
                 }
