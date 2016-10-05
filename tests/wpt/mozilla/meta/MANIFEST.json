@@ -6270,6 +6270,18 @@
             "url": "/_mozilla/mozilla/sslfail.html"
           }
         ],
+        "mozilla/svg/svg.html": [
+          {
+            "path": "mozilla/svg/svg.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/svg/svg_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/svg/svg.html"
+          }
+        ],
         "mozilla/table_valign_bottom.html": [
           {
             "path": "mozilla/table_valign_bottom.html",
@@ -19990,6 +20002,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/sslfail.html"
+        }
+      ],
+      "mozilla/svg/svg.html": [
+        {
+          "path": "mozilla/svg/svg.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/svg/svg_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/svg/svg.html"
         }
       ],
       "mozilla/table_valign_bottom.html": [
