@@ -4,9 +4,10 @@
 
 import re
 
+
 def build(objdir, verbose=False):
-    with open(objdir+"/bindings.rs", "r") as bindings:
-        with open(objdir+"/check_bindings.rs", "w+") as tests:
+    with open(objdir + "/bindings.rs", "r") as bindings:
+        with open(objdir + "/check_bindings.rs", "w+") as tests:
             tests.write("/* This Source Code Form is subject to the terms of the Mozilla Public\n")
             tests.write(" * License, v. 2.0. If a copy of the MPL was not distributed with this\n")
             tests.write(" * file, You can obtain one at http://mozilla.org/MPL/2.0/. */\n\n")
