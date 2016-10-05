@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMetho
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -650,7 +649,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         self.fetch_time.set(time::now().to_timespec().sec);
 
-        let rv = self.fetch(request, self.global().r());
+        let rv = self.fetch(request, &self.global_scope());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -1285,7 +1284,7 @@ impl XMLHttpRequest {
 
     fn fetch(&self,
               init: RequestInit,
-              global: GlobalRef) -> ErrorResult {
+              global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
@@ -1295,21 +1294,20 @@ impl XMLHttpRequest {
             sync_status: DOMRefCell::new(None),
         }));
 
-        let global_scope = global.as_global_scope();
         let (script_chan, script_port) = if self.sync.get() {
-            let (tx, rx) = global_scope.new_script_pair();
+            let (tx, rx) = global.new_script_pair();
             (tx, Some(rx))
         } else {
-            (global_scope.networking_task_source(), None)
+            (global.networking_task_source(), None)
         };
 
-        let core_resource_thread = global_scope.core_resource_thread();
+        let core_resource_thread = global.core_resource_thread();
         XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
                                            core_resource_thread, init);
 
         if let Some(script_port) = script_port {
             loop {
-                global_scope.process_event(script_port.recv().unwrap());
+                global.process_event(script_port.recv().unwrap());
                 let context = context.lock().unwrap();
                 let sync_status = context.sync_status.borrow();
                 if let Some(ref status) = *sync_status {
