@@ -53,7 +53,7 @@ use style::properties::{self, ServoComputedValues};
 use style::properties::style_structs;
 use style::values::RGBA;
 use style::values::computed;
-use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto, LinearGradient};
+use style::values::computed::{Gradient, GradientKind, LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
@@ -167,13 +167,13 @@ pub trait FragmentDisplayListBuilding {
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
     /// to the appropriate section of the display list.
-    fn build_display_list_for_background_linear_gradient(&self,
-                                                         state: &mut DisplayListBuildState,
-                                                         display_list_section: DisplayListSection,
-                                                         absolute_bounds: &Rect<Au>,
-                                                         clip: &ClippingRegion,
-                                                         gradient: &LinearGradient,
-                                                         style: &ServoComputedValues);
+    fn build_display_list_for_background_gradient(&self,
+                                                  state: &mut DisplayListBuildState,
+                                                  display_list_section: DisplayListSection,
+                                                  absolute_bounds: &Rect<Au>,
+                                                  clip: &ClippingRegion,
+                                                  gradient: &Gradient,
+                                                  style: &ServoComputedValues);
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
@@ -402,13 +402,16 @@ impl FragmentDisplayListBuilding for Fragment {
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
             match background_image.0 {
                 None => {}
-                Some(computed::Image::LinearGradient(ref gradient)) => {
-                    self.build_display_list_for_background_linear_gradient(state,
-                                                                           display_list_section,
-                                                                           &bounds,
-                                                                           &clip,
-                                                                           gradient,
-                                                                           style);
+                Some(computed::Image::Gradient(ref gradient)) => {
+                    // FIXME: Radial gradients aren't implemented yet.
+                    if let GradientKind::Linear(_) = gradient.gradient_kind {
+                        self.build_display_list_for_background_gradient(state,
+                                                                        display_list_section,
+                                                                        &bounds,
+                                                                        &clip,
+                                                                        gradient,
+                                                                        style);
+                    }
                 }
                 Some(computed::Image::Url(ref image_url, ref _extra_data)) => {
                     self.build_display_list_for_background_image(state,
@@ -636,36 +639,45 @@ impl FragmentDisplayListBuilding for Fragment {
         }
     }
 
-    fn build_display_list_for_background_linear_gradient(&self,
-                                                         state: &mut DisplayListBuildState,
-                                                         display_list_section: DisplayListSection,
-                                                         absolute_bounds: &Rect<Au>,
-                                                         clip: &ClippingRegion,
-                                                         gradient: &LinearGradient,
-                                                         style: &ServoComputedValues) {
+    fn build_display_list_for_background_gradient(&self,
+                                                  state: &mut DisplayListBuildState,
+                                                  display_list_section: DisplayListSection,
+                                                  absolute_bounds: &Rect<Au>,
+                                                  clip: &ClippingRegion,
+                                                  gradient: &Gradient,
+                                                  style: &ServoComputedValues) {
         let mut clip = clip.clone();
         clip.intersect_rect(absolute_bounds);
 
 
-        let angle = match gradient.angle_or_corner {
-            AngleOrCorner::Angle(angle) => angle.radians(),
-            AngleOrCorner::Corner(horizontal, vertical) => {
-                // This the angle for one of the diagonals of the box. Our angle
-                // will either be this one, this one + PI, or one of the other
-                // two perpendicular angles.
-                let atan = (absolute_bounds.size.height.to_f32_px() /
-                            absolute_bounds.size.width.to_f32_px()).atan();
-                match (horizontal, vertical) {
-                    (HorizontalDirection::Right, VerticalDirection::Bottom)
-                        => f32::consts::PI - atan,
-                    (HorizontalDirection::Left, VerticalDirection::Bottom)
-                        => f32::consts::PI + atan,
-                    (HorizontalDirection::Right, VerticalDirection::Top)
-                        => atan,
-                    (HorizontalDirection::Left, VerticalDirection::Top)
-                        => -atan,
+        // FIXME: Repeating gradients aren't implemented yet.
+        if gradient.repeating {
+          return;
+        }
+        let angle = if let GradientKind::Linear(angle_or_corner) = gradient.gradient_kind {
+            match angle_or_corner {
+                AngleOrCorner::Angle(angle) => angle.radians(),
+                AngleOrCorner::Corner(horizontal, vertical) => {
+                    // This the angle for one of the diagonals of the box. Our angle
+                    // will either be this one, this one + PI, or one of the other
+                    // two perpendicular angles.
+                    let atan = (absolute_bounds.size.height.to_f32_px() /
+                                absolute_bounds.size.width.to_f32_px()).atan();
+                    match (horizontal, vertical) {
+                        (HorizontalDirection::Right, VerticalDirection::Bottom)
+                            => f32::consts::PI - atan,
+                        (HorizontalDirection::Left, VerticalDirection::Bottom)
+                            => f32::consts::PI + atan,
+                        (HorizontalDirection::Right, VerticalDirection::Top)
+                            => atan,
+                        (HorizontalDirection::Left, VerticalDirection::Top)
+                            => -atan,
+                    }
                 }
             }
+        } else {
+            // FIXME: Radial gradients aren't implemented yet.
+            return;
         };
 
         // Get correct gradient line length, based on:

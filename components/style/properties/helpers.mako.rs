@@ -173,8 +173,10 @@
             use parser::{ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
+        #[allow(unused_imports)]
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
+        use parser::Parse;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
         use properties::{ComputedValues, PropertyDeclaration};
@@ -565,6 +567,8 @@
     <%self:shorthand name="${name}" sub_properties="${
             ' '.join(sub_property_pattern % side
                      for side in ['top', 'right', 'bottom', 'left'])}">
+        #[allow(unused_imports)]
+        use parser::Parse;
         use super::parse_four_sides;
         use values::specified;
 

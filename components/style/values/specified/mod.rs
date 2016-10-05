@@ -7,7 +7,7 @@ use cssparser::{self, Parser, ToCss, Token};
 use euclid::size::Size2D;
 #[cfg(feature = "gecko")]
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
 use std::ascii::AsciiExt;
@@ -18,9 +18,13 @@ use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use super::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
-use url::Url;
+
+pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
+pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use self::image::{SizeKeyword, VerticalDirection};
 
 pub mod basic_shape;
+pub mod image;
 pub mod position;
 
 impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
@@ -299,9 +303,6 @@ impl Length {
             _ => Err(())
         }
     }
-    pub fn parse(input: &mut Parser) -> Result<Length, ()> {
-        Length::parse_internal(input, AllowedNumericType::All)
-    }
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
@@ -330,6 +331,12 @@ impl Length {
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
         Length::Absolute(Au((px_value * AU_PER_PX) as i32))
+    }
+}
+
+impl Parse for Length {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        Length::parse_internal(input, AllowedNumericType::All)
     }
 }
 
@@ -908,13 +915,17 @@ impl LengthOrPercentage {
             _ => Err(())
         }
     }
-    #[inline]
-    pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        LengthOrPercentage::parse_internal(input, AllowedNumericType::All)
-    }
+
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
         LengthOrPercentage::parse_internal(input, AllowedNumericType::NonNegative)
+    }
+}
+
+impl Parse for LengthOrPercentage {
+    #[inline]
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        LengthOrPercentage::parse_internal(input, AllowedNumericType::All)
     }
 }
 
@@ -1264,180 +1275,6 @@ impl UrlExtraData {
             },
             _ => None,
         }
-    }
-}
-
-/// Specified values for an image according to CSS-IMAGES.
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Image {
-    Url(Url, UrlExtraData),
-    LinearGradient(LinearGradient),
-}
-
-impl ToCss for Image {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
-        match *self {
-            Image::Url(ref url, ref _extra_data) => {
-                url.to_css(dest)
-            }
-            Image::LinearGradient(ref gradient) => gradient.to_css(dest)
-        }
-    }
-}
-
-impl Image {
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
-        if let Ok(url) = input.try(|input| input.expect_url()) {
-            match UrlExtraData::make_from(context) {
-                Some(extra_data) => {
-                    Ok(Image::Url(context.parse_url(&url), extra_data))
-                },
-                None => {
-                    // FIXME(heycam) should ensure we always have a principal, etc., when
-                    // parsing style attributes and re-parsing due to CSS Variables.
-                    println!("stylo: skipping declaration without ParserContextExtraData");
-                    Err(())
-                },
-            }
-        } else {
-            match_ignore_ascii_case! { try!(input.expect_function()),
-                "linear-gradient" => {
-                    Ok(Image::LinearGradient(try!(
-                        input.parse_nested_block(LinearGradient::parse_function))))
-                },
-                _ => Err(())
-            }
-        }
-    }
-}
-
-/// Specified values for a CSS linear gradient.
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct LinearGradient {
-    /// The angle or corner of the gradient.
-    pub angle_or_corner: AngleOrCorner,
-
-    /// The color stops.
-    pub stops: Vec<ColorStop>,
-}
-
-impl ToCss for LinearGradient {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("linear-gradient("));
-        try!(self.angle_or_corner.to_css(dest));
-        for stop in &self.stops {
-            try!(dest.write_str(", "));
-            try!(stop.to_css(dest));
-        }
-        try!(dest.write_str(")"));
-        Ok(())
-    }
-}
-
-/// Specified values for an angle or a corner in a linear gradient.
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum AngleOrCorner {
-    Angle(Angle),
-    Corner(HorizontalDirection, VerticalDirection),
-}
-
-impl ToCss for AngleOrCorner {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            AngleOrCorner::Angle(angle) => angle.to_css(dest),
-            AngleOrCorner::Corner(horizontal, vertical) => {
-                try!(dest.write_str("to "));
-                try!(horizontal.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(vertical.to_css(dest));
-                Ok(())
-            }
-        }
-    }
-}
-
-/// Specified values for one color stop in a linear gradient.
-#[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ColorStop {
-    /// The color of this stop.
-    pub color: CSSColor,
-
-    /// The position of this stop. If not specified, this stop is placed halfway between the
-    /// point that precedes it and the point that follows it.
-    pub position: Option<LengthOrPercentage>,
-}
-
-impl ToCss for ColorStop {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.color.to_css(dest));
-        if let Some(position) = self.position {
-            try!(dest.write_str(" "));
-            try!(position.to_css(dest));
-        }
-        Ok(())
-    }
-}
-
-define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
-define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
-
-fn parse_one_color_stop(input: &mut Parser) -> Result<ColorStop, ()> {
-    Ok(ColorStop {
-        color: try!(CSSColor::parse(input)),
-        position: input.try(LengthOrPercentage::parse).ok(),
-    })
-}
-
-impl LinearGradient {
-    /// Parses a linear gradient from the given arguments.
-    pub fn parse_function(input: &mut Parser) -> Result<LinearGradient, ()> {
-        let angle_or_corner = if input.try(|input| input.expect_ident_matching("to")).is_ok() {
-            let (horizontal, vertical) =
-            if let Ok(value) = input.try(HorizontalDirection::parse) {
-                (Some(value), input.try(VerticalDirection::parse).ok())
-            } else {
-                let value = try!(VerticalDirection::parse(input));
-                (input.try(HorizontalDirection::parse).ok(), Some(value))
-            };
-            try!(input.expect_comma());
-            match (horizontal, vertical) {
-                (None, Some(VerticalDirection::Top)) => {
-                    AngleOrCorner::Angle(Angle(0.0))
-                },
-                (Some(HorizontalDirection::Right), None) => {
-                    AngleOrCorner::Angle(Angle(PI * 0.5))
-                },
-                (None, Some(VerticalDirection::Bottom)) => {
-                    AngleOrCorner::Angle(Angle(PI))
-                },
-                (Some(HorizontalDirection::Left), None) => {
-                    AngleOrCorner::Angle(Angle(PI * 1.5))
-                },
-                (Some(horizontal), Some(vertical)) => {
-                    AngleOrCorner::Corner(horizontal, vertical)
-                }
-                (None, None) => unreachable!(),
-            }
-        } else if let Ok(angle) = input.try(Angle::parse) {
-            try!(input.expect_comma());
-            AngleOrCorner::Angle(angle)
-        } else {
-            AngleOrCorner::Angle(Angle(PI))
-        };
-        // Parse the color stops.
-        let stops = try!(input.parse_comma_separated(parse_one_color_stop));
-        if stops.len() < 2 {
-            return Err(())
-        }
-        Ok(LinearGradient {
-            angle_or_corner: angle_or_corner,
-            stops: stops,
-        })
     }
 }
 
