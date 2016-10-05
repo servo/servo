@@ -21,7 +21,7 @@ use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBool
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::global_root_from_context;
+use dom::bindings::global::global_scope_from_context;
 use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
@@ -714,8 +714,8 @@ impl TestBindingMethods for TestBinding {
         impl Callback for SimpleHandler {
             #[allow(unsafe_code)]
             fn callback(&self, cx: *mut JSContext, v: HandleValue) {
-                let global = unsafe { global_root_from_context(cx) };
-                let _ = self.handler.Call_(&global.r(), v, ExceptionHandling::Report);
+                let global = unsafe { global_scope_from_context(cx) };
+                let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
         }
     }
