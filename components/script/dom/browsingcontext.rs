@@ -8,6 +8,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
@@ -18,16 +19,18 @@ use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, HandleValue};
+use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, Heap};
 use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
 use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
 use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
-use js::jsval::{UndefinedValue, PrivateValue};
-use msg::constellation_msg::PipelineId;
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use msg::constellation_msg::{HistoryStateId, PipelineId};
 use std::cell::Cell;
+use std::collections::HashMap;
+use url::Url;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
@@ -51,18 +54,29 @@ pub struct BrowsingContext {
     /// in the script thread we just track the current active document.
     active_document: MutNullableHeap<JS<Document>>,
 
+    active_state: HistoryStateId,
+
+    next_state_id: HistoryStateId,
+
+    states: HashMap<HistoryStateId, HistoryState>,
+
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
+        let mut states = HashMap::new();
+        states.insert(HistoryStateId(0), HistoryState::new());
         BrowsingContext {
             reflector: Reflector::new(),
             id: id,
             needs_reflow: Cell::new(true),
             children: DOMRefCell::new(vec![]),
             active_document: Default::default(),
+            active_state: HistoryStateId(0),
+            next_state_id: HistoryStateId(1),
+            states: states,
             frame_element: frame_element.map(JS::from_ref),
         }
     }
@@ -100,21 +114,28 @@ impl BrowsingContext {
                                          title: Option<DOMString>,
                                          url: Option<Url>,
                                          state: HandleValue) {
-        let document = &*self.active_document();
-        let mut history = self.history.borrow_mut();
-        let url = match url {
-            Some(url) => url,
-            None => document.url().clone(),
-        };
-        let title = match title {
-            Some(title) => title,
-            None => document.Title(),
-        };
-        // TODO(ConnorGBrewster):
-        // Set Document's Url to url
-        // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
-        // Currently you can't mutate document.url
-        history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
+        // let document = &*self.active_document();
+        // let mut history = self.history.borrow_mut();
+        // let url = match url {
+        //     Some(url) => url,
+        //     None => document.url().clone(),
+        // };
+        // let title = match title {
+        //     Some(title) => title,
+        //     None => document.Title(),
+        // };
+        // // TODO(ConnorGBrewster):
+        // // Set Document's Url to url
+        // // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
+        // // Currently you can't mutate document.url
+        // history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
+    }
+
+    pub fn push_session_history_entry(&self,
+                                        document: &Document,
+                                        title: Option<DOMString>,
+                                        url: Option<Url>,
+                                        state: Option<HandleValue>) {
     }
 
     pub fn active_document(&self) -> Root<Document> {
@@ -130,7 +151,7 @@ impl BrowsingContext {
     }
 
     pub fn state(&self) -> JSVal {
-        self.history.borrow()[self.active_index.get()].state.get()
+        self.states.get(&self.active_state).expect("No active state.").state.get()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -200,6 +221,26 @@ impl BrowsingContext {
                      .iter()
                      .filter_map(|c| c.find(id))
                      .next()
+    }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+struct HistoryState {
+    title: Option<DOMString>,
+    url: Option<Url>,
+    state: Heap<JSVal>,
+}
+
+impl HistoryState {
+    fn new() -> HistoryState {
+        let mut jsval: Heap<JSVal> = Default::default();
+        let state = HandleValue::null();
+        jsval.set(state.get());
+        HistoryState {
+            title: None,
+            url: None,
+            state: jsval,
+        }
     }
 }
 
