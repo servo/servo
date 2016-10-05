@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMet
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -28,7 +29,8 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::ReferrerPolicy;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -52,6 +54,7 @@ no_jsmanaged_fields!(Stylesheet);
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
+    #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
@@ -154,7 +157,9 @@ impl VirtualMethods for HTMLLinkElement {
             },
             &atom!("media") => {
                 if string_is_stylesheet(&rel) {
-                    self.handle_stylesheet_url(&attr.value());
+                    if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href")) {
+                        self.handle_stylesheet_url(&href.value());
+                    }
                 }
             },
             _ => {},
@@ -195,62 +200,79 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
+    /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
         if document.browsing_context().is_none() {
             return;
         }
 
-        match document.base_url().join(href) {
-            Ok(url) => {
-                let element = self.upcast::<Element>();
-
-                let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
-                let value = mq_attribute.r().map(|a| a.value());
-                let mq_str = match value {
-                    Some(ref value) => &***value,
-                    None => "",
-                };
-                let mut css_parser = CssParser::new(&mq_str);
-                let media = parse_media_query_list(&mut css_parser);
-
-                // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-                let elem = Trusted::new(self);
-
-                let context = Arc::new(Mutex::new(StylesheetContext {
-                    elem: elem,
-                    media: Some(media),
-                    data: vec!(),
-                    metadata: None,
-                    url: url.clone(),
-                }));
-
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let listener = NetworkListener {
-                    context: context,
-                    script_chan: document.window().networking_task_source(),
-                    wrapper: Some(document.window().get_runnable_wrapper()),
-                };
-                let response_target = AsyncResponseTarget {
-                    sender: action_sender,
-                };
-                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify_action(message.to().unwrap());
-                });
-
-                if self.parser_inserted.get() {
-                    document.increment_script_blocking_stylesheet_count();
-                }
-
-                let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-                    true => Some(ReferrerPolicy::NoReferrer),
-                    false => None,
-                };
-
-                document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
-            }
-            Err(e) => debug!("Parsing url {} failed: {}", href, e)
+        // Step 1.
+        if href.is_empty() {
+            return;
         }
+
+        // Step 2.
+        let url = match document.base_url().join(href) {
+            Err(e) => return debug!("Parsing url {} failed: {}", href, e),
+            Ok(url) => url,
+        };
+
+        let element = self.upcast::<Element>();
+
+        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
+        let value = mq_attribute.r().map(|a| a.value());
+        let mq_str = match value {
+            Some(ref value) => &***value,
+            None => "",
+        };
+        let mut css_parser = CssParser::new(&mq_str);
+        let media = parse_media_query_list(&mut css_parser);
+
+        // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
+        let elem = Trusted::new(self);
+
+        let context = Arc::new(Mutex::new(StylesheetContext {
+            elem: elem,
+            media: Some(media),
+            data: vec!(),
+            metadata: None,
+            url: url.clone(),
+        }));
+
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let listener = NetworkListener {
+            context: context,
+            script_chan: document.window().networking_task_source(),
+            wrapper: Some(document.window().get_runnable_wrapper()),
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify_fetch(message.to().unwrap());
+        });
+
+        if self.parser_inserted.get() {
+            document.increment_script_blocking_stylesheet_count();
+        }
+
+        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+            true => Some(ReferrerPolicy::NoReferrer),
+            false => document.get_referrer_policy(),
+        };
+
+        let request = RequestInit {
+            url: url.clone(),
+            type_: RequestType::Style,
+            destination: Destination::Style,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            origin: document.url().clone(),
+            pipeline_id: Some(self.global().r().pipeline_id()),
+            referrer_url: Some(document.url().clone()),
+            referrer_policy: referrer_policy,
+            .. RequestInit::default()
+        };
+
+        document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -286,9 +308,19 @@ struct StylesheetContext {
 
 impl PreInvoke for StylesheetContext {}
 
-impl AsyncResponseListener for StylesheetContext {
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
-        self.metadata = metadata.ok();
+impl FetchResponseListener for StylesheetContext {
+    fn process_request_body(&mut self) {}
+
+    fn process_request_eof(&mut self) {}
+
+    fn process_response(&mut self,
+                        metadata: Result<FetchMetadata, NetworkError>) {
+        self.metadata = metadata.ok().map(|m| {
+            match m {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            }
+        });
         if let Some(ref meta) = self.metadata {
             if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
             } else {
@@ -297,12 +329,11 @@ impl AsyncResponseListener for StylesheetContext {
         }
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
-        let mut payload = payload;
+    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
         self.data.append(&mut payload);
     }
 
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
         let document = document_from_node(&*elem);
         let mut successful = false;

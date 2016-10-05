@@ -7,7 +7,7 @@ use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, CoreResourceThread, ResponseAction, load_async};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -208,17 +208,17 @@ impl FontCache {
         match src {
             Source::Url(ref url_source) => {
                 let url = &url_source.url;
-                let load = PendingAsyncLoad::new(LoadContext::Font,
-                                                 self.core_resource_thread.clone(),
-                                                 url.clone(),
-                                                 None,
-                                                 None,
-                                                 None);
                 let (data_sender, data_receiver) = ipc::channel().unwrap();
                 let data_target = AsyncResponseTarget {
                     sender: data_sender,
                 };
-                load.load_async(data_target);
+                load_async(LoadContext::Font,
+                           self.core_resource_thread.clone(),
+                           url.clone(),
+                           None,
+                           None,
+                           None,
+                           data_target);
                 let channel_to_self = self.channel_to_self.clone();
                 let url = (*url).clone();
                 let bytes = Mutex::new(Vec::new());

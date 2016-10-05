@@ -14,9 +14,8 @@ use dom::bindings::reflector::{reflect_dom_object, Reflectable, Reflector};
 use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use euclid::{Matrix4D, Point4D, Radians};
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::f64;
-use style::refcell::Ref;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {

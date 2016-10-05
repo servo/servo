@@ -6,7 +6,6 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(mpsc_select)]
-#![feature(plugin)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

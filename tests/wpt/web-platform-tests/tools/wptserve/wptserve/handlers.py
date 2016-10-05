@@ -147,9 +147,12 @@ class FileHandler(object):
             raise HTTPException(404)
 
     def get_headers(self, request, path):
-        rv = self.default_headers(path)
-        rv.extend(self.load_headers(request, os.path.join(os.path.split(path)[0], "__dir__")))
-        rv.extend(self.load_headers(request, path))
+        rv = (self.load_headers(request, os.path.join(os.path.split(path)[0], "__dir__")) +
+              self.load_headers(request, path))
+
+        if not any(key.lower() == "content-type" for (key, _) in rv):
+            rv.insert(0, ("Content-Type", guess_content_type(path)))
+
         return rv
 
     def load_headers(self, request, path):
@@ -205,9 +208,6 @@ class FileHandler(object):
     def get_range_data(self, f, byte_range):
         f.seek(byte_range.lower)
         return f.read(byte_range.upper - byte_range.lower)
-
-    def default_headers(self, path):
-        return [("Content-Type", guess_content_type(path))]
 
 
 file_handler = FileHandler()

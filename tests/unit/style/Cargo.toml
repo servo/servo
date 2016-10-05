@@ -13,8 +13,9 @@ doctest = false
 app_units = "0.3"
 cssparser = {version = "0.7", features = ["heap_size"]}
 euclid = "0.10.1"
+parking_lot = "0.3"
 rustc-serialize = "0.3"
-selectors = {version = "0.13", features = ["heap_size"]}
+selectors = "0.13"
 string_cache = {version = "0.2.26", features = ["heap_size"]}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}

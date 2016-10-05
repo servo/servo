@@ -17,6 +17,7 @@ extern crate layers;
 #[macro_use] extern crate log;
 extern crate msg;
 extern crate net_traits;
+#[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
 extern crate script_traits;
 extern crate style_traits;
 extern crate url;

@@ -40,7 +40,7 @@ layout traits have the required traits implemented.
 The [`stylist`][stylist] structure is the one that holds all the selectors and
 device characteristics for a given document.
 
-The stylesheets' CSS rules are converted into [`Rule`][selectors-rules]s, and
+The stylesheets' CSS rules are converted into [`Rule`][selectors-rule]s, and
 introduced in a [`SelectorMap`][selectors-selectormap] depending on the
 pseudo-element (see [`PerPseudoElementSelectorMap`][per-pseudo-selectormap]),
 stylesheet origin (see [`PerOriginSelectorMap`][per-origin-selectormap]), and
@@ -149,8 +149,8 @@ that you didn't find it here so it can be added :)
 [mdn-pseudo-after]: https://developer.mozilla.org/en/docs/Web/CSS/::after
 [mdn-pseudo-selection]: https://developer.mozilla.org/en/docs/Web/CSS/::selection
 [stylist]: http://doc.servo.org/style/selector_matching/struct.Stylist.html
-[selectors-selectormap]: http://doc.servo.org/style/selector_matching/struct.SelectorMap.html
-[selectors-rule]: http://doc.servo.org/style/selector_matching/struct.Rule.html
+[selectors-selectormap]: http://doc.servo.org/selectors/matching/struct.SelectorMap.html
+[selectors-rule]: http://doc.servo.org/selectors/matching/struct.Rule.html
 [per-pseudo-selectormap]: http://doc.servo.org/style/selector_matching/struct.PerPseudoElementSelectorMap.html
 [per-origin-selectormap]: http://doc.servo.org/style/selector_matching/struct.PerOriginSelectorMap.html
 [docs-pipeline]: https://github.com/servo/servo/blob/master/docs/glossary.md#pipeline

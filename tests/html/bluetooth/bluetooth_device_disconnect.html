@@ -32,15 +32,18 @@
         if (filterNamePrefix)
             options.filters[0].namePrefix = filterNamePrefix;
 
-        try {
-            clear();
-            log('Requesting Bluetooth Device...');
-            bluetoothDevice = window.navigator.bluetooth.requestDevice(options);
+        clear();
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(options)
+        .then(device => {
+            bluetoothDevice = device;
+
             log('Connecting to Bluetooth Device...');
             connect();
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     function onDisconnectButtonClick() {
@@ -75,12 +78,14 @@
     }
 
     function connect() {
-        try {
-            log('Result of the connect() method of the GATT Server: ' + bluetoothDevice.gatt.connect());
-            log('> Bluetooth Device connected: ' + bluetoothDevice.gatt.connected);
-        } catch(err) {
+        bluetoothDevice.gatt.connect()
+        .then(server => {
+            log('Result of the connect() method of the GATT Server: ' + server);
+            log('> Bluetooth Device connected: ' + server.connected);
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
     </script>
 </body>

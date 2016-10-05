@@ -5,8 +5,10 @@
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, ErrorInfo};
+use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -16,11 +18,16 @@ use dom::bindings::str::DOMString;
 use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
+use dom::promise::Promise;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
+use fetch;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
@@ -62,7 +69,8 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
-            worker_id: worker_id
+            worker_id: worker_id,
+            pipeline_id: global.pipeline_id(),
         };
 
     init
@@ -73,7 +81,9 @@ pub fn prepare_workerscope_init(global: GlobalRef,
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
+    pipeline_id: PipelineId,
     worker_url: Url,
+    #[ignore_heap_size_of = "Arc"]
     closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
@@ -116,6 +126,9 @@ pub struct WorkerGlobalScope {
     console_timers: TimerSet,
 
     promise_job_queue: PromiseJobQueue,
+
+    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
+    in_error_reporting_mode: Cell<bool>
 }
 
 impl WorkerGlobalScope {
@@ -130,6 +143,7 @@ impl WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
+            pipeline_id: init.pipeline_id,
             worker_url: worker_url,
             closing: closing,
             runtime: runtime,
@@ -148,6 +162,7 @@ impl WorkerGlobalScope {
             scheduler_chan: init.scheduler_chan,
             console_timers: TimerSet::new(),
             promise_job_queue: PromiseJobQueue::new(),
+            in_error_reporting_mode: Default::default(),
         }
     }
 
@@ -393,6 +408,12 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#fetch-method
+    fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+        fetch::Fetch(self.global().r(), input, init)
+    }
 }
 
 
@@ -437,15 +458,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn pipeline_id(&self) -> PipelineId {
-        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
-        if let Some(dedicated) = dedicated {
-            return dedicated.pipeline_id();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.pipeline_id();
-        } else {
-            panic!("need to implement a sender for SharedWorker")
-        }
+        self.pipeline_id
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
@@ -485,9 +498,38 @@ impl WorkerGlobalScope {
 
     /// https://html.spec.whatwg.org/multipage/#report-the-error
     pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        self.downcast::<DedicatedWorkerGlobalScope>()
-            .expect("Should implement report_an_error for this worker")
-            .report_an_error(error_info, value);
+        // Step 1.
+        if self.in_error_reporting_mode.get() {
+            return;
+        }
+
+        // Step 2.
+        self.in_error_reporting_mode.set(true);
+
+        // Steps 3-12.
+        // FIXME(#13195): muted errors.
+        let event = ErrorEvent::new(GlobalRef::Worker(self),
+                                    atom!("error"),
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::Cancelable,
+                                    error_info.message.as_str().into(),
+                                    error_info.filename.as_str().into(),
+                                    error_info.lineno,
+                                    error_info.column,
+                                    value);
+
+        // Step 13.
+        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+        // Step 15
+        if event_status == EventStatus::NotCanceled {
+            if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+                dedicated.forward_error_to_worker_object(error_info);
+            }
+        }
+
+        // Step 14
+        self.in_error_reporting_mode.set(false);
     }
 }
 

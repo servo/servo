@@ -52,11 +52,11 @@ use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use restyle_damage::RestyleDamage;
-use style::data::PrivateStyleData;
-use style::refcell::RefCell;
+use style::atomic_refcell::AtomicRefCell;
+use style::data::PersistentStyleData;
 
-pub struct PartialStyleAndLayoutData {
-    pub style_data: PrivateStyleData,
+pub struct PartialPersistentLayoutData {
+    pub style_data: PersistentStyleData,
     pub restyle_damage: RestyleDamage,
 }
 
@@ -64,7 +64,7 @@ pub struct PartialStyleAndLayoutData {
 pub struct OpaqueStyleAndLayoutData {
     #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
                              the type lives in layout"]
-    pub ptr: NonZero<*mut RefCell<PartialStyleAndLayoutData>>
+    pub ptr: NonZero<*mut AtomicRefCell<PartialPersistentLayoutData>>
 }
 
 #[allow(unsafe_code)]

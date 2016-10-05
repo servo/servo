@@ -12,7 +12,6 @@
 
 use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
-use std::mem;
 use std::ops::Deref;
 use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -87,13 +86,34 @@ impl HandOverHandMutex {
         }
     }
     #[allow(unsafe_code)]
-    pub fn lock(&self) -> LockResult<()> {
+    unsafe fn set_guard_and_owner<'a>(&'a self, guard: MutexGuard<'a, ()>) {
+        // The following two lines allow us to unsafely store
+        // Some(guard): Option<MutexGuard<'a, ()>
+        // in self.guard, even though its contents are Option<MutexGuard<'static, ()>>,
+        // that is the lifetime is 'a not 'static.
+        let guard_ptr = &mut *(self.guard.get() as *mut u8 as *mut Option<MutexGuard<'a, ()>>);
+        *guard_ptr = Some(guard);
+        self.owner.store(Some(ThreadId::current()), Ordering::Relaxed);
+    }
+    #[allow(unsafe_code)]
+    unsafe fn unset_guard_and_owner(&self) {
+        let guard_ptr = &mut *self.guard.get();
+        let old_owner = self.owner();
+        self.owner.store(None, Ordering::Relaxed);
+        // Make sure we release the lock before checking the assertions.
+        // We protect logging by a re-entrant lock, so we don't want
+        // to do any incidental logging while we the lock is held.
+        drop(guard_ptr.take());
+        // Now we have released the lock, it's okay to use logging.
+        assert_eq!(old_owner, Some(ThreadId::current()));
+    }
+    #[allow(unsafe_code)]
+    pub fn lock<'a>(&'a self) -> LockResult<()> {
         let (guard, result) = match self.mutex.lock() {
             Ok(guard) => (guard, Ok(())),
             Err(err) => (err.into_inner(), Err(PoisonError::new(()))),
         };
-        unsafe { *self.guard.get().as_mut().unwrap() = mem::transmute(guard) };
-        self.owner.store(Some(ThreadId::current()), Ordering::Relaxed);
+        unsafe { self.set_guard_and_owner(guard); }
         result
     }
     #[allow(unsafe_code)]
@@ -103,15 +123,12 @@ impl HandOverHandMutex {
             Err(TryLockError::WouldBlock) => return Err(TryLockError::WouldBlock),
             Err(TryLockError::Poisoned(err)) => (err.into_inner(), Err(TryLockError::Poisoned(PoisonError::new(())))),
         };
-        unsafe { *self.guard.get().as_mut().unwrap() = mem::transmute(guard) };
-        self.owner.store(Some(ThreadId::current()), Ordering::Relaxed);
+        unsafe { self.set_guard_and_owner(guard); }
         result
     }
     #[allow(unsafe_code)]
     pub fn unlock(&self) {
-        assert_eq!(Some(ThreadId::current()), self.owner.load(Ordering::Relaxed));
-        self.owner.store(None, Ordering::Relaxed);
-        unsafe { *self.guard.get().as_mut().unwrap() = None; }
+        unsafe { self.unset_guard_and_owner(); }
     }
     pub fn owner(&self) -> Option<ThreadId> {
         self.owner.load(Ordering::Relaxed)

@@ -96,7 +96,7 @@ use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::request::RequestInit;
@@ -113,7 +113,7 @@ use script_traits::UntrustedNodeAddress;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::Cell;
+use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -125,7 +125,6 @@ use std::time::{Duration, Instant};
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::refcell::{Ref, RefMut};
 use style::selector_impl::ElementSnapshot;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
@@ -144,6 +143,14 @@ pub enum IsHTMLDocument {
 enum ParserBlockedByScript {
     Blocked,
     Unblocked,
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+struct StylesheetInDocument {
+    node: JS<Node>,
+    #[ignore_heap_size_of = "Arc"]
+    stylesheet: Arc<Stylesheet>,
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -174,7 +181,7 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<(JS<Node>, Arc<Stylesheet>)>>>,
+    stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
@@ -1423,17 +1430,6 @@ impl Document {
                            ReflowReason::RequestAnimationFrame);
     }
 
-    /// Add a load to the list of loads blocking this document's load.
-    pub fn add_blocking_load(&self, load: LoadType) {
-        let mut loader = self.loader.borrow_mut();
-        loader.add_blocking_load(load)
-    }
-
-    pub fn prepare_async_load(&self, load: LoadType, referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
-        let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load, self, referrer_policy)
-    }
-
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
         let mut loader = self.loader.borrow_mut();
         loader.load_async(load, listener, self, referrer_policy);
@@ -1441,10 +1437,9 @@ impl Document {
 
     pub fn fetch_async(&self, load: LoadType,
                        request: RequestInit,
-                       fetch_target: IpcSender<FetchResponseMsg>,
-                       referrer_policy: Option<ReferrerPolicy>) {
+                       fetch_target: IpcSender<FetchResponseMsg>) {
         let mut loader = self.loader.borrow_mut();
-        loader.fetch_async(load, request, fetch_target, self, referrer_policy);
+        loader.fetch_async(load, request, fetch_target);
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1891,13 +1886,16 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }.map(|stylesheet| (JS::from_ref(&*node), stylesheet))
+                        }.map(|stylesheet| StylesheetInDocument {
+                            node: JS::from_ref(&*node),
+                            stylesheet: stylesheet
+                        })
                     })
                     .collect());
             };
         }
         self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .map(|s| s.stylesheet.clone())
                         .collect()
     }
 

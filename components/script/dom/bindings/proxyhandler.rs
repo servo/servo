@@ -186,7 +186,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSOb
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn fill_property_descriptor(desc: &mut PropertyDescriptor,
+pub fn fill_property_descriptor(mut desc: MutableHandle<PropertyDescriptor>,
                                 obj: *mut JSObject,
                                 attrs: u32) {
     desc.obj = obj;

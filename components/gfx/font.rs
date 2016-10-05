@@ -148,6 +148,8 @@ bitflags! {
         const DISABLE_KERNING_SHAPING_FLAG = 0x04,
         #[doc = "Text direction is right-to-left."]
         const RTL_FLAG = 0x08,
+        #[doc = "Set if word-break is set to keep-all."]
+        const KEEP_ALL_FLAG = 0x10,
     }
 }
 

@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(plugin)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

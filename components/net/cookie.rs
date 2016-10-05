@@ -7,7 +7,7 @@
 
 use cookie_rs;
 use net_traits::CookieSource;
-use pub_domains::is_pub_domain;
+use net_traits::pub_domains::is_pub_domain;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};

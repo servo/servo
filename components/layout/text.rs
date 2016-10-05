@@ -10,7 +10,7 @@ use app_units::Au;
 use fragment::{Fragment, REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES, ScannedTextFlags};
 use fragment::{SELECTED, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
-use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
+use gfx::font::{KEEP_ALL_FLAG, RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
@@ -24,7 +24,7 @@ use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
-use style::computed_values::white_space;
+use style::computed_values::{word_break, white_space};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::properties::style_structs;
@@ -151,6 +151,7 @@ impl TextRunScanner {
             let letter_spacing;
             let word_spacing;
             let text_rendering;
+            let word_break;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
@@ -169,6 +170,7 @@ impl TextRunScanner {
                                .map(|lop| lop.to_hash_key())
                                .unwrap_or((Au(0), NotNaN::new(0.0).unwrap()));
                 text_rendering = inherited_text_style.text_rendering;
+                word_break = inherited_text_style.word_break;
             }
 
             // First, transform/compress text of all the nodes.
@@ -288,6 +290,9 @@ impl TextRunScanner {
             if text_rendering == text_rendering::T::optimizespeed {
                 flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
                 flags.insert(DISABLE_KERNING_SHAPING_FLAG)
+            }
+            if word_break == word_break::T::keep_all {
+                flags.insert(KEEP_ALL_FLAG);
             }
             let options = ShapingOptions {
                 letter_spacing: letter_spacing,

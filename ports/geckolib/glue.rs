@@ -7,6 +7,7 @@
 use app_units::Au;
 use env_logger;
 use euclid::Size2D;
+use parking_lot::RwLock;
 use std::mem::transmute;
 use std::ptr;
 use std::slice;
@@ -21,16 +22,16 @@ use style::gecko::data::{NUM_THREADS, PerDocumentStyleData};
 use style::gecko::selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::gecko::snapshot::GeckoElementSnapshot;
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::{DUMMY_BASE_URL, GeckoDeclarationBlock, GeckoDocument};
+use style::gecko::wrapper::{DUMMY_BASE_URL, GeckoDeclarationBlock};
 use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
-use style::gecko_bindings::bindings::{RawServoStyleSetBorrowedMut, RawGeckoDocumentBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsHTMLCSSStyleSheet, ServoComputedValuesBorrowedOrNull};
+use style::gecko_bindings::bindings::RawServoStyleSetBorrowedMut;
 use style::gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
@@ -46,7 +47,6 @@ use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};
 use style::timer::Timer;
 use url::Url;
-
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -253,7 +253,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
 
 
-    let maybe_parent = parent_style_or_null.as_arc_opt();
+    let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
     let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
@@ -310,10 +310,11 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong {
-    let style = if parent_style.is_null() {
-        Arc::new(ComputedValues::initial_values().clone())
+    let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
+    let style = if let Some(reference) = maybe_arc.as_ref() {
+        ComputedValues::inherit_from(reference)
     } else {
-        ComputedValues::inherit_from(parent_style.as_arc())
+        Arc::new(ComputedValues::initial_values().clone())
     };
     style.into_strong()
 }
@@ -345,7 +346,9 @@ pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             -> ServoDeclarationBlockStrong {
     let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
     Arc::new(GeckoDeclarationBlock {
-        declarations: GeckoElement::parse_style_attribute(value).map(Arc::new),
+        declarations: GeckoElement::parse_style_attribute(value).map(|block| {
+            Arc::new(RwLock::new(block))
+        }),
         cache: AtomicPtr::new(cache),
         immutable: AtomicBool::new(false),
     }).into_strong()

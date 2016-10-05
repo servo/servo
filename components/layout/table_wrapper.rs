@@ -23,7 +23,6 @@ use floats::FloatKind;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use model::MaybeAuto;
 use std::cmp::{max, min};
@@ -32,7 +31,7 @@ use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
 use style::context::SharedStyleContext;
-use style::logical_geometry::LogicalSize;
+use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -423,10 +422,12 @@ impl Flow for TableWrapperFlow {
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8)
+                                                            parent_thread_id: u8,
+                                                            content_box: LogicalRect<Au>)
                                                             -> bool {
         self.block_flow.assign_block_size_for_inorder_child_if_necessary(layout_context,
-                                                                         parent_thread_id)
+                                                                         parent_thread_id,
+                                                                         content_box)
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
@@ -445,11 +446,8 @@ impl Flow for TableWrapperFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent_id: StackingContextId,
-                                 contexts: &mut Vec<Box<StackingContext>>)
-                                 -> StackingContextId {
-        self.block_flow.collect_stacking_contexts(parent_id, contexts)
+    fn collect_stacking_contexts(&mut self, parent: &mut StackingContext) {
+        self.block_flow.collect_stacking_contexts(parent);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {

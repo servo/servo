@@ -13,14 +13,13 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
+use parking_lot::RwLock;
 use std::ascii::AsciiExt;
-use std::slice;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
-use style::properties::{PropertyDeclaration, Shorthand, Importance};
+use style::properties::{Shorthand, Importance};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
-use style::refcell::Ref;
 use style::selector_impl::PseudoElement;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -93,7 +92,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn Length(&self) -> u32 {
         let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
-            Some(ref declarations) => declarations.declarations.len(),
+            Some(ref declarations) => declarations.read().declarations.len(),
             None => 0,
         };
         len as u32
@@ -119,43 +118,42 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 2
         if let Some(shorthand) = Shorthand::from_name(&property) {
+            let style_attribute = owner.style_attribute().borrow();
+            let style_attribute = if let Some(ref style_attribute) = *style_attribute {
+                style_attribute.read()
+            } else {
+                // shorthand.longhands() is never empty, so with no style attribute
+                // step 2.2.2 would do this:
+                return DOMString::new()
+            };
+
             // Step 2.1
             let mut list = vec![];
 
             // Step 2.2
             for longhand in shorthand.longhands() {
                 // Step 2.2.1
-                let declaration = owner.get_inline_style_declaration(&Atom::from(*longhand));
+                let declaration = style_attribute.get(longhand);
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(declaration) => list.push(declaration),
+                    Some(&(ref declaration, _importance)) => list.push(declaration),
                     None => return DOMString::new(),
                 }
             }
 
             // Step 2.3
-            // Work around closures not being Clone
-            #[derive(Clone)]
-            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, (PropertyDeclaration, Importance)>>);
-            impl<'a, 'b> Iterator for Map<'a, 'b> {
-                type Item = &'a PropertyDeclaration;
-                fn next(&mut self) -> Option<Self::Item> {
-                    self.0.next().map(|r| &r.0)
-                }
-            }
-
             // TODO: important is hardcoded to false because method does not implement it yet
             let serialized_value = shorthand.serialize_shorthand_value_to_string(
-                Map(list.iter()), Importance::Normal);
+                list, Importance::Normal);
             return DOMString::from(serialized_value);
         }
 
         // Step 3 & 4
-        match owner.get_inline_style_declaration(&property) {
+        owner.get_inline_style_declaration(&property, |d| match d {
             Some(declaration) => DOMString::from(declaration.0.value()),
             None => DOMString::new(),
-        }
+        })
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
@@ -172,13 +170,18 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                                     .all(|priority| priority == "important") {
                 return DOMString::from("important");
             }
-        // Step 3
         } else {
-            if let Some(decl) = self.owner.get_inline_style_declaration(&property) {
-                if decl.1.important() {
-                    return DOMString::from("important");
+            // Step 3
+            return self.owner.get_inline_style_declaration(&property, |d| {
+                if let Some(decl) = d {
+                    if decl.1.important() {
+                        return DOMString::from("important");
+                    }
                 }
-            }
+
+                // Step 4
+                DOMString::new()
+            })
         }
 
         // Step 4
@@ -328,13 +331,14 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
         style_attribute.as_ref().and_then(|declarations| {
-            declarations.declarations.get(index)
-        }).map(|&(ref declaration, importance)| {
-            let mut css = declaration.to_css_string();
-            if importance.important() {
-                css += " !important";
-            }
-            DOMString::from(css)
+            declarations.read().declarations.get(index).map(|entry| {
+                let (ref declaration, importance) = *entry;
+                let mut css = declaration.to_css_string();
+                if importance.important() {
+                    css += " !important";
+                }
+                DOMString::from(css)
+            })
         })
     }
 
@@ -344,7 +348,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let style_attribute = elem.style_attribute().borrow();
 
         if let Some(declarations) = style_attribute.as_ref() {
-            DOMString::from(declarations.to_css_string())
+            DOMString::from(declarations.read().to_css_string())
         } else {
             DOMString::new()
         }
@@ -366,7 +370,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
-            Some(Arc::new(decl_block))
+            Some(Arc::new(RwLock::new(decl_block)))
         };
         element.sync_property_with_attrs_style();
         let node = element.upcast::<Node>();

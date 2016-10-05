@@ -587,7 +587,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             url: self.request_url.borrow().clone().unwrap(),
             headers: (*self.request_headers.borrow()).clone(),
             unsafe_request: true,
-            same_origin_data: true,
             // XXXManishearth figure out how to avoid this clone
             body: extracted.as_ref().map(|e| e.0.clone()),
             // XXXManishearth actually "subresource", but it doesn't exist
@@ -974,9 +973,16 @@ impl XMLHttpRequest {
                 *self.response.borrow_mut() = partial_response;
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
-                        self.change_ready_state(XMLHttpRequestState::Loading);
-                        return_if_fetch_was_terminated!();
+                        self.ready_state.set(XMLHttpRequestState::Loading);
                     }
+                    let global = self.global();
+                    let event = Event::new(
+                        global.r(),
+                        atom!("readystatechange"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::Cancelable);
+                    event.fire(self.upcast());
+                    return_if_fetch_was_terminated!();
                     self.dispatch_response_progress_event(atom!("progress"));
                 }
             },
@@ -1364,7 +1370,7 @@ impl XHRTimeoutCallback {
     }
 }
 
-trait Extractable {
+pub trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
 impl Extractable for BodyInit {

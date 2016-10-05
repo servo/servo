@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use body::{BodyOperations, BodyType, consume_body};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersInit;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
@@ -21,7 +22,9 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::headers::{Guard, Headers};
-use hyper;
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
+use hyper::method::Method as HttpMethod;
 use msg::constellation_msg::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
@@ -32,7 +35,9 @@ use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
+use std::mem;
+use std::rc::Rc;
 use url::Url;
 
 #[dom_struct]
@@ -153,7 +158,6 @@ impl Request {
         // TODO: `entry settings object` is not implemented in Servo yet.
         *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
-        request.same_origin_data.set(true);
         request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
@@ -340,7 +344,7 @@ impl Request {
         try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
 
         // Step 32
-        let input_body = if let RequestInfo::Request(ref input_request) = input {
+        let mut input_body = if let RequestInfo::Request(ref input_request) = input {
             let input_request_request = input_request.request.borrow();
             let body = input_request_request.body.borrow();
             body.clone()
@@ -354,9 +358,9 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = req.method.borrow();
                 match &*req_method {
-                    &hyper::method::Method::Get => return Err(Error::Type(
+                    &HttpMethod::Get => return Err(Error::Type(
                         "Init's body is non-null, and request method is GET".to_string())),
-                    &hyper::method::Method::Head => return Err(Error::Type(
+                    &HttpMethod::Head => return Err(Error::Type(
                         "Init's body is non-null, and request method is HEAD".to_string())),
                     _ => {},
                 }
@@ -365,6 +369,20 @@ impl Request {
 
         // Step 34
         // TODO: `ReadableStream` object is not implemented in Servo yet.
+        if let Some(Some(ref init_body)) = init.body {
+            // Step 34.2
+            let extracted_body_tmp = init_body.extract();
+            input_body = Some(extracted_body_tmp.0);
+            let content_type = extracted_body_tmp.1;
+
+            // Step 34.3
+            if let Some(contents) = content_type {
+                if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
+                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(contents.as_bytes().to_vec())));
+                }
+            }
+        }
 
         // Step 35
         {
@@ -381,6 +399,13 @@ impl Request {
 
         // Step 38
         Ok(r)
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-body-locked
+    fn locked(&self) -> bool {
+        // TODO: ReadableStream is unimplemented. Just return false
+        // for now.
+        false
     }
 }
 
@@ -418,6 +443,10 @@ impl Request {
         r_clone.Headers().set_guard(headers_guard);
         r_clone
     }
+
+    pub fn get_request(&self) -> NetTraitsRequest {
+        self.request.borrow().clone()
+    }
 }
 
 fn net_request_from_global(global: GlobalRef,
@@ -431,15 +460,15 @@ fn net_request_from_global(global: GlobalRef,
                           Some(pipeline_id))
 }
 
-fn normalized_method_to_typed_method(m: &str) -> hyper::method::Method {
+fn normalized_method_to_typed_method(m: &str) -> HttpMethod {
     match m {
-        "DELETE" => hyper::method::Method::Delete,
-        "GET" => hyper::method::Method::Get,
-        "HEAD" => hyper::method::Method::Head,
-        "OPTIONS" => hyper::method::Method::Options,
-        "POST" => hyper::method::Method::Post,
-        "PUT" => hyper::method::Method::Put,
-        a => hyper::method::Method::Extension(a.to_string())
+        "DELETE" => HttpMethod::Delete,
+        "GET" => HttpMethod::Get,
+        "HEAD" => HttpMethod::Head,
+        "OPTIONS" => HttpMethod::Options,
+        "POST" => HttpMethod::Post,
+        "PUT" => HttpMethod::Put,
+        a => HttpMethod::Extension(a.to_string())
     }
 }
 
@@ -482,10 +511,10 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
-fn is_cors_safelisted_method(m: &hyper::method::Method) -> bool {
-    m == &hyper::method::Method::Get ||
-        m == &hyper::method::Method::Head ||
-        m == &hyper::method::Method::Post
+fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
+    m == &HttpMethod::Get ||
+        m == &HttpMethod::Head ||
+        m == &HttpMethod::Post
 }
 
 // https://url.spec.whatwg.org/#include-credentials
@@ -601,6 +630,56 @@ impl RequestMethods for Request {
 
         // Step 2
         Ok(Request::clone_from(self))
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-text
+    fn Text(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Text)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-blob
+    fn Blob(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    fn FormData(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-json
+    fn Json(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Json)
+    }
+}
+
+impl BodyOperations for Request {
+    fn get_body_used(&self) -> bool {
+        self.BodyUsed()
+    }
+
+    fn is_locked(&self) -> bool {
+        self.locked()
+    }
+
+    fn take_body(&self) -> Option<Vec<u8>> {
+        let ref mut net_traits_req = *self.request.borrow_mut();
+        let body: Option<Vec<u8>> = mem::replace(&mut *net_traits_req.body.borrow_mut(), None);
+        match body {
+            Some(_) => {
+                self.body_used.set(true);
+                body
+            },
+            _ => None,
+        }
+    }
+
+    fn get_mime_type(&self) -> Ref<Vec<u8>> {
+        self.mime_type.borrow()
     }
 }
 

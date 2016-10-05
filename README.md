@@ -19,6 +19,7 @@ Please select your operating system:
 * [Debian-based Linuxes](#on-debian-based-linuxes)
 * [Fedora](#on-fedora)
 * [Arch Linux](#on-arch-linux)
+* [openSUSE](#on-opensuse-linux)
 * [Gentoo Linux](#on-gentoo-linux)
 * [Microsoft Windows](#on-windows)
 * [Android](#cross-compilation-for-android)
@@ -70,6 +71,13 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel
 ```
+#### On openSUSE Linux
+``` sh
+sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
+    dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
+    harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
+    python-pip python-virtualenv rpm-build glu-devel
+```
 #### On Arch Linux
 
 ``` sh
@@ -90,7 +98,7 @@ required for the SpiderMonkey build on Windows.
 
 Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
 window and update the core libraries and install new packages. The extra step at the end is to
-downgrate GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
+downgrade GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
 dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
 
 ```sh
@@ -198,8 +206,8 @@ URL with servo).
 
 ### Keyboard Shortcuts
 
-- `Ctrl--` zooms out
-- `Ctrl-=` zooms in
+- `Ctrl`+`-` zooms out
+- `Ctrl`+`=` zooms in
 - `Alt`+`left arrow` goes backwards in the history
 - `Alt`+`right arrow` goes forwards in the history
 - `Esc` exits servo

@@ -51,6 +51,7 @@ net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
 offscreen_gl_context = "0.4"
 open = "1.1.1"
+parking_lot = "0.3"
 phf = "0.7.16"
 phf_macros = "0.7.16"
 plugins = {path = "../plugins"}
@@ -62,7 +63,7 @@ regex = "0.1.43"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.13", features = ["heap_size"]}
+selectors = "0.13"
 serde = "0.8"
 smallvec = "0.1"
 string_cache = {version = "0.2.26", features = ["heap_size", "unstable"]}

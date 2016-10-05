@@ -29,7 +29,7 @@ use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use selector_matching::ApplicableDeclarationBlock;
+use selector_matching::{ApplicableDeclarationBlock, ApplicableDeclarationBlockReadGuard};
 use stylesheets::Origin;
 use values::LocalToCss;
 use values::HasViewportPercentage;
@@ -130,6 +130,7 @@ pub mod shorthands {
     <%include file="/shorthand/inherited_text.mako.rs" />
     <%include file="/shorthand/list.mako.rs" />
     <%include file="/shorthand/margin.mako.rs" />
+    <%include file="/shorthand/mask.mako.rs" />
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
     <%include file="/shorthand/position.mako.rs" />
@@ -309,6 +310,46 @@ impl PropertyDeclarationBlock {
     // FIXME: make fields private and maintain it here in methods?
     pub fn any_normal(&self) -> bool {
         self.declarations.len() > self.important_count as usize
+    }
+
+    pub fn get(&self, property_name: &str) -> Option< &(PropertyDeclaration, Importance)> {
+        self.declarations.iter().find(|&&(ref decl, _)| decl.matches(property_name))
+    }
+}
+
+impl PropertyDeclarationBlock {
+    // Take a declaration block known to contain a single property,
+    // and serialize it
+    pub fn to_css_single_value<W>(&self, dest: &mut W, name: &str)
+        -> fmt::Result where W: fmt::Write {
+        match self.declarations.len() {
+            0 => Err(fmt::Error),
+            1 if self.declarations[0].0.name().eq_str_ignore_ascii_case(name) => {
+                self.declarations[0].0.to_css(dest)
+            }
+            _ => {
+                // we use this function because a closure won't be `Clone`
+                fn get_declaration(dec: &(PropertyDeclaration, Importance))
+                    -> &PropertyDeclaration {
+                    &dec.0
+                }
+                let shorthand = try!(Shorthand::from_name(name).ok_or(fmt::Error));
+                if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
+                    return Err(fmt::Error)
+                }
+                let success = try!(shorthand.serialize_shorthand_to_buffer(
+                    dest,
+                    self.declarations.iter()
+                                     .map(get_declaration as fn(_) -> _),
+                    &mut true)
+                );
+                if success {
+                    Ok(())
+                } else {
+                    Err(fmt::Error)
+                }
+            }
+        }
     }
 }
 
@@ -740,7 +781,7 @@ impl Shorthand {
 
     /// Serializes possible shorthand value to String.
     pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, importance: Importance) -> String
-    where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
         let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
         let mut result = String::new();
         append_declaration_value(&mut result, appendable_value, importance).unwrap();
@@ -754,7 +795,7 @@ impl Shorthand {
                                                    declarations: I,
                                                    is_first_serialization: &mut bool)
                                                    -> Result<bool, fmt::Error>
-    where W: Write, I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    where W: Write, I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
         match self.get_shorthand_appendable_value(declarations) {
             None => Ok(false),
             Some(appendable_value) => {
@@ -771,8 +812,10 @@ impl Shorthand {
         }
     }
 
-    fn get_shorthand_appendable_value<'a, I>(self, declarations: I) -> Option<AppendableValue<'a, I>>
-        where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    fn get_shorthand_appendable_value<'a, I>(self, declarations: I)
+                                             -> Option<AppendableValue<'a, I::IntoIter>>
+        where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
+            let declarations = declarations.into_iter();
 
             // Only cloning iterators (a few pointers each) not declarations.
             let mut declarations2 = declarations.clone();
@@ -884,6 +927,16 @@ pub enum PropertyDeclarationName {
     Longhand(&'static str),
     Custom(::custom_properties::Name),
     Internal
+}
+
+impl PropertyDeclarationName {
+    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
+        match *self {
+            PropertyDeclarationName::Longhand(s) => s.eq_ignore_ascii_case(other),
+            PropertyDeclarationName::Custom(ref n) => n.eq_str_ignore_ascii_case(other),
+            PropertyDeclarationName::Internal => false
+        }
+    }
 }
 
 impl PartialEq<str> for PropertyDeclarationName {
@@ -1377,7 +1430,7 @@ pub use gecko_properties::ComputedValues;
 pub type ServoComputedValues = ComputedValues;
 
 #[cfg(feature = "servo")]
-#[cfg_attr(feature = "servo", derive(Clone, Debug, HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(Clone, Debug))]
 pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -1525,14 +1578,19 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
+    pub fn border_width_for_writing_mode(&self, writing_mode: WritingMode) -> LogicalMargin<Au> {
         let border_style = self.get_border();
-        LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
+        LogicalMargin::from_physical(writing_mode, SideOffsets2D::new(
             border_style.border_top_width,
             border_style.border_right_width,
             border_style.border_bottom_width,
             border_style.border_left_width,
         ))
+    }
+
+    #[inline]
+    pub fn logical_border_width(&self) -> LogicalMargin<Au> {
+        self.border_width_for_writing_mode(self.writing_mode)
     }
 
     #[inline]
@@ -1718,7 +1776,7 @@ mod lazy_static_module {
 #[allow(unused_mut, unused_imports)]
 fn cascade_with_cached_declarations(
         viewport_size: Size2D<Au>,
-        applicable_declarations: &[ApplicableDeclarationBlock],
+        applicable_declarations: &[ApplicableDeclarationBlockReadGuard],
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
@@ -1748,8 +1806,8 @@ fn cascade_with_cached_declarations(
     let mut seen = PropertyBitField::new();
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
-    for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.iter().rev() {
+    for block in applicable_declarations.iter().rev() {
+        for declaration in block.iter().rev() {
             match *declaration {
                 % for style_struct in data.active_style_structs():
                     % for property in style_struct.longhands:
@@ -1876,15 +1934,20 @@ pub fn cascade(viewport_size: Size2D<Au>,
         None => (true, initial_values),
     };
 
+    // Aquire locks for at least the lifetime of `specified_custom_properties`.
+    let applicable_declarations = applicable_declarations.iter()
+        .map(|block| block.read())
+        .collect::<Vec<_>>();
+
     let inherited_custom_properties = inherited_style.custom_properties();
-    let mut custom_properties = None;
+    let mut specified_custom_properties = None;
     let mut seen_custom = HashSet::new();
-    for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.iter().rev() {
+    for block in applicable_declarations.iter().rev() {
+        for declaration in block.iter().rev() {
             match *declaration {
                 PropertyDeclaration::Custom(ref name, ref value) => {
                     ::custom_properties::cascade(
-                        &mut custom_properties, &inherited_custom_properties,
+                        &mut specified_custom_properties, &inherited_custom_properties,
                         &mut seen_custom, name, value)
                 }
                 _ => {}
@@ -1892,11 +1955,11 @@ pub fn cascade(viewport_size: Size2D<Au>,
         }
     }
     let custom_properties = ::custom_properties::finish_cascade(
-            custom_properties, &inherited_custom_properties);
+            specified_custom_properties, &inherited_custom_properties);
 
     if let (Some(cached_style), Some(parent_style)) = (cached_style, parent_style) {
         let style = cascade_with_cached_declarations(viewport_size,
-                                                     applicable_declarations,
+                                                     &applicable_declarations,
                                                      shareable,
                                                      parent_style,
                                                      cached_style,
@@ -1937,8 +2000,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // virtual dispatch instead.
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
-            for sub_list in applicable_declarations.iter().rev() {
-                for declaration in sub_list.iter().rev() {
+            for block in applicable_declarations.iter().rev() {
+                for declaration in block.iter().rev() {
                     if let PropertyDeclaration::Custom(..) = *declaration {
                         continue
                     }

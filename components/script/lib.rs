@@ -17,6 +17,7 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
+#![feature(try_borrow)]
 #![feature(try_from)]
 
 #![deny(unsafe_code)]
@@ -64,6 +65,7 @@ extern crate net_traits;
 extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate open;
+extern crate parking_lot;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
@@ -92,11 +94,13 @@ extern crate websocket;
 extern crate xml5ever;
 
 pub mod bluetooth_blacklist;
+mod body;
 pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
+pub mod fetch;
 pub mod layout_wrapper;
 mod mem;
 mod network_listener;
@@ -114,10 +118,8 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler;
-use js::jsapi::{Handle, JSContext, JSObject};
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
-use util::opts;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -174,14 +176,4 @@ pub fn init(sw_senders: SWManagerSenders) {
     RegisterBindings::RegisterProxyHandlers();
 
     perform_platform_specific_initialization();
-}
-
-/// FIXME(pcwalton): Currently WebRender cannot handle DOM-initiated scrolls. Remove this when it
-/// can. See PR #11680 for details.
-///
-/// This function is only marked `unsafe` because the `[Func=foo]` WebIDL attribute requires it. It
-/// shouldn't actually do anything unsafe.
-#[allow(unsafe_code)]
-pub unsafe fn script_can_initiate_scroll(_: *mut JSContext, _: Handle<*mut JSObject>) -> bool {
-    !opts::get().use_webrender
 }

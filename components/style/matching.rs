@@ -11,9 +11,9 @@ use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
-use data::PrivateStyleData;
+use data::PersistentStyleData;
 use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
-use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
+use properties::{ComputedValues, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
@@ -24,6 +24,7 @@ use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::ops::Deref;
 use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -139,7 +140,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr: *const PropertyDeclarationBlock = &*declaration.mixed_declarations;
+            let ptr: *const _ = Arc::deref(&declaration.mixed_declarations);
             ptr.hash(state);
             declaration.importance.hash(state);
         }
@@ -502,7 +503,13 @@ trait PrivateMatchMethods: TNode {
                                             -> Arc<ComputedValues>
         where Ctx: StyleContext<'a>
     {
-        let mut cacheable = true;
+        // Don’t cache applicable declarations for elements with a style attribute.
+        // Since the style attribute contributes to that set, no other element would have the same set
+        // and the cache would not be effective anyway.
+        // This also works around the test failures at
+        // https://github.com/servo/servo/pull/13459#issuecomment-250717584
+        let has_style_attribute = self.as_element().map_or(false, |e| e.style_attribute().is_some());
+        let mut cacheable = !has_style_attribute;
         let shared_context = context.shared_context();
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(shared_context,
@@ -874,19 +881,9 @@ pub trait MatchMethods : TNode {
                                     -> RestyleResult
         where Ctx: StyleContext<'a>
     {
-        // Get our parent's style. This must be unsafe so that we don't touch the parent's
-        // borrow flags.
-        //
-        // FIXME(pcwalton): Isolate this unsafety into the `wrapper` module to allow
-        // enforced safe, race-free access to the parent style.
-        let parent_style = match parent {
-            Some(parent_node) => {
-                let parent_style = (*parent_node.borrow_data_unchecked().unwrap()).style.as_ref().unwrap();
-                Some(parent_style)
-            }
-            None => None,
-        };
-
+        // Get our parent's style.
+        let parent_node_data = parent.as_ref().and_then(|x| x.borrow_data());
+        let parent_style = parent_node_data.as_ref().map(|x| x.style.as_ref().unwrap());
 
         // In the case we're styling a text node, we don't need to compute the
         // restyle damage, since it's a subset of the restyle damage of the
@@ -945,7 +942,7 @@ pub trait MatchMethods : TNode {
 
     fn compute_damage_and_cascade_pseudos<'a, Ctx>(&self,
                                                    final_style: Arc<ComputedValues>,
-                                                   data: &mut PrivateStyleData,
+                                                   data: &mut PersistentStyleData,
                                                    context: &Ctx,
                                                    applicable_declarations: &ApplicableDeclarations,
                                                    mut applicable_declarations_cache: &mut ApplicableDeclarationsCache)

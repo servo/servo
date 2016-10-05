@@ -87,6 +87,8 @@ class MachCommands(CommandBase):
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 
+        self.ensure_bootstrapped()
+
         for cargo_path in CARGO_PATHS:
             with cd(cargo_path):
                 print(cargo_path)

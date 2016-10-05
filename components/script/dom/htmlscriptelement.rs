@@ -25,7 +25,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
@@ -244,8 +243,6 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         },
         origin: doc.url().clone(),
         pipeline_id: Some(script.global().r().pipeline_id()),
-        // FIXME: Set to true for now, discussion in https://github.com/whatwg/fetch/issues/381
-        same_origin_data: true,
         referrer_url: Some(doc.url().clone()),
         referrer_policy: doc.get_referrer_policy(),
         .. RequestInit::default()
@@ -262,8 +259,6 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         status: Ok(())
     }));
 
-    let doc = document_from_node(script);
-
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
         context: context,
@@ -274,7 +269,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
         listener.notify_fetch(message.to().unwrap());
     });
-    doc.fetch_async(LoadType::Script(url), request, action_sender, None);
+    doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 
 impl HTMLScriptElement {
@@ -509,9 +504,8 @@ impl HTMLScriptElement {
         // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        window.evaluate_script_on_global_with_result(&script.text,
-                                                     script.url.as_str(),
-                                                     rval.handle_mut());
+        GlobalRef::Window(&window).evaluate_script_on_global_with_result(
+            &script.text, script.url.as_str(), rval.handle_mut());
 
         // Step 6.
         document.set_current_script(old_script.r());

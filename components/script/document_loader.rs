@@ -9,8 +9,8 @@ use dom::bindings::js::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, LoadContext};
-use net_traits::{FetchResponseMsg, ResourceThreads, IpcSend};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, load_async};
+use net_traits::{FetchResponseMsg, LoadContext, ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
 use std::thread;
 use url::Url;
@@ -49,7 +49,7 @@ impl LoadType {
 }
 
 /// Canary value ensuring that manually added blocking loads (ie. ones that weren't
-/// created via DocumentLoader::prepare_async_load) are always removed by the time
+/// created via DocumentLoader::{load_async, fetch_async}) are always removed by the time
 /// that the owner is destroyed.
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
@@ -63,7 +63,7 @@ pub struct LoadBlocker {
 impl LoadBlocker {
     /// Mark the document's load event as blocked on this new load.
     pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
-        doc.add_blocking_load(load.clone());
+        doc.mut_loader().add_blocking_load(load.clone());
         LoadBlocker {
             doc: JS::from_ref(doc),
             load: Some(load),
@@ -119,25 +119,8 @@ impl DocumentLoader {
     }
 
     /// Add a load to the list of blocking loads.
-    pub fn add_blocking_load(&mut self, load: LoadType) {
+    fn add_blocking_load(&mut self, load: LoadType) {
         self.blocking_loads.push(load);
-    }
-
-    /// Create a new pending network request, which can be initiated at some point in
-    /// the future.
-    pub fn prepare_async_load(&mut self,
-                              load: LoadType,
-                              referrer: &Document,
-                              referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
-        let context = load.to_load_context();
-        let url = load.url().clone();
-        self.add_blocking_load(load);
-        PendingAsyncLoad::new(context,
-                              self.resource_threads.sender(),
-                              url,
-                              self.pipeline,
-                              referrer_policy.or(referrer.get_referrer_policy()),
-                              Some(referrer.url().clone()))
     }
 
     /// Create and initiate a new network request.
@@ -146,19 +129,25 @@ impl DocumentLoader {
                       listener: AsyncResponseTarget,
                       referrer: &Document,
                       referrer_policy: Option<ReferrerPolicy>) {
-        let pending = self.prepare_async_load(load, referrer, referrer_policy);
-        pending.load_async(listener)
+        let context = load.to_load_context();
+        let url = load.url().clone();
+        self.add_blocking_load(load);
+        load_async(context,
+                   self.resource_threads.sender(),
+                   url,
+                   self.pipeline,
+                   referrer_policy.or(referrer.get_referrer_policy()),
+                   Some(referrer.url().clone()),
+                   listener);
     }
 
     /// Initiate a new fetch.
     pub fn fetch_async(&mut self,
                        load: LoadType,
                        request: RequestInit,
-                       fetch_target: IpcSender<FetchResponseMsg>,
-                       referrer: &Document,
-                       referrer_policy: Option<ReferrerPolicy>) {
-        let pending = self.prepare_async_load(load, referrer, referrer_policy);
-        pending.fetch_async(request, fetch_target);
+                       fetch_target: IpcSender<FetchResponseMsg>) {
+        self.add_blocking_load(load);
+        self.resource_threads.sender().send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
     }
 
     /// Mark an in-progress network request complete.

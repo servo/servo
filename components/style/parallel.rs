@@ -161,9 +161,7 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
             Some(parent) => parent,
         };
 
-        let parent_data = unsafe {
-            &*parent.borrow_data_unchecked().unwrap()
-        };
+        let parent_data = parent.borrow_data().unwrap();
 
         if parent_data
             .parallel

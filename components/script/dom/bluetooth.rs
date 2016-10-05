@@ -15,10 +15,13 @@ use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
+use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
+use js::conversions::ToJSValConvertible;
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
+use std::rc::Rc;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
@@ -61,6 +64,22 @@ impl Bluetooth {
         global_ref.as_window().bluetooth_thread()
     }
 
+    fn request_device(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
+        // Step 1.
+        // TODO(#4282): Reject promise.
+        if (option.filters.is_some() && option.acceptAllDevices) ||
+           (option.filters.is_none() && !option.acceptAllDevices) {
+            return Err(Type(OPTIONS_ERROR.to_owned()));
+        }
+        // Step 2.
+        if !option.acceptAllDevices {
+            return self.request_bluetooth_devices(&option.filters, &option.optionalServices);
+        }
+
+        self.request_bluetooth_devices(&None, &option.optionalServices)
+        // TODO(#4282): Step 3-5: Reject and resolve promise.
+    }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_bluetooth_devices(&self,
                                  filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
@@ -69,7 +88,7 @@ impl Bluetooth {
         // TODO: Step 1: Triggered by user activation.
 
         // Step 2.
-        let option = try!(convert_request_device_options(self.global().r(), filters, optional_services));
+        let option = try!(convert_request_device_options(filters, optional_services));
 
         // TODO: Step 3-5: Implement the permission API.
 
@@ -104,8 +123,7 @@ impl Bluetooth {
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn convert_request_device_options(global: GlobalRef,
-                                  filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
+fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
                                   optional_services: &Option<Vec<BluetoothServiceUUID>>)
                                   -> Fallible<RequestDeviceoptions> {
     // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
@@ -122,7 +140,7 @@ fn convert_request_device_options(global: GlobalRef,
         // Step 2.4.
         for filter in filters {
             // Step 2.4.8.
-            uuid_filters.push(try!(canonicalize_filter(&filter, global)));
+            uuid_filters.push(try!(canonicalize_filter(&filter)));
         }
     }
 
@@ -130,7 +148,7 @@ fn convert_request_device_options(global: GlobalRef,
     if let &Some(ref opt_services) = optional_services {
         for opt_service in opt_services {
             // Step 2.5 - 2.6.
-            let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
+            let uuid = try!(BluetoothUUID::service(opt_service.clone())).to_string();
 
             // Step 2.7.
             // Note: What we are doing here is adding the not blacklisted UUIDs to the result vector,
@@ -146,7 +164,7 @@ fn convert_request_device_options(global: GlobalRef,
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
+fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<BluetoothScanfilter> {
     // Step 2.4.1.
     if filter.services.is_none() &&
        filter.name.is_none() &&
@@ -171,7 +189,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
 
             for service in services {
                 // Step 2.4.3.2 - 2.4.3.3.
-                let uuid = try!(BluetoothUUID::GetService(global, service.clone())).to_string();
+                let uuid = try!(BluetoothUUID::service(service.clone())).to_string();
 
                 // Step 2.4.3.4.
                 if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
@@ -232,7 +250,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
     let service_data_uuid = match filter.serviceDataUUID {
         Some(ref service_data_uuid) => {
             // Step 2.4.7.1 - 2.4.7.2.
-            let uuid = try!(BluetoothUUID::GetService(global, service_data_uuid.clone())).to_string();
+            let uuid = try!(BluetoothUUID::service(service_data_uuid.clone())).to_string();
 
             // Step 2.4.7.3.
             if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
@@ -252,6 +270,18 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef)
                                 service_data_uuid))
 }
 
+#[allow(unrooted_must_root)]
+pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
+                                                bluetooth_result: Fallible<T>)
+                                                -> Rc<Promise> {
+    let p = Promise::new(global_ref);
+    match bluetooth_result {
+        Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
+        Err(e) => p.reject_error(p.global().r().get_cx(), e),
+    }
+    p
+}
+
 impl From<BluetoothError> for Error {
     fn from(error: BluetoothError) -> Self {
         match error {
@@ -265,20 +295,9 @@ impl From<BluetoothError> for Error {
 }
 
 impl BluetoothMethods for Bluetooth {
+    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
-        // Step 1.
-        // TODO(#4282): Reject promise.
-        if (option.filters.is_some() && option.acceptAllDevices) ||
-           (option.filters.is_none() && !option.acceptAllDevices) {
-            return Err(Type(OPTIONS_ERROR.to_owned()));
-        }
-        // Step 2.
-        if !option.acceptAllDevices {
-            return self.request_bluetooth_devices(&option.filters, &option.optionalServices);
-        }
-
-        self.request_bluetooth_devices(&None, &option.optionalServices)
-        // TODO(#4282): Step 3-5: Reject and resolve promise.
+    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
+        result_to_promise(self.global().r(), self.request_device(option))
     }
 }

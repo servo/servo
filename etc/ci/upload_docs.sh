@@ -23,8 +23,10 @@ python components/style/properties/build.py servo html regular
 cd components/script
 cmake .
 cmake --build . --target supported-apis
-cp apis.html target/doc/servo/
+cp apis.html ../../target/doc/servo/
 cd ../..
 
 ghp-import -n target/doc
-git push -qf "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages
+git push -qf \
+    "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages \
+    >/dev/null 2>&1

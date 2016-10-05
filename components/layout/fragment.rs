@@ -856,7 +856,7 @@ impl Fragment {
     /// Constructs a new `Fragment` instance.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
         let style_context = ctx.style_context();
-        let style = node.style(style_context).clone();
+        let style = node.style(style_context);
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
@@ -865,7 +865,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style(style_context).clone(),
+            selected_style: node.selected_style(style_context),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
@@ -1155,8 +1155,14 @@ impl Fragment {
         match self.inline_context {
             None => style_border_width,
             Some(ref inline_fragment_context) => {
+                // NOTE: We can have nodes with different writing mode inside
+                // the inline fragment context, so we need to overwrite the
+                // writing mode to compute the child logical sizes.
+                let writing_mode = self.style.writing_mode;
+
                 inline_fragment_context.nodes.iter().fold(style_border_width, |accumulator, node| {
-                    let mut this_border_width = node.style.logical_border_width();
+                    let mut this_border_width =
+                        node.style.border_width_for_writing_mode(writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         this_border_width.inline_start = Au(0)
                     }
@@ -1289,7 +1295,7 @@ impl Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
-            _ => model::padding_from_style(self.style(), containing_block_inline_size),
+            _ => model::padding_from_style(self.style(), containing_block_inline_size, self.style().writing_mode),
         };
 
         // Compute padding from the inline fragment context.
@@ -1301,9 +1307,10 @@ impl Fragment {
                 LogicalMargin::zero(self.style.writing_mode)
             }
             (_, &Some(ref inline_fragment_context)) => {
-                let zero_padding = LogicalMargin::zero(self.style.writing_mode);
+                let writing_mode = self.style.writing_mode;
+                let zero_padding = LogicalMargin::zero(writing_mode);
                 inline_fragment_context.nodes.iter().fold(zero_padding, |accumulator, node| {
-                    let mut padding = model::padding_from_style(&*node.style, Au(0));
+                    let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         padding.inline_start = Au(0)
                     }
@@ -1529,11 +1536,12 @@ impl Fragment {
 
         // Take borders and padding for parent inline fragments into account, if necessary.
         if self.is_primary_fragment() {
+            let writing_mode = self.style.writing_mode;
             if let Some(ref context) = self.inline_context {
                 for node in &context.nodes {
                     let mut border_width = node.style.logical_border_width();
-                    let mut padding = model::padding_from_style(&*node.style, Au(0));
-                    let mut margin = model::specified_margin_from_style(&*node.style);
+                    let mut padding = model::padding_from_style(&*node.style, Au(0), writing_mode);
+                    let mut margin = model::specified_margin_from_style(&*node.style, writing_mode);
                     if !node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT) {
                         border_width.inline_start = Au(0);
                         padding.inline_start = Au(0);
@@ -1637,8 +1645,8 @@ impl Fragment {
         }
 
         match self.style().get_inheritedtext().word_break {
-            word_break::T::normal => {
-                // Break at normal word boundaries.
+            word_break::T::normal | word_break::T::keep_all => {
+                // Break at normal word boundaries. keep-all forbids soft wrap opportunities.
                 let natural_word_breaking_strategy =
                     text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
                 self.calculate_split_position_using_breaking_strategy(
@@ -2036,7 +2044,7 @@ impl Fragment {
     /// Calculates block-size above baseline, depth below baseline, and ascent for this fragment
     /// when used in an inline formatting context. See CSS 2.1 § 10.8.1.
     pub fn inline_metrics(&self, layout_context: &LayoutContext) -> InlineMetrics {
-        match self.specific {
+        return match self.specific {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 let computed_block_size = image_fragment_info.replaced_image_fragment_info
                                                              .computed_block_size();
@@ -2074,30 +2082,13 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
-                // See CSS 2.1 § 10.8.1.
-                let flow = &info.flow_ref;
-                let block_flow = flow.as_block();
-                let is_auto = self.style.get_position().height == LengthOrPercentageOrAuto::Auto;
-                let baseline_offset = match flow.baseline_offset_of_last_line_box_in_flow() {
-                    Some(baseline_offset) if is_auto => baseline_offset,
-                    _ => block_flow.fragment.border_box.size.block,
-                };
-                let start_margin = block_flow.fragment.margin.block_start;
-                let end_margin = block_flow.fragment.margin.block_end;
-                let depth_below_baseline = flow::base(&**flow).position.size.block -
-                    baseline_offset + end_margin;
-                InlineMetrics::new(baseline_offset + start_margin,
-                                   depth_below_baseline,
-                                   baseline_offset)
+                inline_metrics_of_block(&info.flow_ref, &*self.style)
             }
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => {
+                inline_metrics_of_block(&info.flow_ref, &*self.style)
+            }
             SpecificFragmentInfo::InlineAbsolute(_) => {
-                // Hypothetical boxes take up no space.
-                InlineMetrics {
-                    block_size_above_baseline: Au(0),
-                    depth_below_baseline: Au(0),
-                    ascent: Au(0),
-                }
+                InlineMetrics::new(Au(0), Au(0), Au(0))
             }
             _ => {
                 InlineMetrics {
@@ -2106,6 +2097,23 @@ impl Fragment {
                     ascent: self.border_box.size.block,
                 }
             }
+        };
+
+        fn inline_metrics_of_block(flow: &FlowRef, style: &ServoComputedValues) -> InlineMetrics {
+            // See CSS 2.1 § 10.8.1.
+            let block_flow = flow.as_block();
+            let is_auto = style.get_position().height == LengthOrPercentageOrAuto::Auto;
+            let baseline_offset = flow.baseline_offset_of_last_line_box_in_flow();
+            let baseline_offset = match baseline_offset {
+                Some(baseline_offset) if is_auto => baseline_offset,
+                _ => block_flow.fragment.border_box.size.block,
+            };
+            let start_margin = block_flow.fragment.margin.block_start;
+            let end_margin = block_flow.fragment.margin.block_end;
+            let block_size_above_baseline = baseline_offset + start_margin;
+            let depth_below_baseline = flow::base(&**flow).position.size.block - baseline_offset +
+                end_margin;
+            InlineMetrics::new(block_size_above_baseline, depth_below_baseline, baseline_offset)
         }
     }
 
@@ -2924,3 +2932,4 @@ impl Encodable for DebugId {
         e.emit_u16(self.0)
     }
 }
+

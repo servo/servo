@@ -462,8 +462,7 @@ class CGMethodCall(CGThing):
             pickFirstSignature("%s.get().is_object() && is_array_like(cx, %s)" %
                                (distinguishingArg, distinguishingArg),
                                lambda s:
-                                   (s[1][distinguishingIndex].type.isArray() or
-                                    s[1][distinguishingIndex].type.isSequence() or
+                                   (s[1][distinguishingIndex].type.isSequence() or
                                     s[1][distinguishingIndex].type.isObject()))
 
             # Check for Date objects
@@ -537,9 +536,6 @@ def typeIsSequenceOrHasSequenceMember(type):
         type = type.inner
     if type.isSequence():
         return True
-    if type.isArray():
-        elementType = type.inner
-        return typeIsSequenceOrHasSequenceMember(elementType)
     if type.isDictionary():
         return dictionaryHasSequenceMember(type.inner)
     if type.isUnion():
@@ -731,9 +727,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return templateBody
 
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
-
-    if type.isArray():
-        raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence() or type.isMozMap():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
@@ -1309,7 +1302,7 @@ def typeNeedsCx(type, retVal=False):
         return False
     if type.nullable():
         type = type.inner
-    if type.isSequence() or type.isArray():
+    if type.isSequence():
         type = type.inner
     if type.isUnion():
         return any(typeNeedsCx(t) for t in type.unroll().flatMemberTypes)
@@ -1612,7 +1605,7 @@ class MethodDefiner(PropertyDefiner):
                 "name": "forEach",
                 "methodInfo": False,
                 "selfHostedName": "ArrayForEach",
-                "length": 0,
+                "length": 1,
                 "condition": PropertyDefiner.getControllingCondition(m,
                                                                      descriptor)
             })
@@ -2383,16 +2376,8 @@ class CGAbstractMethod(CGThing):
 
         if self.catchPanic:
             body = CGWrapper(CGIndenter(body),
-                             pre="let result = panic::catch_unwind(AssertUnwindSafe(|| {\n",
-                             post=("""}));
-match result {
-    Ok(result) => result,
-    Err(error) => {
-        store_panic_result(error);
-        return%s;
-    }
-}
-""" % ("" if self.returnType == "void" else " false")))
+                             pre="return wrap_panic(|| {\n",
+                             post=("""}, %s);""" % ("()" if self.returnType == "void" else "false")))
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -3817,9 +3802,6 @@ class CGMemberJITInfo(CGThing):
         if t.isVoid():
             # No return, every time
             return "JSVAL_TYPE_UNDEFINED"
-        if t.isArray():
-            # No idea yet
-            assert False
         if t.isSequence():
             return "JSVAL_TYPE_OBJECT"
         if t.isMozMap():
@@ -3895,9 +3877,6 @@ class CGMemberJITInfo(CGThing):
         if t.nullable():
             # Sometimes it might return null, sometimes not
             return "JSJitInfo_ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
-        if t.isArray():
-            # No idea yet
-            assert False
         if t.isSequence():
             return "JSJitInfo_ArgType::Object as i32"
         if t.isGeckoInterface():
@@ -4161,7 +4140,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             interfaceObject = None
 
-        arrayObjectMemberTypes = filter(lambda t: t.isArray() or t.isSequence(), memberTypes)
+        arrayObjectMemberTypes = filter(lambda t: t.isSequence(), memberTypes)
         if len(arrayObjectMemberTypes) > 0:
             assert len(arrayObjectMemberTypes) == 1
             typeName = arrayObjectMemberTypes[0].name
@@ -4775,7 +4754,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
                 Argument('HandleId', 'id'),
-                Argument('MutableHandle<PropertyDescriptor>', 'desc', mutable=True)]
+                Argument('MutableHandle<PropertyDescriptor>', 'desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
                                         "bool", args)
         self.descriptor = descriptor
@@ -4794,7 +4773,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs += " | JSPROP_READONLY"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(&mut desc, proxy.get(), %s);\n"
+                              "fill_property_descriptor(desc, proxy.get(), %s);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -4820,7 +4799,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = "0"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(&mut desc, proxy.get(), %s);\n"
+                              "fill_property_descriptor(desc, proxy.get(), %s);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5566,6 +5545,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::resolve_global',
         'dom::bindings::utils::set_dictionary_property',
         'dom::bindings::utils::trace_global',
+        'dom::bindings::utils::wrap_panic',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
         'dom::bindings::callback::CallSetup',
@@ -5617,14 +5597,12 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'libc',
         'util::prefs::PREFS',
         'script_runtime::maybe_take_panic_result',
-        'script_runtime::store_panic_result',
         'std::borrow::ToOwned',
         'std::cmp',
         'std::mem',
         'std::num',
         'std::os',
         'std::panic',
-        'std::panic::AssertUnwindSafe',
         'std::ptr',
         'std::str',
         'std::rc',
@@ -5650,13 +5628,6 @@ class CGDescriptor(CGThing):
             return name
 
         cgThings = []
-        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
-            cgThings.append(CGGetProtoObjectMethod(descriptor))
-            reexports.append('GetProtoObject')
-        if (descriptor.interface.hasInterfaceObject() and
-                descriptor.shouldHaveGetConstructorObjectMethod()):
-            cgThings.append(CGGetConstructorObjectMethod(descriptor))
-            reexports.append('GetConstructorObject')
 
         unscopableNames = []
         for m in descriptor.interface.members:
@@ -5703,17 +5674,6 @@ class CGDescriptor(CGThing):
             cgThings.append(CGClassFinalizeHook(descriptor))
             cgThings.append(CGClassTraceHook(descriptor))
 
-        if descriptor.interface.hasInterfaceObject():
-            if descriptor.interface.ctor():
-                cgThings.append(CGClassConstructHook(descriptor))
-            for ctor in descriptor.interface.namedConstructors:
-                cgThings.append(CGClassConstructHook(descriptor, ctor))
-            if not descriptor.interface.isCallback():
-                cgThings.append(CGInterfaceObjectJSClass(descriptor))
-
-        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
-            cgThings.append(CGPrototypeJSClass(descriptor))
-
         # If there are no constant members, don't make a module for constants
         constMembers = [m for m in descriptor.interface.members if m.isConst()]
         if constMembers:
@@ -5721,11 +5681,6 @@ class CGDescriptor(CGThing):
                                               CGConstant(constMembers),
                                               public=True))
             reexports.append(descriptor.name + 'Constants')
-
-        if descriptor.interface.hasInterfaceObject() and descriptor.register:
-            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-            reexports.append('DefineDOMInterface')
-            cgThings.append(CGConstructorEnabled(descriptor))
 
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
@@ -5788,6 +5743,25 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
 
         cgThings.append(CGGeneric(str(properties)))
+
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
+            cgThings.append(CGGetProtoObjectMethod(descriptor))
+            reexports.append('GetProtoObject')
+            cgThings.append(CGPrototypeJSClass(descriptor))
+        if descriptor.interface.hasInterfaceObject():
+            if descriptor.interface.ctor():
+                cgThings.append(CGClassConstructHook(descriptor))
+            for ctor in descriptor.interface.namedConstructors:
+                cgThings.append(CGClassConstructHook(descriptor, ctor))
+            if not descriptor.interface.isCallback():
+                cgThings.append(CGInterfaceObjectJSClass(descriptor))
+            if descriptor.shouldHaveGetConstructorObjectMethod():
+                cgThings.append(CGGetConstructorObjectMethod(descriptor))
+                reexports.append('GetConstructorObject')
+            if descriptor.register:
+                cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+                reexports.append('DefineDOMInterface')
+                cgThings.append(CGConstructorEnabled(descriptor))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
         cgThings = generate_imports(config, CGList(cgThings, '\n'), [descriptor])

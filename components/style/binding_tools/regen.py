@@ -48,6 +48,7 @@ COMPILATION_TARGETS = {
             "--ignore-methods",
         ],
         "includes": [
+            "{}/dist/include/gfxFontConstants.h",
             "{}/dist/include/nsThemeConstants.h",
             "{}/dist/include/mozilla/dom/AnimationEffectReadOnlyBinding.h",
             "{}/dist/include/mozilla/ServoElementSnapshot.h",
@@ -73,6 +74,7 @@ COMPILATION_TARGETS = {
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
+            "NS_FONT_STRETCH_.*",
             "NS_FONT_STYLE_.*",
             "NS_STYLE_.*",
             "NS_CORNER_.*",
@@ -270,7 +272,6 @@ def platform_dependent_defines():
     elif system == "Windows":
         ret.append("-DOS_WIN=1")
         ret.append("-DWIN32=1")
-        ret.append("-use-msvc-mangling")
         msvc_platform = os.environ["PLATFORM"]
         if msvc_platform == "X86":
             ret.append("--target=i686-pc-win32")
@@ -392,6 +393,9 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     clang_flags.extend(platform_dependent_defines())
 
+    if platform.system() == "Windows":
+        flags.append("--use-msvc-mangling")
+
     if "raw_lines" in current_target:
         for raw_line in current_target["raw_lines"]:
             flags.append("--raw-line")
@@ -438,7 +442,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = \
-                          ::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+Option<&'a {0}>;".format(ty))
             flags.append("--blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
@@ -455,7 +459,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = \
-                          ::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+Option<&'a {0}>;".format(ty))
             # Right now the only immutable borrow types are ones which we import
             # from the |structs| module. As such, we don't need to create an opaque
             # type with zero_size_type. If we ever introduce immutable borrow types
@@ -485,12 +489,12 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--blacklist-type")
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}BorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, {0}>;"
+            flags.append("pub type {0}BorrowedOrNull<'a> = Option<&'a {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
             flags.append("{}BorrowedMutOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}BorrowedMutOrNull<'a> = ::gecko_bindings::sugar::ownership::BorrowedMut<'a, {0}>;"
+            flags.append("pub type {0}BorrowedMutOrNull<'a> = Option<&'a mut {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
             flags.append("{}OwnedOrNull".format(ty))

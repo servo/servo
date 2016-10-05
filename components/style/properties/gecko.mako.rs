@@ -27,6 +27,7 @@ use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImage
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
+use gecko_bindings::sugar::ownership::HasArcFFI;
 use gecko::values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::round_border_to_device_pixels;
@@ -195,20 +196,20 @@ pub struct ${style_struct.gecko_struct_name} {
 </%def>
 
 <%!
-def is_border_style_masked(ffi_name):
-    return ffi_name.split("[")[0] in ["mBorderStyle", "mOutlineStyle", "mTextDecorationStyle"]
-
-def get_gecko_property(ffi_name):
-    if is_border_style_masked(ffi_name):
-        return "(self.gecko.%s & (structs::BORDER_STYLE_MASK as u8))" % ffi_name
-    return "self.gecko.%s" % ffi_name
+def get_gecko_property(ffi_name, self_param = "self"):
+    if "mBorderColor" in ffi_name:
+        return ffi_name.replace("mBorderColor",
+                                "unsafe { *%s.gecko.__bindgen_anon_1.mBorderColor.as_ref() }"
+                                % self_param)
+    return "%s.gecko.%s" % (self_param, ffi_name)
 
 def set_gecko_property(ffi_name, expr):
-    if is_border_style_masked(ffi_name):
-        return "self.gecko.%s &= !(structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
-               "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
-    elif ffi_name == "__LIST_STYLE_TYPE__":
+    if ffi_name == "__LIST_STYLE_TYPE__":
         return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
+    if "mBorderColor" in ffi_name:
+        ffi_name = ffi_name.replace("mBorderColor",
+                                    "*self.gecko.__bindgen_anon_1.mBorderColor.as_mut()")
+        return "unsafe { %s = %s };" % (ffi_name, expr)
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
@@ -240,71 +241,41 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="clear_color_flags(color_flags_ffi_name)">
-    % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} &= !(structs::BORDER_COLOR_SPECIAL as u8);
-    % endif
-</%def>
-
-<%def name="set_current_color_flag(color_flags_ffi_name)">
-    % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} |= structs::BORDER_COLOR_FOREGROUND as u8;
-    % else:
-    // FIXME(heycam): This is a Gecko property that doesn't store currentColor
-    // as a computed value.  These are currently handled by converting
-    // currentColor to the current value of the color property at computed
-    // value time, but we don't have access to the Color struct here.
-    // In the longer term, Gecko should store currentColor as a computed
-    // value, so that we don't need to do this:
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-    warn!("stylo: mishandling currentColor");
-    % endif
-</%def>
-
-<%def name="get_current_color_flag_from(field)">
-    (${field} & (structs::BORDER_COLOR_FOREGROUND as u8)) != 0
-</%def>
-
-<%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use cssparser::Color;
-        ${clear_color_flags(color_flags_ffi_name)}
-        let result = match v {
-            Color::CurrentColor => {
-                ${set_current_color_flag(color_flags_ffi_name)}
-                0
-            },
-            Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-        };
+        % if complex_color:
+            let result = v.into();
+        % else:
+            use cssparser::Color;
+            let result = match v {
+                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
+                // FIXME #13547
+                Color::CurrentColor => 0,
+            };
+        % endif
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
 </%def>
 
-<%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_copy(ident, gecko_ffi_name, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        % if color_flags_ffi_name:
-            ${clear_color_flags(color_flags_ffi_name)}
-            if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
-                ${set_current_color_flag(color_flags_ffi_name)}
-            }
-        % endif
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}
+        let color = ${get_gecko_property(gecko_ffi_name, self_param = "other")};
+        ${set_gecko_property(gecko_ffi_name, "color")};
     }
 </%def>
 
-<%def name="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color_clone(ident, gecko_ffi_name, complex_color=True)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use cssparser::Color;
-        % if color_flags_ffi_name:
-            if ${get_current_color_flag_from("self.gecko." + color_flags_ffi_name)} {
-                return Color::CurrentColor
-            }
+        % if complex_color:
+            ${get_gecko_property(gecko_ffi_name)}.into()
+        % else:
+            use cssparser::Color;
+            Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
         % endif
-        Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
     }
 </%def>
 
@@ -324,11 +295,11 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None, need_clone=False)">
-<%call expr="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
-<%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+<%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
+<%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
+<%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
 % if need_clone:
-    <%call expr="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+    <%call expr="impl_color_clone(ident, gecko_ffi_name, complex_color)"></%call>
 % endif
 </%def>
 
@@ -477,7 +448,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # These are currently being shuffled to a different style struct on the gecko side.
     force_stub += ["backface-visibility", "transform-box", "transform-style"]
     # These live in an nsFont member in Gecko. Should be straightforward to do manually.
-    force_stub += ["font-kerning", "font-stretch", "font-variant"]
+    force_stub += ["font-kerning", "font-variant"]
     # These have unusual representations in gecko.
     force_stub += ["list-style-type", "text-overflow"]
     # In a nsTArray, have to be done manually, but probably not too much work
@@ -645,8 +616,7 @@ fn static_assert() {
     <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
                     need_clone=True) %>
 
-    <% impl_color("border_%s_color" % side.ident, "mBorderColor[%s]" % side.index,
-                  color_flags_ffi_name="mBorderStyle[%s]" % side.index, need_clone=True) %>
+    <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index, need_clone=True) %>
 
     <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=True,
                       round_to_pixels=True) %>
@@ -752,7 +722,7 @@ fn static_assert() {
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
-    <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle", need_clone=True) %>
+    <% impl_color("outline_color", "mOutlineColor", need_clone=True) %>
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
@@ -770,7 +740,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-style font-size font-weight"
+    skip_longhands="font-family font-stretch font-style font-size font-weight"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -820,6 +790,24 @@ fn static_assert() {
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
     }
+
+    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
+        use computed_values::font_stretch::T;
+
+        self.gecko.mFont.stretch = match v {
+            T::normal => structs::NS_FONT_STRETCH_NORMAL as i16,
+            T::ultra_condensed => structs::NS_FONT_STRETCH_ULTRA_CONDENSED as i16,
+            T::extra_condensed => structs::NS_FONT_STRETCH_EXTRA_CONDENSED as i16,
+            T::condensed => structs::NS_FONT_STRETCH_CONDENSED as i16,
+            T::semi_condensed => structs::NS_FONT_STRETCH_SEMI_CONDENSED as i16,
+            T::semi_expanded => structs::NS_FONT_STRETCH_SEMI_EXPANDED as i16,
+            T::expanded => structs::NS_FONT_STRETCH_EXPANDED as i16,
+            T::extra_expanded => structs::NS_FONT_STRETCH_EXTRA_EXPANDED as i16,
+            T::ultra_expanded => structs::NS_FONT_STRETCH_ULTRA_EXPANDED as i16,
+        };
+    }
+
+    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
@@ -1118,7 +1106,6 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType;
         use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImageLayers_Size};
         use properties::longhands::background_size::single_value::computed_value::T;
-        use values::computed::LengthOrPercentageOrAuto;
 
         let mut width = nsStyleCoord_CalcValue::new();
         let mut height = nsStyleCoord_CalcValue::new();
@@ -1366,7 +1353,7 @@ fn static_assert() {
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
 
-    <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
+    <% impl_color("background_color", "mBackgroundColor", need_clone=True, complex_color=False) %>
 
     <% impl_common_image_layer_properties("background") %>
 
@@ -1443,8 +1430,24 @@ fn static_assert() {
 </%self:impl_trait>
 
 
+<%self:impl_trait style_struct_name="InheritedTable"
+                  skip_longhands="border-spacing">
+
+    pub fn set_border_spacing(&mut self, v: longhands::border_spacing::computed_value::T) {
+        self.gecko.mBorderSpacingCol = v.horizontal.0;
+        self.gecko.mBorderSpacingRow = v.vertical.0;
+    }
+
+    pub fn copy_border_spacing_from(&mut self, other: &Self) {
+        self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
+        self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
+    }
+
+</%self:impl_trait>
+
+
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-shadow line-height word-spacing">
+                  skip_longhands="text-align text-shadow line-height letter-spacing word-spacing">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -1523,6 +1526,15 @@ fn static_assert() {
 
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
+    pub fn set_letter_spacing(&mut self, v: longhands::letter_spacing::computed_value::T) {
+        match v.0 {
+            Some(au) => self.gecko.mLetterSpacing.set_value(CoordDataValue::Coord(au.0)),
+            None => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
+        }
+    }
+
+    <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
+
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
         use values::computed::LengthOrPercentage::*;
 
@@ -1545,8 +1557,7 @@ fn static_assert() {
                   skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
-    ${impl_color("text_decoration_color", "mTextDecorationColor",
-                  color_flags_ffi_name="mTextDecorationStyle", need_clone=True)}
+    ${impl_color("text_decoration_color", "mTextDecorationColor", need_clone=True)}
 
     pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
@@ -1590,11 +1601,11 @@ clip-path
                   skip_longhands="${skip_svg_longhands}"
                   skip_additionals="*">
 
-    <% impl_color("flood_color", "mFloodColor") %>
+    <% impl_color("flood_color", "mFloodColor", complex_color=False) %>
 
-    <% impl_color("lighting_color", "mLightingColor") %>
+    <% impl_color("lighting_color", "mLightingColor", complex_color=False) %>
 
-    <% impl_color("stop_color", "mStopColor") %>
+    <% impl_color("stop_color", "mStopColor", complex_color=False) %>
 
     <% impl_common_image_layer_properties("mask") %>
 
@@ -1924,7 +1935,7 @@ clip-path
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values:
         ServoComputedValuesBorrowedOrNull) -> *const ${style_struct.gecko_ffi_name} {
-    computed_values.as_arc::<ComputedValues>().get_${style_struct.name_lower}().get_gecko()
+    ComputedValues::arc_from_borrowed(&computed_values).unwrap().get_${style_struct.name_lower}().get_gecko()
         as *const ${style_struct.gecko_ffi_name}
 }
 </%def>

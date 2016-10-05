@@ -85,22 +85,14 @@ partial interface Element {
   DOMRectList getClientRects();
   DOMRect getBoundingClientRect();
 
-  [Func="::script_can_initiate_scroll"]
   void scroll(optional ScrollToOptions options);
-  [Func="::script_can_initiate_scroll"]
   void scroll(unrestricted double x, unrestricted double y);
 
-  [Func="::script_can_initiate_scroll"]
   void scrollTo(optional ScrollToOptions options);
-  [Func="::script_can_initiate_scroll"]
   void scrollTo(unrestricted double x, unrestricted double y);
-  [Func="::script_can_initiate_scroll"]
   void scrollBy(optional ScrollToOptions options);
-  [Func="::script_can_initiate_scroll"]
   void scrollBy(unrestricted double x, unrestricted double y);
-  [Func="::script_can_initiate_scroll"]
   attribute unrestricted double scrollTop;
-  [Func="::script_can_initiate_scroll"]
   attribute unrestricted double scrollLeft;
   readonly attribute long scrollWidth;
   readonly attribute long scrollHeight;

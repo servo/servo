@@ -23,9 +23,7 @@ interface Bluetooth {
 //  [SecureContext]
 //  readonly attribute BluetoothDevice? referringDevice;
 //  [SecureContext]
-//  Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
-  [Throws]
-  BluetoothDevice requestDevice(optional RequestDeviceOptions options);
+  Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
 };
 
 // Bluetooth implements EventTarget;

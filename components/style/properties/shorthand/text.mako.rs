@@ -8,7 +8,8 @@
                     sub_properties="text-decoration-color
                                     text-decoration-line
                                     text-decoration-style"
-                    products="gecko">
+                    products="gecko"
+                    disable_when_testing="True">
     use cssparser::Color as CSSParserColor;
     use properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
     use values::specified::CSSColor;

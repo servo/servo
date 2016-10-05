@@ -216,6 +216,12 @@ class MachCommands(CommandBase):
         build_start = time()
         env = self.build_env(target=target, is_build=True)
 
+        # TODO: If this ends up making it, we should probably add a
+        # --release-with-debug-assertions option or similar, so it's easier to
+        # build locally.
+        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+            env["RUSTFLAGS"] = "-C debug_assertions"
+
         if android:
             # Build OpenSSL for android
             make_cmd = ["make"]
@@ -259,9 +265,11 @@ class MachCommands(CommandBase):
                             servo_exe_dir)
                 if "msvc" in (target or host_triple()):
                     msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
-                    # on msvc builds, use editbin to change the subsystem to windows
-                    call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
-                         verbose=verbose)
+                    # on msvc builds, use editbin to change the subsystem to windows, but only
+                    # on release builds -- on debug builds, it hides log output
+                    if not dev:
+                        call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
+                             verbose=verbose)
                     # on msvc, we need to copy in some DLLs in to the servo.exe dir
                     for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
@@ -316,9 +324,18 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join("servo/" + x for x in servo_features)]
 
         build_start = time()
+        env = self.build_env(is_build=True)
+
+        # TODO: If this ends up making it, we should probably add a
+        # --release-with-debug-assertions option or similar, so it's easier to
+        # build locally.
+        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+            env["RUSTFLAGS"] = "-C debug_assertions"
+
         with cd(path.join("ports", "cef")):
             ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(is_build=True), verbose=verbose)
+                       env=env,
+                       verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
