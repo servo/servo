@@ -69,7 +69,7 @@ pub enum CredentialsMode {
 }
 
 /// [Cache mode](https://fetch.spec.whatwg.org/#concept-request-cache-mode)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum CacheMode {
     Default,
     NoStore,
@@ -110,14 +110,16 @@ pub enum CORSSettings {
     UseCredentials
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct RequestInit {
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
     pub url: Url,
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
@@ -126,6 +128,7 @@ pub struct RequestInit {
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
+    pub cache_mode: CacheMode,
     pub use_cors_preflight: bool,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
@@ -150,6 +153,7 @@ impl Default for RequestInit {
             destination: Destination::None,
             synchronous: false,
             mode: RequestMode::NoCORS,
+            cache_mode: CacheMode::Default,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
@@ -258,6 +262,7 @@ impl Request {
         req.use_cors_preflight = init.use_cors_preflight;
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
+        req.cache_mode.set(init.cache_mode);
         *req.referrer.borrow_mut() = if let Some(url) = init.referrer_url {
             Referrer::ReferrerUrl(url)
         } else {
