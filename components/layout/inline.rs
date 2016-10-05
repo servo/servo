@@ -158,6 +158,12 @@ pub struct Line {
     /// ~~~
     pub green_zone: LogicalSize<Au>,
 
+    /// The minimum block size above the baseline for this line, as specified by the style.
+    pub minimum_block_size_above_baseline: Au,
+
+    /// The minimum depth below the baseline for this line, as specified by the style.
+    pub minimum_depth_below_baseline: Au,
+
     /// The inline metrics for this line.
     pub inline_metrics: InlineMetrics,
 }
@@ -172,10 +178,43 @@ impl Line {
             visual_runs: None,
             bounds: LogicalRect::zero(writing_mode),
             green_zone: LogicalSize::zero(writing_mode),
+            minimum_block_size_above_baseline: minimum_block_size_above_baseline,
+            minimum_depth_below_baseline: minimum_depth_below_baseline,
             inline_metrics: InlineMetrics::new(minimum_block_size_above_baseline,
                                                minimum_depth_below_baseline,
                                                minimum_block_size_above_baseline),
         }
+    }
+
+    /// Returns the new metrics that this line would have if `new_fragment` were added to it.
+    ///
+    /// FIXME(pcwalton): this assumes that the tallest fragment in the line determines the line
+    /// block-size. This might not be the case with some weird text fonts.
+    fn new_inline_metrics(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
+                          -> InlineMetrics {
+        if !new_fragment.is_vertically_aligned_to_top_or_bottom() {
+            let fragment_inline_metrics = new_fragment.inline_metrics(layout_context);
+            self.inline_metrics.max(&fragment_inline_metrics)
+        } else {
+            self.inline_metrics
+        }
+    }
+
+    /// Returns the new block size that this line would have if `new_fragment` were added to it.
+    /// `new_inline_metrics` represents the new inline metrics that this line would have; it can
+    /// be computed with `new_inline_metrics()`.
+    fn new_block_size(&self,
+                      new_fragment: &Fragment,
+                      new_inline_metrics: &InlineMetrics,
+                      layout_context: &LayoutContext)
+                      -> Au {
+        let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_bottom() {
+            max(new_fragment.inline_metrics(layout_context).block_size(),
+                self.minimum_block_size_above_baseline + self.minimum_depth_below_baseline)
+        } else {
+            new_inline_metrics.block_size()
+        };
+        max(self.bounds.size.block, new_block_size)
     }
 }
 
@@ -406,29 +445,6 @@ impl LineBreaker {
             fragment.border_box.size.inline - old_fragment_inline_size;
     }
 
-    // FIXME(eatkinson): this assumes that the tallest fragment in the line determines the line
-    // block-size. This might not be the case with some weird text fonts.
-    fn new_inline_metrics_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
-                                   -> InlineMetrics {
-        if !new_fragment.is_vertically_aligned_to_top_or_bottom() {
-            let fragment_inline_metrics = new_fragment.inline_metrics(layout_context);
-            self.pending_line.inline_metrics.max(&fragment_inline_metrics)
-        } else {
-            self.pending_line.inline_metrics
-        }
-    }
-
-    fn new_block_size_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
-                               -> Au {
-        let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_bottom() {
-            max(new_fragment.inline_metrics(layout_context).block_size(),
-                self.minimum_block_size_above_baseline + self.minimum_depth_below_baseline)
-        } else {
-            self.new_inline_metrics_for_line(new_fragment, layout_context).block_size()
-        };
-        max(self.pending_line.bounds.size.block, new_block_size)
-    }
-
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
     /// rect of the line's green zone (whose origin coincides with the line's origin) and the
     /// actual inline-size of the first fragment after splitting.
@@ -558,7 +574,10 @@ impl LineBreaker {
         // `green_zone.block < self.pending_line.bounds.size.block`, then we committed a line that
         // overlaps with floats.
         let green_zone = self.pending_line.green_zone;
-        let new_block_size = self.new_block_size_for_line(&fragment, layout_context);
+        let new_inline_metrics = self.pending_line.new_inline_metrics(&fragment, layout_context);
+        let new_block_size = self.pending_line.new_block_size(&fragment,
+                                                              &new_inline_metrics,
+                                                              layout_context);
         if new_block_size > green_zone.block {
             // Uh-oh. Float collision imminent. Enter the float collision avoider!
             if !self.avoid_floats(flow, fragment, new_block_size) {
@@ -726,14 +745,16 @@ impl LineBreaker {
         let indentation = self.indentation_for_pending_fragment();
         self.pending_line.range.extend_by(FragmentIndex(1));
 
-        if !fragment.is_inline_absolute() {
+        if !fragment.is_inline_absolute() && !fragment.is_hypothetical() {
             self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
                 fragment.margin_box_inline_size() +
                 indentation;
             self.pending_line.inline_metrics =
-                self.new_inline_metrics_for_line(&fragment, layout_context);
+                self.pending_line.new_inline_metrics(&fragment, layout_context);
             self.pending_line.bounds.size.block =
-                self.new_block_size_for_line(&fragment, layout_context);
+                self.pending_line.new_block_size(&fragment,
+                                                 &self.pending_line.inline_metrics,
+                                                 layout_context);
         }
 
         self.new_fragments.push(fragment);
@@ -1040,8 +1061,9 @@ impl InlineFlow {
             // to do.
             let fragment = fragments.get_mut(fragment_index.to_usize());
             let fragment_inline_metrics = fragment.inline_metrics(layout_context);
-            let mut block_start = line.bounds.start.b +
-                line.inline_metrics.block_size_above_baseline -
+            let line_block_metrics = LineBlockMetrics::new(line, fragment, layout_context);
+            let mut block_start = line_block_metrics.start +
+                line_block_metrics.size_above_baseline -
                 fragment_inline_metrics.ascent;
 
             for style in fragment.inline_styles() {
@@ -1061,21 +1083,21 @@ impl InlineFlow {
                         block_start = block_start - super_offset
                     }
                     vertical_align::T::text_top => {
-                        block_start = line.bounds.start.b +
-                            line.inline_metrics.block_size_above_baseline -
+                        block_start = line_block_metrics.start +
+                            line_block_metrics.size_above_baseline -
                             minimum_block_size_above_baseline
                     }
                     vertical_align::T::text_bottom => {
-                        block_start = line.bounds.start.b +
-                            line.inline_metrics.block_size_above_baseline +
+                        block_start = line_block_metrics.start +
+                            line_block_metrics.size_above_baseline +
                             minimum_depth_below_baseline -
                             fragment.border_box.size.block
                     }
                     vertical_align::T::top => {
-                        block_start = line.bounds.start.b
+                        block_start = line_block_metrics.start
                     }
                     vertical_align::T::bottom => {
-                        block_start = line.bounds.start.b + line.bounds.size.block -
+                        block_start = line_block_metrics.start + line_block_metrics.size -
                             fragment.border_box.size.block
                     }
                     vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
@@ -1261,13 +1283,18 @@ impl InlineFlow {
     }
 
     pub fn baseline_offset_of_last_line(&self) -> Option<Au> {
-        // Find the last line that doesn't consist entirely of hypothetical boxes.
+        self.last_line_containing_real_fragments().map(|line| {
+            line.bounds.start.b + line.bounds.size.block - line.inline_metrics.depth_below_baseline
+        })
+    }
+
+    // Returns the last line that doesn't consist entirely of hypothetical boxes.
+    fn last_line_containing_real_fragments(&self) -> Option<&Line> {
         for line in self.lines.iter().rev() {
             if (line.range.begin().get()..line.range.end().get()).any(|index| {
                 !self.fragments.fragments[index as usize].is_hypothetical()
             }) {
-                return Some(line.bounds.start.b + line.bounds.size.block -
-                            line.inline_metrics.depth_below_baseline)
+                return Some(line)
             }
         }
         None
@@ -1496,8 +1523,8 @@ impl Flow for InlineFlow {
                 &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
         }
 
-        self.base.position.size.block = match self.lines.last() {
-            Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
+        self.base.position.size.block = match self.last_line_containing_real_fragments() {
+            Some(last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
             None => Au(0),
         };
 
@@ -1877,3 +1904,32 @@ enum LineFlushMode {
     No,
     Flush,
 }
+
+struct LineBlockMetrics {
+    start: Au,
+    size: Au,
+    size_above_baseline: Au,
+}
+
+impl LineBlockMetrics {
+    fn new(line: &Line, fragment: &Fragment, layout_context: &LayoutContext) -> LineBlockMetrics {
+        if !fragment.is_hypothetical() {
+            return LineBlockMetrics {
+                start: line.bounds.start.b,
+                size: line.bounds.size.block,
+                size_above_baseline: line.inline_metrics.block_size_above_baseline,
+            }
+        }
+
+        let hypothetical_inline_metrics = line.new_inline_metrics(fragment, layout_context);
+        let hypothetical_block_size = line.new_block_size(fragment,
+                                                          &hypothetical_inline_metrics,
+                                                          layout_context);
+        LineBlockMetrics {
+            start: line.bounds.start.b,
+            size: hypothetical_block_size,
+            size_above_baseline: hypothetical_inline_metrics.block_size_above_baseline,
+        }
+    }
+}
+
