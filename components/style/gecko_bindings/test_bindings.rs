@@ -1,0 +1,32 @@
+fn assert_types() {
+    [ Servo_ParseStyleAttribute, bindings::Servo_ParseStyleAttribute ];
+    [ Servo_CSSSupports, bindings::Servo_CSSSupports ];
+    [ Servo_Initialize, bindings::Servo_Initialize ];
+    [ Servo_Shutdown, bindings::Servo_Shutdown ];
+    [ Servo_ComputeRestyleHint, bindings::Servo_ComputeRestyleHint ];
+    [ Servo_RestyleSubtree, bindings::Servo_RestyleSubtree ];
+    [ Servo_GetStyleFont, bindings::Servo_GetStyleFont ];
+    [ Servo_GetStyleColor, bindings::Servo_GetStyleColor ];
+    [ Servo_GetStyleList, bindings::Servo_GetStyleList ];
+    [ Servo_GetStyleText, bindings::Servo_GetStyleText ];
+    [ Servo_GetStyleVisibility, bindings::Servo_GetStyleVisibility ];
+    [ Servo_GetStyleUserInterface, bindings::Servo_GetStyleUserInterface ];
+    [ Servo_GetStyleTableBorder, bindings::Servo_GetStyleTableBorder ];
+    [ Servo_GetStyleSVG, bindings::Servo_GetStyleSVG ];
+    [ Servo_GetStyleVariables, bindings::Servo_GetStyleVariables ];
+    [ Servo_GetStyleBackground, bindings::Servo_GetStyleBackground ];
+    [ Servo_GetStylePosition, bindings::Servo_GetStylePosition ];
+    [ Servo_GetStyleTextReset, bindings::Servo_GetStyleTextReset ];
+    [ Servo_GetStyleDisplay, bindings::Servo_GetStyleDisplay ];
+    [ Servo_GetStyleContent, bindings::Servo_GetStyleContent ];
+    [ Servo_GetStyleUIReset, bindings::Servo_GetStyleUIReset ];
+    [ Servo_GetStyleTable, bindings::Servo_GetStyleTable ];
+    [ Servo_GetStyleMargin, bindings::Servo_GetStyleMargin ];
+    [ Servo_GetStylePadding, bindings::Servo_GetStylePadding ];
+    [ Servo_GetStyleBorder, bindings::Servo_GetStyleBorder ];
+    [ Servo_GetStyleOutline, bindings::Servo_GetStyleOutline ];
+    [ Servo_GetStyleXUL, bindings::Servo_GetStyleXUL ];
+    [ Servo_GetStyleSVGReset, bindings::Servo_GetStyleSVGReset ];
+    [ Servo_GetStyleColumn, bindings::Servo_GetStyleColumn ];
+    [ Servo_GetStyleEffects, bindings::Servo_GetStyleEffects ];
+}
