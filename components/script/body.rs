@@ -24,6 +24,7 @@ use std::rc::Rc;
 use std::str;
 use url::form_urlencoded;
 
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
 pub enum BodyType {
     Blob,
     FormData,
@@ -47,14 +48,32 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
     if object.get_body_used() || object.is_locked() {
         promise.reject_error(promise.global().r().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
+        return promise;
     }
+
+    object.set_body_promise(&promise, body_type);
 
     // Steps 2-4
     // TODO: Body does not yet have a stream.
 
+    consume_body_with_promise(object, body_type, &promise);
+
+    promise
+}
+
+// https://fetch.spec.whatwg.org/#concept-body-consume-body
+#[allow(unrooted_must_root)]
+pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
+                                                                  body_type: BodyType,
+                                                                  promise: &Promise) {
     // Step 5
+    let body = match object.take_body() {
+        Some(body) => body,
+        None => return,
+    };
+
     let pkg_data_results = run_package_data_algorithm(object,
-                                                      object.take_body(),
+                                                      body,
                                                       body_type,
                                                       object.get_mime_type());
 
@@ -70,20 +89,15 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
         },
         Err(err) => promise.reject_error(cx, err),
     }
-    promise
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
 fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
-                                                               bytes: Option<Vec<u8>>,
+                                                               bytes: Vec<u8>,
                                                                body_type: BodyType,
                                                                mime_type: Ref<Vec<u8>>)
                                                                -> Fallible<FetchedData> {
-    let bytes = match bytes {
-        Some(b) => b,
-        _ => vec![],
-    };
     let cx = object.global().r().get_cx();
     let mime = &*mime_type;
     match body_type {
@@ -156,6 +170,9 @@ fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fall
 
 pub trait BodyOperations {
     fn get_body_used(&self) -> bool;
+    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType);
+    /// Returns `Some(_)` if the body is complete, `None` if there is more to
+    /// come.
     fn take_body(&self) -> Option<Vec<u8>>;
     fn is_locked(&self) -> bool;
     fn get_mime_type(&self) -> Ref<Vec<u8>>;
