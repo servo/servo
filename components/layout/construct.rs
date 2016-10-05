@@ -476,14 +476,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         {
             // FIXME(#6503): Use Arc::get_mut().unwrap() here.
             let inline_flow = flow_ref::deref_mut(&mut inline_flow_ref).as_mut_inline();
-
-
-            let (ascent, descent) =
-                inline_flow.compute_minimum_ascent_and_descent(&mut self.layout_context
-                                                                        .font_context(),
-                                                               &node.style(self.style_context()));
-            inline_flow.minimum_block_size_above_baseline = ascent;
-            inline_flow.minimum_depth_below_baseline = descent;
+            inline_flow.minimum_line_metrics =
+                inline_flow.minimum_line_metrics(&mut self.layout_context.font_context(),
+                                                 &node.style(self.style_context()))
         }
 
         inline_flow_ref.finish();
