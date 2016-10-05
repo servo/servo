@@ -1655,8 +1655,6 @@ impl ScriptThread {
             }
         }
 
-        let mut using_new_context = true;
-
         let (browsing_context, context_to_remove) = if !self.root_browsing_context_exists() {
             // Create a new context tree entry. This will become the root context.
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
@@ -1675,7 +1673,6 @@ impl ScriptThread {
             parent_context.push_child_context(&*new_context);
             (new_context, ContextToRemove::Child(incomplete.pipeline_id))
         } else {
-            using_new_context = false;
             (self.root_browsing_context(), ContextToRemove::None)
         };
 
@@ -1741,11 +1738,7 @@ impl ScriptThread {
                                      loader,
                                      referrer,
                                      referrer_policy);
-        if using_new_context {
-            browsing_context.init(&document);
-        } else {
-            browsing_context.push_history(&document);
-        }
+        browsing_context.set_active_document(&document);
         document.set_ready_state(DocumentReadyState::Loading);
 
         self.constellation_chan
@@ -2238,7 +2231,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         window.clear_js_runtime();
 
         // Sever the connection between the global and the DOM tree
-        context.clear_session_history();
+        context.unset_active_document();
     }
 
     // Destroy the layout thread. If there were node leaks, layout will now crash safely.
