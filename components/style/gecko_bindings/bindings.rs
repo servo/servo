@@ -2,39 +2,39 @@
 
 use heapsize::HeapSizeOf;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, ServoComputedValues>;
+pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
 enum ServoComputedValuesVoid{ }
 pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoStyleSheetStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleSheet>;
-pub type RawServoStyleSheetBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, RawServoStyleSheet>;
+pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 enum RawServoStyleSheetVoid{ }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
 pub type ServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a ServoDeclarationBlock>;
 pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
 enum ServoDeclarationBlockVoid{ }
 pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
-pub type RawGeckoNodeBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, RawGeckoNode>;
+pub type RawGeckoNodeBorrowedOrNull<'a> = Option<&'a RawGeckoNode>;
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
-pub type RawGeckoElementBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, RawGeckoElement>;
+pub type RawGeckoElementBorrowedOrNull<'a> = Option<&'a RawGeckoElement>;
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
-pub type RawGeckoDocumentBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
+pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
-pub type RawServoStyleSetBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, RawServoStyleSet>;
-pub type RawServoStyleSetBorrowedMutOrNull<'a> = ::gecko_bindings::sugar::ownership::BorrowedMut<'a, RawServoStyleSet>;
+pub type RawServoStyleSetBorrowedOrNull<'a> = Option<&'a RawServoStyleSet>;
+pub type RawServoStyleSetBorrowedMutOrNull<'a> = Option<&'a mut RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 enum RawServoStyleSetVoid{ }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
 pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
 pub type StyleChildrenIteratorBorrowedMut<'a> = &'a mut StyleChildrenIterator;
 pub type StyleChildrenIteratorOwned = ::gecko_bindings::sugar::ownership::Owned<StyleChildrenIterator>;
-pub type StyleChildrenIteratorBorrowedOrNull<'a> = ::gecko_bindings::sugar::ownership::Borrowed<'a, StyleChildrenIterator>;
-pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = ::gecko_bindings::sugar::ownership::BorrowedMut<'a, StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedOrNull<'a> = Option<&'a StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut StyleChildrenIterator>;
 pub type StyleChildrenIteratorOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
 enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
