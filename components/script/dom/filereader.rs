@@ -333,8 +333,9 @@ impl FileReader {
             return Err(Error::InvalidState);
         }
         // Step 2
+        let global = self.global_scope();
         if blob.IsClosed() {
-            let exception = DOMException::new(&self.global_scope(), DOMErrorName::InvalidStateError);
+            let exception = DOMException::new(&global, DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
 
             self.dispatch_progress_event(atom!("error"), 0, None);
@@ -354,8 +355,8 @@ impl FileReader {
         let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
-        let wrapper = self.global_scope().get_runnable_wrapper();
-        let task_source = self.global().r().file_reading_task_source();
+        let wrapper = global.get_runnable_wrapper();
+        let task_source = global.file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {
             perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, task_source, wrapper)

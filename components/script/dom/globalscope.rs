@@ -36,6 +36,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::panic;
+use task_source::file_reading::FileReadingTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -454,6 +455,18 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
+        }
+        unreachable!();
+    }
+
+    /// Channel to send messages to the file reading task source of
+    /// this of this global scope.
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.file_reading_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.file_reading_task_source();
         }
         unreachable!();
     }
