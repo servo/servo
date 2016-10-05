@@ -1297,7 +1297,7 @@ impl XMLHttpRequest {
 
         let global_scope = global.as_global_scope();
         let (script_chan, script_port) = if self.sync.get() {
-            let (tx, rx) = global.new_script_pair();
+            let (tx, rx) = global_scope.new_script_pair();
             (tx, Some(rx))
         } else {
             (global_scope.networking_task_source(), None)

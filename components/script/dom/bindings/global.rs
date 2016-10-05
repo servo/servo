@@ -18,7 +18,7 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::CommonScriptMsg;
 use script_thread::ScriptThread;
 use task_source::file_reading::FileReadingTaskSource;
 
@@ -63,16 +63,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.file_reading_task_source(),
             GlobalRef::Worker(ref worker) => worker.file_reading_task_source(),
-        }
-    }
-
-    /// Create a new sender/receiver pair that can be used to implement an on-demand
-    /// event loop. Used for implementing web APIs that require blocking semantics
-    /// without resorting to nested event loops.
-    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        match *self {
-            GlobalRef::Window(ref window) => window.new_script_pair(),
-            GlobalRef::Worker(ref worker) => worker.new_script_pair(),
         }
     }
 

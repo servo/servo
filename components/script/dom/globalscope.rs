@@ -26,7 +26,8 @@ use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{EnqueuedPromiseCallback, ScriptChan, maybe_take_panic_result};
+use script_runtime::{EnqueuedPromiseCallback, ScriptChan};
+use script_runtime::{ScriptPort, maybe_take_panic_result};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
@@ -428,6 +429,19 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.enqueue_promise_job(job);
+        }
+        unreachable!();
+    }
+
+    /// Create a new sender/receiver pair that can be used to implement an on-demand
+    /// event loop. Used for implementing web APIs that require blocking semantics
+    /// without resorting to nested event loops.
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.new_script_pair();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.new_script_pair();
         }
         unreachable!();
     }
