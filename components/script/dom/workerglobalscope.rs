@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRoot;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -173,8 +172,9 @@ impl WorkerGlobalScope {
 
     fn do_flush_promise_jobs(&self) {
         self.promise_job_queue.flush_promise_jobs(|id| {
-            assert_eq!(self.upcast::<GlobalScope>().pipeline_id(), id);
-            Some(GlobalRoot::Worker(Root::from_ref(self)))
+            let global = self.upcast::<GlobalScope>();
+            assert_eq!(global.pipeline_id(), id);
+            Some(Root::from_ref(global))
         });
     }
 }

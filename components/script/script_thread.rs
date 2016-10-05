@@ -27,7 +27,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::GlobalRoot;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
@@ -2190,7 +2189,9 @@ impl ScriptThread {
 
     fn do_flush_promise_jobs(&self) {
         self.promise_job_queue.flush_promise_jobs(|id| {
-            self.find_child_context(id).map(|context| GlobalRoot::Window(context.active_window()))
+            self.find_child_context(id).map(|context| {
+                Root::upcast(context.active_window())
+            })
         });
     }
 }

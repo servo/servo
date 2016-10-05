@@ -8,8 +8,8 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::global::{GlobalRoot, global_scope_from_object};
-use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
+use dom::bindings::global::global_scope_from_object;
+use dom::bindings::js::{Root, RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
@@ -150,7 +150,7 @@ impl PromiseJobQueue {
     /// Perform a microtask checkpoint, by invoking all of the pending promise job callbacks in
     /// FIFO order (#4283).
     pub fn flush_promise_jobs<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<GlobalRoot>
+        where F: Fn(PipelineId) -> Option<Root<GlobalScope>>
     {
         self.pending_promise_job_runnable.set(false);
         {
@@ -162,7 +162,7 @@ impl PromiseJobQueue {
         // `flushing_queue` is a static snapshot during this checkpoint.
         for job in &*self.flushing_job_queue.borrow() {
             if let Some(target) = target_provider(job.pipeline) {
-                let _ = job.callback.Call_(&target.r(), ExceptionHandling::Report);
+                let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
             }
         }
         self.flushing_job_queue.borrow_mut().clear();
