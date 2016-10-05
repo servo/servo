@@ -463,9 +463,6 @@ pub enum CoreResourceMsg {
     Exit(IpcSender<()>),
 }
 
-/// Initialized but unsent request. Encapsulates everything necessary to instruct
-/// the resource thread to make a new request. The `load` method *must* be called before
-/// destruction or the thread will panic.
 struct LoadOriginData {
     pipeline: Option<PipelineId>,
     referrer_policy: Option<ReferrerPolicy>,
