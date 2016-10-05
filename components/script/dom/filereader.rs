@@ -355,6 +355,7 @@ impl FileReader {
         let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
+        let global = self.global_scope();
         let wrapper = global.get_runnable_wrapper();
         let task_source = global.file_reading_task_source();
 

@@ -275,8 +275,8 @@ pub fn result_to_promise<T: ToJSValConvertible>(global: &GlobalScope,
                                                 -> Rc<Promise> {
     let p = Promise::new(global);
     match bluetooth_result {
-        Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
-        Err(e) => p.reject_error(p.global().r().get_cx(), e),
+        Ok(v) => p.resolve_native(p.global_scope().get_cx(), &v),
+        Err(e) => p.reject_error(p.global_scope().get_cx(), e),
     }
     p
 }

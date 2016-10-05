@@ -673,7 +673,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(self.global().r().get_cx(), Error::Type(s.0));
+        p.reject_error(self.global_scope().get_cx(), Error::Type(s.0));
     }
 
     #[allow(unrooted_must_root)]
@@ -789,7 +789,7 @@ impl TestBindingCallback {
     #[allow(unrooted_must_root)]
     pub fn invoke(self) {
         let p = self.promise.root();
-        let cx = p.global().r().get_cx();
+        let cx = p.global_scope().get_cx();
         let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
         p.resolve_native(cx, &self.value);
     }

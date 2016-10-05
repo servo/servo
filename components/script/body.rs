@@ -46,7 +46,7 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
-        promise.reject_error(promise.global().r().get_cx(), Error::Type(
+        promise.reject_error(promise.global_scope().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
         return promise;
     }
@@ -77,7 +77,7 @@ pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
                                                       body_type,
                                                       object.get_mime_type());
 
-    let cx = promise.global().r().get_cx();
+    let cx = promise.global_scope().get_cx();
     match pkg_data_results {
         Ok(results) => {
             match results {

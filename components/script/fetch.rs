@@ -124,13 +124,13 @@ impl FetchResponseListener for FetchContext {
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
-        let promise_cx = promise.global().r().get_cx();
+        let promise_cx = promise.global_scope().get_cx();
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
                 promise.reject_error(
-                    promise.global().r().get_cx(),
+                    promise.global_scope().get_cx(),
                     Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 return;

@@ -61,7 +61,7 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        let cx = self.global().r().get_cx();
+        let cx = self.global_scope().get_cx();
         unsafe {
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
@@ -81,7 +81,7 @@ impl Promise {
 
     #[allow(unsafe_code, unrooted_must_root)]
     pub fn duplicate(&self) -> Rc<Promise> {
-        let cx = self.global().r().get_cx();
+        let cx = self.global_scope().get_cx();
         unsafe {
             Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
         }
@@ -210,8 +210,7 @@ impl Promise {
 
     #[allow(unsafe_code)]
     pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
-        let global = self.global();
-        let cx = global.r().get_cx();
+        let cx = self.global_scope().get_cx();
         rooted!(in(cx) let resolve_func =
                 create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),
