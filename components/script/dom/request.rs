@@ -47,6 +47,8 @@ pub struct Request {
     body_used: Cell<bool>,
     headers: MutNullableHeap<JS<Headers>>,
     mime_type: DOMRefCell<Vec<u8>>,
+    #[ignore_heap_size_of = "Rc"]
+    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Request {
@@ -62,6 +64,7 @@ impl Request {
             body_used: Cell::new(false),
             headers: Default::default(),
             mime_type: DOMRefCell::new("".to_string().into_bytes()),
+            body_promise: DOMRefCell::new(None),
         }
     }
 
@@ -662,20 +665,19 @@ impl BodyOperations for Request {
         self.BodyUsed()
     }
 
+    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
+        self.body_used.set(true);
+        assert!(mem::replace(&mut *self.body_promise.borrow_mut(), Some((p.clone(), body_type))).is_none());
+    }
+
     fn is_locked(&self) -> bool {
         self.locked()
     }
 
     fn take_body(&self) -> Option<Vec<u8>> {
-        let ref mut net_traits_req = *self.request.borrow_mut();
-        let body: Option<Vec<u8>> = mem::replace(&mut *net_traits_req.body.borrow_mut(), None);
-        match body {
-            Some(_) => {
-                self.body_used.set(true);
-                body
-            },
-            _ => None,
-        }
+        let request = self.request.borrow_mut();
+        let body = request.body.borrow_mut().take();
+        Some(body.unwrap_or(vec![]))
     }
 
     fn get_mime_type(&self) -> Ref<Vec<u8>> {

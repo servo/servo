@@ -24,6 +24,7 @@ use std::rc::Rc;
 use std::str;
 use url::form_urlencoded;
 
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf)]
 pub enum BodyType {
     Blob,
     FormData,
@@ -49,41 +50,50 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
             "The response's stream is disturbed or locked".to_string()));
     }
 
+    object.set_body_promise(&promise, body_type);
+
     // Steps 2-4
     // TODO: Body does not yet have a stream.
 
-    // Step 5
-    let pkg_data_results = run_package_data_algorithm(object,
-                                                      object.take_body(),
-                                                      body_type,
-                                                      object.get_mime_type());
+    consume_body_with_promise(object, body_type, &promise);
 
-    let cx = promise.global().r().get_cx();
-    match pkg_data_results {
-        Ok(results) => {
-            match results {
-                FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
-                FetchedData::Json(j) => promise.resolve_native(cx, &j),
-                FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
-                FetchedData::FormData(f) => promise.resolve_native(cx, &f),
-            };
-        },
-        Err(err) => promise.reject_error(cx, err),
-    }
     promise
+}
+
+// https://fetch.spec.whatwg.org/#concept-body-consume-body
+#[allow(unrooted_must_root)]
+pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
+                                                                  body_type: BodyType,
+                                                                  promise: &Promise) {
+    // Step 5
+    if let Some(body) = object.take_body() {
+        let pkg_data_results = run_package_data_algorithm(object,
+                                                          body,
+                                                          body_type,
+                                                          object.get_mime_type());
+
+        let cx = promise.global().r().get_cx();
+        match pkg_data_results {
+            Ok(results) => {
+                match results {
+                    FetchedData::Text(s) => promise.resolve_native(cx, &USVString(s)),
+                    FetchedData::Json(j) => promise.resolve_native(cx, &j),
+                    FetchedData::BlobData(b) => promise.resolve_native(cx, &b),
+                    FetchedData::FormData(f) => promise.resolve_native(cx, &f),
+                };
+            },
+            Err(err) => promise.reject_error(cx, err),
+        }
+    }
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
 fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
-                                                               bytes: Option<Vec<u8>>,
+                                                               bytes: Vec<u8>,
                                                                body_type: BodyType,
                                                                mime_type: Ref<Vec<u8>>)
                                                                -> Fallible<FetchedData> {
-    let bytes = match bytes {
-        Some(b) => b,
-        _ => vec![],
-    };
     let cx = object.global().r().get_cx();
     let mime = &*mime_type;
     match body_type {
@@ -156,6 +166,9 @@ fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fall
 
 pub trait BodyOperations {
     fn get_body_used(&self) -> bool;
+    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType);
+    /// Returns `Some(_)` if the body is complete, `None` if there is more to
+    /// come.
     fn take_body(&self) -> Option<Vec<u8>>;
     fn is_locked(&self) -> bool;
     fn get_mime_type(&self) -> Ref<Vec<u8>>;
