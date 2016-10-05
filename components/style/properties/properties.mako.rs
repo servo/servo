@@ -317,6 +317,42 @@ impl PropertyDeclarationBlock {
     }
 }
 
+impl PropertyDeclarationBlock {
+    // Take a declaration block known to contain a single property,
+    // and serialize it
+    pub fn to_css_single_value<W>(&self, dest: &mut W, name: &str)
+        -> fmt::Result where W: fmt::Write {
+        match self.declarations.len() {
+            0 => Err(fmt::Error),
+            1 if self.declarations[0].0.name().eq_str_ignore_ascii_case(name) => {
+                self.declarations[0].0.to_css(dest)
+            }
+            _ => {
+                // we use this function because a closure won't be `Clone`
+                fn get_declaration(dec: &(PropertyDeclaration, Importance))
+                    -> &PropertyDeclaration {
+                    &dec.0
+                }
+                let shorthand = try!(Shorthand::from_name(name).ok_or(fmt::Error));
+                if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
+                    return Err(fmt::Error)
+                }
+                let success = try!(shorthand.serialize_shorthand_to_buffer(
+                    dest,
+                    self.declarations.iter()
+                                     .map(get_declaration as fn(_) -> _),
+                    &mut true)
+                );
+                if success {
+                    Ok(())
+                } else {
+                    Err(fmt::Error)
+                }
+            }
+        }
+    }
+}
+
 impl ToCss for PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -891,6 +927,16 @@ pub enum PropertyDeclarationName {
     Longhand(&'static str),
     Custom(::custom_properties::Name),
     Internal
+}
+
+impl PropertyDeclarationName {
+    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
+        match *self {
+            PropertyDeclarationName::Longhand(s) => s.eq_ignore_ascii_case(other),
+            PropertyDeclarationName::Custom(ref n) => n.eq_str_ignore_ascii_case(other),
+            PropertyDeclarationName::Internal => false
+        }
+    }
 }
 
 impl PartialEq<str> for PropertyDeclarationName {
