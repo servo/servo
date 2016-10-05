@@ -2664,16 +2664,18 @@ impl Fragment {
     }
 
     /// Returns true if any of the inline styles associated with this fragment have
-    /// `vertical-align` set to `top` or `bottom`.
-    pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
+    /// `vertical-align` set to `top`, `middle`, or `bottom`.
+    pub fn is_vertically_aligned_to_top_or_middle_or_bottom(&self) -> bool {
         match self.style.get_box().vertical_align {
-            vertical_align::T::top | vertical_align::T::bottom => return true,
+            vertical_align::T::top | vertical_align::T::middle |
+            vertical_align::T::bottom => return true,
             _ => {}
         }
         if let Some(ref inline_context) = self.inline_context {
             for node in &inline_context.nodes {
                 match node.style.get_box().vertical_align {
-                    vertical_align::T::top | vertical_align::T::bottom => return true,
+                    vertical_align::T::top | vertical_align::T::middle |
+                    vertical_align::T::bottom => return true,
                     _ => {}
                 }
             }

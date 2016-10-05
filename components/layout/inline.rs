@@ -192,7 +192,7 @@ impl Line {
     /// block-size. This might not be the case with some weird text fonts.
     fn new_inline_metrics(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
                           -> InlineMetrics {
-        if !new_fragment.is_vertically_aligned_to_top_or_bottom() {
+        if !new_fragment.is_vertically_aligned_to_top_or_middle_or_bottom() {
             let fragment_inline_metrics = new_fragment.inline_metrics(layout_context);
             self.inline_metrics.max(&fragment_inline_metrics)
         } else {
@@ -208,7 +208,7 @@ impl Line {
                       new_inline_metrics: &InlineMetrics,
                       layout_context: &LayoutContext)
                       -> Au {
-        let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_bottom() {
+        let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_middle_or_bottom() {
             max(new_fragment.inline_metrics(layout_context).block_size(),
                 self.minimum_block_size_above_baseline + self.minimum_depth_below_baseline)
         } else {
@@ -1069,7 +1069,21 @@ impl InlineFlow {
             for style in fragment.inline_styles() {
                 match style.get_box().vertical_align {
                     vertical_align::T::baseline => {}
-                    vertical_align::T::middle => {}
+                    vertical_align::T::middle => {
+                        // This is easier to understand if you think of it as:
+                        //
+                        //    block_start = line_block_metrics.start +
+                        //      line_block_metrics.size / 2 -
+                        //      (fragment_inline_metrics.ascent +
+                        //       fragment_inline_metrics.depth_below_baseline) / 2
+                        //
+                        // (That is, subtract out the pre-existing `block_start` value.)
+                        block_start = block_start -
+                            line_block_metrics.size_above_baseline +
+                            line_block_metrics.size.scale_by(0.5) +
+                            fragment_inline_metrics.ascent.scale_by(0.5) -
+                            fragment_inline_metrics.depth_below_baseline.scale_by(0.5)
+                    }
                     vertical_align::T::sub => {
                         let sub_offset =
                             (minimum_block_size_above_baseline +
