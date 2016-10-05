@@ -60,7 +60,7 @@ use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, PipelineId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -320,7 +320,7 @@ no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
+no_jsmanaged_fields!(FrameId, FrameType, HistoryStateId, WindowSizeData, WindowSizeType, PipelineId);
 no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(BufferQueue, QuirksMode);
