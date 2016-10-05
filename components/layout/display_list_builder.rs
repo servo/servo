@@ -53,7 +53,8 @@ use style::properties::{self, ServoComputedValues};
 use style::properties::style_structs;
 use style::values::RGBA;
 use style::values::computed;
-use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto, LinearGradient};
+use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::image::Gradient;
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
@@ -172,7 +173,7 @@ pub trait FragmentDisplayListBuilding {
                                                          display_list_section: DisplayListSection,
                                                          absolute_bounds: &Rect<Au>,
                                                          clip: &ClippingRegion,
-                                                         gradient: &LinearGradient,
+                                                         gradient: &Gradient,
                                                          style: &ServoComputedValues);
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if

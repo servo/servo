@@ -524,6 +524,7 @@ ${helpers.single_keyword("text-justify",
 
 <%helpers:longhand name="text-shadow" animatable="True">
     use cssparser::{self, ToCss};
+    use parser::Parse;
     use std::fmt;
     use values::LocalToCss;
     use values::HasViewportPercentage;

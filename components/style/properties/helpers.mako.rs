@@ -21,6 +21,7 @@
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
+        use parser::Parse;
         pub type SpecifiedValue = specified::${type};
         pub mod computed_value {
             pub use values::computed::${type} as T;
@@ -565,6 +566,8 @@
     <%self:shorthand name="${name}" sub_properties="${
             ' '.join(sub_property_pattern % side
                      for side in ['top', 'right', 'bottom', 'left'])}">
+        #[allow(unused_imports)]
+        use parser::Parse;
         use super::parse_four_sides;
         use values::specified;
 

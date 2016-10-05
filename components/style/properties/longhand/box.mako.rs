@@ -149,6 +149,7 @@ ${helpers.single_keyword("clear", "none left right both",
 <%helpers:longhand name="vertical-align"
                    animatable="True">
   use cssparser::ToCss;
+  use parser::Parse;
   use std::fmt;
 
   <% vertical_align = data.longhands_by_name["vertical-align"] %>

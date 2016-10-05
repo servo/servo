@@ -13,7 +13,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
 <%helpers:vector_longhand name="background-image" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
-    use values::specified::Image;
+    use values::specified::image::Image;
     use values::LocalToCss;
     use values::NoViewportPercentage;
 
@@ -21,7 +21,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         use values::computed;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<computed::Image>);
+        pub struct T(pub Option<computed::image::Image>);
     }
 
     impl ToCss for computed_value::T {
