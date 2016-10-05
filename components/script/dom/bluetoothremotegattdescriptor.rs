@@ -61,7 +61,7 @@ impl BluetoothRemoteGATTDescriptor {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        self.global_scope().as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     fn get_instance_id(&self) -> String {
@@ -135,12 +135,12 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.read_value())
+        result_to_promise(&self.global(), self.read_value())
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.write_value(value))
+        result_to_promise(&self.global(), self.write_value(value))
     }
 }

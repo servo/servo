@@ -116,7 +116,7 @@ impl Blob {
             }
         };
 
-        Blob::new(&parent.global_scope(), blob_impl, relative_content_type.into())
+        Blob::new(&parent.global(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
@@ -143,7 +143,7 @@ impl Blob {
                 let (buffer, is_new_buffer) = match *f.cache.borrow() {
                     Some(ref bytes) => (bytes.clone(), false),
                     None => {
-                        let bytes = read_file(&self.global_scope(), f.id.clone())?;
+                        let bytes = read_file(&self.global(), f.id.clone())?;
                         (bytes, true)
                     }
                 };
@@ -188,7 +188,7 @@ impl Blob {
     /// valid or invalid Blob URL.
     fn promote(&self, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
-        let global_url = self.global_scope().get_url();
+        let global_url = self.global().get_url();
 
         match *self.blob_impl.borrow_mut() {
             BlobImpl::Sliced(_, _) => {
@@ -248,7 +248,7 @@ impl Blob {
     /// Get a FileID representing sliced parent-blob content
     fn create_sliced_url_id(&self, parent_id: &Uuid,
                             rel_pos: &RelativePos, parent_len: u64) -> Uuid {
-        let origin = get_blob_origin(&self.global_scope().get_url());
+        let origin = get_blob_origin(&self.global().get_url());
 
         let (tx, rx) = ipc::channel().unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
@@ -277,7 +277,7 @@ impl Blob {
     /// Cleanups at the time of destruction/closing
     fn clean_up_file_resource(&self) {
         if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
-            let origin = get_blob_origin(&self.global_scope().get_url());
+            let origin = get_blob_origin(&self.global().get_url());
 
             let (tx, rx) = ipc::channel().unwrap();
 
@@ -288,7 +288,7 @@ impl Blob {
     }
 
     fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
-        let global = self.global_scope();
+        let global = self.global();
         let resource_threads = global.resource_threads();
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
     }

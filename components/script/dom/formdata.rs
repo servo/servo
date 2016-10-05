@@ -152,7 +152,7 @@ impl FormData {
 
         let bytes = blob.get_bytes().unwrap_or(vec![]);
 
-        File::new(&self.global_scope(), BlobImpl::new_from_bytes(bytes), name, None, "")
+        File::new(&self.global(), BlobImpl::new_from_bytes(bytes), name, None, "")
     }
 
     pub fn datums(&self) -> Vec<FormDatum> {

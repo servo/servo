@@ -58,7 +58,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
         let USVString(ref script_url) = script_url;
-        let api_base_url = self.global_scope().api_base_url();
+        let api_base_url = self.global().api_base_url();
         // Step 3-4
         let script_url = match api_base_url.join(script_url) {
             Ok(url) => url,
@@ -96,7 +96,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
         }
 
-        let global = self.global_scope();
+        let global = self.global();
         let worker_registration = ServiceWorkerRegistration::new(&global,
                                                                  script_url,
                                                                  scope.clone(),

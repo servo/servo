@@ -46,7 +46,7 @@ impl BluetoothRemoteGATTServer {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        self.global_scope().as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
@@ -78,7 +78,7 @@ impl BluetoothRemoteGATTServer {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(&self.global_scope(),
+                Ok(BluetoothRemoteGATTService::new(&self.global(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -110,7 +110,7 @@ impl BluetoothRemoteGATTServer {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(&self.global_scope(),
+                              .map(|service| BluetoothRemoteGATTService::new(&self.global(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,
@@ -138,7 +138,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.connect())
+        result_to_promise(&self.global(), self.connect())
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
@@ -161,7 +161,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_primary_service(service))
+        result_to_promise(&self.global(), self.get_primary_service(service))
     }
 
     #[allow(unrooted_must_root)]
@@ -169,6 +169,6 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     fn GetPrimaryServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_primary_services(service))
+        result_to_promise(&self.global(), self.get_primary_services(service))
     }
 }

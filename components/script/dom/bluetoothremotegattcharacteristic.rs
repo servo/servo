@@ -74,7 +74,7 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        self.global_scope().as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     fn get_instance_id(&self) -> String {
@@ -93,7 +93,7 @@ impl BluetoothRemoteGATTCharacteristic {
         let descriptor = receiver.recv().unwrap();
         match descriptor {
             Ok(descriptor) => {
-                Ok(BluetoothRemoteGATTDescriptor::new(&self.global_scope(),
+                Ok(BluetoothRemoteGATTDescriptor::new(&self.global(),
                                                       self,
                                                       DOMString::from(descriptor.uuid),
                                                       descriptor.instance_id))
@@ -124,7 +124,7 @@ impl BluetoothRemoteGATTCharacteristic {
         match descriptors_vec {
             Ok(descriptor_vec) => {
                 Ok(descriptor_vec.into_iter()
-                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(&self.global_scope(),
+                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(&self.global(),
                                                                                 self,
                                                                                 DOMString::from(desc.uuid),
                                                                                 desc.instance_id))
@@ -212,7 +212,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
     fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_descriptor(descriptor))
+        result_to_promise(&self.global(), self.get_descriptor(descriptor))
     }
 
     #[allow(unrooted_must_root)]
@@ -220,7 +220,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     fn GetDescriptors(&self,
                       descriptor: Option<BluetoothDescriptorUUID>)
                       -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_descriptors(descriptor))
+        result_to_promise(&self.global(), self.get_descriptors(descriptor))
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-value
@@ -231,12 +231,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.read_value())
+        result_to_promise(&self.global(), self.read_value())
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.write_value(value))
+        result_to_promise(&self.global(), self.write_value(value))
     }
 }

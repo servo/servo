@@ -80,7 +80,7 @@ pub trait Reflectable {
     fn reflector(&self) -> &Reflector;
 
     /// Returns the global scope of the realm that the Reflectable was created in.
-    fn global_scope(&self) -> Root<GlobalScope> where Self: Sized {
+    fn global(&self) -> Root<GlobalScope> where Self: Sized {
         GlobalScope::from_reflector(self)
     }
 }

@@ -113,7 +113,7 @@ impl TestBindingMethods for TestBinding {
     fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
-        Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -209,7 +209,7 @@ impl TestBindingMethods for TestBinding {
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
@@ -264,7 +264,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
-        Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
+        Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
@@ -287,7 +287,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
-        vec![Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
+        vec![Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned())]
     }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
@@ -308,7 +308,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
+        Some(Blob::new(&self.global(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
     fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
         self.GetObjectAttributeNullable(cx)
@@ -655,12 +655,12 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unrooted_must_root)]
     fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Resolve(&self.global_scope(), cx, v)
+        Promise::Resolve(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
     fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::Reject(&self.global_scope(), cx, v)
+        Promise::Reject(&self.global(), cx, v)
     }
 
     fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
@@ -672,7 +672,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(self.global_scope().get_cx(), Error::Type(s.0));
+        p.reject_error(self.global().get_cx(), Error::Type(s.0));
     }
 
     #[allow(unrooted_must_root)]
@@ -682,7 +682,7 @@ impl TestBindingMethods for TestBinding {
             promise: TrustedPromise::new(promise),
             value: value,
         };
-        let _ = self.global_scope()
+        let _ = self.global()
             .schedule_callback(
                 OneshotTimerCallback::TestBindingCallback(cb),
                 MsDuration::new(delay));
@@ -692,7 +692,7 @@ impl TestBindingMethods for TestBinding {
     fn PromiseNativeHandler(&self,
                             resolve: Option<Rc<SimpleCallback>>,
                             reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
-        let global = self.global_scope();
+        let global = self.global();
         let handler = PromiseNativeHandler::new(&global,
                                                 resolve.map(SimpleHandler::new),
                                                 reject.map(SimpleHandler::new));
@@ -721,7 +721,7 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unrooted_must_root)]
     fn PromiseAttribute(&self) -> Rc<Promise> {
-        Promise::new(&self.global_scope())
+        Promise::new(&self.global())
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {
@@ -751,7 +751,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn AdvanceClock(&self, ms: i32, tick: bool) {
-        self.global_scope().as_window().advance_animation_clock(ms, tick);
+        self.global().as_window().advance_animation_clock(ms, tick);
     }
 
     fn Panic(&self) { panic!("explicit panic from script") }
@@ -788,7 +788,7 @@ impl TestBindingCallback {
     #[allow(unrooted_must_root)]
     pub fn invoke(self) {
         let p = self.promise.root();
-        let cx = p.global_scope().get_cx();
+        let cx = p.global().get_cx();
         let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
         p.resolve_native(cx, &self.value);
     }

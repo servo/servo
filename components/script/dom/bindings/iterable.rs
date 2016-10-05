@@ -93,7 +93,7 @@ impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
             iterable: JS::from_ref(iterable),
             index: Cell::new(0),
         };
-        reflect_dom_object(iterator, &*iterable.global_scope(), wrap)
+        reflect_dom_object(iterator, &*iterable.global(), wrap)
     }
 
     /// Return the next value from the iterable object.

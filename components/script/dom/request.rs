@@ -305,7 +305,7 @@ impl Request {
         let r = Request::from_net_request(global,
                                           false,
                                           request);
-        r.headers.or_init(|| Headers::for_request(&r.global_scope()));
+        r.headers.or_init(|| Headers::for_request(&r.global()));
 
         // Step 27
         let mut headers_copy = r.Headers();
@@ -429,7 +429,7 @@ impl Request {
         let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
-        let r_clone = Request::new(&r.global_scope(), url, is_service_worker_global_scope);
+        let r_clone = Request::new(&r.global(), url, is_service_worker_global_scope);
         r_clone.request.borrow_mut().pipeline_id.set(req.pipeline_id.get());
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();
@@ -549,7 +549,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers.or_init(|| Headers::new(&self.global_scope()))
+        self.headers.or_init(|| Headers::new(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type

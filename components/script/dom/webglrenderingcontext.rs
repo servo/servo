@@ -1153,27 +1153,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(&self.global_scope(), self.ipc_renderer.clone())
+        WebGLBuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<Root<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(&self.global_scope(), self.ipc_renderer.clone())
+        WebGLFramebuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn CreateRenderbuffer(&self) -> Option<Root<WebGLRenderbuffer>> {
-        WebGLRenderbuffer::maybe_new(&self.global_scope(), self.ipc_renderer.clone())
+        WebGLRenderbuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CreateTexture(&self) -> Option<Root<WebGLTexture>> {
-        WebGLTexture::maybe_new(&self.global_scope(), self.ipc_renderer.clone())
+        WebGLTexture::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<Root<WebGLProgram>> {
-        WebGLProgram::maybe_new(&self.global_scope(), self.ipc_renderer.clone())
+        WebGLProgram::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1185,7 +1185,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return None;
             }
         }
-        WebGLShader::maybe_new(&self.global_scope(), self.ipc_renderer.clone(), shader_type)
+        WebGLShader::maybe_new(&self.global(), self.ipc_renderer.clone(), shader_type)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1479,7 +1479,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
         program.and_then(|p| {
             handle_potential_webgl_error!(self, p.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(&self.global_scope(), location, p.id()))
+                .map(|location| WebGLUniformLocation::new(&self.global(), location, p.id()))
         })
     }
 

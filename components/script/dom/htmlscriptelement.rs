@@ -242,7 +242,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
             _ => CredentialsMode::Include,
         },
         origin: doc.url().clone(),
-        pipeline_id: Some(script.global_scope().pipeline_id()),
+        pipeline_id: Some(script.global().pipeline_id()),
         referrer_url: Some(doc.url().clone()),
         referrer_policy: doc.get_referrer_policy(),
         .. RequestInit::default()

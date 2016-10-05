@@ -40,11 +40,11 @@ impl Storage {
     }
 
     fn get_url(&self) -> Url {
-        self.global_scope().get_url()
+        self.global().get_url()
     }
 
     fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
-        self.global_scope().resource_threads().sender()
+        self.global().resource_threads().sender()
     }
 
 }
@@ -150,7 +150,7 @@ impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
-        let global = self.global_scope();
+        let global = self.global();
         let window = global.as_window();
         let task_source = window.dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
@@ -182,7 +182,7 @@ impl Runnable for StorageEventRunnable {
         let this = *self;
         let storage_root = this.element.root();
         let storage = storage_root.r();
-        let global = storage.global_scope();
+        let global = storage.global();
         let ev_url = storage.get_url();
 
         let storage_event = StorageEvent::new(

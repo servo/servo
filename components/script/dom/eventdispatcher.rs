@@ -51,7 +51,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    let window = match Root::downcast::<Window>(target.global_scope()) {
+    let window = match Root::downcast::<Window>(target.global()) {
         Some(window) => {
             if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
                 Some(window)

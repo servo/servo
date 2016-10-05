@@ -79,7 +79,7 @@ impl NavigatorMethods for Navigator {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     fn Bluetooth(&self) -> Root<Bluetooth> {
-        self.bluetooth.or_init(|| Bluetooth::new(&self.global_scope()))
+        self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
@@ -89,12 +89,12 @@ impl NavigatorMethods for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> Root<PluginArray> {
-        self.plugins.or_init(|| PluginArray::new(&self.global_scope()))
+        self.plugins.or_init(|| PluginArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
     fn MimeTypes(&self) -> Root<MimeTypeArray> {
-        self.mime_types.or_init(|| MimeTypeArray::new(&self.global_scope()))
+        self.mime_types.or_init(|| MimeTypeArray::new(&self.global()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
@@ -105,7 +105,7 @@ impl NavigatorMethods for Navigator {
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
         self.service_worker.or_init(|| {
-            ServiceWorkerContainer::new(&self.global_scope())
+            ServiceWorkerContainer::new(&self.global())
         })
     }
 

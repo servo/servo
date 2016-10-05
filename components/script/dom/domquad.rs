@@ -107,7 +107,7 @@ impl DOMQuadMethods for DOMQuad {
         let right = self.p1.X().max(self.p2.X()).max(self.p3.X()).max(self.p4.X());
         let bottom = self.p1.Y().max(self.p2.Y()).max(self.p3.Y()).max(self.p4.Y());
 
-        DOMRect::new(&self.global_scope(),
+        DOMRect::new(&self.global(),
                      left,
                      top,
                      right - left,

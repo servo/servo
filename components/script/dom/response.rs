@@ -292,7 +292,7 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::for_response(&self.global_scope()))
+        self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
@@ -301,7 +301,7 @@ impl ResponseMethods for Response {
         // TODO: This step relies on body and stream, which are still unimplemented.
 
         // Step 2
-        let new_response = Response::new(&self.global_scope());
+        let new_response = Response::new(&self.global());
         new_response.Headers().set_guard(self.Headers().get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone

@@ -59,7 +59,7 @@ impl Bluetooth {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        self.global_scope().as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     fn request_device(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
@@ -103,7 +103,7 @@ impl Bluetooth {
         // Step 12-13.
         match device {
             Ok(device) => {
-                let global = self.global_scope();
+                let global = self.global();
                 let ad_data = BluetoothAdvertisingData::new(&global,
                                                             device.appearance,
                                                             device.tx_power,
@@ -275,8 +275,8 @@ pub fn result_to_promise<T: ToJSValConvertible>(global: &GlobalScope,
                                                 -> Rc<Promise> {
     let p = Promise::new(global);
     match bluetooth_result {
-        Ok(v) => p.resolve_native(p.global_scope().get_cx(), &v),
-        Err(e) => p.reject_error(p.global_scope().get_cx(), e),
+        Ok(v) => p.resolve_native(p.global().get_cx(), &v),
+        Err(e) => p.reject_error(p.global().get_cx(), e),
     }
     p
 }
@@ -297,6 +297,6 @@ impl BluetoothMethods for Bluetooth {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.request_device(option))
+        result_to_promise(&self.global(), self.request_device(option))
     }
 }

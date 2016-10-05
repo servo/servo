@@ -328,7 +328,7 @@ impl WebSocket {
                 address: address,
             };
 
-            self.global_scope()
+            self.global()
                 .script_chan()
                 .send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task))
                 .unwrap();
@@ -436,7 +436,7 @@ impl WebSocketMethods for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
-                let sender = self.global_scope().networking_task_source();
+                let sender = self.global().networking_task_source();
                 fail_the_websocket_connection(address, sender);
             }
             WebSocketRequestState::Open => {
@@ -470,7 +470,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            let sender = ws.global_scope().networking_task_source();
+            let sender = ws.global().networking_task_source();
             fail_the_websocket_connection(self.address, sender);
             return;
         }
@@ -491,7 +491,7 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global_scope().core_resource_thread().send(
+                    let _ = ws.global().core_resource_thread().send(
                         SetCookiesForUrl(ws.url.clone(), cookie_value, HTTP));
                 }
             }
@@ -555,7 +555,7 @@ impl Runnable for CloseTask {
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
-        let close_event = CloseEvent::new(&ws.global_scope(),
+        let close_event = CloseEvent::new(&ws.global(),
                                           atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
@@ -586,7 +586,7 @@ impl Runnable for MessageReceivedTask {
         }
 
         // Step 2-5.
-        let global = ws.global_scope();
+        let global = ws.global();
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.get_cx();

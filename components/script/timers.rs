@@ -489,7 +489,7 @@ impl JsTimerTask {
         // step 4.2
         match *&self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
-                let global = this.global_scope();
+                let global = this.global();
                 let cx = global.get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
 
@@ -514,7 +514,7 @@ impl JsTimerTask {
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
             timers.active_timers.borrow().contains_key(&self.handle) {
-            timers.initialize_and_schedule(&this.global_scope(), self);
+            timers.initialize_and_schedule(&this.global(), self);
         }
     }
 }

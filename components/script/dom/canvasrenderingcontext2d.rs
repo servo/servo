@@ -1016,12 +1016,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
         let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        Ok(ImageData::new(&self.global_scope(), sw, sh, None))
+        Ok(ImageData::new(&self.global(), sw, sh, None))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(&self.global_scope(),
+        Ok(ImageData::new(&self.global(),
                           imagedata.Width(),
                           imagedata.Height(),
                           None))
@@ -1077,7 +1077,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(&self.global_scope(), sw, sh, Some(data)))
+        Ok(ImageData::new(&self.global(), sw, sh, Some(data)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1121,7 +1121,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                             x1: Finite<f64>,
                             y1: Finite<f64>)
                             -> Root<CanvasGradient> {
-        CanvasGradient::new(&self.global_scope(),
+        CanvasGradient::new(&self.global(),
                             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0,
                                                                                  *y0,
                                                                                  *x1,
@@ -1142,7 +1142,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return Err(Error::IndexSize);
         }
 
-        Ok(CanvasGradient::new(&self.global_scope(),
+        Ok(CanvasGradient::new(&self.global(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(*x0,
                                                                                     *y0,
                                                                                     *r0,
@@ -1182,7 +1182,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            Ok(CanvasPattern::new(&self.global_scope(),
+            Ok(CanvasPattern::new(&self.global(),
                                   image_data,
                                   image_size,
                                   rep,

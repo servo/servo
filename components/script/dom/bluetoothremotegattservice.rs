@@ -61,7 +61,7 @@ impl BluetoothRemoteGATTService {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        self.global_scope().as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     fn get_instance_id(&self) -> String {
@@ -82,7 +82,7 @@ impl BluetoothRemoteGATTService {
         let characteristic = receiver.recv().unwrap();
         match characteristic {
             Ok(characteristic) => {
-                let global = self.global_scope();
+                let global = self.global();
                 let properties = BluetoothCharacteristicProperties::new(&global,
                                                                         characteristic.broadcast,
                                                                         characteristic.read,
@@ -126,7 +126,7 @@ impl BluetoothRemoteGATTService {
         match characteristics_vec {
             Ok(characteristic_vec) => {
                 for characteristic in characteristic_vec {
-                    let global = self.global_scope();
+                    let global = self.global();
                     let properties = BluetoothCharacteristicProperties::new(&global,
                                                                             characteristic.broadcast,
                                                                             characteristic.read,
@@ -167,7 +167,7 @@ impl BluetoothRemoteGATTService {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(&self.global_scope(),
+                Ok(BluetoothRemoteGATTService::new(&self.global(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -201,7 +201,7 @@ impl BluetoothRemoteGATTService {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(&self.global_scope(),
+                              .map(|service| BluetoothRemoteGATTService::new(&self.global(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,
@@ -236,7 +236,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
                          -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_characteristic(characteristic))
+        result_to_promise(&self.global(), self.get_characteristic(characteristic))
     }
 
     #[allow(unrooted_must_root)]
@@ -244,7 +244,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetCharacteristics(&self,
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_characteristics(characteristic))
+        result_to_promise(&self.global(), self.get_characteristics(characteristic))
     }
 
     #[allow(unrooted_must_root)]
@@ -252,7 +252,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetIncludedService(&self,
                           service: BluetoothServiceUUID)
                           -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_included_service(service))
+        result_to_promise(&self.global(), self.get_included_service(service))
     }
 
     #[allow(unrooted_must_root)]
@@ -260,6 +260,6 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetIncludedServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
-        result_to_promise(&self.global_scope(), self.get_included_services(service))
+        result_to_promise(&self.global(), self.get_included_services(service))
     }
 }

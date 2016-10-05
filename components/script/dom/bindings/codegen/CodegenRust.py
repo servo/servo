@@ -3170,7 +3170,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "&global"
             else:
-                glob = "&this.global_scope()"
+                glob = "&this.global()"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"

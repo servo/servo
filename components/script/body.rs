@@ -42,11 +42,11 @@ pub enum FetchedData {
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let promise = Promise::new(&object.global_scope());
+    let promise = Promise::new(&object.global());
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
-        promise.reject_error(promise.global_scope().get_cx(), Error::Type(
+        promise.reject_error(promise.global().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
         return promise;
     }
@@ -77,7 +77,7 @@ pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
                                                       body_type,
                                                       object.get_mime_type());
 
-    let cx = promise.global_scope().get_cx();
+    let cx = promise.global().get_cx();
     match pkg_data_results {
         Ok(results) => {
             match results {
@@ -98,7 +98,7 @@ fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
                                                                body_type: BodyType,
                                                                mime_type: Ref<Vec<u8>>)
                                                                -> Fallible<FetchedData> {
-    let global = object.global_scope();
+    let global = object.global();
     let cx = global.get_cx();
     let mime = &*mime_type;
     match body_type {

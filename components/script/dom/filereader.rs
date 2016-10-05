@@ -114,7 +114,7 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         *fr.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&fr.global_scope(), error);
+        let exception = DOMException::new(&fr.global(), error);
         fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event(atom!("error"), 0, None);
@@ -288,7 +288,7 @@ impl FileReaderMethods for FileReader {
         // Steps 1 & 3
         *self.result.borrow_mut() = None;
 
-        let exception = DOMException::new(&self.global_scope(), DOMErrorName::AbortError);
+        let exception = DOMException::new(&self.global(), DOMErrorName::AbortError);
         self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
@@ -316,7 +316,7 @@ impl FileReaderMethods for FileReader {
 
 impl FileReader {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
-        let progressevent = ProgressEvent::new(&self.global_scope(),
+        let progressevent = ProgressEvent::new(&self.global(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
@@ -333,7 +333,7 @@ impl FileReader {
             return Err(Error::InvalidState);
         }
         // Step 2
-        let global = self.global_scope();
+        let global = self.global();
         if blob.IsClosed() {
             let exception = DOMException::new(&global, DOMErrorName::InvalidStateError);
             self.error.set(Some(&exception));
@@ -355,7 +355,7 @@ impl FileReader {
         let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
-        let global = self.global_scope();
+        let global = self.global();
         let wrapper = global.get_runnable_wrapper();
         let task_source = global.file_reading_task_source();
 

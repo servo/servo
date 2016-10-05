@@ -128,7 +128,7 @@ impl Worker {
             return;
         }
 
-        let global = worker.global_scope();
+        let global = worker.global();
         let target = worker.upcast();
         let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
         rooted!(in(global.get_cx()) let mut message = UndefinedValue());
@@ -143,7 +143,7 @@ impl Worker {
 
     #[allow(unsafe_code)]
     fn dispatch_error(&self, error_info: ErrorInfo) {
-        let global = self.global_scope();
+        let global = self.global();
         let event = ErrorEvent::new(&global,
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,

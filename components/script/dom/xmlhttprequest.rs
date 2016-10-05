@@ -210,7 +210,7 @@ impl XMLHttpRequest {
     }
 
     fn sync_in_window(&self) -> bool {
-        self.sync.get() && self.global_scope().is::<Window>()
+        self.sync.get() && self.global().is::<Window>()
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
@@ -282,7 +282,7 @@ impl LoadOrigin for XMLHttpRequest {
     }
 
     fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.global_scope().pipeline_id())
+        Some(self.global().pipeline_id())
     }
 }
 
@@ -305,7 +305,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
              username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
         // Step 1
-        if let Some(window) = Root::downcast::<Window>(self.global_scope()) {
+        if let Some(window) = Root::downcast::<Window>(self.global()) {
             if !window.Document().r().is_fully_active() {
                 return Err(Error::InvalidState);
             }
@@ -339,7 +339,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
 
                 // Step 2
-                let base = self.global_scope().api_base_url();
+                let base = self.global().api_base_url();
                 // Step 6
                 let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
@@ -571,7 +571,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // preference is enabled, we allow bypassing the CORS check.
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
-            if let Some(win) = Root::downcast::<Window>(self.global_scope()) {
+            if let Some(win) = Root::downcast::<Window>(self.global()) {
                 let is_root_pipeline = win.parent_info().is_none();
                 is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
@@ -594,7 +594,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             use_cors_preflight: has_handlers,
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
-            origin: self.global_scope().get_url(),
+            origin: self.global().get_url(),
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: self.pipeline_id(),
@@ -649,7 +649,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         self.fetch_time.set(time::now().to_timespec().sec);
 
-        let rv = self.fetch(request, &self.global_scope());
+        let rv = self.fetch(request, &self.global());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -740,7 +740,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
-        if self.global_scope().is::<WorkerGlobalScope>() && response_type == XMLHttpRequestResponseType::Document {
+        if self.global().is::<WorkerGlobalScope>() && response_type == XMLHttpRequestResponseType::Document {
             return Ok(());
         }
         match self.ready_state.get() {
@@ -824,7 +824,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
         //              explicitly in the worker scope.
-        if self.global_scope().is::<WorkerGlobalScope>() {
+        if self.global().is::<WorkerGlobalScope>() {
             return Ok(None);
         }
 
@@ -855,7 +855,7 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
-        let event = Event::new(&self.global_scope(),
+        let event = Event::new(&self.global(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
@@ -971,7 +971,7 @@ impl XMLHttpRequest {
                         self.ready_state.set(XMLHttpRequestState::Loading);
                     }
                     let event = Event::new(
-                        &self.global_scope(),
+                        &self.global(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable);
@@ -1043,7 +1043,7 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let progressevent = ProgressEvent::new(&self.global_scope(),
+        let progressevent = ProgressEvent::new(&self.global(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
@@ -1078,12 +1078,12 @@ impl XMLHttpRequest {
         });
         let duration = Length::new(duration_ms as u64);
         *self.timeout_cancel.borrow_mut() =
-            Some(self.global_scope().schedule_callback(callback, duration));
+            Some(self.global().schedule_callback(callback, duration));
     }
 
     fn cancel_timeout(&self) {
         if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
-            self.global_scope().unschedule_callback(handle);
+            self.global().unschedule_callback(handle);
         }
     }
 
@@ -1110,7 +1110,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(&self.global_scope(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1195,7 +1195,7 @@ impl XMLHttpRequest {
 
     fn document_text_html(&self) -> Root<Document>{
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global_scope();
+        let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
@@ -1208,7 +1208,7 @@ impl XMLHttpRequest {
 
     fn handle_xml(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
-        let wr = self.global_scope();
+        let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
@@ -1220,7 +1220,7 @@ impl XMLHttpRequest {
     }
 
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
-        let wr = self.global_scope();
+        let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
         let doc = doc.r();
