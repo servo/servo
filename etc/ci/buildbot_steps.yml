@@ -1,11 +1,15 @@
-mac-rel-wpt:
+mac-rel-wpt1:
   - ./mach build --release
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 8 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
+  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
   - ./mach build-cef --release
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
+
+mac-rel-wpt2:
+  - ./mach build --release
+  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
 
 mac-dev-unit:
   - ./mach build --dev
@@ -31,11 +35,11 @@ mac-nightly:
 
 linux-rel-intermittent:
   - ./mach build --release
-  - ./etc/ci/check_intermittents.sh
+  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 mac-rel-intermittent:
   - ./mach build --release
-  - ./etc/ci/check_intermittents.sh
+  - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
   - ./mach test-tidy --no-progress --all
@@ -45,6 +49,7 @@ linux-dev:
   - ./mach test-unit
   - ./mach build-cef
   - ./mach build-geckolib
+  - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - bash ./etc/ci/check_no_unwrap.sh
@@ -61,11 +66,14 @@ linux-dev-yaml:
   - bash ./etc/ci/manifest_changed.sh
   - bash ./etc/ci/check_no_unwrap.sh
 
-linux-rel:
+linux-rel-wpt:
   - ./mach build --release
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+
+linux-rel-css:
+  - ./mach build --release
   - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log
   - ./mach build-cef --release
   - ./mach build-geckolib --release
@@ -98,3 +106,13 @@ arm64:
   - ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
+
+windows-dev:
+  - ./mach build --dev
+  - ./mach test-unit
+  - ./mach build-geckolib
+
+windows-nightly:
+  - ./mach build --release
+  - ./mach package --release
+  - ./etc/ci/upload_nightly.sh windows
