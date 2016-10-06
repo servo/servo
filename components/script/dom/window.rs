@@ -103,7 +103,7 @@ use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
-use url::Url;
+use url::{Position, Url};
 use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
@@ -238,9 +238,6 @@ pub struct Window {
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: IpcSender<ConstellationMsg>,
-
-    /// Pending scroll to fragment event, if any
-    fragment_name: DOMRefCell<Option<String>>,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
@@ -1056,6 +1053,43 @@ impl Window {
         self.constellation_chan.send(message).unwrap();
     }
 
+    pub fn check_and_scroll_fragment(&self, fragment: &str) {
+        // TODO(stshine): if fragment is empty, scroll to the top.
+        let doc = self.Document();
+        match doc.find_fragment_node(fragment) {
+            Some(ref node) => {
+                doc.set_target_element(Some(node.r()));
+                self.scroll_fragment_point(node.r());
+            }
+            None => {
+                doc.set_target_element(None);
+            }
+        }
+    }
+
+    fn scroll_fragment_point(&self, element: &Element) {
+        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
+        // Really what needs to happen is that this needs to go through layout to ask which
+        // layer the element belongs to, and have it send the scroll message to the
+        // compositor.
+        let rect = element.upcast::<Node>().bounding_content_box();
+
+        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
+        // paint thread currently does the same for drawing elements. This is important for pages
+        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
+        // don't have the device pixel ratio here, this might not be accurate, but should work as
+        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
+        // account the real device pixel ratio.
+        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
+                                 rect.origin.y.to_nearest_px() as f32);
+
+        let message = ConstellationMsg::ScrollFragmentPoint(self.id,
+                                                            LayerId::null(),
+                                                            point,
+                                                            false);
+        self.constellation_chan.send(message).unwrap();
+    }
+
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
         let size = self.current_viewport.get().size;
         let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
@@ -1414,6 +1448,16 @@ impl Window {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
+
+        if let Some(fragment) = url.fragment() {
+            let old_url = (*doc.url()).clone();
+            if &url[..Position::AfterQuery] == &old_url[..Position::AfterQuery] {
+                self.check_and_scroll_fragment(fragment);
+                doc.set_url(&url);
+                return;
+            } 
+        }
+
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.id,
                 LoadData::new(url, referrer_policy, Some(doc.url().clone())),
@@ -1425,14 +1469,6 @@ impl Window {
         self.reflow(ReflowGoal::ForDisplay,
                     ReflowQueryType::NoQuery,
                     ReflowReason::Timer);
-    }
-
-    pub fn set_fragment_name(&self, fragment: Option<String>) {
-        *self.fragment_name.borrow_mut() = fragment;
-    }
-
-    pub fn steal_fragment_name(&self) -> Option<String> {
-        self.fragment_name.borrow_mut().take()
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
@@ -1716,7 +1752,6 @@ impl Window {
             bluetooth_thread: bluetooth_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(max_rect()),
-            fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,

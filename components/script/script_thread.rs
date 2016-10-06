@@ -1188,26 +1188,15 @@ impl ScriptThread {
         }
 
         doc.mut_loader().inhibit_events();
+        let window = doc.window();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
-            self.check_and_scroll_fragment(fragment, pipeline, doc);
+            window.check_and_scroll_fragment(fragment);
         };
-    }
-
-    fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
-        match doc.find_fragment_node(fragment) {
-            Some(ref node) => {
-                doc.set_target_element(Some(node.r()));
-                self.scroll_fragment_point(pipeline_id, node.r());
-            }
-            None => {
-                doc.set_target_element(None);
-            }
-        }
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1839,29 +1828,6 @@ impl ScriptThread {
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, element: &Element) {
-        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
-        // Really what needs to happen is that this needs to go through layout to ask which
-        // layer the element belongs to, and have it send the scroll message to the
-        // compositor.
-        let rect = element.upcast::<Node>().bounding_content_box();
-
-        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
-        // paint thread currently does the same for drawing elements. This is important for pages
-        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
-        // don't have the device pixel ratio here, this might not be accurate, but should work as
-        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
-        // account the real device pixel ratio.
-        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
-                                 rect.origin.y.to_nearest_px() as f32);
-
-        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id,
-                                                            LayerId::null(),
-                                                            point,
-                                                            false);
-        self.constellation_chan.send(message).unwrap();
-    }
-
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, context: &BrowsingContext, reason: ReflowReason) {
         let document = context.active_document();
@@ -2010,24 +1976,6 @@ impl ScriptThread {
                               pipeline_id: Option<PipelineId>,
                               load_data: LoadData,
                               replace: bool) {
-        // Step 7.
-        {
-            let nurl = &load_data.url;
-            if let Some(fragment) = nurl.fragment() {
-                let document = match self.root_browsing_context().find(parent_pipeline_id) {
-                    Some(browsing_context) => browsing_context.active_document(),
-                    None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
-                };
-                let url = (*document.url()).clone();
-                if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
-                    load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, document.r());
-                    document.set_url(nurl);
-                    return;
-                } 
-            }
-        }
-
         match pipeline_id {
             Some(pipeline_id) => {
                 let root_context = self.root_browsing_context();
@@ -2057,14 +2005,6 @@ impl ScriptThread {
         window.force_reflow(ReflowGoal::ForDisplay,
                             ReflowQueryType::NoQuery,
                             ReflowReason::WindowResize);
-
-        let document = context.active_document();
-        let fragment_node = window.steal_fragment_name()
-                                  .and_then(|name| document.find_fragment_node(&*name));
-        match fragment_node {
-            Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
-            None => {}
-        }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
@@ -2143,8 +2083,6 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.process_deferred_scripts();
-
-        window.set_fragment_name(final_url.fragment().map(str::to_owned));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,

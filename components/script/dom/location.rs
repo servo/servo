@@ -4,13 +4,16 @@
 
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
-use url::Url;
+use msg::constellation_msg::LoadData;
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg};
+use url::{Position, Url};
 
 #[dom_struct]
 pub struct Location {
@@ -57,7 +60,10 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     fn Reload(&self) {
-        self.window.load_url(self.get_url(), true, None);
+        self.window.main_thread_script_chan().send(
+            MainThreadScriptMsg::Navigate(self.window.pipeline_id(),
+                                          LoadData::new(self.get_url(), None, Some(self.get_url())),
+                                          true)).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-replace
@@ -78,7 +84,12 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
     fn SetHash(&self, mut value: USVString) {
         if value.0.is_empty() {
-            value = USVString("#".to_owned());
+            let doc = self.window.Document();
+            let mut url = self.get_url();
+            url.set_fragment(None);
+            doc.set_url(&url);
+            self.window.check_and_scroll_fragment("");
+            return
         }
         self.set_url_component(value, UrlHelper::SetHash);
     }
