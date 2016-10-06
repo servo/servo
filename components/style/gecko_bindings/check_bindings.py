@@ -30,4 +30,3 @@ with open(BINDINGS_FILE, "r") as bindings, open(OUTPUT_FILE, "w+") as tests:
             tests.write(TEMPLATE.format(name=match.group(1)))
 
     tests.write("}\n")
-
