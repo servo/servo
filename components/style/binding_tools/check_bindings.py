@@ -2,9 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 import re
 
-LICENSE = """/* This Source Code Form is subject to the terms of the Mozilla Public
+LICENSE = """\
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -12,12 +14,15 @@ LICENSE = """/* This Source Code Form is subject to the terms of the Mozilla Pub
 
 """
 
-BINDINGS_FILE = "bindings.rs"
-OUTPUT_FILE = "check_bindings.rs"
+BINDINGS_PATH = os.path.join("..", "gecko_bindings")
+INPUT_FILE = os.path.join(BINDINGS_PATH, "bindings.rs")
+OUTPUT_FILE = os.path.join(BINDINGS_PATH, "check_bindings.rs")
 
-TEMPLATE = "    [ Servo_{name}, bindings::Servo_{name} ];\n"
+TEMPLATE = """\
+    [ Servo_{name}, bindings::Servo_{name} ];
+"""
 
-with open(BINDINGS_FILE, "r") as bindings, open(OUTPUT_FILE, "w+") as tests:
+with open(INPUT_FILE, "r") as bindings, open(OUTPUT_FILE, "w+") as tests:
     tests.write(LICENSE)
     tests.write("fn assert_types() {\n")
 
