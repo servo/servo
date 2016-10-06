@@ -4,6 +4,8 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 
+build = "build.rs"
+
 [lib]
 name = "stylo_tests"
 path = "lib.rs"
@@ -11,6 +13,15 @@ doctest = false
 
 [dependencies]
 app_units = "0.3"
-cssparser = {version = "0.7", features = ["heap_size"]}
-style = {path = "../../../components/style", features = ["gecko"]}
+env_logger = "0.3"
+euclid = "0.10.1"
+lazy_static = "0.2"
+libc = "0.2"
+log = {version = "0.3.5", features = ["release_max_level_info"]}
+num_cpus = "0.2.2"
+parking_lot = "0.3"
+selectors = "0.13"
+url = "1.2"
 style_traits = {path = "../../../components/style_traits"}
+geckoservo = {path = "../../../ports/geckolib"}
+style = {path = "../../../components/style", features = ["gecko"]}
