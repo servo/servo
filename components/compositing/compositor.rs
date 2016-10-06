@@ -1415,6 +1415,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return
         }
 
+        self.dispatch_mouse_window_event_class(mouse_window_event);
+    }
+
+    fn dispatch_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
         let point = match mouse_window_event {
             MouseWindowEvent::Click(_, p) => p,
             MouseWindowEvent::MouseDown(_, p) => p,
@@ -1461,6 +1465,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return
         }
 
+        self.dispatch_mouse_window_move_event_class(cursor);
+    }
+
+    fn dispatch_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
         if self.webrender_api.is_some() {
             let root_pipeline_id = match self.get_root_pipeline_id() {
                 Some(root_pipeline_id) => root_pipeline_id,
@@ -1560,17 +1568,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     /// http://w3c.github.io/touch-events/#mouse-events
-    fn simulate_mouse_click(&self, p: TypedPoint2D<f32, DevicePixel>) {
-        match self.find_topmost_layer_at_point(p / self.scene.scale) {
-            Some(HitTestResult { layer, point }) => {
-                let button = MouseButton::Left;
-                layer.send_mouse_move_event(self, point);
-                layer.send_mouse_event(self, MouseWindowEvent::MouseDown(button, p), point);
-                layer.send_mouse_event(self, MouseWindowEvent::MouseUp(button, p), point);
-                layer.send_mouse_event(self, MouseWindowEvent::Click(button, p), point);
-            }
-            None => {},
-        }
+    fn simulate_mouse_click(&mut self, p: TypedPoint2D<f32, DevicePixel>) {
+        let button = MouseButton::Left;
+        self.dispatch_mouse_window_move_event_class(p);
+        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseDown(button, p));
+        self.dispatch_mouse_window_event_class(MouseWindowEvent::MouseUp(button, p));
+        self.dispatch_mouse_window_event_class(MouseWindowEvent::Click(button, p));
     }
 
     fn on_scroll_window_event(&mut self,
