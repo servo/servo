@@ -16,6 +16,7 @@
 
   [Throws]
   void assign(USVString url);
+  [Throws]
   void replace(USVString url);
   void reload();
 
