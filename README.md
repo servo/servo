@@ -21,7 +21,8 @@ Please select your operating system:
 * [Arch Linux](#on-arch-linux)
 * [openSUSE](#on-opensuse-linux)
 * [Gentoo Linux](#on-gentoo-linux)
-* [Microsoft Windows](#on-windows)
+* [Microsoft Windows (MSVC)](#on-windows-msvc)
+* [Microsoft Windows (mingw)](#on-windows-mingw)
 * [Android](#cross-compilation-for-android)
 
 #### OS X
@@ -91,7 +92,26 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server
 ```
-#### On Windows
+#### On Windows MSVC
+
+Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
+settings for the installer are fine).
+
+Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
+list of installed components. It is not on by default.
+
+Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The windows x86-64 MSI installer is fine.
+You should change the installation to install the "Add python.exe to Path" feature.
+
+Install virtualenv.
+
+In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
+```
+pip install virtualenv
+```
+If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
+
+#### On Windows mingw
 
 Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
 required for the SpiderMonkey build on Windows.
@@ -155,6 +175,13 @@ git clone https://github.com/servo/servo
 cd servo
 ./mach build --dev
 ./mach run tests/html/about-mozilla.html
+```
+
+Or on Windows MSVC, in a normal Command Prompt (cmd.exe):
+``` cmd
+git clone https://github.com/servo/servo
+cd servo
+mach.bat build --dev
 ```
 
 For benchmarking, performance testing, or
