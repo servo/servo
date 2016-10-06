@@ -289,6 +289,7 @@ impl From<BluetoothError> for Error {
             BluetoothError::NotFound => Error::NotFound,
             BluetoothError::NotSupported => Error::NotSupported,
             BluetoothError::Security => Error::Security,
+            BluetoothError::InvalidState => Error::InvalidState,
         }
     }
 }
