@@ -87,6 +87,9 @@ impl BluetoothRemoteGATTCharacteristic {
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
+        if !self.Service().Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
@@ -117,6 +120,9 @@ impl BluetoothRemoteGATTCharacteristic {
                 }
             }
         };
+        if !self.Service().Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptors(self.get_instance_id(), uuid, sender)).unwrap();

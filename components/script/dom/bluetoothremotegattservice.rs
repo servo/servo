@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
+use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
+use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{self, Security};
+use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
@@ -76,6 +78,9 @@ impl BluetoothRemoteGATTService {
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
@@ -118,6 +123,9 @@ impl BluetoothRemoteGATTService {
                 }
             }
         };
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let mut characteristics = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
@@ -159,6 +167,9 @@ impl BluetoothRemoteGATTService {
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetIncludedService(self.get_instance_id(),
@@ -192,6 +203,9 @@ impl BluetoothRemoteGATTService {
                 }
             }
         };
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetIncludedServices(self.get_instance_id(),
