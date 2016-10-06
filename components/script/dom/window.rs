@@ -21,6 +21,7 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
@@ -102,7 +103,7 @@ use time;
 use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
-use url::Url;
+use url::{Position, Url};
 use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
@@ -204,9 +205,6 @@ pub struct Window {
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// Pending scroll to fragment event, if any
-    fragment_name: DOMRefCell<Option<String>>,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
@@ -989,6 +987,51 @@ impl Window {
         global_scope.constellation_chan().send(message).unwrap();
     }
 
+    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
+    pub fn check_and_scroll_fragment(&self, fragment: &str) {
+        let doc = self.Document();
+        let body = doc.GetBody();
+        let target = doc.find_fragment_node(fragment);
+
+        // Step 1
+        doc.set_target_element(target.r().map(|e| &*e));
+
+        let target = target.r().map(|e| &*e).or_else(
+            // Step 2
+            || if fragment == "" {
+                body.r().map(|b| b.upcast::<Element>())
+            } else {
+                None
+            });
+
+        if let Some(element) = target {
+            // Step 3
+            self.scroll_fragment_point(element);
+        }
+    }
+
+    fn scroll_fragment_point(&self, element: &Element) {
+        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
+        // Really what needs to happen is that this needs to go through layout to ask which
+        // layer the element belongs to, and have it send the scroll message to the
+        // compositor.
+        let rect = element.upcast::<Node>().bounding_content_box();
+        let global_scope = self.upcast::<GlobalScope>();
+
+        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
+        // paint thread currently does the same for drawing elements. This is important for pages
+        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
+        // don't have the device pixel ratio here, this might not be accurate, but should work as
+        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
+        // account the real device pixel ratio.
+        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
+                                 rect.origin.y.to_nearest_px() as f32);
+
+        let message = ConstellationMsg::ScrollFragmentPoint(global_scope.pipeline_id(),
+                                                            point, false);
+        global_scope.constellation_chan().send(message).unwrap();
+    }
+
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
         let size = self.current_viewport.get().size;
         let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
@@ -1322,9 +1365,20 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: Url, replace: bool, referrer_policy: Option<ReferrerPolicy>) {
+    pub fn load_url(&self, url: Url, replace: bool, force_reload: bool,
+                    referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
+
+        // https://html.spec.whatwg.org/multipage/#navigating-across-documents
+        if !force_reload && url[..Position::AfterQuery] == doc.url()[..Position::AfterQuery] {
+            // Step 5
+            if let Some(fragment) = url.fragment() {
+                self.check_and_scroll_fragment(fragment);
+                doc.set_url(&url);
+                return
+            }
+        }
 
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
@@ -1337,14 +1391,6 @@ impl Window {
         self.reflow(ReflowGoal::ForDisplay,
                     ReflowQueryType::NoQuery,
                     ReflowReason::Timer);
-    }
-
-    pub fn set_fragment_name(&self, fragment: Option<String>) {
-        *self.fragment_name.borrow_mut() = fragment;
-    }
-
-    pub fn steal_fragment_name(&self) -> Option<String> {
-        self.fragment_name.borrow_mut().take()
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
@@ -1580,7 +1626,6 @@ impl Window {
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             bluetooth_thread: bluetooth_thread,
             page_clip_rect: Cell::new(max_rect()),
-            fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,

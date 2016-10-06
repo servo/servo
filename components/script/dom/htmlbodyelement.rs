@@ -148,7 +148,7 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("background") => {
                 let doc = document_from_node(self);
                 let val = AttrValue::from_url(&*doc.url(), value.into());
-                val 
+                val
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
