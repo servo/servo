@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::str::{split_html_space_chars, str_join};
+use std::borrow::Cow;
+use style::str::{split_html_space_chars, str_join, cow_into_ascii_lowercase};
 
 #[test]
 pub fn split_html_space_chars_whitespace() {
@@ -32,4 +33,14 @@ pub fn test_str_join_many() {
     let actual = str_join(&slice, "-");
     let expected = "-alpha--beta-gamma-";
     assert_eq!(actual, expected);
+}
+
+#[test]
+pub fn test_cow_into_ascii_lowercase() {
+    assert!(matches!(cow_into_ascii_lowercase("abc.d"), Cow::Borrowed("abc.d")));
+    let string = String::from("abc.d");
+    assert!(matches!(cow_into_ascii_lowercase(string), Cow::Owned(ref s) if s == "abc.d"));
+    assert!(matches!(cow_into_ascii_lowercase("Abc.d"), Cow::Owned(ref s) if s == "abc.d"));
+    assert!(matches!(cow_into_ascii_lowercase("aBC.D"), Cow::Owned(ref s) if s == "abc.d"));
+    assert!(matches!(cow_into_ascii_lowercase("abc.D"), Cow::Owned(ref s) if s == "abc.d"));
 }
