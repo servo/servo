@@ -29,7 +29,8 @@ def main():
         abort(usage)
 
     properties = data.PropertiesData(product=product, testing=testing)
-    rust = render(os.path.join(BASE, "properties.mako.rs"), product=product, data=properties)
+    template = os.path.join(BASE, "properties.mako.rs")
+    rust = render(template, product=product, data=properties, __file__=template)
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
         if product == "gecko":
