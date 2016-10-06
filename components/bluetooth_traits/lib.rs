@@ -20,6 +20,7 @@ pub enum BluetoothError {
     NotFound,
     NotSupported,
     Security,
+    InvalidState,
 }
 
 #[derive(Deserialize, Serialize)]
