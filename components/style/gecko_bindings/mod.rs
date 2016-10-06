@@ -23,4 +23,3 @@ pub mod structs {
 }
 
 pub mod sugar;
-

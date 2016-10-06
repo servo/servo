@@ -254,7 +254,7 @@ COMPILATION_TARGETS = {
 
     "atoms": {
         "custom_build": regen_atoms.build,
-    },
+    }
 }
 
 
