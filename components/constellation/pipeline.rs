@@ -50,6 +50,8 @@ pub enum ChildProcess {
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
     pub id: PipelineId,
+    /// The ID of the frame that contains this Pipeline.
+    pub frame_id: FrameId,
     pub parent_info: Option<(PipelineId, FrameType)>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
@@ -71,9 +73,9 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
-    /// Frame that contains this Pipeline. Can be `None` if the pipeline is not apart of the
-    /// frame tree.
-    pub frame: Option<FrameId>,
+    /// Whether this pipeline is has matured or not.
+    /// A pipeline is considered mature when it has an associated frame.
+    pub is_mature: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -83,6 +85,8 @@ pub struct Pipeline {
 pub struct InitialPipelineState {
     /// The ID of the pipeline to create.
     pub id: PipelineId,
+    /// The ID of the frame that contains this Pipeline.
+    pub frame_id: FrameId,
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
@@ -255,6 +259,7 @@ impl Pipeline {
         }
 
         let pipeline = Pipeline::new(state.id,
+                                     state.frame_id,
                                      state.parent_info,
                                      script_chan,
                                      pipeline_chan,
@@ -271,6 +276,7 @@ impl Pipeline {
     }
 
     fn new(id: PipelineId,
+           frame_id: FrameId,
            parent_info: Option<(PipelineId, FrameType)>,
            script_chan: IpcSender<ConstellationControlMsg>,
            layout_chan: IpcSender<LayoutControlMsg>,
@@ -283,6 +289,7 @@ impl Pipeline {
            -> Pipeline {
         Pipeline {
             id: id,
+            frame_id: frame_id,
             parent_info: parent_info,
             script_chan: script_chan,
             layout_chan: layout_chan,
@@ -295,7 +302,7 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
-            frame: None,
+            is_mature: false,
         }
     }
 

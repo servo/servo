@@ -551,6 +551,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
+                    frame_id: FrameId,
                     parent_info: Option<(PipelineId, FrameType)>,
                     old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
@@ -575,6 +576,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
+            frame_id: frame_id,
             parent_info: parent_info,
             constellation_chan: self.script_sender.clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
@@ -658,10 +660,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId) {
         let frame = Frame::new(frame_id, pipeline_id);
 
-        assert!(self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame).is_none());
-        assert!(!self.frames.contains_key(&frame_id));
+        match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => pipeline.is_mature = true,
+            None => return warn!("Pipeline {} matured after closure.", pipeline_id),
+        };
 
-        self.pipelines.get_mut(&pipeline_id).map(|pipeline| pipeline.frame = Some(frame_id));
         self.frames.insert(frame_id, frame);
     }
 
@@ -1101,7 +1104,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let pipeline_url = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.url.clone());
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-            let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
+            let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
             self.pipelines.remove(&pipeline_id);
@@ -1126,7 +1129,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(frame_id) = frame_id {
                 let new_pipeline_id = PipelineId::new();
                 let load_data = LoadData::new(failure_url, None, None);
-                self.new_pipeline(new_pipeline_id, parent_info, Some(pipeline_id), window_size, None, load_data, false);
+                self.new_pipeline(new_pipeline_id, frame_id, parent_info, Some(pipeline_id),
+                                  window_size, None, load_data, false);
 
                 self.pending_frames.push(FrameChange {
                     frame_id: frame_id,
@@ -1156,7 +1160,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_init_load(&mut self, url: Url) {
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
-        self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None,
+        let root_frame_id = self.root_frame_id;
+        self.new_pipeline(root_pipeline_id, root_frame_id, None, None, Some(window_size), None,
                           LoadData::new(url.clone(), None, None), false);
         self.handle_load_start_msg(root_pipeline_id);
         self.pending_frames.push(FrameChange {
@@ -1280,6 +1285,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
+                          load_info.frame_id,
                           Some((load_info.parent_pipeline_id, load_info.frame_type)),
                           load_info.old_pipeline_id,
                           window_size,
@@ -1423,9 +1429,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, None, window_size, None, load_data, false);
+                let root_frame_id = self.root_frame_id;
+                self.new_pipeline(new_pipeline_id, root_frame_id, None, None, window_size, None, load_data, false);
                 self.pending_frames.push(FrameChange {
-                    frame_id: self.root_frame_id,
+                    frame_id: root_frame_id,
                     old_pipeline_id: Some(source_id),
                     new_pipeline_id: new_pipeline_id,
                     document_ready: false,
@@ -1606,7 +1613,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_get_frame(&mut self,
                         pipeline_id: PipelineId,
                         resp_chan: IpcSender<Option<FrameId>>) {
-        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
+        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
         if let Err(e) = resp_chan.send(frame_id) {
             warn!("Failed get_frame response ({}).", e);
         }
@@ -1643,7 +1650,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_remove_iframe_msg(&mut self, pipeline_id: PipelineId) {
-        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
+        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
         match frame_id {
             Some(frame_id) => {
                 // This iframe has already loaded and been added to the frame tree.
@@ -1659,8 +1666,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
-        let frame_id = match self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
-            Some(id) => id,
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
             None => return warn!("No frame associated with pipeline {:?}", pipeline_id),
         };
 
@@ -1872,7 +1879,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if PREFS.is_mozbrowser_enabled() {
             pipeline_id.and_then(|id| self.get_mozbrowser_ancestor_info(id))
                        .and_then(|pipeline_info| self.pipelines.get(&pipeline_info.1))
-                       .and_then(|pipeline| pipeline.frame)
+                       .map(|pipeline| pipeline.frame_id)
                        .unwrap_or(self.root_frame_id)
         } else {
             // If mozbrowser is not enabled, the root frame is the only top-level frame
@@ -1896,7 +1903,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
         if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.frame) {
+            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame_id) {
                 if self.focused_pipeline_in_tree(old_frame_id) {
                     self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
                 }
@@ -1910,9 +1917,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if self.frames.contains_key(&frame_change.frame_id) {
-            // Add new pipeline to navigation frame, and return frames evicted from history.
+            // Mature the new pipeline, and return frames evicted from history.
             if let Some(ref mut pipeline) = self.pipelines.get_mut(&frame_change.new_pipeline_id) {
-                pipeline.frame = Some(frame_change.frame_id);
+                pipeline.is_mature = true;
             }
 
             if frame_change.replace {
@@ -1986,7 +1993,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // This is a bit complex. We need to loop through pending frames and find
         // ones that can be swapped. A frame can be swapped (enabled) once it is
-        // ready to layout (has document_ready set), and also has no dependencies
+        // ready to layout (has document_ready set), and also is mature
         // (i.e. the pipeline it is replacing has been enabled and now has a frame).
         // The outer loop is required because any time a pipeline is enabled, that
         // may affect whether other pending frames are now able to be enabled. On the
@@ -1994,10 +2001,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frames, we can safely exit the loop, knowing that we will need to wait on
         // a dependent pipeline to be ready to paint.
         while let Some(valid_frame_change) = self.pending_frames.iter().rposition(|frame_change| {
-            let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
-                self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame).is_none()
-            });
-            frame_change.document_ready && !waiting_on_dependency
+            let frame_is_mature = frame_change.old_pipeline_id
+                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id))
+                .map(|old_pipeline| old_pipeline.is_mature)
+                .unwrap_or(true);
+            frame_change.document_ready && frame_is_mature
         }) {
             let frame_change = self.pending_frames.swap_remove(valid_frame_change);
             self.add_or_replace_pipeline_in_frame_tree(frame_change);
@@ -2269,10 +2277,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Closing pipeline {:?} twice.", pipeline_id),
         };
 
-
-        // Remove assocation between this pipeline and its holding frame
-        pipeline.frame = None;
-
         // Remove this pipeline from pending frames if it hasn't loaded yet.
         let pending_index = self.pending_frames.iter().position(|frame_change| {
             frame_change.new_pipeline_id == pipeline_id
@@ -2337,9 +2341,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Revoke paint permission from a pipeline, and all children.
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
-        if let Some(frame_id) = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
-            for frame in self.current_frame_tree_iter(frame_id) {
-                self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| pipeline.revoke_paint_permission());
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            for frame in self.current_frame_tree_iter(pipeline.frame_id) {
+                if let Some(pipeline) = self.pipelines.get(&frame.current.pipeline_id) {
+                    pipeline.revoke_paint_permission();
+                }
             }
         }
     }
@@ -2398,12 +2404,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some((ancestor_id, mozbrowser_iframe_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
             if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
                 if let Some(pipeline) = self.pipelines.get(&mozbrowser_iframe_id) {
-                    if let Some(frame_id) = pipeline.frame {
-                        let can_go_forward = !self.joint_session_future(frame_id).is_empty();
-                        let can_go_back = !self.joint_session_past(frame_id).is_empty();
-                        let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
-                        ancestor.trigger_mozbrowser_event(Some(mozbrowser_iframe_id), event);
-                    }
+                    let can_go_forward = !self.joint_session_future(pipeline.frame_id).is_empty();
+                    let can_go_back = !self.joint_session_past(pipeline.frame_id).is_empty();
+                    let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
+                    ancestor.trigger_mozbrowser_event(Some(mozbrowser_iframe_id), event);
                 }
             }
         }
