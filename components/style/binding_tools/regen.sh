@@ -34,4 +34,4 @@ else
   LIBCLANG_PATH="$(brew --prefix llvm38)/lib/llvm-3.8/lib"
 fi
 
-"./${TOOLS_DIR}/regen.py" --target all "${@}"
+"./${TOOLS_DIR}/regen.py" --target bindings "${@}"

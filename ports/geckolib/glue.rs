@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_code)]
-
 use app_units::Au;
 use env_logger;
 use euclid::Size2D;
