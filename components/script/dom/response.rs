@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use body::{BodyOperations, BodyType, consume_body};
+use body::{BodyOperations, BodyType, consume_body, consume_body_with_promise};
 use core::cell::Cell;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
@@ -44,6 +44,8 @@ pub struct Response {
     url_list: DOMRefCell<Vec<Url>>,
     // For now use the existing NetTraitsResponseBody enum
     body: DOMRefCell<NetTraitsResponseBody>,
+    #[ignore_heap_size_of = "Rc"]
+    body_promise: DOMRefCell<Option<(Rc<Promise>, BodyType)>>,
 }
 
 impl Response {
@@ -59,6 +61,7 @@ impl Response {
             url: DOMRefCell::new(None),
             url_list: DOMRefCell::new(vec![]),
             body: DOMRefCell::new(NetTraitsResponseBody::Empty),
+            body_promise: DOMRefCell::new(None),
         }
     }
 
@@ -194,18 +197,26 @@ impl BodyOperations for Response {
         self.BodyUsed()
     }
 
+    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
+        assert!(self.body_promise.borrow().is_none());
+        self.body_used.set(true);
+        *self.body_promise.borrow_mut() = Some((p.clone(), body_type));
+    }
+
     fn is_locked(&self) -> bool {
         self.locked()
     }
 
     fn take_body(&self) -> Option<Vec<u8>> {
-        let body: NetTraitsResponseBody = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
+        let body = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
         match body {
-            NetTraitsResponseBody::Done(bytes) | NetTraitsResponseBody::Receiving(bytes) => {
-                self.body_used.set(true);
+            NetTraitsResponseBody::Done(bytes) => {
                 Some(bytes)
             },
-            _ => None,
+            body => {
+                mem::replace(&mut *self.body.borrow_mut(), body);
+                None
+            },
         }
     }
 
@@ -365,5 +376,13 @@ impl Response {
 
     pub fn set_final_url(&self, final_url: Url) {
         *self.url.borrow_mut() = Some(final_url);
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn finish(&self, body: Vec<u8>) {
+        *self.body.borrow_mut() = NetTraitsResponseBody::Done(body);
+        if let Some((p, body_type)) = self.body_promise.borrow_mut().take() {
+            consume_body_with_promise(self, body_type, &p);
+        }
     }
 }

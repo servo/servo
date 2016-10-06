@@ -24,6 +24,7 @@ use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestInit as NetTraitsRequestInit;
 use network_listener::{NetworkListener, PreInvoke};
+use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::Url;
@@ -31,6 +32,7 @@ use url::Url;
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
     response_object: Trusted<Response>,
+    body: Vec<u8>,
 }
 
 fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<Url> {
@@ -89,6 +91,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
+        body: vec![],
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -153,12 +156,16 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, _chunk: Vec<u8>) {
-        // TODO when body is implemented
-        // ... this will append the chunk to Response's body.
+    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+        self.body.append(&mut chunk);
     }
 
     fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+        let response = self.response_object.root();
+        let global = response.global();
+        let cx = global.r().get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.r().reflector().get_jsobject().get());
+        response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }
