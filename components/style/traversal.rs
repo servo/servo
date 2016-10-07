@@ -249,10 +249,12 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     //
     // We only need to mark whether we have display none, and forget about it,
     // our style is up to date.
-    if let Some(ref style) = node.get_existing_style() {
-        if !*parents_had_display_none {
-            *parents_had_display_none = style.get_box().clone_display() == display::T::none;
-            return;
+    if let Some(data) = node.borrow_data() {
+        if let Some(style) = data.get_current_styles().map(|x| &x.primary) {
+            if !*parents_had_display_none {
+                *parents_had_display_none = style.get_box().clone_display() == display::T::none;
+                return;
+            }
         }
     }
 

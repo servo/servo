@@ -53,14 +53,14 @@ use libc::c_void;
 use restyle_damage::RestyleDamage;
 use std::sync::atomic::AtomicIsize;
 use style::atomic_refcell::AtomicRefCell;
-use style::data::PersistentStyleData;
+use style::data::NodeData;
 
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
-    /// transmutations between PersistentStyleData and PersistentLayoutData.
-    pub style_data: PersistentStyleData,
+    /// transmutations between NodeData and PersistentLayoutData.
+    pub style_data: NodeData,
 
     /// Description of how to account for recent style changes.
     pub restyle_damage: RestyleDamage,
@@ -72,7 +72,7 @@ pub struct PartialPersistentLayoutData {
 impl PartialPersistentLayoutData {
     pub fn new() -> Self {
         PartialPersistentLayoutData {
-            style_data: PersistentStyleData::new(),
+            style_data: NodeData::new(),
             restyle_damage: RestyleDamage::empty(),
             parallel: DomParallelInfo::new(),
         }

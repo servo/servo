@@ -6,7 +6,8 @@
 
 #![allow(unsafe_code)]
 
-use data::PseudoStyles;
+use atomic_refcell::{AtomicRef, AtomicRefMut};
+use data::NodeData;
 use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -140,28 +141,17 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
-    /// Returns the computed style values corresponding to the existing style
-    /// for this node, if any.
-    ///
-    /// This returns an cloned Arc (rather than a borrow) to abstract over the
-    /// multitude of ways these values may be stored under the hood. By
-    /// returning an enum with various OwningRef/OwningHandle entries, we could
-    /// avoid the refcounting traffic here, but it's probably not worth the
-    /// complexity.
-    fn get_existing_style(&self) -> Option<Arc<ComputedValues>>;
+    /// Sets up the appropriate data structures to style a node, returing a
+    /// mutable handle to the node data upon which further style calculations
+    /// can be performed.
+    fn begin_styling(&self) -> AtomicRefMut<NodeData>;
 
-    /// Sets the computed style for this node.
-    fn set_style(&self, style: Arc<ComputedValues>);
-
-    /// Transfers ownership of the existing pseudo styles, if any, to the
-    /// caller. The stored pseudo styles are replaced with an empty map.
-    fn take_pseudo_styles(&self) -> PseudoStyles;
-
-    /// Sets the pseudo styles on the element, replacing any existing styles.
-    fn set_pseudo_styles(&self, styles: PseudoStyles);
-
-    /// Set the style for a text node.
+    /// Set the style directly for a text node. This skips various unnecessary
+    /// steps from begin_styling like computing the previous style.
     fn style_text_node(&self, style: Arc<ComputedValues>);
+
+    /// Immutable borrows the NodeData.
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
