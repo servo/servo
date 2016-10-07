@@ -10,7 +10,6 @@
 
 use dom::{OpaqueNode, TNode, UnsafeNode};
 use rayon;
-use std::mem;
 use std::sync::atomic::Ordering;
 use traversal::{RestyleResult, DomTraversalContext};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};

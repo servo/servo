@@ -54,7 +54,6 @@ extern crate cfg_if;
 extern crate core;
 #[macro_use]
 extern crate cssparser;
-extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
@@ -134,7 +133,6 @@ pub mod traversal;
 #[allow(non_camel_case_types)]
 pub mod values;
 pub mod viewport;
-pub mod workqueue;
 
 use std::sync::Arc;
 
