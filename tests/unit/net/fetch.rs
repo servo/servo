@@ -19,7 +19,7 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::{ReferrerPolicy, TEST_PIPELINE_ID};
 use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
 use net::http_loader::HttpState;
@@ -776,8 +776,7 @@ fn test_fetch_with_devtools() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let pipeline_id = PipelineId::fake_root_pipeline_id();
-    let request = Request::new(url.clone(), Some(origin), false, Some(pipeline_id));
+    let request = Request::new(url.clone(), Some(origin), false, Some(TEST_PIPELINE_ID));
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
     let (devtools_chan, devtools_port) = channel::<DevtoolsControlMsg>();
@@ -815,7 +814,7 @@ fn test_fetch_with_devtools() {
         method: Method::Get,
         headers: headers,
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id: TEST_PIPELINE_ID,
         startedDateTime: devhttprequest.startedDateTime,
         timeStamp: devhttprequest.timeStamp,
         connect_time: devhttprequest.connect_time,
@@ -832,7 +831,7 @@ fn test_fetch_with_devtools() {
         headers: Some(response_headers),
         status: Some((200, b"OK".to_vec())),
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id: TEST_PIPELINE_ID,
     };
 
     assert_eq!(devhttprequest, httprequest);

@@ -352,6 +352,13 @@ impl fmt::Display for FrameId {
     }
 }
 
+// We provide ids just for unit testing.
+pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
+pub const TEST_PIPELINE_INDEX: PipelineIndex = PipelineIndex(5678);
+pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
+pub const TEST_FRAME_INDEX: FrameIndex = FrameIndex(8765);
+pub const TEST_FRAME_ID: FrameId = FrameId { namespace_id: TEST_NAMESPACE, index: TEST_FRAME_INDEX };
+
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum FrameType {
     IFrame,
