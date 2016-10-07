@@ -37,7 +37,7 @@ use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton, MouseEventType};
 use script_traits::{StackingContextScrollState, TouchpadPressurePhase, TouchEventType};
 use script_traits::{TouchId, WindowSizeData};
-use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
+use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fs::File;
@@ -1511,12 +1511,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    fn send_event_to_root_pipeline(&self, event: CompositorEvent) {
+        let root_pipeline_id = match self.get_root_pipeline_id() {
+            Some(root_pipeline_id) => root_pipeline_id,
+            None => return,
+        };
+
+        if let Some(pipeline) = self.pipeline(root_pipeline_id) {
+            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event);
+            if let Err(e) = pipeline.script_chan.send(msg) {
+                warn!("Sending control event to script failed ({}).", e);
+            }
+        }
+    }
+
     fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         self.touch_handler.on_touch_down(identifier, point);
-        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
-                                                     result.point.to_untyped()));
-        }
+        let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+        let translated_point = (point / dppx).to_untyped();
+        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Down,
+                                                    identifier,
+                                                    translated_point));
     }
 
     fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
@@ -1539,20 +1554,22 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
             }
             TouchAction::DispatchEvent => {
-                if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-                    result.layer.send_event(self, TouchEvent(TouchEventType::Move, identifier,
-                                                             result.point.to_untyped()));
-                }
+                let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+                let translated_point = (point / dppx).to_untyped();
+                self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Move,
+                                                            identifier,
+                                                            translated_point));
             }
             _ => {}
         }
     }
 
     fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
-        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
-                                                     result.point.to_untyped()));
-        }
+        let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+        let translated_point = (point / dppx).to_untyped();
+        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Up,
+                                                    identifier,
+                                                    translated_point));
         if let TouchAction::Click = self.touch_handler.on_touch_up(identifier, point) {
             self.simulate_mouse_click(point);
         }
@@ -1561,9 +1578,23 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
-        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchEvent(TouchEventType::Cancel, identifier,
-                                                     result.point.to_untyped()));
+        let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+        let translated_point = (point / dppx).to_untyped();
+        self.send_event_to_root_pipeline(TouchEvent(TouchEventType::Cancel,
+                                                    identifier,
+                                                    translated_point));
+    }
+
+    fn on_touchpad_pressure_event(&self,
+                                  point: TypedPoint2D<f32, DevicePixel>,
+                                  pressure: f32,
+                                  phase: TouchpadPressurePhase) {
+        if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
+            let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+            let translated_point = (point / dppx).to_untyped();
+            self.send_event_to_root_pipeline(TouchpadPressureEvent(translated_point,
+                                                                   pressure,
+                                                                   phase));
         }
     }
 
@@ -1874,16 +1905,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let msg = ConstellationMsg::TraverseHistory(None, direction);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending navigation to constellation failed ({}).", e);
-        }
-    }
-
-    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<f32, DevicePixel>, pressure: f32,
-                                  phase: TouchpadPressurePhase) {
-        if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
-            match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
-                Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, phase),
-                None => {},
-            }
         }
     }
 

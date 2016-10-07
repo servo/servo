@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use AnimationState;
+use CompositorEvent;
 use DocumentState;
 use IFrameLoadInfo;
-use MouseButton;
-use MouseEventType;
 use MozBrowserEvent;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
@@ -72,10 +71,8 @@ pub enum ScriptMsg {
                            IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
-    /// Re-send a mouse button event that was sent to the parent window.
-    ForwardMouseButtonEvent(PipelineId, MouseEventType, MouseButton, Point2D<f32>),
-    /// Re-send a mouse move event that was sent to the parent window.
-    ForwardMouseMoveEvent(PipelineId, Point2D<f32>),
+    /// Forward an event that was sent to the parent window.
+    ForwardEvent(PipelineId, CompositorEvent),
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
     /// <head> tag finished parsing
