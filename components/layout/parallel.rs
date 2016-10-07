@@ -49,10 +49,8 @@ pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
     }
 }
 
-pub type UnsafeFlowList = (Box<Vec<UnsafeNode>>, usize);
-
-pub type ChunkedFlowTraversalFunction<'a> =
-    extern "Rust" fn(Vec<UnsafeFlow>, &'a SharedLayoutContext, &'a rayon::ThreadPool);
+pub type ChunkedFlowTraversalFunction =
+    extern "Rust" fn(Box<[UnsafeFlow]>, &SharedLayoutContext, &rayon::ThreadPool);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
@@ -130,6 +128,17 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     }
 }
 
+// Struct to be able to pass the thread pool and the shared context, while
+// keeping the lifetime of the closure 'static, because otherwise it can't be
+// stored in rayon's queue.
+struct TraversalData {
+    queue: *const rayon::ThreadPool,
+    context: *const SharedLayoutContext,
+    nodes: Box<[UnsafeNode]>,
+}
+
+unsafe impl Send for TraversalData {}
+
 /// A parallel top-down flow traversal.
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&self,
@@ -140,13 +149,12 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn should_record_thread_ids(&self) -> bool;
 
     #[inline(always)]
-    fn run_parallel_helper<'a, 'b>(&self,
-                                   unsafe_flows: &[UnsafeFlow],
-                                   layout_context: &'a SharedLayoutContext,
-                                   queue: &'a rayon::ThreadPool,
-                                   top_down_func: ChunkedFlowTraversalFunction<'b>,
-                                   bottom_up_func: FlowTraversalFunction)
-        where 'a: 'b
+    fn run_parallel_helper(&self,
+                           unsafe_flows: &[UnsafeFlow],
+                           layout_context: &SharedLayoutContext,
+                           queue: &rayon::ThreadPool,
+                           top_down_func: ChunkedFlowTraversalFunction,
+                           bottom_up_func: FlowTraversalFunction)
     {
         let mut discovered_child_flows = vec![];
         for unsafe_flow in unsafe_flows {
@@ -179,9 +187,17 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
         for chunk in discovered_child_flows.chunks(CHUNK_SIZE) {
             let data = chunk.iter().cloned().collect::<Vec<_>>();
-            queue.install(move || {
-                let data = data;
-                top_down_func(data, layout_context, queue);
+
+            let data = TraversalData {
+                queue: queue,
+                context: layout_context,
+                nodes: data.into_boxed_slice(),
+            };
+
+            queue.push_and_forget(move || {
+                unsafe {
+                    top_down_func(data.nodes, &*data.context, &*data.queue);
+                }
             });
         }
     }
@@ -206,7 +222,7 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizes<'a> {}
 
-fn assign_inline_sizes(unsafe_flows: Vec<UnsafeFlow>,
+fn assign_inline_sizes(unsafe_flows: Box<[UnsafeFlow]>,
                        shared_layout_context: &SharedLayoutContext,
                        queue: &rayon::ThreadPool) {
     let assign_inline_sizes_traversal = AssignISizes {
@@ -237,13 +253,20 @@ pub fn traverse_flow_tree_preorder(
         root.traverse_postorder(&bubble_inline_sizes);
     }
 
-    let data = vec![borrowed_flow_to_unsafe_flow(root)];
+    let data = TraversalData {
+        queue: queue,
+        context: shared_layout_context,
+        nodes: vec![borrowed_flow_to_unsafe_flow(root)].into_boxed_slice(),
+    };
 
-    queue.install(move || {
+    queue.push_and_forget(move || {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
                 time_profiler_chan, move || {
-            let data = data;
-            assign_inline_sizes(data, shared_layout_context, queue);
+            unsafe {
+                assign_inline_sizes(data.nodes, &*data.context, &*data.queue);
+            }
         });
     });
+
+    queue.wait_all();
 }

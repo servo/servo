@@ -18,6 +18,17 @@ use util::opts;
 
 pub const CHUNK_SIZE: usize = 64;
 
+// NB: We build this struct because the closure sent to rayon needs to be
+// 'static :-(
+struct TopDownData<SharedContext: Sync + 'static> {
+    queue: *const rayon::ThreadPool,
+    context: *const SharedContext,
+    root: OpaqueNode,
+    nodes: Box<[UnsafeNode]>,
+}
+
+unsafe impl<SharedContext: Sync + 'static> Send for TopDownData<SharedContext> {}
+
 pub fn traverse_dom<N, C>(root: N,
                           shared_context: &C::SharedContext,
                           queue: &rayon::ThreadPool)
@@ -29,11 +40,21 @@ pub fn traverse_dom<N, C>(root: N,
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
     }
 
-    let data = (vec![root.to_unsafe()].into_boxed_slice(), root.opaque());
-    queue.install(move || {
+    let data = TopDownData::<C::SharedContext> {
+        root: root.opaque(),
+        queue: queue,
+        context: shared_context,
+        nodes: vec![root.to_unsafe()].into_boxed_slice(),
+    };
+
+    queue.push_and_forget(move || {
         let data = data;
-        top_down_dom::<N, C>(&data.0, data.1, queue, shared_context);
+        unsafe {
+            top_down_dom::<N, C>(&data.nodes, data.root, (&*data.queue), (&*data.context));
+        }
     });
+
+    queue.wait_all();
 
     if opts::get().style_sharing_stats {
         let hits = STYLE_SHARING_CACHE_HITS.load(Ordering::SeqCst);
@@ -101,10 +122,18 @@ fn top_down_dom<N, C>(unsafe_nodes: &[UnsafeNode], root: OpaqueNode,
     context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
-        let data = (chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice(), root);
-        queue.install(move || {
+        let data = TopDownData::<C::SharedContext> {
+            root: root,
+            queue: queue,
+            context: shared_context,
+            nodes: chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice(),
+        };
+
+        queue.push_and_forget(move || {
             let data = data;
-            top_down_dom::<N, C>(&data.0, data.1, queue, shared_context)
+            unsafe {
+                top_down_dom::<N, C>(&data.nodes, data.root, (&*data.queue), (&*data.context))
+            }
         })
     }
 }
