@@ -12,11 +12,12 @@ use parser::{Parse, ParserContext};
 use std::f32::consts::PI;
 use std::fmt;
 use url::Url;
-use values::computed::ToComputedValue;
+use values::computed::ComputedValueAsSpecified;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, UrlExtraData};
 use values::specified::position::{Keyword, Position};
 
 /// Specified values for an image according to CSS-IMAGES.
+/// https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image {
@@ -90,8 +91,7 @@ impl ToCss for Gradient {
             try!(dest.write_str(", "));
             try!(stop.to_css(dest));
         }
-        try!(dest.write_str(")"));
-        Ok(())
+        dest.write_str(")")
     }
 }
 
@@ -101,47 +101,48 @@ impl Gradient {
         let mut repeating = false;
         let gradient_kind = match_ignore_ascii_case! { try!(input.expect_function()),
             "linear-gradient" => {
-                Ok(try!(input.parse_nested_block(|input| {
+                try!(input.parse_nested_block(|input| {
                         GradientKind::parse_linear(input)
                     })
-                ))
+                )
             },
             "repeating-linear-gradient" => {
                 repeating = true;
-                Ok(try!(input.parse_nested_block(|input| {
+                try!(input.parse_nested_block(|input| {
                         GradientKind::parse_linear(input)
                     })
-                ))
+                )
             },
             "radial-gradient" => {
-                Ok(try!(input.parse_nested_block(|input| {
+                try!(input.parse_nested_block(|input| {
                         GradientKind::parse_radial(input)
                     })
-                ))
+                )
             },
             "repeating-radial-gradient" => {
                 repeating = true;
-                Ok(try!(input.parse_nested_block(|input| {
+                try!(input.parse_nested_block(|input| {
                         GradientKind::parse_radial(input)
                     })
-                ))
+                )
             },
-            _ => Err(())
+            _ => { return Err(()); }
         };
         // Parse the color stops.
-        let stops = try!(input.parse_comma_separated(parse_one_color_stop));
+        let stops = try!(input.parse_comma_separated(ColorStop::parse));
         if stops.len() < 2 {
             return Err(())
         }
         Ok(Gradient {
             stops: stops,
             repeating: repeating,
-            gradient_kind: gradient_kind.unwrap(),
+            gradient_kind: gradient_kind,
         })
     }
 }
 
 /// Specified values for CSS linear or radial gradients.
+/// https://drafts.csswg.org/css-images/#gradients
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientKind {
@@ -152,47 +153,13 @@ pub enum GradientKind {
 impl GradientKind {
     /// Parses a linear gradient kind from the given arguments.
     pub fn parse_linear(input: &mut Parser) -> Result<GradientKind, ()> {
-        let angle_or_corner = if input.try(|input| input.expect_ident_matching("to")).is_ok() {
-            let (horizontal, vertical) =
-            if let Ok(value) = input.try(HorizontalDirection::parse) {
-                (Some(value), input.try(VerticalDirection::parse).ok())
-            } else {
-                let value = try!(VerticalDirection::parse(input));
-                (input.try(HorizontalDirection::parse).ok(), Some(value))
-            };
-            try!(input.expect_comma());
-            match (horizontal, vertical) {
-                (None, Some(VerticalDirection::Top)) => {
-                    AngleOrCorner::Angle(Angle(0.0))
-                },
-                (Some(HorizontalDirection::Right), None) => {
-                    AngleOrCorner::Angle(Angle(PI * 0.5))
-                },
-                (None, Some(VerticalDirection::Bottom)) => {
-                    AngleOrCorner::Angle(Angle(PI))
-                },
-                (Some(HorizontalDirection::Left), None) => {
-                    AngleOrCorner::Angle(Angle(PI * 1.5))
-                },
-                (Some(horizontal), Some(vertical)) => {
-                    AngleOrCorner::Corner(horizontal, vertical)
-                }
-                (None, None) => unreachable!(),
-            }
-        } else if let Ok(angle) = input.try(Angle::parse) {
-            try!(input.expect_comma());
-            AngleOrCorner::Angle(angle)
-        } else {
-            AngleOrCorner::Angle(Angle(PI))
-        };
-
+        let angle_or_corner = try!(AngleOrCorner::parse(input));
         Ok(GradientKind::Linear(angle_or_corner))
     }
 
     /// Parses a radial gradient from the given arguments.
     pub fn parse_radial(input: &mut Parser) -> Result<GradientKind, ()> {
-        let shape = input.try(EndingShape::parse)
-                         .unwrap_or(EndingShape::Circle(Size::Keyword(SizeKeyword::FarthestCorner)));
+        let shape = try!(EndingShape::parse(input));
 
         let position = if input.try(|input| input.expect_ident_matching("at")).is_ok() {
             try!(Position::parse(input))
@@ -233,7 +200,48 @@ impl ToCss for AngleOrCorner {
     }
 }
 
+impl Parse for AngleOrCorner {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| input.expect_ident_matching("to")).is_ok() {
+            let (horizontal, vertical) =
+            if let Ok(value) = input.try(HorizontalDirection::parse) {
+                (Some(value), input.try(VerticalDirection::parse).ok())
+            } else {
+                let value = try!(VerticalDirection::parse(input));
+                (input.try(HorizontalDirection::parse).ok(), Some(value))
+            };
+            try!(input.expect_comma());
+            match (horizontal, vertical) {
+                (None, Some(VerticalDirection::Top)) => {
+                    Ok(AngleOrCorner::Angle(Angle(0.0)))
+                },
+                (Some(HorizontalDirection::Right), None) => {
+                    Ok(AngleOrCorner::Angle(Angle(PI * 0.5)))
+                },
+                (None, Some(VerticalDirection::Bottom)) => {
+                    Ok(AngleOrCorner::Angle(Angle(PI)))
+                },
+                (Some(HorizontalDirection::Left), None) => {
+                    Ok(AngleOrCorner::Angle(Angle(PI * 1.5)))
+                },
+                (Some(horizontal), Some(vertical)) => {
+                    Ok(AngleOrCorner::Corner(horizontal, vertical))
+                }
+                (None, None) => unreachable!(),
+            }
+        } else if let Ok(angle) = input.try(Angle::parse) {
+            try!(input.expect_comma());
+            Ok(AngleOrCorner::Angle(angle))
+        } else {
+            Ok(AngleOrCorner::Angle(Angle(PI)))
+        }
+    }
+}
+
+impl ComputedValueAsSpecified for AngleOrCorner {}
+
 /// Specified values for one color stop in a linear gradient.
+/// https://drafts.csswg.org/css-images/#typedef-color-stop-list
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop {
@@ -259,62 +267,68 @@ impl ToCss for ColorStop {
 define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
 define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
 
-fn parse_one_color_stop(input: &mut Parser) -> Result<ColorStop, ()> {
-    Ok(ColorStop {
-        color: try!(CSSColor::parse(input)),
-        position: input.try(LengthOrPercentage::parse).ok(),
-    })
+impl Parse for ColorStop {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        Ok(ColorStop {
+            color: try!(CSSColor::parse(input)),
+            position: input.try(LengthOrPercentage::parse).ok(),
+        })
+    }
 }
 
 /// Determines whether the gradient's ending shape is a circle or an ellipse.
 /// If <shape> is omitted, the ending shape defaults to a circle
 /// if the <size> is a single <length>, and to an ellipse otherwise.
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-ending-shape
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape {
-    Circle(Size<Length>),
-    Ellipse(Size<LengthOrPercentage>, Size<LengthOrPercentage>),
+    Circle(LengthOrKeyword),
+    Ellipse(LengthOrPercentageOrKeyword, LengthOrPercentageOrKeyword),
 }
 
 impl Parse for EndingShape {
     fn parse(input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "circle" => {
-                let position = input.try(Size::parse).unwrap_or(
-                    Size::Keyword(SizeKeyword::FarthestSide));
+                let position = input.try(LengthOrKeyword::parse).unwrap_or(
+                    LengthOrKeyword::Keyword(SizeKeyword::FarthestSide));
                 Ok(EndingShape::Circle(position))
             },
             "ellipse" => {
-              let (first_pos, second_pos) = if let Ok(first) = input.try(Size::parse) {
-                    if let Ok(second) = input.try(Size::parse) {
+              let (first_pos, second_pos) = if let Ok(first) = input.try(LengthOrPercentageOrKeyword::parse) {
+                    if let Ok(second) = input.try(LengthOrPercentageOrKeyword::parse) {
                         (first, second)
                     } else {
-                        (first, Size::Keyword(SizeKeyword::FarthestSide))
+                        (first, LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide))
                     }
                 } else {
-                    (Size::Keyword(SizeKeyword::FarthestSide),
-                     Size::Keyword(SizeKeyword::FarthestSide))
+                    (LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide),
+                     LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide))
                 };
                 Ok(EndingShape::Ellipse(first_pos, second_pos))
             },
             _ => {
-                // If 1 <length> is present, it defaults to circle, otherwise defaults to ellipse.
-                if let Ok(first) = input.try(Size::parse) {
-                    if let Ok(second) = input.try(Size::parse) {
+                // If two <length> is present, it defaults to circle, otherwise defaults to ellipse.
+                if let Ok(first) = input.try(LengthOrPercentageOrKeyword::parse) {
+                    if let Ok(second) = input.try(LengthOrPercentageOrKeyword::parse) {
                         Ok(EndingShape::Ellipse(first, second))
                     } else {
-                        if let Size::Length(length) = first {
+                        if let LengthOrPercentageOrKeyword::LengthOrPercentage(length) = first {
                             if let LengthOrPercentage::Length(len) = length {
-                                Ok(EndingShape::Circle(Size::Length(len)))
+                                Ok(EndingShape::Circle(LengthOrKeyword::Length(len)))
                             } else {
-                                Err(())
+                                // Set to default shape
+                                Ok(EndingShape::Circle(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner)))
                             }
                         } else {
-                            Err(())
+                            // Set to default shape
+                            Ok(EndingShape::Circle(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner)))
                         }
                     }
                 } else {
-                    Err(())
+                    // Set to default shape
+                    Ok(EndingShape::Circle(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner)))
                 }
             }
         }
@@ -339,32 +353,61 @@ impl ToCss for EndingShape {
     }
 }
 
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Size<T: Clone + Parse + ToCss + ToComputedValue> {
-    Length(T),
+pub enum LengthOrKeyword {
+    Length(Length),
     Keyword(SizeKeyword),
 }
 
-impl<T: Clone + Parse + ToCss + ToComputedValue> Size<T> {
-    pub fn parse(input: &mut Parser) -> Result<Size<T>, ()> {
+impl Parse for LengthOrKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         if let Ok(keyword) = input.try(SizeKeyword::parse) {
-            Ok(Size::Keyword(keyword))
+            Ok(LengthOrKeyword::Keyword(keyword))
         } else {
-            let length = input.try(<T>::parse).unwrap(); // TODO(canaltinova): It may not work
-            Ok(Size::Length(length))
+            Ok(LengthOrKeyword::Length(try!(Length::parse(input))))
         }
     }
 }
 
-impl<T: Clone + Parse + ToCss + ToComputedValue> ToCss for Size<T> {
+impl ToCss for LengthOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            Size::Length(ref length) => length.to_css(dest),
-            Size::Keyword(keyword) => keyword.to_css(dest),
+            LengthOrKeyword::Length(ref length) => length.to_css(dest),
+            LengthOrKeyword::Keyword(keyword) => keyword.to_css(dest),
         }
     }
 }
 
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum LengthOrPercentageOrKeyword {
+    LengthOrPercentage(LengthOrPercentage),
+    Keyword(SizeKeyword),
+}
+
+
+impl Parse for LengthOrPercentageOrKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(keyword) = input.try(SizeKeyword::parse) {
+            Ok(LengthOrPercentageOrKeyword::Keyword(keyword))
+        } else {
+            Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(try!(LengthOrPercentage::parse(input))))
+        }
+    }
+}
+
+impl ToCss for LengthOrPercentageOrKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => length.to_css(dest),
+            LengthOrPercentageOrKeyword::Keyword(keyword) => keyword.to_css(dest),
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-images/#typedef-extent-keyword
 define_css_keyword_enum!(SizeKeyword: "closest-side" => ClosestSide, "farthest-side" => FarthestSide,
                          "closest-corner" => ClosestCorner, "farthest-corner" => FarthestCorner);
