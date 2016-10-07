@@ -17,15 +17,15 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
-use dom::node::Node;
+use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSAutoCompartment, ObjectClassName};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
+use script_thread::Documents;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};
@@ -72,53 +72,35 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<Option<NodeInfo>>) {
-    let context = match context.find(pipeline) {
-        Some(found_context) => found_context,
-        None => return reply.send(None).unwrap()
-    };
-
-    let document = context.active_document();
-
-    let node = document.upcast::<Node>();
-    reply.send(Some(node.summarize())).unwrap();
+pub fn handle_get_root_node(documents: &Documents, pipeline: PipelineId, reply: IpcSender<Option<NodeInfo>>) {
+    let info = documents.find_document(pipeline)
+        .map(|document| document.upcast::<Node>().summarize());
+    reply.send(info).unwrap();
 }
 
-pub fn handle_get_document_element(context: &BrowsingContext,
+pub fn handle_get_document_element(documents: &Documents,
                                    pipeline: PipelineId,
                                    reply: IpcSender<Option<NodeInfo>>) {
-    let context = match context.find(pipeline) {
-        Some(found_context) => found_context,
-        None => return reply.send(None).unwrap()
-    };
-
-    let document = context.active_document();
-    let document_element = document.GetDocumentElement().unwrap();
-
-    let node = document_element.upcast::<Node>();
-    reply.send(Some(node.summarize())).unwrap();
+    let info = documents.find_document(pipeline)
+        .and_then(|document| document.GetDocumentElement())
+        .map(|element| element.upcast::<Node>().summarize());
+    reply.send(info).unwrap();
 }
 
-fn find_node_by_unique_id(context: &BrowsingContext,
+fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
                           node_id: &str)
                           -> Option<Root<Node>> {
-    let context = match context.find(pipeline) {
-        Some(found_context) => found_context,
-        None => return None
-    };
-
-    let document = context.active_document();
-    let node = document.upcast::<Node>();
-
-    node.traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+    documents.find_document(pipeline).and_then(|document|
+        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+    )
 }
 
-pub fn handle_get_children(context: &BrowsingContext,
+pub fn handle_get_children(documents: &Documents,
                            pipeline: PipelineId,
                            node_id: String,
                            reply: IpcSender<Option<Vec<NodeInfo>>>) {
-    match find_node_by_unique_id(context, pipeline, &*node_id) {
+    match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
         Some(parent) => {
             let children = parent.children()
@@ -130,11 +112,11 @@ pub fn handle_get_children(context: &BrowsingContext,
     };
 }
 
-pub fn handle_get_layout(context: &BrowsingContext,
+pub fn handle_get_layout(documents: &Documents,
                          pipeline: PipelineId,
                          node_id: String,
                          reply: IpcSender<Option<ComputedNodeLayout>>) {
-    let node = match find_node_by_unique_id(context, pipeline, &*node_id) {
+    let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
         Some(found_node) => found_node
     };
@@ -144,7 +126,7 @@ pub fn handle_get_layout(context: &BrowsingContext,
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
-    let window = context.active_window();
+    let window = window_from_node(&*node);
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let computed_style = window.GetComputedStyle(elem, None);
 
@@ -223,11 +205,11 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     reply.send(messages).unwrap();
 }
 
-pub fn handle_modify_attribute(context: &BrowsingContext,
+pub fn handle_modify_attribute(documents: &Documents,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
-    let node = match find_node_by_unique_id(context, pipeline, &*node_id) {
+    let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return warn!("node id {} for pipeline id {} is not found", &node_id, &pipeline),
         Some(found_node) => found_node
     };
@@ -249,49 +231,39 @@ pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications:
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(context: &BrowsingContext,
+pub fn handle_set_timeline_markers(documents: &Documents,
                                    pipeline: PipelineId,
                                    marker_types: Vec<TimelineMarkerType>,
                                    reply: IpcSender<Option<TimelineMarker>>) {
-    match context.find(pipeline) {
+    match documents.find_window(pipeline) {
         None => reply.send(None).unwrap(),
-        Some(context) => context.active_window().set_devtools_timeline_markers(marker_types, reply),
+        Some(window) => window.set_devtools_timeline_markers(marker_types, reply),
     }
 }
 
-pub fn handle_drop_timeline_markers(context: &BrowsingContext,
+pub fn handle_drop_timeline_markers(documents: &Documents,
                                     pipeline: PipelineId,
                                     marker_types: Vec<TimelineMarkerType>) {
-    if let Some(context) = context.find(pipeline) {
-        context.active_window().drop_devtools_timeline_markers(marker_types);
+    if let Some(window) = documents.find_window(pipeline) {
+        window.drop_devtools_timeline_markers(marker_types);
     }
 }
 
-pub fn handle_request_animation_frame(context: &BrowsingContext,
+pub fn handle_request_animation_frame(documents: &Documents,
                                       id: PipelineId,
                                       actor_name: String) {
-    let context = match context.find(id) {
-        None => return warn!("context for pipeline id {} is not found", id),
-        Some(found_node) => found_node
-    };
-
-    let doc = context.active_document();
-    let devtools_sender =
-        context.active_window().upcast::<GlobalScope>().devtools_chan().unwrap().clone();
-    doc.request_animation_frame(box move |time| {
-        let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
-        devtools_sender.send(msg).unwrap();
-    });
+    if let Some(doc) = documents.find_document(id) {
+        let devtools_sender = doc.window().upcast::<GlobalScope>().devtools_chan().unwrap().clone();
+        doc.request_animation_frame(box move |time| {
+            let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
+            devtools_sender.send(msg).unwrap();
+        });
+    }
 }
 
-pub fn handle_reload(context: &BrowsingContext,
+pub fn handle_reload(documents: &Documents,
                      id: PipelineId) {
-    let context = match context.find(id) {
-        None => return warn!("context for pipeline id {} is not found", id),
-        Some(found_node) => found_node
-    };
-
-    let win = context.active_window();
-    let location = win.Location();
-    location.Reload();
+    if let Some(win) = documents.find_window(id) {
+        win.Location().Reload();
+    }
 }

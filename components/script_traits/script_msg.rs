@@ -83,8 +83,9 @@ pub enum ScriptMsg {
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(PipelineId, LoadData, bool),
-    /// Dispatch a mozbrowser event to the parent of this pipeline.
-    /// The first PipelineId is for the parent, the second is for the originating pipeline.
+    /// Dispatch a mozbrowser event to a given iframe,
+    /// or to the window if no subpage id is provided.
+    /// First PipelineId is for the parent, second PipelineId is in the frame.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(Option<PipelineId>, TraversalDirection),
