@@ -106,7 +106,7 @@ impl<T> DOMRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow(&self) -> Result<Ref<T>, BorrowError<T>> {
+    pub fn try_borrow(&self) -> Result<Ref<T>, BorrowError> {
         debug_assert!(thread_state::get().is_script());
         self.value.try_borrow()
     }
@@ -121,7 +121,7 @@ impl<T> DOMRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError<T>> {
+    pub fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
         debug_assert!(thread_state::get().is_script());
         self.value.try_borrow_mut()
     }
