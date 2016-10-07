@@ -45,20 +45,21 @@ ${helpers.single_keyword("color-adjust",
         use cssparser::ToCss;
         use std::fmt;
 
+        #[allow(non_camel_case_types)]
         #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum T {
-            Auto,
-            CrispEdges,
-            Pixelated,
+            auto,
+            crispedges,
+            pixelated,
         }
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    T::Auto => dest.write_str("auto"),
-                    T::CrispEdges => dest.write_str("crisp-edges"),
-                    T::Pixelated => dest.write_str("pixelated"),
+                    T::auto => dest.write_str("auto"),
+                    T::crispedges => dest.write_str("crisp-edges"),
+                    T::pixelated => dest.write_str("pixelated"),
                 }
             }
         }
@@ -71,7 +72,7 @@ ${helpers.single_keyword("color-adjust",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
+        computed_value::T::auto
     }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -79,11 +80,11 @@ ${helpers.single_keyword("color-adjust",
         // `auto`.
         match_ignore_ascii_case! {
             try!(input.expect_ident()),
-            "auto" => Ok(computed_value::T::Auto),
-            "optimizespeed" => Ok(computed_value::T::Auto),
-            "optimizequality" => Ok(computed_value::T::Auto),
-            "crisp-edges" => Ok(computed_value::T::CrispEdges),
-            "pixelated" => Ok(computed_value::T::Pixelated),
+            "auto" => Ok(computed_value::T::auto),
+            "optimizespeed" => Ok(computed_value::T::auto),
+            "optimizequality" => Ok(computed_value::T::auto),
+            "crisp-edges" => Ok(computed_value::T::crispedges),
+            "pixelated" => Ok(computed_value::T::pixelated),
             _ => Err(())
         }
     }

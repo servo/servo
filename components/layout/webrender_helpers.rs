@@ -218,9 +218,9 @@ trait ToImageRendering {
 impl ToImageRendering for image_rendering::T {
     fn to_image_rendering(&self) -> webrender_traits::ImageRendering {
         match *self {
-            image_rendering::T::CrispEdges => webrender_traits::ImageRendering::CrispEdges,
-            image_rendering::T::Auto => webrender_traits::ImageRendering::Auto,
-            image_rendering::T::Pixelated => webrender_traits::ImageRendering::Pixelated,
+            image_rendering::T::crispedges => webrender_traits::ImageRendering::CrispEdges,
+            image_rendering::T::auto => webrender_traits::ImageRendering::Auto,
+            image_rendering::T::pixelated => webrender_traits::ImageRendering::Pixelated,
         }
     }
 }

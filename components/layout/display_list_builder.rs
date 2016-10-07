@@ -1331,7 +1331,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 },
                                 stretch_size: stacking_relative_content_box.size,
                                 tile_spacing: Size2D::zero(),
-                                image_rendering: image_rendering::T::Auto,
+                                image_rendering: image_rendering::T::auto,
                             })
                         }
                         CanvasData::WebGL(context_id) => {
