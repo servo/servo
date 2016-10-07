@@ -873,17 +873,6 @@ impl Element {
         self.sync_property_with_attrs_style();
     }
 
-    pub fn get_inline_style_declaration<F, R>(&self, property: &str, f: F) -> R
-    where F: FnOnce(Option<&(PropertyDeclaration, Importance)>) -> R {
-        let style_attr = self.style_attribute.borrow();
-        if let Some(ref block) = *style_attr {
-            let block = block.read();
-            f(block.get(property))
-        } else {
-            f(None)
-        }
-    }
-
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
         let mut writer = vec![];
         match serialize(&mut writer,

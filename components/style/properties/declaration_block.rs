@@ -109,6 +109,27 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    pub fn property_priority(&self, property_name: &str) -> Importance {
+        // Step 1
+        let property = property_name.to_ascii_lowercase();
+
+        // Step 2
+        if let Some(shorthand) = Shorthand::from_name(&property) {
+            // Step 2.1 & 2.2 & 2.3
+            if shorthand.longhands().iter().all(|l| {
+                self.get(l).map_or(false, |&(_, importance)| importance.important())
+            }) {
+                Importance::Important
+            } else {
+                Importance::Normal
+            }
+        } else {
+            // Step 3
+            self.get(&property).map_or(Importance::Normal, |&(_, importance)| importance)
+        }
+    }
+
     /// Take a declaration block known to contain a single property and serialize it.
     pub fn single_value_to_css<W>(&self, property_name: &str, dest: &mut W) -> fmt::Result
     where W: fmt::Write {
