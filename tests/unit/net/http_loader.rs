@@ -18,7 +18,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy, TEST_PIPELINE_ID};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
@@ -47,7 +47,7 @@ impl LoadOrigin for HttpTest {
         None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(PipelineId::fake_root_pipeline_id())
+        Some(TEST_PIPELINE_ID)
     }
 }
 
@@ -472,8 +472,6 @@ fn test_request_and_response_data_with_network_messages() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
-    let pipeline_id = PipelineId::fake_root_pipeline_id();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
@@ -521,7 +519,7 @@ fn test_request_and_response_data_with_network_messages() {
         method: Method::Get,
         headers: headers,
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id: TEST_PIPELINE_ID,
         startedDateTime: devhttprequest.startedDateTime,
         timeStamp: devhttprequest.timeStamp,
         connect_time: devhttprequest.connect_time,
@@ -538,7 +536,7 @@ fn test_request_and_response_data_with_network_messages() {
         headers: Some(response_headers),
         status: Some((200, b"OK".to_vec())),
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id: TEST_PIPELINE_ID,
     };
 
     assert_eq!(devhttprequest, httprequest);

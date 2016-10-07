@@ -221,9 +221,6 @@ pub enum TraversalDirection {
     Back(usize),
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, PartialOrd, Ord)]
-pub struct FrameId(pub u32);
-
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to
 /// generate the pipeline ID from an iframe element (this simplifies a lot of other
 /// code that makes use of pipeline IDs).
@@ -242,7 +239,7 @@ pub struct FrameId(pub u32);
 #[derive(Clone, Copy)]
 pub struct PipelineNamespace {
     id: PipelineNamespaceId,
-    next_index: PipelineIndex,
+    index: u32,
 }
 
 impl PipelineNamespace {
@@ -251,21 +248,29 @@ impl PipelineNamespace {
             assert!(tls.get().is_none());
             tls.set(Some(PipelineNamespace {
                 id: namespace_id,
-                next_index: PipelineIndex(0),
+                index: 0,
             }));
         });
     }
 
-    fn next(&mut self) -> PipelineId {
-        let pipeline_id = PipelineId {
+    fn next_index(&mut self) -> u32 {
+        let result = self.index;
+        self.index = result + 1;
+        result
+    }
+
+    fn next_pipeline_id(&mut self) -> PipelineId {
+        PipelineId {
             namespace_id: self.id,
-            index: self.next_index,
-        };
+            index: PipelineIndex(self.next_index()),
+        }
+    }
 
-        let PipelineIndex(current_index) = self.next_index;
-        self.next_index = PipelineIndex(current_index + 1);
-
-        pipeline_id
+    fn next_frame_id(&mut self) -> FrameId {
+        FrameId {
+            namespace_id: self.id,
+            index: FrameIndex(self.next_index()),
+        }
     }
 }
 
@@ -289,22 +294,10 @@ impl PipelineId {
     pub fn new() -> PipelineId {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_pipeline_id = namespace.next();
+            let new_pipeline_id = namespace.next_pipeline_id();
             tls.set(Some(namespace));
             new_pipeline_id
         })
-    }
-
-    // TODO(gw): This should be removed. It's only required because of the code
-    // that uses it in the devtools lib.rs file (which itself is a TODO). Once
-    // that is fixed, this should be removed. It also relies on the first
-    // call to PipelineId::new() returning (0,0), which is checked with an
-    // assert in handle_init_load().
-    pub fn fake_root_pipeline_id() -> PipelineId {
-        PipelineId {
-            namespace_id: PipelineNamespaceId(0),
-            index: PipelineIndex(0),
-        }
     }
 
     pub fn to_webrender(&self) -> webrender_traits::PipelineId {
@@ -330,6 +323,41 @@ impl fmt::Display for PipelineId {
         write!(fmt, "({},{})", namespace_id, index)
     }
 }
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct FrameIndex(pub u32);
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct FrameId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: FrameIndex
+}
+
+impl FrameId {
+    pub fn new() -> FrameId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let new_frame_id = namespace.next_frame_id();
+            tls.set(Some(namespace));
+            new_frame_id
+        })
+    }
+}
+
+impl fmt::Display for FrameId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let FrameIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index)
+    }
+}
+
+// We provide ids just for unit testing.
+pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
+pub const TEST_PIPELINE_INDEX: PipelineIndex = PipelineIndex(5678);
+pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
+pub const TEST_FRAME_INDEX: FrameIndex = FrameIndex(8765);
+pub const TEST_FRAME_ID: FrameId = FrameId { namespace_id: TEST_NAMESPACE, index: TEST_FRAME_INDEX };
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum FrameType {
