@@ -671,6 +671,9 @@ impl BluetoothManager {
                 }
             }
         }
+        services_vec.retain(|s| self.allowed_services
+                                    .get(&device_id)
+                                    .map_or(false, |uuids| uuids.contains(&s.uuid)));
         if services_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
