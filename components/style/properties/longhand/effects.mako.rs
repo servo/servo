@@ -679,7 +679,6 @@ ${helpers.predefined_type("opacity",
     use values::HasViewportPercentage;
 
     use cssparser::ToCss;
-    use parser::Parse;
     use std::fmt;
 
     pub mod computed_value {

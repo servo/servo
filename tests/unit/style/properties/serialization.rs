@@ -684,7 +684,7 @@ mod shorthand_serialization {
         use style::properties::longhands::background_position as position;
         use style::properties::longhands::background_repeat as repeat;
         use style::properties::longhands::background_size as size;
-        use style::values::specified::image::Image;
+        use style::values::specified::Image;
         use style::values::specified::position::Position;
         use super::*;
         macro_rules! single_vec_value_typedef {
@@ -875,7 +875,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_position as position;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
-        use style::values::specified::image::Image;
+        use style::values::specified::Image;
         use style::values::specified::position::Position;
         use super::*;
 
