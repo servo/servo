@@ -206,6 +206,11 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
     }
 
+    #[inline]
+    pub fn frame_id(&self) -> FrameId {
+        self.frame_id
+    }
+
     pub fn change_visibility_status(&self, visibility: bool) {
         if self.visibility.get() != visibility {
             self.visibility.set(visibility);
@@ -226,11 +231,7 @@ impl HTMLIFrameElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
-        // TODO(#9592): assert that the load blocker is present at all times when we
-        //              can guarantee that it's created for the case of iframe.reload().
-        assert_eq!(loaded_pipeline, self.pipeline_id().unwrap());
-
+    pub fn iframe_load_event_steps(&self) {
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
         //      steps 2, 3, and 5 efficiently in this case.
