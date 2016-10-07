@@ -207,6 +207,11 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
     }
 
+    #[inline]
+    pub fn frame_id(&self) -> FrameId {
+        self.frame_id
+    }
+
     pub fn change_visibility_status(&self, visibility: bool) {
         if self.visibility.get() != visibility {
             self.visibility.set(visibility);
