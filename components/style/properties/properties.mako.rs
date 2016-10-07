@@ -1974,6 +1974,8 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
     }
 }
 
+
+// FIXME: https://github.com/w3c/csswg-drafts/issues/580
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
         % for property in data.shorthands + data.longhands:

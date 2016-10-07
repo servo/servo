@@ -767,59 +767,6 @@ impl Element {
          self.attrs.borrow_mut().push(JS::from_ref(&attr));
     }
 
-    pub fn update_inline_style(&self,
-                               declarations: Vec<PropertyDeclaration>,
-                               importance: Importance) {
-        fn update(element: &Element, declarations: Vec<PropertyDeclaration>,
-                  importance: Importance) {
-            let mut inline_declarations = element.style_attribute().borrow_mut();
-            if let &mut Some(ref mut declaration_block) = &mut *inline_declarations {
-                {
-                    let mut declaration_block = declaration_block.write();
-                    let declaration_block = &mut *declaration_block;
-                    let existing_declarations = &mut declaration_block.declarations;
-
-                    'outer: for incoming_declaration in declarations {
-                        for existing_declaration in &mut *existing_declarations {
-                            if existing_declaration.0.name() == incoming_declaration.name() {
-                                match (existing_declaration.1, importance) {
-                                    (Importance::Normal, Importance::Important) => {
-                                        declaration_block.important_count += 1;
-                                    }
-                                    (Importance::Important, Importance::Normal) => {
-                                        declaration_block.important_count -= 1;
-                                    }
-                                    _ => {}
-                                }
-                                *existing_declaration = (incoming_declaration, importance);
-                                continue 'outer;
-                            }
-                        }
-                        existing_declarations.push((incoming_declaration, importance));
-                        if importance.important() {
-                            declaration_block.important_count += 1;
-                        }
-                    }
-                }
-                return;
-            }
-
-            let important_count = if importance.important() {
-                declarations.len() as u32
-            } else {
-                0
-            };
-
-            *inline_declarations = Some(Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
-                important_count: important_count,
-            })));
-        }
-
-        update(self, declarations, importance);
-        self.sync_property_with_attrs_style();
-    }
-
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
                                               new_importance: Importance) {

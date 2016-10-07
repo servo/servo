@@ -130,6 +130,30 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    pub fn set_parsed_declaration(&mut self, declaration: PropertyDeclaration,
+                                  importance: Importance) {
+        for slot in &mut *self.declarations {
+            if slot.0.name() == declaration.name() {
+                match (slot.1, importance) {
+                    (Importance::Normal, Importance::Important) => {
+                        self.important_count += 1;
+                    }
+                    (Importance::Important, Importance::Normal) => {
+                        self.important_count -= 1;
+                    }
+                    _ => {}
+                }
+                *slot = (declaration, importance);
+                return
+            }
+        }
+
+        self.declarations.push((declaration, importance));
+        if importance.important() {
+            self.important_count += 1;
+        }
+    }
+
     /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
     pub fn remove_property(&mut self, property_name: &str) {
         // Step 2
