@@ -130,6 +130,30 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    pub fn remove_property(&mut self, property_name: &str) {
+        // Step 2
+        let property = property_name.to_ascii_lowercase();
+
+        match Shorthand::from_name(&property) {
+            // Step 4
+            Some(shorthand) => self.remove_longhands(shorthand.longhands()),
+            // Step 5
+            None => self.remove_longhands(&[&*property]),
+        }
+    }
+
+    fn remove_longhands(&mut self, names: &[&str]) {
+        let important_count = &mut self.important_count;
+        self.declarations.retain(|&(ref declaration, importance)| {
+            let retain = !names.iter().any(|n| declaration.matches(n));
+            if !retain && importance.important() {
+                *important_count -= 1
+            }
+            retain
+        })
+    }
+
     /// Take a declaration block known to contain a single property and serialize it.
     pub fn single_value_to_css<W>(&self, property_name: &str, dest: &mut W) -> fmt::Result
     where W: fmt::Write {

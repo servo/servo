@@ -125,7 +125,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
-    fn GetPropertyPriority(&self, mut property: DOMString) -> DOMString {
+    fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
         let style_attribute = self.owner.style_attribute().borrow();
         let style_attribute = if let Some(ref style_attribute) = *style_attribute {
             style_attribute.read()
@@ -237,36 +237,40 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
-    fn RemoveProperty(&self, mut property: DOMString) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
         }
 
-        // Step 2
-        property.make_ascii_lowercase();
+        let mut style_attribute = self.owner.style_attribute().borrow_mut();
+        let mut string = String::new();
+        let empty;
+        {
+            let mut style_attribute = if let Some(ref mut style_attribute) = *style_attribute {
+                style_attribute.write()
+            } else {
+                // No style attribute is like an empty style attribute: nothing to remove.
+                return Ok(DOMString::new())
+            };
 
-        // Step 3
-        let value = self.GetPropertyValue(property.clone());
+            // Step 3
+            style_attribute.property_value_to_css(&property, &mut string).unwrap();
 
-        let element = self.owner.upcast::<Element>();
-
-        match Shorthand::from_name(&property) {
-            // Step 4
-            Some(shorthand) => {
-                for longhand in shorthand.longhands() {
-                    element.remove_inline_style_property(longhand)
-                }
-            }
-            // Step 5
-            None => element.remove_inline_style_property(&property),
+            // Step 4 & 5
+            style_attribute.remove_property(&property);
+            self.owner.set_style_attr(style_attribute.to_css_string());
+            empty = style_attribute.declarations.is_empty()
+        }
+        if empty {
+            *style_attribute = None;
         }
 
-        let node = element.upcast::<Node>();
+        let node = self.owner.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
 
         // Step 6
-        Ok(value)
+        Ok(DOMString::from(string))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
@@ -311,7 +315,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn SetCssText(&self, value: DOMString) -> ErrorResult {
         let window = window_from_node(self.owner.upcast::<Node>());
-        let element = self.owner.upcast::<Element>();
 
         // Step 1
         if self.readonly {
@@ -321,13 +324,14 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
                                                ParserContextExtraData::default());
-        *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
+        *self.owner.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
+            self.owner.set_style_attr(String::new());
             None // Step 2
         } else {
+            self.owner.set_style_attr(decl_block.to_css_string());
             Some(Arc::new(RwLock::new(decl_block)))
         };
-        element.sync_property_with_attrs_style();
-        let node = element.upcast::<Node>();
+        let node = self.owner.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
     }
