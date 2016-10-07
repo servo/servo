@@ -21,7 +21,6 @@
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
-        use parser::Parse;
         pub type SpecifiedValue = specified::${type};
         pub mod computed_value {
             pub use values::computed::${type} as T;
@@ -176,6 +175,7 @@
         % endif
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
+        use parser::Parse;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
         use properties::{ComputedValues, PropertyDeclaration};

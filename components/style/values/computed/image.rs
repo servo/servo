@@ -9,24 +9,24 @@
 
 use cssparser::Color as CSSColor;
 use std::fmt;
-use std::fmt::Debug;
 use url::Url;
 use values::LocalToCss;
 use values::computed::{Context, Length, LengthOrPercentage, ToComputedValue};
+use values::computed::position::Position;
 use values::specified;
-use values::specified::UrlExtraData;
-use values::specified::image::{GradientKind, SizeKeyword};
+use values::specified::{AngleOrCorner, SizeKeyword, UrlExtraData};
 
-impl ToComputedValue for specified::image::Image {
+
+impl ToComputedValue for specified::Image {
     type ComputedValue = Image;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Image {
         match *self {
-            specified::image::Image::Url(ref url, ref extra_data) => {
+            specified::Image::Url(ref url, ref extra_data) => {
                 Image::Url(url.clone(), extra_data.clone())
             },
-            specified::image::Image::Gradient(ref gradient) => {
+            specified::Image::Gradient(ref gradient) => {
                 Image::Gradient(gradient.to_computed_value(context))
             }
         }
@@ -36,10 +36,10 @@ impl ToComputedValue for specified::image::Image {
     fn from_computed_value(computed: &Image) -> Self {
         match *computed {
             Image::Url(ref url, ref extra_data) => {
-                specified::image::Image::Url(url.clone(), extra_data.clone())
+                specified::Image::Url(url.clone(), extra_data.clone())
             },
             Image::Gradient(ref linear_gradient) => {
-                specified::image::Image::Gradient(
+                specified::Image::Gradient(
                     ToComputedValue::from_computed_value(linear_gradient)
                 )
             }
@@ -48,6 +48,7 @@ impl ToComputedValue for specified::image::Image {
 }
 
 /// Computed values for an image according to CSS-IMAGES.
+/// https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image {
@@ -85,6 +86,7 @@ impl ::cssparser::ToCss for Image {
 }
 
 /// Computed values for a CSS gradient.
+/// https://drafts.csswg.org/css-images/#gradients
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Gradient {
@@ -140,7 +142,46 @@ impl fmt::Debug for Gradient {
     }
 }
 
+/// Computed values for CSS linear or radial gradients.
+/// https://drafts.csswg.org/css-images/#gradients
+#[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GradientKind {
+    Linear(AngleOrCorner),
+    Radial(EndingShape, Position),
+}
+
+impl ToComputedValue for specified::GradientKind {
+    type ComputedValue = GradientKind;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> GradientKind {
+        match *self {
+            specified::GradientKind::Linear(angle_or_corner) => {
+                GradientKind::Linear(angle_or_corner)
+            },
+            specified::GradientKind::Radial(ref shape, position) => {
+                GradientKind::Radial(shape.to_computed_value(context),
+                                     position.to_computed_value(context))
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &GradientKind) -> Self {
+        match *computed {
+            GradientKind::Linear(angle_or_corner) => {
+                specified::GradientKind::Linear(ToComputedValue::from_computed_value(&angle_or_corner))
+            },
+            GradientKind::Radial(ref shape, position) => {
+                specified::GradientKind::Radial(ToComputedValue::from_computed_value(shape),
+                                                ToComputedValue::from_computed_value(&position))
+            },
+        }
+    }
+}
+
 /// Computed values for one color stop in a linear gradient.
+/// https://drafts.csswg.org/css-images/#typedef-color-stop-list
 #[derive(Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ColorStop {
@@ -173,12 +214,42 @@ impl fmt::Debug for ColorStop {
     }
 }
 
+impl ToComputedValue for Vec<specified::ColorStop> {
+    type ComputedValue = Vec<ColorStop>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Vec<ColorStop> {
+        self.iter().map(|stop| {
+            ColorStop {
+                color: stop.color.parsed,
+                position: match stop.position {
+                    None => None,
+                    Some(value) => Some(value.to_computed_value(context)),
+                },
+            }
+        }).collect()
+    }
+    #[inline]
+    fn from_computed_value(computed: &Vec<ColorStop>) -> Self {
+        computed.iter().map(|stop| {
+            specified::ColorStop {
+                color: ToComputedValue::from_computed_value(&stop.color),
+                position: match stop.position {
+                    None => None,
+                    Some(value) => Some(ToComputedValue::from_computed_value(&value)),
+                },
+            }
+        }).collect()
+    }
+}
+
 /// Computed values for EndingShape
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-ending-shape
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape {
-    Circle(Size<Length>),
-    Ellipse(Size<Length>, Size<Length>),
+    Circle(LengthOrKeyword),
+    Ellipse(LengthOrPercentageOrKeyword, LengthOrPercentageOrKeyword),
 }
 
 impl ::cssparser::ToCss for EndingShape {
@@ -213,29 +284,59 @@ impl fmt::Debug for EndingShape {
     }
 }
 
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Size<T: Debug + LocalToCss> {
-    Length(T),
-    Keyword(SizeKeyword),
-}
+impl ToComputedValue for specified::GradientEndingShape {
+    type ComputedValue = EndingShape;
 
-impl<T: Debug + LocalToCss> ::cssparser::ToCss for Size<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> EndingShape {
         match *self {
-            Size::Length(ref length) => length.to_css(dest),
-            Size::Keyword(keyword) => keyword.to_css(dest),
+            specified::GradientEndingShape::Circle(ref length) => {
+                EndingShape::Circle(length.to_computed_value(context))
+            },
+            specified::GradientEndingShape::Ellipse(ref first_len, ref second_len) => {
+                EndingShape::Ellipse(first_len.to_computed_value(context),
+                                     second_len.to_computed_value(context))
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &EndingShape) -> Self {
+        match *computed {
+            EndingShape::Circle(ref length) => {
+                specified::GradientEndingShape::Circle(ToComputedValue::from_computed_value(length))
+            },
+            EndingShape::Ellipse(ref first_len, ref second_len) => {
+                specified::GradientEndingShape::Ellipse(ToComputedValue::from_computed_value(first_len),
+                                                        ToComputedValue::from_computed_value(second_len))
+            },
         }
     }
 }
 
-impl<T: Debug + LocalToCss> fmt::Debug for Size<T> {
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
+#[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum LengthOrKeyword {
+    Length(Length),
+    Keyword(SizeKeyword),
+}
+
+impl ::cssparser::ToCss for LengthOrKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            LengthOrKeyword::Length(ref length) => length.to_css(dest),
+            LengthOrKeyword::Keyword(keyword) => keyword.to_css(dest),
+        }
+    }
+}
+
+impl fmt::Debug for LengthOrKeyword {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Size::Length(ref length) => {
+            LengthOrKeyword::Length(ref length) => {
                 let _ = write!(f, "{:?}", length);
             },
-            Size::Keyword(keyword) => {
+            LengthOrKeyword::Keyword(keyword) => {
                 let _ = write!(f, "{:?}", keyword);
             },
         }
@@ -243,28 +344,106 @@ impl<T: Debug + LocalToCss> fmt::Debug for Size<T> {
     }
 }
 
-impl ToComputedValue for specified::image::Gradient {
+impl ToComputedValue for specified::LengthOrKeyword {
+    type ComputedValue = LengthOrKeyword;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> LengthOrKeyword {
+        match *self {
+            specified::LengthOrKeyword::Length(length) => {
+                LengthOrKeyword::Length(length.to_computed_value(context))
+            },
+            specified::LengthOrKeyword::Keyword(keyword) => {
+                LengthOrKeyword::Keyword(keyword)
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &LengthOrKeyword) -> Self {
+        match *computed {
+            LengthOrKeyword::Length(length) => {
+                specified::LengthOrKeyword::Length(ToComputedValue::from_computed_value(&length))
+            },
+            LengthOrKeyword::Keyword(keyword) => {
+                specified::LengthOrKeyword::Keyword(keyword)
+            },
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
+#[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum LengthOrPercentageOrKeyword {
+    LengthOrPercentage(LengthOrPercentage),
+    Keyword(SizeKeyword),
+}
+
+impl ::cssparser::ToCss for LengthOrPercentageOrKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => length.to_css(dest),
+            LengthOrPercentageOrKeyword::Keyword(keyword) => keyword.to_css(dest),
+        }
+    }
+}
+
+impl fmt::Debug for LengthOrPercentageOrKeyword {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => {
+                let _ = write!(f, "{:?}", length);
+            },
+            LengthOrPercentageOrKeyword::Keyword(keyword) => {
+                let _ = write!(f, "{:?}", keyword);
+            },
+        }
+        Ok(())
+    }
+}
+
+impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
+    type ComputedValue = LengthOrPercentageOrKeyword;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrKeyword {
+        match *self {
+            specified::LengthOrPercentageOrKeyword::LengthOrPercentage(length) => {
+                LengthOrPercentageOrKeyword::LengthOrPercentage(length.to_computed_value(context))
+            },
+            specified::LengthOrPercentageOrKeyword::Keyword(keyword) => {
+                LengthOrPercentageOrKeyword::Keyword(keyword)
+            },
+        }
+    }
+    #[inline]
+    fn from_computed_value(computed: &LengthOrPercentageOrKeyword) -> Self {
+        match *computed {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(length) => {
+                specified::LengthOrPercentageOrKeyword::LengthOrPercentage(
+                    ToComputedValue::from_computed_value(&length))
+            },
+            LengthOrPercentageOrKeyword::Keyword(keyword) => {
+                specified::LengthOrPercentageOrKeyword::Keyword(keyword)
+            },
+        }
+    }
+}
+
+impl ToComputedValue for specified::Gradient {
     type ComputedValue = Gradient;
 
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Gradient {
-        let specified::image::Gradient {
+        let specified::Gradient {
             ref stops,
             repeating,
             ref gradient_kind
         } = *self;
         Gradient {
-            stops: stops.iter().map(|stop| {
-                ColorStop {
-                    color: stop.color.parsed,
-                    position: match stop.position {
-                        None => None,
-                        Some(value) => Some(value.to_computed_value(context)),
-                    },
-                }
-            }).collect(),
+            stops: stops.to_computed_value(context),
             repeating: repeating,
-            gradient_kind: gradient_kind.clone()
+            gradient_kind: gradient_kind.to_computed_value(context),
         }
     }
     #[inline]
@@ -274,18 +453,10 @@ impl ToComputedValue for specified::image::Gradient {
             repeating,
             ref gradient_kind
         } = *computed;
-        specified::image::Gradient {
-            stops: stops.iter().map(|stop| {
-                specified::image::ColorStop {
-                    color: ToComputedValue::from_computed_value(&stop.color),
-                    position: match stop.position {
-                        None => None,
-                        Some(value) => Some(ToComputedValue::from_computed_value(&value)),
-                    },
-                }
-            }).collect(),
+        specified::Gradient {
+            stops: ToComputedValue::from_computed_value(stops),
             repeating: repeating,
-            gradient_kind: gradient_kind.clone()
+            gradient_kind: ToComputedValue::from_computed_value(gradient_kind),
         }
     }
 }

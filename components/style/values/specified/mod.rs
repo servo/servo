@@ -19,6 +19,10 @@ use style_traits::values::specified::AllowedNumericType;
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use super::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 
+pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
+pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
+pub use self::image::{SizeKeyword, VerticalDirection};
+
 pub mod basic_shape;
 pub mod image;
 pub mod position;
