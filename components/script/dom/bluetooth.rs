@@ -217,9 +217,9 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
             }
 
             // Step 2.4.4.2.
-            name.to_string()
+            Some(name.to_string())
         },
-        None => String::new(),
+        None => None,
     };
 
     // Step 2.4.5.

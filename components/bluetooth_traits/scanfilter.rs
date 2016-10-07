@@ -25,7 +25,7 @@ impl ServiceUUIDSequence {
 
 #[derive(Deserialize, Serialize)]
 pub struct BluetoothScanfilter {
-    name: String,
+    name: Option<String>,
     name_prefix: String,
     services: ServiceUUIDSequence,
     manufacturer_id: Option<u16>,
@@ -33,7 +33,7 @@ pub struct BluetoothScanfilter {
 }
 
 impl BluetoothScanfilter {
-    pub fn new(name: String,
+    pub fn new(name: Option<String>,
                name_prefix: String,
                services: Vec<String>,
                manufacturer_id: Option<u16>,
@@ -48,8 +48,8 @@ impl BluetoothScanfilter {
         }
     }
 
-    pub fn get_name(&self) -> &str {
-        &self.name
+    pub fn get_name(&self) -> Option<&str> {
+        self.name.as_ref().map(|s| s.as_str())
     }
 
     pub fn get_name_prefix(&self) -> &str {
@@ -69,12 +69,12 @@ impl BluetoothScanfilter {
     }
 
     pub fn is_empty_or_invalid(&self) -> bool {
-        (self.name.is_empty() &&
+        (self.name.is_none() &&
          self.name_prefix.is_empty() &&
          self.get_services().is_empty() &&
          self.manufacturer_id.is_none() &&
          self.service_data_uuid.is_empty()) ||
-        self.name.len() > MAX_NAME_LENGTH ||
+        self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
         self.name_prefix.len() > MAX_NAME_LENGTH
     }
 }
