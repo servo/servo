@@ -89,6 +89,11 @@ impl WebGLFramebuffer {
     }
 
     pub fn bind(&self, target: u32) {
+        // Update the framebuffer status on binding.  It may have
+        // changed if its attachments were resized or deleted while
+        // we've been unbound.
+        self.update_status();
+
         self.target.set(Some(target));
         let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
         self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
