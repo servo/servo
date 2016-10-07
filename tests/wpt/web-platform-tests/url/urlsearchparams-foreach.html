@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="http://url.spec.whatwg.org/#dom-urlsearchparams-has">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function() {
+    var params = new URLSearchParams('a=1&b=2&c=3');
+    params.forEach(function(value,index){
+        switch (index) {
+            case 'a':
+                assert_equals('1', value);
+                break;
+            case 'b':
+                assert_equals('2', value);
+                break;
+            case 'c':
+                assert_equals('3', value);
+                break;
+        }
+    });
+    var found = [];
+    params.forEach(function(value, index) {
+        found.push(value);
+    });
+    assert_array_equals(found,['1', '2', '3']);
+}, "ForEach Check");
+
+test(function(){
+    let a=new URL("http://a.b/c?a=1&b=2&c=3&d=4");
+    let b = a.searchParams;
+    var c = [];
+    for (i of b) {
+        a.search="x=1&y=2&z=3";
+        c.push(i);
+    }
+    assert_array_equals(c[0],["a","1"]);
+    assert_array_equals(c[1],["y","2"]);
+    assert_array_equals(c[2],["z","3"]);
+}, "For-of Check");
+
+test(function(){
+    let a=new URL("http://a.b/c");
+    let b = a.searchParams;
+    var c = [];
+    for (i of b) {
+        c.push(i);
+    }
+    assert_equals(c.length,0);
+},"empty");
+</script>
+</head>
+</html>
