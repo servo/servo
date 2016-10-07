@@ -40,7 +40,7 @@ ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
                          animatable=False)}
 
-<%helpers:longhand name="image-rendering" products="servo" animatable="False">
+<%helpers:longhand name="image-rendering" animatable="False">
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
@@ -51,7 +51,12 @@ ${helpers.single_keyword("color-adjust",
         pub enum T {
             auto,
             crispedges,
-            pixelated,
+            % if product == "gecko":
+                optimizequality,
+                optimizespeed,
+            % else:
+                pixelated,  // firefox doesn't support it (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
+            % endif
         }
 
         impl ToCss for T {
@@ -59,7 +64,12 @@ ${helpers.single_keyword("color-adjust",
                 match *self {
                     T::auto => dest.write_str("auto"),
                     T::crispedges => dest.write_str("crisp-edges"),
-                    T::pixelated => dest.write_str("pixelated"),
+                    % if product == "gecko":
+                        T::optimizequality => dest.write_str("optimizeQuality"),
+                        T::optimizespeed => dest.write_str("optimizeSpeed"),
+                    % else:
+                        T::pixelated => dest.write_str("pixelated"),
+                    % endif
                 }
             }
         }
@@ -81,10 +91,15 @@ ${helpers.single_keyword("color-adjust",
         match_ignore_ascii_case! {
             try!(input.expect_ident()),
             "auto" => Ok(computed_value::T::auto),
-            "optimizespeed" => Ok(computed_value::T::auto),
-            "optimizequality" => Ok(computed_value::T::auto),
             "crisp-edges" => Ok(computed_value::T::crispedges),
-            "pixelated" => Ok(computed_value::T::pixelated),
+            % if product == "gecko":
+                "optimizequality" => Ok(computed_value::T::optimizequality),
+                "optimizespeed" => Ok(computed_value::T::optimizespeed),
+            % else:
+                "optimizequality" => Ok(computed_value::T::auto),
+                "optimizespeed" => Ok(computed_value::T::auto),
+                "pixelated" => Ok(computed_value::T::pixelated),
+            % endif
             _ => Err(())
         }
     }

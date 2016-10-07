@@ -219,7 +219,7 @@ def set_gecko_property(ffi_name, expr):
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-            Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
+                Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
@@ -1441,6 +1441,17 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
+
+</%self:impl_trait>
+
+
+<%self:impl_trait style_struct_name="InheritedBox"
+                  skip_longhands="image-rendering">
+
+    <% render_keyword = Keyword("image-rendering",
+                                "auto optimizequality optimizespeed crispedges") %>
+
+    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False)}
 
 </%self:impl_trait>
 
