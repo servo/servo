@@ -30388,6 +30388,10 @@
         "url": "/url/urlsearchparams-delete.html"
       },
       {
+        "path": "url/urlsearchparams-foreach.html",
+        "url": "/url/urlsearchparams-foreach.html"
+      },
+      {
         "path": "url/urlsearchparams-get.html",
         "url": "/url/urlsearchparams-get.html"
       },
