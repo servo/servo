@@ -12,12 +12,11 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
+use rayon;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
-use style::parallel::{CHUNK_SIZE, WorkQueueData};
-use style::parallel::run_queue_with_custom_work_data_type;
-use style::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use style::parallel::CHUNK_SIZE;
 use traversal::{AssignISizes, BubbleISizes};
 use traversal::AssignBSizes;
 use util::opts;
@@ -52,8 +51,8 @@ pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
 
 pub type UnsafeFlowList = (Box<Vec<UnsafeNode>>, usize);
 
-pub type ChunkedFlowTraversalFunction =
-    extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
+pub type ChunkedFlowTraversalFunction<'a> =
+    extern "Rust" fn(Vec<UnsafeFlow>, &'a SharedLayoutContext, &'a rayon::ThreadPool);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
@@ -134,26 +133,30 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 /// A parallel top-down flow traversal.
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&self,
-                    unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>);
+                    unsafe_flows: &[UnsafeFlow],
+                    layout_context: &SharedLayoutContext,
+                    queue: &rayon::ThreadPool);
 
     fn should_record_thread_ids(&self) -> bool;
 
     #[inline(always)]
-    fn run_parallel_helper(&self,
-                           unsafe_flows: UnsafeFlowList,
-                           proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>,
-                           top_down_func: ChunkedFlowTraversalFunction,
-                           bottom_up_func: FlowTraversalFunction) {
-        let mut discovered_child_flows = Vec::new();
-        for unsafe_flow in *unsafe_flows.0 {
+    fn run_parallel_helper<'a, 'b>(&self,
+                                   unsafe_flows: &[UnsafeFlow],
+                                   layout_context: &'a SharedLayoutContext,
+                                   queue: &'a rayon::ThreadPool,
+                                   top_down_func: ChunkedFlowTraversalFunction<'b>,
+                                   bottom_up_func: FlowTraversalFunction)
+        where 'a: 'b
+    {
+        let mut discovered_child_flows = vec![];
+        for unsafe_flow in unsafe_flows {
             let mut had_children = false;
             unsafe {
                 // Get a real flow.
-                let flow: &mut Flow = mem::transmute(unsafe_flow);
+                let flow: &mut Flow = mem::transmute(*unsafe_flow);
 
                 if self.should_record_thread_ids() {
-                    flow::mut_base(flow).thread_id = proxy.worker_index();
+                    // flow::mut_base(flow).thread_id = proxy.worker_index();
                 }
 
                 if self.should_process(flow) {
@@ -170,14 +173,15 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
             // If there were no more children, start assigning block-sizes.
             if !had_children {
-                bottom_up_func(unsafe_flow, proxy.user_data())
+                bottom_up_func(*unsafe_flow, layout_context)
             }
         }
 
         for chunk in discovered_child_flows.chunks(CHUNK_SIZE) {
-            proxy.push(WorkUnit {
-                fun: top_down_func,
-                data: (box chunk.iter().cloned().collect(), 0),
+            let data = chunk.iter().cloned().collect::<Vec<_>>();
+            queue.install(move || {
+                let data = data;
+                top_down_func(data, layout_context, queue);
             });
         }
     }
@@ -185,10 +189,12 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
-                    unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
+                    unsafe_flows: &[UnsafeFlow],
+                    layout_context: &SharedLayoutContext,
+                    queue: &rayon::ThreadPool) {
         self.run_parallel_helper(unsafe_flows,
-                                 proxy,
+                                 layout_context,
+                                 queue,
                                  assign_inline_sizes,
                                  assign_block_sizes_and_store_overflow)
     }
@@ -200,13 +206,13 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
 
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizes<'a> {}
 
-fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
-                       proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
-    let shared_layout_context = proxy.user_data();
+fn assign_inline_sizes(unsafe_flows: Vec<UnsafeFlow>,
+                       shared_layout_context: &SharedLayoutContext,
+                       queue: &rayon::ThreadPool) {
     let assign_inline_sizes_traversal = AssignISizes {
         shared_context: &shared_layout_context.style_context,
     };
-    assign_inline_sizes_traversal.run_parallel(unsafe_flows, proxy)
+    assign_inline_sizes_traversal.run_parallel(&unsafe_flows, shared_layout_context, queue)
 }
 
 fn assign_block_sizes_and_store_overflow(
@@ -224,20 +230,20 @@ pub fn traverse_flow_tree_preorder(
         profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
-        queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
+        queue: &rayon::ThreadPool) {
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
         root.traverse_postorder(&bubble_inline_sizes);
     }
 
-    run_queue_with_custom_work_data_type(queue, |queue| {
+    let data = vec![borrowed_flow_to_unsafe_flow(root)];
+
+    queue.install(move || {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
-                time_profiler_chan, || {
-            queue.push(WorkUnit {
-                fun: assign_inline_sizes,
-                data: (box vec![borrowed_flow_to_unsafe_flow(root)], 0),
-            })
+                time_profiler_chan, move || {
+            let data = data;
+            assign_inline_sizes(data, shared_layout_context, queue);
         });
-    }, shared_layout_context);
+    });
 }
