@@ -6,7 +6,7 @@ use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods, BluetoothRequestDeviceFilter};
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
-use dom::bindings::error::Error::{self, Security, Type};
+use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
@@ -25,7 +25,6 @@ use std::rc::Rc;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
-const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
 // A device name can never be longer than 29 bytes.
@@ -213,7 +212,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
             if name.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+                return Err(NotFound);
             }
 
             // Step 2.4.4.2.
@@ -233,7 +232,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
             if name_prefix.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+                return Err(NotFound);
             }
 
             // Step 2.4.5.2.
