@@ -7346,12 +7346,6 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html"
           }
         ],
-        "mozilla/bluetooth/requestDevice/correct-uuids.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/correct-uuids.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/correct-uuids.html"
-          }
-        ],
         "mozilla/bluetooth/requestDevice/discovery-succeeds.html": [
           {
             "path": "mozilla/bluetooth/requestDevice/discovery-succeeds.html",

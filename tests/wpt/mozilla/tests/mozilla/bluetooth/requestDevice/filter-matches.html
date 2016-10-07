@@ -54,7 +54,6 @@ promise_test(() => {
         test_promises = test_promises
             .then(() => window.navigator.bluetooth.requestDevice(args))
             .then(device => {
-                //assert_in_array(matching_services[0], device.uuids);
                 assert_equals(device.name, matching_name);
                 assert_true(device.name.startsWith(matching_namePrefix));
             })
