@@ -152,6 +152,7 @@ impl Pipeline {
                 let new_layout_info = NewLayoutInfo {
                     parent_pipeline_id: parent_pipeline_id,
                     new_pipeline_id: state.id,
+                    frame_id: state.frame_id,
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     pipeline_port: pipeline_port,
@@ -203,6 +204,7 @@ impl Pipeline {
 
             let unprivileged_pipeline_content = UnprivilegedPipelineContent {
                 id: state.id,
+                frame_id: state.frame_id,
                 parent_info: state.parent_info,
                 constellation_chan: state.constellation_chan,
                 scheduler_chan: state.scheduler_chan,
@@ -348,7 +350,7 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     child_id: Option<PipelineId>,
+                                     child_id: Option<FrameId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -380,6 +382,7 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
+    frame_id: FrameId,
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -414,6 +417,7 @@ impl UnprivilegedPipelineContent {
     {
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
+            frame_id: self.frame_id,
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,

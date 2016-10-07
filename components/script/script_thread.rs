@@ -71,8 +71,9 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, PipelineId, PipelineNamespace, ReferrerPolicy};
-use net_traits::{CoreResourceMsg, IpcSend, Metadata, ResourceThreads};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace, ReferrerPolicy};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
+use net_traits::{IpcSend, LoadData as NetLoadData};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -135,6 +136,8 @@ pub unsafe fn trace_thread(tr: *mut JSTracer) {
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
+    /// The frame being loaded into.
+    frame_id: FrameId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<(PipelineId, FrameType)>,
     /// The current window size associated with this pipeline.
@@ -154,12 +157,14 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
+           frame_id: FrameId,
            parent_info: Option<(PipelineId, FrameType)>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
+            frame_id: frame_id,
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
@@ -452,15 +457,15 @@ impl ScriptThreadFactory for ScriptThread {
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
-        let pipeline_id = state.id;
         thread::spawn_named(format!("ScriptThread {:?}", state.id),
                             move || {
             thread_state::initialize(thread_state::SCRIPT);
-            PipelineId::install(pipeline_id);
+            PipelineId::install(state.id);
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;
+            let frame_id = state.frame_id;
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
@@ -474,7 +479,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-            let new_load = InProgressLoad::new(id, parent_info, layout_chan, window_size,
+            let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
                                                load_data.url.clone());
             script_thread.start_page_load(new_load, load_data);
 
@@ -888,8 +893,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::Navigate(parent_pipeline_id, pipeline_id, load_data, replace) =>
-                self.handle_navigate(parent_pipeline_id, Some(pipeline_id), load_data, replace),
+            ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace) =>
+                self.handle_navigate(parent_pipeline_id, Some(frame_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -902,22 +907,22 @@ impl ScriptThread {
                 self.handle_thaw_msg(pipeline_id),
             ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
                 self.handle_visibility_change_msg(pipeline_id, visible),
-            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, pipeline_id, visible) =>
-                self.handle_visibility_change_complete_msg(parent_pipeline_id, pipeline_id, visible),
+            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, frame_id, visible) =>
+                self.handle_visibility_change_complete_msg(parent_pipeline_id, frame_id, visible),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     pipeline_id,
+                                                     frame_id,
                                                      event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 pipeline_id,
+                                                 frame_id,
                                                  event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                      old_pipeline_id,
+                                                      frame_id,
                                                       new_pipeline_id) =>
                 self.handle_update_pipeline_id(parent_pipeline_id,
-                                               old_pipeline_id,
+                                               frame_id,
                                                new_pipeline_id),
-            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, pipeline_id) =>
-                self.handle_focus_iframe_msg(parent_pipeline_id, pipeline_id),
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
@@ -927,10 +932,10 @@ impl ScriptThread {
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
-                target: pipeline_id, parent: parent_pipeline_id } =>
-                self.handle_frame_load_event(parent_pipeline_id, pipeline_id),
-            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline_id) =>
-                self.handle_framed_content_changed(parent_pipeline_id, pipeline_id),
+                target: frame_id, parent: parent_pipeline_id } =>
+                self.handle_frame_load_event(parent_pipeline_id, frame_id),
+            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, frame_id) =>
+                self.handle_framed_content_changed(parent_pipeline_id, frame_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
@@ -1139,6 +1144,7 @@ impl ScriptThread {
         let NewLayoutInfo {
             parent_pipeline_id,
             new_pipeline_id,
+            frame_id,
             frame_type,
             load_data,
             pipeline_port,
@@ -1175,7 +1181,7 @@ impl ScriptThread {
                      .unwrap();
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((parent_pipeline_id, frame_type)),
+        let new_load = InProgressLoad::new(new_pipeline_id, frame_id, Some((parent_pipeline_id, frame_type)),
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -1259,7 +1265,7 @@ impl ScriptThread {
     }
 
     /// Updates iframe element after a change in visibility
-    fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: PipelineId, visible: bool) {
+    fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: FrameId, visible: bool) {
         if let Some(root_context) = self.browsing_context.get() {
             if let Some(ref inner_context) = root_context.find(parent_pipeline_id) {
                 if let Some(iframe) = inner_context.active_document().find_iframe(id) {
@@ -1328,12 +1334,12 @@ impl ScriptThread {
 
     fn handle_focus_iframe_msg(&self,
                                parent_pipeline_id: PipelineId,
-                               pipeline_id: PipelineId) {
+                               frame_id: FrameId) {
         let borrowed_context = self.root_browsing_context();
         let context = borrowed_context.find(parent_pipeline_id).unwrap();
 
         let doc = context.active_document();
-        let frame_element = doc.find_iframe(pipeline_id);
+        let frame_element = doc.find_iframe(frame_id);
 
         if let Some(ref frame_element) = frame_element {
             doc.begin_focus_transaction();
@@ -1344,11 +1350,11 @@ impl ScriptThread {
 
     fn handle_framed_content_changed(&self,
                                      parent_pipeline_id: PipelineId,
-                                     pipeline_id: PipelineId) {
+                                     frame_id: FrameId) {
         let root_context = self.root_browsing_context();
         let context = root_context.find(parent_pipeline_id).unwrap();
         let doc = context.active_document();
-        let frame_element = doc.find_iframe(pipeline_id);
+        let frame_element = doc.find_iframe(frame_id);
         if let Some(ref frame_element) = frame_element {
             frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = context.active_window();
@@ -1362,14 +1368,14 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   pipeline_id: Option<PipelineId>,
+                                   frame_id: Option<FrameId>,
                                    event: MozBrowserEvent) {
         match self.root_browsing_context().find(parent_pipeline_id) {
             None => warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
-            Some(context) => match pipeline_id {
+            Some(context) => match frame_id {
                 None => context.active_window().dispatch_mozbrowser_event(event),
-                Some(pipeline_id) => match context.active_document().find_iframe(pipeline_id) {
-                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, pipeline_id),
+                Some(frame_id) => match context.active_document().find_iframe(frame_id) {
+                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, frame_id),
                     Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
                 },
             },
@@ -1378,13 +1384,13 @@ impl ScriptThread {
 
     fn handle_update_pipeline_id(&self,
                                  parent_pipeline_id: PipelineId,
-                                 old_pipeline_id: PipelineId,
+                                 frame_id: FrameId,
                                  new_pipeline_id: PipelineId) {
         let borrowed_context = self.root_browsing_context();
 
         let frame_element = borrowed_context.find(parent_pipeline_id).and_then(|context| {
             let doc = context.active_document();
-            doc.find_iframe(old_pipeline_id)
+            doc.find_iframe(frame_id)
         });
 
         frame_element.unwrap().update_pipeline_id(new_pipeline_id);
@@ -1567,13 +1573,13 @@ impl ScriptThread {
     }
 
     /// Notify the containing document of a child frame that has completed loading.
-    fn handle_frame_load_event(&self, parent_pipeline_id: PipelineId, id: PipelineId) {
+    fn handle_frame_load_event(&self, parent_pipeline_id: PipelineId, id: FrameId) {
         let document = match self.root_browsing_context().find(parent_pipeline_id) {
             Some(browsing_context) => browsing_context.active_document(),
             None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
         };
         if let Some(iframe) = document.find_iframe(id) {
-            iframe.iframe_load_event_steps(id);
+            iframe.iframe_load_event_steps();
         }
     }
 
@@ -1609,7 +1615,7 @@ impl ScriptThread {
             root_context.and_then(|root_context| {
                 root_context.find(parent_id).and_then(|context| {
                     let doc = context.active_document();
-                    doc.find_iframe(incomplete.pipeline_id)
+                    doc.find_iframe(incomplete.frame_id)
                 })
             })
         });
@@ -2033,7 +2039,7 @@ impl ScriptThread {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, parent_pipeline_id: PipelineId,
-                              pipeline_id: Option<PipelineId>,
+                              frame_id: Option<FrameId>,
                               load_data: LoadData,
                               replace: bool) {
         // Step 7.
@@ -2053,12 +2059,12 @@ impl ScriptThread {
             }
         }
 
-        match pipeline_id {
-            Some(pipeline_id) => {
+        match frame_id {
+            Some(frame_id) => {
                 let root_context = self.root_browsing_context();
                 let iframe = root_context.find(parent_pipeline_id).and_then(|context| {
                     let doc = context.active_document();
-                    doc.find_iframe(pipeline_id)
+                    doc.find_iframe(frame_id)
                 });
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data), replace);
