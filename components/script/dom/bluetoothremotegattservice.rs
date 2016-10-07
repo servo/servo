@@ -62,6 +62,10 @@ impl BluetoothRemoteGATTService {
                            BluetoothRemoteGATTServiceBinding::Wrap)
     }
 
+    pub fn get_device(&self) -> Root<BluetoothDevice> {
+        self.device.get()
+    }
+
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
         self.global().as_window().bluetooth_thread()
     }
@@ -87,6 +91,11 @@ impl BluetoothRemoteGATTService {
         let characteristic = receiver.recv().unwrap();
         match characteristic {
             Ok(characteristic) => {
+                let context = self.device.get().get_context();
+                let mut characteristic_map = context.get_characteristic_map().borrow_mut();
+                if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
+                    return Ok(existing_characteristic.get());
+                }
                 let global = self.global();
                 let properties = BluetoothCharacteristicProperties::new(&global,
                                                                         characteristic.broadcast,
@@ -98,11 +107,13 @@ impl BluetoothRemoteGATTService {
                                                                         characteristic.authenticated_signed_writes,
                                                                         characteristic.reliable_write,
                                                                         characteristic.writable_auxiliaries);
-                Ok(BluetoothRemoteGATTCharacteristic::new(&global,
-                                                          self,
-                                                          DOMString::from(characteristic.uuid),
-                                                          &properties,
-                                                          characteristic.instance_id))
+                let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(&global,
+                                                                               self,
+                                                                               DOMString::from(characteristic.uuid),
+                                                                               &properties,
+                                                                               characteristic.instance_id.clone());
+                characteristic_map.insert(characteristic.instance_id, MutHeap::new(&bt_characteristic));
+                Ok(bt_characteristic)
             },
             Err(error) => {
                 Err(Error::from(error))
@@ -133,23 +144,35 @@ impl BluetoothRemoteGATTService {
         let characteristics_vec = receiver.recv().unwrap();
         match characteristics_vec {
             Ok(characteristic_vec) => {
+                let context = self.device.get().get_context();
+                let mut characteristic_map = context.get_characteristic_map().borrow_mut();
                 for characteristic in characteristic_vec {
-                    let global = self.global();
-                    let properties = BluetoothCharacteristicProperties::new(&global,
-                                                                            characteristic.broadcast,
-                                                                            characteristic.read,
-                                                                            characteristic.write_without_response,
-                                                                            characteristic.write,
-                                                                            characteristic.notify,
-                                                                            characteristic.indicate,
-                                                                            characteristic.authenticated_signed_writes,
-                                                                            characteristic.reliable_write,
-                                                                            characteristic.writable_auxiliaries);
-                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(&global,
-                                                                                self,
-                                                                                DOMString::from(characteristic.uuid),
-                                                                                &properties,
-                                                                                characteristic.instance_id));
+                    let bt_characteristic = match characteristic_map.get(&characteristic.instance_id) {
+                        Some(existing_characteristic) => existing_characteristic.get(),
+                        None => {
+                            let properties =
+                                BluetoothCharacteristicProperties::new(&self.global(),
+                                                                       characteristic.broadcast,
+                                                                       characteristic.read,
+                                                                       characteristic.write_without_response,
+                                                                       characteristic.write,
+                                                                       characteristic.notify,
+                                                                       characteristic.indicate,
+                                                                       characteristic.authenticated_signed_writes,
+                                                                       characteristic.reliable_write,
+                                                                       characteristic.writable_auxiliaries);
+
+                            BluetoothRemoteGATTCharacteristic::new(&self.global(),
+                                                                   self,
+                                                                   DOMString::from(characteristic.uuid),
+                                                                   &properties,
+                                                                   characteristic.instance_id.clone())
+                        },
+                    };
+                    if !characteristic_map.contains_key(&characteristic.instance_id) {
+                        characteristic_map.insert(characteristic.instance_id, MutHeap::new(&bt_characteristic));
+                    }
+                    characteristics.push(bt_characteristic);
                 }
                 Ok(characteristics)
             },
@@ -178,11 +201,18 @@ impl BluetoothRemoteGATTService {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(&self.global(),
-                                                   &self.device.get(),
-                                                   DOMString::from(service.uuid),
-                                                   service.is_primary,
-                                                   service.instance_id))
+                let context = self.device.get().get_context();
+                let mut service_map = context.get_service_map().borrow_mut();
+                if let Some(existing_service) = service_map.get(&service.instance_id) {
+                    return Ok(existing_service.get());
+                }
+                let bt_service = BluetoothRemoteGATTService::new(&self.global(),
+                                                                 &self.device.get(),
+                                                                 DOMString::from(service.uuid),
+                                                                 service.is_primary,
+                                                                 service.instance_id.clone());
+                service_map.insert(service.instance_id, MutHeap::new(&bt_service));
+                Ok(bt_service)
             },
             Err(error) => {
                 Err(Error::from(error))
@@ -212,15 +242,28 @@ impl BluetoothRemoteGATTService {
                                                     uuid,
                                                     sender)).unwrap();
         let services_vec = receiver.recv().unwrap();
+        let mut services = vec!();
         match services_vec {
             Ok(service_vec) => {
-                Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(&self.global(),
-                                                                             &self.device.get(),
-                                                                             DOMString::from(service.uuid),
-                                                                             service.is_primary,
-                                                                             service.instance_id))
-                              .collect())
+                let context = self.device.get().get_context();
+                let mut service_map = context.get_service_map().borrow_mut();
+                for service in service_vec {
+                    let bt_service = match service_map.get(&service.instance_id) {
+                        Some(existing_service) => existing_service.get(),
+                        None => {
+                            BluetoothRemoteGATTService::new(&self.global(),
+                                                            &self.device.get(),
+                                                            DOMString::from(service.uuid),
+                                                            service.is_primary,
+                                                            service.instance_id.clone())
+                        },
+                    };
+                    if !service_map.contains_key(&service.instance_id) {
+                        service_map.insert(service.instance_id, MutHeap::new(&bt_service));
+                    }
+                    services.push(bt_service);
+                }
+                Ok(services)
             },
             Err(error) => {
                 Err(Error::from(error))
