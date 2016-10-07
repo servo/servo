@@ -765,32 +765,6 @@ impl Element {
          self.attrs.borrow_mut().push(JS::from_ref(&attr));
     }
 
-    pub fn remove_inline_style_property(&self, property: &str) {
-        fn remove(element: &Element, property: &str) {
-            let mut inline_declarations = element.style_attribute.borrow_mut();
-            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-                let mut importance = None;
-                let index = declarations.read().declarations.iter().position(|&(ref decl, i)| {
-                    let matching = decl.matches(property);
-                    if matching {
-                        importance = Some(i)
-                    }
-                    matching
-                });
-                if let Some(index) = index {
-                    let mut declarations = declarations.write();
-                    declarations.declarations.remove(index);
-                    if importance.unwrap().important() {
-                        declarations.important_count -= 1;
-                    }
-                }
-            }
-        }
-
-        remove(self, property);
-        self.sync_property_with_attrs_style();
-    }
-
     pub fn update_inline_style(&self,
                                declarations: Vec<PropertyDeclaration>,
                                importance: Importance) {
