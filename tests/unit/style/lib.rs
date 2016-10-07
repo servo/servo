@@ -21,6 +21,7 @@ extern crate util;
 
 mod attr;
 mod cache;
+mod cgt_arena;
 mod logical_geometry;
 mod media_queries;
 mod owning_handle;

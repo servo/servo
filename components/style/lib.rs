@@ -100,6 +100,7 @@ pub mod attr;
 pub mod bezier;
 pub mod cache;
 pub mod cascade_info;
+pub mod cgt_arena;
 pub mod context;
 pub mod custom_properties;
 pub mod data;
