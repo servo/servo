@@ -15,6 +15,7 @@ set -o pipefail
 # "SKIP_TESTS", and thus won't run any.
 # Adding "--binary=" to skip looking for a compiled servo binary.
 ./mach test-wpt --manifest-update --binary= SKIP_TESTS > /dev/null
+./mach test-css --manifest-update --binary= SKIP_TESTS > /dev/null
 
 diff="$(git diff -- tests/*/MANIFEST.json)"
 echo "${diff}"
