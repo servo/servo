@@ -105,55 +105,24 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, mut property: DOMString) -> DOMString {
-        let owner = &self.owner;
-
-        // Step 1
-        property.make_ascii_lowercase();
-        let property = Atom::from(property);
-
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
+            property.make_ascii_lowercase();
+            let property = Atom::from(property);
             return self.get_computed_style(&property).unwrap_or(DOMString::new());
         }
 
-        // Step 2
-        if let Some(shorthand) = Shorthand::from_name(&property) {
-            let style_attribute = owner.style_attribute().borrow();
-            let style_attribute = if let Some(ref style_attribute) = *style_attribute {
-                style_attribute.read()
-            } else {
-                // shorthand.longhands() is never empty, so with no style attribute
-                // step 2.2.2 would do this:
-                return DOMString::new()
-            };
+        let style_attribute = self.owner.style_attribute().borrow();
+        let style_attribute = if let Some(ref style_attribute) = *style_attribute {
+            style_attribute.read()
+        } else {
+            // No style attribute is like an empty style attribute: no matching declaration.
+            return DOMString::new()
+        };
 
-            // Step 2.1
-            let mut list = vec![];
-
-            // Step 2.2
-            for longhand in shorthand.longhands() {
-                // Step 2.2.1
-                let declaration = style_attribute.get(longhand);
-
-                // Step 2.2.2 & 2.2.3
-                match declaration {
-                    Some(&(ref declaration, _importance)) => list.push(declaration),
-                    None => return DOMString::new(),
-                }
-            }
-
-            // Step 2.3
-            // TODO: important is hardcoded to false because method does not implement it yet
-            let serialized_value = shorthand.serialize_shorthand_value_to_string(
-                list, Importance::Normal);
-            return DOMString::from(serialized_value);
-        }
-
-        // Step 3 & 4
-        owner.get_inline_style_declaration(&property, |d| match d {
-            Some(declaration) => DOMString::from(declaration.0.value()),
-            None => DOMString::new(),
-        })
+        let mut string = DOMString::new();
+        style_attribute.property_value_to_css(&property, &mut string).unwrap();
+        string
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority

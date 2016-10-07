@@ -222,6 +222,18 @@ impl fmt::Display for DOMString {
     }
 }
 
+impl fmt::Write for DOMString {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.0.write_str(s)
+    }
+
+    #[inline]
+    fn write_char(&mut self, c: char) -> fmt::Result {
+        self.0.write_char(c)
+    }
+}
+
 impl PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
         &**self == other
