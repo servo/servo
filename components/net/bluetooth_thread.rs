@@ -96,8 +96,8 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
     }
 
     // Step 1.
-    if !filter.get_name().is_empty() {
-        if device.get_name().ok() != Some(filter.get_name().to_string()) {
+    if let Some(name) = filter.get_name() {
+        if device.get_name().ok() != Some(name.to_string()) {
             return false;
         }
     }
