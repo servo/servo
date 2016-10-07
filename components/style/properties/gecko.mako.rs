@@ -5,7 +5,7 @@
 // `data` comes from components/style/properties.mako.rs; see build.rs for more details.
 
 <%!
-    from data import to_rust_ident
+    from data import to_camel_case, to_rust_ident
     from data import Keyword
 %>
 
@@ -212,14 +212,15 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, style='snake')">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-            Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
+                <% new_val = to_rust_ident(value) if style == 'snake' else to_camel_case(value) if style == 'camel' else value %>
+                Keyword::${new_val} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
@@ -278,8 +279,8 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone)">
-<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword)"></%call>
+<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, style='snake')">
+<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, style)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
 <%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword)"></%call>
@@ -1441,6 +1442,17 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
+
+</%self:impl_trait>
+
+
+<%self:impl_trait style_struct_name="InheritedBox"
+                  skip_longhands="image-rendering">
+
+    <% render_keyword = Keyword("image-rendering",
+                                "auto optimizeQuality optimizeSpeed crispEdges") %>
+
+    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False, style='camel')}
 
 </%self:impl_trait>
 
