@@ -16,8 +16,6 @@
 
 # TODO: keep comments in the tree
 
-from __future__ import unicode_literals
-
 import types
 from cStringIO import StringIO
 
@@ -50,9 +48,8 @@ atoms = {"True": True,
          "False": False,
          "Reset": object()}
 
-def decode(s):
-    assert isinstance(s, unicode)
-    return s
+def decode(byte_str):
+    return byte_str.decode("utf8")
 
 
 def precedence(operator_node):
@@ -477,7 +474,7 @@ class Tokenizer(object):
             value += self.escape_value(c)
             self.consume()
 
-        return unichr(value)
+        return unichr(value).encode("utf8")
 
     def escape_value(self, c):
         if '0' <= c <= '9':
