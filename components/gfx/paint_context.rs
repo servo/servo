@@ -222,8 +222,8 @@ impl<'a> PaintContext<'a> {
         // conforming implementation of `crisp-edges`, but it is not the best we could do.
         // Something like Scale2x would be ideal.
         let draw_surface_filter = match image_rendering {
-            image_rendering::T::Auto => Filter::Linear,
-            image_rendering::T::CrispEdges | image_rendering::T::Pixelated => Filter::Point,
+            image_rendering::T::auto => Filter::Linear,
+            image_rendering::T::crispedges | image_rendering::T::pixelated => Filter::Point,
         };
 
         let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);

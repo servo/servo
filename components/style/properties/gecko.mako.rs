@@ -213,14 +213,15 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-            Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
+                Keyword::${to_rust_ident(value)} =>
+                    structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
@@ -279,8 +280,8 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone)">
-<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword)"></%call>
+<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, **kwargs)">
+<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, **kwargs)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
 <%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword)"></%call>
@@ -791,23 +792,13 @@ fn static_assert() {
         Au(self.gecko.mSize)
     }
 
-    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
-        use computed_values::font_stretch::T;
+    <% stretch_keyword = Keyword("font-stretch",
+                                 "normal ultra-condensed extra-condensed condensed " +
+                                 "semi-condensed semi-expanded expanded " +
+                                 "extra-expanded ultra-expanded",
+                                 gecko_constant_prefix='NS_FONT_STRETCH') %>
 
-        self.gecko.mFont.stretch = match v {
-            T::normal => structs::NS_FONT_STRETCH_NORMAL as i16,
-            T::ultra_condensed => structs::NS_FONT_STRETCH_ULTRA_CONDENSED as i16,
-            T::extra_condensed => structs::NS_FONT_STRETCH_EXTRA_CONDENSED as i16,
-            T::condensed => structs::NS_FONT_STRETCH_CONDENSED as i16,
-            T::semi_condensed => structs::NS_FONT_STRETCH_SEMI_CONDENSED as i16,
-            T::semi_expanded => structs::NS_FONT_STRETCH_SEMI_EXPANDED as i16,
-            T::expanded => structs::NS_FONT_STRETCH_EXPANDED as i16,
-            T::extra_expanded => structs::NS_FONT_STRETCH_EXTRA_EXPANDED as i16,
-            T::ultra_expanded => structs::NS_FONT_STRETCH_ULTRA_EXPANDED as i16,
-        };
-    }
-
-    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
+    ${impl_keyword('font_stretch', 'mFont.stretch', stretch_keyword, need_clone=False, cast_type='i16')}
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
@@ -1442,6 +1433,17 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
+
+</%self:impl_trait>
+
+
+<%self:impl_trait style_struct_name="InheritedBox"
+                  skip_longhands="image-rendering">
+
+    <% render_keyword = Keyword("image-rendering",
+                                "auto optimizequality optimizespeed crispedges") %>
+
+    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False)}
 
 </%self:impl_trait>
 

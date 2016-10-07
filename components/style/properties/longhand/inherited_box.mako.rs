@@ -40,25 +40,36 @@ ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
                          animatable=False)}
 
-<%helpers:longhand name="image-rendering" products="servo" animatable="False">
+<%helpers:longhand name="image-rendering" animatable="False">
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
 
+        #[allow(non_camel_case_types)]
         #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum T {
-            Auto,
-            CrispEdges,
-            Pixelated,
+            auto,
+            crispedges,
+            % if product == "gecko":
+                optimizequality,
+                optimizespeed,
+            % else:
+                pixelated,  // firefox doesn't support it (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
+            % endif
         }
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    T::Auto => dest.write_str("auto"),
-                    T::CrispEdges => dest.write_str("crisp-edges"),
-                    T::Pixelated => dest.write_str("pixelated"),
+                    T::auto => dest.write_str("auto"),
+                    T::crispedges => dest.write_str("crisp-edges"),
+                    % if product == "gecko":
+                        T::optimizequality => dest.write_str("optimizeQuality"),
+                        T::optimizespeed => dest.write_str("optimizeSpeed"),
+                    % else:
+                        T::pixelated => dest.write_str("pixelated"),
+                    % endif
                 }
             }
         }
@@ -71,7 +82,7 @@ ${helpers.single_keyword("color-adjust",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
+        computed_value::T::auto
     }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -79,11 +90,16 @@ ${helpers.single_keyword("color-adjust",
         // `auto`.
         match_ignore_ascii_case! {
             try!(input.expect_ident()),
-            "auto" => Ok(computed_value::T::Auto),
-            "optimizespeed" => Ok(computed_value::T::Auto),
-            "optimizequality" => Ok(computed_value::T::Auto),
-            "crisp-edges" => Ok(computed_value::T::CrispEdges),
-            "pixelated" => Ok(computed_value::T::Pixelated),
+            "auto" => Ok(computed_value::T::auto),
+            "crisp-edges" => Ok(computed_value::T::crispedges),
+            % if product == "gecko":
+                "optimizequality" => Ok(computed_value::T::optimizequality),
+                "optimizespeed" => Ok(computed_value::T::optimizespeed),
+            % else:
+                "optimizequality" => Ok(computed_value::T::auto),
+                "optimizespeed" => Ok(computed_value::T::auto),
+                "pixelated" => Ok(computed_value::T::pixelated),
+            % endif
             _ => Err(())
         }
     }
