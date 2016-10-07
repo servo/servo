@@ -66,8 +66,8 @@ COMPILATION_TARGETS = {
             }
         },
         "raw_lines": [
-            # We can get rid of this when the bindings move into the style crate.
-            "pub enum OpaqueStyleData {}",
+            "use atomic_refcell::AtomicRefCell;",
+            "use data::NodeData;",
             "pub use nsstring::nsStringRepr as nsString;"
         ],
         "blacklist_types": ["nsString"],
@@ -229,7 +229,7 @@ COMPILATION_TARGETS = {
             }, {
                 "generic": False,
                 "gecko": "ServoNodeData",
-                "servo": "OpaqueStyleData"
+                "servo": "AtomicRefCell<NodeData>",
             }
         ],
     },

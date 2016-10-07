@@ -253,7 +253,7 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong {
     let node = GeckoNode(node);
-    let arc_cv = match node.get_existing_style() {
+    let arc_cv = match node.get_current_style() {
         Some(style) => style,
         None => {
             // FIXME(bholley): This case subverts the intended semantics of this
