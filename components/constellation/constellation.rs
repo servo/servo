@@ -16,6 +16,8 @@ use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
+use debugger;
+use debugger::shutdown_server;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -25,7 +27,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
-use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId, ScriptThreadId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use msg::constellation_msg::WindowSizeType;
@@ -114,6 +116,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
 
+    /// A channel through which messages can be sent to the debugger.
+    debugger_chan: Option<debugger::Sender>,
+
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
@@ -128,6 +133,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// to receive sw manager message
     swmanager_receiver: Receiver<SWManagerMsg>,
+
+    /// A list of all the script threads.
+    script_threads: HashMap<ScriptThreadId, IpcSender<ConstellationControlMsg>>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -194,6 +202,8 @@ pub struct Constellation<Message, LTF, STF> {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+    /// A channel to the debugger, if applicable.
+    pub debugger_chan: Option<debugger::Sender>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
@@ -483,6 +493,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
                 compositor_proxy: state.compositor_proxy,
+                debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
@@ -492,6 +503,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 swmanager_chan: None,
                 swmanager_receiver: swmanager_receiver,
                 swmanager_sender: sw_mgr_clone,
+                script_threads: HashMap::new(),
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pending_frames: vec!(),
@@ -606,6 +618,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         if let Some(child_process) = child_process {
             self.child_processes.push(child_process);
+
+            let script_thread_id = ScriptThreadId::new();
+            self.script_threads.insert(script_thread_id, pipeline.script_chan.clone());
+
+            if let Some(ref debugger_chan) = self.debugger_chan {
+                debugger::script_thread_added(debugger_chan, script_thread_id);
+            }
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
@@ -1051,6 +1070,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Exiting core resource threads.");
         if let Err(e) = self.public_resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
+        }
+
+        if let Some(ref chan) = self.debugger_chan {
+            shutdown_server(chan);
         }
 
         if let Some(ref chan) = self.devtools_chan {

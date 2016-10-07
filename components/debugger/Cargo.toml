@@ -11,5 +11,7 @@ path = "lib.rs"
 crate_type = ["rlib"]
 
 [dependencies]
-util = { path = "../util" }
-websocket = "0.17.1"
+log = "0.3.5"
+msg = {path = "../msg"}
+util = {path = "../util"}
+ws = "0.5.3"
