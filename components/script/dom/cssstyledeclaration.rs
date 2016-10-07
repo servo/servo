@@ -126,34 +126,20 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, mut property: DOMString) -> DOMString {
-        // Step 1
-        property.make_ascii_lowercase();
-        let property = Atom::from(property);
-
-        // Step 2
-        if let Some(shorthand) = Shorthand::from_name(&property) {
-            // Step 2.1 & 2.2 & 2.3
-            if shorthand.longhands().iter()
-                                    .map(|&longhand| self.GetPropertyPriority(DOMString::from(longhand)))
-                                    .all(|priority| priority == "important") {
-                return DOMString::from("important");
-            }
+        let style_attribute = self.owner.style_attribute().borrow();
+        let style_attribute = if let Some(ref style_attribute) = *style_attribute {
+            style_attribute.read()
         } else {
-            // Step 3
-            return self.owner.get_inline_style_declaration(&property, |d| {
-                if let Some(decl) = d {
-                    if decl.1.important() {
-                        return DOMString::from("important");
-                    }
-                }
+            // No style attribute is like an empty style attribute: no matching declaration.
+            return DOMString::new()
+        };
 
-                // Step 4
-                DOMString::new()
-            })
+        if style_attribute.property_priority(&property).important() {
+            DOMString::from("important")
+        } else {
+            // Step 4
+            DOMString::new()
         }
-
-        // Step 4
-        DOMString::new()
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
