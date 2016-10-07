@@ -42,6 +42,7 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
+use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, LoadData, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -235,7 +236,7 @@ impl HTMLIFrameElement {
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        assert_eq!(loaded_pipeline, self.pipeline_id().unwrap());
+        if Some(loaded_pipeline) != self.pipeline_id() { return; }
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
@@ -268,13 +269,16 @@ impl HTMLIFrameElement {
     }
 
     pub fn get_content_window(&self) -> Option<Root<Window>> {
-        self.pipeline_id.get().and_then(|pipeline_id| {
-            let window = window_from_node(self);
-            let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_id(pipeline_id)
-        })
+        self.pipeline_id.get()
+            .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
+            .and_then(|document| {
+                if self.global().get_url().origin() == document.global().get_url().origin() {
+                    Some(Root::from_ref(document.window()))
+                } else {
+                    None
+                }
+            })
     }
-
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
