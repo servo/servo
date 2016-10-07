@@ -96,10 +96,17 @@ impl BluetoothRemoteGATTCharacteristic {
         let descriptor = receiver.recv().unwrap();
         match descriptor {
             Ok(descriptor) => {
-                Ok(BluetoothRemoteGATTDescriptor::new(&self.global(),
-                                                      self,
-                                                      DOMString::from(descriptor.uuid),
-                                                      descriptor.instance_id))
+                let context = self.service.get().get_device().get_context();
+                let mut descriptor_map = context.get_descriptor_map().borrow_mut();
+                if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
+                    return Ok(existing_descriptor.get());
+                }
+                let bt_descriptor = BluetoothRemoteGATTDescriptor::new(&self.global(),
+                                                                       self,
+                                                                       DOMString::from(descriptor.uuid),
+                                                                       descriptor.instance_id.clone());
+                descriptor_map.insert(descriptor.instance_id, MutHeap::new(&bt_descriptor));
+                Ok(bt_descriptor)
             },
             Err(error) => {
                 Err(Error::from(error))
@@ -123,18 +130,31 @@ impl BluetoothRemoteGATTCharacteristic {
         if !self.Service().Device().Gatt().Connected() {
             return Err(Network)
         }
+        let mut descriptors = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptors(self.get_instance_id(), uuid, sender)).unwrap();
         let descriptors_vec = receiver.recv().unwrap();
         match descriptors_vec {
             Ok(descriptor_vec) => {
-                Ok(descriptor_vec.into_iter()
-                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(&self.global(),
-                                                                                self,
-                                                                                DOMString::from(desc.uuid),
-                                                                                desc.instance_id))
-                                 .collect())
+                let context = self.service.get().get_device().get_context();
+                let mut descriptor_map = context.get_descriptor_map().borrow_mut();
+                for descriptor in descriptor_vec {
+                    let bt_descriptor = match descriptor_map.get(&descriptor.instance_id) {
+                        Some(existing_descriptor) => existing_descriptor.get(),
+                        None => {
+                            BluetoothRemoteGATTDescriptor::new(&self.global(),
+                                                               self,
+                                                               DOMString::from(descriptor.uuid),
+                                                               descriptor.instance_id.clone())
+                        },
+                    };
+                    if !descriptor_map.contains_key(&descriptor.instance_id) {
+                        descriptor_map.insert(descriptor.instance_id, MutHeap::new(&bt_descriptor));
+                    }
+                    descriptors.push(bt_descriptor);
+                }
+                Ok(descriptors)
             },
             Err(error) => {
                 Err(Error::from(error))
