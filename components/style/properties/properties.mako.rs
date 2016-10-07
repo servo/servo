@@ -44,7 +44,7 @@ pub use self::declaration_block::*;
     import os.path
 %>
 
-#[path="${os.path.join(os.path.dirname(__file__), 'declaration_block.rs')}"]
+#[path="${repr(os.path.join(os.path.dirname(__file__), 'declaration_block.rs'))[1:-1]}"]
 pub mod declaration_block;
 
 pub mod longhands {
