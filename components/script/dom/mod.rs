@@ -276,6 +276,7 @@ pub mod filereadersync;
 pub mod focusevent;
 pub mod forcetouchevent;
 pub mod formdata;
+pub mod globalscope;
 pub mod hashchangeevent;
 pub mod headers;
 pub mod history;

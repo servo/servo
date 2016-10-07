@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
@@ -31,7 +31,7 @@ impl ServiceWorkerContainer {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<ServiceWorkerContainer> {
+    pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
         reflect_dom_object(box ServiceWorkerContainer::new_inherited(), global, Wrap)
     }
 }
@@ -58,8 +58,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 script_url: USVString,
                 options: &RegistrationOptions) -> Fallible<Root<ServiceWorkerRegistration>> {
         let USVString(ref script_url) = script_url;
+        let api_base_url = self.global().api_base_url();
         // Step 3-4
-        let script_url = match self.global().r().api_base_url().join(script_url) {
+        let script_url = match api_base_url.join(script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Type("Invalid script URL".to_owned()))
         };
@@ -77,7 +78,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         let scope = match options.scope {
             Some(ref scope) => {
                 let &USVString(ref inner_scope) = scope;
-                match self.global().r().api_base_url().join(inner_scope) {
+                match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => return Err(Error::Type("Invalid scope URL".to_owned()))
                 }
@@ -95,11 +96,12 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return Err(Error::Type("Scope URL contains forbidden characters".to_owned()));
         }
 
-        let worker_registration = ServiceWorkerRegistration::new(self.global().r(),
+        let global = self.global();
+        let worker_registration = ServiceWorkerRegistration::new(&global,
                                                                  script_url,
                                                                  scope.clone(),
                                                                  self);
-        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
+        ScriptThread::set_registration(scope, &*worker_registration, global.pipeline_id());
         Ok(worker_registration)
     }
 }

@@ -7,9 +7,9 @@ use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::globalscope::GlobalScope;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
@@ -60,7 +60,7 @@ impl WebGLTexture {
         }
     }
 
-    pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLTexture>> {
         let (sender, receiver) = ipc::channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
@@ -69,7 +69,7 @@ impl WebGLTexture {
         result.map(|texture_id| WebGLTexture::new(global, renderer, texture_id))
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLTextureId)
                -> Root<WebGLTexture> {

@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsC
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
@@ -36,7 +35,7 @@ impl HTMLOptionsCollection {
         -> Root<HTMLOptionsCollection>
     {
         reflect_dom_object(box HTMLOptionsCollection::new_inherited(root, filter),
-                           GlobalRef::Window(window),
+                           window,
                            HTMLOptionsCollectionBinding::Wrap)
     }
 

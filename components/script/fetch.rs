@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::Response
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::Error;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::Reflectable;
+use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
 use dom::promise::Promise;
 use dom::request::Request;
@@ -66,7 +66,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+pub fn Fetch(global: &GlobalScope, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
@@ -76,7 +76,7 @@ pub fn Fetch(global: GlobalRef, input: RequestOrUSVString, init: &RequestInit) -
     // Step 2
     let request = match Request::Constructor(global, input, init) {
         Err(e) => {
-            promise.reject_error(promise.global().r().get_cx(), e);
+            promise.reject_error(promise.global().get_cx(), e);
             return promise;
         },
         Ok(r) => r.get_request(),
@@ -124,13 +124,13 @@ impl FetchResponseListener for FetchContext {
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
-        let promise_cx = promise.global().r().get_cx();
+        let promise_cx = promise.global().get_cx();
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
                 promise.reject_error(
-                    promise.global().r().get_cx(),
+                    promise.global().get_cx(),
                     Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 return;

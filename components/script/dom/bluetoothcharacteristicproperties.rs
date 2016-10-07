@@ -5,9 +5,9 @@
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
  #[dom_struct]
@@ -49,7 +49,7 @@ impl BluetoothCharacteristicProperties {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                broadcast: bool,
                read: bool,
                writeWithoutResponse: bool,

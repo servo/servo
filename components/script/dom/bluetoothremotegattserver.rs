@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{self, Security};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -16,6 +15,7 @@ use dom::bluetooth::result_to_promise;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -39,16 +39,14 @@ impl BluetoothRemoteGATTServer {
         }
     }
 
-    pub fn new(global: GlobalRef, device: &BluetoothDevice) -> Root<BluetoothRemoteGATTServer> {
+    pub fn new(global: &GlobalScope, device: &BluetoothDevice) -> Root<BluetoothRemoteGATTServer> {
         reflect_dom_object(box BluetoothRemoteGATTServer::new_inherited(device),
-        global,
-        BluetoothRemoteGATTServerBinding::Wrap)
+                           global,
+                           BluetoothRemoteGATTServerBinding::Wrap)
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        global_ref.as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
@@ -80,7 +78,7 @@ impl BluetoothRemoteGATTServer {
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(self.global().r(),
+                Ok(BluetoothRemoteGATTService::new(&self.global(),
                                                    &self.device.get(),
                                                    DOMString::from(service.uuid),
                                                    service.is_primary,
@@ -112,7 +110,7 @@ impl BluetoothRemoteGATTServer {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                              .map(|service| BluetoothRemoteGATTService::new(&self.global(),
                                                                              &self.device.get(),
                                                                              DOMString::from(service.uuid),
                                                                              service.is_primary,
@@ -140,7 +138,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.connect())
+        result_to_promise(&self.global(), self.connect())
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
@@ -163,7 +161,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_primary_service(service))
+        result_to_promise(&self.global(), self.get_primary_service(service))
     }
 
     #[allow(unrooted_must_root)]
@@ -171,6 +169,6 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     fn GetPrimaryServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.get_primary_services(service))
+        result_to_promise(&self.global(), self.get_primary_services(service))
     }
 }

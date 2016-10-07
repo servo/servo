@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -13,6 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
@@ -27,7 +27,7 @@ pub struct ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn new(global: GlobalRef, type_: Atom,
+    pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<ExtendableMessageEvent> {
@@ -46,12 +46,13 @@ impl ExtendableMessageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
                        -> Fallible<Root<ExtendableMessageEvent>> {
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = ExtendableMessageEvent::new(global, Atom::from(type_),
+        let ev = ExtendableMessageEvent::new(global,
+                                             Atom::from(type_),
                                              init.parent.parent.bubbles,
                                              init.parent.parent.cancelable,
                                              data.handle(),
@@ -63,7 +64,7 @@ impl ExtendableMessageEvent {
 
 impl ExtendableMessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
-                          scope: GlobalRef,
+                          scope: &GlobalScope,
                           message: HandleValue) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope, atom!("message"), false, false, message,

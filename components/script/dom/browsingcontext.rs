@@ -4,6 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
@@ -12,6 +13,7 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -150,7 +152,7 @@ impl BrowsingContext {
     pub fn find_child_by_id(&self, pipeline_id: PipelineId) -> Option<Root<Window>> {
         self.children.borrow().iter().find(|context| {
             let window = context.active_window();
-            window.pipeline_id() == pipeline_id
+            window.upcast::<GlobalScope>().pipeline_id() == pipeline_id
         }).map(|context| context.active_window())
     }
 

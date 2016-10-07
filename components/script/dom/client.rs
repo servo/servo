@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, Wrap};
 use dom::bindings::codegen::Bindings::ClientBinding::FrameType;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::JS;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -36,7 +35,9 @@ impl Client {
     }
 
     pub fn new(window: &Window) -> Root<Client> {
-        reflect_dom_object(box Client::new_inherited(window.get_url()), GlobalRef::Window(window), Wrap)
+        reflect_dom_object(box Client::new_inherited(window.get_url()),
+                           window,
+                           Wrap)
     }
 }
 

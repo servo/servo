@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventRunnable, SimpleEventRunnable};
 use dom::eventtarget::EventTarget;
@@ -41,7 +41,7 @@ impl DOMManipulationTaskSource {
             bubbles: bubbles,
             cancelable: cancelable,
         };
-        let _ = self.queue(runnable, GlobalRef::Window(window));
+        let _ = self.queue(runnable, window.upcast());
     }
 
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
@@ -50,7 +50,7 @@ impl DOMManipulationTaskSource {
             target: target,
             name: name,
         };
-        let _ = self.queue(runnable, GlobalRef::Window(window));
+        let _ = self.queue(runnable, window.upcast());
     }
 }
 

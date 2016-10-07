@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::RootedReference;
@@ -21,6 +20,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::EventStatus;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -242,7 +242,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
             _ => CredentialsMode::Include,
         },
         origin: doc.url().clone(),
-        pipeline_id: Some(script.global().r().pipeline_id()),
+        pipeline_id: Some(script.global().pipeline_id()),
         referrer_url: Some(doc.url().clone()),
         referrer_policy: doc.get_referrer_policy(),
         .. RequestInit::default()
@@ -504,7 +504,7 @@ impl HTMLScriptElement {
         // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        GlobalRef::Window(&window).evaluate_script_on_global_with_result(
+        window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
             &script.text, script.url.as_str(), rval.handle_mut());
 
         // Step 6.
@@ -604,7 +604,7 @@ impl HTMLScriptElement {
                       cancelable: EventCancelable) -> EventStatus {
         let window = window_from_node(self);
         let window = window.r();
-        let event = Event::new(GlobalRef::Window(window), type_, bubbles, cancelable);
+        let event = Event::new(window.upcast(), type_, bubbles, cancelable);
         event.fire(self.upcast())
     }
 }

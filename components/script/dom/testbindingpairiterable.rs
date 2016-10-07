@@ -8,11 +8,11 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding;
 use dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct TestBindingPairIterable {
@@ -35,14 +35,14 @@ impl Iterable for TestBindingPairIterable {
 }
 
 impl TestBindingPairIterable {
-    fn new(global: GlobalRef) -> Root<TestBindingPairIterable> {
+    fn new(global: &GlobalScope) -> Root<TestBindingPairIterable> {
         reflect_dom_object(box TestBindingPairIterable {
             reflector: Reflector::new(),
             map: DOMRefCell::new(vec![]),
         }, global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBindingPairIterable>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TestBindingPairIterable>> {
         Ok(TestBindingPairIterable::new(global))
     }
 }

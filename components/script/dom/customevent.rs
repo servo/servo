@@ -6,12 +6,12 @@ use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use string_cache::Atom;
@@ -32,12 +32,12 @@ impl CustomEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<CustomEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<CustomEvent> {
         reflect_dom_object(box CustomEvent::new_inherited(),
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -47,8 +47,9 @@ impl CustomEvent {
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
+
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit)
                        -> Fallible<Root<CustomEvent>> {

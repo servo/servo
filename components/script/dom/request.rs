@@ -17,10 +17,10 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
@@ -51,7 +51,7 @@ pub struct Request {
 }
 
 impl Request {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      url: Url,
                      is_service_worker_global_scope: bool) -> Request {
         Request {
@@ -67,7 +67,7 @@ impl Request {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                url: Url,
                is_service_worker_global_scope: bool) -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(global,
@@ -77,7 +77,7 @@ impl Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
                        init: &RequestInit)
                        -> Fallible<Root<Request>> {
@@ -130,7 +130,7 @@ impl Request {
 
         // Step 7
         // TODO: `entry settings object` is not implemented yet.
-        let origin = global.get_url().origin();
+        let origin = base_url.origin();
 
         // Step 8
         let mut window = Window::Client;
@@ -305,7 +305,7 @@ impl Request {
         let r = Request::from_net_request(global,
                                           false,
                                           request);
-        r.headers.or_init(|| Headers::for_request(r.global().r()));
+        r.headers.or_init(|| Headers::for_request(&r.global()));
 
         // Step 27
         let mut headers_copy = r.Headers();
@@ -412,7 +412,7 @@ impl Request {
 }
 
 impl Request {
-    fn from_net_request(global: GlobalRef,
+    fn from_net_request(global: &GlobalScope,
                         is_service_worker_global_scope: bool,
                         net_request: NetTraitsRequest) -> Root<Request> {
         let r = Request::new(global,
@@ -429,11 +429,7 @@ impl Request {
         let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
-        let r_clone = reflect_dom_object(
-            box Request::new_inherited(r.global().r(),
-                                       url,
-                                       is_service_worker_global_scope),
-            r.global().r(), RequestBinding::Wrap);
+        let r_clone = Request::new(&r.global(), url, is_service_worker_global_scope);
         r_clone.request.borrow_mut().pipeline_id.set(req.pipeline_id.get());
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();
@@ -451,7 +447,7 @@ impl Request {
     }
 }
 
-fn net_request_from_global(global: GlobalRef,
+fn net_request_from_global(global: &GlobalScope,
                            url: Url,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
@@ -553,7 +549,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers.or_init(|| Headers::new(self.global().r()))
+        self.headers.or_init(|| Headers::new(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type

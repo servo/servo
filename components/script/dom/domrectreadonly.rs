@@ -4,9 +4,9 @@
 
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectReadOnlyMethods, Wrap};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -29,7 +29,7 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                x: f64,
                y: f64,
                width: f64,
@@ -40,7 +40,7 @@ impl DOMRectReadOnly {
                            Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        x: f64,
                        y: f64,
                        width: f64,

@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, ErrorInfo};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -21,6 +20,7 @@ use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
@@ -61,7 +61,7 @@ impl Worker {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                closing: Arc<AtomicBool>) -> Root<Worker> {
         reflect_dom_object(box Worker::new_inherited(sender, closing),
@@ -71,7 +71,7 @@ impl Worker {
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
+    pub fn Constructor(global: &GlobalScope, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
@@ -128,12 +128,12 @@ impl Worker {
             return;
         }
 
-        let global = worker.r().global();
+        let global = worker.global();
         let target = worker.upcast();
-        let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
-        rooted!(in(global.r().get_cx()) let mut message = UndefinedValue());
-        data.read(global.r(), message.handle_mut());
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        rooted!(in(global.get_cx()) let mut message = UndefinedValue());
+        data.read(&global, message.handle_mut());
+        MessageEvent::dispatch_jsval(target, &global, message.handle());
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
@@ -144,7 +144,7 @@ impl Worker {
     #[allow(unsafe_code)]
     fn dispatch_error(&self, error_info: ErrorInfo) {
         let global = self.global();
-        let event = ErrorEvent::new(global.r(),
+        let event = ErrorEvent::new(&global,
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable,
@@ -159,7 +159,7 @@ impl Worker {
             return;
         }
 
-        global.r().report_an_error(error_info, unsafe { NullHandleValue });
+        global.report_an_error(error_info, unsafe { NullHandleValue });
     }
 }
 

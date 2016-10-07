@@ -15,9 +15,9 @@ use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
+use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
@@ -61,7 +61,7 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        let cx = self.global().r().get_cx();
+        let cx = self.global().get_cx();
         unsafe {
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
@@ -70,7 +70,7 @@ impl Drop for Promise {
 
 impl Promise {
     #[allow(unsafe_code)]
-    pub fn new(global: GlobalRef) -> Rc<Promise> {
+    pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut());
         unsafe {
@@ -81,7 +81,7 @@ impl Promise {
 
     #[allow(unsafe_code, unrooted_must_root)]
     pub fn duplicate(&self) -> Rc<Promise> {
-        let cx = self.global().r().get_cx();
+        let cx = self.global().get_cx();
         unsafe {
             Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
         }
@@ -112,7 +112,7 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn Resolve(global: GlobalRef,
+    pub fn Resolve(global: &GlobalScope,
                    cx: *mut JSContext,
                    value: HandleValue) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
@@ -124,7 +124,7 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn Reject(global: GlobalRef,
+    pub fn Reject(global: &GlobalScope,
                   cx: *mut JSContext,
                   value: HandleValue) -> Fallible<Rc<Promise>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
@@ -166,7 +166,7 @@ impl Promise {
     pub fn reject_error(&self, cx: *mut JSContext, error: Error) {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            error.to_jsval(cx, self.global().r(), v.handle_mut());
+            error.to_jsval(cx, &self.global(), v.handle_mut());
         }
         self.reject(cx, v.handle());
     }
@@ -210,8 +210,7 @@ impl Promise {
 
     #[allow(unsafe_code)]
     pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
-        let global = self.global();
-        let cx = global.r().get_cx();
+        let cx = self.global().get_cx();
         rooted!(in(cx) let resolve_func =
                 create_native_handler_function(cx,
                                                handler.reflector().get_jsobject(),

@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
+use dom::globalscope::GlobalScope;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
@@ -35,7 +35,7 @@ impl BluetoothDevice {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                id: DOMString,
                name: Option<DOMString>,
                adData: &BluetoothAdvertisingData)
@@ -66,6 +66,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
     fn Gatt(&self) -> Root<BluetoothRemoteGATTServer> {
-        self.gatt.or_init(|| BluetoothRemoteGATTServer::new(self.global().r(), self))
+        self.gatt.or_init(|| {
+            BluetoothRemoteGATTServer::new(&self.global(), self)
+        })
     }
 }

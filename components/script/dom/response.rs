@@ -10,10 +10,10 @@ use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
+use dom::globalscope::GlobalScope;
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
 use dom::promise::Promise;
@@ -66,11 +66,11 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: GlobalRef) -> Root<Response> {
+    pub fn new(global: &GlobalScope) -> Root<Response> {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
+    pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
                        -> Fallible<Root<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
@@ -138,7 +138,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: GlobalRef) -> Root<Response> {
+    pub fn Error(global: &GlobalScope) -> Root<Response> {
         let r = Response::new(global);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
@@ -147,7 +147,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: GlobalRef, url: USVString, status: u16) -> Fallible<Root<Response>> {
+    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<Root<Response>> {
         // Step 1
         // TODO: `entry settings object` is not implemented in Servo yet.
         let base_url = global.get_url();
@@ -292,7 +292,7 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::for_response(self.global().r()))
+        self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
@@ -301,7 +301,7 @@ impl ResponseMethods for Response {
         // TODO: This step relies on body and stream, which are still unimplemented.
 
         // Step 2
-        let new_response = Response::new(self.global().r());
+        let new_response = Response::new(&self.global());
         new_response.Headers().set_guard(self.Headers().get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone

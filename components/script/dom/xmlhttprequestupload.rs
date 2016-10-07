@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::globalscope::GlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[dom_struct]
@@ -19,7 +19,7 @@ impl XMLHttpRequestUpload {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
         }
     }
-    pub fn new(global: GlobalRef) -> Root<XMLHttpRequestUpload> {
+    pub fn new(global: &GlobalScope) -> Root<XMLHttpRequestUpload> {
         reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)

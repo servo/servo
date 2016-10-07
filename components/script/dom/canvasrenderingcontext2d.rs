@@ -20,7 +20,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
@@ -28,6 +27,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
+use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
@@ -117,7 +117,7 @@ impl CanvasContextState {
 }
 
 impl CanvasRenderingContext2D {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      canvas: &HTMLCanvasElement,
                      size: Size2D<i32>)
                      -> CanvasRenderingContext2D {
@@ -135,7 +135,7 @@ impl CanvasRenderingContext2D {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                canvas: &HTMLCanvasElement,
                size: Size2D<i32>)
                -> Root<CanvasRenderingContext2D> {
@@ -1016,12 +1016,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
         let sh = cmp::max(1, sh.abs().to_u32().unwrap());
-        Ok(ImageData::new(self.global().r(), sw, sh, None))
+        Ok(ImageData::new(&self.global(), sw, sh, None))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<Root<ImageData>> {
-        Ok(ImageData::new(self.global().r(),
+        Ok(ImageData::new(&self.global(),
                           imagedata.Width(),
                           imagedata.Height(),
                           None))
@@ -1077,7 +1077,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(self.global().r(), sw, sh, Some(data)))
+        Ok(ImageData::new(&self.global(), sw, sh, Some(data)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1121,7 +1121,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                             x1: Finite<f64>,
                             y1: Finite<f64>)
                             -> Root<CanvasGradient> {
-        CanvasGradient::new(self.global().r(),
+        CanvasGradient::new(&self.global(),
                             CanvasGradientStyle::Linear(LinearGradientStyle::new(*x0,
                                                                                  *y0,
                                                                                  *x1,
@@ -1142,7 +1142,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return Err(Error::IndexSize);
         }
 
-        Ok(CanvasGradient::new(self.global().r(),
+        Ok(CanvasGradient::new(&self.global(),
                                CanvasGradientStyle::Radial(RadialGradientStyle::new(*x0,
                                                                                     *y0,
                                                                                     *r0,
@@ -1182,7 +1182,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
-            Ok(CanvasPattern::new(self.global().r(),
+            Ok(CanvasPattern::new(&self.global(),
                                   image_data,
                                   image_size,
                                   rep,

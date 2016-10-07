@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMe
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -20,6 +19,7 @@ use dom::blob::{Blob, BlobImpl};
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -190,12 +190,12 @@ impl WebSocket {
         }
     }
 
-    fn new(global: GlobalRef, url: Url) -> Root<WebSocket> {
+    fn new(global: &GlobalScope, url: Url) -> Root<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        protocols: Option<StringOrStringSequence>)
                        -> Fallible<Root<WebSocket>> {
@@ -328,8 +328,10 @@ impl WebSocket {
                 address: address,
             };
 
-            let global = self.global();
-            global.r().script_chan().send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            self.global()
+                .script_chan()
+                .send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task))
+                .unwrap();
         }
 
         Ok(true)
@@ -434,7 +436,7 @@ impl WebSocketMethods for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
-                let sender = self.global().r().networking_task_source();
+                let sender = self.global().networking_task_source();
                 fail_the_websocket_connection(address, sender);
             }
             WebSocketRequestState::Open => {
@@ -465,11 +467,10 @@ impl Runnable for ConnectionEstablishedTask {
 
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        let global = ws.r().global();
 
         // Step 1: Protocols.
         if !self.protocols.is_empty() && self.headers.get::<WebSocketProtocol>().is_none() {
-            let sender = global.r().networking_task_source();
+            let sender = ws.global().networking_task_source();
             fail_the_websocket_connection(self.address, sender);
             return;
         }
@@ -490,9 +491,8 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(ws.url.clone(),
-                                                                                         cookie_value,
-                                                                                         HTTP));
+                    let _ = ws.global().core_resource_thread().send(
+                        SetCookiesForUrl(ws.url.clone(), cookie_value, HTTP));
                 }
             }
         }
@@ -534,8 +534,6 @@ impl Runnable for CloseTask {
 
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
-        let ws = ws.r();
-        let global = ws.global();
 
         if ws.ready_state.get() == WebSocketRequestState::Closed {
             // Do nothing if already closed.
@@ -557,7 +555,7 @@ impl Runnable for CloseTask {
         let clean_close = !self.failed;
         let code = self.code.unwrap_or(close_code::NO_STATUS);
         let reason = DOMString::from(self.reason.unwrap_or("".to_owned()));
-        let close_event = CloseEvent::new(global.r(),
+        let close_event = CloseEvent::new(&ws.global(),
                                           atom!("close"),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
@@ -588,10 +586,10 @@ impl Runnable for MessageReceivedTask {
         }
 
         // Step 2-5.
-        let global = ws.r().global();
+        let global = ws.global();
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
-            let cx = global.r().get_cx();
+            let cx = global.get_cx();
             let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
             rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
@@ -599,7 +597,7 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(global.r(), BlobImpl::new_from_bytes(data), "".to_owned());
+                            let blob = Blob::new(&global, BlobImpl::new_from_bytes(data), "".to_owned());
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
@@ -615,7 +613,7 @@ impl Runnable for MessageReceivedTask {
                     }
                 },
             }
-            MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
+            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle());
         }
     }
 }

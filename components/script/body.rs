@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::USVString;
 use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
@@ -42,11 +42,11 @@ pub enum FetchedData {
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
 pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
-    let promise = Promise::new(object.global().r());
+    let promise = Promise::new(&object.global());
 
     // Step 1
     if object.get_body_used() || object.is_locked() {
-        promise.reject_error(promise.global().r().get_cx(), Error::Type(
+        promise.reject_error(promise.global().get_cx(), Error::Type(
             "The response's stream is disturbed or locked".to_string()));
         return promise;
     }
@@ -77,7 +77,7 @@ pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
                                                       body_type,
                                                       object.get_mime_type());
 
-    let cx = promise.global().r().get_cx();
+    let cx = promise.global().get_cx();
     match pkg_data_results {
         Ok(results) => {
             match results {
@@ -98,13 +98,14 @@ fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
                                                                body_type: BodyType,
                                                                mime_type: Ref<Vec<u8>>)
                                                                -> Fallible<FetchedData> {
-    let cx = object.global().r().get_cx();
+    let global = object.global();
+    let cx = global.get_cx();
     let mime = &*mime_type;
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
-        BodyType::Blob => run_blob_data_algorithm(object.global().r(), bytes, mime),
-        BodyType::FormData => run_form_data_algorithm(object.global().r(), bytes, mime),
+        BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
+        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
     }
 }
 
@@ -132,7 +133,7 @@ fn run_json_data_algorithm(cx: *mut JSContext,
     }
 }
 
-fn run_blob_data_algorithm(root: GlobalRef,
+fn run_blob_data_algorithm(root: &GlobalScope,
                            bytes: Vec<u8>,
                            mime: &[u8]) -> Fallible<FetchedData> {
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
@@ -144,7 +145,7 @@ fn run_blob_data_algorithm(root: GlobalRef,
     Ok(FetchedData::BlobData(blob))
 }
 
-fn run_form_data_algorithm(root: GlobalRef, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
+fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> Fallible<FetchedData> {
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
     } else {

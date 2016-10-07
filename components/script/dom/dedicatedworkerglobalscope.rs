@@ -11,12 +11,12 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::{ErrorInfo, ErrorResult};
-use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerErrorHandler, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -212,7 +212,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             let reporter_name = format!("dedicated-worker-reporter-{}", random::<u64>());
-            scope.mem_profiler_chan().run_with_memory_reporting(|| {
+            scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
                     if scope.is_closing() {
                         break;
@@ -281,8 +281,8 @@ impl DedicatedWorkerGlobalScope {
                 let _ac = JSAutoCompartment::new(scope.get_cx(),
                                                  scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
-                data.read(GlobalRef::Worker(scope), message.handle_mut());
-                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
+                data.read(scope.upcast(), message.handle_mut());
+                MessageEvent::dispatch_jsval(target, scope.upcast(), message.handle());
             },
             WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 runnable.handler()
@@ -300,14 +300,13 @@ impl DedicatedWorkerGlobalScope {
     fn handle_event(&self, event: MixedMessage) {
         match event {
             MixedMessage::FromDevtools(msg) => {
-                let global_ref = GlobalRef::Worker(self.upcast());
                 match msg {
                     DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
-                        devtools::handle_evaluate_js(&global_ref, string, sender),
+                        devtools::handle_evaluate_js(self.upcast(), string, sender),
                     DevtoolScriptControlMsg::GetCachedMessages(pipe_id, message_types, sender) =>
                         devtools::handle_get_cached_messages(pipe_id, message_types, sender),
                     DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) =>
-                        devtools::handle_wants_live_notifications(&global_ref, bool_val),
+                        devtools::handle_wants_live_notifications(self.upcast(), bool_val),
                     _ => debug!("got an unusable devtools control message inside the worker!"),
                 }
             },
@@ -342,11 +341,9 @@ impl DedicatedWorkerGlobalScope {
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
-    let global = global_root_from_context(cx);
-    let worker = match global.r() {
-        GlobalRef::Worker(w) => w,
-        _ => panic!("global for worker is not a worker scope")
-    };
+    let worker =
+        Root::downcast::<WorkerGlobalScope>(GlobalScope::from_context(cx))
+            .expect("global is not a worker scope");
     assert!(worker.is::<DedicatedWorkerGlobalScope>());
 
     // A false response causes the script to terminate

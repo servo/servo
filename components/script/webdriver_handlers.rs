@@ -13,12 +13,12 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -92,7 +92,7 @@ pub fn handle_execute_script(context: &BrowsingContext,
     let result = unsafe {
         let cx = window.get_cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
-        GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+        window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
             &eval, rval.handle_mut());
         jsval_to_webdriver(cx, rval.handle())
     };
@@ -112,7 +112,7 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
     rooted!(in(cx) let mut rval = UndefinedValue());
-    GlobalRef::Window(&window).evaluate_js_on_global_with_result(
+    window.upcast::<GlobalScope>().evaluate_js_on_global_with_result(
         &eval, rval.handle_mut());
 }
 
@@ -142,7 +142,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.pipeline_id()));
+    let frame_id = window.map(|x| x.map(|x| x.upcast::<GlobalScope>().pipeline_id()));
     reply.send(frame_id).unwrap()
 }
 
@@ -208,7 +208,7 @@ pub fn handle_get_cookies(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();
-    let _ = document.window().resource_threads().send(
+    let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
         GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
         );
     let cookies = receiver.recv().unwrap();
@@ -223,7 +223,7 @@ pub fn handle_get_cookie(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();
-    let _ = document.window().resource_threads().send(
+    let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
         GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
         );
     let cookies = receiver.recv().unwrap();
@@ -245,13 +245,13 @@ pub fn handle_add_cookie(context: &BrowsingContext,
     reply.send(match (document.is_cookie_averse(), cookie.domain.clone()) {
         (true, _) => Err(WebDriverCookieError::InvalidDomain),
         (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
-            let _ = document.window().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
                 SetCookiesForUrlWithData(url.clone(), cookie, method)
                 );
             Ok(())
         },
         (false, None) => {
-            let _ = document.window().resource_threads().send(
+            let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
                 SetCookiesForUrlWithData(url.clone(), cookie, method)
                 );
             Ok(())

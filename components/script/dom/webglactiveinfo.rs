@@ -5,10 +5,10 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding;
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct WebGLActiveInfo {
@@ -29,7 +29,7 @@ impl WebGLActiveInfo {
         }
     }
 
-    pub fn new(global: GlobalRef, size: i32, ty: u32, name: DOMString) -> Root<WebGLActiveInfo> {
+    pub fn new(global: &GlobalScope, size: i32, ty: u32, name: DOMString) -> Root<WebGLActiveInfo> {
         reflect_dom_object(box WebGLActiveInfo::new_inherited(size, ty, name), global, WebGLActiveInfoBinding::Wrap)
     }
 }

@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMetho
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -25,9 +24,12 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::progressevent::ProgressEvent;
+use dom::window::Window;
+use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use encoding::all::UTF_8;
@@ -153,9 +155,9 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
+    fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
-        let (referrer_url, referrer_policy) = if let GlobalRef::Window(window) = global {
+        let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
             let document = window.Document();
             (Some(document.url().clone()), document.get_referrer_policy())
         } else {
@@ -196,22 +198,19 @@ impl XMLHttpRequest {
             referrer_policy: referrer_policy,
         }
     }
-    pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
+    pub fn new(global: &GlobalScope) -> Root<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
                            global,
                            XMLHttpRequestBinding::Wrap)
     }
 
     // https://xhr.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<XMLHttpRequest>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 
     fn sync_in_window(&self) -> bool {
-        match self.global() {
-            GlobalRoot::Window(_) if self.sync.get() => true,
-            _ => false
-        }
+        self.sync.get() && self.global().is::<Window>()
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
@@ -283,8 +282,7 @@ impl LoadOrigin for XMLHttpRequest {
     }
 
     fn pipeline_id(&self) -> Option<PipelineId> {
-        let global = self.global();
-        Some(global.r().pipeline_id())
+        Some(self.global().pipeline_id())
     }
 }
 
@@ -307,11 +305,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn Open_(&self, method: ByteString, url: USVString, async: bool,
              username: Option<USVString>, password: Option<USVString>) -> ErrorResult {
         // Step 1
-        match self.global() {
-            GlobalRoot::Window(ref window) => {
-                if !window.Document().r().is_fully_active() { return Err(Error::InvalidState); }
+        if let Some(window) = Root::downcast::<Window>(self.global()) {
+            if !window.Document().r().is_fully_active() {
+                return Err(Error::InvalidState);
             }
-            _ => {}
         }
 
         // Step 5
@@ -342,7 +339,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
 
                 // Step 2
-                let base = self.global().r().api_base_url();
+                let base = self.global().api_base_url();
                 // Step 6
                 let mut parsed_url = match base.join(&url.0) {
                     Ok(parsed) => parsed,
@@ -574,7 +571,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // preference is enabled, we allow bypassing the CORS check.
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
-            if let GlobalRoot::Window(win) = self.global() {
+            if let Some(win) = Root::downcast::<Window>(self.global()) {
                 let is_root_pipeline = win.parent_info().is_none();
                 is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
@@ -597,7 +594,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             use_cors_preflight: has_handlers,
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
-            origin: self.global().r().get_url(),
+            origin: self.global().get_url(),
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: self.pipeline_id(),
@@ -652,7 +649,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         self.fetch_time.set(time::now().to_timespec().sec);
 
-        let rv = self.fetch(request, self.global().r());
+        let rv = self.fetch(request, &self.global());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -743,9 +740,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
-        match self.global() {
-            GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document => return Ok(()),
-            _ => {}
+        if self.global().is::<WorkerGlobalScope>() && response_type == XMLHttpRequestResponseType::Document {
+            return Ok(());
         }
         match self.ready_state.get() {
             // Step 2
@@ -828,7 +824,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseXML(&self) -> Fallible<Option<Root<Document>>> {
         // TODO(#2823): Until [Exposed] is implemented, this attribute needs to return null
         //              explicitly in the worker scope.
-        if let GlobalRoot::Worker(_) = self.global() {
+        if self.global().is::<WorkerGlobalScope>() {
             return Ok(None);
         }
 
@@ -859,8 +855,7 @@ impl XMLHttpRequest {
     fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
-        let global = self.global();
-        let event = Event::new(global.r(),
+        let event = Event::new(&self.global(),
                                atom!("readystatechange"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
@@ -975,9 +970,8 @@ impl XMLHttpRequest {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
                     }
-                    let global = self.global();
                     let event = Event::new(
-                        global.r(),
+                        &self.global(),
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable);
@@ -1049,8 +1043,7 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
-        let global = self.global();
-        let progressevent = ProgressEvent::new(global.r(),
+        let progressevent = ProgressEvent::new(&self.global(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
@@ -1083,15 +1076,14 @@ impl XMLHttpRequest {
             xhr: Trusted::new(self),
             generation_id: self.generation_id.get(),
         });
-        let global = self.global();
         let duration = Length::new(duration_ms as u64);
-        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(callback, duration));
+        *self.timeout_cancel.borrow_mut() =
+            Some(self.global().schedule_callback(callback, duration));
     }
 
     fn cancel_timeout(&self) {
         if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
-            let global = self.global();
-            global.r().unschedule_callback(handle);
+            self.global().unschedule_callback(handle);
         }
     }
 
@@ -1118,7 +1110,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(self.global().r(), BlobImpl::new_from_bytes(bytes), mime);
+        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1204,18 +1196,19 @@ impl XMLHttpRequest {
     fn document_text_html(&self) -> Root<Document>{
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
-        let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
-        parse_html(document.r(), DOMString::from(decoded), wr.get_url(), ParseContext::Owner(Some(wr.pipeline_id())));
+        parse_html(document.r(),
+                   DOMString::from(decoded),
+                   wr.get_url(),
+                   ParseContext::Owner(Some(wr.pipeline_id())));
         document
     }
 
     fn handle_xml(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
-        let wr = wr.r();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
@@ -1228,12 +1221,11 @@ impl XMLHttpRequest {
 
     fn new_doc(&self, is_html_document: IsHTMLDocument) -> Root<Document> {
         let wr = self.global();
-        let wr = wr.r();
         let win = wr.as_window();
         let doc = win.Document();
         let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
-        let base = self.global().r().get_url();
+        let base = wr.get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
             Err(_) => None // Step 7
@@ -1292,7 +1284,7 @@ impl XMLHttpRequest {
 
     fn fetch(&self,
               init: RequestInit,
-              global: GlobalRef) -> ErrorResult {
+              global: &GlobalScope) -> ErrorResult {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {

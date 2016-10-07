@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::DOMMatrixBinding::{Wrap, DOMMatrixMethods, DOMMatrixInit};
 use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
+use dom::globalscope::GlobalScope;
 use euclid::Matrix4D;
 
 
@@ -20,7 +20,7 @@ pub struct DOMMatrix {
 
 impl DOMMatrix {
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef, is2D: bool, matrix: Matrix4D<f64>) -> Root<Self> {
+    pub fn new(global: &GlobalScope, is2D: bool, matrix: Matrix4D<f64>) -> Root<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
         reflect_dom_object(box dommatrix, global, Wrap)
     }
@@ -32,12 +32,12 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Self>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Self>> {
         Self::Constructor_(global, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
-    pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<Self>> {
+    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<Root<Self>> {
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
@@ -45,14 +45,14 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
-    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
+    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
         dommatrixinit_to_matrix(&other)
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
             })
     }
 
-    pub fn from_readonly(global: GlobalRef, ro: &DOMMatrixReadOnly) -> Root<Self> {
+    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> Root<Self> {
         Self::new(global, ro.is_2d(), ro.matrix().clone())
     }
 }

@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -35,7 +34,7 @@ impl StyleSheet {
                href: Option<DOMString>,
                title: Option<DOMString>) -> Root<StyleSheet> {
         reflect_dom_object(box StyleSheet::new_inherited(type_, href, title),
-                           GlobalRef::Window(window),
+                           window,
                            StyleSheetBinding::Wrap)
     }
 }

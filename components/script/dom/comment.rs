@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::CommentBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
+use dom::globalscope::GlobalScope;
 use dom::node::Node;
 
 /// An HTML comment.
@@ -31,7 +31,7 @@ impl Comment {
                            CommentBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Root<Comment>> {
+    pub fn Constructor(global: &GlobalScope, data: DOMString) -> Fallible<Root<Comment>> {
         let document = global.as_window().Document();
         Ok(Comment::new(data, document.r()))
     }

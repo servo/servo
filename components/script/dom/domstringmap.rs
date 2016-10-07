@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::DOMStringMapBinding;
 use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -29,7 +28,7 @@ impl DOMStringMap {
     pub fn new(element: &HTMLElement) -> Root<DOMStringMap> {
         let window = window_from_node(element);
         reflect_dom_object(box DOMStringMap::new_inherited(element),
-                           GlobalRef::Window(window.r()),
+                           window.r(),
                            DOMStringMapBinding::Wrap)
     }
 }

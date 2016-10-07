@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::TouchEventBinding;
 use dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -49,7 +48,7 @@ impl TouchEvent {
                      changed_touches: &TouchList,
                      target_touches: &TouchList) -> Root<TouchEvent> {
         reflect_dom_object(box TouchEvent::new_inherited(touches, changed_touches, target_touches),
-                           GlobalRef::Window(window),
+                           window,
                            TouchEventBinding::Wrap)
     }
 

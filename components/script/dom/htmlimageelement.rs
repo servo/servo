@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -17,6 +16,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
@@ -191,7 +191,7 @@ impl HTMLImageElement {
                         src: src.into(),
                     };
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(runnable, GlobalRef::Window(window));
+                    let _ = task.queue(runnable, window.upcast());
                 }
             }
         }
@@ -225,7 +225,7 @@ impl HTMLImageElement {
                            HTMLImageElementBinding::Wrap)
     }
 
-    pub fn Image(global: GlobalRef,
+    pub fn Image(global: &GlobalScope,
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();

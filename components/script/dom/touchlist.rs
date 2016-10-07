@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::TouchListBinding;
 use dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::touch::Touch;
@@ -26,7 +25,7 @@ impl TouchList {
 
     pub fn new(window: &Window, touches: &[&Touch]) -> Root<TouchList> {
         reflect_dom_object(box TouchList::new_inherited(touches),
-                           GlobalRef::Window(window), TouchListBinding::Wrap)
+                           window, TouchListBinding::Wrap)
     }
 }
 

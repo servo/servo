@@ -21,6 +21,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
 use dom::filelist::FileList;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement};
@@ -128,7 +129,7 @@ static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
-        let chan = document.window().constellation_chan().clone();
+        let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
@@ -794,7 +795,7 @@ impl HTMLInputElement {
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
         let window = window_from_node(self);
         let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.resource_threads();
+        let resource_threads = window.upcast::<GlobalScope>().resource_threads();
 
         let mut files: Vec<Root<File>> = vec![];
         let mut error = None;

@@ -5,9 +5,9 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use dom::testbinding::TestBindingCallback;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
@@ -167,7 +167,7 @@ impl OneshotTimers {
         }
     }
 
-    pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
+    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
             debug!("ignoring timer fire event {:?} (expected {:?})", id, expected_id);
@@ -200,7 +200,7 @@ impl OneshotTimers {
 
         for timer in timers_to_run {
             let callback = timer.callback;
-            callback.invoke(this, &self.js_timers);
+            callback.invoke(global, &self.js_timers);
         }
 
         self.schedule_timer_call();
@@ -272,7 +272,7 @@ impl OneshotTimers {
     }
 
     pub fn set_timeout_or_interval(&self,
-                               global: GlobalRef,
+                               global: &GlobalScope,
                                callback: TimerCallback,
                                arguments: Vec<HandleValue>,
                                timeout: i32,
@@ -287,7 +287,7 @@ impl OneshotTimers {
                                                source)
     }
 
-    pub fn clear_timeout_or_interval(&self, global: GlobalRef, handle: i32) {
+    pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         self.js_timers.clear_timeout_or_interval(global, handle)
     }
 }
@@ -364,7 +364,7 @@ impl JsTimers {
 
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub fn set_timeout_or_interval(&self,
-                               global: GlobalRef,
+                               global: &GlobalScope,
                                callback: TimerCallback,
                                arguments: Vec<HandleValue>,
                                timeout: i32,
@@ -414,7 +414,7 @@ impl JsTimers {
         new_handle
     }
 
-    pub fn clear_timeout_or_interval(&self, global: GlobalRef, handle: i32) {
+    pub fn clear_timeout_or_interval(&self, global: &GlobalScope, handle: i32) {
         let mut active_timers = self.active_timers.borrow_mut();
 
         if let Some(entry) = active_timers.remove(&JsTimerHandle(handle)) {
@@ -441,7 +441,7 @@ impl JsTimers {
     }
 
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    fn initialize_and_schedule(&self, global: GlobalRef, mut task: JsTimerTask) {
+    fn initialize_and_schedule(&self, global: &GlobalScope, mut task: JsTimerTask) {
         let handle = task.handle;
         let mut active_timers = self.active_timers.borrow_mut();
 
@@ -490,10 +490,10 @@ impl JsTimerTask {
         match *&self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let global = this.global();
-                let cx = global.r().get_cx();
+                let cx = global.get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
 
-                global.r().evaluate_js_on_global_with_result(
+                global.evaluate_js_on_global_with_result(
                     code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
@@ -514,7 +514,7 @@ impl JsTimerTask {
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
             timers.active_timers.borrow().contains_key(&self.handle) {
-            timers.initialize_and_schedule(this.global().r(), self);
+            timers.initialize_and_schedule(&this.global(), self);
         }
     }
 }

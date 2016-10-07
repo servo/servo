@@ -20,7 +20,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
@@ -35,6 +34,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use dom::htmlcollection::HTMLCollection;
@@ -1339,13 +1339,15 @@ pub enum CloneChildrenFlag {
 fn as_uintptr<T>(t: &T) -> uintptr_t { t as *const T as uintptr_t }
 
 impl Node {
-    pub fn reflect_node<N: DerivedFrom<Node> + Reflectable>
-            (node:      Box<N>,
-             document:  &Document,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Root<N>)
-             -> Root<N> {
+    pub fn reflect_node<N>(
+            node: Box<N>,
+            document: &Document,
+            wrap_fn: extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
+            -> Root<N>
+        where N: DerivedFrom<Node> + Reflectable
+    {
         let window = document.window();
-        reflect_dom_object(node, GlobalRef::Window(window), wrap_fn)
+        reflect_dom_object(node, window, wrap_fn)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {

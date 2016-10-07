@@ -21,7 +21,6 @@ use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::js::RootedReference;
@@ -45,6 +44,7 @@ use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
 use dom::forcetouchevent::ForceTouchEvent;
+use dom::globalscope::GlobalScope;
 use dom::hashchangeevent::HashChangeEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
@@ -650,8 +650,9 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let event = ConstellationMsg::Focus(self.window.pipeline_id());
-                self.window.constellation_chan().send(event).unwrap();
+                let global_scope = self.window.upcast::<GlobalScope>();
+                let event = ConstellationMsg::Focus(global_scope.pipeline_id());
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -669,8 +670,10 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        window.constellation_chan()
-              .send(ConstellationMsg::SetTitle(window.pipeline_id(),
+        let global_scope = window.upcast::<GlobalScope>();
+        global_scope
+              .constellation_chan()
+              .send(ConstellationMsg::SetTitle(global_scope.pipeline_id(),
                                                Some(String::from(self.Title()))))
               .unwrap();
     }
@@ -723,7 +726,7 @@ impl Document {
                 let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
                                                                       mouse_event_type,
                                                                       button, child_point);
-                self.window.constellation_chan().send(event).unwrap();
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
             return;
         }
@@ -961,7 +964,7 @@ impl Document {
                     let child_point = client_point - child_origin;
 
                     let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
-                    self.window.constellation_chan().send(event).unwrap();
+                    self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
                 }
                 return;
             }
@@ -1356,10 +1359,11 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
+                let global_scope = self.window.upcast::<GlobalScope>();
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              Some(self.window.pipeline_id()),
+                                                              Some(global_scope.pipeline_id()),
                                                               event);
-                self.window.constellation_chan().send(event).unwrap();
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1379,10 +1383,11 @@ impl Document {
         //
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
+            let global_scope = self.window.upcast::<GlobalScope>();
             let event = ConstellationMsg::ChangeRunningAnimationsState(
-                self.window.pipeline_id(),
+                global_scope.pipeline_id(),
                 AnimationState::AnimationCallbacksPresent);
-            self.window.constellation_chan().send(event).unwrap();
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         ident
@@ -1418,9 +1423,10 @@ impl Document {
         if self.animation_frame_list.borrow().is_empty() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut animation_frame_list);
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline_id(),
+            let global_scope = self.window.upcast::<GlobalScope>();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(global_scope.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            self.window.constellation_chan().send(event).unwrap();
+            global_scope.constellation_chan().send(event).unwrap();
         }
 
         self.running_animation_callbacks.set(false);
@@ -1478,7 +1484,8 @@ impl Document {
         let loader = self.loader.borrow();
         if !loader.is_blocked() && !loader.events_inhibited() {
             let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline_id());
+            let msg = MainThreadScriptMsg::DocumentLoadsComplete(
+                win.upcast::<GlobalScope>().pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
     }
@@ -1576,9 +1583,10 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let pipeline_id = self.window.pipeline_id();
+        let global_scope = self.window.upcast::<GlobalScope>();
+        let pipeline_id = global_scope.pipeline_id();
         let load_event = ConstellationMsg::LoadComplete(pipeline_id);
-        self.window.constellation_chan().send(load_event).unwrap();
+        global_scope.constellation_chan().send(load_event).unwrap();
     }
 
     pub fn set_current_parser(&self, script: Option<ParserRef>) {
@@ -1810,7 +1818,7 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Document>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Document>> {
         let win = global.as_window();
         let doc = win.Document();
         let doc = doc.r();
@@ -1848,7 +1856,7 @@ impl Document {
                                                                       doc_loader,
                                                                       referrer,
                                                                       referrer_policy),
-                                          GlobalRef::Window(window),
+                                          window,
                                           DocumentBinding::Wrap);
         {
             let node = document.upcast::<Node>();
@@ -2325,13 +2333,13 @@ impl DocumentMethods for Document {
             "mouseevents" | "mouseevent" =>
                 Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
             "customevent" =>
-                Ok(Root::upcast(CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(CustomEvent::new_uninitialized(self.window.upcast()))),
             "htmlevents" | "events" | "event" | "svgevents" =>
-                Ok(Event::new_uninitialized(GlobalRef::Window(&self.window))),
+                Ok(Event::new_uninitialized(&self.window.upcast())),
             "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
-                Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
             "touchevent" =>
                 Ok(Root::upcast(
                     TouchEvent::new_uninitialized(&self.window,
@@ -2341,25 +2349,25 @@ impl DocumentMethods for Document {
                     )
                 )),
             "webglcontextevent" =>
-                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {
                 let USVString(url) = self.URL();
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
             },
             "progressevent" =>
-                Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
+                Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
             "errorevent" =>
-                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
             "closeevent" =>
-                Ok(Root::upcast(CloseEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
             "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
             "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
             _ =>
                 Err(Error::NotSupported),
         }
@@ -2719,7 +2727,10 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_threads().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2736,6 +2747,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let _ = self.window
+                    .upcast::<GlobalScope>()
                     .resource_threads()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
@@ -2993,7 +3005,7 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.root();
         let window = document.window();
-        let event = Event::new(GlobalRef::Window(window),
+        let event = Event::new(window.upcast(),
                                atom!("load"),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);

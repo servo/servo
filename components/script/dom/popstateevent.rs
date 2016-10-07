@@ -6,12 +6,12 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use string_cache::Atom;
@@ -32,13 +32,13 @@ impl PopStateEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<PopStateEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<PopStateEvent> {
         reflect_dom_object(box PopStateEvent::new_inherited(),
                            global,
                            PopStateEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -54,7 +54,7 @@ impl PopStateEvent {
     }
 
     #[allow(unsafe_code)]
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &PopStateEventBinding::PopStateEventInit)
                        -> Fallible<Root<PopStateEvent>> {

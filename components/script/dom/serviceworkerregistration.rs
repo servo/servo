@@ -4,11 +4,11 @@
 
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkercontainer::Controllable;
 use dom::workerglobalscope::prepare_workerscope_init;
@@ -35,7 +35,7 @@ impl ServiceWorkerRegistration {
         }
     }
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                script_url: Url,
                scope: Url,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {
@@ -49,7 +49,7 @@ impl ServiceWorkerRegistration {
         self.active.as_ref().unwrap()
     }
 
-    pub fn create_scope_things(global: GlobalRef, script_url: Url) -> ScopeThings {
+    pub fn create_scope_things(global: &GlobalScope, script_url: Url) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
@@ -57,12 +57,13 @@ impl ServiceWorkerRegistration {
         };
 
         let worker_id = global.get_next_worker_id();
+        let devtools_chan = global.devtools_chan().cloned();
         let init = prepare_workerscope_init(global, None);
         ScopeThings {
             script_url: script_url,
             init: init,
             worker_load_origin: worker_load_origin,
-            devtools_chan: global.devtools_chan(),
+            devtools_chan: devtools_chan,
             worker_id: worker_id
         }
     }

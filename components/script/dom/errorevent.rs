@@ -7,12 +7,12 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::cell::Cell;
@@ -41,13 +41,13 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -70,7 +70,7 @@ impl ErrorEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
         let msg = match init.message.as_ref() {
@@ -94,11 +94,16 @@ impl ErrorEvent {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let error = init.error);
-        let event = ErrorEvent::new(global, Atom::from(type_),
-                                bubbles, cancelable,
-                                msg, file_name,
-                                line_num, col_num,
-                                error.handle());
+        let event = ErrorEvent::new(
+                global,
+                Atom::from(type_),
+                bubbles,
+                cancelable,
+                msg,
+                file_name,
+                line_num,
+                col_num,
+                error.handle());
         Ok(event)
     }
 

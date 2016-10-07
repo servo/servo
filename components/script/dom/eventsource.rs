@@ -6,11 +6,11 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventSourceBinding::{EventSourceInit, EventSourceMethods, Wrap};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use std::cell::Cell;
 use url::Url;
 
@@ -42,11 +42,13 @@ impl EventSource {
         }
     }
 
-    fn new(global: GlobalRef, url: Url, with_credentials: bool) -> Root<EventSource> {
-        reflect_dom_object(box EventSource::new_inherited(url, with_credentials), global, Wrap)
+    fn new(global: &GlobalScope, url: Url, with_credentials: bool) -> Root<EventSource> {
+        reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
+                           global,
+                           Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        url_str: DOMString,
                        event_source_init: &EventSourceInit) -> Fallible<Root<EventSource>> {
         // Steps 1-2

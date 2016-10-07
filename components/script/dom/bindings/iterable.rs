@@ -10,10 +10,10 @@ use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, Reflectable, MutReflectable, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
+use dom::globalscope::GlobalScope;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, JSObject, MutableHandleValue, MutableHandleObject, HandleValue};
 use js::jsval::UndefinedValue;
@@ -85,7 +85,7 @@ impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,
-               wrap: fn(*mut JSContext, GlobalRef, Box<IterableIterator<T>>)
+               wrap: fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
                      -> Root<Self>) -> Root<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),
@@ -93,8 +93,7 @@ impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
             iterable: JS::from_ref(iterable),
             index: Cell::new(0),
         };
-        let global = iterable.global();
-        reflect_dom_object(iterator, global.r(), wrap)
+        reflect_dom_object(iterator, &*iterable.global(), wrap)
     }
 
     /// Return the next value from the iterable object.

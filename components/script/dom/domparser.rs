@@ -12,12 +12,12 @@ use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Text_xml;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
+use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -38,11 +38,11 @@ impl DOMParser {
 
     pub fn new(window: &Window) -> Root<DOMParser> {
         reflect_dom_object(box DOMParser::new_inherited(window),
-                           GlobalRef::Window(window),
+                           window,
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<DOMParser>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<DOMParser>> {
         Ok(DOMParser::new(global.as_window()))
     }
 }

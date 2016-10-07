@@ -174,8 +174,6 @@ pub struct Request {
     pub body: RefCell<Option<Vec<u8>>>,
     // TODO: client object
     pub is_service_worker_global_scope: bool,
-    // pub client: GlobalRef, // XXXManishearth copy over only the relevant fields of the global scope,
-                              // not the entire scope to avoid the libscript dependency
     pub window: Cell<Window>,
     // TODO: target browsing context
     pub keep_alive: Cell<bool>,

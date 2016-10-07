@@ -10,12 +10,12 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data, array_buffer_view_data_checked};
 use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{Node, NodeDamage, window_from_node};
@@ -127,7 +127,7 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    fn new_inherited(global: GlobalRef,
+    fn new_inherited(global: &GlobalScope,
                      canvas: &HTMLCanvasElement,
                      size: Size2D<i32>,
                      attrs: GLContextAttributes)
@@ -159,11 +159,10 @@ impl WebGLRenderingContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
+    pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Root<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(global, canvas, size, attrs) {
-            Ok(ctx) => Some(reflect_dom_object(box ctx, global,
-                                               WebGLRenderingContextBinding::Wrap)),
+            Ok(ctx) => Some(reflect_dom_object(box ctx, global, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(global,
@@ -1154,27 +1153,27 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self.global().r(), self.ipc_renderer.clone())
+        WebGLBuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<Root<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self.global().r(), self.ipc_renderer.clone())
+        WebGLFramebuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn CreateRenderbuffer(&self) -> Option<Root<WebGLRenderbuffer>> {
-        WebGLRenderbuffer::maybe_new(self.global().r(), self.ipc_renderer.clone())
+        WebGLRenderbuffer::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CreateTexture(&self) -> Option<Root<WebGLTexture>> {
-        WebGLTexture::maybe_new(self.global().r(), self.ipc_renderer.clone())
+        WebGLTexture::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<Root<WebGLProgram>> {
-        WebGLProgram::maybe_new(self.global().r(), self.ipc_renderer.clone())
+        WebGLProgram::maybe_new(&self.global(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -1186,7 +1185,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return None;
             }
         }
-        WebGLShader::maybe_new(self.global().r(), self.ipc_renderer.clone(), shader_type)
+        WebGLShader::maybe_new(&self.global(), self.ipc_renderer.clone(), shader_type)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1480,7 +1479,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
         program.and_then(|p| {
             handle_potential_webgl_error!(self, p.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(self.global().r(), location, p.id()))
+                .map(|location| WebGLUniformLocation::new(&self.global(), location, p.id()))
         })
     }
 

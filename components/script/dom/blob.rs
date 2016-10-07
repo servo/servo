@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::globalscope::GlobalScope;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
@@ -79,7 +79,9 @@ pub struct Blob {
 
 impl Blob {
     #[allow(unrooted_must_root)]
-    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: String) -> Root<Blob> {
+    pub fn new(
+            global: &GlobalScope, blob_impl: BlobImpl, typeString: String)
+            -> Root<Blob> {
         let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
@@ -99,7 +101,6 @@ impl Blob {
     #[allow(unrooted_must_root)]
     fn new_sliced(parent: &Blob, rel_pos: RelativePos,
                   relative_content_type: DOMString) -> Root<Blob> {
-        let global = parent.global();
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
                 // Create new parent node
@@ -115,11 +116,11 @@ impl Blob {
             }
         };
 
-        Blob::new(global.r(), blob_impl, relative_content_type.into())
+        Blob::new(&parent.global(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        blobParts: Option<Vec<BlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
                        -> Fallible<Root<Blob>> {
@@ -142,8 +143,7 @@ impl Blob {
                 let (buffer, is_new_buffer) = match *f.cache.borrow() {
                     Some(ref bytes) => (bytes.clone(), false),
                     None => {
-                        let global = self.global();
-                        let bytes = read_file(global.r(), f.id.clone())?;
+                        let bytes = read_file(&self.global(), f.id.clone())?;
                         (bytes, true)
                     }
                 };
@@ -188,6 +188,7 @@ impl Blob {
     /// valid or invalid Blob URL.
     fn promote(&self, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
+        let global_url = self.global().get_url();
 
         match *self.blob_impl.borrow_mut() {
             BlobImpl::Sliced(_, _) => {
@@ -197,8 +198,7 @@ impl Blob {
             }
             BlobImpl::File(ref f) => {
                 if set_valid {
-                    let global = self.global();
-                    let origin = get_blob_origin(&global.r().get_url());
+                    let origin = get_blob_origin(&global_url);
                     let (tx, rx) = ipc::channel().unwrap();
 
                     let msg = FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
@@ -217,8 +217,7 @@ impl Blob {
             BlobImpl::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
-        let global = self.global();
-        let origin = get_blob_origin(&global.r().get_url());
+        let origin = get_blob_origin(&global_url);
 
         let blob_buf = BlobBuf {
             filename: None,
@@ -249,9 +248,7 @@ impl Blob {
     /// Get a FileID representing sliced parent-blob content
     fn create_sliced_url_id(&self, parent_id: &Uuid,
                             rel_pos: &RelativePos, parent_len: u64) -> Uuid {
-        let global = self.global();
-
-        let origin = get_blob_origin(&global.r().get_url());
+        let origin = get_blob_origin(&self.global().get_url());
 
         let (tx, rx) = ipc::channel().unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
@@ -280,8 +277,7 @@ impl Blob {
     /// Cleanups at the time of destruction/closing
     fn clean_up_file_resource(&self) {
         if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
-            let global = self.global();
-            let origin = get_blob_origin(&global.r().get_url());
+            let origin = get_blob_origin(&self.global().get_url());
 
             let (tx, rx) = ipc::channel().unwrap();
 
@@ -293,7 +289,7 @@ impl Blob {
 
     fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
         let global = self.global();
-        let resource_threads = global.r().resource_threads();
+        let resource_threads = global.resource_threads();
         let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
     }
 }
@@ -306,7 +302,7 @@ impl Drop for Blob {
     }
 }
 
-fn read_file(global: GlobalRef, id: Uuid) -> Result<Vec<u8>, ()> {
+fn read_file(global: &GlobalScope, id: Uuid) -> Result<Vec<u8>, ()> {
     let resource_threads = global.resource_threads();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
     let origin = get_blob_origin(&global.get_url());

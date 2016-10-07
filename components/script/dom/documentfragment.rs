@@ -7,12 +7,12 @@ use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentM
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
@@ -38,7 +38,7 @@ impl DocumentFragment {
                            DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<DocumentFragment>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<DocumentFragment>> {
         let document = global.as_window().Document();
 
         Ok(DocumentFragment::new(document.r()))

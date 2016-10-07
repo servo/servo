@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -46,7 +45,7 @@ impl TreeWalker {
                            what_to_show: u32,
                            filter: Filter) -> Root<TreeWalker> {
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(document.window()),
+                           document.window(),
                            TreeWalkerBinding::Wrap)
     }
 

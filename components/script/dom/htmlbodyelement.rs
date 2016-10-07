@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -137,7 +138,7 @@ impl VirtualMethods for HTMLBodyElement {
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
         let event = ConstellationMsg::HeadParsed;
-        window.constellation_chan().send(event).unwrap();
+        window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

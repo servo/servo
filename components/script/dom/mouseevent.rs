@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
@@ -53,7 +53,7 @@ impl MouseEvent {
 
     pub fn new_uninitialized(window: &Window) -> Root<MouseEvent> {
         reflect_dom_object(box MouseEvent::new_inherited(),
-                           GlobalRef::Window(window),
+                           window,
                            MouseEventBinding::Wrap)
     }
 
@@ -82,12 +82,13 @@ impl MouseEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let event = MouseEvent::new(global.as_window(), type_,
+        let event = MouseEvent::new(global.as_window(),
+                                    type_,
                                     bubbles,
                                     cancelable,
                                     init.parent.parent.view.r(),

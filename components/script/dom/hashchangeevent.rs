@@ -6,12 +6,12 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding::HashChangeEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::{DOMString, USVString};
 use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use string_cache::Atom;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
@@ -31,14 +31,13 @@ impl HashChangeEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef)
-                             -> Root<HashChangeEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<HashChangeEvent> {
         reflect_dom_object(box HashChangeEvent::new_inherited(String::new(), String::new()),
                            global,
                            HashChangeEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -55,7 +54,7 @@ impl HashChangeEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
                        -> Fallible<Root<HashChangeEvent>> {

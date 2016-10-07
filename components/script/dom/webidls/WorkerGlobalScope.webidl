@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#workerglobalscope
 [Abstract, Exposed=Worker]
-interface WorkerGlobalScope : EventTarget {
+interface WorkerGlobalScope : GlobalScope {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
 

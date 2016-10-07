@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
@@ -27,14 +27,14 @@ pub struct MessageEvent {
 }
 
 impl MessageEvent {
-    pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<MessageEvent> {
         MessageEvent::new_initialized(global,
                                       HandleValue::undefined(),
                                       DOMString::new(),
                                       DOMString::new())
     }
 
-    pub fn new_initialized(global: GlobalRef,
+    pub fn new_initialized(global: &GlobalScope,
                            data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
@@ -48,7 +48,7 @@ impl MessageEvent {
         reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef, type_: Atom,
+    pub fn new(global: &GlobalScope, type_: Atom,
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<MessageEvent> {
@@ -60,27 +60,36 @@ impl MessageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
         rooted!(in(global.get_cx()) let data = init.data);
-        let ev = MessageEvent::new(global, Atom::from(type_), init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global,
+                                   Atom::from(type_),
+                                   init.parent.bubbles,
+                                   init.parent.cancelable,
                                    data.handle(),
-                                   init.origin.clone(), init.lastEventId.clone());
+                                   init.origin.clone(),
+                                   init.lastEventId.clone());
         Ok(ev)
     }
 }
 
 impl MessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
-                          scope: GlobalRef,
+                          scope: &GlobalScope,
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
-            scope, atom!("message"), false, false, message,
-            DOMString::new(), DOMString::new());
+            scope,
+            atom!("message"),
+            false,
+            false,
+            message,
+            DOMString::new(),
+            DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }
 }

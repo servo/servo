@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -83,7 +82,7 @@ impl HTMLCollection {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(root, filter),
-                           GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
+                           window, HTMLCollectionBinding::Wrap)
     }
 
     pub fn create(window: &Window, root: &Node,

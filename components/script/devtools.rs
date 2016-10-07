@@ -13,13 +13,13 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
+use dom::globalscope::GlobalScope;
 use dom::node::Node;
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
@@ -33,7 +33,7 @@ use uuid::Uuid;
 
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {
+pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
@@ -245,7 +245,7 @@ pub fn handle_modify_attribute(context: &BrowsingContext,
     }
 }
 
-pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: bool) {
+pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
     global.set_devtools_wants_updates(send_notifications);
 }
 
@@ -271,7 +271,8 @@ pub fn handle_request_animation_frame(context: &BrowsingContext,
     };
 
     let doc = context.active_document();
-    let devtools_sender = context.active_window().devtools_chan().unwrap();
+    let devtools_sender =
+        context.active_window().upcast::<GlobalScope>().devtools_chan().unwrap().clone();
     doc.request_animation_frame(box move |time| {
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();

@@ -4,19 +4,24 @@
 
 //! The `Reflector` struct.
 
-use dom::bindings::global::{GlobalRef, GlobalRoot, global_root_from_reflector};
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::js::Root;
+use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleObject, JSContext, JSObject};
 use std::cell::UnsafeCell;
 use std::ptr;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T: Reflectable>(obj: Box<T>,
-                                          global: GlobalRef,
-                                          wrap_fn: fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
-                                          -> Root<T> {
-    wrap_fn(global.get_cx(), global, obj)
+pub fn reflect_dom_object<T, U>(
+        obj: Box<T>,
+        global: &U,
+        wrap_fn: fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
+        -> Root<T>
+    where T: Reflectable, U: DerivedFrom<GlobalScope>
+{
+    let global_scope = global.upcast();
+    wrap_fn(global_scope.get_cx(), global_scope, obj)
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -74,9 +79,9 @@ pub trait Reflectable {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
-    /// Returns the global object of the realm that the Reflectable was created in.
-    fn global(&self) -> GlobalRoot where Self: Sized {
-        global_root_from_reflector(self)
+    /// Returns the global scope of the realm that the Reflectable was created in.
+    fn global(&self) -> Root<GlobalScope> where Self: Sized {
+        GlobalScope::from_reflector(self)
     }
 }
 

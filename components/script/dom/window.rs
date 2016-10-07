@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType, WorkerId};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -16,8 +16,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
-use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, global_root_from_object};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
@@ -27,14 +26,12 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
-use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
+use dom::event::Event;
+use dom::globalscope::GlobalScope;
 use dom::history::History;
 use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
@@ -73,8 +70,8 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventC
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
-use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
+use script_traits::{DocumentState, TimerEvent, TimerEventId};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -99,7 +96,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
-use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
+use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
@@ -143,7 +140,7 @@ pub type ScrollPoint = Point2D<Au>;
 
 #[dom_struct]
 pub struct Window {
-    eventtarget: EventTarget,
+    globalscope: GlobalScope,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "task sources are hard"]
@@ -156,7 +153,6 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
@@ -171,38 +167,15 @@ pub struct Window {
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
     status: DOMRefCell<DOMString>,
-    #[ignore_heap_size_of = "channels are hard"]
-    scheduler_chan: IpcSender<TimerEventRequest>,
-    timers: OneshotTimers,
 
-    next_worker_id: Cell<WorkerId>,
-
-    /// For sending messages to the memory profiler.
-    #[ignore_heap_size_of = "channels are hard"]
-    mem_profiler_chan: mem::ProfilerChan,
-
-    /// For sending messages to the memory profiler.
-    #[ignore_heap_size_of = "channels are hard"]
-    time_profiler_chan: ProfilerChan,
-
-    /// For providing instructions to an optional devtools server.
-    #[ignore_heap_size_of = "channels are hard"]
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
     devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
 
-    /// A flag to indicate whether the developer tools have requested live updates of
-    /// page changes.
-    devtools_wants_updates: Cell<bool>,
-
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
-
-    /// Pipeline id associated with this page.
-    id: PipelineId,
 
     /// Parent id associated with this page, if any.
     parent_info: Option<(PipelineId, FrameType)>,
@@ -225,17 +198,9 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
-    /// including resource_thread, filemanager_thread and storage_thread
-    resource_threads: ResourceThreads,
-
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-
-    /// A handle for communicating messages to the constellation thread.
-    #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -269,12 +234,6 @@ pub struct Window {
 
     /// A list of scroll offsets for each scrollable element.
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
-
-    /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>,
-
-    /// Timers used by the Console API.
-    console_timers: TimerSet,
 }
 
 impl Window {
@@ -318,17 +277,6 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
-    }
-
-    pub fn get_next_worker_id(&self) -> WorkerId {
-        let worker_id = self.next_worker_id.get();
-        let WorkerId(id_num) = worker_id;
-        self.next_worker_id.set(WorkerId(id_num + 1));
-        worker_id
-    }
-
-    pub fn pipeline_id(&self) -> PipelineId {
-        self.id
     }
 
     pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
@@ -464,7 +412,11 @@ impl WindowMethods for Window {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender)).unwrap();
+        let global_scope = self.upcast::<GlobalScope>();
+        global_scope
+            .constellation_chan()
+            .send(ConstellationMsg::Alert(global_scope.pipeline_id(), s.to_string(), sender))
+            .unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -474,7 +426,9 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        self.main_thread_script_chan()
+            .send(MainThreadScriptMsg::ExitWindow(self.upcast::<GlobalScope>().pipeline_id()))
+            .unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
@@ -494,17 +448,17 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> Root<Storage> {
-        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
+        self.session_storage.or_init(|| Storage::new(self.upcast(), StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
-        self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
+        self.local_storage.or_init(|| Storage::new(self.upcast(), StorageType::Local))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> Root<Crypto> {
-        self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
+        self.upcast::<GlobalScope>().crypto()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -519,47 +473,43 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::NonInterval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
-        self.timers.clear_timeout_or_interval(GlobalRef::Window(self), handle);
+        self.upcast::<GlobalScope>().clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::FunctionTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::FunctionTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
-        self.timers.set_timeout_or_interval(GlobalRef::Window(self),
-                                            TimerCallback::StringTimerCallback(callback),
-                                            args,
-                                            timeout,
-                                            IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()))
+        self.upcast::<GlobalScope>().set_timeout_or_interval(
+            TimerCallback::StringTimerCallback(callback),
+            args,
+            timeout,
+            IsInterval::Interval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -825,7 +775,10 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.constellation_chan.send(ConstellationMsg::ResizeTo(size)).unwrap()
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::ResizeTo(size))
+            .unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -840,7 +793,10 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.constellation_chan.send(ConstellationMsg::MoveTo(point)).unwrap()
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::MoveTo(point))
+            .unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -904,14 +860,14 @@ impl WindowMethods for Window {
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
-        fetch::Fetch(self.global().r(), input, init)
+        fetch::Fetch(&self.upcast(), input, init)
     }
 }
 
 impl Window {
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         RunnableWrapper {
-            cancelled: self.ignore_further_async_events.clone()
+            cancelled: Some(self.ignore_further_async_events.clone()),
         }
     }
 
@@ -1001,8 +957,10 @@ impl Window {
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
-        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline_id(), layer_id, point, smooth);
-        self.constellation_chan.send(message).unwrap();
+        let global_scope = self.upcast::<GlobalScope>();
+        let message = ConstellationMsg::ScrollFragmentPoint(
+            global_scope.pipeline_id(), layer_id, point, smooth);
+        global_scope.constellation_chan().send(message).unwrap();
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1013,7 +971,10 @@ impl Window {
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
+        self.upcast::<GlobalScope>()
+            .constellation_chan()
+            .send(ConstellationMsg::GetClientWindow(send))
+            .unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1054,7 +1015,7 @@ impl Window {
         let for_display = query_type == ReflowQueryType::NoQuery;
         if for_display && self.suppress_reflow.get() {
             debug!("Suppressing reflow pipeline {} for goal {:?} reason {:?} before FirstLoad or RefreshTick",
-                   self.id, goal, reason);
+                   self.upcast::<GlobalScope>().pipeline_id(), goal, reason);
             return false;
         }
 
@@ -1071,7 +1032,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
-            debug_reflow_events(self.id, &goal, &query_type, &reason);
+            debug_reflow_events(self.upcast::<GlobalScope>().pipeline_id(), &goal, &query_type, &reason);
         }
 
         let document = self.Document();
@@ -1176,8 +1137,9 @@ impl Window {
             let ready_state = document.ReadyState();
 
             if ready_state == DocumentReadyState::Complete && !reftest_wait {
-                let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.constellation_chan().send(event).unwrap();
+                let global_scope = self.upcast::<GlobalScope>();
+                let event = ConstellationMsg::SetDocumentState(global_scope.pipeline_id(), DocumentState::Idle);
+                global_scope.constellation_chan().send(event).unwrap();
             }
         }
 
@@ -1286,10 +1248,13 @@ impl Window {
         }
 
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
-        let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.constellation_chan.send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        let global_scope = self.upcast::<GlobalScope>();
+        global_scope
+            .constellation_chan()
+            .send(ConstellationMsg::GetScrollOffset(global_scope.pipeline_id(), layer_id, send))
+            .unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
 
@@ -1364,13 +1329,13 @@ impl Window {
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
         self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(self.id,
+            MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
                 LoadData::new(url, referrer_policy, Some(doc.url().clone())),
                 replace)).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.timers.fire_timer(timer_id, self);
+        self.upcast::<GlobalScope>().fire_timer(timer_id);
         self.reflow(ReflowGoal::ForDisplay,
                     ReflowQueryType::NoQuery,
                     ReflowReason::Timer);
@@ -1396,42 +1361,8 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_threads(&self) -> &ResourceThreads {
-        &self.resource_threads
-    }
-
-    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
-        &self.mem_profiler_chan
-    }
-
-    pub fn time_profiler_chan(&self) -> &ProfilerChan {
-        &self.time_profiler_chan
-    }
-
-    pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
-        self.devtools_chan.clone()
-    }
-
     pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
-    }
-
-    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
-        &self.constellation_chan
-    }
-
-    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
-        &self.scheduler_chan
-    }
-
-    pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
-        self.timers.schedule_callback(callback,
-                                      duration,
-                                      TimerSource::FromWindow(self.id.clone()))
-    }
-
-    pub fn unschedule_callback(&self, handle: OneshotTimerHandle) {
-        self.timers.unschedule_callback(handle);
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -1483,33 +1414,17 @@ impl Window {
         had_clip_rect
     }
 
-    pub fn set_devtools_wants_updates(&self, value: bool) {
-        self.devtools_wants_updates.set(value);
-    }
-
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
     pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
         None
     }
 
     pub fn thaw(&self) {
-        self.timers.resume();
+        self.upcast::<GlobalScope>().resume();
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
         self.Document().title_changed();
-    }
-
-    pub fn freeze(&self) {
-        self.timers.suspend();
-    }
-
-    pub fn slow_down_timers(&self) {
-        self.timers.slow_down();
-    }
-
-    pub fn speed_up_timers(&self) {
-        self.timers.speed_up();
     }
 
     pub fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
@@ -1580,10 +1495,9 @@ impl Window {
     /// in a top-level `Window` global.
     #[allow(unsafe_code)]
     pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
-        match global_root_from_object(obj.get()).r() {
-            GlobalRef::Window(window) => window.is_mozbrowser(),
-            _ => false,
-        }
+        GlobalScope::from_object(obj.get())
+            .downcast::<Window>()
+            .map_or(false, |window| window.is_mozbrowser())
     }
 
     #[allow(unsafe_code)]
@@ -1629,7 +1543,16 @@ impl Window {
         };
         let current_time = time::get_time();
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(),
+            globalscope:
+                GlobalScope::new_inherited(
+                    id,
+                    devtools_chan,
+                    mem_profiler_chan,
+                    time_profiler_chan,
+                    constellation_chan,
+                    scheduler_chan,
+                    resource_threads,
+                    timer_event_chan),
             script_chan: script_chan,
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
@@ -1637,12 +1560,8 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            crypto: Default::default(),
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
-            mem_profiler_chan: mem_profiler_chan,
-            time_profiler_chan: time_profiler_chan,
-            devtools_chan: devtools_chan,
             history: Default::default(),
             browsing_context: Default::default(),
             performance: Default::default(),
@@ -1652,16 +1571,10 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             status: DOMRefCell::new(DOMString::new()),
-            scheduler_chan: scheduler_chan.clone(),
-            timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
-            next_worker_id: Cell::new(WorkerId(0)),
-            id: id,
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
-            constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(max_rect()),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
@@ -1675,53 +1588,13 @@ impl Window {
 
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
-            devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
-            in_error_reporting_mode: Cell::new(false),
-            console_timers: TimerSet::new(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
-    }
-
-    pub fn console_timers(&self) -> &TimerSet {
-        &self.console_timers
-    }
-
-    pub fn live_devtools_updates(&self) -> bool {
-        return self.devtools_wants_updates.get();
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#report-the-error
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
-        // Step 1.
-        if self.in_error_reporting_mode.get() {
-            return;
-        }
-
-        // Step 2.
-        self.in_error_reporting_mode.set(true);
-
-        // Steps 3-12.
-        // FIXME(#13195): muted errors.
-        let event = ErrorEvent::new(GlobalRef::Window(self),
-                                    atom!("error"),
-                                    EventBubbles::DoesNotBubble,
-                                    EventCancelable::Cancelable,
-                                    error_info.message.into(),
-                                    error_info.filename.into(),
-                                    error_info.lineno,
-                                    error_info.column,
-                                    value);
-
-        // Step 13.
-        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-        // Step 14.
-        self.in_error_reporting_mode.set(false);
     }
 }
 
@@ -1826,12 +1699,12 @@ impl Runnable for PostMessageHandler {
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
 
         rooted!(in(cx) let mut message = UndefinedValue());
-        this.message.read(GlobalRef::Window(&*window), message.handle_mut());
+        this.message.read(window.upcast(), message.handle_mut());
 
         // Step 11-12.
         // TODO(#12719): set the other attributes.
         MessageEvent::dispatch_jsval(window.upcast(),
-                                     GlobalRef::Window(&*window),
+                                     window.upcast(),
                                      message.handle());
     }
 }

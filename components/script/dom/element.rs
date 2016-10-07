@@ -21,7 +21,6 @@ use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOp
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
@@ -1589,7 +1588,7 @@ impl ElementMethods for Element {
         let win = window_from_node(self);
         let raw_rects = self.upcast::<Node>().content_boxes();
         let rects = raw_rects.iter().map(|rect| {
-            DOMRect::new(GlobalRef::Window(win.r()),
+            DOMRect::new(win.upcast(),
                          rect.origin.x.to_f64_px(),
                          rect.origin.y.to_f64_px(),
                          rect.size.width.to_f64_px(),
@@ -1602,7 +1601,7 @@ impl ElementMethods for Element {
     fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
         let rect = self.upcast::<Node>().bounding_content_box();
-        DOMRect::new(GlobalRef::Window(win.r()),
+        DOMRect::new(win.upcast(),
                      rect.origin.x.to_f64_px(),
                      rect.origin.y.to_f64_px(),
                      rect.size.width.to_f64_px(),

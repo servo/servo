@@ -8,11 +8,11 @@
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::global::{global_root_from_object, GlobalRoot, GlobalRef};
-use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
+use dom::bindings::js::{Root, RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
+use dom::globalscope::GlobalScope;
 use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
@@ -138,7 +138,7 @@ impl PromiseJobQueue {
 
     /// Add a new promise job callback to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
-    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: GlobalRef) {
+    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: &GlobalScope) {
         self.promise_job_queue.borrow_mut().push(job);
         if !self.pending_promise_job_runnable.get() {
             self.pending_promise_job_runnable.set(true);
@@ -149,7 +149,7 @@ impl PromiseJobQueue {
     /// Perform a microtask checkpoint, by invoking all of the pending promise job callbacks in
     /// FIFO order (#4283).
     pub fn flush_promise_jobs<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<GlobalRoot>
+        where F: Fn(PipelineId) -> Option<Root<GlobalScope>>
     {
         self.pending_promise_job_runnable.set(false);
         {
@@ -161,7 +161,7 @@ impl PromiseJobQueue {
         // `flushing_queue` is a static snapshot during this checkpoint.
         for job in &*self.flushing_job_queue.borrow() {
             if let Some(target) = target_provider(job.pipeline) {
-                let _ = job.callback.Call_(&target.r(), ExceptionHandling::Report);
+                let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
             }
         }
         self.flushing_job_queue.borrow_mut().clear();
@@ -177,9 +177,9 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
     let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        let global = global_root_from_object(job.get());
-        let pipeline = global.r().pipeline_id();
-        global.r().enqueue_promise_job(EnqueuedPromiseCallback {
+        let global = GlobalScope::from_object(job.get());
+        let pipeline = global.pipeline_id();
+        global.enqueue_promise_job(EnqueuedPromiseCallback {
             callback: PromiseJobCallback::new(job.get()),
             pipeline: pipeline,
         });

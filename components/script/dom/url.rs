@@ -6,11 +6,11 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
+use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
@@ -44,7 +44,7 @@ impl URL {
         }
     }
 
-    pub fn new(global: GlobalRef, url: Url) -> Root<URL> {
+    pub fn new(global: &GlobalScope, url: Url) -> Root<URL> {
         reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
@@ -61,7 +61,7 @@ impl URL {
 
 impl URL {
     // https://url.spec.whatwg.org/#constructors
-    pub fn Constructor(global: GlobalRef, url: USVString,
+    pub fn Constructor(global: &GlobalScope, url: USVString,
                        base: Option<USVString>)
                        -> Fallible<Root<URL>> {
         let parsed_base = match base {
@@ -97,7 +97,7 @@ impl URL {
     }
 
     // https://url.spec.whatwg.org/#dom-url-domaintoasciidomain
-    pub fn DomainToASCII(_: GlobalRef, origin: USVString) -> USVString {
+    pub fn DomainToASCII(_: &GlobalScope, origin: USVString) -> USVString {
         // Step 1.
         let ascii_domain = Host::parse(&origin.0);
         if let Ok(Host::Domain(string)) = ascii_domain {
@@ -109,12 +109,12 @@ impl URL {
         }
     }
 
-    pub fn DomainToUnicode(_: GlobalRef, origin: USVString) -> USVString {
+    pub fn DomainToUnicode(_: &GlobalScope, origin: USVString) -> USVString {
         USVString(domain_to_unicode(&origin.0))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
-    pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
+    pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
         let origin = get_blob_origin(&global.get_url());
@@ -131,7 +131,7 @@ impl URL {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
-    pub fn RevokeObjectURL(global: GlobalRef, url: DOMString) {
+    pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         /*
             If the url refers to a Blob that has a readability state of CLOSED OR
             if the value provided for the url argument is not a Blob URL, OR
@@ -283,7 +283,9 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     fn SearchParams(&self) -> Root<URLSearchParams> {
-        self.search_params.or_init(|| URLSearchParams::new(self.global().r(), Some(self)))
+        self.search_params.or_init(|| {
+            URLSearchParams::new(&self.global(), Some(self))
+        })
     }
 
     // https://url.spec.whatwg.org/#dom-url-href

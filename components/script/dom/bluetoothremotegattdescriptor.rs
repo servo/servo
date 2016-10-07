@@ -13,12 +13,12 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::result_to_promise;
 use dom::bluetoothremotegattcharacteristic::{BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH};
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -48,7 +48,7 @@ impl BluetoothRemoteGATTDescriptor {
         }
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                characteristic: &BluetoothRemoteGATTCharacteristic,
                uuid: DOMString,
                instanceID: String)
@@ -61,9 +61,7 @@ impl BluetoothRemoteGATTDescriptor {
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
-        let global_root = self.global();
-        let global_ref = global_root.r();
-        global_ref.as_window().bluetooth_thread()
+        self.global().as_window().bluetooth_thread()
     }
 
     fn get_instance_id(&self) -> String {
@@ -137,12 +135,12 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
     fn ReadValue(&self) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.read_value())
+        result_to_promise(&self.global(), self.read_value())
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.write_value(value))
+        result_to_promise(&self.global(), self.write_value(value))
     }
 }

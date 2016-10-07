@@ -6,12 +6,12 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::StorageEventBinding;
 use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::globalscope::GlobalScope;
 use dom::storage::Storage;
 use dom::window::Window;
 use string_cache::Atom;
@@ -46,11 +46,11 @@ impl StorageEvent {
     pub fn new_uninitialized(window: &Window,
                              url: DOMString) -> Root<StorageEvent> {
         reflect_dom_object(box StorageEvent::new_inherited(None, None, None, url, None),
-                           GlobalRef::Window(window),
+                           window,
                            StorageEventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -70,7 +70,7 @@ impl StorageEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &StorageEventBinding::StorageEventInit) -> Fallible<Root<StorageEvent>> {
         let key = init.key.clone();

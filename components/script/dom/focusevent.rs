@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::FocusEventBinding;
 use dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::default::Default;
@@ -31,7 +31,7 @@ impl FocusEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<FocusEvent> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<FocusEvent> {
         reflect_dom_object(box FocusEvent::new_inherited(),
                            global,
                            FocusEventBinding::Wrap)
@@ -44,8 +44,7 @@ impl FocusEvent {
                view: Option<&Window>,
                detail: i32,
                related_target: Option<&EventTarget>) -> Root<FocusEvent> {
-        let event = box FocusEvent::new_inherited();
-        let ev = reflect_dom_object(event, GlobalRef::Window(window), FocusEventBinding::Wrap);
+        let ev = FocusEvent::new_uninitialized(window.upcast());
         ev.upcast::<UIEvent>().InitUIEvent(type_,
                                            bool::from(can_bubble),
                                            bool::from(cancelable),
@@ -54,12 +53,13 @@ impl FocusEvent {
         ev
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &FocusEventBinding::FocusEventInit) -> Fallible<Root<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(global.as_window(), type_,
+        let event = FocusEvent::new(global.as_window(),
+                                    type_,
                                     bubbles,
                                     cancelable,
                                     init.parent.view.r(),

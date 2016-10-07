@@ -8,7 +8,7 @@ pub mod history_traversal;
 pub mod networking;
 pub mod user_interaction;
 
-use dom::bindings::global::GlobalRef;
+use dom::globalscope::GlobalScope;
 use script_thread::{Runnable, RunnableWrapper};
 use std::result::Result;
 
@@ -18,7 +18,7 @@ pub trait TaskSource {
                              wrapper: &RunnableWrapper)
                              -> Result<(), ()>
                              where T: Runnable + Send + 'static;
-    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, global: GlobalRef) -> Result<(), ()> {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, global: &GlobalScope) -> Result<(), ()> {
         self.queue_with_wrapper(msg, &global.get_runnable_wrapper())
     }
 }

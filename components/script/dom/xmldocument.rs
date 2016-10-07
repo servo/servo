@@ -6,7 +6,6 @@ use core::nonzero::NonZero;
 use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -66,7 +65,7 @@ impl XMLDocument {
                                            last_modified,
                                            source,
                                            doc_loader),
-            GlobalRef::Window(window),
+            window,
             XMLDocumentBinding::Wrap);
         {
             let node = doc.upcast::<Node>();

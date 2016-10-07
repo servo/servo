@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementC
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
@@ -276,7 +275,7 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(task, GlobalRef::Window(&win));
+        let _ = win.dom_manipulation_task_source().queue(task, win.upcast());
     }
 
     // https://html.spec.whatwg.org/multipage/#internal-pause-steps step 2.2
@@ -300,18 +299,18 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(task, GlobalRef::Window(&win));
+        let _ = win.dom_manipulation_task_source().queue(task, win.upcast());
     }
 
     fn queue_fire_simple_event(&self, type_: &'static str) {
         let win = window_from_node(self);
         let task = box FireSimpleEventTask::new(self, type_);
-        let _ = win.dom_manipulation_task_source().queue(task, GlobalRef::Window(&win));
+        let _ = win.dom_manipulation_task_source().queue(task, win.upcast());
     }
 
     fn fire_simple_event(&self, type_: &str) {
         let window = window_from_node(self);
-        let event = Event::new(GlobalRef::Window(&*window),
+        let event = Event::new(window.upcast(),
                                Atom::from(type_),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
@@ -533,8 +532,8 @@ impl HTMLMediaElement {
 
     fn queue_dedicated_media_source_failure_steps(&self) {
         let window = window_from_node(self);
-        let _ = window.dom_manipulation_task_source().queue(box DedicatedMediaSourceFailureTask::new(self),
-                                                            GlobalRef::Window(&window));
+        let _ = window.dom_manipulation_task_source().queue(
+            box DedicatedMediaSourceFailureTask::new(self), window.upcast());
     }
 
     // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps

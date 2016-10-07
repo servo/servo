@@ -6,10 +6,10 @@ use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::TextEncoderBinding;
 use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::globalscope::GlobalScope;
 use encoding::EncoderTrap;
 use encoding::Encoding;
 use encoding::all::UTF_8;
@@ -30,14 +30,14 @@ impl TextEncoder {
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<TextEncoder> {
+    pub fn new(global: &GlobalScope) -> Root<TextEncoder> {
         reflect_dom_object(box TextEncoder::new_inherited(),
                            global,
                            TextEncoderBinding::Wrap)
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TextEncoder>> {
+    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<TextEncoder>> {
         Ok(TextEncoder::new(global))
     }
 }

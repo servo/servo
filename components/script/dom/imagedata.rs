@@ -5,9 +5,9 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::globalscope::GlobalScope;
 use euclid::size::Size2D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsapi::{JS_GetUint8ClampedArrayData, JS_NewUint8ClampedArray};
@@ -27,7 +27,7 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    pub fn new(global: GlobalRef, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
+    pub fn new(global: &GlobalScope, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
         let mut imagedata = box ImageData {
             reflector_: Reflector::new(),
             width: width,

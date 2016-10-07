@@ -154,8 +154,7 @@ impl CompiledEventListener {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
-                            let global = object.global();
-                            let cx = global.r().get_cx();
+                            let cx = object.global().get_cx();
                             rooted!(in(cx) let error = event.Error(cx));
                             let return_value = handler.Call_(object,
                                                              EventOrString::String(event.Message()),
@@ -201,8 +200,7 @@ impl CompiledEventListener {
 
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
-                            let global = object.global();
-                            let cx = global.r().get_cx();
+                            let cx = object.global().get_cx();
                             rooted!(in(cx) let value = value);
                             let value = value.handle();
 
@@ -500,8 +498,7 @@ impl EventTarget {
                       bubbles: EventBubbles,
                       cancelable: EventCancelable)
                       -> Root<Event> {
-        let global = self.global();
-        let event = Event::new(global.r(), Atom::from(name), bubbles, cancelable);
+        let event = Event::new(&self.global(), Atom::from(name), bubbles, cancelable);
 
         event.fire(self);
 

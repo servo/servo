@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::FileListBinding;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::file::File;
@@ -30,7 +29,7 @@ impl FileList {
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, files: Vec<Root<File>>) -> Root<FileList> {
         reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| JS::from_ref(&**r)).collect()),
-                           GlobalRef::Window(window),
+                           window,
                            FileListBinding::Wrap)
     }
 

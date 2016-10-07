@@ -6,13 +6,13 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use script_thread::Runnable;
 use std::cell::Cell;
 use std::default::Default;
@@ -115,13 +115,13 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<Event> {
+    pub fn new_uninitialized(global: &GlobalScope) -> Root<Event> {
         reflect_dom_object(box Event::new_inherited(),
                            global,
                            EventBinding::Wrap)
     }
 
-    pub fn new(global: GlobalRef,
+    pub fn new(global: &GlobalScope,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
@@ -130,7 +130,7 @@ impl Event {
         event
     }
 
-    pub fn Constructor(global: GlobalRef,
+    pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
         let bubbles = EventBubbles::from(init.bubbles);

@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -29,7 +28,7 @@ impl WorkerLocation {
 
     pub fn new(global: &WorkerGlobalScope, url: Url) -> Root<WorkerLocation> {
         reflect_dom_object(box WorkerLocation::new_inherited(url),
-                           GlobalRef::Worker(global),
+                           global,
                            WorkerLocationBinding::Wrap)
     }
 }
