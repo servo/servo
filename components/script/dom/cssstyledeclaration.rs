@@ -242,24 +242,26 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 4
-        let priority = match &*priority {
+        let importance = match &*priority {
             "" => Importance::Normal,
             p if p.eq_ignore_ascii_case("important") => Importance::Important,
             _ => return Ok(()),
         };
 
-        let element = self.owner.upcast::<Element>();
+        let style_attribute = self.owner.style_attribute().borrow();
+        if let Some(ref lock) = *style_attribute {
+            let mut style_attribute = lock.write();
 
-        // Step 5 & 6
-        match Shorthand::from_name(&property) {
-            Some(shorthand) => {
-                element.set_inline_style_property_priority(shorthand.longhands(), priority)
+            // Step 5 & 6
+            match Shorthand::from_name(&property) {
+                Some(shorthand) => style_attribute.set_importance(shorthand.longhands(), importance),
+                None => style_attribute.set_importance(&[&*property], importance),
             }
-            None => element.set_inline_style_property_priority(&[&*property], priority),
-        }
 
-        let node = element.upcast::<Node>();
-        node.dirty(NodeDamage::NodeStyleDamaged);
+            self.owner.set_style_attr(style_attribute.to_css_string());
+            let node = self.owner.upcast::<Node>();
+            node.dirty(NodeDamage::NodeStyleDamaged);
+        }
         Ok(())
     }
 
