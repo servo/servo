@@ -105,10 +105,10 @@ impl BluetoothRemoteGATTDescriptor {
         }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
+            BluetoothMethodMsg::WriteValue(self.get_instance_id(), value.clone(), sender)).unwrap();
         let result = receiver.recv().unwrap();
         match result {
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(*self.value.borrow_mut() = Some(ByteString::new(value))),
             Err(error) => {
                 Err(Error::from(error))
             },
