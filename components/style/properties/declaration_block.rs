@@ -154,6 +154,23 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    pub fn set_importance(&mut self, property_names: &[&str], new_importance: Importance) {
+        for &mut (ref declaration, ref mut importance) in &mut self.declarations {
+            if property_names.iter().any(|p| declaration.matches(p)) {
+                match (*importance, new_importance) {
+                    (Importance::Normal, Importance::Important) => {
+                        self.important_count += 1;
+                    }
+                    (Importance::Important, Importance::Normal) => {
+                        self.important_count -= 1;
+                    }
+                    _ => {}
+                }
+                *importance = new_importance;
+            }
+        }
+    }
+
     /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
     pub fn remove_property(&mut self, property_name: &str) {
         // Step 2

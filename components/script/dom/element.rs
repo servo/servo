@@ -765,35 +765,6 @@ impl Element {
          self.attrs.borrow_mut().push(JS::from_ref(&attr));
     }
 
-    pub fn set_inline_style_property_priority(&self,
-                                              properties: &[&str],
-                                              new_importance: Importance) {
-        {
-            let mut inline_declarations = self.style_attribute().borrow_mut();
-            if let &mut Some(ref mut block) = &mut *inline_declarations {
-                let mut block = block.write();
-                let block = &mut *block;
-                let declarations = &mut block.declarations;
-                for &mut (ref declaration, ref mut importance) in declarations {
-                    if properties.iter().any(|p| declaration.name() == **p) {
-                        match (*importance, new_importance) {
-                            (Importance::Normal, Importance::Important) => {
-                                block.important_count += 1;
-                            }
-                            (Importance::Important, Importance::Normal) => {
-                                block.important_count -= 1;
-                            }
-                            _ => {}
-                        }
-                        *importance = new_importance;
-                    }
-                }
-            }
-        }
-
-        self.sync_property_with_attrs_style();
-    }
-
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
         let mut writer = vec![];
         match serialize(&mut writer,
