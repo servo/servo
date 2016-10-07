@@ -95,8 +95,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use msg::constellation_msg::{FrameId, ReferrerPolicy};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{FetchResponseMsg, IpcSend};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -1629,11 +1629,11 @@ impl Document {
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, frame_id: FrameId) -> Option<Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.pipeline_id() == Some(pipeline))
+            .find(|node| node.frame_id() == frame_id)
     }
 
     pub fn get_dom_loading(&self) -> u64 {

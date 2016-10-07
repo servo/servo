@@ -85,7 +85,7 @@ pub enum ScriptMsg {
     LoadUrl(PipelineId, LoadData, bool),
     /// Dispatch a mozbrowser event to a given iframe,
     /// or to the window if no subpage id is provided.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    /// First PipelineId is for the parent, second PipelineId is in the frame.
     MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(Option<PipelineId>, TraversalDirection),
