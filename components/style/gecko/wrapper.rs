@@ -30,7 +30,6 @@ use gecko_bindings::bindings::Gecko_StoreStyleDifference;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
-use libc::uintptr_t;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
@@ -114,7 +113,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn opaque(&self) -> OpaqueNode {
-        let ptr: uintptr_t = self.0 as *const _ as uintptr_t;
+        let ptr: usize = self.0 as *const _ as usize;
         OpaqueNode(ptr)
     }
 

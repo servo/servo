@@ -44,6 +44,7 @@ extern crate plugins as servo_plugins;
 extern crate profile_traits;
 #[macro_use]
 extern crate range;
+extern crate rayon;
 extern crate script_layout_interface;
 extern crate script_traits;
 extern crate serde;

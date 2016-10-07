@@ -49,7 +49,6 @@ extern crate cfg_if;
 extern crate core;
 #[macro_use]
 extern crate cssparser;
-extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
@@ -60,7 +59,6 @@ extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature = "gecko")] extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
@@ -74,7 +72,7 @@ extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
 extern crate quickersort;
-extern crate rand;
+extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")]
@@ -131,7 +129,6 @@ pub mod traversal;
 #[allow(non_camel_case_types)]
 pub mod values;
 pub mod viewport;
-pub mod workqueue;
 
 use std::fmt;
 use std::sync::Arc;

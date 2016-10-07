@@ -6,45 +6,18 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-#![allow(unsafe_code)]
-
 use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
-use std::mem;
+use rayon;
 use std::sync::atomic::Ordering;
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 use traversal::DomTraversalContext;
 use util::opts;
-use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
-
-#[allow(dead_code)]
-fn static_assertion(node: UnsafeNode) {
-    unsafe {
-        let _: UnsafeNodeList = mem::transmute(node);
-    }
-}
-
-pub type UnsafeNodeList = (Box<Vec<UnsafeNode>>, OpaqueNode);
 
 pub const CHUNK_SIZE: usize = 64;
 
-pub struct WorkQueueData(usize, usize);
-
-pub fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
-        queue: &mut WorkQueue<SharedContext, WorkQueueData>,
-        callback: F,
-        shared: &SharedContext)
-    where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedContext, To>)
-{
-    let queue: &mut WorkQueue<SharedContext, To> = unsafe {
-        mem::transmute(queue)
-    };
-    callback(queue);
-    queue.run(shared);
-}
-
 pub fn traverse_dom<N, C>(root: N,
-                          queue_data: &C::SharedContext,
-                          queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
+                          shared_context: &C::SharedContext,
+                          queue: &rayon::ThreadPool)
     where N: TNode,
           C: DomTraversalContext<N>
 {
@@ -53,12 +26,15 @@ pub fn traverse_dom<N, C>(root: N,
         STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
     }
-    run_queue_with_custom_work_data_type(queue, |queue| {
-        queue.push(WorkUnit {
-            fun: top_down_dom::<N, C>,
-            data: (Box::new(vec![root.to_unsafe()]), root.opaque()),
+
+    let nodes = vec![root.to_unsafe()].into_boxed_slice();
+    let root = root.opaque();
+    queue.install(|| {
+        rayon::scope(|scope| {
+            let nodes = nodes;
+            top_down_dom::<N, C>(&nodes, root, scope, shared_context);
         });
-    }, queue_data);
+    });
 
     if opts::get().style_sharing_stats {
         let hits = STYLE_SHARING_CACHE_HITS.load(Ordering::SeqCst);
@@ -72,14 +48,18 @@ pub fn traverse_dom<N, C>(root: N,
 
 /// A parallel top-down DOM traversal.
 #[inline(always)]
-fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
-                      proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-    where N: TNode, C: DomTraversalContext<N>
+#[allow(unsafe_code)]
+fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
+                                  root: OpaqueNode,
+                                  scope: &'a rayon::Scope<'scope>,
+                                  shared_context: &'scope C::SharedContext)
+    where N: TNode,
+          C: DomTraversalContext<N>,
 {
-    let context = C::new(proxy.user_data(), unsafe_nodes.1);
+    let context = C::new(shared_context, root);
 
     let mut discovered_child_nodes = vec![];
-    for unsafe_node in *unsafe_nodes.0 {
+    for unsafe_node in unsafe_nodes {
         // Get a real layout node.
         let node = unsafe { N::from_unsafe(&unsafe_node) };
 
@@ -98,7 +78,7 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         if context.needs_postorder_traversal() {
             if children_to_process == 0 {
                 // If there were no more children, start walking back up.
-                bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+                bottom_up_dom::<N, C>(root, *unsafe_node, shared_context)
             } else {
                 // Otherwise record the number of children to process when the
                 // time comes.
@@ -112,10 +92,11 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
     context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
-        proxy.push(WorkUnit {
-            fun:  top_down_dom::<N, C>,
-            data: (Box::new(chunk.iter().cloned().collect()), unsafe_nodes.1),
-        });
+        let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
+        scope.spawn(move |scope| {
+            let nodes = nodes;
+            top_down_dom::<N, C>(&nodes, root, scope, shared_context)
+        })
     }
 }
 
@@ -130,13 +111,14 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
+#[allow(unsafe_code)]
 fn bottom_up_dom<N, C>(root: OpaqueNode,
                        unsafe_node: UnsafeNode,
-                       proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
+                       shared_context: &C::SharedContext)
     where N: TNode,
           C: DomTraversalContext<N>
 {
-    let context = C::new(proxy.user_data(), root);
+    let context = C::new(shared_context, root);
 
     // Get a real layout node.
     let mut node = unsafe { N::from_unsafe(&unsafe_node) };
