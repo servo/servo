@@ -42,6 +42,7 @@ ordered-float = "0.2.2"
 parking_lot = "0.3.3"
 quickersort = "2.0.0"
 rand = "0.3"
+rayon = "0.4"
 rustc-serialize = "0.3"
 selectors = "0.13"
 serde = {version = "0.8", optional = true}
