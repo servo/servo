@@ -1208,8 +1208,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
-        let parent_info = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.parent_info,
+        let (frame_id, parent_info) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => (pipeline.frame_id, pipeline.parent_info),
             None => return warn!("Pipeline {:?} loaded after closure.", pipeline_id),
         };
         let subframe_parent_id = match parent_info {
@@ -1217,7 +1217,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Pipeline {:?} has no parent.", pipeline_id),
         };
         let msg = ConstellationControlMsg::DispatchFrameLoadEvent {
-            target: pipeline_id,
+            target: frame_id,
             parent: subframe_parent_id,
         };
         let result = match self.pipelines.get(&subframe_parent_id) {
@@ -1392,13 +1392,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // requested change so it can update its internal state.
         //
         // If replace is true, the current entry is replaced instead of a new entry being added.
-        let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
+        let (frame_id, parent_info) = match self.pipelines.get(&source_id) {
+            Some(pipeline) => (pipeline.frame_id, pipeline.parent_info),
+            None => {
+                warn!("Pipeline {:?} loaded after closure.", source_id);
+                return None;
+            }
+        };
         match parent_info {
             Some((parent_pipeline_id, _)) => {
                 self.handle_load_start_msg(source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, source_id, load_data, replace);
+                let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace);
                 let result = match self.pipelines.get(&parent_pipeline_id) {
                     Some(parent_pipeline) => parent_pipeline.script_chan.send(msg),
                     None => {
@@ -1590,12 +1596,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
+        let frame_id = pipeline_id
+            .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            .map(|pipeline| pipeline.frame_id);
+
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         // If the pipeline lookup fails, it is because we have torn down the pipeline,
         // so it is reasonable to silently ignore the event.
         match self.pipelines.get(&parent_pipeline_id) {
-            Some(pipeline) => pipeline.trigger_mozbrowser_event(pipeline_id, event),
+            Some(pipeline) => pipeline.trigger_mozbrowser_event(frame_id, event),
             None => warn!("Pipeline {:?} handling mozbrowser event after closure.", parent_pipeline_id),
         }
     }
@@ -1626,8 +1636,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn focus_parent_pipeline(&mut self, pipeline_id: PipelineId) {
-        let parent_info = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.parent_info,
+        let (frame_id, parent_info) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => (pipeline.frame_id, pipeline.parent_info),
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
         let (parent_pipeline_id, _) = match parent_info {
@@ -1637,7 +1647,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Send a message to the parent of the provided pipeline (if it exists)
         // telling it to mark the iframe element as focused.
-        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, pipeline_id);
+        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id);
         let result = match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => pipeline.script_chan.send(msg),
             None => return warn!("Pipeline {:?} focus after closure.", parent_pipeline_id),
@@ -1691,10 +1701,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
-        let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
+        let (frame_id, parent_pipeline_info) = match self.pipelines.get(&pipeline_id) {
+            None => return warn!("Visibity change for closed pipeline {:?}.", pipeline_id),
+            Some(pipeline) => (pipeline.frame_id, pipeline.parent_info),
+        };
         if let Some((parent_pipeline_id, _)) = parent_pipeline_info {
             let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
-                                                                                 pipeline_id,
+                                                                                 frame_id,
                                                                                  visibility);
             let  result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
@@ -1856,7 +1869,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = pipeline_info {
             let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                                prev_pipeline_id,
+                                                                frame_id,
                                                                 next_pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
@@ -1875,8 +1888,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn get_top_level_frame_for_pipeline(&self, pipeline_id: Option<PipelineId>) -> FrameId {
         if PREFS.is_mozbrowser_enabled() {
             pipeline_id.and_then(|id| self.get_mozbrowser_ancestor_info(id))
-                       .and_then(|pipeline_info| self.pipelines.get(&pipeline_info.1))
-                       .map(|pipeline| pipeline.frame_id)
+                       .map(|(_, mozbrowser_iframe_id)| mozbrowser_iframe_id)
                        .unwrap_or(self.root_frame_id)
         } else {
             // If mozbrowser is not enabled, the root frame is the only top-level frame
@@ -1964,7 +1976,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     let _ = parent_pipeline.script_chan
                                            .send(ConstellationControlMsg::FramedContentChanged(
                                                parent_info.0,
-                                               pipeline_id));
+                                               child_pipeline.frame_id));
                 }
             }
         }
@@ -2350,12 +2362,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// For a given pipeline, determine the mozbrowser iframe that transitively contains
     /// it. There could be arbitrary levels of nested iframes in between them.
-    fn get_mozbrowser_ancestor_info(&self, original_pipeline_id: PipelineId) -> Option<(PipelineId, PipelineId)> {
+    fn get_mozbrowser_ancestor_info(&self, original_pipeline_id: PipelineId) -> Option<(PipelineId, FrameId)> {
         let mut pipeline_id = original_pipeline_id;
         loop {
             match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => match pipeline.parent_info {
-                    Some((parent_id, FrameType::MozBrowserIFrame)) => return Some((parent_id, pipeline_id)),
+                    Some((parent_id, FrameType::MozBrowserIFrame)) => return Some((parent_id, pipeline.frame_id)),
                     Some((parent_id, _)) => pipeline_id = parent_id,
                     None => return None,
                 },
@@ -2380,12 +2392,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If this is a mozbrowser iframe, then send the event with new url
         if let Some((ancestor_id, mozbrowser_iframe_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
             if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
-                if let Some(pipeline) = self.pipelines.get(&mozbrowser_iframe_id) {
-                    let can_go_forward = !self.joint_session_future(pipeline.frame_id).is_empty();
-                    let can_go_back = !self.joint_session_past(pipeline.frame_id).is_empty();
-                    let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
-                    ancestor.trigger_mozbrowser_event(Some(mozbrowser_iframe_id), event);
-                }
+                let can_go_forward = !self.joint_session_future(mozbrowser_iframe_id).is_empty();
+                let can_go_back = !self.joint_session_past(mozbrowser_iframe_id).is_empty();
+                let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
+                ancestor.trigger_mozbrowser_event(Some(mozbrowser_iframe_id), event);
             }
         }
     }
