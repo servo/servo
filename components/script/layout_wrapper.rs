@@ -43,7 +43,7 @@ use gfx_traits::ByteIndex;
 use msg::constellation_msg::PipelineId;
 use parking_lot::RwLock;
 use range::Range;
-use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
+use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::restyle_damage::RestyleDamage;
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, LayoutNode, PseudoElementType};
@@ -859,6 +859,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
         let this = unsafe { self.get_jsmanaged() };
         this.canvas_data()
+    }
+
+    fn svg_data(&self) -> Option<SVGSVGData> {
+        let this = unsafe { self.get_jsmanaged() };
+        this.svg_data()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {

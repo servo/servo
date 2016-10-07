@@ -22,6 +22,7 @@ use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
@@ -36,7 +37,7 @@ use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
-use dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
+use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
@@ -46,6 +47,7 @@ use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHel
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
+use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
@@ -59,7 +61,7 @@ use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
-use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData};
+use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
 use script_traits::UntrustedNodeAddress;
@@ -955,6 +957,7 @@ pub trait LayoutNodeHelpers {
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<Url>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
+    fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_pipeline_id(&self) -> PipelineId;
     fn opaque(&self) -> OpaqueNode;
 }
@@ -1088,8 +1091,13 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
-        self.downcast()
+        self.downcast::<HTMLCanvasElement>()
             .map(|canvas| canvas.data())
+    }
+
+    fn svg_data(&self) -> Option<SVGSVGData> {
+        self.downcast::<SVGSVGElement>()
+            .map(|svg| svg.data())
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
@@ -2689,6 +2697,8 @@ impl Into<LayoutElementType> for ElementTypeId {
                 LayoutElementType::HTMLTableSectionElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) =>
                 LayoutElementType::HTMLTextAreaElement,
+            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(SVGGraphicsElementTypeId::SVGSVGElement)) =>
+                LayoutElementType::SVGSVGElement,
             _ => LayoutElementType::Element,
         }
     }

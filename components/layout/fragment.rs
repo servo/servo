@@ -30,6 +30,7 @@ use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::HTMLCanvasData;
+use script_layout_interface::SVGSVGData;
 use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use std::borrow::ToOwned;
@@ -155,6 +156,7 @@ pub enum SpecificFragmentInfo {
     Iframe(IframeFragmentInfo),
     Image(Box<ImageFragmentInfo>),
     Canvas(Box<CanvasFragmentInfo>),
+    Svg(Box<SvgFragmentInfo>),
 
     /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was
     /// declared with `display: inline;`.
@@ -186,6 +188,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::Iframe(_) |
                 SpecificFragmentInfo::Image(_) |
                 SpecificFragmentInfo::ScannedText(_) |
+                SpecificFragmentInfo::Svg(_) |
                 SpecificFragmentInfo::Table |
                 SpecificFragmentInfo::TableCell |
                 SpecificFragmentInfo::TableColumn(_) |
@@ -216,6 +219,7 @@ impl SpecificFragmentInfo {
             }
             SpecificFragmentInfo::InlineBlock(_) => "SpecificFragmentInfo::InlineBlock",
             SpecificFragmentInfo::ScannedText(_) => "SpecificFragmentInfo::ScannedText",
+            SpecificFragmentInfo::Svg(_) => "SpecificFragmentInfo::Svg",
             SpecificFragmentInfo::Table => "SpecificFragmentInfo::Table",
             SpecificFragmentInfo::TableCell => "SpecificFragmentInfo::TableCell",
             SpecificFragmentInfo::TableColumn(_) => "SpecificFragmentInfo::TableColumn",
@@ -348,6 +352,44 @@ impl CanvasFragmentInfo {
 
     /// Returns the original block-size of the canvas.
     pub fn canvas_block_size(&self) -> Au {
+        if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            self.dom_width
+        } else {
+            self.dom_height
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct SvgFragmentInfo {
+    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
+    pub dom_width: Au,
+    pub dom_height: Au,
+}
+
+impl SvgFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N,
+                                        data: SVGSVGData,
+                                        ctx: &SharedStyleContext)
+                                        -> SvgFragmentInfo {
+        SvgFragmentInfo {
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
+            dom_width: Au::from_px(data.width as i32),
+            dom_height: Au::from_px(data.height as i32),
+        }
+    }
+
+    /// Returns the original inline-size of the SVG element.
+    pub fn svg_inline_size(&self) -> Au {
+        if self.replaced_image_fragment_info.writing_mode_is_vertical {
+            self.dom_height
+        } else {
+            self.dom_width
+        }
+    }
+
+    /// Returns the original block-size of the SVG element.
+    pub fn svg_block_size(&self) -> Au {
         if self.replaced_image_fragment_info.writing_mode_is_vertical {
             self.dom_width
         } else {
@@ -1007,7 +1049,8 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::Multicol => {
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::Svg(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -1509,6 +1552,26 @@ impl Fragment {
                     preferred_inline_size: canvas_inline_size,
                 });
             }
+            SpecificFragmentInfo::Svg(ref mut svg_fragment_info) => {
+                let mut svg_inline_size = match self.style.content_inline_size() {
+                    LengthOrPercentageOrAuto::Auto |
+                    LengthOrPercentageOrAuto::Percentage(_) => {
+                        svg_fragment_info.svg_inline_size()
+                    }
+                    LengthOrPercentageOrAuto::Length(length) => length,
+                    LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
+                };
+
+                svg_inline_size = max(model::specified(self.style.min_inline_size(), Au(0)), svg_inline_size);
+                if let Some(max) = model::specified_or_none(self.style.max_inline_size(), Au(0)) {
+                    svg_inline_size = min(svg_inline_size, max)
+                }
+
+                result.union_block(&IntrinsicISizes {
+                    minimum_inline_size: svg_inline_size,
+                    preferred_inline_size: svg_inline_size,
+                });
+            }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
 
@@ -1595,6 +1658,9 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsolute(_) => Au(0),
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 canvas_fragment_info.replaced_image_fragment_info.computed_inline_size()
+            }
+            SpecificFragmentInfo::Svg(ref svg_fragment_info) => {
+                svg_fragment_info.replaced_image_fragment_info.computed_inline_size()
             }
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 image_fragment_info.replaced_image_fragment_info.computed_inline_size()
@@ -1885,7 +1951,8 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::ScannedText(_) => {}
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Svg(_) => {}
         };
 
         let style = &*self.style;
@@ -1945,6 +2012,18 @@ impl Fragment {
                                                                         fragment_inline_size,
                                                                         fragment_block_size);
             }
+            SpecificFragmentInfo::Svg(ref mut svg_fragment_info) => {
+                let fragment_inline_size = svg_fragment_info.svg_inline_size();
+                let fragment_block_size = svg_fragment_info.svg_block_size();
+                self.border_box.size.inline =
+                    svg_fragment_info.replaced_image_fragment_info
+                                        .calculate_replaced_inline_size(style,
+                                                                        noncontent_inline_size,
+                                                                        container_inline_size,
+                                                                        container_block_size,
+                                                                        fragment_inline_size,
+                                                                        fragment_block_size);
+            }
             SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
                 self.border_box.size.inline =
                     iframe_fragment_info.calculate_replaced_inline_size(style,
@@ -1981,7 +2060,8 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
-            SpecificFragmentInfo::ScannedText(_) => {}
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Svg(_) => {}
         }
 
         let style = &*self.style;
@@ -2004,6 +2084,17 @@ impl Fragment {
                 let fragment_block_size = canvas_fragment_info.canvas_block_size();
                 self.border_box.size.block =
                     canvas_fragment_info.replaced_image_fragment_info
+                                        .calculate_replaced_block_size(style,
+                                                                       noncontent_block_size,
+                                                                       containing_block_block_size,
+                                                                       fragment_inline_size,
+                                                                       fragment_block_size);
+            }
+            SpecificFragmentInfo::Svg(ref mut svg_fragment_info) => {
+                let fragment_inline_size = svg_fragment_info.svg_inline_size();
+                let fragment_block_size = svg_fragment_info.svg_block_size();
+                self.border_box.size.block =
+                    svg_fragment_info.replaced_image_fragment_info
                                         .calculate_replaced_block_size(style,
                                                                        noncontent_block_size,
                                                                        containing_block_block_size,
@@ -2057,6 +2148,16 @@ impl Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let computed_block_size = canvas_fragment_info.replaced_image_fragment_info
+                                                              .computed_block_size();
+                InlineMetrics {
+                    block_size_above_baseline: computed_block_size +
+                                                   self.border_padding.block_start,
+                    depth_below_baseline: self.border_padding.block_end,
+                    ascent: computed_block_size + self.border_padding.block_start,
+                }
+            }
+            SpecificFragmentInfo::Svg(ref svg_fragment_info) => {
+                let computed_block_size = svg_fragment_info.replaced_image_fragment_info
                                                               .computed_block_size();
                 InlineMetrics {
                     block_size_above_baseline: computed_block_size +
@@ -2213,6 +2314,7 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableColumn(_) |
@@ -2699,6 +2801,7 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::UnscannedText(_) => true
         }
     }

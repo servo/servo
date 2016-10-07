@@ -1239,7 +1239,8 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::MulticolColumn |
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
-            SpecificFragmentInfo::InlineAbsolute(_) => {
+            SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::Svg(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(state,
                                                              stacking_relative_border_box,
