@@ -147,13 +147,6 @@ impl<'a> ParserRef<'a> {
         }
     }
 
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
-        match *self {
-            ParserRef::HTML(parser) => parser.pending_input(),
-            ParserRef::XML(parser) => parser.pending_input(),
-        }
-    }
-
     pub fn set_plaintext_state(&self) {
         match *self {
             ParserRef::HTML(parser) => parser.set_plaintext_state(),

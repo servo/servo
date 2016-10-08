@@ -36,8 +36,6 @@ pub struct ServoXMLParser {
     servoparser: ServoParser,
     #[ignore_heap_size_of = "Defined in xml5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
-    /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<Vec<String>>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
     /// Whether to expect any further input from the associated network request.
@@ -50,7 +48,7 @@ pub struct ServoXMLParser {
 impl<'a> Parser for &'a ServoXMLParser {
     fn parse_chunk(self, input: String) {
         self.upcast().document().set_current_parser(Some(ParserRef::XML(self)));
-        self.pending_input.borrow_mut().push(input);
+        self.upcast().push_input_chunk(input);
         if !self.is_suspended() {
             self.parse_sync();
         }
@@ -58,7 +56,7 @@ impl<'a> Parser for &'a ServoXMLParser {
 
     fn finish(self) {
         assert!(!self.suspended.get());
-        assert!(self.pending_input.borrow().is_empty());
+        assert!(!self.upcast().has_pending_input());
 
         self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
@@ -87,7 +85,6 @@ impl ServoXMLParser {
         let parser = ServoXMLParser {
             servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
@@ -119,10 +116,8 @@ impl ServoXMLParser {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
-           self.upcast().document().reflow_if_reflow_timer_expired();
-            let mut pending_input = self.pending_input.borrow_mut();
-            if !pending_input.is_empty() {
-                let chunk = pending_input.remove(0);
+            self.upcast().document().reflow_if_reflow_timer_expired();
+            if let Some(chunk) = self.upcast().take_next_input_chunk() {
                 self.tokenizer.borrow_mut().feed(chunk.into());
             } else {
                 self.tokenizer.borrow_mut().run();
@@ -133,7 +128,7 @@ impl ServoXMLParser {
                 return;
             }
 
-            if pending_input.is_empty() {
+            if self.upcast().has_pending_input() {
                 break;
             }
         }
@@ -141,10 +136,6 @@ impl ServoXMLParser {
         if self.last_chunk_received.get() {
             self.finish();
         }
-    }
-
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
-        &self.pending_input
     }
 
     pub fn set_plaintext_state(&self) {
