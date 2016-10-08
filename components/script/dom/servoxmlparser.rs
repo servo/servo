@@ -4,6 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoXMLParserBinding;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::trace::JSTraceable;
@@ -37,8 +38,6 @@ pub struct ServoXMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,
-    /// The document associated with this parser.
-    document: JS<Document>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
     /// Whether to expect any further input from the associated network request.
@@ -50,7 +49,7 @@ pub struct ServoXMLParser {
 
 impl<'a> Parser for &'a ServoXMLParser {
     fn parse_chunk(self, input: String) {
-        self.document.set_current_parser(Some(ParserRef::XML(self)));
+        self.upcast().document().set_current_parser(Some(ParserRef::XML(self)));
         self.pending_input.borrow_mut().push(input);
         if !self.is_suspended() {
             self.parse_sync();
@@ -64,7 +63,7 @@ impl<'a> Parser for &'a ServoXMLParser {
         self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
 
-        self.document.set_current_parser(None);
+        self.upcast().document().set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
             ScriptThread::parsing_complete(pipeline);
@@ -86,10 +85,9 @@ impl ServoXMLParser {
         let tok = tokenizer::XmlTokenizer::new(tb, Default::default());
 
         let parser = ServoXMLParser {
-            servoparser: ServoParser::new_inherited(),
+            servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
-            document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
@@ -99,7 +97,7 @@ impl ServoXMLParser {
     }
 
     pub fn window(&self) -> &Window {
-        self.document.window()
+        self.upcast().document().window()
     }
 
     pub fn resume(&self) {
@@ -121,7 +119,7 @@ impl ServoXMLParser {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
-           self.document.reflow_if_reflow_timer_expired();
+           self.upcast().document().reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
@@ -155,10 +153,6 @@ impl ServoXMLParser {
 
     pub fn end_tokenizer(&self) {
         self.tokenizer.borrow_mut().end()
-    }
-
-    pub fn document(&self) -> &Document {
-        &self.document
     }
 
     pub fn last_chunk_received(&self) -> &Cell<bool> {

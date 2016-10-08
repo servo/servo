@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::document::Document;
 use dom::servohtmlparser::ServoHTMLParser;
+use dom::servoparser::ServoParser;
 use dom::servoxmlparser::ServoXMLParser;
 use dom::window::Window;
 use std::cell::Cell;
@@ -104,6 +105,13 @@ pub enum ParserRef<'a> {
 }
 
 impl<'a> ParserRef<'a> {
+    pub fn as_servo_parser(&self) -> &ServoParser {
+        match *self {
+            ParserRef::HTML(parser) => parser.upcast(),
+            ParserRef::XML(parser) => parser.upcast(),
+        }
+    }
+
     pub fn parse_chunk(&self, input: String) {
         match *self {
             ParserRef::HTML(parser) => parser.parse_chunk(input),
@@ -157,13 +165,6 @@ impl<'a> ParserRef<'a> {
         match *self {
             ParserRef::HTML(parser) => parser.parse_sync(),
             ParserRef::XML(parser) => parser.parse_sync(),
-        }
-    }
-
-    pub fn document(&self) -> &Document {
-        match *self {
-            ParserRef::HTML(parser) => parser.document(),
-            ParserRef::XML(parser) => parser.document(),
         }
     }
 
