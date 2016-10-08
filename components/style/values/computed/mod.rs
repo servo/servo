@@ -11,7 +11,8 @@ use super::{CSSFloat, specified};
 use super::LocalToCss;
 
 pub use cssparser::Color as CSSColor;
-pub use self::image::{Gradient, GradientKind, Image};
+pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
+pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData};
 
 pub mod basic_shape;
