@@ -205,6 +205,21 @@ def is_macosx():
     return sys.platform == 'darwin'
 
 
+def find_native_win32_python():
+    paths = subprocess.Popen(['where', 'python.exe'],
+                             shell=False, stdout=subprocess.PIPE).stdout.read()
+
+    for p in paths.splitlines():
+        p = p.replace("\\", "/")
+        py_type = subprocess.Popen([p, '-c', 'import sys; print(sys.platform)'],
+                                   shell=False, stdout=subprocess.PIPE).stdout.read()
+        if "win32" in py_type and "/mingw64/bin" not in p:
+            py_version = subprocess.Popen([p, '--version'], shell=False,
+                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if "2.7" in py_version.stderr.read():
+                return p
+
+
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
@@ -395,6 +410,11 @@ class CommandBase(object):
             env["OPENSSL_LIBS"] = "ssleay32MD:libeay32MD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
+            if not os.environ.get("NATIVE_WIN32_PYTHON"):
+                env["NATIVE_WIN32_PYTHON"] = sys.executable
+        elif is_windows():
+            if not os.environ.get("NATIVE_WIN32_PYTHON"):
+                env["NATIVE_WIN32_PYTHON"] = find_native_win32_python()
 
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
