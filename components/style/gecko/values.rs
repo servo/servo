@@ -51,6 +51,19 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
     }
 }
 
+impl GeckoStyleCoordConvertible for Au {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Coord(self.0));
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Coord(coord) => Some(Au(coord)),
+            _ => None,
+        }
+    }
+}
+
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         let value = match *self {

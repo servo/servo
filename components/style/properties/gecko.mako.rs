@@ -1837,7 +1837,7 @@ clip-path
 
     pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
-            Some(au) => self.gecko.mColumnWidth.set_value(CoordDataValue::Coord(au.0)),
+            Some(au) => self.gecko.mColumnWidth.set(au),
             None => self.gecko.mColumnWidth.set_value(CoordDataValue::Auto),
         }
     }
