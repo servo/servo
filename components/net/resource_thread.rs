@@ -117,7 +117,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
 
         let supplied_type =
             metadata.content_type.as_ref().map(|&Serde(ContentType(Mime(ref toplevel, ref sublevel, _)))| {
-            (toplevel.into(), format!("{}", sublevel))
+            (toplevel.to_owned(), format!("{}", sublevel))
         });
         let (toplevel, sublevel) = classifier.classify(context,
                                                        no_sniff,

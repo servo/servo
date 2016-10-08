@@ -4,8 +4,7 @@
 
 use net_traits::LoadContext;
 use std::borrow::ToOwned;
-use std::fmt;
-use hyper;
+use hyper::mime::TopLevel;
 
 pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
@@ -50,82 +49,7 @@ pub enum NoSniffFlag {
     OFF
 }
 
-pub type MimeType = (MimeTopLevel, String);
-
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum MimeTopLevel {
-    /// `*`
-    Star,
-    /// `"application"`
-    Application,
-    /// `"audio"`
-    Audio,
-    /// `"image"`
-    Image,
-    /// `"text"`
-    Text,
-    /// `"unknown"`
-    Unknown,
-    /// `"video"`
-    Video,
-}
-
-impl<'a> From<&'a hyper::mime::TopLevel> for MimeTopLevel {
-    fn from(tl: &'a hyper::mime::TopLevel) -> Self {
-        match *tl {
-            hyper::mime::TopLevel::Star => MimeTopLevel::Star,
-            hyper::mime::TopLevel::Application => MimeTopLevel::Application,
-            hyper::mime::TopLevel::Audio => MimeTopLevel::Audio,
-            hyper::mime::TopLevel::Image => MimeTopLevel::Image,
-            hyper::mime::TopLevel::Text => MimeTopLevel::Text,
-            hyper::mime::TopLevel::Video => MimeTopLevel::Video,
-            _ => unimplemented!(),
-        }
-    }
-}
-
-impl From<hyper::mime::TopLevel> for MimeTopLevel {
-    fn from(tl: hyper::mime::TopLevel) -> Self {
-        match tl {
-            hyper::mime::TopLevel::Star => MimeTopLevel::Star,
-            hyper::mime::TopLevel::Application => MimeTopLevel::Application,
-            hyper::mime::TopLevel::Audio => MimeTopLevel::Audio,
-            hyper::mime::TopLevel::Image => MimeTopLevel::Image,
-            hyper::mime::TopLevel::Text => MimeTopLevel::Text,
-            hyper::mime::TopLevel::Video => MimeTopLevel::Video,
-            _ => unimplemented!(),
-        }
-    }
-}
-
-impl Into<hyper::mime::TopLevel> for MimeTopLevel {
-    fn into(self) -> hyper::mime::TopLevel {
-        match self {
-            MimeTopLevel::Star => hyper::mime::TopLevel::Star,
-            MimeTopLevel::Application => hyper::mime::TopLevel::Application,
-            MimeTopLevel::Audio => hyper::mime::TopLevel::Audio,
-            MimeTopLevel::Image => hyper::mime::TopLevel::Image,
-            MimeTopLevel::Text => hyper::mime::TopLevel::Text,
-            MimeTopLevel::Unknown => hyper::mime::TopLevel::Ext("unknown".into()),
-            MimeTopLevel::Video => hyper::mime::TopLevel::Video,
-        }
-    }
-}
-
-impl fmt::Display for MimeTopLevel {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MimeTopLevel::Star => write!(f, "*"),
-            MimeTopLevel::Application => write!(f, "application"),
-            MimeTopLevel::Audio => write!(f, "audio"),
-            MimeTopLevel::Image => write!(f, "image"),
-            MimeTopLevel::Text => write!(f, "text"),
-            MimeTopLevel::Unknown => write!(f, "unknown"),
-            MimeTopLevel::Video => write!(f, "video"),
-        }
-    }
-}
+pub type MimeType = (TopLevel, String);
 
 
 impl MimeClassifier {
@@ -137,13 +61,13 @@ impl MimeClassifier {
                     supplied_type: &Option<MimeType>,
                     data: &[u8]) -> MimeType {
         let supplied_type_or_octet_stream = supplied_type.clone()
-                                                         .unwrap_or((MimeTopLevel::Application,
+                                                         .unwrap_or((TopLevel::Application,
                                                                      "octet-stream".to_owned()));
         match context {
             LoadContext::Browsing => match *supplied_type {
                 None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
-                    let &(media_type, ref media_subtype) = supplied_type;
+                    let &(ref media_type, ref media_subtype) = supplied_type;
                     if MimeClassifier::is_explicit_unknown(media_type, media_subtype) {
                         self.sniff_unknown_type(no_sniff_flag, data)
                     } else {
@@ -183,7 +107,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (MimeTopLevel::Application, "octet-stream".to_owned()),
+                    None => (TopLevel::Application, "octet-stream".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -193,7 +117,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (MimeTopLevel::Text, "css".to_owned()),
+                    None => (TopLevel::Text, "css".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -203,7 +127,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (MimeTopLevel::Text, "javascript".to_owned()),
+                    None => (TopLevel::Text, "javascript".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -219,14 +143,14 @@ impl MimeClassifier {
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                (MimeTopLevel::Text, "vtt".to_owned())
+                (TopLevel::Text, "vtt".to_owned())
             },
             LoadContext::CacheManifest => {
                 // 8.9 Sniffing in a cache manifest context
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                (MimeTopLevel::Text, "cache-manifest".to_owned())
+                (TopLevel::Text, "cache-manifest".to_owned())
             },
         }
     }
@@ -277,39 +201,41 @@ impl MimeClassifier {
         self.binary_or_plaintext.classify(data).expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
-    fn is_xml(tp: MimeTopLevel, sub_tp: &str) -> bool {
+    fn is_xml(tp: &TopLevel, sub_tp: &str) -> bool {
         sub_tp.ends_with("+xml") ||
         match (tp, sub_tp) {
-            (MimeTopLevel::Application, "xml") | (MimeTopLevel::Text, "xml") => true,
+            (&TopLevel::Application, "xml") | (&TopLevel::Text, "xml") => true,
             _ => false
         }
     }
 
-    fn is_html(tp: MimeTopLevel, sub_tp: &str) -> bool {
-        tp == MimeTopLevel::Text && sub_tp == "html"
+    fn is_html(tp: &TopLevel, sub_tp: &str) -> bool {
+        *tp == TopLevel::Text && sub_tp == "html"
     }
 
-    fn is_image(tp: MimeTopLevel) -> bool {
-        tp == MimeTopLevel::Image
+    fn is_image(tp: &TopLevel) -> bool {
+        *tp == TopLevel::Image
     }
 
-    fn is_audio_video(tp: MimeTopLevel, sub_tp: &str) -> bool {
-        tp == MimeTopLevel::Audio ||
-        tp == MimeTopLevel::Video ||
-        (tp == MimeTopLevel::Application && sub_tp == "ogg")
+    fn is_audio_video(tp: &TopLevel, sub_tp: &str) -> bool {
+        *tp == TopLevel::Audio ||
+        *tp == TopLevel::Video ||
+        (*tp == TopLevel::Application && sub_tp == "ogg")
     }
 
-    fn is_explicit_unknown(tp: MimeTopLevel, sub_tp: &str) -> bool {
-        match(tp, sub_tp) {
-            (MimeTopLevel::Unknown, "unknown") |
-            (MimeTopLevel::Application, "unknown") |
-            (MimeTopLevel::Star, "*") => true,
+    fn is_explicit_unknown(tp: &TopLevel, sub_tp: &str) -> bool {
+        if let TopLevel::Ext(ref e) = *tp {
+            return e == "unknown" && sub_tp == "unknown";
+        }
+        match (tp, sub_tp) {
+            (&TopLevel::Application, "unknown") |
+                (&TopLevel::Star, "*") => true,
             _ => false
         }
     }
 
-    fn get_media_type(media_type: MimeTopLevel,
-                          media_subtype: &str) -> Option<MediaType> {
+    fn get_media_type(media_type: &TopLevel,
+                      media_subtype: &str) -> Option<MediaType> {
         if MimeClassifier::is_xml(media_type, media_subtype) {
             Some(MediaType::Xml)
         } else if MimeClassifier::is_html(media_type, media_subtype) {
@@ -324,13 +250,13 @@ impl MimeClassifier {
     }
 
     fn maybe_get_media_type(supplied_type: &Option<MimeType>) -> Option<MediaType> {
-        supplied_type.as_ref().and_then(|&(media_type, ref media_subtype)| {
+        supplied_type.as_ref().and_then(|&(ref media_type, ref media_subtype)| {
             MimeClassifier::get_media_type(media_type, media_subtype)
         })
     }
 }
 
-pub fn as_string_option(tup: Option<(MimeTopLevel, &'static str)>) -> Option<MimeType> {
+pub fn as_string_option(tup: Option<(TopLevel, &'static str)>) -> Option<MimeType> {
     tup.map(|(a, b)| (a.to_owned(), b.to_owned()))
 }
 
@@ -377,7 +303,7 @@ struct ByteMatcher {
     pattern: &'static [u8],
     mask: &'static [u8],
     leading_ignore: &'static [u8],
-    content_type: (MimeTopLevel, &'static str)
+    content_type: (TopLevel, &'static str)
 }
 
 impl ByteMatcher {
@@ -481,7 +407,7 @@ impl Mp4Matcher {
 impl MIMEChecker for Mp4Matcher {
     fn classify(&self, data: &[u8]) -> Option<MimeType> {
         if self.matches(data) {
-            Some((MimeTopLevel::Video, "mp4".to_owned()))
+            Some((TopLevel::Video, "mp4".to_owned()))
         } else {
             None
         }
@@ -495,19 +421,19 @@ impl MIMEChecker for Mp4Matcher {
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
-    fn classify_impl(&self, data: &[u8]) -> (MimeTopLevel, &'static str) {
+    fn classify_impl(&self, data: &[u8]) -> (TopLevel, &'static str) {
         if data.starts_with(&[0xFFu8, 0xFEu8]) ||
            data.starts_with(&[0xFEu8, 0xFFu8]) ||
            data.starts_with(&[0xEFu8, 0xBBu8, 0xBFu8])
         {
-            (MimeTopLevel::Text, "plain")
+            (TopLevel::Text, "plain")
         } else if data.iter().any(|&x| x <= 0x08u8 ||
                                        x == 0x0Bu8 ||
                                       (x >= 0x0Eu8 && x <= 0x1Au8) ||
                                       (x >= 0x1Cu8 && x <= 0x1Fu8)) {
-            (MimeTopLevel::Application, "octet-stream")
+            (TopLevel::Application, "octet-stream")
         } else {
-            (MimeTopLevel::Text, "plain")
+            (TopLevel::Text, "plain")
         }
     }
 }
@@ -665,7 +591,7 @@ where T: Iterator<Item=&'a u8> + Clone {
 struct FeedsClassifier;
 impl FeedsClassifier {
     // Implements sniffing for mislabeled feeds (https://mimesniff.spec.whatwg.org/#sniffing-a-mislabeled-feed)
-    fn classify_impl(&self, data: &[u8]) -> Option<(MimeTopLevel, &'static str)> {
+    fn classify_impl(&self, data: &[u8]) -> Option<(TopLevel, &'static str)> {
         // Step 4: can not be feed unless length is > 3
         if data.len() < 3 {
             return None;
@@ -696,11 +622,11 @@ impl FeedsClassifier {
 
             // Step 5.2.5
             if matcher.matches(b"rss") {
-                return Some((MimeTopLevel::Application, "rss+xml"));
+                return Some((TopLevel::Application, "rss+xml"));
             }
             // Step 5.2.6
             if matcher.matches(b"feed") {
-                return Some((MimeTopLevel::Application, "atom+xml"));
+                return Some((TopLevel::Application, "atom+xml"));
             }
             // Step 5.2.7
             if matcher.matches(b"rdf:RDF") {
@@ -711,7 +637,7 @@ impl FeedsClassifier {
                        .chain(|| eats_until(&mut matcher,
                                             b"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
                                             b"http://purl.org/rss/1.0/")) {
-                        Match::StartAndEnd => return Some((MimeTopLevel::Application, "rss+xml")),
+                        Match::StartAndEnd => return Some((TopLevel::Application, "rss+xml")),
                         Match::DidNotMatch => {},
                         Match::Start       => return None
                     }
@@ -740,7 +666,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x01\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "x-icon"),
+            content_type: (TopLevel::Image, "x-icon"),
             leading_ignore: &[]
         }
     }
@@ -749,7 +675,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x02\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "x-icon"),
+            content_type: (TopLevel::Image, "x-icon"),
             leading_ignore: &[]
         }
     }
@@ -758,7 +684,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"BM",
             mask: b"\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "bmp"),
+            content_type: (TopLevel::Image, "bmp"),
             leading_ignore: &[]
         }
     }
@@ -767,7 +693,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"GIF89a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "gif"),
+            content_type: (TopLevel::Image, "gif"),
             leading_ignore: &[]
         }
     }
@@ -776,7 +702,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"GIF87a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "gif"),
+            content_type: (TopLevel::Image, "gif"),
             leading_ignore: &[]
         }
     }
@@ -785,7 +711,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "webp"),
+            content_type: (TopLevel::Image, "webp"),
             leading_ignore: &[]
         }
     }
@@ -795,7 +721,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x89PNG\r\n\x1A\n",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "png"),
+            content_type: (TopLevel::Image, "png"),
             leading_ignore: &[]
         }
     }
@@ -804,7 +730,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\xD8\xFF",
             mask: b"\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Image, "jpeg"),
+            content_type: (TopLevel::Image, "jpeg"),
             leading_ignore: &[]
         }
     }
@@ -813,7 +739,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x1A\x45\xDF\xA3",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Video, "webm"),
+            content_type: (TopLevel::Video, "webm"),
             leading_ignore: &[]
         }
     }
@@ -822,7 +748,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b".snd",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Audio, "basic"),
+            content_type: (TopLevel::Audio, "basic"),
             leading_ignore: &[]
         }
     }
@@ -831,7 +757,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern:  b"FORM\x00\x00\x00\x00AIFF",
             mask:  b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Audio, "aiff"),
+            content_type: (TopLevel::Audio, "aiff"),
             leading_ignore: &[]
         }
     }
@@ -840,7 +766,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"ID3",
             mask: b"\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Audio, "mpeg"),
+            content_type: (TopLevel::Audio, "mpeg"),
             leading_ignore: &[]
         }
     }
@@ -849,7 +775,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"OggS\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "ogg"),
+            content_type: (TopLevel::Application, "ogg"),
             leading_ignore: &[]
         }
     }
@@ -859,7 +785,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"MThd\x00\x00\x00\x06",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Audio, "midi"),
+            content_type: (TopLevel::Audio, "midi"),
             leading_ignore: &[]
         }
     }
@@ -868,7 +794,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00AVI ",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Video, "avi"),
+            content_type: (TopLevel::Video, "avi"),
             leading_ignore: &[]
         }
     }
@@ -877,7 +803,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WAVE",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Audio, "wave"),
+            content_type: (TopLevel::Audio, "wave"),
             leading_ignore: &[]
         }
     }
@@ -887,7 +813,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<!DOCTYPE HTML",
                 mask: b"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
            }
         }
@@ -899,7 +825,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HTML",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -911,7 +837,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HEAD",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -923,7 +849,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<SCRIPT",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -935,7 +861,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<IFRAME",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -947,7 +873,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<H1",
                 mask: b"\xFF\xDF\xFF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -959,7 +885,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<DIV",
                 mask: b"\xFF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -971,7 +897,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<FONT",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -983,7 +909,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
             pattern: b"<TABLE",
             mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-            content_type: (MimeTopLevel::Text, "html"),
+            content_type: (TopLevel::Text, "html"),
             leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -995,7 +921,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<A",
                 mask: b"\xFF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1007,7 +933,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<STYLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1019,7 +945,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<TITLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1031,7 +957,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<B",
                 mask: b"\xFF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1043,7 +969,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<BODY",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1055,7 +981,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<BR",
                 mask: b"\xFF\xDF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1067,7 +993,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<P",
                 mask: b"\xFF\xDF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1079,7 +1005,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<!--",
                 mask: b"\xFF\xFF\xFF\xFF",
-                content_type: (MimeTopLevel::Text, "html"),
+                content_type: (TopLevel::Text, "html"),
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1090,7 +1016,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"<?xml",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Text, "xml"),
+            content_type: (TopLevel::Text, "xml"),
             leading_ignore: b"\t\n\x0C\r "
         }
     }
@@ -1099,7 +1025,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"%PDF-",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "pdf"),
+            content_type: (TopLevel::Application, "pdf"),
             leading_ignore: &[]
         }
     }
@@ -1112,7 +1038,7 @@ impl ByteMatcher {
             mask: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                     \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                     \x00\x00\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "vnd.ms-fontobject"),
+            content_type: (TopLevel::Application, "vnd.ms-fontobject"),
             leading_ignore: &[]
         }
     }
@@ -1121,7 +1047,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "font-sfnt"),
+            content_type: (TopLevel::Application, "font-sfnt"),
             leading_ignore: &[]
         }
     }
@@ -1130,7 +1056,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "font-sfnt"),
+            content_type: (TopLevel::Application, "font-sfnt"),
             leading_ignore: &[]
         }
     }
@@ -1139,7 +1065,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"ttcf",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "font-sfnt"),
+            content_type: (TopLevel::Application, "font-sfnt"),
             leading_ignore: &[]
         }
     }
@@ -1148,7 +1074,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"wOFF",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "font-woff"),
+            content_type: (TopLevel::Application, "font-woff"),
             leading_ignore: &[]
         }
     }
@@ -1157,7 +1083,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x1F\x8B\x08",
             mask: b"\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "x-gzip"),
+            content_type: (TopLevel::Application, "x-gzip"),
             leading_ignore: &[]
         }
     }
@@ -1166,7 +1092,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"PK\x03\x04",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "zip"),
+            content_type: (TopLevel::Application, "zip"),
             leading_ignore: &[]
         }
     }
@@ -1175,7 +1101,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"Rar \x1A\x07\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "x-rar-compressed"),
+            content_type: (TopLevel::Application, "x-rar-compressed"),
             leading_ignore: &[]
         }
     }
@@ -1184,7 +1110,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"%!PS-Adobe-",
             mask:  b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (MimeTopLevel::Application, "postscript"),
+            content_type: (TopLevel::Application, "postscript"),
             leading_ignore: &[]
         }
     }
@@ -1193,7 +1119,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFE\xFF\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
-            content_type: (MimeTopLevel::Text, "plain"),
+            content_type: (TopLevel::Text, "plain"),
             leading_ignore: &[]
         }
     }
@@ -1202,7 +1128,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\xFE\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
-            content_type: (MimeTopLevel::Text, "plain"),
+            content_type: (TopLevel::Text, "plain"),
             leading_ignore: &[]
         }
     }
@@ -1211,7 +1137,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xEF\xBB\xBF\x00",
             mask: b"\xFF\xFF\xFF\x00",
-            content_type: (MimeTopLevel::Text, "plain"),
+            content_type: (TopLevel::Text, "plain"),
             leading_ignore: &[]
         }
     }
