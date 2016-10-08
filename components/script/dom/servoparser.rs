@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::js::JS;
 use dom::document::Document;
+use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -13,6 +14,9 @@ pub struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: JS<Document>,
+    /// The pipeline associated with this parse, unavailable if this parse
+    /// does not correspond to a page load.
+    pipeline: Option<PipelineId>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,
     /// Whether to expect any further input from the associated network request.
@@ -20,10 +24,15 @@ pub struct ServoParser {
 }
 
 impl ServoParser {
-    pub fn new_inherited(document: &Document, last_chunk_received: bool) -> Self {
+    pub fn new_inherited(
+            document: &Document,
+            pipeline: Option<PipelineId>,
+            last_chunk_received: bool)
+            -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
+            pipeline: pipeline,
             pending_input: DOMRefCell::new(vec![]),
             last_chunk_received: Cell::new(last_chunk_received),
         }
@@ -31,6 +40,10 @@ impl ServoParser {
 
     pub fn document(&self) -> &Document {
         &self.document
+    }
+
+    pub fn pipeline(&self) -> Option<PipelineId> {
+        self.pipeline
     }
 
     pub fn has_pending_input(&self) -> bool {

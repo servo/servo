@@ -53,9 +53,6 @@ pub struct ServoHTMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
-    /// The pipeline associated with this parse, unavailable if this parse does not
-    /// correspond to a page load.
-    pipeline: Option<PipelineId>,
 }
 
 impl<'a> Parser for &'a ServoHTMLParser {
@@ -76,7 +73,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
 
         self.upcast().document().set_current_parser(None);
 
-        if let Some(pipeline) = self.pipeline {
+        if let Some(pipeline) = self.upcast().pipeline() {
             ScriptThread::parsing_complete(pipeline);
         }
     }
@@ -99,10 +96,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, Default::default());
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(document, false),
+            servoparser: ServoParser::new_inherited(document, pipeline, false),
             tokenizer: DOMRefCell::new(tok),
             suspended: Cell::new(false),
-            pipeline: pipeline,
         };
 
         reflect_dom_object(box parser, document.window(), ServoHTMLParserBinding::Wrap)
@@ -132,10 +128,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, tok_opts);
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(document, true),
+            servoparser: ServoParser::new_inherited(document, None, true),
             tokenizer: DOMRefCell::new(tok),
             suspended: Cell::new(false),
-            pipeline: None,
         };
 
         reflect_dom_object(box parser, document.window(), ServoHTMLParserBinding::Wrap)
