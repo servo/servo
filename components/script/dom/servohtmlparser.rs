@@ -121,7 +121,7 @@ impl AsyncResponseListener for ParserContext {
                 parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
 
-                let doc = parser.document();
+                let doc = parser.as_servo_parser().document();
                 let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(atom!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
@@ -199,7 +199,8 @@ impl AsyncResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
+        parser.r().as_servo_parser().document()
+            .finish_load(LoadType::PageSource(self.url.clone()));
 
         parser.r().last_chunk_received().set(true);
         if !parser.r().is_suspended() {
@@ -218,8 +219,6 @@ pub struct ServoHTMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,
-    /// The document associated with this parser.
-    document: JS<Document>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
     /// Whether to expect any further input from the associated network request.
@@ -231,7 +230,7 @@ pub struct ServoHTMLParser {
 
 impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
-        self.document.set_current_parser(Some(ParserRef::HTML(self)));
+        self.upcast().document().set_current_parser(Some(ParserRef::HTML(self)));
         self.pending_input.borrow_mut().push(input);
         if !self.is_suspended() {
             self.parse_sync();
@@ -245,7 +244,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
         self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
 
-        self.document.set_current_parser(None);
+        self.upcast().document().set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
             ScriptThread::parsing_complete(pipeline);
@@ -270,10 +269,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, Default::default());
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(),
+            servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
-            document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
@@ -306,10 +304,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, tok_opts);
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(),
+            servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
-            document: JS::from_ref(document),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(true),
             pipeline: None,
@@ -340,13 +337,13 @@ impl ServoHTMLParser {
 impl ServoHTMLParser {
     pub fn parse_sync(&self) {
         let metadata = TimerMetadata {
-            url: self.document.url().as_str().into(),
+            url: self.upcast().document().url().as_str().into(),
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
         profile(ProfilerCategory::ScriptParseHTML,
                 Some(metadata),
-                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
+                self.upcast().document().window().upcast::<GlobalScope>().time_profiler_chan().clone(),
                 || self.do_parse_sync())
     }
 
@@ -354,7 +351,7 @@ impl ServoHTMLParser {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
-           self.document.reflow_if_reflow_timer_expired();
+            self.upcast().document().reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
@@ -379,7 +376,7 @@ impl ServoHTMLParser {
     }
 
     pub fn window(&self) -> &Window {
-        self.document.window()
+        self.upcast().document().window()
     }
 
     pub fn suspend(&self) {
@@ -395,10 +392,6 @@ impl ServoHTMLParser {
 
     pub fn is_suspended(&self) -> bool {
         self.suspended.get()
-    }
-
-    pub fn document(&self) -> &Document {
-        &self.document
     }
 
     pub fn last_chunk_received(&self) -> &Cell<bool> {
