@@ -79,12 +79,12 @@ webdriver_server = {path = "../webdriver_server", optional = true}
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
 default-features = false
-features = ["serde_macros"]
+features = ["serde_derive"]
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"

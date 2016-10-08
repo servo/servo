@@ -1469,16 +1469,16 @@ pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
 // The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 // 17.6.2.1. Higher values override lower values.
 define_numbered_css_keyword_enum! { BorderStyle:
-    "none" => none = -1,
-    "solid" => solid = 6,
-    "double" => double = 7,
-    "dotted" => dotted = 4,
-    "dashed" => dashed = 5,
-    "hidden" => hidden = -2,
-    "groove" => groove = 1,
-    "ridge" => ridge = 3,
-    "inset" => inset = 0,
-    "outset" => outset = 2,
+    "none" => none = 1,
+    "solid" => solid = 8,
+    "double" => double = 9,
+    "dotted" => dotted = 6,
+    "dashed" => dashed = 7,
+    "hidden" => hidden = 0,
+    "groove" => groove = 3,
+    "ridge" => ridge = 5,
+    "inset" => inset = 2,
+    "outset" => outset = 4,
 }
 
 impl NoViewportPercentage for BorderStyle {}

@@ -6,10 +6,10 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(mpsc_select)]
+#![feature(rustc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
-#![plugin(serde_macros)]
 
 extern crate backtrace;
 extern crate canvas;
@@ -34,6 +34,8 @@ extern crate profile_traits;
 extern crate rand;
 extern crate script_traits;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate style_traits;
 extern crate url;
 #[macro_use]
