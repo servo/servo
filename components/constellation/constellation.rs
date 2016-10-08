@@ -867,22 +867,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
-            FromScriptMsg::ForwardMouseButtonEvent(pipeline_id, event_type, button, point) => {
-                let event = CompositorEvent::MouseButtonEvent(event_type, button, point);
+            FromScriptMsg::ForwardEvent(pipeline_id, event) => {
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse button event after closure.", pipeline_id); return; }
-                    Some(pipeline) => pipeline.script_chan.send(msg),
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
-            }
-            FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point) => {
-                let event = CompositorEvent::MouseMoveEvent(Some(point));
-                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id); return; }
+                    None => { debug!("Pipeline {:?} got event after closure.", pipeline_id); return; }
                     Some(pipeline) => pipeline.script_chan.send(msg),
                 };
                 if let Err(e) = result {

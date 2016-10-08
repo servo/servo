@@ -106,7 +106,7 @@ use origin::Origin;
 use parse::{MutNullableParserField, ParserRef, ParserRoot};
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_thread::{MainThreadScriptMsg, Runnable};
-use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{AnimationState, CompositorEvent, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
@@ -132,6 +132,11 @@ use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
 use util::prefs::PREFS;
+
+pub enum TouchEventResult {
+    Processed(bool),
+    Forwarded,
+}
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -723,9 +728,8 @@ impl Document {
                 let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
                 let child_point = client_point - child_origin;
 
-                let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
-                                                                      mouse_event_type,
-                                                                      button, child_point);
+                let event = CompositorEvent::MouseButtonEvent(mouse_event_type, button, child_point);
+                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
                 self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
             }
             return;
@@ -853,14 +857,6 @@ impl Document {
                                           client_point: Point2D<f32>,
                                           pressure: f32,
                                           phase_now: TouchpadPressurePhase) {
-        let phase_before = self.touchpad_pressure_phase.get();
-        self.touchpad_pressure_phase.set(phase_now);
-
-        if phase_before == TouchpadPressurePhase::BeforeClick &&
-           phase_now == TouchpadPressurePhase::BeforeClick {
-            return;
-        }
-
         let node = match self.window.hit_test_query(client_point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return
@@ -876,6 +872,30 @@ impl Document {
                 }
             },
         };
+
+        // If the target is an iframe, forward the event to the child document.
+        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
+            if let Some(pipeline_id) = iframe.pipeline_id() {
+                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
+                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_point = client_point - child_origin;
+
+                let event = CompositorEvent::TouchpadPressureEvent(child_point,
+                                                                   pressure,
+                                                                   phase_now);
+                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+            }
+            return;
+        }
+
+        let phase_before = self.touchpad_pressure_phase.get();
+        self.touchpad_pressure_phase.set(phase_now);
+
+        if phase_before == TouchpadPressurePhase::BeforeClick &&
+           phase_now == TouchpadPressurePhase::BeforeClick {
+            return;
+        }
 
         let node = el.upcast::<Node>();
         let target = node.upcast();
@@ -963,7 +983,8 @@ impl Document {
                     let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
                     let child_point = client_point - child_origin;
 
-                    let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
+                    let event = CompositorEvent::MouseMoveEvent(Some(child_point));
+                    let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
                     self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
                 }
                 return;
@@ -1032,9 +1053,11 @@ impl Document {
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
                               event_type: TouchEventType,
-                              TouchId(identifier): TouchId,
+                              touch_id: TouchId,
                               point: Point2D<f32>)
-                              -> bool {
+                              -> TouchEventResult {
+        let TouchId(identifier) = touch_id;
+
         let event_name = match event_type {
             TouchEventType::Down => "touchstart",
             TouchEventType::Move => "touchmove",
@@ -1044,7 +1067,7 @@ impl Document {
 
         let node = match self.window.hit_test_query(point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
-            None => return false,
+            None => return TouchEventResult::Processed(false),
         };
         let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
@@ -1052,10 +1075,25 @@ impl Document {
                 let parent = node.GetParentNode();
                 match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
-                    None => return false,
+                    None => return TouchEventResult::Processed(false),
                 }
             },
         };
+
+        // If the target is an iframe, forward the event to the child document.
+        if let Some(iframe) = el.downcast::<HTMLIFrameElement>() {
+            if let Some(pipeline_id) = iframe.pipeline_id() {
+                let rect = iframe.upcast::<Element>().GetBoundingClientRect();
+                let child_origin = Point2D::new(rect.X() as f32, rect.Y() as f32);
+                let child_point = point - child_origin;
+
+                let event = CompositorEvent::TouchEvent(event_type, touch_id, child_point);
+                let event = ConstellationMsg::ForwardEvent(pipeline_id, event);
+                self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+            }
+            return TouchEventResult::Forwarded;
+        }
+
         let target = Root::upcast::<EventTarget>(el);
         let window = &*self.window;
 
@@ -1132,8 +1170,8 @@ impl Document {
                       ReflowReason::MouseEvent);
 
         match result {
-            EventStatus::Canceled => false,
-            EventStatus::NotCanceled => true
+            EventStatus::Canceled => TouchEventResult::Processed(false),
+            EventStatus::NotCanceled => TouchEventResult::Processed(true),
         }
     }
 

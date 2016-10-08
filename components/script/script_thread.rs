@@ -36,7 +36,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::BrowsingContext;
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
+use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
@@ -1934,9 +1934,9 @@ impl ScriptThread {
                 }
             }
             TouchEvent(event_type, identifier, point) => {
-                let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
-                match event_type {
-                    TouchEventType::Down => {
+                let touch_result = self.handle_touch_event(pipeline_id, event_type, identifier, point);
+                match (event_type, touch_result) {
+                    (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
                         let result = if handled {
                             // TODO: Wait to see if preventDefault is called on the first touchmove event.
                             EventResult::DefaultAllowed
@@ -1987,10 +1987,13 @@ impl ScriptThread {
                           event_type: TouchEventType,
                           identifier: TouchId,
                           point: Point2D<f32>)
-                          -> bool {
+                          -> TouchEventResult {
         let document = match self.root_browsing_context().find(pipeline_id) {
             Some(browsing_context) => browsing_context.active_document(),
-            None => { warn!("Message sent to closed pipeline {}.", pipeline_id); return true },
+            None => {
+                warn!("Message sent to closed pipeline {}.", pipeline_id);
+                return TouchEventResult::Processed(true)
+            },
         };
         document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
