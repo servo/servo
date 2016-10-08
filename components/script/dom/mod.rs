@@ -387,6 +387,7 @@ pub mod serviceworkercontainer;
 pub mod serviceworkerglobalscope;
 pub mod serviceworkerregistration;
 pub mod servohtmlparser;
+pub mod servoparser;
 pub mod servoxmlparser;
 pub mod storage;
 pub mod storageevent;
