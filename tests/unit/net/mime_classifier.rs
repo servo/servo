@@ -99,8 +99,8 @@ fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string
                           type_string,
                           subtype_string,
                           supplied_type,
-                          NoSniffFlag::OFF,
-                          ApacheBugFlag::OFF)
+                          NoSniffFlag::Off,
+                          ApacheBugFlag::Off)
 }
 
 #[cfg(test)]
@@ -494,8 +494,8 @@ fn test_sniff_atom_feed_with_no_sniff_flag_on() {
                                   "text",
                                   "html",
                                   Some(("text", "html")),
-                                  NoSniffFlag::ON,
-                                  ApacheBugFlag::OFF);
+                                  NoSniffFlag::On,
+                                  ApacheBugFlag::Off);
 }
 
 #[test]
@@ -504,8 +504,8 @@ fn test_sniff_with_no_sniff_flag_on_and_apache_flag_on() {
                                   "text",
                                   "html",
                                   Some(("text", "html")),
-                                  NoSniffFlag::ON,
-                                  ApacheBugFlag::ON);
+                                  NoSniffFlag::On,
+                                  ApacheBugFlag::On);
 }
 
 #[test]
@@ -514,8 +514,8 @@ fn test_sniff_utf_8_bom_with_apache_flag_on() {
                                   "text",
                                   "plain",
                                   Some(("dummy", "text")),
-                                  NoSniffFlag::OFF,
-                                  ApacheBugFlag::ON);
+                                  NoSniffFlag::Off,
+                                  ApacheBugFlag::On);
 }
 
 #[test]
@@ -524,8 +524,8 @@ fn test_sniff_utf_16be_bom_with_apache_flag_on() {
                                   "text",
                                   "plain",
                                   Some(("dummy", "text")),
-                                  NoSniffFlag::OFF,
-                                  ApacheBugFlag::ON);
+                                  NoSniffFlag::Off,
+                                  ApacheBugFlag::On);
 }
 
 #[test]
@@ -534,8 +534,8 @@ fn test_sniff_utf_16le_bom_with_apache_flag_on() {
                                   "text",
                                   "plain",
                                   Some(("dummy", "text")),
-                                  NoSniffFlag::OFF,
-                                  ApacheBugFlag::ON);
+                                  NoSniffFlag::Off,
+                                  ApacheBugFlag::On);
 }
 
 #[test]
@@ -544,8 +544,8 @@ fn test_sniff_octet_stream_apache_flag_on() {
                                   "application",
                                   "octet-stream",
                                   Some(("dummy", "binary")),
-                                  NoSniffFlag::OFF,
-                                  ApacheBugFlag::ON);
+                                  NoSniffFlag::Off,
+                                  ApacheBugFlag::On);
 }
 
 #[test]
@@ -554,6 +554,6 @@ fn test_sniff_mp4_video_apache_flag_on() {
                           "application",
                           "octet-stream",
                           Some(("video", "mp4")),
-                          NoSniffFlag::OFF,
-                          ApacheBugFlag::ON);
+                          NoSniffFlag::Off,
+                          ApacheBugFlag::On);
 }

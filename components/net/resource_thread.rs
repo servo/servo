@@ -101,8 +101,8 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  -> Result<ProgressSender, ()> {
     if PREFS.get("network.mime.sniff").as_boolean().unwrap_or(false) {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
-        let mut no_sniff = NoSniffFlag::OFF;
-        let mut check_for_apache_bug = ApacheBugFlag::OFF;
+        let mut no_sniff = NoSniffFlag::Off;
+        let mut check_for_apache_bug = ApacheBugFlag::Off;
 
         if let Some(ref headers) = metadata.headers {
             if let Some(ref content_type) = headers.get_raw("content-type").and_then(|c| c.last()) {
@@ -110,7 +110,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             }
             if let Some(ref raw_content_type_options) = headers.get_raw("X-content-type-options") {
                 if raw_content_type_options.iter().any(|ref opt| *opt == b"nosniff") {
-                    no_sniff = NoSniffFlag::ON
+                    no_sniff = NoSniffFlag::On
                 }
             }
         }
