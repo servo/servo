@@ -276,7 +276,7 @@ impl ToComputedValue for specified::ColorStop {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape {
     Circle(LengthOrKeyword),
-    Ellipse(LengthOrPercentageOrKeyword, LengthOrPercentageOrKeyword),
+    Ellipse(LengthOrPercentageOrKeyword),
 }
 
 impl ::cssparser::ToCss for EndingShape {
@@ -286,11 +286,9 @@ impl ::cssparser::ToCss for EndingShape {
                 try!(dest.write_str("circle "));
                 try!(length.to_css(dest));
             },
-            EndingShape::Ellipse(ref first_len, ref second_len) => {
+            EndingShape::Ellipse(ref length) => {
                 try!(dest.write_str("ellipse "));
-                try!(first_len.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(second_len.to_css(dest));
+                try!(length.to_css(dest));
             },
         }
         Ok(())
@@ -303,8 +301,8 @@ impl fmt::Debug for EndingShape {
             EndingShape::Circle(ref length) => {
                 let _ = write!(f, "circle {:?}", length);
             },
-            EndingShape::Ellipse(ref first_len, ref second_len) => {
-                let _ = write!(f, "ellipse {:?} {:?}", first_len, second_len);
+            EndingShape::Ellipse(ref length) => {
+                let _ = write!(f, "ellipse {:?}", length);
             }
         }
         Ok(())
@@ -320,9 +318,8 @@ impl ToComputedValue for specified::GradientEndingShape {
             specified::GradientEndingShape::Circle(ref length) => {
                 EndingShape::Circle(length.to_computed_value(context))
             },
-            specified::GradientEndingShape::Ellipse(ref first_len, ref second_len) => {
-                EndingShape::Ellipse(first_len.to_computed_value(context),
-                                     second_len.to_computed_value(context))
+            specified::GradientEndingShape::Ellipse(ref length) => {
+                EndingShape::Ellipse(length.to_computed_value(context))
             },
         }
     }
@@ -332,9 +329,8 @@ impl ToComputedValue for specified::GradientEndingShape {
             EndingShape::Circle(ref length) => {
                 specified::GradientEndingShape::Circle(ToComputedValue::from_computed_value(length))
             },
-            EndingShape::Ellipse(ref first_len, ref second_len) => {
-                specified::GradientEndingShape::Ellipse(ToComputedValue::from_computed_value(first_len),
-                                                        ToComputedValue::from_computed_value(second_len))
+            EndingShape::Ellipse(ref length) => {
+                specified::GradientEndingShape::Ellipse(ToComputedValue::from_computed_value(length))
             },
         }
     }
@@ -402,14 +398,18 @@ impl ToComputedValue for specified::LengthOrKeyword {
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrKeyword {
-    LengthOrPercentage(LengthOrPercentage),
+    LengthOrPercentage(LengthOrPercentage, LengthOrPercentage),
     Keyword(SizeKeyword),
 }
 
 impl ::cssparser::ToCss for LengthOrPercentageOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => length.to_css(dest),
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {
+                try!(first_len.to_css(dest));
+                try!(dest.write_str(" "));
+                second_len.to_css(dest)
+            },
             LengthOrPercentageOrKeyword::Keyword(keyword) => keyword.to_css(dest),
         }
     }
@@ -418,8 +418,8 @@ impl ::cssparser::ToCss for LengthOrPercentageOrKeyword {
 impl fmt::Debug for LengthOrPercentageOrKeyword {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => {
-                let _ = write!(f, "{:?}", length);
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {
+                let _ = write!(f, "{:?} {:?}", first_len, second_len);
             },
             LengthOrPercentageOrKeyword::Keyword(keyword) => {
                 let _ = write!(f, "{:?}", keyword);
@@ -435,8 +435,9 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrKeyword {
         match *self {
-            specified::LengthOrPercentageOrKeyword::LengthOrPercentage(length) => {
-                LengthOrPercentageOrKeyword::LengthOrPercentage(length.to_computed_value(context))
+            specified::LengthOrPercentageOrKeyword::LengthOrPercentage(first_len, second_len) => {
+                LengthOrPercentageOrKeyword::LengthOrPercentage(first_len.to_computed_value(context),
+                                                                second_len.to_computed_value(context))
             },
             specified::LengthOrPercentageOrKeyword::Keyword(keyword) => {
                 LengthOrPercentageOrKeyword::Keyword(keyword)
@@ -446,9 +447,10 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
     #[inline]
     fn from_computed_value(computed: &LengthOrPercentageOrKeyword) -> Self {
         match *computed {
-            LengthOrPercentageOrKeyword::LengthOrPercentage(length) => {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(first_len, second_len) => {
                 specified::LengthOrPercentageOrKeyword::LengthOrPercentage(
-                    ToComputedValue::from_computed_value(&length))
+                    ToComputedValue::from_computed_value(&first_len),
+                    ToComputedValue::from_computed_value(&second_len))
             },
             LengthOrPercentageOrKeyword::Keyword(keyword) => {
                 specified::LengthOrPercentageOrKeyword::Keyword(keyword)

@@ -283,7 +283,7 @@ impl Parse for ColorStop {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum EndingShape {
     Circle(LengthOrKeyword),
-    Ellipse(LengthOrPercentageOrKeyword, LengthOrPercentageOrKeyword),
+    Ellipse(LengthOrPercentageOrKeyword),
 }
 
 impl Parse for EndingShape {
@@ -295,29 +295,17 @@ impl Parse for EndingShape {
                 Ok(EndingShape::Circle(position))
             },
             "ellipse" => {
-              let (first_pos, second_pos) = if let Ok(first) = input.try(LengthOrPercentageOrKeyword::parse) {
-                    if let Ok(second) = input.try(LengthOrPercentageOrKeyword::parse) {
-                        (first, second)
-                    } else {
-                        (first, LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide))
-                    }
+              let length = if let Ok(len) = input.try(LengthOrPercentageOrKeyword::parse) {
+                    len
                 } else {
-                    (LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide),
-                     LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide))
+                    (LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide))
                 };
-                Ok(EndingShape::Ellipse(first_pos, second_pos))
+                Ok(EndingShape::Ellipse(length))
             },
             _ => {
                 // If two <length> is present, it defaults to ellipse, otherwise defaults to circle.
-                let maybe_two: Result<(LengthOrPercentageOrKeyword, LengthOrPercentageOrKeyword), ()> =
-                    input.try(|input| {
-                        let first = try!(LengthOrPercentageOrKeyword::parse(input));
-                        let second = try!(LengthOrPercentageOrKeyword::parse(input));
-                        Ok((first, second))
-                    });
-
-                if let Ok((first, second)) = maybe_two {
-                 Ok(EndingShape::Ellipse(first, second))
+                if let Ok(length) = LengthOrPercentageOrKeyword::parse(input) {
+                    Ok(EndingShape::Ellipse(length))
                 } else {
                     let len = if let Ok(len) = input.try(LengthOrKeyword::parse) {
                          len
@@ -336,11 +324,9 @@ impl ToCss for EndingShape {
                 try!(dest.write_str("circle "));
                 try!(length.to_css(dest));
             },
-            EndingShape::Ellipse(ref first_len, ref second_len) => {
+            EndingShape::Ellipse(ref length) => {
                 try!(dest.write_str("ellipse "));
-                try!(first_len.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(second_len.to_css(dest));
+                try!(length.to_css(dest));
             },
         }
         Ok(())
@@ -378,7 +364,7 @@ impl ToCss for LengthOrKeyword {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrKeyword {
-    LengthOrPercentage(LengthOrPercentage),
+    LengthOrPercentage(LengthOrPercentage, LengthOrPercentage),
     Keyword(SizeKeyword),
 }
 
@@ -388,7 +374,8 @@ impl Parse for LengthOrPercentageOrKeyword {
         if let Ok(keyword) = input.try(SizeKeyword::parse) {
             Ok(LengthOrPercentageOrKeyword::Keyword(keyword))
         } else {
-            Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(try!(LengthOrPercentage::parse(input))))
+            Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(try!(LengthOrPercentage::parse(input)),
+                                                               try!(LengthOrPercentage::parse(input))))
         }
     }
 }
@@ -396,7 +383,11 @@ impl Parse for LengthOrPercentageOrKeyword {
 impl ToCss for LengthOrPercentageOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrKeyword::LengthOrPercentage(ref length) => length.to_css(dest),
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {
+                try!(first_len.to_css(dest));
+                try!(dest.write_str(" "));
+                second_len.to_css(dest)
+            },
             LengthOrPercentageOrKeyword::Keyword(keyword) => keyword.to_css(dest),
         }
     }
