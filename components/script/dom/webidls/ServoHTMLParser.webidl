@@ -7,5 +7,5 @@
 
 // FIXME: find a better way to hide this from content (#3688)
 [NoInterfaceObject, Exposed=(Window,Worker)]
-interface ServoHTMLParser {
+interface ServoHTMLParser : ServoParser {
 };

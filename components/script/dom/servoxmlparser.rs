@@ -5,10 +5,11 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoXMLParserBinding;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
+use dom::servoparser::ServoParser;
 use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
@@ -31,7 +32,7 @@ pub struct Sink {
 #[must_root]
 #[dom_struct]
 pub struct ServoXMLParser {
-    reflector_: Reflector,
+    servoparser: ServoParser,
     #[ignore_heap_size_of = "Defined in xml5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
@@ -85,7 +86,7 @@ impl ServoXMLParser {
         let tok = tokenizer::XmlTokenizer::new(tb, Default::default());
 
         let parser = ServoXMLParser {
-            reflector_: Reflector::new(),
+            servoparser: ServoParser::new_inherited(),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
             document: JS::from_ref(document),

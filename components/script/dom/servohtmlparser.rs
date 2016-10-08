@@ -14,13 +14,14 @@ use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::globalscope::GlobalScope;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::node::Node;
+use dom::servoparser::ServoParser;
 use dom::window::Window;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
@@ -212,7 +213,7 @@ impl PreInvoke for ParserContext {
 
 #[dom_struct]
 pub struct ServoHTMLParser {
-    reflector_: Reflector,
+    servoparser: ServoParser,
     #[ignore_heap_size_of = "Defined in html5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
     /// Input chunks received but not yet passed to the parser.
@@ -269,7 +270,7 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, Default::default());
 
         let parser = ServoHTMLParser {
-            reflector_: Reflector::new(),
+            servoparser: ServoParser::new_inherited(),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
             document: JS::from_ref(document),
@@ -305,7 +306,7 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, tok_opts);
 
         let parser = ServoHTMLParser {
-            reflector_: Reflector::new(),
+            servoparser: ServoParser::new_inherited(),
             tokenizer: DOMRefCell::new(tok),
             pending_input: DOMRefCell::new(vec!()),
             document: JS::from_ref(document),
