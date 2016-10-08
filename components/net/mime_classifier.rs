@@ -24,8 +24,8 @@ pub enum MediaType {
 }
 
 pub enum ApacheBugFlag {
-    ON,
-    OFF
+    On,
+    Off
 }
 
 impl ApacheBugFlag {
@@ -35,17 +35,17 @@ impl ApacheBugFlag {
                || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
                || last_raw_content_type == b"text/plain; charset=iso-8859-1"
                || last_raw_content_type == b"text/plain; charset=UTF-8" {
-            ApacheBugFlag::ON
+            ApacheBugFlag::On
         } else {
-            ApacheBugFlag::OFF
+            ApacheBugFlag::Off
         }
     }
 }
 
 #[derive(PartialEq)]
 pub enum NoSniffFlag {
-    ON,
-    OFF
+    On,
+    Off
 }
 
 pub type MimeType = (String, String);
@@ -70,10 +70,10 @@ impl MimeClassifier {
                         self.sniff_unknown_type(no_sniff_flag, data)
                     } else {
                         match no_sniff_flag {
-                            NoSniffFlag::ON => supplied_type.clone(),
-                            NoSniffFlag::OFF => match apache_bug_flag {
-                                ApacheBugFlag::ON => self.sniff_text_or_data(data),
-                                ApacheBugFlag::OFF => match MimeClassifier::get_media_type(media_type,
+                            NoSniffFlag::On => supplied_type.clone(),
+                            NoSniffFlag::Off => match apache_bug_flag {
+                                ApacheBugFlag::On => self.sniff_text_or_data(data),
+                                ApacheBugFlag::Off => match MimeClassifier::get_media_type(media_type,
                                                                                            media_subtype) {
                                     Some(MediaType::Html) => self.feeds_classifier.classify(data),
                                     Some(MediaType::Image) => self.image_classifier.classify(data),
@@ -180,7 +180,7 @@ impl MimeClassifier {
 
     //some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> MimeType {
-        let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
+        let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::Off;
         let sniffed = if should_sniff_scriptable {
             self.scriptable_classifier.classify(data)
         } else {
