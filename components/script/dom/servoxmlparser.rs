@@ -9,12 +9,15 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
+use dom::globalscope::GlobalScope;
 use dom::node::Node;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use parse::{Parser, ParserRef};
+use profile_traits::time::{ProfilerCategory, TimerMetadata};
+use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use url::Url;
@@ -106,6 +109,18 @@ impl ServoXMLParser {
     }
 
     pub fn parse_sync(&self) {
+        let metadata = TimerMetadata {
+            url: self.upcast().document().url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        profile(ProfilerCategory::ScriptParseXML,
+                Some(metadata),
+                self.upcast().document().window().upcast::<GlobalScope>().time_profiler_chan().clone(),
+                || self.do_parse_sync())
+    }
+
+    fn do_parse_sync(&self) {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
