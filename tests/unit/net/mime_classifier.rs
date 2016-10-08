@@ -75,6 +75,7 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
 
     match read_result {
         Ok(data) => {
+            let supplied_type = supplied_type.map(|(x, y)| (x.parse().unwrap(), y));
             let (parsed_type, parsed_subtp) = classifier.classify(LoadContext::Browsing,
                                                                   no_sniff_flag,
                                                                   apache_bug_flag,
