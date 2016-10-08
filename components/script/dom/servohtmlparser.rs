@@ -200,12 +200,15 @@ impl AsyncResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        parser.r().as_servo_parser().document()
+        let parser = parser.r();
+        let servo_parser = parser.as_servo_parser();
+
+        servo_parser.document()
             .finish_load(LoadType::PageSource(self.url.clone()));
 
-        parser.r().last_chunk_received().set(true);
-        if !parser.r().is_suspended() {
-            parser.r().parse_sync();
+        servo_parser.mark_last_chunk_received();
+        if !parser.is_suspended() {
+            parser.parse_sync();
         }
     }
 }
@@ -220,8 +223,6 @@ pub struct ServoHTMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
-    /// Whether to expect any further input from the associated network request.
-    last_chunk_received: Cell<bool>,
     /// The pipeline associated with this parse, unavailable if this parse does not
     /// correspond to a page load.
     pipeline: Option<PipelineId>,
@@ -268,10 +269,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, Default::default());
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(document),
+            servoparser: ServoParser::new_inherited(document, false),
             tokenizer: DOMRefCell::new(tok),
             suspended: Cell::new(false),
-            last_chunk_received: Cell::new(false),
             pipeline: pipeline,
         };
 
@@ -302,10 +302,9 @@ impl ServoHTMLParser {
         let tok = tokenizer::Tokenizer::new(tb, tok_opts);
 
         let parser = ServoHTMLParser {
-            servoparser: ServoParser::new_inherited(document),
+            servoparser: ServoParser::new_inherited(document, true),
             tokenizer: DOMRefCell::new(tok),
             suspended: Cell::new(false),
-            last_chunk_received: Cell::new(true),
             pipeline: None,
         };
 
@@ -360,7 +359,7 @@ impl ServoHTMLParser {
             }
         }
 
-        if self.last_chunk_received.get() {
+        if self.upcast().last_chunk_received() {
             self.finish();
         }
     }
@@ -382,10 +381,6 @@ impl ServoHTMLParser {
 
     pub fn is_suspended(&self) -> bool {
         self.suspended.get()
-    }
-
-    pub fn last_chunk_received(&self) -> &Cell<bool> {
-        &self.last_chunk_received
     }
 }
 

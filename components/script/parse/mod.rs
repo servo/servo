@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -10,7 +9,6 @@ use dom::servohtmlparser::ServoHTMLParser;
 use dom::servoparser::ServoParser;
 use dom::servoxmlparser::ServoXMLParser;
 use dom::window::Window;
-use std::cell::Cell;
 use std::cell::UnsafeCell;
 use std::ptr;
 
@@ -158,13 +156,6 @@ impl<'a> ParserRef<'a> {
         match *self {
             ParserRef::HTML(parser) => parser.parse_sync(),
             ParserRef::XML(parser) => parser.parse_sync(),
-        }
-    }
-
-    pub fn last_chunk_received(&self) -> &Cell<bool> {
-        match *self {
-            ParserRef::HTML(parser) => parser.last_chunk_received(),
-            ParserRef::XML(parser) => parser.last_chunk_received(),
         }
     }
 }
