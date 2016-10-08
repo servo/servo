@@ -38,8 +38,6 @@ pub struct ServoXMLParser {
     tokenizer: DOMRefCell<Tokenizer>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
-    /// Whether to expect any further input from the associated network request.
-    last_chunk_received: Cell<bool>,
     /// The pipeline associated with this parse, unavailable if this parse does not
     /// correspond to a page load.
     pipeline: Option<PipelineId>,
@@ -83,10 +81,9 @@ impl ServoXMLParser {
         let tok = tokenizer::XmlTokenizer::new(tb, Default::default());
 
         let parser = ServoXMLParser {
-            servoparser: ServoParser::new_inherited(document),
+            servoparser: ServoParser::new_inherited(document, false),
             tokenizer: DOMRefCell::new(tok),
             suspended: Cell::new(false),
-            last_chunk_received: Cell::new(false),
             pipeline: pipeline,
         };
 
@@ -133,7 +130,7 @@ impl ServoXMLParser {
             }
         }
 
-        if self.last_chunk_received.get() {
+        if self.upcast().last_chunk_received() {
             self.finish();
         }
     }
@@ -144,10 +141,6 @@ impl ServoXMLParser {
 
     pub fn end_tokenizer(&self) {
         self.tokenizer.borrow_mut().end()
-    }
-
-    pub fn last_chunk_received(&self) -> &Cell<bool> {
-        &self.last_chunk_received
     }
 
     pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {

@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::js::JS;
 use dom::document::Document;
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct ServoParser {
@@ -14,14 +15,17 @@ pub struct ServoParser {
     document: JS<Document>,
     /// Input chunks received but not yet passed to the parser.
     pending_input: DOMRefCell<Vec<String>>,
+    /// Whether to expect any further input from the associated network request.
+    last_chunk_received: Cell<bool>,
 }
 
 impl ServoParser {
-    pub fn new_inherited(document: &Document) -> Self {
+    pub fn new_inherited(document: &Document, last_chunk_received: bool) -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
             pending_input: DOMRefCell::new(vec![]),
+            last_chunk_received: Cell::new(last_chunk_received),
         }
     }
 
@@ -44,5 +48,13 @@ impl ServoParser {
         } else {
             Some(pending_input.remove(0))
         }
+    }
+
+    pub fn last_chunk_received(&self) -> bool {
+        self.last_chunk_received.get()
+    }
+
+    pub fn mark_last_chunk_received(&self) {
+        self.last_chunk_received.set(true)
     }
 }
