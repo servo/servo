@@ -107,6 +107,7 @@ impl AsyncResponseListener for ParserContext {
         };
 
         let parser = parser.r();
+        let servo_parser = parser.as_servo_parser();
         self.parser = Some(match parser {
             ParserRef::HTML(parser) => TrustedParser::HTML(
                                         Trusted::new(parser)),
@@ -118,10 +119,10 @@ impl AsyncResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
-                parser.pending_input().borrow_mut().push(page);
+                servo_parser.push_input_chunk(page);
                 parser.parse_sync();
 
-                let doc = parser.as_servo_parser().document();
+                let doc = servo_parser.document();
                 let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(atom!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
@@ -131,7 +132,7 @@ impl AsyncResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
-                parser.pending_input().borrow_mut().push(page);
+                servo_parser.push_input_chunk(page);
                 parser.parse_sync();
                 parser.set_plaintext_state();
             },
@@ -141,7 +142,7 @@ impl AsyncResponseListener for ParserContext {
                     let page_bytes = read_resource_file("badcert.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
                     let page = page.replace("${reason}", &reason);
-                    parser.pending_input().borrow_mut().push(page);
+                    servo_parser.push_input_chunk(page);
                     parser.parse_sync();
                 }
             },
@@ -156,7 +157,7 @@ impl AsyncResponseListener for ParserContext {
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
                     toplevel.as_str(), sublevel.as_str());
                 self.is_synthesized_document = true;
-                parser.pending_input().borrow_mut().push(page);
+                servo_parser.push_input_chunk(page);
                 parser.parse_sync();
             },
             None => {
@@ -192,7 +193,7 @@ impl AsyncResponseListener for ParserContext {
             let page_bytes = read_resource_file("neterror.html").unwrap();
             let page = String::from_utf8(page_bytes).unwrap();
             let page = page.replace("${reason}", reason);
-            parser.pending_input().borrow_mut().push(page);
+            parser.as_servo_parser().push_input_chunk(page);
             parser.parse_sync();
         } else if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
@@ -217,8 +218,6 @@ pub struct ServoHTMLParser {
     servoparser: ServoParser,
     #[ignore_heap_size_of = "Defined in html5ever"]
     tokenizer: DOMRefCell<Tokenizer>,
-    /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<Vec<String>>,
     /// True if this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
     /// Whether to expect any further input from the associated network request.
@@ -231,7 +230,7 @@ pub struct ServoHTMLParser {
 impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
         self.upcast().document().set_current_parser(Some(ParserRef::HTML(self)));
-        self.pending_input.borrow_mut().push(input);
+        self.upcast().push_input_chunk(input);
         if !self.is_suspended() {
             self.parse_sync();
         }
@@ -239,7 +238,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
 
     fn finish(self) {
         assert!(!self.suspended.get());
-        assert!(self.pending_input.borrow().is_empty());
+        assert!(!self.upcast().has_pending_input());
 
         self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
@@ -271,7 +270,6 @@ impl ServoHTMLParser {
         let parser = ServoHTMLParser {
             servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
@@ -306,7 +304,6 @@ impl ServoHTMLParser {
         let parser = ServoHTMLParser {
             servoparser: ServoParser::new_inherited(document),
             tokenizer: DOMRefCell::new(tok),
-            pending_input: DOMRefCell::new(vec!()),
             suspended: Cell::new(false),
             last_chunk_received: Cell::new(true),
             pipeline: None,
@@ -327,11 +324,6 @@ impl ServoHTMLParser {
     pub fn end_tokenizer(&self) {
         self.tokenizer.borrow_mut().end()
     }
-
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
-        &self.pending_input
-    }
-
 }
 
 impl ServoHTMLParser {
@@ -352,9 +344,7 @@ impl ServoHTMLParser {
         // the parser remains unsuspended.
         loop {
             self.upcast().document().reflow_if_reflow_timer_expired();
-            let mut pending_input = self.pending_input.borrow_mut();
-            if !pending_input.is_empty() {
-                let chunk = pending_input.remove(0);
+            if let Some(chunk) = self.upcast().take_next_input_chunk() {
                 self.tokenizer.borrow_mut().feed(chunk.into());
             } else {
                 self.tokenizer.borrow_mut().run();
@@ -365,7 +355,7 @@ impl ServoHTMLParser {
                 return;
             }
 
-            if pending_input.is_empty() {
+            if !self.upcast().has_pending_input() {
                 break;
             }
         }
