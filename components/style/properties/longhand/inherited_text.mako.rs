@@ -395,6 +395,13 @@ ${helpers.single_keyword("text-justify",
                          products="servo",
                          animatable=False)}
 
+${helpers.single_keyword("-moz-text-align-last",
+                         "auto start end left right center justify",
+                         products="gecko",
+                         gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
+                         gecko_ffi_name="mTextAlignLast",
+                         animatable=False)}
+
 <%helpers:longhand name="-servo-text-decorations-in-effect"
                    derived_from="display text-decoration"
                    need_clone="True" products="servo"
