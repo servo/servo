@@ -1418,7 +1418,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let result = {
             let mut style = node.style(self.style_context());
             let mut data = node.mutate_layout_data().unwrap();
-            let damage = data.restyle_damage;
+            let damage = data.base.restyle_damage;
 
             match *node.construction_result_mut(&mut *data) {
                 ConstructionResult::None => true,

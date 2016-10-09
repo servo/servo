@@ -139,6 +139,14 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
+    /// Atomically stores the number of children of this node that we will
+    /// need to process during bottom-up traversal.
+    fn store_children_to_process(&self, n: isize);
+
+    /// Atomically notes that a child has been processed during bottom-up
+    /// traversal. Returns the number of children left to process.
+    fn did_process_child(&self) -> isize;
+
     /// Borrows the style data immutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>>;
