@@ -54,6 +54,7 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use string_cache::{Atom, Namespace};
 use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
@@ -219,6 +220,18 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     unsafe fn set_can_be_fragmented(&self, value: bool) {
         self.node.set_flag(CAN_BE_FRAGMENTED, value)
+    }
+
+    fn store_children_to_process(&self, n: isize) {
+        let data = self.get_partial_layout_data().unwrap().borrow();
+        data.parallel.children_to_process.store(n, Ordering::Relaxed);
+    }
+
+    fn did_process_child(&self) -> isize {
+        let data = self.get_partial_layout_data().unwrap().borrow();
+        let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
+        debug_assert!(old_value >= 1);
+        old_value - 1
     }
 
     fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {

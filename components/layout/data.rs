@@ -3,19 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use construct::ConstructionResult;
-use script_layout_interface::restyle_damage::RestyleDamage;
-use style::data::PersistentStyleData;
+use script_layout_interface::PartialPersistentLayoutData;
 
 /// Data that layout associates with a node.
 pub struct PersistentLayoutData {
-    /// Data that the style system associates with a node. When the
-    /// style system is being used standalone, this is all that hangs
-    /// off the node. This must be first to permit the various
-    /// transmutations between PersistentStyleData and PersistentLayoutData.
-    pub style_data: PersistentStyleData,
-
-    /// Description of how to account for recent style changes.
-    pub restyle_damage: RestyleDamage,
+    /// Data accessed by script_layout_interface. This must be first to allow
+    /// casting between PersistentLayoutData and PartialPersistentLayoutData.
+    pub base: PartialPersistentLayoutData,
 
     /// The current results of flow construction for this node. This is either a
     /// flow or a `ConstructionItem`. See comments in `construct.rs` for more
@@ -38,8 +32,7 @@ impl PersistentLayoutData {
     /// Creates new layout data.
     pub fn new() -> PersistentLayoutData {
         PersistentLayoutData {
-            style_data: PersistentStyleData::new(),
-            restyle_damage: RestyleDamage::empty(),
+            base: PartialPersistentLayoutData::new(),
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
             after_flow_construction_result: ConstructionResult::None,
