@@ -435,9 +435,7 @@ pub enum OutputOptions {
 }
 
 fn args_fail(msg: &str) -> ! {
-    let mut stderr = io::stderr();
-    stderr.write_all(msg.as_bytes()).unwrap();
-    stderr.write_all(b"\n").unwrap();
+    writeln!(io::stderr(), "{}", msg).unwrap();
     process::exit(1)
 }
 
