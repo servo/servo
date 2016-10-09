@@ -165,6 +165,7 @@ use gecko_bindings::structs::nsINode;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIPrincipal;
 use gecko_bindings::structs::nsIURI;
+use gecko_bindings::structs::nsString;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoDocument;
@@ -398,6 +399,11 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
+}
+extern "C" {
+    pub fn Gecko_Utf8SliceToString(aString: *mut nsString,
+                                   aBuffer: *const u8,
+                                   aBufferLen: usize);
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
@@ -848,6 +854,18 @@ extern "C" {
                                                      RawServoStyleSheetBorrowed);
 }
 extern "C" {
+    pub fn Servo_ParseProperty(property_bytes: *const u8,
+                               property_length: u32,
+                               value_bytes: *const u8,
+                               value_length: u32,
+                               base_bytes: *const u8,
+                               base_length: u32,
+                               base: *mut ThreadSafeURIHolder,
+                               referrer: *mut ThreadSafeURIHolder,
+                               principal: *mut ThreadSafePrincipalHolder)
+    -> ServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
      -> ServoDeclarationBlockStrong;
@@ -859,6 +877,11 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_Release(declarations:
                                               ServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
+                                         b: ServoDeclarationBlockBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_GetCache(declarations:
@@ -928,6 +951,11 @@ extern "C" {
 extern "C" {
     pub fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                 set: RawServoStyleSetBorrowedMut);
+}
+extern "C" {
+    pub fn Servo_RestyleWithAddedDeclaration(declarations: ServoDeclarationBlockBorrowed,
+                                             previous_style: ServoComputedValuesBorrowed)
+     -> ServoComputedValuesStrong;
 }
 extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
