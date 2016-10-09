@@ -804,13 +804,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.bound_framebuffer.set(framebuffer);
         if let Some(framebuffer) = framebuffer {
-            framebuffer.bind(target)
+            if framebuffer.is_deleted() {
+                // From the WebGL spec:
+                //
+                //     "An attempt to bind a deleted framebuffer will
+                //      generate an INVALID_OPERATION error, and the
+                //      current binding will remain untouched."
+                return self.webgl_error(InvalidOperation);
+            } else {
+                framebuffer.bind(target);
+                self.bound_framebuffer.set(Some(framebuffer));
+            }
         } else {
             // Bind the default framebuffer
             let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
             self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
+            self.bound_framebuffer.set(framebuffer);
         }
     }
 
