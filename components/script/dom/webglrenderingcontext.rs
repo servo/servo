@@ -806,7 +806,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         self.bound_framebuffer.set(framebuffer);
         if let Some(framebuffer) = framebuffer {
-            framebuffer.bind(target)
+            if framebuffer.is_deleted() {
+                self.bound_framebuffer.set(None);
+            } else {
+                framebuffer.bind(target)
+            }
         } else {
             // Bind the default framebuffer
             let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
