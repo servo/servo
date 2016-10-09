@@ -627,7 +627,7 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 fn ensure_node_data_initialized<N: LayoutNode>(node: &N) {
     let mut cur = Some(node.clone());
     while let Some(current) = cur {
-        if current.borrow_data().is_some() {
+        if current.borrow_layout_data().is_some() {
             break;
         }
 

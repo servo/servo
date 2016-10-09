@@ -260,7 +260,7 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong {
     let node = GeckoNode(node);
-    let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
+    let arc_cv = match node.get_existing_style() {
         Some(style) => style,
         None => {
             // FIXME(bholley): This case subverts the intended semantics of this
@@ -322,10 +322,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
             let node = element.as_node();
-            let maybe_computed = node.borrow_data()
-                                     .and_then(|data| {
-                                         data.per_pseudo.get(&pseudo).map(|c| c.clone())
-                                     });
+            let maybe_computed = node.get_pseudo_style(&pseudo);
             maybe_computed.map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
         PseudoElementCascadeType::Lazy => {
