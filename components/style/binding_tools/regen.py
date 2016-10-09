@@ -74,8 +74,7 @@ COMPILATION_TARGETS = {
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
-            "NS_FONT_STRETCH_.*",
-            "NS_FONT_STYLE_.*",
+            "NS_FONT_.*",
             "NS_STYLE_.*",
             "NS_CORNER_.*",
             "NS_RADIUS_.*",
