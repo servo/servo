@@ -6,7 +6,7 @@
 
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::PersistentStyleData;
+use data::{PersistentStyleData, PseudoStyles};
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -148,6 +148,20 @@ impl<'ln> GeckoNode<'ln> {
             let _ = unsafe { Box::from_raw(d) };
             self.0.mServoData.set(ptr::null_mut());
         }
+    }
+
+    pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
+        self.borrow_data().and_then(|data| data.per_pseudo.get(pseudo).map(|c| c.clone()))
+    }
+
+    #[inline(always)]
+    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
+        self.get_node_data().as_ref().map(|d| d.0.borrow())
+    }
+
+    #[inline(always)]
+    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
+        self.get_node_data().as_ref().map(|d| d.0.borrow_mut())
     }
 }
 
@@ -319,14 +333,24 @@ impl<'ln> TNode for GeckoNode<'ln> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    #[inline(always)]
-    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
-        self.get_node_data().as_ref().map(|d| d.0.borrow())
+    fn get_existing_style(&self) -> Option<Arc<ComputedValues>> {
+        self.borrow_data().and_then(|x| x.style.clone())
     }
 
-    #[inline(always)]
-    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
-        self.get_node_data().as_ref().map(|d| d.0.borrow_mut())
+    fn set_style(&self, style: Option<Arc<ComputedValues>>) {
+        self.mutate_data().unwrap().style = style;
+    }
+
+    fn take_pseudo_styles(&self) -> PseudoStyles {
+        use std::mem;
+        let mut tmp = PseudoStyles::default();
+        mem::swap(&mut tmp, &mut self.mutate_data().unwrap().per_pseudo);
+        tmp
+    }
+
+    fn set_pseudo_styles(&self, styles: PseudoStyles) {
+        debug_assert!(self.borrow_data().unwrap().per_pseudo.is_empty());
+        self.mutate_data().unwrap().per_pseudo = styles;
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {
