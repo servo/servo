@@ -15,6 +15,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True">
     use cssparser::{self, ToCss};
     use std::fmt;
+    use parser::Parse;
     use values::LocalToCss;
     use values::HasViewportPercentage;
 
@@ -355,6 +356,7 @@ ${helpers.predefined_type("opacity",
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use app_units::Au;
+        use parser::Parse;
         use std::ascii::AsciiExt;
         use values::specified::Length;
 
@@ -1199,6 +1201,7 @@ pub struct OriginParseResult {
 }
 
 pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
+    use parser::Parse;
     use values::specified::{LengthOrPercentage, Percentage};
     let (mut horizontal, mut vertical, mut depth) = (None, None, None);
     loop {
