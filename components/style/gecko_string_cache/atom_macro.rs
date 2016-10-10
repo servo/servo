@@ -502,6 +502,8 @@ cfg_if! {
             pub static nsGkAtoms_datasources: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8datetimeE"]
             pub static nsGkAtoms_datetime: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms11datetimeboxE"]
+            pub static nsGkAtoms_datetimebox: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8dblclickE"]
             pub static nsGkAtoms_dblclick: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms2ddE"]
@@ -1214,8 +1216,6 @@ cfg_if! {
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mozfullscreenerrorE"]
             pub static nsGkAtoms_mozfullscreenerror: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20mozpasspointereventsE"]
-            pub static nsGkAtoms_mozpasspointerevents: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms20mozpointerlockchangeE"]
             pub static nsGkAtoms_mozpointerlockchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms19mozpointerlockerrorE"]
@@ -1618,6 +1618,8 @@ cfg_if! {
             pub static nsGkAtoms_onmouseenter: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12onmouseleaveE"]
             pub static nsGkAtoms_onmouseleave: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14onmouselongtapE"]
+            pub static nsGkAtoms_onmouselongtap: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11onmousemoveE"]
             pub static nsGkAtoms_onmousemove: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10onmouseoutE"]
@@ -3880,6 +3882,8 @@ cfg_if! {
             pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms20comboboxDisplayFrameE"]
             pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms20dateTimeControlFrameE"]
+            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9deckFrameE"]
             pub static nsGkAtoms_deckFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12detailsFrameE"]
@@ -5417,6 +5421,8 @@ cfg_if! {
             pub static nsGkAtoms_datasources: *mut nsIAtom;
             #[link_name = "?datetime@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_datetime: *mut nsIAtom;
+            #[link_name = "?datetimebox@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_datetimebox: *mut nsIAtom;
             #[link_name = "?dblclick@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_dblclick: *mut nsIAtom;
             #[link_name = "?dd@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6129,8 +6135,6 @@ cfg_if! {
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "?mozfullscreenerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mozfullscreenerror: *mut nsIAtom;
-            #[link_name = "?mozpasspointerevents@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mozpasspointerevents: *mut nsIAtom;
             #[link_name = "?mozpointerlockchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_mozpointerlockchange: *mut nsIAtom;
             #[link_name = "?mozpointerlockerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6533,6 +6537,8 @@ cfg_if! {
             pub static nsGkAtoms_onmouseenter: *mut nsIAtom;
             #[link_name = "?onmouseleave@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmouseleave: *mut nsIAtom;
+            #[link_name = "?onmouselongtap@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onmouselongtap: *mut nsIAtom;
             #[link_name = "?onmousemove@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmousemove: *mut nsIAtom;
             #[link_name = "?onmouseout@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8795,6 +8801,8 @@ cfg_if! {
             pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
             #[link_name = "?comboboxDisplayFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
+            #[link_name = "?dateTimeControlFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
             #[link_name = "?deckFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_deckFrame: *mut nsIAtom;
             #[link_name = "?detailsFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10332,6 +10340,8 @@ cfg_if! {
             pub static nsGkAtoms_datasources: *mut nsIAtom;
             #[link_name = "\x01?datetime@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_datetime: *mut nsIAtom;
+            #[link_name = "\x01?datetimebox@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_datetimebox: *mut nsIAtom;
             #[link_name = "\x01?dblclick@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_dblclick: *mut nsIAtom;
             #[link_name = "\x01?dd@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11044,8 +11054,6 @@ cfg_if! {
             pub static nsGkAtoms_mozfullscreenchange: *mut nsIAtom;
             #[link_name = "\x01?mozfullscreenerror@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mozfullscreenerror: *mut nsIAtom;
-            #[link_name = "\x01?mozpasspointerevents@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mozpasspointerevents: *mut nsIAtom;
             #[link_name = "\x01?mozpointerlockchange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_mozpointerlockchange: *mut nsIAtom;
             #[link_name = "\x01?mozpointerlockerror@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11448,6 +11456,8 @@ cfg_if! {
             pub static nsGkAtoms_onmouseenter: *mut nsIAtom;
             #[link_name = "\x01?onmouseleave@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmouseleave: *mut nsIAtom;
+            #[link_name = "\x01?onmouselongtap@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onmouselongtap: *mut nsIAtom;
             #[link_name = "\x01?onmousemove@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmousemove: *mut nsIAtom;
             #[link_name = "\x01?onmouseout@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13710,6 +13720,8 @@ cfg_if! {
             pub static nsGkAtoms_comboboxControlFrame: *mut nsIAtom;
             #[link_name = "\x01?comboboxDisplayFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_comboboxDisplayFrame: *mut nsIAtom;
+            #[link_name = "\x01?dateTimeControlFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_dateTimeControlFrame: *mut nsIAtom;
             #[link_name = "\x01?deckFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_deckFrame: *mut nsIAtom;
             #[link_name = "\x01?detailsFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15009,6 +15021,7 @@ macro_rules! atom {
 ("date-time") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTime as *mut _) };
 ("datasources") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datasources as *mut _) };
 ("datetime") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetime as *mut _) };
+("datetimebox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetimebox as *mut _) };
 ("dblclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dblclick as *mut _) };
 ("dd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dd as *mut _) };
 ("debug") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_debug as *mut _) };
@@ -15365,7 +15378,6 @@ macro_rules! atom {
 ("mozaudiochannel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozaudiochannel as *mut _) };
 ("mozfullscreenchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenchange as *mut _) };
 ("mozfullscreenerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenerror as *mut _) };
-("mozpasspointerevents") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpasspointerevents as *mut _) };
 ("mozpointerlockchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockchange as *mut _) };
 ("mozpointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockerror as *mut _) };
 ("mozprivatebrowsing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozprivatebrowsing as *mut _) };
@@ -15567,6 +15579,7 @@ macro_rules! atom {
 ("onmousedown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousedown as *mut _) };
 ("onmouseenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseenter as *mut _) };
 ("onmouseleave") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseleave as *mut _) };
+("onmouselongtap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouselongtap as *mut _) };
 ("onmousemove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousemove as *mut _) };
 ("onmouseout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseout as *mut _) };
 ("onmouseover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseover as *mut _) };
@@ -16698,6 +16711,7 @@ macro_rules! atom {
 ("ColumnSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnSetFrame as *mut _) };
 ("ComboboxControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxControlFrame as *mut _) };
 ("ComboboxDisplayFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxDisplayFrame as *mut _) };
+("DateTimeControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTimeControlFrame as *mut _) };
 ("DeckFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deckFrame as *mut _) };
 ("DetailsFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_detailsFrame as *mut _) };
 ("FieldSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldSetFrame as *mut _) };
