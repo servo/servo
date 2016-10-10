@@ -97,7 +97,7 @@ use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend};
+use net_traits::{FetchResponseMsg, IpcSend};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::request::RequestInit;
@@ -1470,11 +1470,6 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::RequestAnimationFrame);
-    }
-
-    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
-        let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self, referrer_policy);
     }
 
     pub fn fetch_async(&self, load: LoadType,
