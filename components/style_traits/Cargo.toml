@@ -10,7 +10,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["heapsize", "heapsize_plugin", "serde", "serde_macros",
+servo = ["heapsize", "heapsize_plugin", "serde", "serde_derive",
          "cssparser/heap_size", "cssparser/serde-serialization"]
 
 [dependencies]
@@ -21,4 +21,4 @@ heapsize = {version = "0.3.0", optional = true}
 heapsize_plugin = {version = "0.1.2", optional = true}
 rustc-serialize = "0.3"
 serde = {version = "0.8", optional = true}
-serde_macros = {version = "0.8", optional = true}
+serde_derive = {version = "0.8", optional = true}

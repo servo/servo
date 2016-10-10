@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![cfg_attr(feature = "servo", feature(custom_derive))]
-#![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(nonzero))]
+#![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", feature(reflect_marker))]
-#![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "servo", feature(structural_match))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(unsafe_code)]
@@ -23,6 +24,7 @@ extern crate getopts;
 extern crate num_cpus;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 extern crate url;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 extern crate xdg;

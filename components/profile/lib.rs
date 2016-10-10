@@ -4,10 +4,10 @@
 
 #![cfg_attr(not(target_os = "windows"), feature(alloc_jemalloc))]
 #![feature(box_syntax)]
-#![feature(plugin)]
-#![plugin(plugins)]
 #![feature(custom_derive)]
-#![plugin(serde_macros)]
+#![feature(plugin)]
+#![feature(proc_macro)]
+#![plugin(plugins)]
 
 #![deny(unsafe_code)]
 
@@ -25,6 +25,8 @@ extern crate profile_traits;
 #[cfg(target_os = "linux")]
 extern crate regex;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 #[cfg(target_os = "macos")]
 extern crate task_info;

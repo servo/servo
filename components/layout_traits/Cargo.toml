@@ -22,4 +22,4 @@ url = {version = "1.2", features = ["heap_size"]}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

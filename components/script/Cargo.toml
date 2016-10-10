@@ -52,8 +52,8 @@ num-traits = "0.1.32"
 offscreen_gl_context = "0.4"
 open = "1.1.1"
 parking_lot = "0.3"
-phf = "0.7.16"
-phf_macros = "0.7.16"
+phf = "0.7.17"
+phf_macros = "0.7.17"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
@@ -78,4 +78,4 @@ xml5ever = {version = "0.1.2", features = ["unstable"]}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["nightly", "serde_macros"]
+features = ["nightly", "serde_derive"]

@@ -15,7 +15,7 @@ pub struct PrintTree {
 
 impl PrintTree {
     pub fn new(title: String) -> PrintTree {
-        println!("┌ {}", title);
+        println!("\u{9484} {}", title);
         PrintTree {
             level: 1,
             queued_item: None,
@@ -24,29 +24,29 @@ impl PrintTree {
 
     /// Descend one level in the tree with the given title.
     pub fn new_level(&mut self, title: String) {
-        self.flush_queued_item("├─");
+        self.flush_queued_item("\u{9500}\u{9472}");
 
         self.print_level_prefix();
-        println!("├─ {}", title);
+        println!("\u{9500}\u{9472} {}", title);
 
         self.level = self.level + 1;
     }
 
     /// Ascend one level in the tree.
     pub fn end_level(&mut self) {
-        self.flush_queued_item("└─");
+        self.flush_queued_item("\u{9492}\u{9472}");
         self.level = self.level - 1;
     }
 
     /// Add an item to the current level in the tree.
     pub fn add_item(&mut self, text: String) {
-        self.flush_queued_item("├─");
+        self.flush_queued_item("\u{9500}\u{9472}");
         self.queued_item = Some(text);
     }
 
     fn print_level_prefix(&self) {
         for _ in 0..self.level {
-            print!("│  ");
+            print!("\u{9474}  ");
         }
     }
 
@@ -60,6 +60,6 @@ impl PrintTree {
 
 impl Drop for PrintTree {
     fn drop(&mut self) {
-        self.flush_queued_item("└─");
+        self.flush_queued_item("\u{9492}\u{9472}");
     }
 }

@@ -11,12 +11,14 @@
 #![feature(custom_derive)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![feature(range_contains)]
+#![feature(rustc_attrs)]
+#![feature(structural_match)]
 #![feature(unique)]
 
 #![plugin(heapsize_plugin)]
 #![plugin(plugins)]
-#![plugin(serde_macros)]
 
 #![deny(unsafe_code)]
 
@@ -73,6 +75,8 @@ extern crate rand;
 extern crate range;
 extern crate rustc_serialize;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 extern crate simd;

@@ -18,7 +18,7 @@ energymon = {git = "https://github.com/energymon/energymon-rust.git", optional =
 energy-monitor = {version = "0.2.0", optional = true}
 plugins = {path = "../plugins"}
 serde = "0.8"
-serde_macros = "0.8"
+serde_derive = "0.8"
 signpost = {git = "https://github.com/pcwalton/signpost.git"}
 time = "0.1.12"
 util = {path = "../util"}

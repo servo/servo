@@ -26,9 +26,11 @@
 #![cfg_attr(feature = "servo", feature(custom_attribute))]
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", feature(proc_macro))]
+#![cfg_attr(feature = "servo", feature(rustc_attrs))]
+#![cfg_attr(feature = "servo", feature(structural_match))]
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
-#![cfg_attr(feature = "servo", plugin(serde_macros))]
 
 #![deny(unsafe_code)]
 
@@ -68,6 +70,7 @@ extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")]
 extern crate serde;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 extern crate smallvec;
 #[cfg(feature = "servo")] #[macro_use] extern crate string_cache;
 #[macro_use]

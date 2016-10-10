@@ -13,7 +13,9 @@
 
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
-#![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "servo", feature(proc_macro))]
+#![cfg_attr(feature = "servo", feature(rustc_attrs))]
+#![cfg_attr(feature = "servo", feature(structural_match))]
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 
 extern crate app_units;
@@ -23,6 +25,7 @@ extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 
 /// One CSS "px" in the coordinate system of the "initial viewport":
 /// http://www.w3.org/TR/css-device-adapt/#initial-viewport

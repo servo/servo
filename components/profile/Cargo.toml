@@ -17,8 +17,8 @@ ipc-channel = "0.5"
 heartbeats-simple = "0.3"
 log = "0.3.5"
 serde = "0.8"
+serde_derive = "0.8"
 serde_json = "0.8"
-serde_macros = "0.8"
 time = "0.1.12"
 
 [target.'cfg(target_os = "macos")'.dependencies]

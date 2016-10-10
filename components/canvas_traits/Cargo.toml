@@ -19,9 +19,9 @@ heapsize_plugin = "0.1.2"
 ipc-channel = "0.5"
 plugins = {path = "../plugins"}
 serde = {version = "0.8", features = ["unstable"]}
-serde_macros = "0.8"
+serde_derive = "0.8"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

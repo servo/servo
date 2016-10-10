@@ -14,7 +14,7 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![plugin(serde_macros)]
+#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![allow(non_snake_case)]
@@ -28,6 +28,8 @@ extern crate ipc_channel;
 extern crate log;
 extern crate msg;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
 extern crate util;

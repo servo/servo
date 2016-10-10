@@ -25,7 +25,7 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "0.8"
-serde_macros = "0.8"
+serde_derive = "0.8"
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
 url = {version = "1.2", features = ["heap_size"]}
@@ -34,9 +34,9 @@ util = {path = "../util"}
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
 default-features = false
-features = ["serde_macros"]
+features = ["serde_derive"]
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_macros"]
+features = ["serde_derive"]

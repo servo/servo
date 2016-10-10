@@ -12,8 +12,8 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#![feature(custom_derive, plugin)]
-#![plugin(heapsize_plugin, serde_macros)]
+#![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
+#![plugin(heapsize_plugin)]
 
 #[allow(unused_extern_crates)]
 #[macro_use]
@@ -23,6 +23,8 @@ extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate time;
 extern crate url;
 

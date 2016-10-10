@@ -7,13 +7,15 @@
 //! modules won't have to depend on `profile`.
 
 #![feature(box_syntax)]
-#![feature(custom_derive, plugin)]
-#![plugin(plugins, serde_macros)]
+#![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
+#![plugin(plugins)]
 
 #![deny(unsafe_code)]
 
 extern crate ipc_channel;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate signpost;
 extern crate util;
 

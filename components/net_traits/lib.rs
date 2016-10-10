@@ -6,9 +6,12 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
+#![feature(proc_macro)]
+#![feature(rustc_attrs)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![plugin(heapsize_plugin, serde_macros)]
+#![feature(structural_match)]
+#![plugin(heapsize_plugin)]
 
 #![deny(unsafe_code)]
 
@@ -26,6 +29,8 @@ extern crate log;
 extern crate msg;
 extern crate num_traits;
 extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 extern crate url;
 extern crate util;
 extern crate uuid;
