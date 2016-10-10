@@ -468,8 +468,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
                    # transition
                    "transition-duration", "transition-timing-function",
                    "transition-property", "transition-delay",
-
-                   "column-count", # column
                    ]
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
@@ -1911,7 +1909,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-width">
+                  skip_longhands="column-width column-count">
 
     pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
@@ -1921,6 +1919,17 @@ clip-path
     }
 
     ${impl_coord_copy('column_width', 'mColumnWidth')}
+
+    pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
+        use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
+
+        self.gecko.mColumnCount = match v.0 {
+            Some(number) => cmp::min(number, nsStyleColumn_kMaxColumnCount),
+            None => NS_STYLE_COLUMN_COUNT_AUTO
+        };
+    }
+
+    ${impl_simple_copy('column_count', 'mColumnCount')}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"
