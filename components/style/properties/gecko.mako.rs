@@ -1612,7 +1612,7 @@ fn static_assert() {
 
     pub fn set_letter_spacing(&mut self, v: longhands::letter_spacing::computed_value::T) {
         match v.0 {
-            Some(au) => self.gecko.mLetterSpacing.set_value(CoordDataValue::Coord(au.0)),
+            Some(au) => self.gecko.mLetterSpacing.set(au),
             None => self.gecko.mLetterSpacing.set_value(CoordDataValue::Normal)
         }
     }
@@ -1623,11 +1623,7 @@ fn static_assert() {
         use values::computed::LengthOrPercentage::*;
 
         match v.0 {
-            Some(lop) => match lop {
-                Length(au) => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(au.0)),
-                Percentage(f) => self.gecko.mWordSpacing.set_value(CoordDataValue::Percent(f)),
-                Calc(l_p) => self.gecko.mWordSpacing.set_value(CoordDataValue::Calc(l_p.into())),
-            },
+            Some(lop) => self.gecko.mWordSpacing.set(lop),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
             None => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
         }
