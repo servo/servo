@@ -504,7 +504,8 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
             "viewport" => {
-                if ::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+                if ::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) ||
+                   cfg!(feature = "gecko") {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {
                     Err(())
