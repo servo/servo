@@ -15,18 +15,22 @@ use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlaudioelement::HTMLAudioElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
+use dom::htmlvideoelement::HTMLVideoElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
@@ -55,10 +59,19 @@ struct HTMLMediaElementContext {
     ignore_response: bool,
 }
 
-impl AsyncResponseListener for HTMLMediaElementContext {
+impl FetchResponseListener for HTMLMediaElementContext {
+    fn process_request_body(&mut self) {}
+
+    fn process_request_eof(&mut self) {}
+
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
-        self.metadata = metadata.ok();
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        self.metadata = metadata.ok().map(|m| {
+            match m {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            }
+        });
 
         // => "If the media data cannot be fetched at all..."
         let is_failure = self.metadata
@@ -75,7 +88,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         }
     }
 
-    fn data_available(&mut self, mut payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
         if self.ignore_response {
             return;
         }
@@ -101,7 +114,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
     }
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
 
         // => "If the media data can be fetched but is found by inspection to be in an unsupported
@@ -508,22 +521,41 @@ impl HTMLMediaElement {
             let (action_sender, action_receiver) = ipc::channel().unwrap();
             let window = window_from_node(self);
             let script_chan = window.networking_task_source();
-            let listener = box NetworkListener {
+            let listener = NetworkListener {
                 context: context,
                 script_chan: script_chan,
                 wrapper: Some(window.get_runnable_wrapper()),
             };
 
-            let response_target = AsyncResponseTarget {
-                sender: action_sender,
-            };
             ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                listener.notify_action(message.to().unwrap());
+                listener.notify_fetch(message.to().unwrap());
             });
 
             // FIXME: we're supposed to block the load event much earlier than now
-            let doc = document_from_node(self);
-            doc.load_async(LoadType::Media(url), response_target, None);
+            let document = document_from_node(self);
+
+            let ty = if self.is::<HTMLAudioElement>() {
+                RequestType::Audio
+            } else if self.is::<HTMLVideoElement>() {
+                RequestType::Video
+            } else {
+                unreachable!("Unexpected HTMLMediaElement")
+            };
+
+            let request = RequestInit {
+                url: url.clone(),
+                type_: ty,
+                destination: Destination::Media,
+                credentials_mode: CredentialsMode::Include,
+                use_url_credentials: true,
+                origin: document.url().clone(),
+                pipeline_id: Some(self.global().pipeline_id()),
+                referrer_url: Some(document.url().clone()),
+                referrer_policy: document.get_referrer_policy(),
+                .. RequestInit::default()
+            };
+
+            document.fetch_async(LoadType::Media(url), request, action_sender);
         } else {
             // TODO local resource fetch
             self.queue_dedicated_media_source_failure_steps();
