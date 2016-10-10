@@ -38,7 +38,7 @@ fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _) = new_core_resource_thread(
-        "".to_owned(), None, ProfilerChan(tx), None);
+        "".into(), None, ProfilerChan(tx), None);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
 }
@@ -48,7 +48,7 @@ fn test_bad_scheme() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _) = new_core_resource_thread(
-        "".to_owned(), None, ProfilerChan(tx), None);
+        "".into(), None, ProfilerChan(tx), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_thread.send(CoreResourceMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
@@ -228,7 +228,7 @@ fn test_cancelled_listener() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (exit_sender, exit_receiver) = ipc::channel().unwrap();
     let (resource_thread, _) = new_core_resource_thread(
-        "".to_owned(), None, ProfilerChan(tx), None);
+        "".into(), None, ProfilerChan(tx), None);
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();

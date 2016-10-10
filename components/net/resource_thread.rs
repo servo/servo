@@ -35,7 +35,7 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::{Decodable, Encodable};
 use rustc_serialize::json;
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::boxed::FnBox;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -164,7 +164,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
-pub fn new_resource_threads(user_agent: String,
+pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan,
                             config_dir: Option<PathBuf>)
@@ -181,7 +181,7 @@ pub fn new_resource_threads(user_agent: String,
 
 
 /// Create a CoreResourceThread
-pub fn new_core_resource_thread(user_agent: String,
+pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
                                 config_dir: Option<PathBuf>)
@@ -470,7 +470,7 @@ pub struct AuthCache {
 }
 
 pub struct CoreResourceManager {
-    user_agent: String,
+    user_agent: Cow<'static, str>,
     mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
@@ -481,7 +481,7 @@ pub struct CoreResourceManager {
 }
 
 impl CoreResourceManager {
-    pub fn new(user_agent: String,
+    pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
                profiler_chan: ProfilerChan) -> CoreResourceManager {
         CoreResourceManager {

@@ -252,7 +252,7 @@ fn create_constellation(opts: opts::Opts,
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
-        new_resource_threads(opts.user_agent.clone(),
+        new_resource_threads(opts.user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
                              opts.config_dir.map(Into::into));

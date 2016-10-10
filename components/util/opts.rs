@@ -11,6 +11,7 @@ use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};
 use resource_files::set_resources_path;
+use std::borrow::Cow;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -139,7 +140,7 @@ pub struct Opts {
     pub initial_window_size: TypedSize2D<u32, ScreenPx>,
 
     /// An optional string allowing the user agent to be set for testing.
-    pub user_agent: String,
+    pub user_agent: Cow<'static, str>,
 
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
@@ -460,7 +461,7 @@ pub enum RenderApi {
 
 const DEFAULT_RENDER_API: RenderApi = RenderApi::GL;
 
-fn default_user_agent_string(agent: UserAgent) -> String {
+fn default_user_agent_string(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Servo/1.0 Firefox/37.0";
@@ -488,7 +489,7 @@ fn default_user_agent_string(agent: UserAgent) -> String {
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
         }
-    }.to_owned()
+    }
 }
 
 #[cfg(target_os = "android")]
@@ -529,7 +530,7 @@ pub fn default_opts() -> Opts {
         devtools_port: None,
         webdriver_port: None,
         initial_window_size: TypedSize2D::new(1024, 740),
-        user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
+        user_agent: default_user_agent_string(DEFAULT_USER_AGENT).into(),
         multiprocess: false,
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
@@ -778,10 +779,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let user_agent = match opt_match.opt_str("u") {
-        Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
-        Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop),
-        Some(ua) => ua,
-        None => default_user_agent_string(DEFAULT_USER_AGENT),
+        Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android).into(),
+        Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop).into(),
+        Some(ua) => ua.into(),
+        None => default_user_agent_string(DEFAULT_USER_AGENT).into(),
     };
 
     let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
