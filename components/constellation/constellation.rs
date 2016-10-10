@@ -663,6 +663,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         assert!(self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id == frame_id).unwrap_or(false));
         assert!(!self.frames.contains_key(&frame_id));
 
+        self.pipelines.get_mut(&pipeline_id).map(|pipeline| pipeline.is_mature = true);
         self.frames.insert(frame_id, frame);
     }
 
@@ -1999,7 +2000,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // This is a bit complex. We need to loop through pending frames and find
         // ones that can be swapped. A frame can be swapped (enabled) once it is
-        // ready to layout (has document_ready set), and also has no dependencies
+        // ready to layout (has document_ready set), and also is mature
         // (i.e. the pipeline it is replacing has been enabled and now has a frame).
         // The outer loop is required because any time a pipeline is enabled, that
         // may affect whether other pending frames are now able to be enabled. On the
@@ -2007,10 +2008,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frames, we can safely exit the loop, knowing that we will need to wait on
         // a dependent pipeline to be ready to paint.
         while let Some(valid_frame_change) = self.pending_frames.iter().rposition(|frame_change| {
-            let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
-                self.pipelines.get(&old_pipeline_id).and_then(|pipeline| self.frames.get(&pipeline.frame_id)).is_none()
-            });
-            frame_change.document_ready && !waiting_on_dependency
+            let frame_is_mature = frame_change.old_pipeline_id
+                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id))
+                .map(|old_pipeline| old_pipeline.is_mature)
+                .unwrap_or(true);
+            frame_change.document_ready && frame_is_mature
         }) {
             let frame_change = self.pending_frames.swap_remove(valid_frame_change);
             self.add_or_replace_pipeline_in_frame_tree(frame_change);

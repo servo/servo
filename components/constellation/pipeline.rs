@@ -73,6 +73,9 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
+    /// Whether this pipeline is has matured or not.
+    /// A pipeline is considered mature when it has an associated frame.
+    pub is_mature: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -299,6 +302,7 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
+            is_mature: false,
         }
     }
 
