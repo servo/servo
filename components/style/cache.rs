@@ -4,9 +4,8 @@
 
 //! Two simple cache data structures.
 
-use rand;
-use rand::Rng;
-use std::hash::{Hash, Hasher, SipHasher};
+use std::collections::hash_map::RandomState;
+use std::hash::{Hash, Hasher, BuildHasher};
 use std::slice::{Iter, IterMut};
 
 pub struct LRUCache<K, V> {
@@ -72,17 +71,14 @@ impl<K: PartialEq, V: Clone> LRUCache<K, V> {
 
 pub struct SimpleHashCache<K, V> {
     entries: Vec<Option<(K, V)>>,
-    k0: u64,
-    k1: u64,
+    random: RandomState,
 }
 
 impl<K: Clone + Eq + Hash, V: Clone> SimpleHashCache<K, V> {
     pub fn new(cache_size: usize) -> SimpleHashCache<K, V> {
-        let mut r = rand::thread_rng();
         SimpleHashCache {
             entries: vec![None; cache_size],
-            k0: r.gen(),
-            k1: r.gen(),
+            random: RandomState::new(),
         }
     }
 
@@ -93,7 +89,7 @@ impl<K: Clone + Eq + Hash, V: Clone> SimpleHashCache<K, V> {
 
     #[inline]
     fn bucket_for_key<Q: Hash>(&self, key: &Q) -> usize {
-        let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
+        let mut hasher = self.random.build_hasher();
         key.hash(&mut hasher);
         self.to_bucket(hasher.finish() as usize)
     }
