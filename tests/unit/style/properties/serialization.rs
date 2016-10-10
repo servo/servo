@@ -4,7 +4,7 @@
 
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
-pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
+pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
 pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
@@ -1027,7 +1027,8 @@ mod shorthand_serialization {
 
             let mut s = String::new();
 
-            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+            let id = PropertyId::parse("scroll-snap-type".into()).unwrap();
+            let x = block.single_value_to_css(&id, &mut s);
 
             assert_eq!(x.is_ok(), true);
             assert_eq!(s, "");
@@ -1049,7 +1050,8 @@ mod shorthand_serialization {
 
             let mut s = String::new();
 
-            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+            let id = PropertyId::parse("scroll-snap-type".into()).unwrap();
+            let x = block.single_value_to_css(&id, &mut s);
 
             assert_eq!(x.is_ok(), true);
             assert_eq!(s, "mandatory");

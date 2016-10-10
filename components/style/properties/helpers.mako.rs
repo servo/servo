@@ -68,7 +68,7 @@
             pub mod single_value {
                 use cssparser::Parser;
                 use parser::{Parse, ParserContext, ParserContextExtraData};
-                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
+                use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
                 ${caller.body()}
@@ -182,7 +182,7 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
+            use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
@@ -380,7 +380,7 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
+        use properties::{longhands, PropertyDeclaration, DeclaredValue, ShorthandId};
         use std::fmt;
         use style_traits::ToCss;
 
@@ -500,7 +500,7 @@
                             css: css.clone().into_owned(),
                             first_token_type: first_token_type,
                             base_url: context.base_url.clone(),
-                            from_shorthand: Some(Shorthand::${shorthand.camel_case}),
+                            from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
                         }
                     ));
                 % endfor

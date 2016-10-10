@@ -16,8 +16,8 @@ use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::parser::ParserContextExtraData;
-use style::properties::{Shorthand, Importance, PropertyDeclarationBlock};
-use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
+use style::properties::{Importance, PropertyDeclarationBlock, PropertyId};
+use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 
@@ -111,6 +111,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return self.get_computed_style(&property).unwrap_or(DOMString::new());
         }
 
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return DOMString::new()
+        };
+
         let style_attribute = self.owner.style_attribute().borrow();
         let style_attribute = if let Some(ref lock) = *style_attribute {
             lock.read()
@@ -120,12 +127,19 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         let mut string = String::new();
-        style_attribute.property_value_to_css(&property, &mut string).unwrap();
+        style_attribute.property_value_to_css(&id, &mut string).unwrap();
         DOMString::from(string)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return DOMString::new()
+        };
+
         let style_attribute = self.owner.style_attribute().borrow();
         let style_attribute = if let Some(ref lock) = *style_attribute {
             lock.read()
@@ -134,7 +148,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return DOMString::new()
         };
 
-        if style_attribute.property_priority(&property).important() {
+        if style_attribute.property_priority(&id).important() {
             DOMString::from("important")
         } else {
             // Step 4
@@ -154,9 +168,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 3
-        if !is_supported_property(&property) {
-            return Ok(());
-        }
+        // FIXME: give ownership on `property` here when parse_one_declaration can take &PropertyId
+        let id = if let Ok(id) = PropertyId::parse((&*property).into()) {
+            id
+        } else {
+            // Unkwown property
+            return Ok(())
+        };
 
         let mut style_attribute = self.owner.style_attribute().borrow_mut();
 
@@ -171,7 +189,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                     return Ok(())
                 };
 
-                style_attribute.remove_property(&property);
+                style_attribute.remove_property(&id);
                 empty = style_attribute.declarations.is_empty()
             }
             if empty {
@@ -237,9 +255,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2 & 3
-        if !is_supported_property(&property) {
-            return Ok(());
-        }
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return Ok(())
+        };
 
         // Step 4
         let importance = match &*priority {
@@ -253,10 +274,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             let mut style_attribute = lock.write();
 
             // Step 5 & 6
-            match Shorthand::from_name(&property) {
-                Some(shorthand) => style_attribute.set_importance(shorthand.longhands(), importance),
-                None => style_attribute.set_importance(&[&*property], importance),
-            }
+            style_attribute.set_importance(&id, importance);
 
             self.owner.set_style_attr(style_attribute.to_css_string());
             let node = self.owner.upcast::<Node>();
@@ -277,6 +295,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property, cannot be there to remove.
+            return Ok(DOMString::new())
+        };
+
         let mut style_attribute = self.owner.style_attribute().borrow_mut();
         let mut string = String::new();
         let empty;
@@ -289,10 +314,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             };
 
             // Step 3
-            style_attribute.property_value_to_css(&property, &mut string).unwrap();
+            style_attribute.property_value_to_css(&id, &mut string).unwrap();
 
             // Step 4 & 5
-            style_attribute.remove_property(&property);
+            style_attribute.remove_property(&id);
             self.owner.set_style_attr(style_attribute.to_css_string());
             empty = style_attribute.declarations.is_empty()
         }

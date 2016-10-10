@@ -50,6 +50,7 @@ use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
+use style::properties::{PropertyId, LonghandId, ShorthandId};
 use style::properties::{apply_declarations, parse_one_declaration};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
@@ -610,7 +611,7 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     buffer: *mut nsAString)
 {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_name_from_atom(property, is_custom);
+    let property = get_property_id_from_atom(property, is_custom);
     let mut string = String::new();
     let rv = declarations.read().single_value_to_css(&property, &mut string);
     debug_assert!(rv.is_ok());
@@ -630,23 +631,28 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     if let Some(&(ref decl, _)) = declarations.read().declarations.get(index as usize) {
         let result = unsafe { result.as_mut().unwrap() };
-        write!(result, "{}", decl.name()).unwrap();
+        decl.id().to_css(result).unwrap();
         true
     } else {
         false
     }
 }
 
-// FIXME Methods of PropertyDeclarationBlock should take atoms directly.
-// This function is just a temporary workaround before that finishes.
-fn get_property_name_from_atom(atom: *mut nsIAtom, is_custom: bool) -> String {
+fn get_property_id_from_atom(atom: *mut nsIAtom, is_custom: bool) -> PropertyId {
     let atom = Atom::from(atom);
     if !is_custom {
-        atom.to_string()
+        // FIXME: can we do this mapping without going through a UTF-8 string?
+        // Maybe even from nsCSSPropertyID directly?
+        let s = atom.to_string();
+        if let Ok(id) = LonghandId::from_ascii_lowercase_name(&s) {
+            PropertyId::Longhand(id)
+        } else if let Ok(id) = ShorthandId::from_ascii_lowercase_name(&s) {
+            PropertyId::Shorthand(id)
+        } else {
+            panic!("got unknown property name {:?} from Gecko", s)
+        }
     } else {
-        let mut result = String::with_capacity(atom.len() as usize + 2);
-        write!(result, "--{}", atom).unwrap();
-        result
+        PropertyId::Custom(atom)
     }
 }
 
@@ -655,7 +661,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyValue(declarations: RawServo
                                                           property: *mut nsIAtom, is_custom: bool,
                                                           value: *mut nsAString) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_name_from_atom(property, is_custom);
+    let property = get_property_id_from_atom(property, is_custom);
     declarations.read().property_value_to_css(&property, unsafe { value.as_mut().unwrap() }).unwrap();
 }
 
@@ -663,7 +669,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyValue(declarations: RawServo
 pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: RawServoDeclarationBlockBorrowed,
                                                                 property: *mut nsIAtom, is_custom: bool) -> bool {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_name_from_atom(property, is_custom);
+    let property = get_property_id_from_atom(property, is_custom);
     declarations.read().property_priority(&property).important()
 }
 
@@ -671,12 +677,12 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                      property: *mut nsIAtom, is_custom: bool,
                                                      value: *mut nsACString, is_important: bool) -> bool {
-    let property = get_property_name_from_atom(property, is_custom);
+    let property = get_property_id_from_atom(property, is_custom);
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
-    if let Ok(decls) = parse_one_declaration(&property, value, &base_url,
+    if let Ok(decls) = parse_one_declaration(&property.to_css_string(), value, &base_url,
                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
@@ -693,7 +699,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDecla
 pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                         property: *mut nsIAtom, is_custom: bool) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_name_from_atom(property, is_custom);
+    let property = get_property_id_from_atom(property, is_custom);
     declarations.write().remove_property(&property);
 }
 

@@ -286,6 +286,12 @@ impl Into<Vec<u8>> for DOMString {
     }
 }
 
+impl<'a> Into<Cow<'a, str>> for DOMString {
+    fn into(self) -> Cow<'a, str> {
+        self.0.into()
+    }
+}
+
 impl Extend<char> for DOMString {
     fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
         self.0.extend(iterable)

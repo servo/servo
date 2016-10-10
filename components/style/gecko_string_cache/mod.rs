@@ -9,10 +9,9 @@ use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
-use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
-use std::fmt;
+use std::fmt::{self, Write};
 use std::hash::{Hash, Hasher};
 use std::iter::Cloned;
 use std::mem;
@@ -112,14 +111,6 @@ impl WeakAtom {
     }
 
     #[inline]
-    pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
-        self.chars().map(|r| match r {
-            Ok(c) => c.to_ascii_lowercase() as u32,
-            Err(e) => e.unpaired_surrogate() as u32,
-        }).eq(s.chars().map(|c| c.to_ascii_lowercase() as u32))
-    }
-
-    #[inline]
     pub fn to_string(&self) -> String {
         String::from_utf16(self.as_slice()).unwrap()
     }
@@ -154,7 +145,7 @@ impl fmt::Debug for WeakAtom {
 impl fmt::Display for WeakAtom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
         for c in self.chars() {
-            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+            try!(w.write_char(c.unwrap_or(char::REPLACEMENT_CHARACTER)))
         }
         Ok(())
     }
