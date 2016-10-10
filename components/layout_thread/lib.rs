@@ -978,8 +978,10 @@ impl LayoutThread {
 
                         rw_data.display_list =
                             Some(Arc::new(DisplayList::new(root_stacking_context,
-                                                           display_list_entries)))
+                                                           display_list_entries)));
                     }
+
+
                     (ReflowGoal::ForScriptQuery, false) => {}
                 }
             }
