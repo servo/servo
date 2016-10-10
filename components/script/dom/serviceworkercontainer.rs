@@ -123,12 +123,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  scope.clone(),
                                                                  self);
         let job = Job::create_job(JobType::Register, scope, script_url, promise.clone());
-
         ScriptThread::schedule_job(job, &*worker_registration);
         promise
-        //ScriptThread::set_registration(scope, &*worker_registration, global.pipeline_id());
-        //Ok(worker_registration)
-        // ScriptThread::set_registration(scope.clone(), &*worker_registration, self.global().r().pipeline_id());
-        //promise.resolve_native(ctx, &*worker_registration);
     }
 }
