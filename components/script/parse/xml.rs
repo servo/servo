@@ -15,20 +15,19 @@ use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::servoxmlparser;
-use dom::servoxmlparser::ServoXMLParser;
+use dom::servoparser::{ServoParser, Tokenizer};
 use dom::text::Text;
 use html5ever;
 use msg::constellation_msg::PipelineId;
-use parse::Parser;
+use parse::Sink;
 use std::borrow::Cow;
 use string_cache::{Atom, QualName, Namespace};
 use url::Url;
 use xml5ever::tendril::StrTendril;
-use xml5ever::tokenizer::{Attribute, QName};
-use xml5ever::tree_builder::{NextParserState, NodeOrText, TreeSink};
+use xml5ever::tokenizer::{Attribute, QName, XmlTokenizer};
+use xml5ever::tree_builder::{NextParserState, NodeOrText, TreeSink, XmlTreeBuilder};
 
-impl<'a> TreeSink for servoxmlparser::Sink {
+impl<'a> TreeSink for Sink {
     type Handle = JS<Node>;
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
@@ -134,8 +133,15 @@ pub fn parse_xml(document: &Document,
                  url: Url,
                  context: ParseContext) {
     let parser = match context {
-        ParseContext::Owner(owner) =>
-            ServoXMLParser::new(Some(url), document, owner),
+        ParseContext::Owner(owner) => {
+            let tb = XmlTreeBuilder::new(Sink {
+                base_url: url,
+                document: JS::from_ref(document),
+            });
+            let tok = XmlTokenizer::new(tb, Default::default());
+
+            ServoParser::new(document, owner, Tokenizer::XML(tok), false)
+        }
     };
     parser.parse_chunk(String::from(input));
 }

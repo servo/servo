@@ -6,16 +6,13 @@ use document_loader::LoadType;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::DOMString;
+use dom::document::Document;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::node::Node;
-use dom::servohtmlparser::ServoHTMLParser;
 use dom::servoparser::ServoParser;
-use dom::servoxmlparser::ServoXMLParser;
-use dom::window::Window;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use hyper::header::ContentType;
@@ -25,164 +22,17 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use script_thread::ScriptThread;
-use std::cell::UnsafeCell;
-use std::ptr;
 use url::Url;
 use util::resource_files::read_resource_file;
 
 pub mod html;
 pub mod xml;
 
-pub trait Parser {
-    fn parse_chunk(self, input: String);
-    fn finish(self);
-}
-
-#[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub enum ParserField {
-    HTML(JS<ServoHTMLParser>),
-    XML(JS<ServoXMLParser>),
-}
-
-#[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct MutNullableParserField {
-    #[ignore_heap_size_of = "XXXjdm"]
-    ptr: UnsafeCell<Option<ParserField>>,
-}
-
-impl Default for MutNullableParserField {
-    #[allow(unrooted_must_root)]
-    fn default() -> MutNullableParserField {
-        MutNullableParserField {
-            ptr: UnsafeCell::new(None),
-        }
-    }
-}
-
-impl MutNullableParserField {
-    #[allow(unsafe_code)]
-    pub fn set(&self, val: Option<ParserRef>) {
-        unsafe {
-            *self.ptr.get() = val.map(|val| {
-                match val {
-                    ParserRef::HTML(parser) => ParserField::HTML(JS::from_ref(parser)),
-                    ParserRef::XML(parser) => ParserField::XML(JS::from_ref(parser)),
-                }
-            });
-        }
-    }
-
-    #[allow(unsafe_code, unrooted_must_root)]
-    pub fn get(&self) -> Option<ParserRoot> {
-        unsafe {
-            ptr::read(self.ptr.get()).map(|o| {
-                match o {
-                    ParserField::HTML(parser) => ParserRoot::HTML(Root::from_ref(&*parser)),
-                    ParserField::XML(parser) => ParserRoot::XML(Root::from_ref(&*parser)),
-                }
-            })
-        }
-    }
-}
-
-pub enum ParserRoot {
-    HTML(Root<ServoHTMLParser>),
-    XML(Root<ServoXMLParser>),
-}
-
-impl ParserRoot {
-    pub fn r(&self) -> ParserRef {
-        match *self {
-            ParserRoot::HTML(ref parser) => ParserRef::HTML(parser.r()),
-            ParserRoot::XML(ref parser) => ParserRef::XML(parser.r()),
-        }
-    }
-}
-
-pub enum TrustedParser {
-    HTML(Trusted<ServoHTMLParser>),
-    XML(Trusted<ServoXMLParser>),
-}
-
-impl TrustedParser {
-    pub fn root(&self) -> ParserRoot {
-        match *self {
-            TrustedParser::HTML(ref parser) => ParserRoot::HTML(parser.root()),
-            TrustedParser::XML(ref parser) => ParserRoot::XML(parser.root()),
-        }
-    }
-}
-
-pub enum ParserRef<'a> {
-    HTML(&'a ServoHTMLParser),
-    XML(&'a ServoXMLParser),
-}
-
-impl<'a> ParserRef<'a> {
-    pub fn as_servo_parser(&self) -> &ServoParser {
-        match *self {
-            ParserRef::HTML(parser) => parser.upcast(),
-            ParserRef::XML(parser) => parser.upcast(),
-        }
-    }
-
-    pub fn parse_chunk(&self, input: String) {
-        match *self {
-            ParserRef::HTML(parser) => parser.parse_chunk(input),
-            ParserRef::XML(parser) => parser.parse_chunk(input),
-        }
-    }
-
-    pub fn window(&self) -> &Window {
-        match *self {
-            ParserRef::HTML(parser) => parser.window(),
-            ParserRef::XML(parser) => parser.window(),
-        }
-    }
-
-    pub fn resume(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.resume(),
-            ParserRef::XML(parser) => parser.resume(),
-        }
-    }
-
-    pub fn suspend(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.suspend(),
-            ParserRef::XML(parser) => parser.suspend(),
-        }
-    }
-
-    pub fn is_suspended(&self) -> bool {
-        match *self {
-            ParserRef::HTML(parser) => parser.is_suspended(),
-            ParserRef::XML(parser) => parser.is_suspended(),
-        }
-    }
-
-    pub fn set_plaintext_state(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.set_plaintext_state(),
-            ParserRef::XML(parser) => parser.set_plaintext_state(),
-        }
-    }
-
-    pub fn parse_sync(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.parse_sync(),
-            ParserRef::XML(parser) => parser.parse_sync(),
-        }
-    }
-}
-
 /// The context required for asynchronously fetching a document
 /// and parsing it progressively.
 pub struct ParserContext {
     /// The parser that initiated the request.
-    parser: Option<TrustedParser>,
+    parser: Option<Trusted<ServoParser>>,
     /// Is this a synthesized document
     is_synthesized_document: bool,
     /// The pipeline associated with this document.
@@ -224,23 +74,16 @@ impl AsyncResponseListener for ParserContext {
             None => return,
         };
 
-        let parser = parser.r();
-        let servo_parser = parser.as_servo_parser();
-        self.parser = Some(match parser {
-            ParserRef::HTML(parser) => TrustedParser::HTML(
-                                        Trusted::new(parser)),
-            ParserRef::XML(parser) => TrustedParser::XML(
-                                        Trusted::new(parser)),
-        });
+        self.parser = Some(Trusted::new(&*parser));
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
-                servo_parser.push_input_chunk(page);
+                parser.push_input_chunk(page);
                 parser.parse_sync();
 
-                let doc = servo_parser.document();
+                let doc = parser.document();
                 let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(atom!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
@@ -250,7 +93,7 @@ impl AsyncResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
-                servo_parser.push_input_chunk(page);
+                parser.push_input_chunk(page);
                 parser.parse_sync();
                 parser.set_plaintext_state();
             },
@@ -260,7 +103,7 @@ impl AsyncResponseListener for ParserContext {
                     let page_bytes = read_resource_file("badcert.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
                     let page = page.replace("${reason}", &reason);
-                    servo_parser.push_input_chunk(page);
+                    parser.push_input_chunk(page);
                     parser.parse_sync();
                 }
             },
@@ -275,7 +118,7 @@ impl AsyncResponseListener for ParserContext {
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
                     toplevel.as_str(), sublevel.as_str());
                 self.is_synthesized_document = true;
-                servo_parser.push_input_chunk(page);
+                parser.push_input_chunk(page);
                 parser.parse_sync();
             },
             None => {
@@ -293,7 +136,7 @@ impl AsyncResponseListener for ParserContext {
                 Some(parser) => parser.root(),
                 None => return,
             };
-            parser.r().parse_chunk(data);
+            parser.parse_chunk(data);
         }
     }
 
@@ -307,24 +150,20 @@ impl AsyncResponseListener for ParserContext {
             // Show an error page for network errors,
             // certificate errors are handled earlier.
             self.is_synthesized_document = true;
-            let parser = parser.r();
             let page_bytes = read_resource_file("neterror.html").unwrap();
             let page = String::from_utf8(page_bytes).unwrap();
             let page = page.replace("${reason}", reason);
-            parser.as_servo_parser().push_input_chunk(page);
+            parser.push_input_chunk(page);
             parser.parse_sync();
         } else if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        let parser = parser.r();
-        let servo_parser = parser.as_servo_parser();
-
-        servo_parser.document()
+        parser.document()
             .finish_load(LoadType::PageSource(self.url.clone()));
 
-        servo_parser.mark_last_chunk_received();
+        parser.mark_last_chunk_received();
         if !parser.is_suspended() {
             parser.parse_sync();
         }
@@ -332,3 +171,10 @@ impl AsyncResponseListener for ParserContext {
 }
 
 impl PreInvoke for ParserContext {}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+pub struct Sink {
+    pub base_url: Url,
+    pub document: JS<Document>,
+}

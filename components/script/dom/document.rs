@@ -76,6 +76,7 @@ use dom::popstateevent::PopStateEvent;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
 use dom::range::Range;
+use dom::servoparser::ServoParser;
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
 use dom::text::Text;
@@ -103,7 +104,6 @@ use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use origin::Origin;
-use parse::{MutNullableParserField, ParserRef, ParserRoot};
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, CompositorEvent, MouseButton, MouseEventType, MozBrowserEvent};
@@ -226,7 +226,7 @@ pub struct Document {
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
-    current_parser: MutNullableParserField,
+    current_parser: MutNullableHeap<JS<ServoParser>>,
     /// When we should kick off a reflow. This happens during parsing.
     reflow_timeout: Cell<Option<u64>>,
     /// The cached first `base` element with an `href` attribute.
@@ -1627,11 +1627,11 @@ impl Document {
         global_scope.constellation_chan().send(load_event).unwrap();
     }
 
-    pub fn set_current_parser(&self, script: Option<ParserRef>) {
+    pub fn set_current_parser(&self, script: Option<&ServoParser>) {
         self.current_parser.set(script);
     }
 
-    pub fn get_current_parser(&self) -> Option<ParserRoot> {
+    pub fn get_current_parser(&self) -> Option<Root<ServoParser>> {
         self.current_parser.get()
     }
 
