@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::{BluetoothError, BluetoothMethodMsg};
+use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;

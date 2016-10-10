@@ -178,8 +178,10 @@ name = "bluetooth_traits"
 version = "0.0.1"
 dependencies = [
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "regex 0.1.76 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
 ]
 
 [[package]]
