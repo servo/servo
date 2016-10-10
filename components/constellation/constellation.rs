@@ -28,7 +28,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
-use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
@@ -226,6 +226,7 @@ struct FrameState {
     instant: Instant,
     pipeline_id: PipelineId,
     frame_id: FrameId,
+    history_state_id: HistoryStateId,
 }
 
 impl FrameState {
@@ -234,6 +235,8 @@ impl FrameState {
             instant: Instant::now(),
             pipeline_id: pipeline_id,
             frame_id: frame_id,
+            // TODO(ConnorGBrewster): Should this be hardcoded like this?
+            history_state_id: HistoryStateId(0),
         }
     }
 }
