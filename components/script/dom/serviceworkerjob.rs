@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::globalscope::GlobalScope;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
+use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use js::jsapi::JSAutoCompartment;
@@ -93,8 +93,8 @@ impl Runnable for ResolveJobHandler {
         let reg = self.reg.root();
         let promise = self.promise.root();
         let global = reg.global();
-        let _ac = JSAutoCompartment::new(global.r().get_cx(), promise.reflector().get_jsobject().get());
-        promise.resolve_native(global.r().get_cx(), &*reg);
+        let _ac = JSAutoCompartment::new((&*global).get_cx(), promise.reflector().get_jsobject().get());
+        promise.resolve_native((&*global).get_cx(), &*reg);
     }
 }
 
@@ -128,7 +128,7 @@ impl JobQueue {
 
             // queue task for https://w3c.github.io/ServiceWorker/#run-job-algorithm
             let global = reg.global();
-            script_thread.queue_run_job(box run_job_handler, global.r());
+            script_thread.queue_run_job(box run_job_handler, &*global);
         } else {
             let mut last_job = job_queue.pop().unwrap();
             if job == last_job && !last_job.promise.is_settled() {
@@ -171,8 +171,7 @@ impl JobQueue {
             }
             let newest_worker = reg.get_newest_worker();
             if let Some(ref newest_worker) = reg.get_newest_worker() {
-                let newest_worker = newest_worker.r();
-                if newest_worker.get_script_url() == job.script_url {
+                if (&*newest_worker).get_script_url() == job.script_url {
                     let reg = run_job_handler.reg.clone();
                     let scope_url = run_job_handler.scope_url.clone();
                     let promise = run_job_handler.promise.root();
@@ -187,7 +186,7 @@ impl JobQueue {
         } else {
             let reg = run_job_handler.reg.root();
             let global = reg.global();
-            let pipeline = global.r().pipeline_id();
+            let pipeline = global.pipeline_id();
             ScriptThread::set_registration(job.scope_url.clone(), &*reg, pipeline);
             let scope_url = run_job_handler.scope_url.clone();
             let promise = run_job_handler.promise.root();
