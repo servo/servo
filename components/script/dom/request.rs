@@ -35,6 +35,7 @@ use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
+use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
 use url::Url;
@@ -290,15 +291,12 @@ impl Request {
                 return Err(Error::Type("Method is forbidden".to_string()));
             }
             // Step 25.2
-            let method_lower = init_method.to_lower();
-            let method_string = match method_lower.as_str() {
-                Some(s) => s,
+            let method = match init_method.as_str() {
+                Some(s) => normalize_method(s),
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
-            let normalized_method = normalize_method(method_string);
             // Step 25.3
-            let hyper_method = normalized_method_to_typed_method(&normalized_method);
-            *request.method.borrow_mut() = hyper_method;
+            *request.method.borrow_mut() = method;
         }
 
         // Step 26
@@ -458,28 +456,16 @@ fn net_request_from_global(global: &GlobalScope,
                           Some(pipeline_id))
 }
 
-fn normalized_method_to_typed_method(m: &str) -> HttpMethod {
-    match m {
-        "DELETE" => HttpMethod::Delete,
-        "GET" => HttpMethod::Get,
-        "HEAD" => HttpMethod::Head,
-        "OPTIONS" => HttpMethod::Options,
-        "POST" => HttpMethod::Post,
-        "PUT" => HttpMethod::Put,
-        a => HttpMethod::Extension(a.to_string())
-    }
-}
-
 // https://fetch.spec.whatwg.org/#concept-method-normalize
-fn normalize_method(m: &str) -> String {
+fn normalize_method(m: &str) -> HttpMethod {
     match m {
-        "delete" => "DELETE".to_string(),
-        "get" => "GET".to_string(),
-        "head" => "HEAD".to_string(),
-        "options" => "OPTIONS".to_string(),
-        "post" => "POST".to_string(),
-        "put" => "PUT".to_string(),
-        a => a.to_string(),
+        m if m.eq_ignore_ascii_case("DELETE") => HttpMethod::Delete,
+        m if m.eq_ignore_ascii_case("GET") => HttpMethod::Get,
+        m if m.eq_ignore_ascii_case("HEAD") => HttpMethod::Head,
+        m if m.eq_ignore_ascii_case("OPTIONS") => HttpMethod::Options,
+        m if m.eq_ignore_ascii_case("POST") => HttpMethod::Post,
+        m if m.eq_ignore_ascii_case("PUT") => HttpMethod::Put,
+        m => HttpMethod::Extension(m.to_string()),
     }
 }
 
