@@ -54,11 +54,11 @@ pub struct BrowsingContext {
     /// in the script thread we just track the current active document.
     active_document: MutNullableHeap<JS<Document>>,
 
-    active_state: HistoryStateId,
+    active_state: Cell<HistoryStateId>,
 
-    next_state_id: HistoryStateId,
+    next_state_id: Cell<HistoryStateId>,
 
-    states: HashMap<HistoryStateId, HistoryState>,
+    states: DOMRefCell<HashMap<HistoryStateId, HistoryState>>,
 
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,
@@ -67,16 +67,16 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
         let mut states = HashMap::new();
-        states.insert(HistoryStateId(0), HistoryState::new());
+        states.insert(HistoryStateId(0), HistoryState::new(None));
         BrowsingContext {
             reflector: Reflector::new(),
             id: id,
             needs_reflow: Cell::new(true),
             children: DOMRefCell::new(vec![]),
             active_document: Default::default(),
-            active_state: HistoryStateId(0),
-            next_state_id: HistoryStateId(1),
-            states: states,
+            active_state: Cell::new(HistoryStateId(0)),
+            next_state_id: Cell::new(HistoryStateId(1)),
+            states: DOMRefCell::new(states),
             frame_element: frame_element.map(JS::from_ref),
         }
     }
@@ -110,6 +110,12 @@ impl BrowsingContext {
         self.active_document.set(Some(document))
     }
 
+    fn next_history_state_id(&self) -> HistoryStateId {
+        let next_id = self.next_state_id.get();
+        self.next_state_id.set(HistoryStateId(next_id.0 + 1));
+        next_id
+    }
+
     pub fn replace_session_history_entry(&self,
                                          title: Option<DOMString>,
                                          url: Option<Url>,
@@ -129,6 +135,8 @@ impl BrowsingContext {
         // // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
         // // Currently you can't mutate document.url
         // history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
+        let mut states = self.states.borrow_mut();
+        states.insert(self.active_state.get(), HistoryState::new(Some(state)));
     }
 
     pub fn push_session_history_entry(&self,
@@ -136,6 +144,9 @@ impl BrowsingContext {
                                         title: Option<DOMString>,
                                         url: Option<Url>,
                                         state: Option<HandleValue>) {
+        let next_id = self.next_history_state_id();
+        let mut states = self.states.borrow_mut();
+        states.insert(next_id, HistoryState::new(state));
     }
 
     pub fn active_document(&self) -> Root<Document> {
@@ -151,7 +162,7 @@ impl BrowsingContext {
     }
 
     pub fn state(&self) -> JSVal {
-        self.states.get(&self.active_state).expect("No active state.").state.get()
+        self.states.borrow().get(&self.active_state.get()).expect("No active state.").state.get()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -232,9 +243,9 @@ struct HistoryState {
 }
 
 impl HistoryState {
-    fn new() -> HistoryState {
+    fn new(state: Option<HandleValue>) -> HistoryState {
         let mut jsval: Heap<JSVal> = Default::default();
-        let state = HandleValue::null();
+        let state = state.unwrap_or(HandleValue::null());
         jsval.set(state.get());
         HistoryState {
             title: None,
