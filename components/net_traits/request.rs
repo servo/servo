@@ -276,10 +276,6 @@ impl Request {
         self.url_list.borrow().last().unwrap().clone()
     }
 
-    pub fn current_url_string(&self) -> String {
-        self.url_list.borrow().last().unwrap().to_string()
-    }
-
     pub fn is_navigation_request(&self) -> bool {
         self.destination == Destination::Document
     }
