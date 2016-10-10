@@ -23,7 +23,6 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::{document_from_node, window_from_node};
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::servoparser::{ServoParser, Tokenizer};
 use dom::text::Text;
 use html5ever::Attribute;
 use html5ever::serialize::{AttrRef, Serializable, Serializer};
@@ -34,10 +33,10 @@ use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts, TreeSink};
 use msg::constellation_msg::PipelineId;
-use parse::Sink;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;
+use super::{LastChunkState, ServoParser, Sink, Tokenizer};
 use url::Url;
 
 fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
@@ -279,7 +278,8 @@ pub fn parse_html(document: &Document,
             let tb = TreeBuilder::new(sink, options);
             let tok = HtmlTokenizer::new(tb, Default::default());
 
-            ServoParser::new(document, owner, Tokenizer::HTML(tok), false)
+            ServoParser::new(
+                document, owner, Tokenizer::HTML(tok), LastChunkState::NotReceived)
         },
         ParseContext::Fragment(fc) => {
             let tb = TreeBuilder::new_for_fragment(
@@ -294,7 +294,8 @@ pub fn parse_html(document: &Document,
             };
             let tok = HtmlTokenizer::new(tb, tok_options);
 
-            ServoParser::new(document, None, Tokenizer::HTML(tok), true)
+            ServoParser::new(
+                document, None, Tokenizer::HTML(tok), LastChunkState::Received)
         }
     };
     parser.parse_chunk(String::from(input));

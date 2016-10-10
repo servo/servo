@@ -18,9 +18,9 @@ use dom::bindings::str::DOMString;
 use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::globalscope::GlobalScope;
+use dom::servoparser::html::{ParseContext, parse_html};
+use dom::servoparser::xml::{self, parse_xml};
 use dom::window::Window;
-use parse::html::{ParseContext, parse_html};
-use parse::xml::{self, parse_xml};
 
 #[dom_struct]
 pub struct DOMParser {

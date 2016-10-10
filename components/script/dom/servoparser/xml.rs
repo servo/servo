@@ -15,13 +15,12 @@ use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::servoparser::{ServoParser, Tokenizer};
 use dom::text::Text;
 use html5ever;
 use msg::constellation_msg::PipelineId;
-use parse::Sink;
 use std::borrow::Cow;
 use string_cache::{Atom, QualName, Namespace};
+use super::{LastChunkState, ServoParser, Sink, Tokenizer};
 use url::Url;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName, XmlTokenizer};
@@ -140,7 +139,8 @@ pub fn parse_xml(document: &Document,
             });
             let tok = XmlTokenizer::new(tb, Default::default());
 
-            ServoParser::new(document, owner, Tokenizer::XML(tok), false)
+            ServoParser::new(
+                document, owner, Tokenizer::XML(tok), LastChunkState::NotReceived)
         }
     };
     parser.parse_chunk(String::from(input));

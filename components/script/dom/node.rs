@@ -47,6 +47,7 @@ use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHel
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
+use dom::servoparser::html::parse_html_fragment;
 use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -59,7 +60,6 @@ use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
-use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
