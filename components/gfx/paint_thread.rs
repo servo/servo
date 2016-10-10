@@ -158,27 +158,20 @@ struct LayerCreator {
     layers: Vec<PaintLayer>,
     layer_details_stack: Vec<PaintLayer>,
     current_layer: Option<PaintLayer>,
-    current_item_index: usize,
 }
 
 impl LayerCreator {
-    fn create_layers_with_display_list(display_list: &DisplayList) -> Vec<PaintLayer> {
+    fn create_layers_with_display_list<'a>(display_list: &'a DisplayList) -> Vec<PaintLayer> {
         let mut layer_creator = LayerCreator {
             layers: Vec::new(),
             layer_details_stack: Vec::new(),
             current_layer: None,
-            current_item_index: 0,
         };
-        let mut traversal = DisplayListTraversal {
-            display_list: display_list,
-            current_item_index: 0,
-            last_item_index: display_list.list.len(),
-        };
-        layer_creator.create_layers_for_stacking_context(&display_list.root_stacking_context,
-                                                         &mut traversal,
-                                                         &Point2D::zero(),
-                                                         &Matrix4D::identity(),
-                                                         &Matrix4D::identity());
+        let mut traversal = DisplayListTraversal::new(display_list);
+        layer_creator.process_stacking_context_items(&mut traversal,
+                                                     &Point2D::zero(),
+                                                     &Matrix4D::identity(),
+                                                     &Matrix4D::identity());
         layer_creator.layers
     }
 
@@ -222,8 +215,7 @@ impl LayerCreator {
             //
             // The origin for child layers which might be somewhere other than the
             // layer origin, since layer boundaries are expanded to include overflow.
-            self.process_stacking_context_items(stacking_context,
-                                                traversal,
+            self.process_stacking_context_items(traversal,
                                                 &-stacking_context.overflow.origin,
                                                 &Matrix4D::identity(),
                                                 &Matrix4D::identity());
@@ -232,52 +224,42 @@ impl LayerCreator {
             return;
         }
 
-        if stacking_context.context_type != StackingContextType::Real {
-            self.process_stacking_context_items(stacking_context,
-                                                traversal,
-                                                parent_origin,
-                                                transform,
-                                                perspective);
-            return;
-        }
-
-        self.process_stacking_context_items(stacking_context,
-                                            traversal,
+        debug_assert!(stacking_context.context_type == StackingContextType::Real);
+        self.process_stacking_context_items(traversal,
                                             &(stacking_context.bounds.origin + *parent_origin),
                                             &transform.pre_mul(&stacking_context.transform),
                                             &perspective.pre_mul(&stacking_context.perspective));
     }
 
     fn process_stacking_context_items<'a>(&mut self,
-                                          stacking_context: &StackingContext,
                                           traversal: &mut DisplayListTraversal<'a>,
                                           parent_origin: &Point2D<Au>,
                                           transform: &Matrix4D<f32>,
                                           perspective: &Matrix4D<f32>) {
-        for kid in stacking_context.children() {
-            while let Some(item) = traversal.advance(stacking_context) {
-                self.create_layers_for_item(item,
-                                            parent_origin,
-                                            transform,
-                                            perspective);
+        while let Some(item) = traversal.next() {
+            match item {
+                &DisplayItem::PushStackingContextClass(ref stacking_context_item) => {
+                    self.create_layers_for_stacking_context(&stacking_context_item.stacking_context,
+                                                            traversal,
+                                                            parent_origin,
+                                                            transform,
+                                                            perspective);
+                }
+                &DisplayItem::PopStackingContextClass(_) => return,
+                _ => {
+                    self.create_layers_for_item(traversal.previous_item_id(),
+                                                item,
+                                                parent_origin,
+                                                transform,
+                                                perspective);
+                }
             }
-            self.create_layers_for_stacking_context(kid,
-                                                    traversal,
-                                                    parent_origin,
-                                                    transform,
-                                                    perspective);
-        }
-
-        while let Some(item) = traversal.advance(stacking_context) {
-            self.create_layers_for_item(item,
-                                        parent_origin,
-                                        transform,
-                                        perspective);
         }
     }
 
 
     fn create_layers_for_item<'a>(&mut self,
+                                  current_item_index: usize,
                                   item: &DisplayItem,
                                   parent_origin: &Point2D<Au>,
                                   transform: &Matrix4D<f32>,
@@ -294,9 +276,8 @@ impl LayerCreator {
                 perspective,
                 self.current_parent_layer_id(),
                 self.current_parent_stacking_context_id(),
-                self.current_item_index);
+                current_item_index);
             self.layers.push(layer);
-            self.current_item_index += 1;
             return;
         }
 
@@ -318,9 +299,8 @@ impl LayerCreator {
         }
 
         if let Some(ref mut current_layer) = self.current_layer {
-            current_layer.add_item(self.current_item_index);
+            current_layer.add_item(current_item_index);
         }
-        self.current_item_index += 1;
     }
 }
 

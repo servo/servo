@@ -1780,7 +1780,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                                         ScrollPolicy::Scrollable,
                                                                         creation_mode);
             self.base.collect_stacking_contexts_for_children(&mut new_context);
-            let new_children: Vec<Box<StackingContext>> = new_context.children.drain(..).collect();
+            let new_children: Vec<StackingContext> = new_context.children.drain(..).collect();
 
             let mut non_floating_children = Vec::new();
             for child in new_children {
@@ -1808,6 +1808,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::InnerScrollWrapper);
+
             self.base.collect_stacking_contexts_for_children(&mut inner_stacking_context);
 
             let mut outer_stacking_context = self.fragment.create_stacking_context(
