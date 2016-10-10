@@ -296,6 +296,7 @@ COMPILATION_TARGETS = {
             "nsStyleImageLayers",
             "nsStyleImageLayers_Layer",
             "nsStyleImageLayers_LayerType",
+            "nsStyleImageRequest",
             "nsStyleList",
             "nsStyleMargin",
             "nsStyleOutline",
