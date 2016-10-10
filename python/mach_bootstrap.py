@@ -195,6 +195,14 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
+    # We don't support MinGW Python
+    if os.path.join(os.sep, 'mingw64', 'bin') in sys.executable:
+        print('Cannot run mach with MinGW Python.')
+        print('\nPlease rename following files:')
+        print(' /mingw64/bin/python2.exe   -> /mingw64/bin/python2-mingw64.exe')
+        print(' /mingw64/bin/python2.7.exe -> /mingw64/bin/python2.7-mingw64.exe')
+        sys.exit(1)
+
     # Ensure we are running Python 2.7+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
     if not (3, 0) > sys.version_info >= (2, 7):
