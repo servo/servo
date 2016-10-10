@@ -5220,6 +5220,18 @@
             "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
           }
         ],
+        "css/table_margin_a.html": [
+          {
+            "path": "css/table_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_margin_a.html"
+          }
+        ],
         "css/table_margin_auto_a.html": [
           {
             "path": "css/table_margin_auto_a.html",
@@ -20284,6 +20296,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
+        }
+      ],
+      "css/table_margin_a.html": [
+        {
+          "path": "css/table_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_margin_a.html"
         }
       ],
       "css/table_margin_auto_a.html": [
