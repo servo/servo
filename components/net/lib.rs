@@ -37,6 +37,7 @@ extern crate openssl_verify;
 extern crate profile_traits;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate script;
 extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]

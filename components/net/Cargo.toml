@@ -34,6 +34,7 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 rustc-serialize = "0.3"
+script = {path = "../script"}
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"

@@ -12,6 +12,7 @@ use net_traits::bluetooth_thread::{BluetoothDescriptorMsg, BluetoothDescriptorsM
 use net_traits::bluetooth_thread::{BluetoothDeviceMsg, BluetoothError, BluetoothMethodMsg};
 use net_traits::bluetooth_thread::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
 use rand::{self, Rng};
+use script::bluetooth_blacklist::{uuid_is_blacklisted, Blacklist};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
 use std::string::String;
@@ -671,7 +672,8 @@ impl BluetoothManager {
                 }
             }
         }
-        services_vec.retain(|s| self.allowed_services
+        services_vec.retain(|s| !uuid_is_blacklisted(&s.uuid, Blacklist::All) &&
+                                self.allowed_services
                                     .get(&device_id)
                                     .map_or(false, |uuids| uuids.contains(&s.uuid)));
         if services_vec.is_empty() {
@@ -748,6 +750,7 @@ impl BluetoothManager {
         if let Some(uuid) = uuid {
             services_vec.retain(|ref s| s.uuid == uuid);
         }
+        services_vec.retain(|s| !uuid_is_blacklisted(&s.uuid, Blacklist::All));
         if services_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
@@ -824,6 +827,7 @@ impl BluetoothManager {
                                 });
             }
         }
+        characteristics_vec.retain(|c| !uuid_is_blacklisted(&c.uuid, Blacklist::All));
         if characteristics_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
@@ -878,6 +882,7 @@ impl BluetoothManager {
                                      });
             }
         }
+        descriptors_vec.retain(|d| !uuid_is_blacklisted(&d.uuid, Blacklist::All));
         if descriptors_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
