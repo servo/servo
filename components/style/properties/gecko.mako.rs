@@ -30,6 +30,7 @@ use gecko_bindings::bindings::Gecko_SetGradientImageValue;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
 use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
+use gecko_bindings::bindings::Gecko_SetUrlImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::structs;
@@ -1196,8 +1197,10 @@ fn static_assert() {
         }
     }
 
+    #[allow(unused_variables)]
     pub fn set_${shorthand}_image(&mut self,
-                                  images: longhands::${shorthand}_image::computed_value::T) {
+                                  images: longhands::${shorthand}_image::computed_value::T,
+                                  cacheable: &mut bool) {
         use gecko_bindings::structs::nsStyleImage;
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SHAPE_CIRCULAR};
@@ -1385,13 +1388,20 @@ fn static_assert() {
                         Image::Gradient(gradient) => {
                             set_gradient(gradient, &mut geckoimage.mImage)
                         },
-                        Image::Url(..) => {
-                            // let utf8_bytes = url.as_bytes();
-                            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
-                            //                        utf8_bytes.as_ptr() as *const _,
-                            //                        utf8_bytes.len());
-                            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
-                                   background-image: url() not yet implemented");
+                        Image::Url(ref url, ref extra_data) => {
+                            unsafe {
+                                Gecko_SetUrlImageValue(&mut geckoimage.mImage,
+                                                       url.as_str().as_ptr(),
+                                                       url.as_str().len() as u32,
+                                                       extra_data.base.get(),
+                                                       extra_data.referrer.get(),
+                                                       extra_data.principal.get());
+                            }
+                            // We unfortunately must make any url() value uncacheable, since
+                            // the applicable declarations cache is not per document, but
+                            // global, and the imgRequestProxy objects we store in the style
+                            // structs don't like to be tracked by more than one document.
+                            *cacheable = false;
                         }
                     }
                 }
