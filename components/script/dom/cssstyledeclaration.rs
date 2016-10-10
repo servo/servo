@@ -207,6 +207,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                     for declaration in declarations {
                         style_attribute.set_parsed_declaration(declaration, importance);
                     }
+                    self.owner.sync_property_with_attrs_style(&*style_attribute);
                 }
                 ref mut option @ None => {
                     let important_count = if importance.important() {
@@ -214,13 +215,15 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                     } else {
                         0
                     };
-
-                    *option = Some(Arc::new(RwLock::new(PropertyDeclarationBlock {
+                    let block = PropertyDeclarationBlock {
                         declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
                         important_count: important_count,
-                    })));
+                    };
+                    self.owner.sync_property_with_attrs_style(&block);
+                    *option = Some(Arc::new(RwLock::new(block)));
                 }
             }
+
         }
 
         let node = self.owner.upcast::<Node>();
@@ -257,7 +260,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                 None => style_attribute.set_importance(&[&*property], importance),
             }
 
-            self.owner.sync_property_with_attrs_style();
+            self.owner.sync_property_with_attrs_style(&*style_attribute);
             let node = self.owner.upcast::<Node>();
             node.dirty(NodeDamage::NodeStyleDamaged);
         }
@@ -292,12 +295,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
             // Step 4 & 5
             style_attribute.remove_property(&property);
+            self.owner.sync_property_with_attrs_style(&*style_attribute);
             empty = style_attribute.declarations.is_empty()
         }
         if empty {
             *style_attribute = None;
         }
-        self.owner.sync_property_with_attrs_style();
 
         let node = self.owner.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
@@ -358,12 +361,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
                                                ParserContextExtraData::default());
+        element.sync_property_with_attrs_style(&decl_block);
         *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
             Some(Arc::new(RwLock::new(decl_block)))
         };
-        element.sync_property_with_attrs_style();
         let node = element.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())

@@ -736,12 +736,8 @@ impl Element {
 
     // this sync method is called upon modification of the style_attribute property,
     // therefore, it should not trigger subsequent mutation events
-    pub fn sync_property_with_attrs_style(&self) {
-        let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
-            declarations.read().to_css_string()
-        } else {
-            String::new()
-        };
+    pub fn sync_property_with_attrs_style(&self, block: &PropertyDeclarationBlock) {
+        let style_str = block.to_css_string();
 
         let mut new_style = AttrValue::String(style_str);
 
