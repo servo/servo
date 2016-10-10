@@ -1729,7 +1729,6 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(browsing_context.pipeline_id()),
                                                       Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {

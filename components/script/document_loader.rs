@@ -8,7 +8,6 @@
 use dom::bindings::js::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
 use std::thread;
@@ -84,24 +83,21 @@ impl Drop for LoadBlocker {
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
     resource_threads: ResourceThreads,
-    pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
 }
 
 impl DocumentLoader {
     pub fn new(existing: &DocumentLoader) -> DocumentLoader {
-        DocumentLoader::new_with_threads(existing.resource_threads.clone(), None, None)
+        DocumentLoader::new_with_threads(existing.resource_threads.clone(), None)
     }
 
     pub fn new_with_threads(resource_threads: ResourceThreads,
-                            pipeline: Option<PipelineId>,
                             initial_load: Option<Url>) -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
             resource_threads: resource_threads,
-            pipeline: pipeline,
             blocking_loads: initial_loads,
             events_inhibited: false,
         }
