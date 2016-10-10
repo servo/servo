@@ -60,7 +60,7 @@
         match_ignore_ascii_case! { try!(input.expect_ident()),
             % for value in values:
                 "${value}" => {
-                    % if value in experimental_values:
+                    % if value in experimental_values and product == "servo":
                         if !::util::prefs::PREFS.get("layout.${value}.enabled")
                             .as_boolean().unwrap_or(false) {
                             return Err(())
