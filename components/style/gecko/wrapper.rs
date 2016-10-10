@@ -187,7 +187,7 @@ impl BitOr for GeckoRestyleDamage {
 impl<'ln> NodeInfo for GeckoNode<'ln> {
     fn is_element(&self) -> bool {
         use gecko_bindings::structs::nsINode_BooleanFlag;
-        self.0.mBoolFlags & nsINode_BooleanFlag::NodeIsElement as u32 != 0
+        self.0.mBoolFlags & (1u32 << nsINode_BooleanFlag::NodeIsElement as u32) != 0
     }
 
     fn is_text_node(&self) -> bool {
