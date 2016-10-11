@@ -24,8 +24,8 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
-use net_traits::{AsyncResponseTarget, CoreResourceThread, Metadata, ProgressMsg, ResponseAction};
-use net_traits::{CookieSource, CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
+use net_traits::{CookieSource, CoreResourceThread, Metadata, ProgressMsg};
+use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
 use net_traits::{CustomResponseMediator, LoadData, LoadResponse, NetworkError, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::LoadContext;
@@ -57,7 +57,6 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
-    Listener(AsyncResponseTarget),
 }
 
 #[derive(Clone)]
@@ -73,14 +72,6 @@ impl ProgressSender {
     pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
         match *self {
             ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
-            ProgressSender::Listener(ref b) => {
-                let action = match msg {
-                    ProgressMsg::Payload(buf) => ResponseAction::DataAvailable(buf),
-                    ProgressMsg::Done(status) => ResponseAction::ResponseComplete(status),
-                };
-                b.invoke_with_listener(action);
-                Ok(())
-            }
         }
     }
 }
