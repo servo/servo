@@ -305,7 +305,6 @@ impl AsyncResponseTarget {
 #[derive(Deserialize, Serialize)]
 pub enum LoadConsumer {
     Channel(IpcSender<LoadResponse>),
-    Listener(AsyncResponseTarget),
 }
 
 /// Handle to a resource thread

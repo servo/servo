@@ -137,7 +137,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
 /// It takes an optional NetworkError, so that we can extract the SSL Validation errors
 /// and take it to the HTML parser
 fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
-                     network_error: Option<NetworkError>) -> Result<ProgressSender, ()> {
+                     _network_error: Option<NetworkError>) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
@@ -149,16 +149,6 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
                 Ok(_) => Ok(ProgressSender::Channel(progress_chan)),
                 Err(_) => Err(())
             }
-        }
-        LoadConsumer::Listener(target) => {
-            match network_error {
-                Some(NetworkError::SslValidation(url, reason)) => {
-                    let error = NetworkError::SslValidation(url, reason);
-                    target.invoke_with_listener(ResponseAction::HeadersAvailable(Err(error)));
-                }
-                _ => target.invoke_with_listener(ResponseAction::HeadersAvailable(Ok(metadata))),
-            }
-            Ok(ProgressSender::Listener(target))
         }
     }
 }
