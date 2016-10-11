@@ -45,6 +45,7 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
@@ -479,6 +480,19 @@ pub fn load_async(context: LoadContext,
     let load_data = LoadData::new(context, url, &load);
     let consumer = LoadConsumer::Listener(listener);
     core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
+}
+
+/// Instruct the resource thread to make a new request.
+pub fn fetch_async<F>(request: RequestInit,
+                      core_resource_thread: &CoreResourceThread,
+                      f: F)
+    where F: Fn(FetchResponseMsg) + Send + 'static
+{
+    let (action_sender, action_receiver) = ipc::channel().unwrap();
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        f(message.to().unwrap());
+    });
+    core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 }
 
 /// Message sent in response to `Load`.  Contains metadata, and a port
