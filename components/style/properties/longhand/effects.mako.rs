@@ -1195,9 +1195,9 @@ ${helpers.predefined_type("opacity",
 </%helpers:longhand>
 
 pub struct OriginParseResult {
-    horizontal: Option<specified::LengthOrPercentage>,
-    vertical: Option<specified::LengthOrPercentage>,
-    depth: Option<specified::Length>
+    pub horizontal: Option<specified::LengthOrPercentage>,
+    pub vertical: Option<specified::LengthOrPercentage>,
+    pub depth: Option<specified::Length>
 }
 
 pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {

@@ -1178,8 +1178,8 @@ fn static_assert() {
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
         use gecko_bindings::structs::nsStyleCoord;
-        use values::computed::{Image, Gradient, GradientKind, GradientShape, Length, LengthOrKeyword};
-        use values::computed::{LengthOrPercentage, LengthOrPercentageOrKeyword};
+        use values::computed::{Image, Gradient, GradientKind, GradientShape, LengthOrKeyword};
+        use values::computed::LengthOrPercentageOrKeyword;
         use values::specified::AngleOrCorner;
         use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
         use cssparser::Color as CSSColor;
@@ -1618,8 +1618,6 @@ fn static_assert() {
     <%call expr="impl_coord_copy('letter_spacing', 'mLetterSpacing')"></%call>
 
     pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
-        use values::computed::LengthOrPercentage::*;
-
         match v.0 {
             Some(lop) => self.gecko.mWordSpacing.set(lop),
             // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal

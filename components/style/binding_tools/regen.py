@@ -195,9 +195,7 @@ COMPILATION_TARGETS = {
     # Generation of the ffi bindings.
     "bindings": {
         "target_dir": "../gecko_bindings",
-        "raw_lines": [
-            "use heapsize::HeapSizeOf;",
-        ],
+        "raw_lines": [],
         "flags": [
             "--ignore-methods",
         ],
@@ -224,13 +222,13 @@ COMPILATION_TARGETS = {
             "nsStyleImageLayers_Layer", "nsStyleImageLayers_LayerType",
             "nsStyleUnit", "nsStyleUnion", "nsStyleCoord_CalcValue",
             "nsStyleCoord_Calc", "nsRestyleHint", "ServoElementSnapshot",
-            "nsChangeHint", "SheetParsingMode", "nsMainThreadPtrHandle",
-            "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
+            "nsChangeHint", "SheetParsingMode",
+            "nsMainThreadPtrHolder", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom", "nsStyleContext", "StyleClipPath",
             "StyleBasicShapeType", "StyleBasicShape", "nsCSSShadowArray",
-            "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
+            "nsIPrincipal", "nsIURI",
             "RawGeckoNode", "RawGeckoElement", "RawGeckoDocument",
-            "ServoNodeData", "nsString"
+            "nsString"
         ],
         "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",

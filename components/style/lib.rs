@@ -32,7 +32,16 @@
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
-#![deny(unsafe_code)]
+#![deny(warnings)]
+
+// FIXME(bholley): We need to blanket-allow unsafe code in order to make the
+// gecko atom!() macro work. When Rust 1.14 is released [1], we can uncomment
+// the commented-out attributes in regen_atoms.py and go back to denying unsafe
+// code by default.
+//
+// [1] https://github.com/rust-lang/rust/issues/15701#issuecomment-251900615
+//#![deny(unsafe_code)]
+#![allow(unused_unsafe)]
 
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
