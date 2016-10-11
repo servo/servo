@@ -52,7 +52,7 @@ use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::transmute;
+use std::mem::{replace, transmute};
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use string_cache::{Atom, Namespace};
@@ -251,10 +251,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn take_pseudo_styles(&self) -> PseudoStyles {
-        use std::mem;
-        let mut tmp = PseudoStyles::default();
-        mem::swap(&mut tmp, &mut self.mutate_data().unwrap().per_pseudo);
-        tmp
+        replace(&mut self.mutate_data().unwrap().per_pseudo, PseudoStyles::default())
     }
 
     fn set_pseudo_styles(&self, styles: PseudoStyles) {
