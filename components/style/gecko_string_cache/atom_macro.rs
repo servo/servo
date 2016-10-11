@@ -12,8 +12,8 @@ pub enum nsICSSPseudoElement {}
 pub enum nsICSSAnonBoxPseudo {}
 
 #[inline(always)]
-pub fn unsafe_atom_from_static(ptr: *mut nsIAtom) -> Atom {
-    unsafe { Atom::from_static(ptr) }
+pub unsafe fn atom_from_static(ptr: *mut nsIAtom) -> Atom {
+    Atom::from_static(ptr)
 }
 
 
@@ -14780,2462 +14780,4920 @@ cfg_if! {
 
 #[macro_export]
 macro_rules! atom {
-("") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__empty as *mut _) };
-("_moz") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz as *mut _) };
-("mozframetype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozframetype as *mut _) };
-("_moz_abspos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_abspos as *mut _) };
-("_moz_activated") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_activated as *mut _) };
-("_moz_resizing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_resizing as *mut _) };
-("mozallowfullscreen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozallowfullscreen as *mut _) };
-("_moz-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moztype as *mut _) };
-("_moz_dirty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdirty as *mut _) };
-("mozdisallowselectionprint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdisallowselectionprint as *mut _) };
-("moz-do-not-send") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdonotsend as *mut _) };
-("_moz_editor_bogus_node") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozeditorbogusnode as *mut _) };
-("_moz_generated_content_before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentbefore as *mut _) };
-("_moz_generated_content_after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentafter as *mut _) };
-("_moz_generated_content_image") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentimage as *mut _) };
-("_moz_quote") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozquote as *mut _) };
-("moz-signature") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozsignature as *mut _) };
-("-moz-is-glyph") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_glyph as *mut _) };
-("_moz_original_size") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_original_size as *mut _) };
-("_moz_target") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_target as *mut _) };
-("_moz-menuactive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuactive as *mut _) };
-("#default") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__poundDefault as *mut _) };
-("*") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__asterisk as *mut _) };
-("a") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_a as *mut _) };
-("abbr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abbr as *mut _) };
-("abort") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abort as *mut _) };
-("above") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_above as *mut _) };
-("acceltext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acceltext as *mut _) };
-("accept") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accept as *mut _) };
-("accept-charset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acceptcharset as *mut _) };
-("accesskey") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accesskey as *mut _) };
-("acronym") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acronym as *mut _) };
-("action") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_action as *mut _) };
-("active") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_active as *mut _) };
-("activetitlebarcolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activetitlebarcolor as *mut _) };
-("activateontab") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activateontab as *mut _) };
-("actuate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_actuate as *mut _) };
-("address") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_address as *mut _) };
-("after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after as *mut _) };
-("after_end") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after_end as *mut _) };
-("after_start") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after_start as *mut _) };
-("align") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_align as *mut _) };
-("alink") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alink as *mut _) };
-("all") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_all as *mut _) };
-("allowdirs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowdirs as *mut _) };
-("allowevents") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowevents as *mut _) };
-("allownegativeassertions") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allownegativeassertions as *mut _) };
-("allow-forms") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowforms as *mut _) };
-("allowfullscreen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowfullscreen as *mut _) };
-("allow-modals") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowmodals as *mut _) };
-("allow-orientation-lock") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alloworientationlock as *mut _) };
-("allow-pointer-lock") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpointerlock as *mut _) };
-("allow-popups-to-escape-sandbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpopupstoescapesandbox as *mut _) };
-("allow-popups") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpopups as *mut _) };
-("allow-presentation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpresentation as *mut _) };
-("allow-same-origin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowsameorigin as *mut _) };
-("allow-scripts") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowscripts as *mut _) };
-("allow-top-navigation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowtopnavigation as *mut _) };
-("allowuntrusted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowuntrusted as *mut _) };
-("alt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alt as *mut _) };
-("alternate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alternate as *mut _) };
-("always") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_always as *mut _) };
-("ancestor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ancestor as *mut _) };
-("ancestor-or-self") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ancestorOrSelf as *mut _) };
-("anchor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anchor as *mut _) };
-("and") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__and as *mut _) };
-("animations") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animations as *mut _) };
-("anonid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anonid as *mut _) };
-("anonlocation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anonlocation as *mut _) };
-("any") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_any as *mut _) };
-("mozapp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapp as *mut _) };
-("mozwidget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozwidget as *mut _) };
-("applet") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applet as *mut _) };
-("apply-imports") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyImports as *mut _) };
-("apply-templates") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyTemplates as *mut _) };
-("mozapptype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapptype as *mut _) };
-("archive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_archive as *mut _) };
-("area") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_area as *mut _) };
-("arrow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arrow as *mut _) };
-("article") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_article as *mut _) };
-("ascending") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ascending as *mut _) };
-("aside") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aside as *mut _) };
-("aspect-ratio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aspectRatio as *mut _) };
-("assign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_assign as *mut _) };
-("async") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_async as *mut _) };
-("attribute") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attribute as *mut _) };
-("attributes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributes as *mut _) };
-("attribute-set") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeSet as *mut _) };
-("aural") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aural as *mut _) };
-("auto") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__auto as *mut _) };
-("autocheck") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autocheck as *mut _) };
-("autocomplete") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autocomplete as *mut _) };
-("autofocus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autofocus as *mut _) };
-("autoplay") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autoplay as *mut _) };
-("autorepeatbutton") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autorepeatbutton as *mut _) };
-("axis") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_axis as *mut _) };
-("b") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_b as *mut _) };
-("BackdropFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_backdropFrame as *mut _) };
-("background") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_background as *mut _) };
-("base") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_base as *mut _) };
-("basefont") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_basefont as *mut _) };
-("baseline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseline as *mut _) };
-("bdi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bdi as *mut _) };
-("bdo") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bdo as *mut _) };
-("before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before as *mut _) };
-("before_end") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before_end as *mut _) };
-("before_start") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before_start as *mut _) };
-("below") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_below as *mut _) };
-("bgcolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bgcolor as *mut _) };
-("bgsound") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bgsound as *mut _) };
-("big") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_big as *mut _) };
-("binding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_binding as *mut _) };
-("bindings") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bindings as *mut _) };
-("bindToUntrustedContent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bindToUntrustedContent as *mut _) };
-("blankrow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blankrow as *mut _) };
-("block") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_block as *mut _) };
-("blockquote") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blockquote as *mut _) };
-("blur") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blur as *mut _) };
-("body") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_body as *mut _) };
-("boolean") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_boolean as *mut _) };
-("border") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_border as *mut _) };
-("bordercolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bordercolor as *mut _) };
-("both") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_both as *mut _) };
-("bottom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottom as *mut _) };
-("bottomend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomend as *mut _) };
-("bottomstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomstart as *mut _) };
-("bottomleft") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomleft as *mut _) };
-("bottommargin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottommargin as *mut _) };
-("bottompadding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottompadding as *mut _) };
-("bottomright") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomright as *mut _) };
-("box") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_box as *mut _) };
-("br") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_br as *mut _) };
-("braille") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_braille as *mut _) };
-("broadcast") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcast as *mut _) };
-("broadcaster") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcaster as *mut _) };
-("broadcasterset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcasterset as *mut _) };
-("browser") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_browser as *mut _) };
-("mozbrowser") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozbrowser as *mut _) };
-("bulletinboard") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bulletinboard as *mut _) };
-("button") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_button as *mut _) };
-("brighttitlebarforeground") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_brighttitlebarforeground as *mut _) };
-("call-template") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_callTemplate as *mut _) };
-("cancel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cancel as *mut _) };
-("canvas") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canvas as *mut _) };
-("caption") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caption as *mut _) };
-("capture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_capture as *mut _) };
-("case-order") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caseOrder as *mut _) };
-("cdata-section-elements") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdataSectionElements as *mut _) };
-("ceiling") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ceiling as *mut _) };
-("cell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cell as *mut _) };
-("cellpadding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cellpadding as *mut _) };
-("cellspacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cellspacing as *mut _) };
-("center") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_center as *mut _) };
-("ch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ch as *mut _) };
-("change") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_change as *mut _) };
-("char") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__char as *mut _) };
-("characterData") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_characterData as *mut _) };
-("charcode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charcode as *mut _) };
-("charoff") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charoff as *mut _) };
-("charset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charset as *mut _) };
-("checkbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checkbox as *mut _) };
-("checked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checked as *mut _) };
-("child") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_child as *mut _) };
-("children") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_children as *mut _) };
-("childList") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_childList as *mut _) };
-("choose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_choose as *mut _) };
-("chromemargin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_chromemargin as *mut _) };
-("chromeOnlyContent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_chromeOnlyContent as *mut _) };
-("exposeToUntrustedContent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exposeToUntrustedContent as *mut _) };
-("circ") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_circ as *mut _) };
-("circle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_circle as *mut _) };
-("cite") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cite as *mut _) };
-("class") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__class as *mut _) };
-("classid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_classid as *mut _) };
-("clear") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clear as *mut _) };
-("click") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_click as *mut _) };
-("clickcount") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clickcount as *mut _) };
-("clickthrough") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clickthrough as *mut _) };
-("movetoclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_movetoclick as *mut _) };
-("clip") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip as *mut _) };
-("close") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_close as *mut _) };
-("closed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closed as *mut _) };
-("closemenu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closemenu as *mut _) };
-("coalesceduplicatearcs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coalesceduplicatearcs as *mut _) };
-("code") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_code as *mut _) };
-("codebase") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codebase as *mut _) };
-("codetype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codetype as *mut _) };
-("col") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_col as *mut _) };
-("colgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colgroup as *mut _) };
-("collapse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_collapse as *mut _) };
-("collapsed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_collapsed as *mut _) };
-("color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color as *mut _) };
-("color-index") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorIndex as *mut _) };
-("cols") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cols as *mut _) };
-("colspan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colspan as *mut _) };
-("column") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_column as *mut _) };
-("columns") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columns as *mut _) };
-("combobox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_combobox as *mut _) };
-("command") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_command as *mut _) };
-("commands") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commands as *mut _) };
-("commandset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandset as *mut _) };
-("commandupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandupdate as *mut _) };
-("commandupdater") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandupdater as *mut _) };
-("comment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comment as *mut _) };
-("compact") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_compact as *mut _) };
-("concat") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_concat as *mut _) };
-("conditions") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_conditions as *mut _) };
-("constructor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_constructor as *mut _) };
-("consumeoutsideclicks") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_consumeoutsideclicks as *mut _) };
-("container") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_container as *mut _) };
-("containment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containment as *mut _) };
-("contains") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contains as *mut _) };
-("content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_content as *mut _) };
-("contenteditable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contenteditable as *mut _) };
-("content-disposition") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentDisposition as *mut _) };
-("content-language") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentLanguage as *mut _) };
-("content-location") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contentLocation as *mut _) };
-("content-script-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentScriptType as *mut _) };
-("content-style-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentStyleType as *mut _) };
-("content-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentType as *mut _) };
-("consumeanchor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_consumeanchor as *mut _) };
-("context") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_context as *mut _) };
-("contextmenu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contextmenu as *mut _) };
-("control") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_control as *mut _) };
-("controls") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_controls as *mut _) };
-("coords") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coords as *mut _) };
-("copy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_copy as *mut _) };
-("copy-of") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_copyOf as *mut _) };
-("count") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_count as *mut _) };
-("crop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crop as *mut _) };
-("crossorigin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crossorigin as *mut _) };
-("curpos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_curpos as *mut _) };
-("current") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_current as *mut _) };
-("cutoutregion") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cutoutregion as *mut _) };
-("cycler") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cycler as *mut _) };
-("data") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_data as *mut _) };
-("datalist") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datalist as *mut _) };
-("data-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dataType as *mut _) };
-("date-time") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTime as *mut _) };
-("datasources") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datasources as *mut _) };
-("datetime") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetime as *mut _) };
-("datetimebox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetimebox as *mut _) };
-("dblclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dblclick as *mut _) };
-("dd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dd as *mut _) };
-("debug") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_debug as *mut _) };
-("decimal-format") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalFormat as *mut _) };
-("decimal-separator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalSeparator as *mut _) };
-("deck") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deck as *mut _) };
-("declare") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_declare as *mut _) };
-("decoder-doctor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decoderDoctor as *mut _) };
-("decrement") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decrement as *mut _) };
-("default") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__default as *mut _) };
-("default-style") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerDefaultStyle as *mut _) };
-("defaultAction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultAction as *mut _) };
-("defaultchecked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultchecked as *mut _) };
-("defaultLabel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultLabel as *mut _) };
-("defaultselected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultselected as *mut _) };
-("defaultvalue") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultvalue as *mut _) };
-("defaultplaybackrate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultplaybackrate as *mut _) };
-("defer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defer as *mut _) };
-("del") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_del as *mut _) };
-("descendant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descendant as *mut _) };
-("descendant-or-self") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descendantOrSelf as *mut _) };
-("descending") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descending as *mut _) };
-("description") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_description as *mut _) };
-("destructor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_destructor as *mut _) };
-("details") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_details as *mut _) };
-("device-aspect-ratio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceAspectRatio as *mut _) };
-("device-height") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceHeight as *mut _) };
-("device-pixel-ratio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_devicePixelRatio as *mut _) };
-("device-width") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceWidth as *mut _) };
-("dfn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dfn as *mut _) };
-("dialog") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dialog as *mut _) };
-("difference") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_difference as *mut _) };
-("digit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_digit as *mut _) };
-("dir") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dir as *mut _) };
-("dirAutoSetBy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dirAutoSetBy as *mut _) };
-("directionality") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_directionality as *mut _) };
-("directory") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_directory as *mut _) };
-("disable-output-escaping") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disableOutputEscaping as *mut _) };
-("disabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disabled as *mut _) };
-("disableglobalhistory") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disableglobalhistory as *mut _) };
-("disablehistory") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablehistory as *mut _) };
-("disablefullscreen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablefullscreen as *mut _) };
-("display") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_display as *mut _) };
-("display-mode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_displayMode as *mut _) };
-("distinct") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_distinct as *mut _) };
-("div") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_div as *mut _) };
-("dl") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dl as *mut _) };
-("doctype-public") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_doctypePublic as *mut _) };
-("doctype-system") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_doctypeSystem as *mut _) };
-("document") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_document as *mut _) };
-("download") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_download as *mut _) };
-("DOMAttrModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMAttrModified as *mut _) };
-("DOMCharacterDataModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMCharacterDataModified as *mut _) };
-("DOMNodeInserted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeInserted as *mut _) };
-("DOMNodeInsertedIntoDocument") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeInsertedIntoDocument as *mut _) };
-("DOMNodeRemoved") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeRemoved as *mut _) };
-("DOMNodeRemovedFromDocument") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeRemovedFromDocument as *mut _) };
-("DOMSubtreeModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMSubtreeModified as *mut _) };
-("double") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_double_ as *mut _) };
-("drag") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drag as *mut _) };
-("dragend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragend as *mut _) };
-("dragenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragenter as *mut _) };
-("dragevent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragevent as *mut _) };
-("dragexit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragexit as *mut _) };
-("draggable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_draggable as *mut _) };
-("dragging") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragging as *mut _) };
-("dragleave") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragleave as *mut _) };
-("dragover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragover as *mut _) };
-("dragSession") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragSession as *mut _) };
-("dragstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragstart as *mut _) };
-("drawintitlebar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drawintitlebar as *mut _) };
-("drawtitle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drawtitle as *mut _) };
-("drop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drop as *mut _) };
-("dropAfter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropAfter as *mut _) };
-("dropBefore") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropBefore as *mut _) };
-("dropOn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropOn as *mut _) };
-("dropmarker") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropMarker as *mut _) };
-("dt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dt as *mut _) };
-("editable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editable as *mut _) };
-("editing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editing as *mut _) };
-("editor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editor as *mut _) };
-("EditorDisplay-List") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editorDisplayList as *mut _) };
-("element") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_element as *mut _) };
-("element-available") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elementAvailable as *mut _) };
-("elements") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elements as *mut _) };
-("em") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_em as *mut _) };
-("embed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_embed as *mut _) };
-("embossed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_embossed as *mut _) };
-("empty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_empty as *mut _) };
-("encoding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_encoding as *mut _) };
-("enctype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_enctype as *mut _) };
-("end") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end as *mut _) };
-("endEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_endEvent as *mut _) };
-("end_after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end_after as *mut _) };
-("end_before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end_before as *mut _) };
-("equalsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalsize as *mut _) };
-("error") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_error as *mut _) };
-("even") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_even as *mut _) };
-("event") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_event as *mut _) };
-("events") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_events as *mut _) };
-("exclude-result-prefixes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_excludeResultPrefixes as *mut _) };
-("excludes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_excludes as *mut _) };
-("expr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_expr as *mut _) };
-("extends") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_extends as *mut _) };
-("extension-element-prefixes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_extensionElementPrefixes as *mut _) };
-("face") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_face as *mut _) };
-("fallback") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fallback as *mut _) };
-("false") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__false as *mut _) };
-("farthest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_farthest as *mut _) };
-("field") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_field as *mut _) };
-("fieldset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldset as *mut _) };
-("figcaption") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figcaption as *mut _) };
-("figure") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figure as *mut _) };
-("fixed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fixed as *mut _) };
-("flags") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flags as *mut _) };
-("flex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flex as *mut _) };
-("flexgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexgroup as *mut _) };
-("flip") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flip as *mut _) };
-("floating") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_floating as *mut _) };
-("floor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_floor as *mut _) };
-("flowlength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flowlength as *mut _) };
-("focus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_focus as *mut _) };
-("focused") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_focused as *mut _) };
-("following") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_following as *mut _) };
-("following-sibling") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_followingSibling as *mut _) };
-("font") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font as *mut _) };
-("font-weight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontWeight as *mut _) };
-("fontpicker") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontpicker as *mut _) };
-("footer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_footer as *mut _) };
-("for") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__for as *mut _) };
-("for-each") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forEach as *mut _) };
-("forceOwnRefreshDriver") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forceOwnRefreshDriver as *mut _) };
-("form") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_form as *mut _) };
-("formaction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formaction as *mut _) };
-("format") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_format as *mut _) };
-("format-number") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formatNumber as *mut _) };
-("formenctype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formenctype as *mut _) };
-("formmethod") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formmethod as *mut _) };
-("formnovalidate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formnovalidate as *mut _) };
-("formtarget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formtarget as *mut _) };
-("frame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frame as *mut _) };
-("frameborder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameborder as *mut _) };
-("frameset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameset as *mut _) };
-("from") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_from as *mut _) };
-("fullscreenchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fullscreenchange as *mut _) };
-("fullscreenerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fullscreenerror as *mut _) };
-("function-available") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_functionAvailable as *mut _) };
-("generate-id") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_generateId as *mut _) };
-("getter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_getter as *mut _) };
-("glyphchar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphchar as *mut _) };
-("glyphid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphid as *mut _) };
-("grid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grid as *mut _) };
-("grippy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grippy as *mut _) };
-("group") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_group as *mut _) };
-("grouping-separator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupingSeparator as *mut _) };
-("grouping-size") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupingSize as *mut _) };
-("grow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grow as *mut _) };
-("gutter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gutter as *mut _) };
-("h1") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h1 as *mut _) };
-("h2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h2 as *mut _) };
-("h3") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h3 as *mut _) };
-("h4") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h4 as *mut _) };
-("h5") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h5 as *mut _) };
-("h6") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h6 as *mut _) };
-("handheld") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handheld as *mut _) };
-("HandheldFriendly") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handheldFriendly as *mut _) };
-("handler") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handler as *mut _) };
-("handlers") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handlers as *mut _) };
-("HARD") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HARD as *mut _) };
-("has-same-node") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hasSameNode as *mut _) };
-("hbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hbox as *mut _) };
-("head") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_head as *mut _) };
-("header") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_header as *mut _) };
-("headers") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headers as *mut _) };
-("height") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_height as *mut _) };
-("hgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hgroup as *mut _) };
-("hidden") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidden as *mut _) };
-("hidechrome") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidechrome as *mut _) };
-("hidecolumnpicker") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidecolumnpicker as *mut _) };
-("high") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_high as *mut _) };
-("highest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_highest as *mut _) };
-("horizontal") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_horizontal as *mut _) };
-("hover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hover as *mut _) };
-("hr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hr as *mut _) };
-("href") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_href as *mut _) };
-("hreflang") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hreflang as *mut _) };
-("hspace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hspace as *mut _) };
-("html") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_html as *mut _) };
-("http-equiv") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_httpEquiv as *mut _) };
-("i") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_i as *mut _) };
-("icon") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_icon as *mut _) };
-("id") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_id as *mut _) };
-("if") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__if as *mut _) };
-("iframe") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_iframe as *mut _) };
-("ignorecase") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignorecase as *mut _) };
-("ignorekeys") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignorekeys as *mut _) };
-("ignoreuserfocus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignoreuserfocus as *mut _) };
-("ilayer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ilayer as *mut _) };
-("image") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_image as *mut _) };
-("image-clicked-point") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageClickedPoint as *mut _) };
-("img") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_img as *mut _) };
-("implementation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implementation as *mut _) };
-("implements") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implements as *mut _) };
-("import") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_import as *mut _) };
-("inactivetitlebarcolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inactivetitlebarcolor as *mut _) };
-("include") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_include as *mut _) };
-("includes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_includes as *mut _) };
-("increment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_increment as *mut _) };
-("indent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indent as *mut _) };
-("indeterminate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indeterminate as *mut _) };
-("index") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_index as *mut _) };
-("infer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_infer as *mut _) };
-("infinity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_infinity as *mut _) };
-("inherit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inherit as *mut _) };
-("inherits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inherits as *mut _) };
-("inheritstyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inheritstyle as *mut _) };
-("initial-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_initial_scale as *mut _) };
-("input") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_input as *mut _) };
-("inputmode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inputmode as *mut _) };
-("ins") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ins as *mut _) };
-("insertafter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_insertafter as *mut _) };
-("insertbefore") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_insertbefore as *mut _) };
-("install") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_install as *mut _) };
-("instanceOf") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_instanceOf as *mut _) };
-("int32") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int32 as *mut _) };
-("int64") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int64 as *mut _) };
-("integer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integer as *mut _) };
-("integrity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integrity as *mut _) };
-("intersection") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersection as *mut _) };
-("is") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_is as *mut _) };
-("iscontainer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_iscontainer as *mut _) };
-("isempty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isempty as *mut _) };
-("ismap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ismap as *mut _) };
-("itemid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemid as *mut _) };
-("itemprop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemprop as *mut _) };
-("itemref") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemref as *mut _) };
-("itemscope") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemscope as *mut _) };
-("itemtype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemtype as *mut _) };
-("kbd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kbd as *mut _) };
-("keepcurrentinview") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keepcurrentinview as *mut _) };
-("keepobjectsalive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keepobjectsalive as *mut _) };
-("key") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_key as *mut _) };
-("keycode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keycode as *mut _) };
-("keystatuseschange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keystatuseschange as *mut _) };
-("keydown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keydown as *mut _) };
-("keygen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keygen as *mut _) };
-("keypress") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keypress as *mut _) };
-("keyset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyset as *mut _) };
-("keysystem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keysystem as *mut _) };
-("keytext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keytext as *mut _) };
-("keyup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyup as *mut _) };
-("kind") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kind as *mut _) };
-("label") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_label as *mut _) };
-("lang") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lang as *mut _) };
-("language") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_language as *mut _) };
-("last") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_last as *mut _) };
-("layer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_layer as *mut _) };
-("LayerActivity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_LayerActivity as *mut _) };
-("layout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_layout as *mut _) };
-("leading") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leading as *mut _) };
-("leaf") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leaf as *mut _) };
-("left") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_left as *mut _) };
-("leftmargin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leftmargin as *mut _) };
-("leftpadding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leftpadding as *mut _) };
-("legend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_legend as *mut _) };
-("length") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_length as *mut _) };
-("letter-value") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letterValue as *mut _) };
-("level") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_level as *mut _) };
-("li") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_li as *mut _) };
-("line") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_line as *mut _) };
-("link") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_link as *mut _) };
-("list") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list as *mut _) };
-("listbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listbox as *mut _) };
-("listboxbody") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listboxbody as *mut _) };
-("listcell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcell as *mut _) };
-("listcol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcol as *mut _) };
-("listcols") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcols as *mut _) };
-("listener") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listener as *mut _) };
-("listhead") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listhead as *mut _) };
-("listheader") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listheader as *mut _) };
-("listing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listing as *mut _) };
-("listitem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listitem as *mut _) };
-("listrows") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listrows as *mut _) };
-("load") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_load as *mut _) };
-("localedir") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_localedir as *mut _) };
-("local-name") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_localName as *mut _) };
-("longdesc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_longdesc as *mut _) };
-("loop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loop as *mut _) };
-("low") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_low as *mut _) };
-("lower-first") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowerFirst as *mut _) };
-("lowest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowest as *mut _) };
-("lowsrc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowsrc as *mut _) };
-("ltr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ltr as *mut _) };
-("lwtheme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lwtheme as *mut _) };
-("lwthemetextcolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lwthemetextcolor as *mut _) };
-("main") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_main as *mut _) };
-("map") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_map as *mut _) };
-("manifest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_manifest as *mut _) };
-("margin-bottom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginBottom as *mut _) };
-("margin-left") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginLeft as *mut _) };
-("margin-right") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginRight as *mut _) };
-("margin-top") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginTop as *mut _) };
-("marginheight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginheight as *mut _) };
-("marginwidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginwidth as *mut _) };
-("mark") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mark as *mut _) };
-("marquee") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marquee as *mut _) };
-("match") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_match as *mut _) };
-("max") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_max as *mut _) };
-("maxheight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxheight as *mut _) };
-("maximum-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maximum_scale as *mut _) };
-("maxlength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxlength as *mut _) };
-("maxpos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxpos as *mut _) };
-("maxwidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxwidth as *mut _) };
-("mayscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mayscript as *mut _) };
-("media") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_media as *mut _) };
-("media-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mediaType as *mut _) };
-("member") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_member as *mut _) };
-("menu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menu as *mut _) };
-("menubar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar as *mut _) };
-("menubutton") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubutton as *mut _) };
-("menu-button") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuButton as *mut _) };
-("menugroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menugroup as *mut _) };
-("menuitem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitem as *mut _) };
-("menulist") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menulist as *mut _) };
-("menupopup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menupopup as *mut _) };
-("menuseparator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuseparator as *mut _) };
-("message") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_message as *mut _) };
-("meta") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meta as *mut _) };
-("referrer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_referrer as *mut _) };
-("referrerpolicy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_referrerpolicy as *mut _) };
-("referrer-policy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerReferrerPolicy as *mut _) };
-("meter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meter as *mut _) };
-("method") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_method as *mut _) };
-("middle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_middle as *mut _) };
-("min") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_min as *mut _) };
-("minheight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minheight as *mut _) };
-("minimum-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minimum_scale as *mut _) };
-("minlength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minlength as *mut _) };
-("minpos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minpos as *mut _) };
-("minus-sign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minusSign as *mut _) };
-("minwidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minwidth as *mut _) };
-("mixed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__mixed as *mut _) };
-("messagemanagergroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_messagemanagergroup as *mut _) };
-("mod") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mod as *mut _) };
-("mode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mode as *mut _) };
-("modifiers") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_modifiers as *mut _) };
-("monochrome") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_monochrome as *mut _) };
-("mousedown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousedown as *mut _) };
-("mousemove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousemove as *mut _) };
-("mouseout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseout as *mut _) };
-("mouseover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseover as *mut _) };
-("mousethrough") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousethrough as *mut _) };
-("mouseup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseup as *mut _) };
-("mozaudiochannel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozaudiochannel as *mut _) };
-("mozfullscreenchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenchange as *mut _) };
-("mozfullscreenerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenerror as *mut _) };
-("mozpointerlockchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockchange as *mut _) };
-("mozpointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockerror as *mut _) };
-("mozprivatebrowsing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozprivatebrowsing as *mut _) };
-("moz-opaque") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_opaque as *mut _) };
-("mozactionhint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_action_hint as *mut _) };
-("x-moz-errormessage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_moz_errormessage as *mut _) };
-("msthemecompatible") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msthemecompatible as *mut _) };
-("multicol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multicol as *mut _) };
-("multiple") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiple as *mut _) };
-("muted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_muted as *mut _) };
-("name") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_name as *mut _) };
-("namespace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__namespace as *mut _) };
-("namespace-alias") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_namespaceAlias as *mut _) };
-("namespace-uri") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_namespaceUri as *mut _) };
-("NaN") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_NaN as *mut _) };
-("nativeAnonymousChildList") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nativeAnonymousChildList as *mut _) };
-("nav") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nav as *mut _) };
-("negate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_negate as *mut _) };
-("never") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_never as *mut _) };
-("new") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__new as *mut _) };
-("newline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_newline as *mut _) };
-("NextBidi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nextBidi as *mut _) };
-("no") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_no as *mut _) };
-("noautofocus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noautofocus as *mut _) };
-("noautohide") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noautohide as *mut _) };
-("norolluponanchor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_norolluponanchor as *mut _) };
-("nobr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nobr as *mut _) };
-("node") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_node as *mut _) };
-("nodefaultsrc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nodefaultsrc as *mut _) };
-("node-set") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nodeSet as *mut _) };
-("noembed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noembed as *mut _) };
-("noframes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noframes as *mut _) };
-("nohref") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nohref as *mut _) };
-("noisolation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noisolation as *mut _) };
-("nonce") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nonce as *mut _) };
-("none") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_none as *mut _) };
-("noresize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noresize as *mut _) };
-("normal") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_normal as *mut _) };
-("normalize-space") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_normalizeSpace as *mut _) };
-("noscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noscript as *mut _) };
-("noshade") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noshade as *mut _) };
-("novalidate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_novalidate as *mut _) };
-("not") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__not as *mut _) };
-("nowrap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nowrap as *mut _) };
-("number") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_number as *mut _) };
-("null") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_null as *mut _) };
-("object") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_object as *mut _) };
-("object-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectType as *mut _) };
-("observer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_observer as *mut _) };
-("observes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_observes as *mut _) };
-("odd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_odd as *mut _) };
-("OFF") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_OFF as *mut _) };
-("ol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ol as *mut _) };
-("omit-xml-declaration") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_omitXmlDeclaration as *mut _) };
-("ona2dpstatuschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ona2dpstatuschanged as *mut _) };
-("onabort") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onabort as *mut _) };
-("onmozaccesskeynotfound") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozaccesskeynotfound as *mut _) };
-("onactivate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onactivate as *mut _) };
-("onadapteradded") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onadapteradded as *mut _) };
-("onadapterremoved") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onadapterremoved as *mut _) };
-("onafterprint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onafterprint as *mut _) };
-("onafterscriptexecute") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onafterscriptexecute as *mut _) };
-("onalerting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onalerting as *mut _) };
-("onanimationend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationend as *mut _) };
-("onanimationiteration") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationiteration as *mut _) };
-("onanimationstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationstart as *mut _) };
-("onantennaavailablechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onantennaavailablechange as *mut _) };
-("onAppCommand") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onAppCommand as *mut _) };
-("onattributechanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributechanged as *mut _) };
-("onattributereadreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributereadreq as *mut _) };
-("onattributewritereq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributewritereq as *mut _) };
-("onaudioprocess") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudioprocess as *mut _) };
-("onbeforecopy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforecopy as *mut _) };
-("onbeforecut") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforecut as *mut _) };
-("onbeforepaste") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforepaste as *mut _) };
-("onbeforeevicted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeevicted as *mut _) };
-("onbeforeprint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeprint as *mut _) };
-("onbeforescriptexecute") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforescriptexecute as *mut _) };
-("onbeforeunload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeunload as *mut _) };
-("onblocked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onblocked as *mut _) };
-("onblur") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onblur as *mut _) };
-("onbroadcast") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbroadcast as *mut _) };
-("onbusy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbusy as *mut _) };
-("onbufferedamountlow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbufferedamountlow as *mut _) };
-("oncached") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncached as *mut _) };
-("oncallschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncallschanged as *mut _) };
-("oncancel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncancel as *mut _) };
-("oncardstatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncardstatechange as *mut _) };
-("oncfstatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncfstatechange as *mut _) };
-("onchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchange as *mut _) };
-("oncharacteristicchanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncharacteristicchanged as *mut _) };
-("onchargingchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchargingchange as *mut _) };
-("onchargingtimechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchargingtimechange as *mut _) };
-("onchecking") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchecking as *mut _) };
-("onclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclick as *mut _) };
-("onclirmodechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclirmodechange as *mut _) };
-("onclose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclose as *mut _) };
-("oncommand") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncommand as *mut _) };
-("oncommandupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncommandupdate as *mut _) };
-("oncomplete") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncomplete as *mut _) };
-("oncompositionend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionend as *mut _) };
-("oncompositionstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionstart as *mut _) };
-("oncompositionupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionupdate as *mut _) };
-("onconfigurationchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconfigurationchange as *mut _) };
-("onconnect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnect as *mut _) };
-("onconnected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnected as *mut _) };
-("onconnecting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnecting as *mut _) };
-("onconnectionavailable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnectionavailable as *mut _) };
-("onconnectionstatechanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnectionstatechanged as *mut _) };
-("oncontextmenu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncontextmenu as *mut _) };
-("oncopy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncopy as *mut _) };
-("oncurrentchannelchanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncurrentchannelchanged as *mut _) };
-("oncurrentsourcechanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncurrentsourcechanged as *mut _) };
-("oncut") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncut as *mut _) };
-("ondatachange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondatachange as *mut _) };
-("ondataerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondataerror as *mut _) };
-("ondblclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondblclick as *mut _) };
-("ondeleted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeleted as *mut _) };
-("ondeliverysuccess") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeliverysuccess as *mut _) };
-("ondeliveryerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeliveryerror as *mut _) };
-("ondevicefound") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicefound as *mut _) };
-("ondevicepaired") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicepaired as *mut _) };
-("ondeviceunpaired") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceunpaired as *mut _) };
-("ondialing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondialing as *mut _) };
-("ondisabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisabled as *mut _) };
-("ondischargingtimechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondischargingtimechange as *mut _) };
-("ondisconnect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnect as *mut _) };
-("ondisconnected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnected as *mut _) };
-("ondisconnecting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnecting as *mut _) };
-("ondisplaypasskeyreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisplaypasskeyreq as *mut _) };
-("ondownloading") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondownloading as *mut _) };
-("onDOMActivate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMActivate as *mut _) };
-("onDOMAttrModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMAttrModified as *mut _) };
-("onDOMCharacterDataModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMCharacterDataModified as *mut _) };
-("onDOMFocusIn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMFocusIn as *mut _) };
-("onDOMFocusOut") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMFocusOut as *mut _) };
-("onDOMMouseScroll") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMMouseScroll as *mut _) };
-("onDOMNodeInserted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeInserted as *mut _) };
-("onDOMNodeInsertedIntoDocument") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeInsertedIntoDocument as *mut _) };
-("onDOMNodeRemoved") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeRemoved as *mut _) };
-("onDOMNodeRemovedFromDocument") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeRemovedFromDocument as *mut _) };
-("onDOMSubtreeModified") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMSubtreeModified as *mut _) };
-("ondata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondata as *mut _) };
-("ondrag") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrag as *mut _) };
-("ondragdrop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragdrop as *mut _) };
-("ondragend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragend as *mut _) };
-("ondragenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragenter as *mut _) };
-("ondragexit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragexit as *mut _) };
-("ondraggesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondraggesture as *mut _) };
-("ondragleave") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragleave as *mut _) };
-("ondragover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragover as *mut _) };
-("ondragstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragstart as *mut _) };
-("ondrain") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrain as *mut _) };
-("ondrop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrop as *mut _) };
-("oneitbroadcasted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oneitbroadcasted as *mut _) };
-("onenabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenabled as *mut _) };
-("onenterpincodereq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenterpincodereq as *mut _) };
-("onemergencycbmodechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onemergencycbmodechange as *mut _) };
-("onerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onerror as *mut _) };
-("onevicted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onevicted as *mut _) };
-("onfacesdetected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfacesdetected as *mut _) };
-("onfailed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfailed as *mut _) };
-("onfetch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfetch as *mut _) };
-("onfinish") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfinish as *mut _) };
-("onfocus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfocus as *mut _) };
-("onfrequencychange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfrequencychange as *mut _) };
-("onfullscreenchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfullscreenchange as *mut _) };
-("onfullscreenerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfullscreenerror as *mut _) };
-("onspeakerforcedchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeakerforcedchange as *mut _) };
-("onget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onget as *mut _) };
-("ongroupchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongroupchange as *mut _) };
-("onhashchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhashchange as *mut _) };
-("onheadphoneschange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onheadphoneschange as *mut _) };
-("onheld") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onheld as *mut _) };
-("onhfpstatuschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhfpstatuschanged as *mut _) };
-("onhidstatuschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhidstatuschanged as *mut _) };
-("onholding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onholding as *mut _) };
-("oniccchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccchange as *mut _) };
-("oniccdetected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccdetected as *mut _) };
-("oniccinfochange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccinfochange as *mut _) };
-("oniccundetected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccundetected as *mut _) };
-("onincoming") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onincoming as *mut _) };
-("oninput") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninput as *mut _) };
-("oninstall") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninstall as *mut _) };
-("oninvalid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninvalid as *mut _) };
-("onkeydown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeydown as *mut _) };
-("onkeypress") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeypress as *mut _) };
-("onkeyup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeyup as *mut _) };
-("onlanguagechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlanguagechange as *mut _) };
-("onlevelchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlevelchange as *mut _) };
-("onLoad") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onLoad as *mut _) };
-("onload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onload as *mut _) };
-("onloading") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloading as *mut _) };
-("onloadingdone") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadingdone as *mut _) };
-("onloadingerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadingerror as *mut _) };
-("onpopstate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopstate as *mut _) };
-("only") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_only as *mut _) };
-("onmessage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmessage as *mut _) };
-("onmousedown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousedown as *mut _) };
-("onmouseenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseenter as *mut _) };
-("onmouseleave") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseleave as *mut _) };
-("onmouselongtap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouselongtap as *mut _) };
-("onmousemove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousemove as *mut _) };
-("onmouseout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseout as *mut _) };
-("onmouseover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseover as *mut _) };
-("onMozMouseHittest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMouseHittest as *mut _) };
-("onmouseup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseup as *mut _) };
-("onMozAfterPaint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozAfterPaint as *mut _) };
-("onmozbrowserafterkeydown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeydown as *mut _) };
-("onmozbrowserafterkeyup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeyup as *mut _) };
-("onmozbrowserbeforekeydown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeydown as *mut _) };
-("onmozbrowserbeforekeyup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeyup as *mut _) };
-("onmozfullscreenchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozfullscreenchange as *mut _) };
-("onmozfullscreenerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozfullscreenerror as *mut _) };
-("onmozkeydownonplugin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozkeydownonplugin as *mut _) };
-("onmozkeyuponplugin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozkeyuponplugin as *mut _) };
-("onmozpointerlockchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockchange as *mut _) };
-("onmozpointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockerror as *mut _) };
-("onmoztimechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoztimechange as *mut _) };
-("onMozMousePixelScroll") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMousePixelScroll as *mut _) };
-("onMozScrolledAreaChanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozScrolledAreaChanged as *mut _) };
-("onmoznetworkupload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkupload as *mut _) };
-("onmoznetworkdownload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkdownload as *mut _) };
-("onmapfolderlistingreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapfolderlistingreq as *mut _) };
-("onmapmessageslistingreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapmessageslistingreq as *mut _) };
-("onmapgetmessagereq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapgetmessagereq as *mut _) };
-("onmapsetmessagestatusreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapsetmessagestatusreq as *mut _) };
-("onmapsendmessagereq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapsendmessagereq as *mut _) };
-("onmapmessageupdatereq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapmessageupdatereq as *mut _) };
-("onnewrdsgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnewrdsgroup as *mut _) };
-("onnotificationclick") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnotificationclick as *mut _) };
-("onnotificationclose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnotificationclose as *mut _) };
-("onnoupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnoupdate as *mut _) };
-("onobexpasswordreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onobexpasswordreq as *mut _) };
-("onobsolete") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onobsolete as *mut _) };
-("ononline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ononline as *mut _) };
-("onoffline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoffline as *mut _) };
-("onopen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onopen as *mut _) };
-("onorientationchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onorientationchange as *mut _) };
-("onotastatuschange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onotastatuschange as *mut _) };
-("onoverflow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoverflow as *mut _) };
-("onoverflowchanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoverflowchanged as *mut _) };
-("onpagehide") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpagehide as *mut _) };
-("onpageshow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpageshow as *mut _) };
-("onpaint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpaint as *mut _) };
-("onpairingaborted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingaborted as *mut _) };
-("onpairingconfirmationreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingconfirmationreq as *mut _) };
-("onpairingconsentreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingconsentreq as *mut _) };
-("onpaste") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpaste as *mut _) };
-("onpendingchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpendingchange as *mut _) };
-("onpichange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpichange as *mut _) };
-("onpicture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpicture as *mut _) };
-("onpointerlockchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerlockchange as *mut _) };
-("onpointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerlockerror as *mut _) };
-("onpopuphidden") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphidden as *mut _) };
-("onpopuphiding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphiding as *mut _) };
-("onpopuppositioned") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuppositioned as *mut _) };
-("onpopupshowing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshowing as *mut _) };
-("onpopupshown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshown as *mut _) };
-("onposter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onposter as *mut _) };
-("onpreviewstatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpreviewstatechange as *mut _) };
-("onpullphonebookreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullphonebookreq as *mut _) };
-("onpullvcardentryreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullvcardentryreq as *mut _) };
-("onpullvcardlistingreq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullvcardlistingreq as *mut _) };
-("onpush") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpush as *mut _) };
-("onpushsubscriptionchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpushsubscriptionchange as *mut _) };
-("onpschange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpschange as *mut _) };
-("onptychange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onptychange as *mut _) };
-("onradiostatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onradiostatechange as *mut _) };
-("onrdsdisabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrdsdisabled as *mut _) };
-("onrdsenabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrdsenabled as *mut _) };
-("onreaderror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreaderror as *mut _) };
-("onreadsuccess") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreadsuccess as *mut _) };
-("onready") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onready as *mut _) };
-("onreadystatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreadystatechange as *mut _) };
-("onreceived") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreceived as *mut _) };
-("onrecorderstatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrecorderstatechange as *mut _) };
-("onremoteheld") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremoteheld as *mut _) };
-("onremoteresumed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremoteresumed as *mut _) };
-("onresourcetimingbufferfull") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresourcetimingbufferfull as *mut _) };
-("onretrieving") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onretrieving as *mut _) };
-("onRequest") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onRequest as *mut _) };
-("onrequestmediaplaystatus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrequestmediaplaystatus as *mut _) };
-("onreset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreset as *mut _) };
-("onresuming") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresuming as *mut _) };
-("onresize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresize as *mut _) };
-("onrtchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrtchange as *mut _) };
-("onscanningstatechanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscanningstatechanged as *mut _) };
-("onscostatuschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscostatuschanged as *mut _) };
-("onscroll") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscroll as *mut _) };
-("onselect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselect as *mut _) };
-("onselectionchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselectionchange as *mut _) };
-("onselectstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselectstart as *mut _) };
-("onsending") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsending as *mut _) };
-("onsent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsent as *mut _) };
-("onset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onset as *mut _) };
-("onshow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshow as *mut _) };
-("onshutter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshutter as *mut _) };
-("onstatechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstatechange as *mut _) };
-("onstatuschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstatuschanged as *mut _) };
-("onstkcommand") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstkcommand as *mut _) };
-("onstksessionend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstksessionend as *mut _) };
-("onstorage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstorage as *mut _) };
-("onstorageareachanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstorageareachanged as *mut _) };
-("onsubmit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsubmit as *mut _) };
-("onsuccess") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsuccess as *mut _) };
-("ontypechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontypechange as *mut _) };
-("onterminate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onterminate as *mut _) };
-("ontext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontext as *mut _) };
-("ontoggle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontoggle as *mut _) };
-("ontouchstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchstart as *mut _) };
-("ontouchend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchend as *mut _) };
-("ontouchmove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchmove as *mut _) };
-("ontouchcancel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchcancel as *mut _) };
-("ontransitionend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontransitionend as *mut _) };
-("onunderflow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunderflow as *mut _) };
-("onunload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunload as *mut _) };
-("onupdatefound") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdatefound as *mut _) };
-("onupdateready") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdateready as *mut _) };
-("onupgradeneeded") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupgradeneeded as *mut _) };
-("onussdreceived") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onussdreceived as *mut _) };
-("onversionchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onversionchange as *mut _) };
-("onvoicechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoicechange as *mut _) };
-("onvoiceschanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoiceschanged as *mut _) };
-("onvrdisplayconnect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplayconnect as *mut _) };
-("onvrdisplaydisconnect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaydisconnect as *mut _) };
-("onvrdisplaypresentchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaypresentchange as *mut _) };
-("onwebkitAnimationEnd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationEnd as *mut _) };
-("onwebkitAnimationIteration") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationIteration as *mut _) };
-("onwebkitAnimationStart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationStart as *mut _) };
-("onwebkitTransitionEnd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitTransitionEnd as *mut _) };
-("onwebkitanimationend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationend as *mut _) };
-("onwebkitanimationiteration") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationiteration as *mut _) };
-("onwebkitanimationstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationstart as *mut _) };
-("onwebkittransitionend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkittransitionend as *mut _) };
-("onwebsocket") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebsocket as *mut _) };
-("onwheel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwheel as *mut _) };
-("open") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_open as *mut _) };
-("optgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_optgroup as *mut _) };
-("optimum") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_optimum as *mut _) };
-("option") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_option as *mut _) };
-("or") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__or as *mut _) };
-("order") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_order as *mut _) };
-("ordinal") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ordinal as *mut _) };
-("orient") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_orient as *mut _) };
-("orientation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_orientation as *mut _) };
-("otherwise") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_otherwise as *mut _) };
-("output") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_output as *mut _) };
-("overflow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overflow as *mut _) };
-("overflowchanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overflowchanged as *mut _) };
-("overlay") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay as *mut _) };
-("overlap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlap as *mut _) };
-("p") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_p as *mut _) };
-("pack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pack as *mut _) };
-("page") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_page as *mut _) };
-("pageincrement") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageincrement as *mut _) };
-("pagex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pagex as *mut _) };
-("pagey") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pagey as *mut _) };
-("paint-order") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_paint_order as *mut _) };
-("palettename") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_palettename as *mut _) };
-("panel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_panel as *mut _) };
-("param") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_param as *mut _) };
-("parameter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parameter as *mut _) };
-("parent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parent as *mut _) };
-("parentapp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentapp as *mut _) };
-("parentfocused") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentfocused as *mut _) };
-("parsetype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parsetype as *mut _) };
-("password") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_password as *mut _) };
-("pattern") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pattern as *mut _) };
-("pattern-separator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternSeparator as *mut _) };
-("per-mille") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_perMille as *mut _) };
-("percent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_percent as *mut _) };
-("persist") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_persist as *mut _) };
-("phase") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_phase as *mut _) };
-("picture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_picture as *mut _) };
-("ping") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ping as *mut _) };
-("pinned") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pinned as *mut _) };
-("placeholder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_placeholder as *mut _) };
-("plaintext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_plaintext as *mut _) };
-("playbackrate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_playbackrate as *mut _) };
-("point-size") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointSize as *mut _) };
-("pointerlockchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointerlockchange as *mut _) };
-("pointerlockerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointerlockerror as *mut _) };
-("poly") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_poly as *mut _) };
-("polygon") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polygon as *mut _) };
-("popup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popup as *mut _) };
-("popupalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupalign as *mut _) };
-("popupanchor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupanchor as *mut _) };
-("popupgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupgroup as *mut _) };
-("popuphidden") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popuphidden as *mut _) };
-("popuphiding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popuphiding as *mut _) };
-("popupset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupset as *mut _) };
-("popupshowing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupshowing as *mut _) };
-("popupshown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupshown as *mut _) };
-("popupsinherittooltip") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupsinherittooltip as *mut _) };
-("position") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_position as *mut _) };
-("poster") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_poster as *mut _) };
-("pre") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pre as *mut _) };
-("preceding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preceding as *mut _) };
-("preceding-sibling") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_precedingSibling as *mut _) };
-("predicate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_predicate as *mut _) };
-("prefix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prefix as *mut _) };
-("preload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preload as *mut _) };
-("prerendered") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prerendered as *mut _) };
-("mozpresentation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpresentation as *mut _) };
-("preserve") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserve as *mut _) };
-("preserve-space") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveSpace as *mut _) };
-("preventdefault") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preventdefault as *mut _) };
-("primary") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primary as *mut _) };
-("print") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_print as *mut _) };
-("priority") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_priority as *mut _) };
-("processing-instruction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_processingInstruction as *mut _) };
-("profile") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_profile as *mut _) };
-("progress") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progress as *mut _) };
-("progressmeter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressmeter as *mut _) };
-("progressNormal") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressNormal as *mut _) };
-("progressUndetermined") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressUndetermined as *mut _) };
-("projection") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_projection as *mut _) };
-("prompt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prompt as *mut _) };
-("propagate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_propagate as *mut _) };
-("properties") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_properties as *mut _) };
-("property") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_property as *mut _) };
-("pubdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pubdate as *mut _) };
-("q") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_q as *mut _) };
-("query") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_query as *mut _) };
-("queryset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_queryset as *mut _) };
-("querytype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_querytype as *mut _) };
-("radio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radio as *mut _) };
-("radiogroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radiogroup as *mut _) };
-("range") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_range as *mut _) };
-("readonly") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_readonly as *mut _) };
-("rect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rect as *mut _) };
-("rectangle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rectangle as *mut _) };
-("ref") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ref as *mut _) };
-("refresh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refresh as *mut _) };
-("rel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rel as *mut _) };
-("onreloadpage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreloadpage as *mut _) };
-("rem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rem as *mut _) };
-("removeelement") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_removeelement as *mut _) };
-("renderingobserverlist") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_renderingobserverlist as *mut _) };
-("repeat") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeat as *mut _) };
-("replace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_replace as *mut _) };
-("required") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_required as *mut _) };
-("reserved") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reserved as *mut _) };
-("reset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reset as *mut _) };
-("resizeafter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizeafter as *mut _) };
-("resizebefore") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizebefore as *mut _) };
-("resizer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizer as *mut _) };
-("resolution") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resolution as *mut _) };
-("resource") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resource as *mut _) };
-("resources") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resources as *mut _) };
-("result") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_result as *mut _) };
-("result-prefix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resultPrefix as *mut _) };
-("retargetdocumentfocus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_retargetdocumentfocus as *mut _) };
-("rev") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rev as *mut _) };
-("reverse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reverse as *mut _) };
-("reversed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reversed as *mut _) };
-("richlistbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_richlistbox as *mut _) };
-("richlistitem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_richlistitem as *mut _) };
-("right") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_right as *mut _) };
-("rightmargin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rightmargin as *mut _) };
-("rightpadding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rightpadding as *mut _) };
-("role") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_role as *mut _) };
-("rolluponmousewheel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rolluponmousewheel as *mut _) };
-("round") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_round as *mut _) };
-("row") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_row as *mut _) };
-("rows") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rows as *mut _) };
-("rowspan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowspan as *mut _) };
-("rb") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rb as *mut _) };
-("rp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rp as *mut _) };
-("rt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rt as *mut _) };
-("rtc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rtc as *mut _) };
-("rtl") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rtl as *mut _) };
-("ruby") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ruby as *mut _) };
-("ruby-base") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBase as *mut _) };
-("ruby-base-container") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseContainer as *mut _) };
-("ruby-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyText as *mut _) };
-("ruby-text-container") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextContainer as *mut _) };
-("rule") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rule as *mut _) };
-("rules") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rules as *mut _) };
-("s") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_s as *mut _) };
-("samp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_samp as *mut _) };
-("sandbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sandbox as *mut _) };
-("sbattr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sbattr as *mut _) };
-("scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scale as *mut _) };
-("scan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scan as *mut _) };
-("scheme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scheme as *mut _) };
-("scope") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scope as *mut _) };
-("scoped") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scoped as *mut _) };
-("screen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screen as *mut _) };
-("screenX") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screenX as *mut _) };
-("screenY") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screenY as *mut _) };
-("script") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_script as *mut _) };
-("scriptEnabledBeforePrintOrPreview") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptEnabledBeforePrintOrPreview as *mut _) };
-("scrollbar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar as *mut _) };
-("scrollbarbutton") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarbutton as *mut _) };
-("scrollbar-down-bottom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarDownBottom as *mut _) };
-("scrollbar-down-top") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarDownTop as *mut _) };
-("scrollbar-up-bottom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarUpBottom as *mut _) };
-("scrollbar-up-top") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarUpTop as *mut _) };
-("scrollbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbox as *mut _) };
-("scrollcorner") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollcorner as *mut _) };
-("scrolling") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrolling as *mut _) };
-("section") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_section as *mut _) };
-("select") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_select as *mut _) };
-("selectable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectable as *mut _) };
-("selected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selected as *mut _) };
-("selectedIndex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectedIndex as *mut _) };
-("selectedindex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectedindex as *mut _) };
-("self") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_self as *mut _) };
-("seltype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seltype as *mut _) };
-("set-cookie") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setcookie as *mut _) };
-("setter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setter as *mut _) };
-("shape") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape as *mut _) };
-("show") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_show as *mut _) };
-("showcaret") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_showcaret as *mut _) };
-("showresizer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_showresizer as *mut _) };
-("simple") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simple as *mut _) };
-("single") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_single as *mut _) };
-("size") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_size as *mut _) };
-("sizes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizes as *mut _) };
-("sizemode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizemode as *mut _) };
-("sizetopopup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizetopopup as *mut _) };
-("slider") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_slider as *mut _) };
-("small") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_small as *mut _) };
-("smooth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_smooth as *mut _) };
-("snap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_snap as *mut _) };
-("sort") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sort as *mut _) };
-("sortActive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortActive as *mut _) };
-("sortDirection") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortDirection as *mut _) };
-("sorted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sorted as *mut _) };
-("sorthints") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sorthints as *mut _) };
-("sortLocked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortLocked as *mut _) };
-("sortResource") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource as *mut _) };
-("sortResource2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource2 as *mut _) };
-("sortSeparators") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortSeparators as *mut _) };
-("sortStaticsLast") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortStaticsLast as *mut _) };
-("source") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_source as *mut _) };
-("space") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_space as *mut _) };
-("spacer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacer as *mut _) };
-("span") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_span as *mut _) };
-("spellcheck") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spellcheck as *mut _) };
-("spinner") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinner as *mut _) };
-("split") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_split as *mut _) };
-("splitmenu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitmenu as *mut _) };
-("splitter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitter as *mut _) };
-("spring") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spring as *mut _) };
-("src") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_src as *mut _) };
-("srcdoc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srcdoc as *mut _) };
-("srclang") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srclang as *mut _) };
-("srcset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srcset as *mut _) };
-("stack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stack as *mut _) };
-("standalone") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_standalone as *mut _) };
-("standby") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_standby as *mut _) };
-("start") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start as *mut _) };
-("start_after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start_after as *mut _) };
-("start_before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start_before as *mut _) };
-("starts-with") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_startsWith as *mut _) };
-("state") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_state as *mut _) };
-("statedatasource") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statedatasource as *mut _) };
-("staticHint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_staticHint as *mut _) };
-("statusbar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statusbar as *mut _) };
-("statustext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statustext as *mut _) };
-("step") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_step as *mut _) };
-("stop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop as *mut _) };
-("stretch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stretch as *mut _) };
-("strike") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strike as *mut _) };
-("string") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_string as *mut _) };
-("string-length") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stringLength as *mut _) };
-("strip-space") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stripSpace as *mut _) };
-("strong") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strong as *mut _) };
-("style") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_style as *mut _) };
-("stylesheet") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheet as *mut _) };
-("stylesheet-prefix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheetPrefix as *mut _) };
-("subject") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subject as *mut _) };
-("submit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_submit as *mut _) };
-("substate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substate as *mut _) };
-("substring") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substring as *mut _) };
-("substring-after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substringAfter as *mut _) };
-("substring-before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substringBefore as *mut _) };
-("sub") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sub as *mut _) };
-("sum") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sum as *mut _) };
-("sup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sup as *mut _) };
-("summary") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_summary as *mut _) };
-("system-property") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_systemProperty as *mut _) };
-("tab") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tab as *mut _) };
-("tabbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabbox as *mut _) };
-("tabindex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabindex as *mut _) };
-("table") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_table as *mut _) };
-("tabpanel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabpanel as *mut _) };
-("tabpanels") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabpanels as *mut _) };
-("tag") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tag as *mut _) };
-("target") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_target as *mut _) };
-("targets") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targets as *mut _) };
-("tbody") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tbody as *mut _) };
-("td") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_td as *mut _) };
-("template") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__template as *mut _) };
-("text-decoration") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_decoration as *mut _) };
-("terminate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_terminate as *mut _) };
-("test") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_test as *mut _) };
-("text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text as *mut _) };
-("text-align") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textAlign as *mut _) };
-("textarea") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textarea as *mut _) };
-("textbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textbox as *mut _) };
-("textnode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textnode as *mut _) };
-("textNodeDirectionalityMap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textNodeDirectionalityMap as *mut _) };
-("tfoot") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tfoot as *mut _) };
-("th") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_th as *mut _) };
-("thead") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_thead as *mut _) };
-("thumb") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_thumb as *mut _) };
-("time") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_time as *mut _) };
-("title") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_title as *mut _) };
-("titlebar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_titlebar as *mut _) };
-("titletip") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_titletip as *mut _) };
-("toggled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toggled as *mut _) };
-("token") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_token as *mut _) };
-("tokenize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tokenize as *mut _) };
-("toolbar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbar as *mut _) };
-("toolbarbutton") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarbutton as *mut _) };
-("toolbaritem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbaritem as *mut _) };
-("toolbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbox as *mut _) };
-("tooltip") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tooltip as *mut _) };
-("tooltiptext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tooltiptext as *mut _) };
-("top") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_top as *mut _) };
-("topleft") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topleft as *mut _) };
-("topmargin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topmargin as *mut _) };
-("toppadding") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toppadding as *mut _) };
-("topright") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topright as *mut _) };
-("tr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tr as *mut _) };
-("track") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_track as *mut _) };
-("trailing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_trailing as *mut _) };
-("transform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transform as *mut _) };
-("transform-3d") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transform_3d as *mut _) };
-("transformiix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transformiix as *mut _) };
-("translate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_translate as *mut _) };
-("transparent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transparent as *mut _) };
-("tree") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tree as *mut _) };
-("treecell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecell as *mut _) };
-("treechildren") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treechildren as *mut _) };
-("treecol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecol as *mut _) };
-("treecolpicker") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecolpicker as *mut _) };
-("treecols") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecols as *mut _) };
-("treeitem") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treeitem as *mut _) };
-("treerow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treerow as *mut _) };
-("treeseparator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treeseparator as *mut _) };
-("triple") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_triple as *mut _) };
-("true") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__true as *mut _) };
-("tt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tt as *mut _) };
-("tty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tty as *mut _) };
-("tv") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tv as *mut _) };
-("type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_type as *mut _) };
-("typemustmatch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_typemustmatch as *mut _) };
-("u") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_u as *mut _) };
-("ul") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ul as *mut _) };
-("underflow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_underflow as *mut _) };
-("undetermined") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_undetermined as *mut _) };
-("undoscope") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_undoscope as *mut _) };
-("unload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unload as *mut _) };
-("unparsed-entity-uri") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unparsedEntityUri as *mut _) };
-("upper-first") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_upperFirst as *mut _) };
-("uri") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_uri as *mut _) };
-("use") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_use as *mut _) };
-("use-attribute-sets") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_useAttributeSets as *mut _) };
-("usemap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_usemap as *mut _) };
-("user-scalable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_user_scalable as *mut _) };
-("userInput") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_userInput as *mut _) };
-("validate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_validate as *mut _) };
-("valign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valign as *mut _) };
-("value") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_value as *mut _) };
-("values") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_values as *mut _) };
-("value-of") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valueOf as *mut _) };
-("valuetype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valuetype as *mut _) };
-("var") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_var as *mut _) };
-("variable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_variable as *mut _) };
-("vbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vbox as *mut _) };
-("vcard_name") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vcard_name as *mut _) };
-("vendor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vendor as *mut _) };
-("vendor-url") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vendorUrl as *mut _) };
-("version") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_version as *mut _) };
-("vert") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vert as *mut _) };
-("vertical") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vertical as *mut _) };
-("audio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_audio as *mut _) };
-("video") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_video as *mut _) };
-("videocontrols") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_videocontrols as *mut _) };
-("viewport") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport as *mut _) };
-("viewport-height") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_height as *mut _) };
-("viewport-initial-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_initial_scale as *mut _) };
-("viewport-maximum-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_maximum_scale as *mut _) };
-("viewport-minimum-scale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_minimum_scale as *mut _) };
-("viewport-user-scalable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_user_scalable as *mut _) };
-("viewport-width") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_width as *mut _) };
-("visibility") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_visibility as *mut _) };
-("visuallyselected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_visuallyselected as *mut _) };
-("vlink") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vlink as *mut _) };
-("vspace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vspace as *mut _) };
-("wbr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wbr as *mut _) };
-("webkitdirectory") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_webkitdirectory as *mut _) };
-("when") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_when as *mut _) };
-("where") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_where as *mut _) };
-("widget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_widget as *mut _) };
-("width") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_width as *mut _) };
-("window") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_window as *mut _) };
-("window-target") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerWindowTarget as *mut _) };
-("windowtype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windowtype as *mut _) };
-("with-param") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_withParam as *mut _) };
-("wizard") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wizard as *mut _) };
-("wrap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wrap as *mut _) };
-("x-dns-prefetch-control") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerDNSPrefetchControl as *mut _) };
-("content-security-policy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerCSP as *mut _) };
-("content-security-policy-report-only") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerCSPReportOnly as *mut _) };
-("x-frame-options") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerXFO as *mut _) };
-("x-western") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_western as *mut _) };
-("xml") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml as *mut _) };
-("xml-stylesheet") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml_stylesheet as *mut _) };
-("xmlns") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmlns as *mut _) };
-("xmp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmp as *mut _) };
-("xulcontentsgenerated") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xulcontentsgenerated as *mut _) };
-("yes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_yes as *mut _) };
-("z-index") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_z_index as *mut _) };
-("zero-digit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zeroDigit as *mut _) };
-("%") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_percentage as *mut _) };
-("A") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_A as *mut _) };
-("alignment-baseline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alignment_baseline as *mut _) };
-("amplitude") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_amplitude as *mut _) };
-("animate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animate as *mut _) };
-("animateColor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateColor as *mut _) };
-("animateMotion") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateMotion as *mut _) };
-("animateTransform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateTransform as *mut _) };
-("arithmetic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arithmetic as *mut _) };
-("atop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_atop as *mut _) };
-("azimuth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_azimuth as *mut _) };
-("B") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_B as *mut _) };
-("background-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_backgroundColor as *mut _) };
-("background-image") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_background_image as *mut _) };
-("baseFrequency") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseFrequency as *mut _) };
-("baseline-shift") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseline_shift as *mut _) };
-("bias") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bias as *mut _) };
-("caption-side") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caption_side as *mut _) };
-("clip-path") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip_path as *mut _) };
-("clip-rule") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip_rule as *mut _) };
-("clipPath") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipPath as *mut _) };
-("clipPathUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipPathUnits as *mut _) };
-("cm") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cm as *mut _) };
-("color-burn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorBurn as *mut _) };
-("color-dodge") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorDodge as *mut _) };
-("color-interpolation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorInterpolation as *mut _) };
-("color-interpolation-filters") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorInterpolationFilters as *mut _) };
-("color-profile") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorProfile as *mut _) };
-("cursor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cursor as *mut _) };
-("cx") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cx as *mut _) };
-("cy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cy as *mut _) };
-("d") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_d as *mut _) };
-("darken") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_darken as *mut _) };
-("defs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defs as *mut _) };
-("deg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deg as *mut _) };
-("desc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_desc as *mut _) };
-("diffuseConstant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_diffuseConstant as *mut _) };
-("dilate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dilate as *mut _) };
-("direction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_direction as *mut _) };
-("disable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disable as *mut _) };
-("discrete") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_discrete as *mut _) };
-("divisor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divisor as *mut _) };
-("dominant-baseline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dominant_baseline as *mut _) };
-("duplicate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_duplicate as *mut _) };
-("dx") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dx as *mut _) };
-("dy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dy as *mut _) };
-("edgeMode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_edgeMode as *mut _) };
-("ellipse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ellipse as *mut _) };
-("elevation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elevation as *mut _) };
-("erode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_erode as *mut _) };
-("ex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ex as *mut _) };
-("exact") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exact as *mut _) };
-("exclusion") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exclusion as *mut _) };
-("exponent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exponent as *mut _) };
-("feBlend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feBlend as *mut _) };
-("feColorMatrix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feColorMatrix as *mut _) };
-("feComponentTransfer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feComponentTransfer as *mut _) };
-("feComposite") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feComposite as *mut _) };
-("feConvolveMatrix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feConvolveMatrix as *mut _) };
-("feDiffuseLighting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDiffuseLighting as *mut _) };
-("feDisplacementMap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDisplacementMap as *mut _) };
-("feDistantLight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDistantLight as *mut _) };
-("feDropShadow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDropShadow as *mut _) };
-("feFlood") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFlood as *mut _) };
-("feFuncA") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncA as *mut _) };
-("feFuncB") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncB as *mut _) };
-("feFuncG") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncG as *mut _) };
-("feFuncR") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncR as *mut _) };
-("feGaussianBlur") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feGaussianBlur as *mut _) };
-("feImage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feImage as *mut _) };
-("feMerge") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMerge as *mut _) };
-("feMergeNode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMergeNode as *mut _) };
-("feMorphology") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMorphology as *mut _) };
-("feOffset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feOffset as *mut _) };
-("fePointLight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fePointLight as *mut _) };
-("feSpecularLighting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feSpecularLighting as *mut _) };
-("feSpotLight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feSpotLight as *mut _) };
-("feTile") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feTile as *mut _) };
-("feTurbulence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feTurbulence as *mut _) };
-("fill") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill as *mut _) };
-("fill-opacity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill_opacity as *mut _) };
-("fill-rule") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill_rule as *mut _) };
-("filter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_filter as *mut _) };
-("filterUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_filterUnits as *mut _) };
-("float") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__float as *mut _) };
-("flood-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flood_color as *mut _) };
-("flood-opacity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flood_opacity as *mut _) };
-("font-face") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face as *mut _) };
-("font-face-format") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_format as *mut _) };
-("font-face-name") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_name as *mut _) };
-("font-face-src") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_src as *mut _) };
-("font-face-uri") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_uri as *mut _) };
-("font-family") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_family as *mut _) };
-("font-size") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_size as *mut _) };
-("font-size-adjust") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_size_adjust as *mut _) };
-("font-stretch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_stretch as *mut _) };
-("font-style") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_style as *mut _) };
-("font-variant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_variant as *mut _) };
-("foreignObject") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_foreignObject as *mut _) };
-("fractalNoise") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fractalNoise as *mut _) };
-("fx") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fx as *mut _) };
-("fy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fy as *mut _) };
-("G") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_G as *mut _) };
-("g") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_g as *mut _) };
-("gamma") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gamma as *mut _) };
-("generic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_generic_ as *mut _) };
-("glyphRef") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphRef as *mut _) };
-("grad") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grad as *mut _) };
-("gradientTransform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gradientTransform as *mut _) };
-("gradientUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gradientUnits as *mut _) };
-("hard-light") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hardLight as *mut _) };
-("hue") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hue as *mut _) };
-("hueRotate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hueRotate as *mut _) };
-("identity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_identity as *mut _) };
-("image-rendering") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_image_rendering as *mut _) };
-("in") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_in as *mut _) };
-("in2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_in2 as *mut _) };
-("intercept") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intercept as *mut _) };
-("k1") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k1 as *mut _) };
-("k2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k2 as *mut _) };
-("k3") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k3 as *mut _) };
-("k4") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k4 as *mut _) };
-("kernelMatrix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kernelMatrix as *mut _) };
-("kernelUnitLength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kernelUnitLength as *mut _) };
-("lengthAdjust") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lengthAdjust as *mut _) };
-("letter-spacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letter_spacing as *mut _) };
-("lighten") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lighten as *mut _) };
-("lighting-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lighting_color as *mut _) };
-("limitingConeAngle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_limitingConeAngle as *mut _) };
-("linear") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linear as *mut _) };
-("linearGradient") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linearGradient as *mut _) };
-("linearRGB") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linearRGB as *mut _) };
-("list-style-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list_style_type as *mut _) };
-("luminanceToAlpha") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luminanceToAlpha as *mut _) };
-("luminosity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luminosity as *mut _) };
-("magnify") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_magnify as *mut _) };
-("marker") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker as *mut _) };
-("marker-end") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_end as *mut _) };
-("marker-mid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_mid as *mut _) };
-("marker-start") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_start as *mut _) };
-("markerHeight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerHeight as *mut _) };
-("markerUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerUnits as *mut _) };
-("markerWidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerWidth as *mut _) };
-("mask") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mask as *mut _) };
-("maskContentUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maskContentUnits as *mut _) };
-("mask-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mask_type as *mut _) };
-("maskUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maskUnits as *mut _) };
-("matrix") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_matrix as *mut _) };
-("metadata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_metadata as *mut _) };
-("missing-glyph") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_missingGlyph as *mut _) };
-("mm") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mm as *mut _) };
-("mpath") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mpath as *mut _) };
-("noStitch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noStitch as *mut _) };
-("numOctaves") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numOctaves as *mut _) };
-("multiply") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiply as *mut _) };
-("objectBoundingBox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectBoundingBox as *mut _) };
-("offset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_offset as *mut _) };
-("onSVGLoad") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGLoad as *mut _) };
-("onSVGResize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGResize as *mut _) };
-("onSVGScroll") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGScroll as *mut _) };
-("onSVGUnload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGUnload as *mut _) };
-("onSVGZoom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGZoom as *mut _) };
-("onzoom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onzoom as *mut _) };
-("opacity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_opacity as *mut _) };
-("operator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__operator as *mut _) };
-("out") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_out as *mut _) };
-("over") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_over as *mut _) };
-("overridePreserveAspectRatio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overridePreserveAspectRatio as *mut _) };
-("pad") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pad as *mut _) };
-("path") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_path as *mut _) };
-("pathLength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pathLength as *mut _) };
-("patternContentUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternContentUnits as *mut _) };
-("patternTransform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternTransform as *mut _) };
-("patternUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternUnits as *mut _) };
-("pc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pc as *mut _) };
-("pointer-events") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointer_events as *mut _) };
-("points") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_points as *mut _) };
-("pointsAtX") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtX as *mut _) };
-("pointsAtY") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtY as *mut _) };
-("pointsAtZ") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtZ as *mut _) };
-("polyline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polyline as *mut _) };
-("preserveAlpha") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveAlpha as *mut _) };
-("preserveAspectRatio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveAspectRatio as *mut _) };
-("primitiveUnits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primitiveUnits as *mut _) };
-("pt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pt as *mut _) };
-("px") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_px as *mut _) };
-("R") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_R as *mut _) };
-("r") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_r as *mut _) };
-("rad") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rad as *mut _) };
-("radialGradient") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radialGradient as *mut _) };
-("radius") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radius as *mut _) };
-("reflect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reflect as *mut _) };
-("refX") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refX as *mut _) };
-("refY") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refY as *mut _) };
-("requiredExtensions") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_requiredExtensions as *mut _) };
-("requiredFeatures") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_requiredFeatures as *mut _) };
-("rotate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rotate as *mut _) };
-("rx") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rx as *mut _) };
-("ry") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ry as *mut _) };
-("saturate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturate as *mut _) };
-("saturation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturation as *mut _) };
-("set") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set as *mut _) };
-("seed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seed as *mut _) };
-("shadow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shadow as *mut _) };
-("shape-rendering") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape_rendering as *mut _) };
-("skewX") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_skewX as *mut _) };
-("skewY") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_skewY as *mut _) };
-("slope") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_slope as *mut _) };
-("soft-light") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_softLight as *mut _) };
-("spacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacing as *mut _) };
-("spacingAndGlyphs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacingAndGlyphs as *mut _) };
-("specularConstant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_specularConstant as *mut _) };
-("specularExponent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_specularExponent as *mut _) };
-("spreadMethod") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spreadMethod as *mut _) };
-("sRGB") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sRGB as *mut _) };
-("startOffset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_startOffset as *mut _) };
-("stdDeviation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stdDeviation as *mut _) };
-("stitch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stitch as *mut _) };
-("stitchTiles") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stitchTiles as *mut _) };
-("stop-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop_color as *mut _) };
-("stop-opacity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop_opacity as *mut _) };
-("stroke") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke as *mut _) };
-("stroke-dasharray") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_dasharray as *mut _) };
-("stroke-dashoffset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_dashoffset as *mut _) };
-("stroke-linecap") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_linecap as *mut _) };
-("stroke-linejoin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_linejoin as *mut _) };
-("stroke-miterlimit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_miterlimit as *mut _) };
-("stroke-opacity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_opacity as *mut _) };
-("stroke-width") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_width as *mut _) };
-("strokeWidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strokeWidth as *mut _) };
-("surfaceScale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_surfaceScale as *mut _) };
-("svg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svg as *mut _) };
-("svgContextPaint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgContextPaint as *mut _) };
-("switch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgSwitch as *mut _) };
-("symbol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_symbol as *mut _) };
-("systemLanguage") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_systemLanguage as *mut _) };
-("tableValues") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableValues as *mut _) };
-("targetX") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targetX as *mut _) };
-("targetY") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targetY as *mut _) };
-("text-anchor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_anchor as *mut _) };
-("text-rendering") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_rendering as *mut _) };
-("textLength") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLength as *mut _) };
-("textPath") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textPath as *mut _) };
-("tref") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tref as *mut _) };
-("tspan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tspan as *mut _) };
-("turbulence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_turbulence as *mut _) };
-("unicode-bidi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unicode_bidi as *mut _) };
-("userSpaceOnUse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_userSpaceOnUse as *mut _) };
-("view") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_view as *mut _) };
-("viewBox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewBox as *mut _) };
-("viewTarget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewTarget as *mut _) };
-("white-space") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_white_space as *mut _) };
-("word-spacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_word_spacing as *mut _) };
-("writing-mode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_writing_mode as *mut _) };
-("x") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x as *mut _) };
-("x1") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x1 as *mut _) };
-("x2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x2 as *mut _) };
-("xChannelSelector") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xChannelSelector as *mut _) };
-("xor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xor_ as *mut _) };
-("y") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y as *mut _) };
-("y1") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y1 as *mut _) };
-("y2") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y2 as *mut _) };
-("yChannelSelector") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_yChannelSelector as *mut _) };
-("z") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_z as *mut _) };
-("zoomAndPan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zoomAndPan as *mut _) };
-("vector-effect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vector_effect as *mut _) };
-("vertical-align") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vertical_align as *mut _) };
-("accumulate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accumulate as *mut _) };
-("additive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_additive as *mut _) };
-("attributeName") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeName as *mut _) };
-("attributeType") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeType as *mut _) };
-("auto-reverse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_auto_reverse as *mut _) };
-("begin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_begin as *mut _) };
-("beginEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_beginEvent as *mut _) };
-("by") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_by as *mut _) };
-("calcMode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_calcMode as *mut _) };
-("CSS") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_css as *mut _) };
-("dur") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dur as *mut _) };
-("keyPoints") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyPoints as *mut _) };
-("keySplines") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keySplines as *mut _) };
-("keyTimes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyTimes as *mut _) };
-("_mozAnimateMotionDummyAttr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozAnimateMotionDummyAttr as *mut _) };
-("onbegin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbegin as *mut _) };
-("onbeginEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeginEvent as *mut _) };
-("onend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onend as *mut _) };
-("onendEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onendEvent as *mut _) };
-("onrepeat") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrepeat as *mut _) };
-("onrepeatEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrepeatEvent as *mut _) };
-("repeatCount") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatCount as *mut _) };
-("repeatDur") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatDur as *mut _) };
-("repeatEvent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatEvent as *mut _) };
-("restart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restart as *mut _) };
-("to") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_to as *mut _) };
-("XML") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_XML as *mut _) };
-("abs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abs_ as *mut _) };
-("accent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accent_ as *mut _) };
-("accentunder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accentunder_ as *mut _) };
-("actiontype") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_actiontype_ as *mut _) };
-("alignmentscope") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alignmentscope_ as *mut _) };
-("altimg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_ as *mut _) };
-("altimg-height") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_height_ as *mut _) };
-("altimg-valign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_valign_ as *mut _) };
-("altimg-width") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_width_ as *mut _) };
-("annotation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_annotation_ as *mut _) };
-("annotation-xml") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_annotation_xml_ as *mut _) };
-("apply") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apply_ as *mut _) };
-("approx") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_approx_ as *mut _) };
-("arccos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccos_ as *mut _) };
-("arccosh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccosh_ as *mut _) };
-("arccot") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccot_ as *mut _) };
-("arccoth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccoth_ as *mut _) };
-("arccsc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccsc_ as *mut _) };
-("arccsch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccsch_ as *mut _) };
-("arcsec") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsec_ as *mut _) };
-("arcsech") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsech_ as *mut _) };
-("arcsin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsin_ as *mut _) };
-("arcsinh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsinh_ as *mut _) };
-("arctan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arctan_ as *mut _) };
-("arctanh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arctanh_ as *mut _) };
-("arg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arg_ as *mut _) };
-("bevelled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bevelled_ as *mut _) };
-("bind") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bind_ as *mut _) };
-("bvar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bvar_ as *mut _) };
-("card") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_card_ as *mut _) };
-("cartesianproduct") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cartesianproduct_ as *mut _) };
-("cbytes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cbytes_ as *mut _) };
-("cd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cd_ as *mut _) };
-("cdgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdgroup_ as *mut _) };
-("cerror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cerror_ as *mut _) };
-("charalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charalign_ as *mut _) };
-("ci") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ci_ as *mut _) };
-("closure") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closure_ as *mut _) };
-("cn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cn_ as *mut _) };
-("codomain") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codomain_ as *mut _) };
-("columnalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnalign_ as *mut _) };
-("columnalignment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnalignment_ as *mut _) };
-("columnlines") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnlines_ as *mut _) };
-("columnspacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnspacing_ as *mut _) };
-("columnspan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnspan_ as *mut _) };
-("columnwidth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnwidth_ as *mut _) };
-("complexes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_complexes_ as *mut _) };
-("compose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_compose_ as *mut _) };
-("condition") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_condition_ as *mut _) };
-("conjugate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_conjugate_ as *mut _) };
-("cos") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cos_ as *mut _) };
-("cosh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cosh_ as *mut _) };
-("cot") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cot_ as *mut _) };
-("coth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coth_ as *mut _) };
-("crossout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crossout_ as *mut _) };
-("csc") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csc_ as *mut _) };
-("csch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csch_ as *mut _) };
-("cs") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cs_ as *mut _) };
-("csymbol") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csymbol_ as *mut _) };
-("curl") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_curl_ as *mut _) };
-("decimalpoint") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalpoint_ as *mut _) };
-("definitionURL") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_definitionURL_ as *mut _) };
-("degree") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_degree_ as *mut _) };
-("denomalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_denomalign_ as *mut _) };
-("depth") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_depth_ as *mut _) };
-("determinant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_determinant_ as *mut _) };
-("diff") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_diff_ as *mut _) };
-("displaystyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_displaystyle_ as *mut _) };
-("divergence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divergence_ as *mut _) };
-("divide") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divide_ as *mut _) };
-("domain") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_domain_ as *mut _) };
-("domainofapplication") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_domainofapplication_ as *mut _) };
-("edge") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_edge_ as *mut _) };
-("el") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_el_ as *mut _) };
-("emptyset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_emptyset_ as *mut _) };
-("eq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eq_ as *mut _) };
-("equalcolumns") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalcolumns_ as *mut _) };
-("equalrows") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalrows_ as *mut _) };
-("equivalent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equivalent_ as *mut _) };
-("eulergamma") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eulergamma_ as *mut _) };
-("exists") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exists_ as *mut _) };
-("exp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exp_ as *mut _) };
-("exponentiale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exponentiale_ as *mut _) };
-("factorial") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_factorial_ as *mut _) };
-("factorof") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_factorof_ as *mut _) };
-("fence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fence_ as *mut _) };
-("fn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fn_ as *mut _) };
-("fontfamily") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontfamily_ as *mut _) };
-("fontsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontsize_ as *mut _) };
-("fontstyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontstyle_ as *mut _) };
-("fontweight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontweight_ as *mut _) };
-("forall") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forall_ as *mut _) };
-("framespacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_framespacing_ as *mut _) };
-("gcd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gcd_ as *mut _) };
-("geq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_geq_ as *mut _) };
-("groupalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupalign_ as *mut _) };
-("gt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gt_ as *mut _) };
-("ident") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ident_ as *mut _) };
-("imaginaryi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imaginaryi_ as *mut _) };
-("imaginary") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imaginary_ as *mut _) };
-("implies") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implies_ as *mut _) };
-("indentalignfirst") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalignfirst_ as *mut _) };
-("indentalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalign_ as *mut _) };
-("indentalignlast") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalignlast_ as *mut _) };
-("indentshiftfirst") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentshiftfirst_ as *mut _) };
-("indentshift") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentshift_ as *mut _) };
-("indenttarget") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indenttarget_ as *mut _) };
-("integers") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integers_ as *mut _) };
-("intersect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersect_ as *mut _) };
-("interval") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_interval_ as *mut _) };
-("int") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int_ as *mut _) };
-("inverse") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inverse_ as *mut _) };
-("lambda") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lambda_ as *mut _) };
-("laplacian") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_laplacian_ as *mut _) };
-("largeop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_largeop_ as *mut _) };
-("lcm") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lcm_ as *mut _) };
-("leq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leq_ as *mut _) };
-("limit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_limit_ as *mut _) };
-("linebreak") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreak_ as *mut _) };
-("linebreakmultchar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreakmultchar_ as *mut _) };
-("linebreakstyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreakstyle_ as *mut _) };
-("linethickness") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linethickness_ as *mut _) };
-("list") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list_ as *mut _) };
-("ln") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ln_ as *mut _) };
-("location") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_location_ as *mut _) };
-("logbase") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_logbase_ as *mut _) };
-("log") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_log_ as *mut _) };
-("longdivstyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_longdivstyle_ as *mut _) };
-("lowlimit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowlimit_ as *mut _) };
-("lquote") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lquote_ as *mut _) };
-("lspace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lspace_ as *mut _) };
-("lt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lt_ as *mut _) };
-("maction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maction_ as *mut _) };
-("maligngroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maligngroup_ as *mut _) };
-("malignmark") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_malignmark_ as *mut _) };
-("mathbackground") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathbackground_ as *mut _) };
-("mathcolor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathcolor_ as *mut _) };
-("mathsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathsize_ as *mut _) };
-("mathvariant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathvariant_ as *mut _) };
-("matrixrow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_matrixrow_ as *mut _) };
-("maxsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxsize_ as *mut _) };
-("mean") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mean_ as *mut _) };
-("median") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_median_ as *mut _) };
-("menclose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menclose_ as *mut _) };
-("merror") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_merror_ as *mut _) };
-("mfenced") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mfenced_ as *mut _) };
-("mfrac") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mfrac_ as *mut _) };
-("mglyph") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mglyph_ as *mut _) };
-("mi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mi_ as *mut _) };
-("minlabelspacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minlabelspacing_ as *mut _) };
-("minsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minsize_ as *mut _) };
-("minus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minus_ as *mut _) };
-("mlabeledtr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mlabeledtr_ as *mut _) };
-("mlongdiv") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mlongdiv_ as *mut _) };
-("mmultiscripts") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mmultiscripts_ as *mut _) };
-("mn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mn_ as *mut _) };
-("momentabout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_momentabout_ as *mut _) };
-("moment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moment_ as *mut _) };
-("mo") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mo_ as *mut _) };
-("movablelimits") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_movablelimits_ as *mut _) };
-("mover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mover_ as *mut _) };
-("mpadded") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mpadded_ as *mut _) };
-("mphantom") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mphantom_ as *mut _) };
-("mprescripts") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mprescripts_ as *mut _) };
-("mroot") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mroot_ as *mut _) };
-("mrow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mrow_ as *mut _) };
-("mscarries") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mscarries_ as *mut _) };
-("mscarry") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mscarry_ as *mut _) };
-("msgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msgroup_ as *mut _) };
-("msline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msline_ as *mut _) };
-("ms") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ms_ as *mut _) };
-("mspace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mspace_ as *mut _) };
-("msqrt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msqrt_ as *mut _) };
-("msrow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msrow_ as *mut _) };
-("mstack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mstack_ as *mut _) };
-("mstyle") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mstyle_ as *mut _) };
-("msub") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msub_ as *mut _) };
-("msubsup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msubsup_ as *mut _) };
-("msup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msup_ as *mut _) };
-("mtable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtable_ as *mut _) };
-("mtd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtd_ as *mut _) };
-("mtext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtext_ as *mut _) };
-("mtr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtr_ as *mut _) };
-("munder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_munder_ as *mut _) };
-("munderover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_munderover_ as *mut _) };
-("naturalnumbers") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_naturalnumbers_ as *mut _) };
-("neq") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_neq_ as *mut _) };
-("notanumber") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notanumber_ as *mut _) };
-("notation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notation_ as *mut _) };
-("note") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_note_ as *mut _) };
-("notin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notin_ as *mut _) };
-("notprsubset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notprsubset_ as *mut _) };
-("notsubset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notsubset_ as *mut _) };
-("numalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numalign_ as *mut _) };
-("other") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_other_ as *mut _) };
-("outerproduct") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_outerproduct_ as *mut _) };
-("partialdiff") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_partialdiff_ as *mut _) };
-("piece") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_piece_ as *mut _) };
-("piecewise") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_piecewise_ as *mut _) };
-("pi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pi_ as *mut _) };
-("plus") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_plus_ as *mut _) };
-("power") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_power_ as *mut _) };
-("primes") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primes_ as *mut _) };
-("product") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_product_ as *mut _) };
-("prsubset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prsubset_ as *mut _) };
-("quotient") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_quotient_ as *mut _) };
-("rationals") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rationals_ as *mut _) };
-("real") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_real_ as *mut _) };
-("reals") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reals_ as *mut _) };
-("reln") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reln_ as *mut _) };
-("root") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_root_ as *mut _) };
-("rowalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowalign_ as *mut _) };
-("rowlines") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowlines_ as *mut _) };
-("rowspacing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowspacing_ as *mut _) };
-("rquote") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rquote_ as *mut _) };
-("rspace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rspace_ as *mut _) };
-("scalarproduct") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scalarproduct_ as *mut _) };
-("schemaLocation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_schemaLocation_ as *mut _) };
-("scriptlevel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptlevel_ as *mut _) };
-("scriptminsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptminsize_ as *mut _) };
-("scriptsizemultiplier") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptsizemultiplier_ as *mut _) };
-("scriptsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptsize_ as *mut _) };
-("sdev") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sdev_ as *mut _) };
-("sech") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sech_ as *mut _) };
-("sec") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sec_ as *mut _) };
-("selection") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selection_ as *mut _) };
-("selector") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selector_ as *mut _) };
-("semantics") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_semantics_ as *mut _) };
-("separator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_separator_ as *mut _) };
-("separators") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_separators_ as *mut _) };
-("sep") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sep_ as *mut _) };
-("setdiff") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setdiff_ as *mut _) };
-("set") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set_ as *mut _) };
-("share") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_share_ as *mut _) };
-("shift") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shift_ as *mut _) };
-("side") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_side_ as *mut _) };
-("sinh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sinh_ as *mut _) };
-("sin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sin_ as *mut _) };
-("stackalign") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stackalign_ as *mut _) };
-("stretchy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stretchy_ as *mut _) };
-("subscriptshift") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subscriptshift_ as *mut _) };
-("subset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subset_ as *mut _) };
-("superscriptshift") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_superscriptshift_ as *mut _) };
-("symmetric") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_symmetric_ as *mut _) };
-("tanh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tanh_ as *mut _) };
-("tan") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tan_ as *mut _) };
-("tendsto") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tendsto_ as *mut _) };
-("times") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_times_ as *mut _) };
-("transpose") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transpose_ as *mut _) };
-("union") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_union_ as *mut _) };
-("uplimit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_uplimit_ as *mut _) };
-("variance") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_variance_ as *mut _) };
-("vectorproduct") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vectorproduct_ as *mut _) };
-("vector") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vector_ as *mut _) };
-("voffset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_voffset_ as *mut _) };
-("xref") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xref_ as *mut _) };
-("math") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_math as *mut _) };
-("avg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_avg as *mut _) };
-("boolean-from-string") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_booleanFromString as *mut _) };
-("count-non-empty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_countNonEmpty as *mut _) };
-("days-from-date") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_daysFromDate as *mut _) };
-("init") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_init as *mut _) };
-("instance") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_instance as *mut _) };
-("months") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_months as *mut _) };
-("now") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_now as *mut _) };
-("seconds") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seconds as *mut _) };
-("seconds-from-dateTime") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_secondsFromDateTime as *mut _) };
-("onMozSwipeGestureMayStart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureMayStart as *mut _) };
-("onMozSwipeGestureStart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureStart as *mut _) };
-("onMozSwipeGestureUpdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureUpdate as *mut _) };
-("onMozSwipeGestureEnd") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureEnd as *mut _) };
-("onMozSwipeGesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGesture as *mut _) };
-("onMozMagnifyGestureStart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGestureStart as *mut _) };
-("onMozMagnifyGestureUpdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGestureUpdate as *mut _) };
-("onMozMagnifyGesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGesture as *mut _) };
-("onMozRotateGestureStart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGestureStart as *mut _) };
-("onMozRotateGestureUpdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGestureUpdate as *mut _) };
-("onMozRotateGesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGesture as *mut _) };
-("onMozTapGesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozTapGesture as *mut _) };
-("onMozPressTapGesture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozPressTapGesture as *mut _) };
-("onMozEdgeUIStarted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUIStarted as *mut _) };
-("onMozEdgeUICanceled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUICanceled as *mut _) };
-("onMozEdgeUICompleted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUICompleted as *mut _) };
-("onpointerdown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerdown as *mut _) };
-("onpointermove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointermove as *mut _) };
-("onpointerup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerup as *mut _) };
-("onpointercancel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointercancel as *mut _) };
-("onpointerover") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerover as *mut _) };
-("onpointerout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerout as *mut _) };
-("onpointerenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerenter as *mut _) };
-("onpointerleave") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerleave as *mut _) };
-("ongotpointercapture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongotpointercapture as *mut _) };
-("onlostpointercapture") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlostpointercapture as *mut _) };
-("ondevicemotion") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicemotion as *mut _) };
-("ondeviceorientation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceorientation as *mut _) };
-("onabsolutedeviceorientation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onabsolutedeviceorientation as *mut _) };
-("ondeviceproximity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceproximity as *mut _) };
-("onmozorientationchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozorientationchange as *mut _) };
-("onuserproximity") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onuserproximity as *mut _) };
-("ondevicelight") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicelight as *mut _) };
-("onmozinterruptbegin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptbegin as *mut _) };
-("onmozinterruptend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptend as *mut _) };
-("ondevicechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicechange as *mut _) };
-("#cdata-section") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdataTagName as *mut _) };
-("#comment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commentTagName as *mut _) };
-("#document") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentNodeName as *mut _) };
-("#document-fragment") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentFragmentNodeName as *mut _) };
-("#document-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentTypeNodeName as *mut _) };
-("#processing-instruction") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_processingInstructionTagName as *mut _) };
-("#text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textTagName as *mut _) };
-("BCTableCellFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bcTableCellFrame as *mut _) };
-("BlockFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blockFrame as *mut _) };
-("BoxFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_boxFrame as *mut _) };
-("BRFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_brFrame as *mut _) };
-("BulletFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bulletFrame as *mut _) };
-("colorControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorControlFrame as *mut _) };
-("ColumnSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnSetFrame as *mut _) };
-("ComboboxControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxControlFrame as *mut _) };
-("ComboboxDisplayFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxDisplayFrame as *mut _) };
-("DateTimeControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTimeControlFrame as *mut _) };
-("DeckFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deckFrame as *mut _) };
-("DetailsFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_detailsFrame as *mut _) };
-("FieldSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldSetFrame as *mut _) };
-("FlexContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexContainerFrame as *mut _) };
-("FormControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formControlFrame as *mut _) };
-("FrameSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameSetFrame as *mut _) };
-("gfxButtonControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gfxButtonControlFrame as *mut _) };
-("GridContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gridContainerFrame as *mut _) };
-("HTMLButtonControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLButtonControlFrame as *mut _) };
-("HTMLCanvasFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLCanvasFrame as *mut _) };
-("subDocumentFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subDocumentFrame as *mut _) };
-("ImageBoxFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageBoxFrame as *mut _) };
-("ImageFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageFrame as *mut _) };
-("ImageControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageControlFrame as *mut _) };
-("InlineFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlineFrame as *mut _) };
-("LeafBoxFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leafBoxFrame as *mut _) };
-("LegendFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_legendFrame as *mut _) };
-("LetterFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letterFrame as *mut _) };
-("LineFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lineFrame as *mut _) };
-("ListControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listControlFrame as *mut _) };
-("MenuFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuFrame as *mut _) };
-("MeterFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meterFrame as *mut _) };
-("MenuPopupFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuPopupFrame as *mut _) };
-("NumberControlFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numberControlFrame as *mut _) };
-("ObjectFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectFrame as *mut _) };
-("PageFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageFrame as *mut _) };
-("PageBreakFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageBreakFrame as *mut _) };
-("PageContentFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageContentFrame as *mut _) };
-("PlaceholderFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_placeholderFrame as *mut _) };
-("PopupSetFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupSetFrame as *mut _) };
-("ProgressFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressFrame as *mut _) };
-("CanvasFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canvasFrame as *mut _) };
-("RangeFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rangeFrame as *mut _) };
-("RootFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rootFrame as *mut _) };
-("RubyBaseContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseContainerFrame as *mut _) };
-("RubyBaseFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseFrame as *mut _) };
-("RubyFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyFrame as *mut _) };
-("RubyTextContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextContainerFrame as *mut _) };
-("RubyTextFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextFrame as *mut _) };
-("ScrollFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollFrame as *mut _) };
-("ScrollbarFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarFrame as *mut _) };
-("SequenceFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sequenceFrame as *mut _) };
-("sliderFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sliderFrame as *mut _) };
-("TableCellFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellFrame as *mut _) };
-("TableColFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColFrame as *mut _) };
-("TableColGroupFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColGroupFrame as *mut _) };
-("TableFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableFrame as *mut _) };
-("TableWrapperFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableWrapperFrame as *mut _) };
-("TableRowGroupFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowGroupFrame as *mut _) };
-("TableRowFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowFrame as *mut _) };
-("TextInputFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textInputFrame as *mut _) };
-("TextFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textFrame as *mut _) };
-("ViewportFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewportFrame as *mut _) };
-("XULLabelFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_XULLabelFrame as *mut _) };
-("SVGAFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgAFrame as *mut _) };
-("SVGClipPathFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgClipPathFrame as *mut _) };
-("SVGDefsFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgDefsFrame as *mut _) };
-("SVGFEContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEContainerFrame as *mut _) };
-("SVGFEImageFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEImageFrame as *mut _) };
-("SVGFELeafFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFELeafFrame as *mut _) };
-("SVGFEUnstyledLeafFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEUnstyledLeafFrame as *mut _) };
-("SVGFilterFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFilterFrame as *mut _) };
-("SVGForeignObjectFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgForeignObjectFrame as *mut _) };
-("SVGGenericContainerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGenericContainerFrame as *mut _) };
-("SVGGFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGFrame as *mut _) };
-("SVGGradientFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGradientFrame as *mut _) };
-("SVGImageFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgImageFrame as *mut _) };
-("SVGInnerSVGFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgInnerSVGFrame as *mut _) };
-("SVGLinearGradientFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgLinearGradientFrame as *mut _) };
-("SVGMarkerFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerFrame as *mut _) };
-("SVGMarkerAnonChildFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerAnonChildFrame as *mut _) };
-("SVGMaskFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMaskFrame as *mut _) };
-("SVGOuterSVGFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGFrame as *mut _) };
-("SVGOuterSVGAnonChildFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGAnonChildFrame as *mut _) };
-("SVGPathGeometryFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPathGeometryFrame as *mut _) };
-("SVGPatternFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPatternFrame as *mut _) };
-("SVGRadialGradientFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgRadialGradientFrame as *mut _) };
-("SVGStopFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgStopFrame as *mut _) };
-("SVGSwitchFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgSwitchFrame as *mut _) };
-("SVGTextFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgTextFrame as *mut _) };
-("SVGUseFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgUseFrame as *mut _) };
-("SVGViewFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgViewFrame as *mut _) };
-("VideoFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLVideoFrame as *mut _) };
-("onloadend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadend as *mut _) };
-("onloadstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadstart as *mut _) };
-("onprogress") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onprogress as *mut _) };
-("onsuspend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsuspend as *mut _) };
-("onemptied") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onemptied as *mut _) };
-("onstalled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstalled as *mut _) };
-("onplay") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onplay as *mut _) };
-("onpause") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpause as *mut _) };
-("onloadedmetadata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadedmetadata as *mut _) };
-("onloadeddata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadeddata as *mut _) };
-("onwaiting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwaiting as *mut _) };
-("onplaying") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onplaying as *mut _) };
-("oncanplay") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncanplay as *mut _) };
-("oncanplaythrough") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncanplaythrough as *mut _) };
-("onseeking") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onseeking as *mut _) };
-("onseeked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onseeked as *mut _) };
-("ontimeout") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontimeout as *mut _) };
-("ontimeupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontimeupdate as *mut _) };
-("onended") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onended as *mut _) };
-("onratechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onratechange as *mut _) };
-("ondurationchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondurationchange as *mut _) };
-("onvolumechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvolumechange as *mut _) };
-("onaddtrack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaddtrack as *mut _) };
-("oncontrollerchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncontrollerchange as *mut _) };
-("oncuechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncuechange as *mut _) };
-("onenter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenter as *mut _) };
-("onexit") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onexit as *mut _) };
-("onencrypted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onencrypted as *mut _) };
-("encrypted") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_encrypted as *mut _) };
-("onwaitingforkey") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwaitingforkey as *mut _) };
-("onkeystatuseschange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeystatuseschange as *mut _) };
-("onremovetrack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremovetrack as *mut _) };
-("loadstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadstart as *mut _) };
-("suspend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_suspend as *mut _) };
-("emptied") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_emptied as *mut _) };
-("stalled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stalled as *mut _) };
-("play") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_play as *mut _) };
-("pause") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pause as *mut _) };
-("loadedmetadata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadedmetadata as *mut _) };
-("loadeddata") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadeddata as *mut _) };
-("waiting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_waiting as *mut _) };
-("playing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_playing as *mut _) };
-("seeking") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seeking as *mut _) };
-("seeked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seeked as *mut _) };
-("timeupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_timeupdate as *mut _) };
-("ended") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ended as *mut _) };
-("canplay") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canplay as *mut _) };
-("canplaythrough") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canplaythrough as *mut _) };
-("ratechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ratechange as *mut _) };
-("durationchange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_durationchange as *mut _) };
-("volumechange") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_volumechange as *mut _) };
-("ondataavailable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondataavailable as *mut _) };
-("onwarning") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwarning as *mut _) };
-("onstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstart as *mut _) };
-("onstop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstop as *mut _) };
-("onphoto") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onphoto as *mut _) };
-("onactivestatechanged") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onactivestatechanged as *mut _) };
-("ongamepadbuttondown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadbuttondown as *mut _) };
-("ongamepadbuttonup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadbuttonup as *mut _) };
-("ongamepadaxismove") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadaxismove as *mut _) };
-("ongamepadconnected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadconnected as *mut _) };
-("ongamepaddisconnected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepaddisconnected as *mut _) };
-("AnimationsProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsProperty as *mut _) };
-("AnimationsOfBeforeProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsOfBeforeProperty as *mut _) };
-("AnimationsOfAfterProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsOfAfterProperty as *mut _) };
-("AnimationEffectsProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsProperty as *mut _) };
-("AnimationsEffectsForBeforeProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForBeforeProperty as *mut _) };
-("AnimationsEffectsForAfterProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForAfterProperty as *mut _) };
-("CSSPseudoElementBeforeProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cssPseudoElementBeforeProperty as *mut _) };
-("CSSPseudoElementAfterProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cssPseudoElementAfterProperty as *mut _) };
-("TransitionsProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsProperty as *mut _) };
-("TransitionsOfBeforeProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsOfBeforeProperty as *mut _) };
-("TransitionsOfAfterProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsOfAfterProperty as *mut _) };
-("QuoteNodeProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_genConInitializerProperty as *mut _) };
-("LabelMouseDownPtProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_labelMouseDownPtProperty as *mut _) };
-("baseURIProperty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseURIProperty as *mut _) };
-("lockedStyleStates") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lockedStyleStates as *mut _) };
-("apzCallbackTransform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apzCallbackTransform as *mut _) };
-("restylableAnonymousNode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restylableAnonymousNode as *mut _) };
-("PaintRequestTime") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_paintRequestTime as *mut _) };
-("ja") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Japanese as *mut _) };
-("zh-CN") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Chinese as *mut _) };
-("zh-TW") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Taiwanese as *mut _) };
-("zh-HK") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HongKongChinese as *mut _) };
-("x-unicode") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Unicode as *mut _) };
-("ko") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ko as *mut _) };
-("zh-cn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_cn as *mut _) };
-("zh-hk") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_hk as *mut _) };
-("zh-tw") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_tw as *mut _) };
-("x-cyrillic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_cyrillic as *mut _) };
-("he") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_he as *mut _) };
-("ar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ar as *mut _) };
-("x-devanagari") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_devanagari as *mut _) };
-("x-tamil") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_tamil as *mut _) };
-("x-armn") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_armn as *mut _) };
-("x-beng") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_beng as *mut _) };
-("x-cans") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_cans as *mut _) };
-("x-ethi") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_ethi as *mut _) };
-("x-geor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_geor as *mut _) };
-("x-gujr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_gujr as *mut _) };
-("x-guru") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_guru as *mut _) };
-("x-khmr") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_khmr as *mut _) };
-("x-knda") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_knda as *mut _) };
-("x-mlym") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_mlym as *mut _) };
-("x-orya") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_orya as *mut _) };
-("x-sinh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_sinh as *mut _) };
-("x-telu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_telu as *mut _) };
-("x-tibt") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_tibt as *mut _) };
-("az") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_az as *mut _) };
-("ba") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ba as *mut _) };
-("crh") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crh as *mut _) };
-("el") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_el as *mut _) };
-("ga") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ga as *mut _) };
-("nl") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nl as *mut _) };
-("x-math") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_math as *mut _) };
-("Typing") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_TypingTxnName as *mut _) };
-("IME") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_IMETxnName as *mut _) };
-("Deleting") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DeleteTxnName as *mut _) };
-("serif") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_serif as *mut _) };
-("sans-serif") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sans_serif as *mut _) };
-("cursive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cursive as *mut _) };
-("fantasy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fantasy as *mut _) };
-("monospace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_monospace as *mut _) };
-("remote") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Remote as *mut _) };
-("_remote_id") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_RemoteId as *mut _) };
-("_displayport") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPort as *mut _) };
-("_displayportmargins") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPortMargins as *mut _) };
-("_displayportbase") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPortBase as *mut _) };
-("_asyncscrolllayercreationfailed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AsyncScrollLayerCreationFailed as *mut _) };
-("forcemessagemanager") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) };
-("color-picker-available") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color_picker_available as *mut _) };
-("scrollbar-start-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_backward as *mut _) };
-("scrollbar-start-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_forward as *mut _) };
-("scrollbar-end-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_backward as *mut _) };
-("scrollbar-end-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_forward as *mut _) };
-("scrollbar-thumb-proportional") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_thumb_proportional as *mut _) };
-("overlay-scrollbars") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay_scrollbars as *mut _) };
-("windows-default-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_default_theme as *mut _) };
-("mac-graphite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mac_graphite_theme as *mut _) };
-("mac-yosemite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mac_yosemite_theme as *mut _) };
-("windows-compositor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_compositor as *mut _) };
-("windows-glass") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_glass as *mut _) };
-("touch-enabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_touch_enabled as *mut _) };
-("menubar-drag") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar_drag as *mut _) };
-("swipe-animation-enabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_swipe_animation_enabled as *mut _) };
-("physical-home-button") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_physical_home_button as *mut _) };
-("windows-classic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_classic as *mut _) };
-("windows-theme-aero") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_aero as *mut _) };
-("windows-theme-aero-lite") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_aero_lite as *mut _) };
-("windows-theme-luna-blue") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_blue as *mut _) };
-("windows-theme-luna-olive") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_olive as *mut _) };
-("windows-theme-luna-silver") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_silver as *mut _) };
-("windows-theme-royale") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_royale as *mut _) };
-("windows-theme-zune") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_zune as *mut _) };
-("windows-theme-generic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_generic as *mut _) };
-("-moz-color-picker-available") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_color_picker_available as *mut _) };
-("-moz-scrollbar-start-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_backward as *mut _) };
-("-moz-scrollbar-start-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_forward as *mut _) };
-("-moz-scrollbar-end-backward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_backward as *mut _) };
-("-moz-scrollbar-end-forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_forward as *mut _) };
-("-moz-scrollbar-thumb-proportional") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_thumb_proportional as *mut _) };
-("-moz-overlay-scrollbars") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_overlay_scrollbars as *mut _) };
-("-moz-windows-default-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_default_theme as *mut _) };
-("-moz-mac-graphite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_mac_graphite_theme as *mut _) };
-("-moz-mac-yosemite-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_mac_yosemite_theme as *mut _) };
-("-moz-windows-compositor") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_compositor as *mut _) };
-("-moz-windows-classic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_classic as *mut _) };
-("-moz-windows-glass") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_glass as *mut _) };
-("-moz-windows-theme") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_theme as *mut _) };
-("-moz-os-version") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_os_version as *mut _) };
-("-moz-touch-enabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_touch_enabled as *mut _) };
-("-moz-menubar-drag") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_menubar_drag as *mut _) };
-("-moz-device-pixel-ratio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_device_pixel_ratio as *mut _) };
-("-moz-device-orientation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_device_orientation as *mut _) };
-("-moz-is-resource-document") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_resource_document as *mut _) };
-("-moz-swipe-animation-enabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_swipe_animation_enabled as *mut _) };
-("-moz-physical-home-button") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_physical_home_button as *mut _) };
-("Back") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Back as *mut _) };
-("Forward") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Forward as *mut _) };
-("Reload") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Reload as *mut _) };
-("Stop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Stop as *mut _) };
-("Search") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Search as *mut _) };
-("Bookmarks") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Bookmarks as *mut _) };
-("Home") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Home as *mut _) };
-("Clear") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Clear as *mut _) };
-("VolumeUp") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_VolumeUp as *mut _) };
-("VolumeDown") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_VolumeDown as *mut _) };
-("NextTrack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_NextTrack as *mut _) };
-("PreviousTrack") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_PreviousTrack as *mut _) };
-("MediaStop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_MediaStop as *mut _) };
-("PlayPause") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_PlayPause as *mut _) };
-("Menu") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Menu as *mut _) };
-("New") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_New as *mut _) };
-("Open") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Open as *mut _) };
-("Close") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Close as *mut _) };
-("Save") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Save as *mut _) };
-("Find") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Find as *mut _) };
-("Help") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Help as *mut _) };
-("Print") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Print as *mut _) };
-("SendMail") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_SendMail as *mut _) };
-("ForwardMail") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ForwardMail as *mut _) };
-("ReplyToMail") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ReplyToMail as *mut _) };
-("mouseWheel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseWheel as *mut _) };
-("pixels") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pixels as *mut _) };
-("lines") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lines as *mut _) };
-("pages") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pages as *mut _) };
-("scrollbars") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbars as *mut _) };
-("other") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_other as *mut _) };
-("apz") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apz as *mut _) };
-("restore") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restore as *mut _) };
-("alert") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alert as *mut _) };
-("alertdialog") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alertdialog as *mut _) };
-("application") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_application as *mut _) };
-("aria-activedescendant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_activedescendant as *mut _) };
-("aria-atomic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_atomic as *mut _) };
-("aria-autocomplete") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_autocomplete as *mut _) };
-("aria-busy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_busy as *mut _) };
-("aria-checked") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_checked as *mut _) };
-("aria-colcount") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colcount as *mut _) };
-("aria-colindex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colindex as *mut _) };
-("aria-controls") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_controls as *mut _) };
-("aria-describedby") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_describedby as *mut _) };
-("aria-disabled") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_disabled as *mut _) };
-("aria-dropeffect") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_dropeffect as *mut _) };
-("aria-expanded") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_expanded as *mut _) };
-("aria-flowto") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_flowto as *mut _) };
-("aria-grabbed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_grabbed as *mut _) };
-("aria-haspopup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_haspopup as *mut _) };
-("aria-hidden") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_hidden as *mut _) };
-("aria-invalid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_invalid as *mut _) };
-("aria-label") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_label as *mut _) };
-("aria-labelledby") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_labelledby as *mut _) };
-("aria-level") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_level as *mut _) };
-("aria-live") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_live as *mut _) };
-("aria-modal") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_modal as *mut _) };
-("aria-multiline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiline as *mut _) };
-("aria-multiselectable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiselectable as *mut _) };
-("aria-orientation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_orientation as *mut _) };
-("aria-owns") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_owns as *mut _) };
-("aria-posinset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_posinset as *mut _) };
-("aria-pressed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_pressed as *mut _) };
-("aria-readonly") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_readonly as *mut _) };
-("aria-relevant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_relevant as *mut _) };
-("aria-required") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_required as *mut _) };
-("aria-rowcount") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowcount as *mut _) };
-("aria-rowindex") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowindex as *mut _) };
-("aria-selected") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_selected as *mut _) };
-("aria-setsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_setsize as *mut _) };
-("aria-sort") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_sort as *mut _) };
-("aria-valuenow") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuenow as *mut _) };
-("aria-valuemin") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemin as *mut _) };
-("aria-valuemax") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemax as *mut _) };
-("aria-valuetext") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuetext as *mut _) };
-("AreaFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AreaFrame as *mut _) };
-("auto-generated") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_auto_generated as *mut _) };
-("banner") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_banner as *mut _) };
-("checkable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checkable as *mut _) };
-("choices") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_choices as *mut _) };
-("columnheader") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnheader as *mut _) };
-("complementary") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_complementary as *mut _) };
-("container-atomic") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerAtomic as *mut _) };
-("container-busy") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerBusy as *mut _) };
-("container-live") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerLive as *mut _) };
-("container-live-role") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerLiveRole as *mut _) };
-("container-relevant") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerRelevant as *mut _) };
-("contentinfo") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contentinfo as *mut _) };
-("cycles") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cycles as *mut _) };
-("datatable") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datatable as *mut _) };
-("event-from-input") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eventFromInput as *mut _) };
-("feed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feed as *mut _) };
-("grammar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grammar as *mut _) };
-("gridcell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gridcell as *mut _) };
-("heading") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_heading as *mut _) };
-("hitregion") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hitregion as *mut _) };
-("InlineBlockFrame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_InlineBlockFrame as *mut _) };
-("inline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlinevalue as *mut _) };
-("invalid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_invalid as *mut _) };
-("item") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_item as *mut _) };
-("itemset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemset as *mut _) };
-("line-number") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lineNumber as *mut _) };
-("linkedpanel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linkedPanel as *mut _) };
-("live") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_live as *mut _) };
-("menuitemcheckbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitemcheckbox as *mut _) };
-("menuitemradio") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitemradio as *mut _) };
-("mixed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mixed as *mut _) };
-("multiline") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiline as *mut _) };
-("navigation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_navigation as *mut _) };
-("polite") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polite as *mut _) };
-("posinset") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_posinset as *mut _) };
-("presentation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presentation as *mut _) };
-("progressbar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressbar as *mut _) };
-("region") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_region as *mut _) };
-("rowgroup") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowgroup as *mut _) };
-("rowheader") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowheader as *mut _) };
-("search") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_search as *mut _) };
-("searchbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_searchbox as *mut _) };
-("select1") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_select1 as *mut _) };
-("setsize") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setsize as *mut _) };
-("spelling") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spelling as *mut _) };
-("spinbutton") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinbutton as *mut _) };
-("status") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_status as *mut _) };
-("switch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__switch as *mut _) };
-("table-cell-index") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellIndex as *mut _) };
-("tablist") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tablist as *mut _) };
-("text-indent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textIndent as *mut _) };
-("text-input-type") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textInputType as *mut _) };
-("text-line-through-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLineThroughColor as *mut _) };
-("text-line-through-style") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLineThroughStyle as *mut _) };
-("text-position") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textPosition as *mut _) };
-("text-underline-color") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textUnderlineColor as *mut _) };
-("text-underline-style") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textUnderlineStyle as *mut _) };
-("timer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_timer as *mut _) };
-("toolbarname") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarname as *mut _) };
-("toolbarseparator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarseparator as *mut _) };
-("toolbarspacer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarspacer as *mut _) };
-("toolbarspring") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarspring as *mut _) };
-("treegrid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treegrid as *mut _) };
-("undefined") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__undefined as *mut _) };
-("xml-roles") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmlroles as *mut _) };
-("close-fence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_close_fence as *mut _) };
-("denominator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_denominator as *mut _) };
-("numerator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numerator as *mut _) };
-("open-fence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_open_fence as *mut _) };
-("overscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overscript as *mut _) };
-("presubscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presubscript as *mut _) };
-("presuperscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presuperscript as *mut _) };
-("root-index") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_root_index as *mut _) };
-("subscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subscript as *mut _) };
-("superscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_superscript as *mut _) };
-("underscript") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_underscript as *mut _) };
-("onaudiostart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudiostart as *mut _) };
-("onaudioend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudioend as *mut _) };
-("onsoundstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsoundstart as *mut _) };
-("onsoundend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsoundend as *mut _) };
-("onspeechstart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeechstart as *mut _) };
-("onspeechend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeechend as *mut _) };
-("onresult") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresult as *mut _) };
-("onnomatch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnomatch as *mut _) };
-("onresume") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresume as *mut _) };
-("onmark") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmark as *mut _) };
-("onboundary") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onboundary as *mut _) };
-("usercontextid") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_usercontextid as *mut _) };
-("http://www.w3.org/2000/xmlns/") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xmlns as *mut _) };
-("http://www.w3.org/XML/1998/namespace") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xml as *mut _) };
-("http://www.w3.org/1999/xhtml") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xhtml as *mut _) };
-("http://www.w3.org/1999/xlink") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xlink as *mut _) };
-("http://www.w3.org/1999/XSL/Transform") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xslt as *mut _) };
-("http://www.mozilla.org/xbl") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xbl as *mut _) };
-("http://www.w3.org/1998/Math/MathML") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_mathml as *mut _) };
-("http://www.w3.org/1999/02/22-rdf-syntax-ns#") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_rdf as *mut _) };
-("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xul as *mut _) };
-("http://www.w3.org/2000/svg") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_svg as *mut _) };
-("onsourceopen") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceopen as *mut _) };
-("onsourceended") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceended as *mut _) };
-("onsourceclosed") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceclosed as *mut _) };
-("onupdatestart") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdatestart as *mut _) };
-("onupdate") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdate as *mut _) };
-("onupdateend") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdateend as *mut _) };
-("onaddsourcebuffer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaddsourcebuffer as *mut _) };
-("onremovesourcebuffer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremovesourcebuffer as *mut _) };
-(":after") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_after as *mut _) };
-(":before") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_before as *mut _) };
-(":backdrop") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_backdrop as *mut _) };
-(":first-letter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_firstLetter as *mut _) };
-(":first-line") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_firstLine as *mut _) };
-(":-moz-selection") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozSelection as *mut _) };
-(":-moz-focus-inner") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozFocusInner as *mut _) };
-(":-moz-focus-outer") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozFocusOuter as *mut _) };
-(":-moz-list-bullet") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozListBullet as *mut _) };
-(":-moz-list-number") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozListNumber as *mut _) };
-(":-moz-math-anonymous") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozMathAnonymous as *mut _) };
-(":-moz-number-wrapper") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberWrapper as *mut _) };
-(":-moz-number-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberText as *mut _) };
-(":-moz-number-spin-box") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinBox as *mut _) };
-(":-moz-number-spin-up") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinUp as *mut _) };
-(":-moz-number-spin-down") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinDown as *mut _) };
-(":-moz-progress-bar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozProgressBar as *mut _) };
-(":-moz-range-track") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeTrack as *mut _) };
-(":-moz-range-progress") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeProgress as *mut _) };
-(":-moz-range-thumb") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeThumb as *mut _) };
-(":-moz-meter-bar") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozMeterBar as *mut _) };
-(":-moz-placeholder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozPlaceholder as *mut _) };
-(":placeholder") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_placeholder as *mut _) };
-(":-moz-color-swatch") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozColorSwatch as *mut _) };
-(":-moz-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozText as *mut _) };
-(":-moz-other-non-element") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozOtherNonElement as *mut _) };
-(":-moz-anonymous-block") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozAnonymousBlock as *mut _) };
-(":-moz-anonymous-positioned-block") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozAnonymousPositionedBlock as *mut _) };
-(":-moz-mathml-anonymous-block") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozMathMLAnonymousBlock as *mut _) };
-(":-moz-xul-anonymous-block") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozXULAnonymousBlock as *mut _) };
-(":-moz-hframeset-border") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_horizontalFramesetBorder as *mut _) };
-(":-moz-vframeset-border") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_verticalFramesetBorder as *mut _) };
-(":-moz-line-frame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozLineFrame as *mut _) };
-(":-moz-button-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_buttonContent as *mut _) };
-(":-moz-buttonlabel") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozButtonLabel as *mut _) };
-(":-moz-cell-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_cellContent as *mut _) };
-(":-moz-dropdown-list") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_dropDownList as *mut _) };
-(":-moz-fieldset-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_fieldsetContent as *mut _) };
-(":-moz-frameset-blank") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_framesetBlank as *mut _) };
-(":-moz-display-comboboxcontrol-frame") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozDisplayComboboxControlFrame as *mut _) };
-(":-moz-html-canvas-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_htmlCanvasContent as *mut _) };
-(":-moz-inline-table") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_inlineTable as *mut _) };
-(":-moz-table") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_table as *mut _) };
-(":-moz-table-cell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCell as *mut _) };
-(":-moz-table-column-group") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableColGroup as *mut _) };
-(":-moz-table-column") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCol as *mut _) };
-(":-moz-table-wrapper") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableWrapper as *mut _) };
-(":-moz-table-row-group") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRowGroup as *mut _) };
-(":-moz-table-row") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRow as *mut _) };
-(":-moz-canvas") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_canvas as *mut _) };
-(":-moz-pagebreak") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageBreak as *mut _) };
-(":-moz-page") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_page as *mut _) };
-(":-moz-pagecontent") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageContent as *mut _) };
-(":-moz-page-sequence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageSequence as *mut _) };
-(":-moz-scrolled-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledContent as *mut _) };
-(":-moz-scrolled-canvas") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledCanvas as *mut _) };
-(":-moz-scrolled-page-sequence") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledPageSequence as *mut _) };
-(":-moz-column-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_columnContent as *mut _) };
-(":-moz-viewport") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewport as *mut _) };
-(":-moz-viewport-scroll") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewportScroll as *mut _) };
-(":-moz-anonymous-flex-item") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousFlexItem as *mut _) };
-(":-moz-anonymous-grid-item") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousGridItem as *mut _) };
-(":-moz-ruby") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_ruby as *mut _) };
-(":-moz-ruby-base") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBase as *mut _) };
-(":-moz-ruby-base-container") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBaseContainer as *mut _) };
-(":-moz-ruby-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyText as *mut _) };
-(":-moz-ruby-text-container") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyTextContainer as *mut _) };
-(":-moz-tree-column") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecolumn as *mut _) };
-(":-moz-tree-row") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreerow as *mut _) };
-(":-moz-tree-separator") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeseparator as *mut _) };
-(":-moz-tree-cell") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecell as *mut _) };
-(":-moz-tree-indentation") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeindentation as *mut _) };
-(":-moz-tree-line") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeline as *mut _) };
-(":-moz-tree-twisty") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreetwisty as *mut _) };
-(":-moz-tree-image") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeimage as *mut _) };
-(":-moz-tree-cell-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecelltext as *mut _) };
-(":-moz-tree-checkbox") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecheckbox as *mut _) };
-(":-moz-tree-progressmeter") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeprogressmeter as *mut _) };
-(":-moz-tree-drop-feedback") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreedropfeedback as *mut _) };
-(":-moz-svg-marker-anon-child") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGMarkerAnonChild as *mut _) };
-(":-moz-svg-outer-svg-anon-child") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGOuterSVGAnonChild as *mut _) };
-(":-moz-svg-foreign-content") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGForeignContent as *mut _) };
-(":-moz-svg-text") => { $crate::string_cache::atom_macro::unsafe_atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGText as *mut _) };
+("") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__empty as *mut _) } };
+("_moz") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz as *mut _) } };
+("mozframetype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozframetype as *mut _) } };
+("_moz_abspos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_abspos as *mut _) } };
+("_moz_activated") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_activated as *mut _) } };
+("_moz_resizing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_resizing as *mut _) } };
+("mozallowfullscreen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozallowfullscreen as *mut _) } };
+("_moz-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moztype as *mut _) } };
+("_moz_dirty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdirty as *mut _) } };
+("mozdisallowselectionprint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdisallowselectionprint as *mut _) } };
+("moz-do-not-send") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozdonotsend as *mut _) } };
+("_moz_editor_bogus_node") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozeditorbogusnode as *mut _) } };
+("_moz_generated_content_before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentbefore as *mut _) } };
+("_moz_generated_content_after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentafter as *mut _) } };
+("_moz_generated_content_image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozgeneratedcontentimage as *mut _) } };
+("_moz_quote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozquote as *mut _) } };
+("moz-signature") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozsignature as *mut _) } };
+("-moz-is-glyph") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_glyph as *mut _) } };
+("_moz_original_size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_original_size as *mut _) } };
+("_moz_target") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_target as *mut _) } };
+("_moz-menuactive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuactive as *mut _) } };
+("#default") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__poundDefault as *mut _) } };
+("*") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__asterisk as *mut _) } };
+("a") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_a as *mut _) } };
+("abbr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abbr as *mut _) } };
+("abort") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abort as *mut _) } };
+("above") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_above as *mut _) } };
+("acceltext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acceltext as *mut _) } };
+("accept") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accept as *mut _) } };
+("accept-charset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acceptcharset as *mut _) } };
+("accesskey") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accesskey as *mut _) } };
+("acronym") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_acronym as *mut _) } };
+("action") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_action as *mut _) } };
+("active") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_active as *mut _) } };
+("activetitlebarcolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activetitlebarcolor as *mut _) } };
+("activateontab") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_activateontab as *mut _) } };
+("actuate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_actuate as *mut _) } };
+("address") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_address as *mut _) } };
+("after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after as *mut _) } };
+("after_end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after_end as *mut _) } };
+("after_start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_after_start as *mut _) } };
+("align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_align as *mut _) } };
+("alink") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alink as *mut _) } };
+("all") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_all as *mut _) } };
+("allowdirs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowdirs as *mut _) } };
+("allowevents") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowevents as *mut _) } };
+("allownegativeassertions") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allownegativeassertions as *mut _) } };
+("allow-forms") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowforms as *mut _) } };
+("allowfullscreen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowfullscreen as *mut _) } };
+("allow-modals") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowmodals as *mut _) } };
+("allow-orientation-lock") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alloworientationlock as *mut _) } };
+("allow-pointer-lock") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpointerlock as *mut _) } };
+("allow-popups-to-escape-sandbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpopupstoescapesandbox as *mut _) } };
+("allow-popups") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpopups as *mut _) } };
+("allow-presentation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowpresentation as *mut _) } };
+("allow-same-origin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowsameorigin as *mut _) } };
+("allow-scripts") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowscripts as *mut _) } };
+("allow-top-navigation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowtopnavigation as *mut _) } };
+("allowuntrusted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_allowuntrusted as *mut _) } };
+("alt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alt as *mut _) } };
+("alternate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alternate as *mut _) } };
+("always") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_always as *mut _) } };
+("ancestor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ancestor as *mut _) } };
+("ancestor-or-self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ancestorOrSelf as *mut _) } };
+("anchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anchor as *mut _) } };
+("and") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__and as *mut _) } };
+("animations") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animations as *mut _) } };
+("anonid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anonid as *mut _) } };
+("anonlocation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anonlocation as *mut _) } };
+("any") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_any as *mut _) } };
+("mozapp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapp as *mut _) } };
+("mozwidget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozwidget as *mut _) } };
+("applet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applet as *mut _) } };
+("apply-imports") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyImports as *mut _) } };
+("apply-templates") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applyTemplates as *mut _) } };
+("mozapptype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapptype as *mut _) } };
+("archive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_archive as *mut _) } };
+("area") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_area as *mut _) } };
+("arrow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arrow as *mut _) } };
+("article") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_article as *mut _) } };
+("ascending") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ascending as *mut _) } };
+("aside") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aside as *mut _) } };
+("aspect-ratio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aspectRatio as *mut _) } };
+("assign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_assign as *mut _) } };
+("async") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_async as *mut _) } };
+("attribute") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attribute as *mut _) } };
+("attributes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributes as *mut _) } };
+("attribute-set") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeSet as *mut _) } };
+("aural") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aural as *mut _) } };
+("auto") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__auto as *mut _) } };
+("autocheck") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autocheck as *mut _) } };
+("autocomplete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autocomplete as *mut _) } };
+("autofocus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autofocus as *mut _) } };
+("autoplay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autoplay as *mut _) } };
+("autorepeatbutton") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_autorepeatbutton as *mut _) } };
+("axis") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_axis as *mut _) } };
+("b") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_b as *mut _) } };
+("BackdropFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_backdropFrame as *mut _) } };
+("background") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_background as *mut _) } };
+("base") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_base as *mut _) } };
+("basefont") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_basefont as *mut _) } };
+("baseline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseline as *mut _) } };
+("bdi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bdi as *mut _) } };
+("bdo") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bdo as *mut _) } };
+("before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before as *mut _) } };
+("before_end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before_end as *mut _) } };
+("before_start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_before_start as *mut _) } };
+("below") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_below as *mut _) } };
+("bgcolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bgcolor as *mut _) } };
+("bgsound") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bgsound as *mut _) } };
+("big") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_big as *mut _) } };
+("binding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_binding as *mut _) } };
+("bindings") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bindings as *mut _) } };
+("bindToUntrustedContent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bindToUntrustedContent as *mut _) } };
+("blankrow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blankrow as *mut _) } };
+("block") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_block as *mut _) } };
+("blockquote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blockquote as *mut _) } };
+("blur") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blur as *mut _) } };
+("body") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_body as *mut _) } };
+("boolean") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_boolean as *mut _) } };
+("border") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_border as *mut _) } };
+("bordercolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bordercolor as *mut _) } };
+("both") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_both as *mut _) } };
+("bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottom as *mut _) } };
+("bottomend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomend as *mut _) } };
+("bottomstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomstart as *mut _) } };
+("bottomleft") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomleft as *mut _) } };
+("bottommargin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottommargin as *mut _) } };
+("bottompadding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottompadding as *mut _) } };
+("bottomright") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bottomright as *mut _) } };
+("box") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_box as *mut _) } };
+("br") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_br as *mut _) } };
+("braille") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_braille as *mut _) } };
+("broadcast") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcast as *mut _) } };
+("broadcaster") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcaster as *mut _) } };
+("broadcasterset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_broadcasterset as *mut _) } };
+("browser") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_browser as *mut _) } };
+("mozbrowser") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozbrowser as *mut _) } };
+("bulletinboard") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bulletinboard as *mut _) } };
+("button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_button as *mut _) } };
+("brighttitlebarforeground") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_brighttitlebarforeground as *mut _) } };
+("call-template") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_callTemplate as *mut _) } };
+("cancel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cancel as *mut _) } };
+("canvas") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canvas as *mut _) } };
+("caption") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caption as *mut _) } };
+("capture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_capture as *mut _) } };
+("case-order") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caseOrder as *mut _) } };
+("cdata-section-elements") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdataSectionElements as *mut _) } };
+("ceiling") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ceiling as *mut _) } };
+("cell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cell as *mut _) } };
+("cellpadding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cellpadding as *mut _) } };
+("cellspacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cellspacing as *mut _) } };
+("center") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_center as *mut _) } };
+("ch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ch as *mut _) } };
+("change") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_change as *mut _) } };
+("char") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__char as *mut _) } };
+("characterData") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_characterData as *mut _) } };
+("charcode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charcode as *mut _) } };
+("charoff") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charoff as *mut _) } };
+("charset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charset as *mut _) } };
+("checkbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checkbox as *mut _) } };
+("checked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checked as *mut _) } };
+("child") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_child as *mut _) } };
+("children") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_children as *mut _) } };
+("childList") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_childList as *mut _) } };
+("choose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_choose as *mut _) } };
+("chromemargin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_chromemargin as *mut _) } };
+("chromeOnlyContent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_chromeOnlyContent as *mut _) } };
+("exposeToUntrustedContent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exposeToUntrustedContent as *mut _) } };
+("circ") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_circ as *mut _) } };
+("circle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_circle as *mut _) } };
+("cite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cite as *mut _) } };
+("class") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__class as *mut _) } };
+("classid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_classid as *mut _) } };
+("clear") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clear as *mut _) } };
+("click") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_click as *mut _) } };
+("clickcount") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clickcount as *mut _) } };
+("clickthrough") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clickthrough as *mut _) } };
+("movetoclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_movetoclick as *mut _) } };
+("clip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip as *mut _) } };
+("close") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_close as *mut _) } };
+("closed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closed as *mut _) } };
+("closemenu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closemenu as *mut _) } };
+("coalesceduplicatearcs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coalesceduplicatearcs as *mut _) } };
+("code") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_code as *mut _) } };
+("codebase") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codebase as *mut _) } };
+("codetype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codetype as *mut _) } };
+("col") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_col as *mut _) } };
+("colgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colgroup as *mut _) } };
+("collapse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_collapse as *mut _) } };
+("collapsed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_collapsed as *mut _) } };
+("color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color as *mut _) } };
+("color-index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorIndex as *mut _) } };
+("cols") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cols as *mut _) } };
+("colspan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colspan as *mut _) } };
+("column") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_column as *mut _) } };
+("columns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columns as *mut _) } };
+("combobox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_combobox as *mut _) } };
+("command") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_command as *mut _) } };
+("commands") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commands as *mut _) } };
+("commandset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandset as *mut _) } };
+("commandupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandupdate as *mut _) } };
+("commandupdater") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commandupdater as *mut _) } };
+("comment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comment as *mut _) } };
+("compact") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_compact as *mut _) } };
+("concat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_concat as *mut _) } };
+("conditions") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_conditions as *mut _) } };
+("constructor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_constructor as *mut _) } };
+("consumeoutsideclicks") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_consumeoutsideclicks as *mut _) } };
+("container") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_container as *mut _) } };
+("containment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containment as *mut _) } };
+("contains") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contains as *mut _) } };
+("content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_content as *mut _) } };
+("contenteditable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contenteditable as *mut _) } };
+("content-disposition") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentDisposition as *mut _) } };
+("content-language") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentLanguage as *mut _) } };
+("content-location") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contentLocation as *mut _) } };
+("content-script-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentScriptType as *mut _) } };
+("content-style-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentStyleType as *mut _) } };
+("content-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerContentType as *mut _) } };
+("consumeanchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_consumeanchor as *mut _) } };
+("context") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_context as *mut _) } };
+("contextmenu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contextmenu as *mut _) } };
+("control") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_control as *mut _) } };
+("controls") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_controls as *mut _) } };
+("coords") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coords as *mut _) } };
+("copy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_copy as *mut _) } };
+("copy-of") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_copyOf as *mut _) } };
+("count") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_count as *mut _) } };
+("crop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crop as *mut _) } };
+("crossorigin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crossorigin as *mut _) } };
+("curpos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_curpos as *mut _) } };
+("current") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_current as *mut _) } };
+("cutoutregion") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cutoutregion as *mut _) } };
+("cycler") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cycler as *mut _) } };
+("data") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_data as *mut _) } };
+("datalist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datalist as *mut _) } };
+("data-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dataType as *mut _) } };
+("date-time") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTime as *mut _) } };
+("datasources") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datasources as *mut _) } };
+("datetime") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetime as *mut _) } };
+("datetimebox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datetimebox as *mut _) } };
+("dblclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dblclick as *mut _) } };
+("dd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dd as *mut _) } };
+("debug") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_debug as *mut _) } };
+("decimal-format") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalFormat as *mut _) } };
+("decimal-separator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalSeparator as *mut _) } };
+("deck") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deck as *mut _) } };
+("declare") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_declare as *mut _) } };
+("decoder-doctor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decoderDoctor as *mut _) } };
+("decrement") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decrement as *mut _) } };
+("default") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__default as *mut _) } };
+("default-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerDefaultStyle as *mut _) } };
+("defaultAction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultAction as *mut _) } };
+("defaultchecked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultchecked as *mut _) } };
+("defaultLabel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultLabel as *mut _) } };
+("defaultselected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultselected as *mut _) } };
+("defaultvalue") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultvalue as *mut _) } };
+("defaultplaybackrate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defaultplaybackrate as *mut _) } };
+("defer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defer as *mut _) } };
+("del") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_del as *mut _) } };
+("descendant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descendant as *mut _) } };
+("descendant-or-self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descendantOrSelf as *mut _) } };
+("descending") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_descending as *mut _) } };
+("description") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_description as *mut _) } };
+("destructor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_destructor as *mut _) } };
+("details") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_details as *mut _) } };
+("device-aspect-ratio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceAspectRatio as *mut _) } };
+("device-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceHeight as *mut _) } };
+("device-pixel-ratio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_devicePixelRatio as *mut _) } };
+("device-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deviceWidth as *mut _) } };
+("dfn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dfn as *mut _) } };
+("dialog") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dialog as *mut _) } };
+("difference") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_difference as *mut _) } };
+("digit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_digit as *mut _) } };
+("dir") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dir as *mut _) } };
+("dirAutoSetBy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dirAutoSetBy as *mut _) } };
+("directionality") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_directionality as *mut _) } };
+("directory") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_directory as *mut _) } };
+("disable-output-escaping") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disableOutputEscaping as *mut _) } };
+("disabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disabled as *mut _) } };
+("disableglobalhistory") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disableglobalhistory as *mut _) } };
+("disablehistory") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablehistory as *mut _) } };
+("disablefullscreen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disablefullscreen as *mut _) } };
+("display") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_display as *mut _) } };
+("display-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_displayMode as *mut _) } };
+("distinct") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_distinct as *mut _) } };
+("div") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_div as *mut _) } };
+("dl") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dl as *mut _) } };
+("doctype-public") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_doctypePublic as *mut _) } };
+("doctype-system") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_doctypeSystem as *mut _) } };
+("document") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_document as *mut _) } };
+("download") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_download as *mut _) } };
+("DOMAttrModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMAttrModified as *mut _) } };
+("DOMCharacterDataModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMCharacterDataModified as *mut _) } };
+("DOMNodeInserted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeInserted as *mut _) } };
+("DOMNodeInsertedIntoDocument") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeInsertedIntoDocument as *mut _) } };
+("DOMNodeRemoved") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeRemoved as *mut _) } };
+("DOMNodeRemovedFromDocument") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMNodeRemovedFromDocument as *mut _) } };
+("DOMSubtreeModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DOMSubtreeModified as *mut _) } };
+("double") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_double_ as *mut _) } };
+("drag") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drag as *mut _) } };
+("dragend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragend as *mut _) } };
+("dragenter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragenter as *mut _) } };
+("dragevent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragevent as *mut _) } };
+("dragexit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragexit as *mut _) } };
+("draggable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_draggable as *mut _) } };
+("dragging") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragging as *mut _) } };
+("dragleave") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragleave as *mut _) } };
+("dragover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragover as *mut _) } };
+("dragSession") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragSession as *mut _) } };
+("dragstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dragstart as *mut _) } };
+("drawintitlebar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drawintitlebar as *mut _) } };
+("drawtitle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drawtitle as *mut _) } };
+("drop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_drop as *mut _) } };
+("dropAfter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropAfter as *mut _) } };
+("dropBefore") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropBefore as *mut _) } };
+("dropOn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropOn as *mut _) } };
+("dropmarker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dropMarker as *mut _) } };
+("dt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dt as *mut _) } };
+("editable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editable as *mut _) } };
+("editing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editing as *mut _) } };
+("editor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editor as *mut _) } };
+("EditorDisplay-List") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_editorDisplayList as *mut _) } };
+("element") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_element as *mut _) } };
+("element-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elementAvailable as *mut _) } };
+("elements") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elements as *mut _) } };
+("em") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_em as *mut _) } };
+("embed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_embed as *mut _) } };
+("embossed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_embossed as *mut _) } };
+("empty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_empty as *mut _) } };
+("encoding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_encoding as *mut _) } };
+("enctype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_enctype as *mut _) } };
+("end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end as *mut _) } };
+("endEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_endEvent as *mut _) } };
+("end_after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end_after as *mut _) } };
+("end_before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_end_before as *mut _) } };
+("equalsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalsize as *mut _) } };
+("error") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_error as *mut _) } };
+("even") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_even as *mut _) } };
+("event") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_event as *mut _) } };
+("events") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_events as *mut _) } };
+("exclude-result-prefixes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_excludeResultPrefixes as *mut _) } };
+("excludes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_excludes as *mut _) } };
+("expr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_expr as *mut _) } };
+("extends") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_extends as *mut _) } };
+("extension-element-prefixes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_extensionElementPrefixes as *mut _) } };
+("face") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_face as *mut _) } };
+("fallback") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fallback as *mut _) } };
+("false") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__false as *mut _) } };
+("farthest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_farthest as *mut _) } };
+("field") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_field as *mut _) } };
+("fieldset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldset as *mut _) } };
+("figcaption") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figcaption as *mut _) } };
+("figure") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_figure as *mut _) } };
+("fixed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fixed as *mut _) } };
+("flags") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flags as *mut _) } };
+("flex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flex as *mut _) } };
+("flexgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexgroup as *mut _) } };
+("flip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flip as *mut _) } };
+("floating") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_floating as *mut _) } };
+("floor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_floor as *mut _) } };
+("flowlength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flowlength as *mut _) } };
+("focus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_focus as *mut _) } };
+("focused") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_focused as *mut _) } };
+("following") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_following as *mut _) } };
+("following-sibling") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_followingSibling as *mut _) } };
+("font") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font as *mut _) } };
+("font-weight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontWeight as *mut _) } };
+("fontpicker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontpicker as *mut _) } };
+("footer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_footer as *mut _) } };
+("for") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__for as *mut _) } };
+("for-each") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forEach as *mut _) } };
+("forceOwnRefreshDriver") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forceOwnRefreshDriver as *mut _) } };
+("form") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_form as *mut _) } };
+("formaction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formaction as *mut _) } };
+("format") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_format as *mut _) } };
+("format-number") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formatNumber as *mut _) } };
+("formenctype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formenctype as *mut _) } };
+("formmethod") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formmethod as *mut _) } };
+("formnovalidate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formnovalidate as *mut _) } };
+("formtarget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formtarget as *mut _) } };
+("frame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frame as *mut _) } };
+("frameborder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameborder as *mut _) } };
+("frameset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameset as *mut _) } };
+("from") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_from as *mut _) } };
+("fullscreenchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fullscreenchange as *mut _) } };
+("fullscreenerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fullscreenerror as *mut _) } };
+("function-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_functionAvailable as *mut _) } };
+("generate-id") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_generateId as *mut _) } };
+("getter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_getter as *mut _) } };
+("glyphchar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphchar as *mut _) } };
+("glyphid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphid as *mut _) } };
+("grid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grid as *mut _) } };
+("grippy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grippy as *mut _) } };
+("group") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_group as *mut _) } };
+("grouping-separator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupingSeparator as *mut _) } };
+("grouping-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupingSize as *mut _) } };
+("grow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grow as *mut _) } };
+("gutter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gutter as *mut _) } };
+("h1") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h1 as *mut _) } };
+("h2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h2 as *mut _) } };
+("h3") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h3 as *mut _) } };
+("h4") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h4 as *mut _) } };
+("h5") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h5 as *mut _) } };
+("h6") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_h6 as *mut _) } };
+("handheld") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handheld as *mut _) } };
+("HandheldFriendly") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handheldFriendly as *mut _) } };
+("handler") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handler as *mut _) } };
+("handlers") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_handlers as *mut _) } };
+("HARD") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HARD as *mut _) } };
+("has-same-node") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hasSameNode as *mut _) } };
+("hbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hbox as *mut _) } };
+("head") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_head as *mut _) } };
+("header") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_header as *mut _) } };
+("headers") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headers as *mut _) } };
+("height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_height as *mut _) } };
+("hgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hgroup as *mut _) } };
+("hidden") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidden as *mut _) } };
+("hidechrome") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidechrome as *mut _) } };
+("hidecolumnpicker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hidecolumnpicker as *mut _) } };
+("high") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_high as *mut _) } };
+("highest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_highest as *mut _) } };
+("horizontal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_horizontal as *mut _) } };
+("hover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hover as *mut _) } };
+("hr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hr as *mut _) } };
+("href") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_href as *mut _) } };
+("hreflang") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hreflang as *mut _) } };
+("hspace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hspace as *mut _) } };
+("html") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_html as *mut _) } };
+("http-equiv") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_httpEquiv as *mut _) } };
+("i") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_i as *mut _) } };
+("icon") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_icon as *mut _) } };
+("id") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_id as *mut _) } };
+("if") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__if as *mut _) } };
+("iframe") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_iframe as *mut _) } };
+("ignorecase") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignorecase as *mut _) } };
+("ignorekeys") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignorekeys as *mut _) } };
+("ignoreuserfocus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ignoreuserfocus as *mut _) } };
+("ilayer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ilayer as *mut _) } };
+("image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_image as *mut _) } };
+("image-clicked-point") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageClickedPoint as *mut _) } };
+("img") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_img as *mut _) } };
+("implementation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implementation as *mut _) } };
+("implements") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implements as *mut _) } };
+("import") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_import as *mut _) } };
+("inactivetitlebarcolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inactivetitlebarcolor as *mut _) } };
+("include") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_include as *mut _) } };
+("includes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_includes as *mut _) } };
+("increment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_increment as *mut _) } };
+("indent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indent as *mut _) } };
+("indeterminate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indeterminate as *mut _) } };
+("index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_index as *mut _) } };
+("infer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_infer as *mut _) } };
+("infinity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_infinity as *mut _) } };
+("inherit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inherit as *mut _) } };
+("inherits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inherits as *mut _) } };
+("inheritstyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inheritstyle as *mut _) } };
+("initial-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_initial_scale as *mut _) } };
+("input") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_input as *mut _) } };
+("inputmode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inputmode as *mut _) } };
+("ins") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ins as *mut _) } };
+("insertafter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_insertafter as *mut _) } };
+("insertbefore") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_insertbefore as *mut _) } };
+("install") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_install as *mut _) } };
+("instanceOf") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_instanceOf as *mut _) } };
+("int32") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int32 as *mut _) } };
+("int64") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int64 as *mut _) } };
+("integer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integer as *mut _) } };
+("integrity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integrity as *mut _) } };
+("intersection") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersection as *mut _) } };
+("is") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_is as *mut _) } };
+("iscontainer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_iscontainer as *mut _) } };
+("isempty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_isempty as *mut _) } };
+("ismap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ismap as *mut _) } };
+("itemid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemid as *mut _) } };
+("itemprop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemprop as *mut _) } };
+("itemref") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemref as *mut _) } };
+("itemscope") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemscope as *mut _) } };
+("itemtype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemtype as *mut _) } };
+("kbd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kbd as *mut _) } };
+("keepcurrentinview") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keepcurrentinview as *mut _) } };
+("keepobjectsalive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keepobjectsalive as *mut _) } };
+("key") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_key as *mut _) } };
+("keycode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keycode as *mut _) } };
+("keystatuseschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keystatuseschange as *mut _) } };
+("keydown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keydown as *mut _) } };
+("keygen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keygen as *mut _) } };
+("keypress") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keypress as *mut _) } };
+("keyset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyset as *mut _) } };
+("keysystem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keysystem as *mut _) } };
+("keytext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keytext as *mut _) } };
+("keyup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyup as *mut _) } };
+("kind") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kind as *mut _) } };
+("label") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_label as *mut _) } };
+("lang") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lang as *mut _) } };
+("language") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_language as *mut _) } };
+("last") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_last as *mut _) } };
+("layer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_layer as *mut _) } };
+("LayerActivity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_LayerActivity as *mut _) } };
+("layout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_layout as *mut _) } };
+("leading") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leading as *mut _) } };
+("leaf") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leaf as *mut _) } };
+("left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_left as *mut _) } };
+("leftmargin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leftmargin as *mut _) } };
+("leftpadding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leftpadding as *mut _) } };
+("legend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_legend as *mut _) } };
+("length") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_length as *mut _) } };
+("letter-value") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letterValue as *mut _) } };
+("level") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_level as *mut _) } };
+("li") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_li as *mut _) } };
+("line") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_line as *mut _) } };
+("link") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_link as *mut _) } };
+("list") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list as *mut _) } };
+("listbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listbox as *mut _) } };
+("listboxbody") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listboxbody as *mut _) } };
+("listcell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcell as *mut _) } };
+("listcol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcol as *mut _) } };
+("listcols") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listcols as *mut _) } };
+("listener") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listener as *mut _) } };
+("listhead") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listhead as *mut _) } };
+("listheader") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listheader as *mut _) } };
+("listing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listing as *mut _) } };
+("listitem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listitem as *mut _) } };
+("listrows") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listrows as *mut _) } };
+("load") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_load as *mut _) } };
+("localedir") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_localedir as *mut _) } };
+("local-name") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_localName as *mut _) } };
+("longdesc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_longdesc as *mut _) } };
+("loop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loop as *mut _) } };
+("low") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_low as *mut _) } };
+("lower-first") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowerFirst as *mut _) } };
+("lowest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowest as *mut _) } };
+("lowsrc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowsrc as *mut _) } };
+("ltr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ltr as *mut _) } };
+("lwtheme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lwtheme as *mut _) } };
+("lwthemetextcolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lwthemetextcolor as *mut _) } };
+("main") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_main as *mut _) } };
+("map") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_map as *mut _) } };
+("manifest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_manifest as *mut _) } };
+("margin-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginBottom as *mut _) } };
+("margin-left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginLeft as *mut _) } };
+("margin-right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginRight as *mut _) } };
+("margin-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginTop as *mut _) } };
+("marginheight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginheight as *mut _) } };
+("marginwidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marginwidth as *mut _) } };
+("mark") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mark as *mut _) } };
+("marquee") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marquee as *mut _) } };
+("match") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_match as *mut _) } };
+("max") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_max as *mut _) } };
+("maxheight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxheight as *mut _) } };
+("maximum-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maximum_scale as *mut _) } };
+("maxlength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxlength as *mut _) } };
+("maxpos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxpos as *mut _) } };
+("maxwidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxwidth as *mut _) } };
+("mayscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mayscript as *mut _) } };
+("media") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_media as *mut _) } };
+("media-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mediaType as *mut _) } };
+("member") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_member as *mut _) } };
+("menu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menu as *mut _) } };
+("menubar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar as *mut _) } };
+("menubutton") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubutton as *mut _) } };
+("menu-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuButton as *mut _) } };
+("menugroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menugroup as *mut _) } };
+("menuitem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitem as *mut _) } };
+("menulist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menulist as *mut _) } };
+("menupopup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menupopup as *mut _) } };
+("menuseparator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuseparator as *mut _) } };
+("message") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_message as *mut _) } };
+("meta") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meta as *mut _) } };
+("referrer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_referrer as *mut _) } };
+("referrerpolicy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_referrerpolicy as *mut _) } };
+("referrer-policy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerReferrerPolicy as *mut _) } };
+("meter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meter as *mut _) } };
+("method") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_method as *mut _) } };
+("middle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_middle as *mut _) } };
+("min") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_min as *mut _) } };
+("minheight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minheight as *mut _) } };
+("minimum-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minimum_scale as *mut _) } };
+("minlength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minlength as *mut _) } };
+("minpos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minpos as *mut _) } };
+("minus-sign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minusSign as *mut _) } };
+("minwidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minwidth as *mut _) } };
+("mixed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__mixed as *mut _) } };
+("messagemanagergroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_messagemanagergroup as *mut _) } };
+("mod") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mod as *mut _) } };
+("mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mode as *mut _) } };
+("modifiers") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_modifiers as *mut _) } };
+("monochrome") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_monochrome as *mut _) } };
+("mousedown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousedown as *mut _) } };
+("mousemove") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousemove as *mut _) } };
+("mouseout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseout as *mut _) } };
+("mouseover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseover as *mut _) } };
+("mousethrough") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mousethrough as *mut _) } };
+("mouseup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseup as *mut _) } };
+("mozaudiochannel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozaudiochannel as *mut _) } };
+("mozfullscreenchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenchange as *mut _) } };
+("mozfullscreenerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfullscreenerror as *mut _) } };
+("mozpointerlockchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockchange as *mut _) } };
+("mozpointerlockerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpointerlockerror as *mut _) } };
+("mozprivatebrowsing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozprivatebrowsing as *mut _) } };
+("moz-opaque") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_opaque as *mut _) } };
+("mozactionhint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moz_action_hint as *mut _) } };
+("x-moz-errormessage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_moz_errormessage as *mut _) } };
+("msthemecompatible") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msthemecompatible as *mut _) } };
+("multicol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multicol as *mut _) } };
+("multiple") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiple as *mut _) } };
+("muted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_muted as *mut _) } };
+("name") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_name as *mut _) } };
+("namespace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__namespace as *mut _) } };
+("namespace-alias") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_namespaceAlias as *mut _) } };
+("namespace-uri") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_namespaceUri as *mut _) } };
+("NaN") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_NaN as *mut _) } };
+("nativeAnonymousChildList") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nativeAnonymousChildList as *mut _) } };
+("nav") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nav as *mut _) } };
+("negate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_negate as *mut _) } };
+("never") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_never as *mut _) } };
+("new") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__new as *mut _) } };
+("newline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_newline as *mut _) } };
+("NextBidi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nextBidi as *mut _) } };
+("no") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_no as *mut _) } };
+("noautofocus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noautofocus as *mut _) } };
+("noautohide") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noautohide as *mut _) } };
+("norolluponanchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_norolluponanchor as *mut _) } };
+("nobr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nobr as *mut _) } };
+("node") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_node as *mut _) } };
+("nodefaultsrc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nodefaultsrc as *mut _) } };
+("node-set") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nodeSet as *mut _) } };
+("noembed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noembed as *mut _) } };
+("noframes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noframes as *mut _) } };
+("nohref") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nohref as *mut _) } };
+("noisolation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noisolation as *mut _) } };
+("nonce") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nonce as *mut _) } };
+("none") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_none as *mut _) } };
+("noresize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noresize as *mut _) } };
+("normal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_normal as *mut _) } };
+("normalize-space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_normalizeSpace as *mut _) } };
+("noscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noscript as *mut _) } };
+("noshade") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noshade as *mut _) } };
+("novalidate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_novalidate as *mut _) } };
+("not") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__not as *mut _) } };
+("nowrap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nowrap as *mut _) } };
+("number") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_number as *mut _) } };
+("null") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_null as *mut _) } };
+("object") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_object as *mut _) } };
+("object-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectType as *mut _) } };
+("observer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_observer as *mut _) } };
+("observes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_observes as *mut _) } };
+("odd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_odd as *mut _) } };
+("OFF") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_OFF as *mut _) } };
+("ol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ol as *mut _) } };
+("omit-xml-declaration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_omitXmlDeclaration as *mut _) } };
+("ona2dpstatuschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ona2dpstatuschanged as *mut _) } };
+("onabort") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onabort as *mut _) } };
+("onmozaccesskeynotfound") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozaccesskeynotfound as *mut _) } };
+("onactivate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onactivate as *mut _) } };
+("onadapteradded") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onadapteradded as *mut _) } };
+("onadapterremoved") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onadapterremoved as *mut _) } };
+("onafterprint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onafterprint as *mut _) } };
+("onafterscriptexecute") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onafterscriptexecute as *mut _) } };
+("onalerting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onalerting as *mut _) } };
+("onanimationend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationend as *mut _) } };
+("onanimationiteration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationiteration as *mut _) } };
+("onanimationstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onanimationstart as *mut _) } };
+("onantennaavailablechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onantennaavailablechange as *mut _) } };
+("onAppCommand") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onAppCommand as *mut _) } };
+("onattributechanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributechanged as *mut _) } };
+("onattributereadreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributereadreq as *mut _) } };
+("onattributewritereq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributewritereq as *mut _) } };
+("onaudioprocess") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudioprocess as *mut _) } };
+("onbeforecopy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforecopy as *mut _) } };
+("onbeforecut") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforecut as *mut _) } };
+("onbeforepaste") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforepaste as *mut _) } };
+("onbeforeevicted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeevicted as *mut _) } };
+("onbeforeprint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeprint as *mut _) } };
+("onbeforescriptexecute") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforescriptexecute as *mut _) } };
+("onbeforeunload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforeunload as *mut _) } };
+("onblocked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onblocked as *mut _) } };
+("onblur") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onblur as *mut _) } };
+("onbroadcast") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbroadcast as *mut _) } };
+("onbusy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbusy as *mut _) } };
+("onbufferedamountlow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbufferedamountlow as *mut _) } };
+("oncached") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncached as *mut _) } };
+("oncallschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncallschanged as *mut _) } };
+("oncancel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncancel as *mut _) } };
+("oncardstatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncardstatechange as *mut _) } };
+("oncfstatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncfstatechange as *mut _) } };
+("onchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchange as *mut _) } };
+("oncharacteristicchanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncharacteristicchanged as *mut _) } };
+("onchargingchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchargingchange as *mut _) } };
+("onchargingtimechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchargingtimechange as *mut _) } };
+("onchecking") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onchecking as *mut _) } };
+("onclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclick as *mut _) } };
+("onclirmodechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclirmodechange as *mut _) } };
+("onclose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onclose as *mut _) } };
+("oncommand") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncommand as *mut _) } };
+("oncommandupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncommandupdate as *mut _) } };
+("oncomplete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncomplete as *mut _) } };
+("oncompositionend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionend as *mut _) } };
+("oncompositionstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionstart as *mut _) } };
+("oncompositionupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncompositionupdate as *mut _) } };
+("onconfigurationchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconfigurationchange as *mut _) } };
+("onconnect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnect as *mut _) } };
+("onconnected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnected as *mut _) } };
+("onconnecting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnecting as *mut _) } };
+("onconnectionavailable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnectionavailable as *mut _) } };
+("onconnectionstatechanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onconnectionstatechanged as *mut _) } };
+("oncontextmenu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncontextmenu as *mut _) } };
+("oncopy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncopy as *mut _) } };
+("oncurrentchannelchanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncurrentchannelchanged as *mut _) } };
+("oncurrentsourcechanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncurrentsourcechanged as *mut _) } };
+("oncut") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncut as *mut _) } };
+("ondatachange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondatachange as *mut _) } };
+("ondataerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondataerror as *mut _) } };
+("ondblclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondblclick as *mut _) } };
+("ondeleted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeleted as *mut _) } };
+("ondeliverysuccess") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeliverysuccess as *mut _) } };
+("ondeliveryerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeliveryerror as *mut _) } };
+("ondevicefound") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicefound as *mut _) } };
+("ondevicepaired") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicepaired as *mut _) } };
+("ondeviceunpaired") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceunpaired as *mut _) } };
+("ondialing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondialing as *mut _) } };
+("ondisabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisabled as *mut _) } };
+("ondischargingtimechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondischargingtimechange as *mut _) } };
+("ondisconnect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnect as *mut _) } };
+("ondisconnected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnected as *mut _) } };
+("ondisconnecting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisconnecting as *mut _) } };
+("ondisplaypasskeyreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondisplaypasskeyreq as *mut _) } };
+("ondownloading") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondownloading as *mut _) } };
+("onDOMActivate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMActivate as *mut _) } };
+("onDOMAttrModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMAttrModified as *mut _) } };
+("onDOMCharacterDataModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMCharacterDataModified as *mut _) } };
+("onDOMFocusIn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMFocusIn as *mut _) } };
+("onDOMFocusOut") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMFocusOut as *mut _) } };
+("onDOMMouseScroll") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMMouseScroll as *mut _) } };
+("onDOMNodeInserted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeInserted as *mut _) } };
+("onDOMNodeInsertedIntoDocument") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeInsertedIntoDocument as *mut _) } };
+("onDOMNodeRemoved") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeRemoved as *mut _) } };
+("onDOMNodeRemovedFromDocument") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMNodeRemovedFromDocument as *mut _) } };
+("onDOMSubtreeModified") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onDOMSubtreeModified as *mut _) } };
+("ondata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondata as *mut _) } };
+("ondrag") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrag as *mut _) } };
+("ondragdrop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragdrop as *mut _) } };
+("ondragend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragend as *mut _) } };
+("ondragenter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragenter as *mut _) } };
+("ondragexit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragexit as *mut _) } };
+("ondraggesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondraggesture as *mut _) } };
+("ondragleave") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragleave as *mut _) } };
+("ondragover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragover as *mut _) } };
+("ondragstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondragstart as *mut _) } };
+("ondrain") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrain as *mut _) } };
+("ondrop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondrop as *mut _) } };
+("oneitbroadcasted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oneitbroadcasted as *mut _) } };
+("onenabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenabled as *mut _) } };
+("onenterpincodereq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenterpincodereq as *mut _) } };
+("onemergencycbmodechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onemergencycbmodechange as *mut _) } };
+("onerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onerror as *mut _) } };
+("onevicted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onevicted as *mut _) } };
+("onfacesdetected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfacesdetected as *mut _) } };
+("onfailed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfailed as *mut _) } };
+("onfetch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfetch as *mut _) } };
+("onfinish") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfinish as *mut _) } };
+("onfocus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfocus as *mut _) } };
+("onfrequencychange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfrequencychange as *mut _) } };
+("onfullscreenchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfullscreenchange as *mut _) } };
+("onfullscreenerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfullscreenerror as *mut _) } };
+("onspeakerforcedchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeakerforcedchange as *mut _) } };
+("onget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onget as *mut _) } };
+("ongroupchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongroupchange as *mut _) } };
+("onhashchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhashchange as *mut _) } };
+("onheadphoneschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onheadphoneschange as *mut _) } };
+("onheld") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onheld as *mut _) } };
+("onhfpstatuschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhfpstatuschanged as *mut _) } };
+("onhidstatuschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onhidstatuschanged as *mut _) } };
+("onholding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onholding as *mut _) } };
+("oniccchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccchange as *mut _) } };
+("oniccdetected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccdetected as *mut _) } };
+("oniccinfochange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccinfochange as *mut _) } };
+("oniccundetected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oniccundetected as *mut _) } };
+("onincoming") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onincoming as *mut _) } };
+("oninput") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninput as *mut _) } };
+("oninstall") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninstall as *mut _) } };
+("oninvalid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oninvalid as *mut _) } };
+("onkeydown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeydown as *mut _) } };
+("onkeypress") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeypress as *mut _) } };
+("onkeyup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeyup as *mut _) } };
+("onlanguagechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlanguagechange as *mut _) } };
+("onlevelchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlevelchange as *mut _) } };
+("onLoad") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onLoad as *mut _) } };
+("onload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onload as *mut _) } };
+("onloading") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloading as *mut _) } };
+("onloadingdone") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadingdone as *mut _) } };
+("onloadingerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadingerror as *mut _) } };
+("onpopstate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopstate as *mut _) } };
+("only") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_only as *mut _) } };
+("onmessage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmessage as *mut _) } };
+("onmousedown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousedown as *mut _) } };
+("onmouseenter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseenter as *mut _) } };
+("onmouseleave") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseleave as *mut _) } };
+("onmouselongtap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouselongtap as *mut _) } };
+("onmousemove") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmousemove as *mut _) } };
+("onmouseout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseout as *mut _) } };
+("onmouseover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseover as *mut _) } };
+("onMozMouseHittest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMouseHittest as *mut _) } };
+("onmouseup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseup as *mut _) } };
+("onMozAfterPaint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozAfterPaint as *mut _) } };
+("onmozbrowserafterkeydown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeydown as *mut _) } };
+("onmozbrowserafterkeyup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeyup as *mut _) } };
+("onmozbrowserbeforekeydown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeydown as *mut _) } };
+("onmozbrowserbeforekeyup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeyup as *mut _) } };
+("onmozfullscreenchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozfullscreenchange as *mut _) } };
+("onmozfullscreenerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozfullscreenerror as *mut _) } };
+("onmozkeydownonplugin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozkeydownonplugin as *mut _) } };
+("onmozkeyuponplugin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozkeyuponplugin as *mut _) } };
+("onmozpointerlockchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockchange as *mut _) } };
+("onmozpointerlockerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozpointerlockerror as *mut _) } };
+("onmoztimechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoztimechange as *mut _) } };
+("onMozMousePixelScroll") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMousePixelScroll as *mut _) } };
+("onMozScrolledAreaChanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozScrolledAreaChanged as *mut _) } };
+("onmoznetworkupload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkupload as *mut _) } };
+("onmoznetworkdownload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmoznetworkdownload as *mut _) } };
+("onmapfolderlistingreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapfolderlistingreq as *mut _) } };
+("onmapmessageslistingreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapmessageslistingreq as *mut _) } };
+("onmapgetmessagereq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapgetmessagereq as *mut _) } };
+("onmapsetmessagestatusreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapsetmessagestatusreq as *mut _) } };
+("onmapsendmessagereq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapsendmessagereq as *mut _) } };
+("onmapmessageupdatereq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmapmessageupdatereq as *mut _) } };
+("onnewrdsgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnewrdsgroup as *mut _) } };
+("onnotificationclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnotificationclick as *mut _) } };
+("onnotificationclose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnotificationclose as *mut _) } };
+("onnoupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnoupdate as *mut _) } };
+("onobexpasswordreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onobexpasswordreq as *mut _) } };
+("onobsolete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onobsolete as *mut _) } };
+("ononline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ononline as *mut _) } };
+("onoffline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoffline as *mut _) } };
+("onopen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onopen as *mut _) } };
+("onorientationchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onorientationchange as *mut _) } };
+("onotastatuschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onotastatuschange as *mut _) } };
+("onoverflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoverflow as *mut _) } };
+("onoverflowchanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onoverflowchanged as *mut _) } };
+("onpagehide") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpagehide as *mut _) } };
+("onpageshow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpageshow as *mut _) } };
+("onpaint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpaint as *mut _) } };
+("onpairingaborted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingaborted as *mut _) } };
+("onpairingconfirmationreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingconfirmationreq as *mut _) } };
+("onpairingconsentreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpairingconsentreq as *mut _) } };
+("onpaste") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpaste as *mut _) } };
+("onpendingchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpendingchange as *mut _) } };
+("onpichange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpichange as *mut _) } };
+("onpicture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpicture as *mut _) } };
+("onpointerlockchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerlockchange as *mut _) } };
+("onpointerlockerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerlockerror as *mut _) } };
+("onpopuphidden") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphidden as *mut _) } };
+("onpopuphiding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuphiding as *mut _) } };
+("onpopuppositioned") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopuppositioned as *mut _) } };
+("onpopupshowing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshowing as *mut _) } };
+("onpopupshown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpopupshown as *mut _) } };
+("onposter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onposter as *mut _) } };
+("onpreviewstatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpreviewstatechange as *mut _) } };
+("onpullphonebookreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullphonebookreq as *mut _) } };
+("onpullvcardentryreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullvcardentryreq as *mut _) } };
+("onpullvcardlistingreq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpullvcardlistingreq as *mut _) } };
+("onpush") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpush as *mut _) } };
+("onpushsubscriptionchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpushsubscriptionchange as *mut _) } };
+("onpschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpschange as *mut _) } };
+("onptychange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onptychange as *mut _) } };
+("onradiostatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onradiostatechange as *mut _) } };
+("onrdsdisabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrdsdisabled as *mut _) } };
+("onrdsenabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrdsenabled as *mut _) } };
+("onreaderror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreaderror as *mut _) } };
+("onreadsuccess") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreadsuccess as *mut _) } };
+("onready") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onready as *mut _) } };
+("onreadystatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreadystatechange as *mut _) } };
+("onreceived") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreceived as *mut _) } };
+("onrecorderstatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrecorderstatechange as *mut _) } };
+("onremoteheld") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremoteheld as *mut _) } };
+("onremoteresumed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremoteresumed as *mut _) } };
+("onresourcetimingbufferfull") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresourcetimingbufferfull as *mut _) } };
+("onretrieving") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onretrieving as *mut _) } };
+("onRequest") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onRequest as *mut _) } };
+("onrequestmediaplaystatus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrequestmediaplaystatus as *mut _) } };
+("onreset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreset as *mut _) } };
+("onresuming") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresuming as *mut _) } };
+("onresize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresize as *mut _) } };
+("onrtchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrtchange as *mut _) } };
+("onscanningstatechanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscanningstatechanged as *mut _) } };
+("onscostatuschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscostatuschanged as *mut _) } };
+("onscroll") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onscroll as *mut _) } };
+("onselect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselect as *mut _) } };
+("onselectionchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselectionchange as *mut _) } };
+("onselectstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onselectstart as *mut _) } };
+("onsending") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsending as *mut _) } };
+("onsent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsent as *mut _) } };
+("onset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onset as *mut _) } };
+("onshow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshow as *mut _) } };
+("onshutter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onshutter as *mut _) } };
+("onstatechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstatechange as *mut _) } };
+("onstatuschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstatuschanged as *mut _) } };
+("onstkcommand") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstkcommand as *mut _) } };
+("onstksessionend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstksessionend as *mut _) } };
+("onstorage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstorage as *mut _) } };
+("onstorageareachanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstorageareachanged as *mut _) } };
+("onsubmit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsubmit as *mut _) } };
+("onsuccess") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsuccess as *mut _) } };
+("ontypechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontypechange as *mut _) } };
+("onterminate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onterminate as *mut _) } };
+("ontext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontext as *mut _) } };
+("ontoggle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontoggle as *mut _) } };
+("ontouchstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchstart as *mut _) } };
+("ontouchend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchend as *mut _) } };
+("ontouchmove") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchmove as *mut _) } };
+("ontouchcancel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchcancel as *mut _) } };
+("ontransitionend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontransitionend as *mut _) } };
+("onunderflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunderflow as *mut _) } };
+("onunload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onunload as *mut _) } };
+("onupdatefound") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdatefound as *mut _) } };
+("onupdateready") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdateready as *mut _) } };
+("onupgradeneeded") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupgradeneeded as *mut _) } };
+("onussdreceived") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onussdreceived as *mut _) } };
+("onversionchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onversionchange as *mut _) } };
+("onvoicechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoicechange as *mut _) } };
+("onvoiceschanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoiceschanged as *mut _) } };
+("onvrdisplayconnect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplayconnect as *mut _) } };
+("onvrdisplaydisconnect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaydisconnect as *mut _) } };
+("onvrdisplaypresentchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaypresentchange as *mut _) } };
+("onwebkitAnimationEnd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationEnd as *mut _) } };
+("onwebkitAnimationIteration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationIteration as *mut _) } };
+("onwebkitAnimationStart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitAnimationStart as *mut _) } };
+("onwebkitTransitionEnd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitTransitionEnd as *mut _) } };
+("onwebkitanimationend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationend as *mut _) } };
+("onwebkitanimationiteration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationiteration as *mut _) } };
+("onwebkitanimationstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkitanimationstart as *mut _) } };
+("onwebkittransitionend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebkittransitionend as *mut _) } };
+("onwebsocket") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwebsocket as *mut _) } };
+("onwheel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwheel as *mut _) } };
+("open") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_open as *mut _) } };
+("optgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_optgroup as *mut _) } };
+("optimum") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_optimum as *mut _) } };
+("option") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_option as *mut _) } };
+("or") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__or as *mut _) } };
+("order") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_order as *mut _) } };
+("ordinal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ordinal as *mut _) } };
+("orient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_orient as *mut _) } };
+("orientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_orientation as *mut _) } };
+("otherwise") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_otherwise as *mut _) } };
+("output") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_output as *mut _) } };
+("overflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overflow as *mut _) } };
+("overflowchanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overflowchanged as *mut _) } };
+("overlay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay as *mut _) } };
+("overlap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlap as *mut _) } };
+("p") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_p as *mut _) } };
+("pack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pack as *mut _) } };
+("page") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_page as *mut _) } };
+("pageincrement") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageincrement as *mut _) } };
+("pagex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pagex as *mut _) } };
+("pagey") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pagey as *mut _) } };
+("paint-order") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_paint_order as *mut _) } };
+("palettename") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_palettename as *mut _) } };
+("panel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_panel as *mut _) } };
+("param") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_param as *mut _) } };
+("parameter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parameter as *mut _) } };
+("parent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parent as *mut _) } };
+("parentapp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentapp as *mut _) } };
+("parentfocused") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentfocused as *mut _) } };
+("parsetype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parsetype as *mut _) } };
+("password") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_password as *mut _) } };
+("pattern") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pattern as *mut _) } };
+("pattern-separator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternSeparator as *mut _) } };
+("per-mille") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_perMille as *mut _) } };
+("percent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_percent as *mut _) } };
+("persist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_persist as *mut _) } };
+("phase") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_phase as *mut _) } };
+("picture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_picture as *mut _) } };
+("ping") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ping as *mut _) } };
+("pinned") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pinned as *mut _) } };
+("placeholder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_placeholder as *mut _) } };
+("plaintext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_plaintext as *mut _) } };
+("playbackrate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_playbackrate as *mut _) } };
+("point-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointSize as *mut _) } };
+("pointerlockchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointerlockchange as *mut _) } };
+("pointerlockerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointerlockerror as *mut _) } };
+("poly") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_poly as *mut _) } };
+("polygon") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polygon as *mut _) } };
+("popup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popup as *mut _) } };
+("popupalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupalign as *mut _) } };
+("popupanchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupanchor as *mut _) } };
+("popupgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupgroup as *mut _) } };
+("popuphidden") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popuphidden as *mut _) } };
+("popuphiding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popuphiding as *mut _) } };
+("popupset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupset as *mut _) } };
+("popupshowing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupshowing as *mut _) } };
+("popupshown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupshown as *mut _) } };
+("popupsinherittooltip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupsinherittooltip as *mut _) } };
+("position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_position as *mut _) } };
+("poster") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_poster as *mut _) } };
+("pre") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pre as *mut _) } };
+("preceding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preceding as *mut _) } };
+("preceding-sibling") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_precedingSibling as *mut _) } };
+("predicate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_predicate as *mut _) } };
+("prefix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prefix as *mut _) } };
+("preload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preload as *mut _) } };
+("prerendered") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prerendered as *mut _) } };
+("mozpresentation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozpresentation as *mut _) } };
+("preserve") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserve as *mut _) } };
+("preserve-space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveSpace as *mut _) } };
+("preventdefault") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preventdefault as *mut _) } };
+("primary") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primary as *mut _) } };
+("print") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_print as *mut _) } };
+("priority") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_priority as *mut _) } };
+("processing-instruction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_processingInstruction as *mut _) } };
+("profile") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_profile as *mut _) } };
+("progress") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progress as *mut _) } };
+("progressmeter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressmeter as *mut _) } };
+("progressNormal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressNormal as *mut _) } };
+("progressUndetermined") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressUndetermined as *mut _) } };
+("projection") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_projection as *mut _) } };
+("prompt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prompt as *mut _) } };
+("propagate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_propagate as *mut _) } };
+("properties") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_properties as *mut _) } };
+("property") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_property as *mut _) } };
+("pubdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pubdate as *mut _) } };
+("q") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_q as *mut _) } };
+("query") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_query as *mut _) } };
+("queryset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_queryset as *mut _) } };
+("querytype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_querytype as *mut _) } };
+("radio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radio as *mut _) } };
+("radiogroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radiogroup as *mut _) } };
+("range") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_range as *mut _) } };
+("readonly") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_readonly as *mut _) } };
+("rect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rect as *mut _) } };
+("rectangle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rectangle as *mut _) } };
+("ref") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ref as *mut _) } };
+("refresh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refresh as *mut _) } };
+("rel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rel as *mut _) } };
+("onreloadpage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onreloadpage as *mut _) } };
+("rem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rem as *mut _) } };
+("removeelement") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_removeelement as *mut _) } };
+("renderingobserverlist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_renderingobserverlist as *mut _) } };
+("repeat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeat as *mut _) } };
+("replace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_replace as *mut _) } };
+("required") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_required as *mut _) } };
+("reserved") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reserved as *mut _) } };
+("reset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reset as *mut _) } };
+("resizeafter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizeafter as *mut _) } };
+("resizebefore") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizebefore as *mut _) } };
+("resizer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resizer as *mut _) } };
+("resolution") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resolution as *mut _) } };
+("resource") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resource as *mut _) } };
+("resources") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resources as *mut _) } };
+("result") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_result as *mut _) } };
+("result-prefix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_resultPrefix as *mut _) } };
+("retargetdocumentfocus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_retargetdocumentfocus as *mut _) } };
+("rev") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rev as *mut _) } };
+("reverse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reverse as *mut _) } };
+("reversed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reversed as *mut _) } };
+("richlistbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_richlistbox as *mut _) } };
+("richlistitem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_richlistitem as *mut _) } };
+("right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_right as *mut _) } };
+("rightmargin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rightmargin as *mut _) } };
+("rightpadding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rightpadding as *mut _) } };
+("role") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_role as *mut _) } };
+("rolluponmousewheel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rolluponmousewheel as *mut _) } };
+("round") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_round as *mut _) } };
+("row") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_row as *mut _) } };
+("rows") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rows as *mut _) } };
+("rowspan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowspan as *mut _) } };
+("rb") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rb as *mut _) } };
+("rp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rp as *mut _) } };
+("rt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rt as *mut _) } };
+("rtc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rtc as *mut _) } };
+("rtl") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rtl as *mut _) } };
+("ruby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ruby as *mut _) } };
+("ruby-base") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBase as *mut _) } };
+("ruby-base-container") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseContainer as *mut _) } };
+("ruby-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyText as *mut _) } };
+("ruby-text-container") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextContainer as *mut _) } };
+("rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rule as *mut _) } };
+("rules") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rules as *mut _) } };
+("s") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_s as *mut _) } };
+("samp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_samp as *mut _) } };
+("sandbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sandbox as *mut _) } };
+("sbattr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sbattr as *mut _) } };
+("scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scale as *mut _) } };
+("scan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scan as *mut _) } };
+("scheme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scheme as *mut _) } };
+("scope") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scope as *mut _) } };
+("scoped") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scoped as *mut _) } };
+("screen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screen as *mut _) } };
+("screenX") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screenX as *mut _) } };
+("screenY") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_screenY as *mut _) } };
+("script") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_script as *mut _) } };
+("scriptEnabledBeforePrintOrPreview") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptEnabledBeforePrintOrPreview as *mut _) } };
+("scrollbar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar as *mut _) } };
+("scrollbarbutton") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarbutton as *mut _) } };
+("scrollbar-down-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarDownBottom as *mut _) } };
+("scrollbar-down-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarDownTop as *mut _) } };
+("scrollbar-up-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarUpBottom as *mut _) } };
+("scrollbar-up-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarUpTop as *mut _) } };
+("scrollbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbox as *mut _) } };
+("scrollcorner") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollcorner as *mut _) } };
+("scrolling") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrolling as *mut _) } };
+("section") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_section as *mut _) } };
+("select") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_select as *mut _) } };
+("selectable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectable as *mut _) } };
+("selected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selected as *mut _) } };
+("selectedIndex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectedIndex as *mut _) } };
+("selectedindex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selectedindex as *mut _) } };
+("self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_self as *mut _) } };
+("seltype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seltype as *mut _) } };
+("set-cookie") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setcookie as *mut _) } };
+("setter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setter as *mut _) } };
+("shape") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape as *mut _) } };
+("show") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_show as *mut _) } };
+("showcaret") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_showcaret as *mut _) } };
+("showresizer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_showresizer as *mut _) } };
+("simple") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_simple as *mut _) } };
+("single") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_single as *mut _) } };
+("size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_size as *mut _) } };
+("sizes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizes as *mut _) } };
+("sizemode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizemode as *mut _) } };
+("sizetopopup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sizetopopup as *mut _) } };
+("slider") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_slider as *mut _) } };
+("small") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_small as *mut _) } };
+("smooth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_smooth as *mut _) } };
+("snap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_snap as *mut _) } };
+("sort") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sort as *mut _) } };
+("sortActive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortActive as *mut _) } };
+("sortDirection") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortDirection as *mut _) } };
+("sorted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sorted as *mut _) } };
+("sorthints") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sorthints as *mut _) } };
+("sortLocked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortLocked as *mut _) } };
+("sortResource") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource as *mut _) } };
+("sortResource2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortResource2 as *mut _) } };
+("sortSeparators") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortSeparators as *mut _) } };
+("sortStaticsLast") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sortStaticsLast as *mut _) } };
+("source") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_source as *mut _) } };
+("space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_space as *mut _) } };
+("spacer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacer as *mut _) } };
+("span") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_span as *mut _) } };
+("spellcheck") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spellcheck as *mut _) } };
+("spinner") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinner as *mut _) } };
+("split") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_split as *mut _) } };
+("splitmenu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitmenu as *mut _) } };
+("splitter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitter as *mut _) } };
+("spring") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spring as *mut _) } };
+("src") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_src as *mut _) } };
+("srcdoc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srcdoc as *mut _) } };
+("srclang") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srclang as *mut _) } };
+("srcset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_srcset as *mut _) } };
+("stack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stack as *mut _) } };
+("standalone") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_standalone as *mut _) } };
+("standby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_standby as *mut _) } };
+("start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start as *mut _) } };
+("start_after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start_after as *mut _) } };
+("start_before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_start_before as *mut _) } };
+("starts-with") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_startsWith as *mut _) } };
+("state") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_state as *mut _) } };
+("statedatasource") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statedatasource as *mut _) } };
+("staticHint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_staticHint as *mut _) } };
+("statusbar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statusbar as *mut _) } };
+("statustext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_statustext as *mut _) } };
+("step") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_step as *mut _) } };
+("stop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop as *mut _) } };
+("stretch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stretch as *mut _) } };
+("strike") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strike as *mut _) } };
+("string") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_string as *mut _) } };
+("string-length") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stringLength as *mut _) } };
+("strip-space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stripSpace as *mut _) } };
+("strong") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strong as *mut _) } };
+("style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_style as *mut _) } };
+("stylesheet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheet as *mut _) } };
+("stylesheet-prefix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stylesheetPrefix as *mut _) } };
+("subject") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subject as *mut _) } };
+("submit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_submit as *mut _) } };
+("substate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substate as *mut _) } };
+("substring") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substring as *mut _) } };
+("substring-after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substringAfter as *mut _) } };
+("substring-before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_substringBefore as *mut _) } };
+("sub") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sub as *mut _) } };
+("sum") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sum as *mut _) } };
+("sup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sup as *mut _) } };
+("summary") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_summary as *mut _) } };
+("system-property") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_systemProperty as *mut _) } };
+("tab") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tab as *mut _) } };
+("tabbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabbox as *mut _) } };
+("tabindex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabindex as *mut _) } };
+("table") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_table as *mut _) } };
+("tabpanel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabpanel as *mut _) } };
+("tabpanels") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tabpanels as *mut _) } };
+("tag") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tag as *mut _) } };
+("target") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_target as *mut _) } };
+("targets") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targets as *mut _) } };
+("tbody") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tbody as *mut _) } };
+("td") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_td as *mut _) } };
+("template") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__template as *mut _) } };
+("text-decoration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_decoration as *mut _) } };
+("terminate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_terminate as *mut _) } };
+("test") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_test as *mut _) } };
+("text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text as *mut _) } };
+("text-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textAlign as *mut _) } };
+("textarea") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textarea as *mut _) } };
+("textbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textbox as *mut _) } };
+("textnode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textnode as *mut _) } };
+("textNodeDirectionalityMap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textNodeDirectionalityMap as *mut _) } };
+("tfoot") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tfoot as *mut _) } };
+("th") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_th as *mut _) } };
+("thead") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_thead as *mut _) } };
+("thumb") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_thumb as *mut _) } };
+("time") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_time as *mut _) } };
+("title") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_title as *mut _) } };
+("titlebar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_titlebar as *mut _) } };
+("titletip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_titletip as *mut _) } };
+("toggled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toggled as *mut _) } };
+("token") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_token as *mut _) } };
+("tokenize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tokenize as *mut _) } };
+("toolbar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbar as *mut _) } };
+("toolbarbutton") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarbutton as *mut _) } };
+("toolbaritem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbaritem as *mut _) } };
+("toolbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbox as *mut _) } };
+("tooltip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tooltip as *mut _) } };
+("tooltiptext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tooltiptext as *mut _) } };
+("top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_top as *mut _) } };
+("topleft") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topleft as *mut _) } };
+("topmargin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topmargin as *mut _) } };
+("toppadding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toppadding as *mut _) } };
+("topright") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_topright as *mut _) } };
+("tr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tr as *mut _) } };
+("track") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_track as *mut _) } };
+("trailing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_trailing as *mut _) } };
+("transform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transform as *mut _) } };
+("transform-3d") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transform_3d as *mut _) } };
+("transformiix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transformiix as *mut _) } };
+("translate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_translate as *mut _) } };
+("transparent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transparent as *mut _) } };
+("tree") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tree as *mut _) } };
+("treecell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecell as *mut _) } };
+("treechildren") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treechildren as *mut _) } };
+("treecol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecol as *mut _) } };
+("treecolpicker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecolpicker as *mut _) } };
+("treecols") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treecols as *mut _) } };
+("treeitem") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treeitem as *mut _) } };
+("treerow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treerow as *mut _) } };
+("treeseparator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treeseparator as *mut _) } };
+("triple") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_triple as *mut _) } };
+("true") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__true as *mut _) } };
+("tt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tt as *mut _) } };
+("tty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tty as *mut _) } };
+("tv") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tv as *mut _) } };
+("type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_type as *mut _) } };
+("typemustmatch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_typemustmatch as *mut _) } };
+("u") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_u as *mut _) } };
+("ul") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ul as *mut _) } };
+("underflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_underflow as *mut _) } };
+("undetermined") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_undetermined as *mut _) } };
+("undoscope") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_undoscope as *mut _) } };
+("unload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unload as *mut _) } };
+("unparsed-entity-uri") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unparsedEntityUri as *mut _) } };
+("upper-first") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_upperFirst as *mut _) } };
+("uri") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_uri as *mut _) } };
+("use") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_use as *mut _) } };
+("use-attribute-sets") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_useAttributeSets as *mut _) } };
+("usemap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_usemap as *mut _) } };
+("user-scalable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_user_scalable as *mut _) } };
+("userInput") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_userInput as *mut _) } };
+("validate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_validate as *mut _) } };
+("valign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valign as *mut _) } };
+("value") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_value as *mut _) } };
+("values") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_values as *mut _) } };
+("value-of") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valueOf as *mut _) } };
+("valuetype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_valuetype as *mut _) } };
+("var") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_var as *mut _) } };
+("variable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_variable as *mut _) } };
+("vbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vbox as *mut _) } };
+("vcard_name") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vcard_name as *mut _) } };
+("vendor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vendor as *mut _) } };
+("vendor-url") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vendorUrl as *mut _) } };
+("version") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_version as *mut _) } };
+("vert") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vert as *mut _) } };
+("vertical") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vertical as *mut _) } };
+("audio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_audio as *mut _) } };
+("video") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_video as *mut _) } };
+("videocontrols") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_videocontrols as *mut _) } };
+("viewport") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport as *mut _) } };
+("viewport-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_height as *mut _) } };
+("viewport-initial-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_initial_scale as *mut _) } };
+("viewport-maximum-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_maximum_scale as *mut _) } };
+("viewport-minimum-scale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_minimum_scale as *mut _) } };
+("viewport-user-scalable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_user_scalable as *mut _) } };
+("viewport-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewport_width as *mut _) } };
+("visibility") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_visibility as *mut _) } };
+("visuallyselected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_visuallyselected as *mut _) } };
+("vlink") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vlink as *mut _) } };
+("vspace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vspace as *mut _) } };
+("wbr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wbr as *mut _) } };
+("webkitdirectory") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_webkitdirectory as *mut _) } };
+("when") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_when as *mut _) } };
+("where") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_where as *mut _) } };
+("widget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_widget as *mut _) } };
+("width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_width as *mut _) } };
+("window") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_window as *mut _) } };
+("window-target") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerWindowTarget as *mut _) } };
+("windowtype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windowtype as *mut _) } };
+("with-param") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_withParam as *mut _) } };
+("wizard") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wizard as *mut _) } };
+("wrap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_wrap as *mut _) } };
+("x-dns-prefetch-control") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerDNSPrefetchControl as *mut _) } };
+("content-security-policy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerCSP as *mut _) } };
+("content-security-policy-report-only") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerCSPReportOnly as *mut _) } };
+("x-frame-options") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_headerXFO as *mut _) } };
+("x-western") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_western as *mut _) } };
+("xml") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml as *mut _) } };
+("xml-stylesheet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xml_stylesheet as *mut _) } };
+("xmlns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmlns as *mut _) } };
+("xmp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmp as *mut _) } };
+("xulcontentsgenerated") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xulcontentsgenerated as *mut _) } };
+("yes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_yes as *mut _) } };
+("z-index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_z_index as *mut _) } };
+("zero-digit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zeroDigit as *mut _) } };
+("%") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_percentage as *mut _) } };
+("A") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_A as *mut _) } };
+("alignment-baseline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alignment_baseline as *mut _) } };
+("amplitude") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_amplitude as *mut _) } };
+("animate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animate as *mut _) } };
+("animateColor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateColor as *mut _) } };
+("animateMotion") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateMotion as *mut _) } };
+("animateTransform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animateTransform as *mut _) } };
+("arithmetic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arithmetic as *mut _) } };
+("atop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_atop as *mut _) } };
+("azimuth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_azimuth as *mut _) } };
+("B") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_B as *mut _) } };
+("background-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_backgroundColor as *mut _) } };
+("background-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_background_image as *mut _) } };
+("baseFrequency") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseFrequency as *mut _) } };
+("baseline-shift") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseline_shift as *mut _) } };
+("bias") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bias as *mut _) } };
+("caption-side") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_caption_side as *mut _) } };
+("clip-path") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip_path as *mut _) } };
+("clip-rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clip_rule as *mut _) } };
+("clipPath") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipPath as *mut _) } };
+("clipPathUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_clipPathUnits as *mut _) } };
+("cm") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cm as *mut _) } };
+("color-burn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorBurn as *mut _) } };
+("color-dodge") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorDodge as *mut _) } };
+("color-interpolation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorInterpolation as *mut _) } };
+("color-interpolation-filters") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorInterpolationFilters as *mut _) } };
+("color-profile") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorProfile as *mut _) } };
+("cursor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cursor as *mut _) } };
+("cx") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cx as *mut _) } };
+("cy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cy as *mut _) } };
+("d") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_d as *mut _) } };
+("darken") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_darken as *mut _) } };
+("defs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_defs as *mut _) } };
+("deg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deg as *mut _) } };
+("desc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_desc as *mut _) } };
+("diffuseConstant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_diffuseConstant as *mut _) } };
+("dilate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dilate as *mut _) } };
+("direction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_direction as *mut _) } };
+("disable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_disable as *mut _) } };
+("discrete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_discrete as *mut _) } };
+("divisor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divisor as *mut _) } };
+("dominant-baseline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dominant_baseline as *mut _) } };
+("duplicate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_duplicate as *mut _) } };
+("dx") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dx as *mut _) } };
+("dy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dy as *mut _) } };
+("edgeMode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_edgeMode as *mut _) } };
+("ellipse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ellipse as *mut _) } };
+("elevation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_elevation as *mut _) } };
+("erode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_erode as *mut _) } };
+("ex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ex as *mut _) } };
+("exact") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exact as *mut _) } };
+("exclusion") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exclusion as *mut _) } };
+("exponent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exponent as *mut _) } };
+("feBlend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feBlend as *mut _) } };
+("feColorMatrix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feColorMatrix as *mut _) } };
+("feComponentTransfer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feComponentTransfer as *mut _) } };
+("feComposite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feComposite as *mut _) } };
+("feConvolveMatrix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feConvolveMatrix as *mut _) } };
+("feDiffuseLighting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDiffuseLighting as *mut _) } };
+("feDisplacementMap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDisplacementMap as *mut _) } };
+("feDistantLight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDistantLight as *mut _) } };
+("feDropShadow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feDropShadow as *mut _) } };
+("feFlood") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFlood as *mut _) } };
+("feFuncA") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncA as *mut _) } };
+("feFuncB") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncB as *mut _) } };
+("feFuncG") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncG as *mut _) } };
+("feFuncR") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feFuncR as *mut _) } };
+("feGaussianBlur") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feGaussianBlur as *mut _) } };
+("feImage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feImage as *mut _) } };
+("feMerge") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMerge as *mut _) } };
+("feMergeNode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMergeNode as *mut _) } };
+("feMorphology") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feMorphology as *mut _) } };
+("feOffset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feOffset as *mut _) } };
+("fePointLight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fePointLight as *mut _) } };
+("feSpecularLighting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feSpecularLighting as *mut _) } };
+("feSpotLight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feSpotLight as *mut _) } };
+("feTile") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feTile as *mut _) } };
+("feTurbulence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feTurbulence as *mut _) } };
+("fill") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill as *mut _) } };
+("fill-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill_opacity as *mut _) } };
+("fill-rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fill_rule as *mut _) } };
+("filter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_filter as *mut _) } };
+("filterUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_filterUnits as *mut _) } };
+("float") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__float as *mut _) } };
+("flood-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flood_color as *mut _) } };
+("flood-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flood_opacity as *mut _) } };
+("font-face") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face as *mut _) } };
+("font-face-format") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_format as *mut _) } };
+("font-face-name") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_name as *mut _) } };
+("font-face-src") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_src as *mut _) } };
+("font-face-uri") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_face_uri as *mut _) } };
+("font-family") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_family as *mut _) } };
+("font-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_size as *mut _) } };
+("font-size-adjust") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_size_adjust as *mut _) } };
+("font-stretch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_stretch as *mut _) } };
+("font-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_style as *mut _) } };
+("font-variant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_font_variant as *mut _) } };
+("foreignObject") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_foreignObject as *mut _) } };
+("fractalNoise") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fractalNoise as *mut _) } };
+("fx") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fx as *mut _) } };
+("fy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fy as *mut _) } };
+("G") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_G as *mut _) } };
+("g") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_g as *mut _) } };
+("gamma") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gamma as *mut _) } };
+("generic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_generic_ as *mut _) } };
+("glyphRef") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_glyphRef as *mut _) } };
+("grad") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grad as *mut _) } };
+("gradientTransform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gradientTransform as *mut _) } };
+("gradientUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gradientUnits as *mut _) } };
+("hard-light") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hardLight as *mut _) } };
+("hue") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hue as *mut _) } };
+("hueRotate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hueRotate as *mut _) } };
+("identity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_identity as *mut _) } };
+("image-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_image_rendering as *mut _) } };
+("in") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_in as *mut _) } };
+("in2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_in2 as *mut _) } };
+("intercept") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intercept as *mut _) } };
+("k1") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k1 as *mut _) } };
+("k2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k2 as *mut _) } };
+("k3") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k3 as *mut _) } };
+("k4") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_k4 as *mut _) } };
+("kernelMatrix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kernelMatrix as *mut _) } };
+("kernelUnitLength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_kernelUnitLength as *mut _) } };
+("lengthAdjust") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lengthAdjust as *mut _) } };
+("letter-spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letter_spacing as *mut _) } };
+("lighten") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lighten as *mut _) } };
+("lighting-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lighting_color as *mut _) } };
+("limitingConeAngle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_limitingConeAngle as *mut _) } };
+("linear") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linear as *mut _) } };
+("linearGradient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linearGradient as *mut _) } };
+("linearRGB") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linearRGB as *mut _) } };
+("list-style-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list_style_type as *mut _) } };
+("luminanceToAlpha") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luminanceToAlpha as *mut _) } };
+("luminosity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_luminosity as *mut _) } };
+("magnify") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_magnify as *mut _) } };
+("marker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker as *mut _) } };
+("marker-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_end as *mut _) } };
+("marker-mid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_mid as *mut _) } };
+("marker-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_marker_start as *mut _) } };
+("markerHeight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerHeight as *mut _) } };
+("markerUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerUnits as *mut _) } };
+("markerWidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_markerWidth as *mut _) } };
+("mask") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mask as *mut _) } };
+("maskContentUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maskContentUnits as *mut _) } };
+("mask-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mask_type as *mut _) } };
+("maskUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maskUnits as *mut _) } };
+("matrix") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_matrix as *mut _) } };
+("metadata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_metadata as *mut _) } };
+("missing-glyph") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_missingGlyph as *mut _) } };
+("mm") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mm as *mut _) } };
+("mpath") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mpath as *mut _) } };
+("noStitch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_noStitch as *mut _) } };
+("numOctaves") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numOctaves as *mut _) } };
+("multiply") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiply as *mut _) } };
+("objectBoundingBox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectBoundingBox as *mut _) } };
+("offset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_offset as *mut _) } };
+("onSVGLoad") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGLoad as *mut _) } };
+("onSVGResize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGResize as *mut _) } };
+("onSVGScroll") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGScroll as *mut _) } };
+("onSVGUnload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGUnload as *mut _) } };
+("onSVGZoom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onSVGZoom as *mut _) } };
+("onzoom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onzoom as *mut _) } };
+("opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_opacity as *mut _) } };
+("operator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__operator as *mut _) } };
+("out") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_out as *mut _) } };
+("over") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_over as *mut _) } };
+("overridePreserveAspectRatio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overridePreserveAspectRatio as *mut _) } };
+("pad") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pad as *mut _) } };
+("path") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_path as *mut _) } };
+("pathLength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pathLength as *mut _) } };
+("patternContentUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternContentUnits as *mut _) } };
+("patternTransform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternTransform as *mut _) } };
+("patternUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_patternUnits as *mut _) } };
+("pc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pc as *mut _) } };
+("pointer-events") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointer_events as *mut _) } };
+("points") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_points as *mut _) } };
+("pointsAtX") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtX as *mut _) } };
+("pointsAtY") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtY as *mut _) } };
+("pointsAtZ") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pointsAtZ as *mut _) } };
+("polyline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polyline as *mut _) } };
+("preserveAlpha") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveAlpha as *mut _) } };
+("preserveAspectRatio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_preserveAspectRatio as *mut _) } };
+("primitiveUnits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primitiveUnits as *mut _) } };
+("pt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pt as *mut _) } };
+("px") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_px as *mut _) } };
+("R") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_R as *mut _) } };
+("r") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_r as *mut _) } };
+("rad") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rad as *mut _) } };
+("radialGradient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radialGradient as *mut _) } };
+("radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_radius as *mut _) } };
+("reflect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reflect as *mut _) } };
+("refX") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refX as *mut _) } };
+("refY") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_refY as *mut _) } };
+("requiredExtensions") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_requiredExtensions as *mut _) } };
+("requiredFeatures") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_requiredFeatures as *mut _) } };
+("rotate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rotate as *mut _) } };
+("rx") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rx as *mut _) } };
+("ry") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ry as *mut _) } };
+("saturate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturate as *mut _) } };
+("saturation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_saturation as *mut _) } };
+("set") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set as *mut _) } };
+("seed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seed as *mut _) } };
+("shadow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shadow as *mut _) } };
+("shape-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shape_rendering as *mut _) } };
+("skewX") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_skewX as *mut _) } };
+("skewY") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_skewY as *mut _) } };
+("slope") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_slope as *mut _) } };
+("soft-light") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_softLight as *mut _) } };
+("spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacing as *mut _) } };
+("spacingAndGlyphs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spacingAndGlyphs as *mut _) } };
+("specularConstant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_specularConstant as *mut _) } };
+("specularExponent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_specularExponent as *mut _) } };
+("spreadMethod") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spreadMethod as *mut _) } };
+("sRGB") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sRGB as *mut _) } };
+("startOffset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_startOffset as *mut _) } };
+("stdDeviation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stdDeviation as *mut _) } };
+("stitch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stitch as *mut _) } };
+("stitchTiles") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stitchTiles as *mut _) } };
+("stop-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop_color as *mut _) } };
+("stop-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stop_opacity as *mut _) } };
+("stroke") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke as *mut _) } };
+("stroke-dasharray") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_dasharray as *mut _) } };
+("stroke-dashoffset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_dashoffset as *mut _) } };
+("stroke-linecap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_linecap as *mut _) } };
+("stroke-linejoin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_linejoin as *mut _) } };
+("stroke-miterlimit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_miterlimit as *mut _) } };
+("stroke-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_opacity as *mut _) } };
+("stroke-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stroke_width as *mut _) } };
+("strokeWidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_strokeWidth as *mut _) } };
+("surfaceScale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_surfaceScale as *mut _) } };
+("svg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svg as *mut _) } };
+("svgContextPaint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgContextPaint as *mut _) } };
+("switch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgSwitch as *mut _) } };
+("symbol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_symbol as *mut _) } };
+("systemLanguage") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_systemLanguage as *mut _) } };
+("tableValues") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableValues as *mut _) } };
+("targetX") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targetX as *mut _) } };
+("targetY") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_targetY as *mut _) } };
+("text-anchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_anchor as *mut _) } };
+("text-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_text_rendering as *mut _) } };
+("textLength") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLength as *mut _) } };
+("textPath") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textPath as *mut _) } };
+("tref") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tref as *mut _) } };
+("tspan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tspan as *mut _) } };
+("turbulence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_turbulence as *mut _) } };
+("unicode-bidi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_unicode_bidi as *mut _) } };
+("userSpaceOnUse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_userSpaceOnUse as *mut _) } };
+("view") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_view as *mut _) } };
+("viewBox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewBox as *mut _) } };
+("viewTarget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewTarget as *mut _) } };
+("white-space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_white_space as *mut _) } };
+("word-spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_word_spacing as *mut _) } };
+("writing-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_writing_mode as *mut _) } };
+("x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x as *mut _) } };
+("x1") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x1 as *mut _) } };
+("x2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x2 as *mut _) } };
+("xChannelSelector") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xChannelSelector as *mut _) } };
+("xor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xor_ as *mut _) } };
+("y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y as *mut _) } };
+("y1") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y1 as *mut _) } };
+("y2") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_y2 as *mut _) } };
+("yChannelSelector") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_yChannelSelector as *mut _) } };
+("z") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_z as *mut _) } };
+("zoomAndPan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zoomAndPan as *mut _) } };
+("vector-effect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vector_effect as *mut _) } };
+("vertical-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vertical_align as *mut _) } };
+("accumulate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accumulate as *mut _) } };
+("additive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_additive as *mut _) } };
+("attributeName") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeName as *mut _) } };
+("attributeType") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_attributeType as *mut _) } };
+("auto-reverse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_auto_reverse as *mut _) } };
+("begin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_begin as *mut _) } };
+("beginEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_beginEvent as *mut _) } };
+("by") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_by as *mut _) } };
+("calcMode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_calcMode as *mut _) } };
+("CSS") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_css as *mut _) } };
+("dur") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dur as *mut _) } };
+("keyPoints") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyPoints as *mut _) } };
+("keySplines") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keySplines as *mut _) } };
+("keyTimes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_keyTimes as *mut _) } };
+("_mozAnimateMotionDummyAttr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozAnimateMotionDummyAttr as *mut _) } };
+("onbegin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbegin as *mut _) } };
+("onbeginEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeginEvent as *mut _) } };
+("onend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onend as *mut _) } };
+("onendEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onendEvent as *mut _) } };
+("onrepeat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrepeat as *mut _) } };
+("onrepeatEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onrepeatEvent as *mut _) } };
+("repeatCount") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatCount as *mut _) } };
+("repeatDur") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatDur as *mut _) } };
+("repeatEvent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_repeatEvent as *mut _) } };
+("restart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restart as *mut _) } };
+("to") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_to as *mut _) } };
+("XML") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_XML as *mut _) } };
+("abs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_abs_ as *mut _) } };
+("accent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accent_ as *mut _) } };
+("accentunder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_accentunder_ as *mut _) } };
+("actiontype") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_actiontype_ as *mut _) } };
+("alignmentscope") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alignmentscope_ as *mut _) } };
+("altimg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_ as *mut _) } };
+("altimg-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_height_ as *mut _) } };
+("altimg-valign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_valign_ as *mut _) } };
+("altimg-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_altimg_width_ as *mut _) } };
+("annotation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_annotation_ as *mut _) } };
+("annotation-xml") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_annotation_xml_ as *mut _) } };
+("apply") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apply_ as *mut _) } };
+("approx") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_approx_ as *mut _) } };
+("arccos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccos_ as *mut _) } };
+("arccosh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccosh_ as *mut _) } };
+("arccot") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccot_ as *mut _) } };
+("arccoth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccoth_ as *mut _) } };
+("arccsc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccsc_ as *mut _) } };
+("arccsch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arccsch_ as *mut _) } };
+("arcsec") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsec_ as *mut _) } };
+("arcsech") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsech_ as *mut _) } };
+("arcsin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsin_ as *mut _) } };
+("arcsinh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arcsinh_ as *mut _) } };
+("arctan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arctan_ as *mut _) } };
+("arctanh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arctanh_ as *mut _) } };
+("arg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_arg_ as *mut _) } };
+("bevelled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bevelled_ as *mut _) } };
+("bind") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bind_ as *mut _) } };
+("bvar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bvar_ as *mut _) } };
+("card") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_card_ as *mut _) } };
+("cartesianproduct") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cartesianproduct_ as *mut _) } };
+("cbytes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cbytes_ as *mut _) } };
+("cd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cd_ as *mut _) } };
+("cdgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdgroup_ as *mut _) } };
+("cerror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cerror_ as *mut _) } };
+("charalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_charalign_ as *mut _) } };
+("ci") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ci_ as *mut _) } };
+("closure") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_closure_ as *mut _) } };
+("cn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cn_ as *mut _) } };
+("codomain") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_codomain_ as *mut _) } };
+("columnalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnalign_ as *mut _) } };
+("columnalignment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnalignment_ as *mut _) } };
+("columnlines") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnlines_ as *mut _) } };
+("columnspacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnspacing_ as *mut _) } };
+("columnspan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnspan_ as *mut _) } };
+("columnwidth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnwidth_ as *mut _) } };
+("complexes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_complexes_ as *mut _) } };
+("compose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_compose_ as *mut _) } };
+("condition") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_condition_ as *mut _) } };
+("conjugate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_conjugate_ as *mut _) } };
+("cos") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cos_ as *mut _) } };
+("cosh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cosh_ as *mut _) } };
+("cot") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cot_ as *mut _) } };
+("coth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_coth_ as *mut _) } };
+("crossout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crossout_ as *mut _) } };
+("csc") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csc_ as *mut _) } };
+("csch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csch_ as *mut _) } };
+("cs") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cs_ as *mut _) } };
+("csymbol") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_csymbol_ as *mut _) } };
+("curl") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_curl_ as *mut _) } };
+("decimalpoint") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_decimalpoint_ as *mut _) } };
+("definitionURL") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_definitionURL_ as *mut _) } };
+("degree") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_degree_ as *mut _) } };
+("denomalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_denomalign_ as *mut _) } };
+("depth") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_depth_ as *mut _) } };
+("determinant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_determinant_ as *mut _) } };
+("diff") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_diff_ as *mut _) } };
+("displaystyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_displaystyle_ as *mut _) } };
+("divergence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divergence_ as *mut _) } };
+("divide") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_divide_ as *mut _) } };
+("domain") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_domain_ as *mut _) } };
+("domainofapplication") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_domainofapplication_ as *mut _) } };
+("edge") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_edge_ as *mut _) } };
+("el") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_el_ as *mut _) } };
+("emptyset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_emptyset_ as *mut _) } };
+("eq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eq_ as *mut _) } };
+("equalcolumns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalcolumns_ as *mut _) } };
+("equalrows") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equalrows_ as *mut _) } };
+("equivalent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_equivalent_ as *mut _) } };
+("eulergamma") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eulergamma_ as *mut _) } };
+("exists") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exists_ as *mut _) } };
+("exp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exp_ as *mut _) } };
+("exponentiale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_exponentiale_ as *mut _) } };
+("factorial") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_factorial_ as *mut _) } };
+("factorof") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_factorof_ as *mut _) } };
+("fence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fence_ as *mut _) } };
+("fn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fn_ as *mut _) } };
+("fontfamily") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontfamily_ as *mut _) } };
+("fontsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontsize_ as *mut _) } };
+("fontstyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontstyle_ as *mut _) } };
+("fontweight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fontweight_ as *mut _) } };
+("forall") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forall_ as *mut _) } };
+("framespacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_framespacing_ as *mut _) } };
+("gcd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gcd_ as *mut _) } };
+("geq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_geq_ as *mut _) } };
+("groupalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_groupalign_ as *mut _) } };
+("gt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gt_ as *mut _) } };
+("ident") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ident_ as *mut _) } };
+("imaginaryi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imaginaryi_ as *mut _) } };
+("imaginary") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imaginary_ as *mut _) } };
+("implies") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_implies_ as *mut _) } };
+("indentalignfirst") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalignfirst_ as *mut _) } };
+("indentalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalign_ as *mut _) } };
+("indentalignlast") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentalignlast_ as *mut _) } };
+("indentshiftfirst") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentshiftfirst_ as *mut _) } };
+("indentshift") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indentshift_ as *mut _) } };
+("indenttarget") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_indenttarget_ as *mut _) } };
+("integers") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_integers_ as *mut _) } };
+("intersect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_intersect_ as *mut _) } };
+("interval") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_interval_ as *mut _) } };
+("int") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_int_ as *mut _) } };
+("inverse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inverse_ as *mut _) } };
+("lambda") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lambda_ as *mut _) } };
+("laplacian") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_laplacian_ as *mut _) } };
+("largeop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_largeop_ as *mut _) } };
+("lcm") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lcm_ as *mut _) } };
+("leq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leq_ as *mut _) } };
+("limit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_limit_ as *mut _) } };
+("linebreak") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreak_ as *mut _) } };
+("linebreakmultchar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreakmultchar_ as *mut _) } };
+("linebreakstyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linebreakstyle_ as *mut _) } };
+("linethickness") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linethickness_ as *mut _) } };
+("list") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_list_ as *mut _) } };
+("ln") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ln_ as *mut _) } };
+("location") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_location_ as *mut _) } };
+("logbase") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_logbase_ as *mut _) } };
+("log") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_log_ as *mut _) } };
+("longdivstyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_longdivstyle_ as *mut _) } };
+("lowlimit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lowlimit_ as *mut _) } };
+("lquote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lquote_ as *mut _) } };
+("lspace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lspace_ as *mut _) } };
+("lt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lt_ as *mut _) } };
+("maction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maction_ as *mut _) } };
+("maligngroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maligngroup_ as *mut _) } };
+("malignmark") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_malignmark_ as *mut _) } };
+("mathbackground") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathbackground_ as *mut _) } };
+("mathcolor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathcolor_ as *mut _) } };
+("mathsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathsize_ as *mut _) } };
+("mathvariant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mathvariant_ as *mut _) } };
+("matrixrow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_matrixrow_ as *mut _) } };
+("maxsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_maxsize_ as *mut _) } };
+("mean") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mean_ as *mut _) } };
+("median") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_median_ as *mut _) } };
+("menclose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menclose_ as *mut _) } };
+("merror") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_merror_ as *mut _) } };
+("mfenced") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mfenced_ as *mut _) } };
+("mfrac") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mfrac_ as *mut _) } };
+("mglyph") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mglyph_ as *mut _) } };
+("mi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mi_ as *mut _) } };
+("minlabelspacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minlabelspacing_ as *mut _) } };
+("minsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minsize_ as *mut _) } };
+("minus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_minus_ as *mut _) } };
+("mlabeledtr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mlabeledtr_ as *mut _) } };
+("mlongdiv") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mlongdiv_ as *mut _) } };
+("mmultiscripts") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mmultiscripts_ as *mut _) } };
+("mn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mn_ as *mut _) } };
+("momentabout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_momentabout_ as *mut _) } };
+("moment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_moment_ as *mut _) } };
+("mo") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mo_ as *mut _) } };
+("movablelimits") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_movablelimits_ as *mut _) } };
+("mover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mover_ as *mut _) } };
+("mpadded") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mpadded_ as *mut _) } };
+("mphantom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mphantom_ as *mut _) } };
+("mprescripts") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mprescripts_ as *mut _) } };
+("mroot") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mroot_ as *mut _) } };
+("mrow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mrow_ as *mut _) } };
+("mscarries") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mscarries_ as *mut _) } };
+("mscarry") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mscarry_ as *mut _) } };
+("msgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msgroup_ as *mut _) } };
+("msline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msline_ as *mut _) } };
+("ms") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ms_ as *mut _) } };
+("mspace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mspace_ as *mut _) } };
+("msqrt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msqrt_ as *mut _) } };
+("msrow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msrow_ as *mut _) } };
+("mstack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mstack_ as *mut _) } };
+("mstyle") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mstyle_ as *mut _) } };
+("msub") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msub_ as *mut _) } };
+("msubsup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msubsup_ as *mut _) } };
+("msup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_msup_ as *mut _) } };
+("mtable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtable_ as *mut _) } };
+("mtd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtd_ as *mut _) } };
+("mtext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtext_ as *mut _) } };
+("mtr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mtr_ as *mut _) } };
+("munder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_munder_ as *mut _) } };
+("munderover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_munderover_ as *mut _) } };
+("naturalnumbers") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_naturalnumbers_ as *mut _) } };
+("neq") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_neq_ as *mut _) } };
+("notanumber") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notanumber_ as *mut _) } };
+("notation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notation_ as *mut _) } };
+("note") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_note_ as *mut _) } };
+("notin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notin_ as *mut _) } };
+("notprsubset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notprsubset_ as *mut _) } };
+("notsubset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_notsubset_ as *mut _) } };
+("numalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numalign_ as *mut _) } };
+("other") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_other_ as *mut _) } };
+("outerproduct") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_outerproduct_ as *mut _) } };
+("partialdiff") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_partialdiff_ as *mut _) } };
+("piece") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_piece_ as *mut _) } };
+("piecewise") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_piecewise_ as *mut _) } };
+("pi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pi_ as *mut _) } };
+("plus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_plus_ as *mut _) } };
+("power") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_power_ as *mut _) } };
+("primes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_primes_ as *mut _) } };
+("product") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_product_ as *mut _) } };
+("prsubset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_prsubset_ as *mut _) } };
+("quotient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_quotient_ as *mut _) } };
+("rationals") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rationals_ as *mut _) } };
+("real") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_real_ as *mut _) } };
+("reals") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reals_ as *mut _) } };
+("reln") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_reln_ as *mut _) } };
+("root") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_root_ as *mut _) } };
+("rowalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowalign_ as *mut _) } };
+("rowlines") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowlines_ as *mut _) } };
+("rowspacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowspacing_ as *mut _) } };
+("rquote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rquote_ as *mut _) } };
+("rspace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rspace_ as *mut _) } };
+("scalarproduct") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scalarproduct_ as *mut _) } };
+("schemaLocation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_schemaLocation_ as *mut _) } };
+("scriptlevel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptlevel_ as *mut _) } };
+("scriptminsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptminsize_ as *mut _) } };
+("scriptsizemultiplier") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptsizemultiplier_ as *mut _) } };
+("scriptsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scriptsize_ as *mut _) } };
+("sdev") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sdev_ as *mut _) } };
+("sech") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sech_ as *mut _) } };
+("sec") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sec_ as *mut _) } };
+("selection") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selection_ as *mut _) } };
+("selector") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_selector_ as *mut _) } };
+("semantics") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_semantics_ as *mut _) } };
+("separator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_separator_ as *mut _) } };
+("separators") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_separators_ as *mut _) } };
+("sep") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sep_ as *mut _) } };
+("setdiff") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setdiff_ as *mut _) } };
+("set") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_set_ as *mut _) } };
+("share") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_share_ as *mut _) } };
+("shift") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_shift_ as *mut _) } };
+("side") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_side_ as *mut _) } };
+("sinh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sinh_ as *mut _) } };
+("sin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sin_ as *mut _) } };
+("stackalign") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stackalign_ as *mut _) } };
+("stretchy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stretchy_ as *mut _) } };
+("subscriptshift") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subscriptshift_ as *mut _) } };
+("subset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subset_ as *mut _) } };
+("superscriptshift") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_superscriptshift_ as *mut _) } };
+("symmetric") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_symmetric_ as *mut _) } };
+("tanh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tanh_ as *mut _) } };
+("tan") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tan_ as *mut _) } };
+("tendsto") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tendsto_ as *mut _) } };
+("times") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_times_ as *mut _) } };
+("transpose") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transpose_ as *mut _) } };
+("union") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_union_ as *mut _) } };
+("uplimit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_uplimit_ as *mut _) } };
+("variance") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_variance_ as *mut _) } };
+("vectorproduct") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vectorproduct_ as *mut _) } };
+("vector") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_vector_ as *mut _) } };
+("voffset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_voffset_ as *mut _) } };
+("xref") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xref_ as *mut _) } };
+("math") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_math as *mut _) } };
+("avg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_avg as *mut _) } };
+("boolean-from-string") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_booleanFromString as *mut _) } };
+("count-non-empty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_countNonEmpty as *mut _) } };
+("days-from-date") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_daysFromDate as *mut _) } };
+("init") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_init as *mut _) } };
+("instance") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_instance as *mut _) } };
+("months") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_months as *mut _) } };
+("now") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_now as *mut _) } };
+("seconds") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seconds as *mut _) } };
+("seconds-from-dateTime") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_secondsFromDateTime as *mut _) } };
+("onMozSwipeGestureMayStart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureMayStart as *mut _) } };
+("onMozSwipeGestureStart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureStart as *mut _) } };
+("onMozSwipeGestureUpdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureUpdate as *mut _) } };
+("onMozSwipeGestureEnd") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGestureEnd as *mut _) } };
+("onMozSwipeGesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozSwipeGesture as *mut _) } };
+("onMozMagnifyGestureStart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGestureStart as *mut _) } };
+("onMozMagnifyGestureUpdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGestureUpdate as *mut _) } };
+("onMozMagnifyGesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozMagnifyGesture as *mut _) } };
+("onMozRotateGestureStart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGestureStart as *mut _) } };
+("onMozRotateGestureUpdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGestureUpdate as *mut _) } };
+("onMozRotateGesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozRotateGesture as *mut _) } };
+("onMozTapGesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozTapGesture as *mut _) } };
+("onMozPressTapGesture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozPressTapGesture as *mut _) } };
+("onMozEdgeUIStarted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUIStarted as *mut _) } };
+("onMozEdgeUICanceled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUICanceled as *mut _) } };
+("onMozEdgeUICompleted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozEdgeUICompleted as *mut _) } };
+("onpointerdown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerdown as *mut _) } };
+("onpointermove") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointermove as *mut _) } };
+("onpointerup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerup as *mut _) } };
+("onpointercancel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointercancel as *mut _) } };
+("onpointerover") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerover as *mut _) } };
+("onpointerout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerout as *mut _) } };
+("onpointerenter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerenter as *mut _) } };
+("onpointerleave") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpointerleave as *mut _) } };
+("ongotpointercapture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongotpointercapture as *mut _) } };
+("onlostpointercapture") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onlostpointercapture as *mut _) } };
+("ondevicemotion") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicemotion as *mut _) } };
+("ondeviceorientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceorientation as *mut _) } };
+("onabsolutedeviceorientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onabsolutedeviceorientation as *mut _) } };
+("ondeviceproximity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondeviceproximity as *mut _) } };
+("onmozorientationchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozorientationchange as *mut _) } };
+("onuserproximity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onuserproximity as *mut _) } };
+("ondevicelight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicelight as *mut _) } };
+("onmozinterruptbegin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptbegin as *mut _) } };
+("onmozinterruptend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozinterruptend as *mut _) } };
+("ondevicechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondevicechange as *mut _) } };
+("#cdata-section") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cdataTagName as *mut _) } };
+("#comment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_commentTagName as *mut _) } };
+("#document") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentNodeName as *mut _) } };
+("#document-fragment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentFragmentNodeName as *mut _) } };
+("#document-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_documentTypeNodeName as *mut _) } };
+("#processing-instruction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_processingInstructionTagName as *mut _) } };
+("#text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textTagName as *mut _) } };
+("BCTableCellFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bcTableCellFrame as *mut _) } };
+("BlockFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_blockFrame as *mut _) } };
+("BoxFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_boxFrame as *mut _) } };
+("BRFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_brFrame as *mut _) } };
+("BulletFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_bulletFrame as *mut _) } };
+("colorControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_colorControlFrame as *mut _) } };
+("ColumnSetFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnSetFrame as *mut _) } };
+("ComboboxControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxControlFrame as *mut _) } };
+("ComboboxDisplayFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_comboboxDisplayFrame as *mut _) } };
+("DateTimeControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_dateTimeControlFrame as *mut _) } };
+("DeckFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_deckFrame as *mut _) } };
+("DetailsFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_detailsFrame as *mut _) } };
+("FieldSetFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fieldSetFrame as *mut _) } };
+("FlexContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_flexContainerFrame as *mut _) } };
+("FormControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_formControlFrame as *mut _) } };
+("FrameSetFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_frameSetFrame as *mut _) } };
+("gfxButtonControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gfxButtonControlFrame as *mut _) } };
+("GridContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gridContainerFrame as *mut _) } };
+("HTMLButtonControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLButtonControlFrame as *mut _) } };
+("HTMLCanvasFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLCanvasFrame as *mut _) } };
+("subDocumentFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subDocumentFrame as *mut _) } };
+("ImageBoxFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageBoxFrame as *mut _) } };
+("ImageFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageFrame as *mut _) } };
+("ImageControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_imageControlFrame as *mut _) } };
+("InlineFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlineFrame as *mut _) } };
+("LeafBoxFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_leafBoxFrame as *mut _) } };
+("LegendFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_legendFrame as *mut _) } };
+("LetterFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_letterFrame as *mut _) } };
+("LineFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lineFrame as *mut _) } };
+("ListControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_listControlFrame as *mut _) } };
+("MenuFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuFrame as *mut _) } };
+("MeterFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_meterFrame as *mut _) } };
+("MenuPopupFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuPopupFrame as *mut _) } };
+("NumberControlFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numberControlFrame as *mut _) } };
+("ObjectFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_objectFrame as *mut _) } };
+("PageFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageFrame as *mut _) } };
+("PageBreakFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageBreakFrame as *mut _) } };
+("PageContentFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pageContentFrame as *mut _) } };
+("PlaceholderFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_placeholderFrame as *mut _) } };
+("PopupSetFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_popupSetFrame as *mut _) } };
+("ProgressFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressFrame as *mut _) } };
+("CanvasFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canvasFrame as *mut _) } };
+("RangeFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rangeFrame as *mut _) } };
+("RootFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rootFrame as *mut _) } };
+("RubyBaseContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseContainerFrame as *mut _) } };
+("RubyBaseFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyBaseFrame as *mut _) } };
+("RubyFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyFrame as *mut _) } };
+("RubyTextContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextContainerFrame as *mut _) } };
+("RubyTextFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rubyTextFrame as *mut _) } };
+("ScrollFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollFrame as *mut _) } };
+("ScrollbarFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbarFrame as *mut _) } };
+("SequenceFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sequenceFrame as *mut _) } };
+("sliderFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sliderFrame as *mut _) } };
+("TableCellFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellFrame as *mut _) } };
+("TableColFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColFrame as *mut _) } };
+("TableColGroupFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableColGroupFrame as *mut _) } };
+("TableFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableFrame as *mut _) } };
+("TableWrapperFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableWrapperFrame as *mut _) } };
+("TableRowGroupFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowGroupFrame as *mut _) } };
+("TableRowFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableRowFrame as *mut _) } };
+("TextInputFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textInputFrame as *mut _) } };
+("TextFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textFrame as *mut _) } };
+("ViewportFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_viewportFrame as *mut _) } };
+("XULLabelFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_XULLabelFrame as *mut _) } };
+("SVGAFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgAFrame as *mut _) } };
+("SVGClipPathFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgClipPathFrame as *mut _) } };
+("SVGDefsFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgDefsFrame as *mut _) } };
+("SVGFEContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEContainerFrame as *mut _) } };
+("SVGFEImageFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEImageFrame as *mut _) } };
+("SVGFELeafFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFELeafFrame as *mut _) } };
+("SVGFEUnstyledLeafFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFEUnstyledLeafFrame as *mut _) } };
+("SVGFilterFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgFilterFrame as *mut _) } };
+("SVGForeignObjectFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgForeignObjectFrame as *mut _) } };
+("SVGGenericContainerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGenericContainerFrame as *mut _) } };
+("SVGGFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGFrame as *mut _) } };
+("SVGGradientFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGradientFrame as *mut _) } };
+("SVGImageFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgImageFrame as *mut _) } };
+("SVGInnerSVGFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgInnerSVGFrame as *mut _) } };
+("SVGLinearGradientFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgLinearGradientFrame as *mut _) } };
+("SVGMarkerFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerFrame as *mut _) } };
+("SVGMarkerAnonChildFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMarkerAnonChildFrame as *mut _) } };
+("SVGMaskFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgMaskFrame as *mut _) } };
+("SVGOuterSVGFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGFrame as *mut _) } };
+("SVGOuterSVGAnonChildFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGAnonChildFrame as *mut _) } };
+("SVGPathGeometryFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPathGeometryFrame as *mut _) } };
+("SVGPatternFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPatternFrame as *mut _) } };
+("SVGRadialGradientFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgRadialGradientFrame as *mut _) } };
+("SVGStopFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgStopFrame as *mut _) } };
+("SVGSwitchFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgSwitchFrame as *mut _) } };
+("SVGTextFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgTextFrame as *mut _) } };
+("SVGUseFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgUseFrame as *mut _) } };
+("SVGViewFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgViewFrame as *mut _) } };
+("VideoFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HTMLVideoFrame as *mut _) } };
+("onloadend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadend as *mut _) } };
+("onloadstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadstart as *mut _) } };
+("onprogress") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onprogress as *mut _) } };
+("onsuspend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsuspend as *mut _) } };
+("onemptied") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onemptied as *mut _) } };
+("onstalled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstalled as *mut _) } };
+("onplay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onplay as *mut _) } };
+("onpause") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onpause as *mut _) } };
+("onloadedmetadata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadedmetadata as *mut _) } };
+("onloadeddata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onloadeddata as *mut _) } };
+("onwaiting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwaiting as *mut _) } };
+("onplaying") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onplaying as *mut _) } };
+("oncanplay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncanplay as *mut _) } };
+("oncanplaythrough") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncanplaythrough as *mut _) } };
+("onseeking") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onseeking as *mut _) } };
+("onseeked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onseeked as *mut _) } };
+("ontimeout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontimeout as *mut _) } };
+("ontimeupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontimeupdate as *mut _) } };
+("onended") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onended as *mut _) } };
+("onratechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onratechange as *mut _) } };
+("ondurationchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondurationchange as *mut _) } };
+("onvolumechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvolumechange as *mut _) } };
+("onaddtrack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaddtrack as *mut _) } };
+("oncontrollerchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncontrollerchange as *mut _) } };
+("oncuechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_oncuechange as *mut _) } };
+("onenter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onenter as *mut _) } };
+("onexit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onexit as *mut _) } };
+("onencrypted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onencrypted as *mut _) } };
+("encrypted") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_encrypted as *mut _) } };
+("onwaitingforkey") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwaitingforkey as *mut _) } };
+("onkeystatuseschange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onkeystatuseschange as *mut _) } };
+("onremovetrack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremovetrack as *mut _) } };
+("loadstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadstart as *mut _) } };
+("suspend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_suspend as *mut _) } };
+("emptied") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_emptied as *mut _) } };
+("stalled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_stalled as *mut _) } };
+("play") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_play as *mut _) } };
+("pause") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pause as *mut _) } };
+("loadedmetadata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadedmetadata as *mut _) } };
+("loadeddata") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_loadeddata as *mut _) } };
+("waiting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_waiting as *mut _) } };
+("playing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_playing as *mut _) } };
+("seeking") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seeking as *mut _) } };
+("seeked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_seeked as *mut _) } };
+("timeupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_timeupdate as *mut _) } };
+("ended") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ended as *mut _) } };
+("canplay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canplay as *mut _) } };
+("canplaythrough") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_canplaythrough as *mut _) } };
+("ratechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ratechange as *mut _) } };
+("durationchange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_durationchange as *mut _) } };
+("volumechange") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_volumechange as *mut _) } };
+("ondataavailable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ondataavailable as *mut _) } };
+("onwarning") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onwarning as *mut _) } };
+("onstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstart as *mut _) } };
+("onstop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onstop as *mut _) } };
+("onphoto") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onphoto as *mut _) } };
+("onactivestatechanged") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onactivestatechanged as *mut _) } };
+("ongamepadbuttondown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadbuttondown as *mut _) } };
+("ongamepadbuttonup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadbuttonup as *mut _) } };
+("ongamepadaxismove") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadaxismove as *mut _) } };
+("ongamepadconnected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepadconnected as *mut _) } };
+("ongamepaddisconnected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ongamepaddisconnected as *mut _) } };
+("AnimationsProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsProperty as *mut _) } };
+("AnimationsOfBeforeProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsOfBeforeProperty as *mut _) } };
+("AnimationsOfAfterProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationsOfAfterProperty as *mut _) } };
+("AnimationEffectsProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsProperty as *mut _) } };
+("AnimationsEffectsForBeforeProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForBeforeProperty as *mut _) } };
+("AnimationsEffectsForAfterProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_animationEffectsForAfterProperty as *mut _) } };
+("CSSPseudoElementBeforeProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cssPseudoElementBeforeProperty as *mut _) } };
+("CSSPseudoElementAfterProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cssPseudoElementAfterProperty as *mut _) } };
+("TransitionsProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsProperty as *mut _) } };
+("TransitionsOfBeforeProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsOfBeforeProperty as *mut _) } };
+("TransitionsOfAfterProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_transitionsOfAfterProperty as *mut _) } };
+("QuoteNodeProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_genConInitializerProperty as *mut _) } };
+("LabelMouseDownPtProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_labelMouseDownPtProperty as *mut _) } };
+("baseURIProperty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_baseURIProperty as *mut _) } };
+("lockedStyleStates") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lockedStyleStates as *mut _) } };
+("apzCallbackTransform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apzCallbackTransform as *mut _) } };
+("restylableAnonymousNode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restylableAnonymousNode as *mut _) } };
+("PaintRequestTime") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_paintRequestTime as *mut _) } };
+("ja") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Japanese as *mut _) } };
+("zh-CN") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Chinese as *mut _) } };
+("zh-TW") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Taiwanese as *mut _) } };
+("zh-HK") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_HongKongChinese as *mut _) } };
+("x-unicode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Unicode as *mut _) } };
+("ko") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ko as *mut _) } };
+("zh-cn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_cn as *mut _) } };
+("zh-hk") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_hk as *mut _) } };
+("zh-tw") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_zh_tw as *mut _) } };
+("x-cyrillic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_cyrillic as *mut _) } };
+("he") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_he as *mut _) } };
+("ar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ar as *mut _) } };
+("x-devanagari") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_devanagari as *mut _) } };
+("x-tamil") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_tamil as *mut _) } };
+("x-armn") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_armn as *mut _) } };
+("x-beng") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_beng as *mut _) } };
+("x-cans") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_cans as *mut _) } };
+("x-ethi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_ethi as *mut _) } };
+("x-geor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_geor as *mut _) } };
+("x-gujr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_gujr as *mut _) } };
+("x-guru") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_guru as *mut _) } };
+("x-khmr") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_khmr as *mut _) } };
+("x-knda") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_knda as *mut _) } };
+("x-mlym") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_mlym as *mut _) } };
+("x-orya") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_orya as *mut _) } };
+("x-sinh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_sinh as *mut _) } };
+("x-telu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_telu as *mut _) } };
+("x-tibt") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_tibt as *mut _) } };
+("az") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_az as *mut _) } };
+("ba") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ba as *mut _) } };
+("crh") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_crh as *mut _) } };
+("el") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_el as *mut _) } };
+("ga") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ga as *mut _) } };
+("nl") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nl as *mut _) } };
+("x-math") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_x_math as *mut _) } };
+("Typing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_TypingTxnName as *mut _) } };
+("IME") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_IMETxnName as *mut _) } };
+("Deleting") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DeleteTxnName as *mut _) } };
+("serif") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_serif as *mut _) } };
+("sans-serif") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_sans_serif as *mut _) } };
+("cursive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cursive as *mut _) } };
+("fantasy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fantasy as *mut _) } };
+("monospace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_monospace as *mut _) } };
+("remote") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Remote as *mut _) } };
+("_remote_id") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_RemoteId as *mut _) } };
+("_displayport") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPort as *mut _) } };
+("_displayportmargins") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPortMargins as *mut _) } };
+("_displayportbase") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPortBase as *mut _) } };
+("_asyncscrolllayercreationfailed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AsyncScrollLayerCreationFailed as *mut _) } };
+("forcemessagemanager") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_forcemessagemanager as *mut _) } };
+("color-picker-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_color_picker_available as *mut _) } };
+("scrollbar-start-backward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_backward as *mut _) } };
+("scrollbar-start-forward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_start_forward as *mut _) } };
+("scrollbar-end-backward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_backward as *mut _) } };
+("scrollbar-end-forward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_end_forward as *mut _) } };
+("scrollbar-thumb-proportional") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbar_thumb_proportional as *mut _) } };
+("overlay-scrollbars") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overlay_scrollbars as *mut _) } };
+("windows-default-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_default_theme as *mut _) } };
+("mac-graphite-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mac_graphite_theme as *mut _) } };
+("mac-yosemite-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mac_yosemite_theme as *mut _) } };
+("windows-compositor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_compositor as *mut _) } };
+("windows-glass") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_glass as *mut _) } };
+("touch-enabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_touch_enabled as *mut _) } };
+("menubar-drag") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menubar_drag as *mut _) } };
+("swipe-animation-enabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_swipe_animation_enabled as *mut _) } };
+("physical-home-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_physical_home_button as *mut _) } };
+("windows-classic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_classic as *mut _) } };
+("windows-theme-aero") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_aero as *mut _) } };
+("windows-theme-aero-lite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_aero_lite as *mut _) } };
+("windows-theme-luna-blue") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_blue as *mut _) } };
+("windows-theme-luna-olive") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_olive as *mut _) } };
+("windows-theme-luna-silver") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_luna_silver as *mut _) } };
+("windows-theme-royale") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_royale as *mut _) } };
+("windows-theme-zune") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_zune as *mut _) } };
+("windows-theme-generic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_windows_theme_generic as *mut _) } };
+("-moz-color-picker-available") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_color_picker_available as *mut _) } };
+("-moz-scrollbar-start-backward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_backward as *mut _) } };
+("-moz-scrollbar-start-forward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_start_forward as *mut _) } };
+("-moz-scrollbar-end-backward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_backward as *mut _) } };
+("-moz-scrollbar-end-forward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_end_forward as *mut _) } };
+("-moz-scrollbar-thumb-proportional") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_scrollbar_thumb_proportional as *mut _) } };
+("-moz-overlay-scrollbars") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_overlay_scrollbars as *mut _) } };
+("-moz-windows-default-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_default_theme as *mut _) } };
+("-moz-mac-graphite-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_mac_graphite_theme as *mut _) } };
+("-moz-mac-yosemite-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_mac_yosemite_theme as *mut _) } };
+("-moz-windows-compositor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_compositor as *mut _) } };
+("-moz-windows-classic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_classic as *mut _) } };
+("-moz-windows-glass") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_glass as *mut _) } };
+("-moz-windows-theme") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_windows_theme as *mut _) } };
+("-moz-os-version") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_os_version as *mut _) } };
+("-moz-touch-enabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_touch_enabled as *mut _) } };
+("-moz-menubar-drag") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_menubar_drag as *mut _) } };
+("-moz-device-pixel-ratio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_device_pixel_ratio as *mut _) } };
+("-moz-device-orientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_device_orientation as *mut _) } };
+("-moz-is-resource-document") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_is_resource_document as *mut _) } };
+("-moz-swipe-animation-enabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_swipe_animation_enabled as *mut _) } };
+("-moz-physical-home-button") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_physical_home_button as *mut _) } };
+("Back") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Back as *mut _) } };
+("Forward") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Forward as *mut _) } };
+("Reload") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Reload as *mut _) } };
+("Stop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Stop as *mut _) } };
+("Search") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Search as *mut _) } };
+("Bookmarks") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Bookmarks as *mut _) } };
+("Home") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Home as *mut _) } };
+("Clear") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Clear as *mut _) } };
+("VolumeUp") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_VolumeUp as *mut _) } };
+("VolumeDown") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_VolumeDown as *mut _) } };
+("NextTrack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_NextTrack as *mut _) } };
+("PreviousTrack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_PreviousTrack as *mut _) } };
+("MediaStop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_MediaStop as *mut _) } };
+("PlayPause") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_PlayPause as *mut _) } };
+("Menu") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Menu as *mut _) } };
+("New") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_New as *mut _) } };
+("Open") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Open as *mut _) } };
+("Close") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Close as *mut _) } };
+("Save") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Save as *mut _) } };
+("Find") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Find as *mut _) } };
+("Help") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Help as *mut _) } };
+("Print") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Print as *mut _) } };
+("SendMail") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_SendMail as *mut _) } };
+("ForwardMail") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ForwardMail as *mut _) } };
+("ReplyToMail") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ReplyToMail as *mut _) } };
+("mouseWheel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mouseWheel as *mut _) } };
+("pixels") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pixels as *mut _) } };
+("lines") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lines as *mut _) } };
+("pages") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_pages as *mut _) } };
+("scrollbars") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_scrollbars as *mut _) } };
+("other") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_other as *mut _) } };
+("apz") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_apz as *mut _) } };
+("restore") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_restore as *mut _) } };
+("alert") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alert as *mut _) } };
+("alertdialog") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_alertdialog as *mut _) } };
+("application") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_application as *mut _) } };
+("aria-activedescendant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_activedescendant as *mut _) } };
+("aria-atomic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_atomic as *mut _) } };
+("aria-autocomplete") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_autocomplete as *mut _) } };
+("aria-busy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_busy as *mut _) } };
+("aria-checked") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_checked as *mut _) } };
+("aria-colcount") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colcount as *mut _) } };
+("aria-colindex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_colindex as *mut _) } };
+("aria-controls") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_controls as *mut _) } };
+("aria-describedby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_describedby as *mut _) } };
+("aria-disabled") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_disabled as *mut _) } };
+("aria-dropeffect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_dropeffect as *mut _) } };
+("aria-expanded") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_expanded as *mut _) } };
+("aria-flowto") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_flowto as *mut _) } };
+("aria-grabbed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_grabbed as *mut _) } };
+("aria-haspopup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_haspopup as *mut _) } };
+("aria-hidden") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_hidden as *mut _) } };
+("aria-invalid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_invalid as *mut _) } };
+("aria-label") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_label as *mut _) } };
+("aria-labelledby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_labelledby as *mut _) } };
+("aria-level") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_level as *mut _) } };
+("aria-live") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_live as *mut _) } };
+("aria-modal") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_modal as *mut _) } };
+("aria-multiline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiline as *mut _) } };
+("aria-multiselectable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_multiselectable as *mut _) } };
+("aria-orientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_orientation as *mut _) } };
+("aria-owns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_owns as *mut _) } };
+("aria-posinset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_posinset as *mut _) } };
+("aria-pressed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_pressed as *mut _) } };
+("aria-readonly") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_readonly as *mut _) } };
+("aria-relevant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_relevant as *mut _) } };
+("aria-required") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_required as *mut _) } };
+("aria-rowcount") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowcount as *mut _) } };
+("aria-rowindex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_rowindex as *mut _) } };
+("aria-selected") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_selected as *mut _) } };
+("aria-setsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_setsize as *mut _) } };
+("aria-sort") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_sort as *mut _) } };
+("aria-valuenow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuenow as *mut _) } };
+("aria-valuemin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemin as *mut _) } };
+("aria-valuemax") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuemax as *mut _) } };
+("aria-valuetext") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_aria_valuetext as *mut _) } };
+("AreaFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_AreaFrame as *mut _) } };
+("auto-generated") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_auto_generated as *mut _) } };
+("banner") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_banner as *mut _) } };
+("checkable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_checkable as *mut _) } };
+("choices") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_choices as *mut _) } };
+("columnheader") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_columnheader as *mut _) } };
+("complementary") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_complementary as *mut _) } };
+("container-atomic") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerAtomic as *mut _) } };
+("container-busy") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerBusy as *mut _) } };
+("container-live") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerLive as *mut _) } };
+("container-live-role") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerLiveRole as *mut _) } };
+("container-relevant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_containerRelevant as *mut _) } };
+("contentinfo") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_contentinfo as *mut _) } };
+("cycles") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_cycles as *mut _) } };
+("datatable") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_datatable as *mut _) } };
+("event-from-input") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_eventFromInput as *mut _) } };
+("feed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_feed as *mut _) } };
+("grammar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_grammar as *mut _) } };
+("gridcell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_gridcell as *mut _) } };
+("heading") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_heading as *mut _) } };
+("hitregion") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_hitregion as *mut _) } };
+("InlineBlockFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_InlineBlockFrame as *mut _) } };
+("inline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_inlinevalue as *mut _) } };
+("invalid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_invalid as *mut _) } };
+("item") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_item as *mut _) } };
+("itemset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_itemset as *mut _) } };
+("line-number") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_lineNumber as *mut _) } };
+("linkedpanel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_linkedPanel as *mut _) } };
+("live") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_live as *mut _) } };
+("menuitemcheckbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitemcheckbox as *mut _) } };
+("menuitemradio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_menuitemradio as *mut _) } };
+("mixed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mixed as *mut _) } };
+("multiline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_multiline as *mut _) } };
+("navigation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_navigation as *mut _) } };
+("polite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_polite as *mut _) } };
+("posinset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_posinset as *mut _) } };
+("presentation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presentation as *mut _) } };
+("progressbar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_progressbar as *mut _) } };
+("region") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_region as *mut _) } };
+("rowgroup") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowgroup as *mut _) } };
+("rowheader") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_rowheader as *mut _) } };
+("search") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_search as *mut _) } };
+("searchbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_searchbox as *mut _) } };
+("select1") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_select1 as *mut _) } };
+("setsize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_setsize as *mut _) } };
+("spelling") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spelling as *mut _) } };
+("spinbutton") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinbutton as *mut _) } };
+("status") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_status as *mut _) } };
+("switch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__switch as *mut _) } };
+("table-cell-index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tableCellIndex as *mut _) } };
+("tablist") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_tablist as *mut _) } };
+("text-indent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textIndent as *mut _) } };
+("text-input-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textInputType as *mut _) } };
+("text-line-through-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLineThroughColor as *mut _) } };
+("text-line-through-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textLineThroughStyle as *mut _) } };
+("text-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textPosition as *mut _) } };
+("text-underline-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textUnderlineColor as *mut _) } };
+("text-underline-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_textUnderlineStyle as *mut _) } };
+("timer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_timer as *mut _) } };
+("toolbarname") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarname as *mut _) } };
+("toolbarseparator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarseparator as *mut _) } };
+("toolbarspacer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarspacer as *mut _) } };
+("toolbarspring") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_toolbarspring as *mut _) } };
+("treegrid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_treegrid as *mut _) } };
+("undefined") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__undefined as *mut _) } };
+("xml-roles") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_xmlroles as *mut _) } };
+("close-fence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_close_fence as *mut _) } };
+("denominator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_denominator as *mut _) } };
+("numerator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_numerator as *mut _) } };
+("open-fence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_open_fence as *mut _) } };
+("overscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_overscript as *mut _) } };
+("presubscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presubscript as *mut _) } };
+("presuperscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_presuperscript as *mut _) } };
+("root-index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_root_index as *mut _) } };
+("subscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_subscript as *mut _) } };
+("superscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_superscript as *mut _) } };
+("underscript") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_underscript as *mut _) } };
+("onaudiostart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudiostart as *mut _) } };
+("onaudioend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudioend as *mut _) } };
+("onsoundstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsoundstart as *mut _) } };
+("onsoundend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsoundend as *mut _) } };
+("onspeechstart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeechstart as *mut _) } };
+("onspeechend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onspeechend as *mut _) } };
+("onresult") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresult as *mut _) } };
+("onnomatch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onnomatch as *mut _) } };
+("onresume") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onresume as *mut _) } };
+("onmark") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmark as *mut _) } };
+("onboundary") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onboundary as *mut _) } };
+("usercontextid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_usercontextid as *mut _) } };
+("http://www.w3.org/2000/xmlns/") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xmlns as *mut _) } };
+("http://www.w3.org/XML/1998/namespace") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xml as *mut _) } };
+("http://www.w3.org/1999/xhtml") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xhtml as *mut _) } };
+("http://www.w3.org/1999/xlink") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xlink as *mut _) } };
+("http://www.w3.org/1999/XSL/Transform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xslt as *mut _) } };
+("http://www.mozilla.org/xbl") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xbl as *mut _) } };
+("http://www.w3.org/1998/Math/MathML") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_mathml as *mut _) } };
+("http://www.w3.org/1999/02/22-rdf-syntax-ns#") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_rdf as *mut _) } };
+("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_xul as *mut _) } };
+("http://www.w3.org/2000/svg") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_nsuri_svg as *mut _) } };
+("onsourceopen") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceopen as *mut _) } };
+("onsourceended") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceended as *mut _) } };
+("onsourceclosed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onsourceclosed as *mut _) } };
+("onupdatestart") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdatestart as *mut _) } };
+("onupdate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdate as *mut _) } };
+("onupdateend") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onupdateend as *mut _) } };
+("onaddsourcebuffer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaddsourcebuffer as *mut _) } };
+("onremovesourcebuffer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onremovesourcebuffer as *mut _) } };
+(":after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_after as *mut _) } };
+(":before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_before as *mut _) } };
+(":backdrop") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_backdrop as *mut _) } };
+(":first-letter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_firstLetter as *mut _) } };
+(":first-line") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_firstLine as *mut _) } };
+(":-moz-selection") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozSelection as *mut _) } };
+(":-moz-focus-inner") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozFocusInner as *mut _) } };
+(":-moz-focus-outer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozFocusOuter as *mut _) } };
+(":-moz-list-bullet") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozListBullet as *mut _) } };
+(":-moz-list-number") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozListNumber as *mut _) } };
+(":-moz-math-anonymous") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozMathAnonymous as *mut _) } };
+(":-moz-number-wrapper") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberWrapper as *mut _) } };
+(":-moz-number-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberText as *mut _) } };
+(":-moz-number-spin-box") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinBox as *mut _) } };
+(":-moz-number-spin-up") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinUp as *mut _) } };
+(":-moz-number-spin-down") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozNumberSpinDown as *mut _) } };
+(":-moz-progress-bar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozProgressBar as *mut _) } };
+(":-moz-range-track") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeTrack as *mut _) } };
+(":-moz-range-progress") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeProgress as *mut _) } };
+(":-moz-range-thumb") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozRangeThumb as *mut _) } };
+(":-moz-meter-bar") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozMeterBar as *mut _) } };
+(":-moz-placeholder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozPlaceholder as *mut _) } };
+(":placeholder") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_placeholder as *mut _) } };
+(":-moz-color-swatch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSPseudoElements_mozColorSwatch as *mut _) } };
+(":-moz-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozText as *mut _) } };
+(":-moz-other-non-element") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozOtherNonElement as *mut _) } };
+(":-moz-anonymous-block") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozAnonymousBlock as *mut _) } };
+(":-moz-anonymous-positioned-block") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozAnonymousPositionedBlock as *mut _) } };
+(":-moz-mathml-anonymous-block") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozMathMLAnonymousBlock as *mut _) } };
+(":-moz-xul-anonymous-block") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozXULAnonymousBlock as *mut _) } };
+(":-moz-hframeset-border") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_horizontalFramesetBorder as *mut _) } };
+(":-moz-vframeset-border") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_verticalFramesetBorder as *mut _) } };
+(":-moz-line-frame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozLineFrame as *mut _) } };
+(":-moz-button-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_buttonContent as *mut _) } };
+(":-moz-buttonlabel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozButtonLabel as *mut _) } };
+(":-moz-cell-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_cellContent as *mut _) } };
+(":-moz-dropdown-list") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_dropDownList as *mut _) } };
+(":-moz-fieldset-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_fieldsetContent as *mut _) } };
+(":-moz-frameset-blank") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_framesetBlank as *mut _) } };
+(":-moz-display-comboboxcontrol-frame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozDisplayComboboxControlFrame as *mut _) } };
+(":-moz-html-canvas-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_htmlCanvasContent as *mut _) } };
+(":-moz-inline-table") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_inlineTable as *mut _) } };
+(":-moz-table") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_table as *mut _) } };
+(":-moz-table-cell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCell as *mut _) } };
+(":-moz-table-column-group") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableColGroup as *mut _) } };
+(":-moz-table-column") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableCol as *mut _) } };
+(":-moz-table-wrapper") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableWrapper as *mut _) } };
+(":-moz-table-row-group") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRowGroup as *mut _) } };
+(":-moz-table-row") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_tableRow as *mut _) } };
+(":-moz-canvas") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_canvas as *mut _) } };
+(":-moz-pagebreak") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageBreak as *mut _) } };
+(":-moz-page") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_page as *mut _) } };
+(":-moz-pagecontent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageContent as *mut _) } };
+(":-moz-page-sequence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_pageSequence as *mut _) } };
+(":-moz-scrolled-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledContent as *mut _) } };
+(":-moz-scrolled-canvas") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledCanvas as *mut _) } };
+(":-moz-scrolled-page-sequence") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_scrolledPageSequence as *mut _) } };
+(":-moz-column-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_columnContent as *mut _) } };
+(":-moz-viewport") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewport as *mut _) } };
+(":-moz-viewport-scroll") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_viewportScroll as *mut _) } };
+(":-moz-anonymous-flex-item") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousFlexItem as *mut _) } };
+(":-moz-anonymous-grid-item") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_anonymousGridItem as *mut _) } };
+(":-moz-ruby") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_ruby as *mut _) } };
+(":-moz-ruby-base") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBase as *mut _) } };
+(":-moz-ruby-base-container") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyBaseContainer as *mut _) } };
+(":-moz-ruby-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyText as *mut _) } };
+(":-moz-ruby-text-container") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_rubyTextContainer as *mut _) } };
+(":-moz-tree-column") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecolumn as *mut _) } };
+(":-moz-tree-row") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreerow as *mut _) } };
+(":-moz-tree-separator") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeseparator as *mut _) } };
+(":-moz-tree-cell") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecell as *mut _) } };
+(":-moz-tree-indentation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeindentation as *mut _) } };
+(":-moz-tree-line") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeline as *mut _) } };
+(":-moz-tree-twisty") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreetwisty as *mut _) } };
+(":-moz-tree-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeimage as *mut _) } };
+(":-moz-tree-cell-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecelltext as *mut _) } };
+(":-moz-tree-checkbox") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreecheckbox as *mut _) } };
+(":-moz-tree-progressmeter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreeprogressmeter as *mut _) } };
+(":-moz-tree-drop-feedback") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_moztreedropfeedback as *mut _) } };
+(":-moz-svg-marker-anon-child") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGMarkerAnonChild as *mut _) } };
+(":-moz-svg-outer-svg-anon-child") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGOuterSVGAnonChild as *mut _) } };
+(":-moz-svg-foreign-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGForeignContent as *mut _) } };
+(":-moz-svg-text") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGText as *mut _) } };
 }
