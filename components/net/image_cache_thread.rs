@@ -5,7 +5,7 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::{CoreResourceThread, NetworkError, ResponseAction, fetch_async, FetchResponseMsg, FetchMetadata};
+use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg, FetchMetadata, Metadata};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
@@ -223,6 +223,15 @@ impl ImageListener {
         };
         sender.send(msg).ok();
     }
+}
+
+/// A legacy type that's mostly redundant with FetchResponseMsg.
+// FIXME(#13717): remove this type.
+#[derive(Deserialize, Serialize)]
+enum ResponseAction {
+    HeadersAvailable(Result<Metadata, NetworkError>),
+    DataAvailable(Vec<u8>),
+    ResponseComplete(Result<(), NetworkError>)
 }
 
 struct ResourceLoadInfo {
