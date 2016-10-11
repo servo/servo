@@ -30,8 +30,10 @@ interface Node : EventTarget {
 
   [Pure]
   readonly attribute Document? ownerDocument;
+
   [Pure]
-  readonly attribute Node rootNode;
+  Node getRootNode(optional GetRootNodeOptions options);
+
   [Pure]
   readonly attribute Node? parentNode;
   [Pure]
@@ -87,4 +89,8 @@ interface Node : EventTarget {
   Node replaceChild(Node node, Node child);
   [Throws]
   Node removeChild(Node child);
+};
+
+dictionary GetRootNodeOptions {
+  boolean composed = false;
 };

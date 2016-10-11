@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
+use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods, GetRootNodeOptions};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -1934,9 +1934,13 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-rootnode
-    fn RootNode(&self) -> Root<Node> {
-        self.inclusive_ancestors().last().unwrap()
+    // https://dom.spec.whatwg.org/#dom-node-getrootnode
+    fn GetRootNode(&self, options: &GetRootNodeOptions) -> Root<Node> {
+        if options.composed {
+            self.inclusive_ancestors().last().unwrap()
+        } else {
+            self.ancestors().last().unwrap()
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
@@ -2703,3 +2707,4 @@ impl Into<LayoutElementType> for ElementTypeId {
         }
     }
 }
+
