@@ -29,6 +29,7 @@ use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
@@ -51,7 +52,7 @@ enum Data {
 
 pub struct FetchContext {
     pub state: HttpState,
-    pub user_agent: String,
+    pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 }
 
@@ -763,7 +764,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 8
     if !http_request.headers.borrow().has::<UserAgent>() {
-        http_request.headers.borrow_mut().set(UserAgent(context.user_agent.clone()));
+        let user_agent = context.user_agent.clone().into_owned();
+        http_request.headers.borrow_mut().set(UserAgent(user_agent));
     }
 
     match http_request.cache_mode.get() {

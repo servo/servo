@@ -39,7 +39,7 @@ use openssl::ssl::error::{OpensslError, SslError};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use resource_thread::{AuthCache, AuthCacheEntry, CancellationListener, send_error, start_sending_sniffed_opt};
-use std::borrow::ToOwned;
+use std::borrow::{Cow, ToOwned};
 use std::boxed::FnBox;
 use std::collections::HashSet;
 use std::error::Error;
@@ -57,7 +57,7 @@ use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid;
 
-pub fn factory(user_agent: String,
+pub fn factory(user_agent: Cow<'static, str>,
                http_state: HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                profiler_chan: ProfilerChan,
@@ -137,7 +137,7 @@ fn load_for_consumer(load_data: LoadData,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
                      cancel_listener: CancellationListener,
-                     user_agent: String) {
+                     user_agent: Cow<'static, str>) {
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
@@ -865,7 +865,7 @@ pub fn load<A, B>(load_data: &LoadData,
                   http_state: &HttpState,
                   devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                   request_factory: &HttpRequestFactory<R=A>,
-                  user_agent: String,
+                  user_agent: Cow<'static, str>,
                   cancel_listener: &CancellationListener,
                   swmanager_chan: Option<IpcSender<CustomResponseMediator>>)
                   -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
