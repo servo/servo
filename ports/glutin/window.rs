@@ -32,7 +32,6 @@ use std::cell::{Cell, RefCell};
 use std::ffi::CString;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::mem;
-#[cfg(not(target_os = "android"))]
 use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
