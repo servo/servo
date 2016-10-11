@@ -32,6 +32,8 @@
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
+#![deny(warnings)]
+
 // FIXME(bholley): We need to blanket-allow unsafe code in order to make the
 // gecko atom!() macro work. When Rust 1.14 is released [1], we can uncomment
 // the commented-out attributes in regen_atoms.py and go back to denying unsafe
