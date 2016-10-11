@@ -260,7 +260,9 @@ class MachCommands(CommandBase):
     @Command('test-stylo',
              description='Run stylo unit tests',
              category='testing')
-    def test_stylo(self):
+    @CommandArgument('--release', default=False, action="store_true",
+                     help="Run with a release build of servo")
+    def test_stylo(self, release=False):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
@@ -268,8 +270,14 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
+        release = ["--release"] if release else []
+        ret = 0
         with cd(path.join("ports", "geckolib")):
-            return call(["cargo", "test", "-p", "stylo_tests"], env=env)
+            ret = call(["cargo", "test", "-p", "stylo_tests"] + release, env=env)
+        if ret != 0:
+            return ret
+        with cd(path.join("ports", "geckolib")):
+            return call(["cargo", "test", "-p", "style"] + release, env=env)
 
     @Command('test-compiletest',
              description='Run compiletests',
