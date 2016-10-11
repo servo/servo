@@ -57,7 +57,7 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use hyper::header::{ContentType, Headers, HttpDate, LastModified};
+use hyper::header::{ContentType, HttpDate, LastModified};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -72,10 +72,10 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, PipelineId, PipelineNamespace, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
-use net_traits::{IpcSend, LoadData as NetLoadData};
+use net_traits::{CoreResourceMsg, IpcSend, Metadata, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::NetworkListener;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -2114,30 +2114,29 @@ impl ScriptThread {
             wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify_action(message.to().unwrap());
+            listener.notify_fetch(message.to().unwrap());
         });
-        let response_target = AsyncResponseTarget {
-            sender: action_sender,
-        };
 
         if load_data.url.scheme() == "javascript" {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        self.resource_threads.send(CoreResourceMsg::Load(NetLoadData {
-            context: LoadContext::Browsing,
-            url: load_data.url,
+        let request = RequestInit {
+            url: load_data.url.clone(),
             method: load_data.method,
-            headers: Headers::new(),
-            preserved_headers: load_data.headers,
-            data: load_data.data,
-            cors: None,
+            destination: Destination::Document,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            origin: load_data.url,
             pipeline_id: Some(id),
-            credentials_flag: true,
+            referrer_url: load_data.referrer_url,
             referrer_policy: load_data.referrer_policy,
-            referrer_url: load_data.referrer_url
-        }, LoadConsumer::Listener(response_target), None)).unwrap();
+            headers: load_data.headers,
+            body: load_data.data,
+            .. RequestInit::default()
+        };
 
+        self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
     }
 
