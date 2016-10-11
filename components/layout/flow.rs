@@ -1401,7 +1401,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         for kid in base(self).children.iter().rev() {
             if kid.is_inline_flow() {
                 if let Some(baseline_offset) = kid.as_inline().baseline_offset_of_last_line() {
-                    return Some(baseline_offset)
+                    return Some(base(kid).position.start.b + baseline_offset)
                 }
             }
             if kid.is_block_like() &&
@@ -1576,7 +1576,7 @@ impl ContainingBlockLink {
                 if flow.is_block_like() {
                     flow.as_block().explicit_block_containing_size(shared_context)
                 } else if flow.is_inline_flow() {
-                    Some(flow.as_inline().minimum_block_size_above_baseline)
+                    Some(flow.as_inline().minimum_line_metrics.space_above_baseline)
                 } else {
                     None
                 }
