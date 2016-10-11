@@ -30,7 +30,7 @@ use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData};
 use selector_matching::{ApplicableDeclarationBlock, ApplicableDeclarationBlockReadGuard};
 use stylesheets::Origin;
-use values::LocalToCss;
+#[cfg(feature = "servo")] use values::LocalToCss;
 use values::HasViewportPercentage;
 use values::computed::{self, ToComputedValue};
 use cascade_info::CascadeInfo;
