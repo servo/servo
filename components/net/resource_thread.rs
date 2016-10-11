@@ -89,7 +89,7 @@ pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    if let Ok(p) = start_sending_opt(start_chan, metadata, Some(err.clone())) {
+    if let Ok(p) = start_sending_opt(start_chan, metadata) {
         p.send(Done(Err(err))).unwrap();
     }
 }
@@ -130,14 +130,13 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
     }
 
-    start_sending_opt(start_chan, metadata, None)
+    start_sending_opt(start_chan, metadata)
 }
 
 /// For use by loaders in responding to a Load message.
 /// It takes an optional NetworkError, so that we can extract the SSL Validation errors
 /// and take it to the HTML parser
-fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
-                     _network_error: Option<NetworkError>) -> Result<ProgressSender, ()> {
+fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
