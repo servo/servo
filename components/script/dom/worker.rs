@@ -81,7 +81,7 @@ impl Worker {
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
-        let worker_ref = Trusted::new(worker.r());
+        let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,

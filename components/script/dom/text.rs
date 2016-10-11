@@ -37,7 +37,7 @@ impl Text {
 
     pub fn Constructor(global: &GlobalScope, text: DOMString) -> Fallible<Root<Text>> {
         let document = global.as_window().Document();
-        Ok(Text::new(text, document.r()))
+        Ok(Text::new(text, &document))
     }
 }
 

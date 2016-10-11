@@ -539,7 +539,7 @@ impl Document {
                         if &*(*elements)[head] == elem {
                             head += 1;
                         }
-                        if new_node == node.r() || head == elements.len() {
+                        if new_node == &*node || head == elements.len() {
                             break;
                         }
                     }
@@ -1043,7 +1043,7 @@ impl Document {
         }
 
         // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.as_ref().map(|target| target.r()));
+        prev_mouse_over_target.set(maybe_new_target.r());
 
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
@@ -1104,7 +1104,7 @@ impl Document {
 
         let touch = Touch::new(window,
                                identifier,
-                               target.r(),
+                               &target,
                                client_x,
                                client_y, // TODO: Get real screen coordinates?
                                client_x,
@@ -1163,7 +1163,7 @@ impl Document {
                                     false,
                                     false);
         let event = event.upcast::<Event>();
-        let result = event.fire(target.r());
+        let result = event.fire(&target);
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
@@ -1308,13 +1308,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        try!(fragment.AppendChild(node.r()));
+                        try!(fragment.AppendChild(&node));
                     },
                     NodeOrString::String(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(node.r()).unwrap();
+                        fragment.AppendChild(&node).unwrap();
                     }
                 }
             }
@@ -1444,9 +1444,7 @@ impl Document {
         let mut animation_frame_list =
             mem::replace(&mut *self.animation_frame_list.borrow_mut(), vec![]);
         self.running_animation_callbacks.set(true);
-        let performance = self.window.Performance();
-        let performance = performance.r();
-        let timing = performance.Now();
+        let timing = self.window.Performance().Now();
 
         for (_, callback) in animation_frame_list.drain(..) {
             if let Some(callback) = callback {
@@ -1506,8 +1504,8 @@ impl Document {
         // A finished resource load can potentially unblock parsing. In that case, resume the
         // parser so its loop can find out.
         if let Some(parser) = self.get_current_parser() {
-            if parser.r().is_suspended() {
-                parser.r().resume();
+            if parser.is_suspended() {
+                parser.resume();
             }
         } else if self.reflow_timeout.get().is_none() {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
@@ -1859,7 +1857,6 @@ impl Document {
     pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Document>> {
         let win = global.as_window();
         let doc = win.Document();
-        let doc = doc.r();
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(win,
                          None,
@@ -1898,7 +1895,7 @@ impl Document {
                                           DocumentBinding::Wrap);
         {
             let node = document.upcast::<Node>();
-            node.set_owner_doc(document.r());
+            node.set_owner_doc(&document);
         }
         document
     }
@@ -1908,7 +1905,7 @@ impl Document {
         let maybe_node = doc.r().map(Castable::upcast::<Node>);
         let iter = maybe_node.iter()
                              .flat_map(|node| node.traverse_preorder())
-                             .filter(|node| callback(node.r()));
+                             .filter(|node| callback(&node));
         NodeList::new_simple_list(&self.window, iter)
     }
 
@@ -2592,7 +2589,7 @@ impl DocumentMethods for Document {
 
         // Step 2.
         let old_body = self.GetBody();
-        if old_body.as_ref().map(|body| body.r()) == Some(new_body) {
+        if old_body.r() == Some(new_body) {
             return Ok(());
         }
 
@@ -2875,7 +2872,7 @@ impl DocumentMethods for Document {
         {
             // Step 1.
             let mut elements = root.traverse_preorder()
-                                   .filter(|node| filter_by_name(&name, node.r()))
+                                   .filter(|node| filter_by_name(&name, &node))
                                    .peekable();
             if let Some(first) = elements.next() {
                 if elements.peek().is_none() {

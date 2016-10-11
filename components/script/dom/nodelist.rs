@@ -174,7 +174,7 @@ impl ChildrenList {
                      .nth(index as usize)
                      .unwrap()
         };
-        self.last_visited.set(Some(last_visited.r()));
+        self.last_visited.set(Some(&last_visited));
         self.last_index.set(index);
         Some(last_visited)
     }

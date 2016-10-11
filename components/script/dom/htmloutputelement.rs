@@ -44,7 +44,7 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
-        ValidityState::new(window.r(), self.upcast())
+        ValidityState::new(&window, self.upcast())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form

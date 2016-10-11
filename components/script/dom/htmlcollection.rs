@@ -106,7 +106,7 @@ impl HTMLCollection {
     fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
         if let Some(element) = element {
             self.cached_cursor_index.set(OptionU32::some(index));
-            self.cached_cursor_element.set(Some(element.r()));
+            self.cached_cursor_element.set(Some(&element));
             Some(element)
         } else {
             None
@@ -284,13 +284,13 @@ impl HTMLCollectionMethods for HTMLCollection {
                     // Iterate forwards, starting at the cursor.
                     let offset = index - (cached_index + 1);
                     let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
+                    self.set_cached_cursor(index, self.elements_iter_after(&node).nth(offset as usize))
                 } else {
                     // The cursor is after the element we're looking for
                     // Iterate backwards, starting at the cursor.
                     let offset = cached_index - (index + 1);
                     let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_before(node.r()).nth(offset as usize))
+                    self.set_cached_cursor(index, self.elements_iter_before(&node).nth(offset as usize))
                 }
             } else {
                 // Cache miss

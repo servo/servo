@@ -117,7 +117,7 @@ impl HTMLTableElement {
 
         let section = HTMLTableSectionElement::new(atom.clone(),
                                                    None,
-                                                   document_from_node(self).r());
+                                                   &document_from_node(self));
         match atom {
             &atom!("thead") => self.SetTHead(Some(&section)),
             &atom!("tfoot") => self.SetTFoot(Some(&section)),
@@ -150,7 +150,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-rows
     fn Rows(&self) -> Root<HTMLCollection> {
         let filter = self.get_rows();
-        HTMLCollection::new(window_from_node(self).r(), self.upcast(), box filter)
+        HTMLCollection::new(&window_from_node(self), self.upcast(), box filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
@@ -178,8 +178,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
             None => {
                 let caption = HTMLTableCaptionElement::new(atom!("caption"),
                                                            None,
-                                                           document_from_node(self).r());
-                self.SetCaption(Some(caption.r()));
+                                                           &document_from_node(self));
+                self.SetCaption(Some(&caption));
                 caption
             }
         }
@@ -264,7 +264,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
         self.tbodies.or_init(|| {
             let window = window_from_node(self);
             let filter = box TBodiesFilter;
-            HTMLCollection::create(window.r(), self.upcast(), filter)
+            HTMLCollection::create(&window, self.upcast(), filter)
         })
     }
 
@@ -273,7 +273,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
         let tbody = HTMLTableSectionElement::new(atom!("tbody"),
                                                  None,
-                                                 document_from_node(self).r());
+                                                 &document_from_node(self));
         let node = self.upcast::<Node>();
         let last_tbody =
             node.rev_children()
@@ -298,7 +298,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         let new_row = HTMLTableRowElement::new(atom!("tr"),
                                                None,
-                                               document_from_node(self).r());
+                                               &document_from_node(self));
         let node = self.upcast::<Node>();
 
         if number_of_row_elements == 0 {

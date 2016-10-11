@@ -21,7 +21,6 @@ pub fn load_script(head: &HTMLHeadElement) {
         let node = head.upcast::<Node>();
         let first_child = node.GetFirstChild();
         let doc = node.owner_doc();
-        let doc = doc.r();
 
         let path = if &**path_str == "" {
             if let Ok(mut p) = resources_dir_path() {
@@ -46,7 +45,6 @@ pub fn load_script(head: &HTMLHeadElement) {
                 _ => continue
             };
             let new_script = doc.CreateElement(DOMString::from("script")).unwrap();
-            let new_script = new_script.r();
             new_script.set_string_attribute(&atom!("src"), DOMString::from(name));
             node.InsertBefore(new_script.upcast(), first_child.r()).unwrap();
         }

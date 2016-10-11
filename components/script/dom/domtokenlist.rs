@@ -33,7 +33,7 @@ impl DOMTokenList {
     pub fn new(element: &Element, local_name: &Atom) -> Root<DOMTokenList> {
         let window = window_from_node(element);
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
-                           window.r(),
+                           &*window,
                            DOMTokenListBinding::Wrap)
     }
 
@@ -55,7 +55,6 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
         self.attribute().map_or(0, |attr| {
-            let attr = attr.r();
             attr.value().as_tokens().len()
         }) as u32
     }
@@ -72,7 +71,6 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Contains(&self, token: DOMString) -> bool {
         let token = Atom::from(token);
         self.attribute().map_or(false, |attr| {
-            let attr = attr.r();
             attr.value()
                 .as_tokens()
                 .iter()

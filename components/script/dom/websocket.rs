@@ -242,7 +242,7 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(ws.r());
+        let address = Trusted::new(&*ws);
 
         let connect_data = WebSocketConnectData {
             resource_url: resource_url.clone(),

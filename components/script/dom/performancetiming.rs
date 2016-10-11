@@ -38,7 +38,7 @@ impl PerformanceTiming {
                -> Root<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
-                                                      window.Document().r());
+                                                      &window.Document());
         reflect_dom_object(box timing,
                            window,
                            PerformanceTimingBinding::Wrap)

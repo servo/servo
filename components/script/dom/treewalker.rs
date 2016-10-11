@@ -96,14 +96,14 @@ impl TreeWalkerMethods for TreeWalker {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. While node is not null and is not root, run these substeps:"
-        while !self.is_root_node(node.r()) {
+        while !self.is_root_node(&node) {
             // "1. Let node be node's parent."
             match node.GetParentNode() {
                 Some(n) => {
                     node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
                         self.current_node.set(&node);
                         return Ok(Some(node))
                     }
@@ -148,7 +148,7 @@ impl TreeWalkerMethods for TreeWalker {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. While node is not root, run these substeps:"
-        while !self.is_root_node(node.r()) {
+        while !self.is_root_node(&node) {
             // "1. Let sibling be the previous sibling of node."
             let mut sibling_op = node.GetPreviousSibling();
             // "2. While sibling is not null, run these subsubsteps:"
@@ -162,7 +162,7 @@ impl TreeWalkerMethods for TreeWalker {
                 // "4. If result is FILTER_ACCEPT, then
                 //     set the currentNode attribute to node and return node."
                 loop {
-                    let result = try!(self.accept_node(node.r()));
+                    let result = try!(self.accept_node(&node));
                     match result {
                         NodeFilterConstants::FILTER_REJECT => break,
                         _ if node.GetFirstChild().is_some() =>
@@ -178,7 +178,7 @@ impl TreeWalkerMethods for TreeWalker {
                 sibling_op = node.GetPreviousSibling()
             }
             // "3. If node is root or node's parent is null, return null."
-            if self.is_root_node(node.r()) || node.GetParentNode().is_none() {
+            if self.is_root_node(&node) || node.GetParentNode().is_none() {
                 return Ok(None)
             }
             // "4. Set node to its parent."
@@ -191,7 +191,7 @@ impl TreeWalkerMethods for TreeWalker {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+            if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
                 self.current_node.set(&node);
                 return Ok(Some(node))
             }
@@ -219,7 +219,7 @@ impl TreeWalkerMethods for TreeWalker {
                         // "1. Set node to its first child."
                         node = child;
                         // "2. Filter node and set result to the return value."
-                        result = try!(self.accept_node(node.r()));
+                        result = try!(self.accept_node(&node));
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
                         if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -232,12 +232,12 @@ impl TreeWalkerMethods for TreeWalker {
             // "2. If a node is following node and is not following root,
             //     set node to the first such node."
             // "Otherwise, return null."
-            match self.first_following_node_not_following_root(node.r()) {
+            match self.first_following_node_not_following_root(&node) {
                 None => return Ok(None),
                 Some(n) => {
                     node = n;
                     // "3. Filter node and set result to the return value."
-                    result = try!(self.accept_node(node.r()));
+                    result = try!(self.accept_node(&node));
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
                     if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -269,7 +269,7 @@ impl TreeWalker {
 
         // "2. Set node to node's first child if type is first, and node's last child if type is last."
         // "3. If node is null, return null."
-        let mut node = match next_child(cur.r()) {
+        let mut node = match next_child(&cur) {
             Some(node) => node,
             None => return Ok(None),
         };
@@ -277,19 +277,19 @@ impl TreeWalker {
         // 4. Main: Repeat these substeps:
         'main: loop {
             // "1. Filter node and let result be the return value."
-            let result = try!(self.accept_node(node.r()));
+            let result = try!(self.accept_node(&node));
             match result {
                 // "2. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 NodeFilterConstants::FILTER_ACCEPT => {
                     self.current_node.set(&node);
-                    return Ok(Some(Root::from_ref(node.r())))
+                    return Ok(Some(Root::from_ref(&node)))
                 },
                 // "3. If result is FILTER_SKIP, run these subsubsteps:"
                 NodeFilterConstants::FILTER_SKIP => {
                     // "1. Let child be node's first child if type is first,
                     //     and node's last child if type is last."
-                    match next_child(node.r()) {
+                    match next_child(&node) {
                         // "2. If child is not null, set node to child and goto Main."
                         Some(child) => {
                             node = child;
@@ -304,7 +304,7 @@ impl TreeWalker {
             loop {
                 // "1. Let sibling be node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
-                match next_sibling(node.r()) {
+                match next_sibling(&node) {
                     // "2. If sibling is not null,
                     //     set node to sibling and goto Main."
                     Some(sibling) => {
@@ -318,8 +318,8 @@ impl TreeWalker {
                             //     or parent is currentNode attribute's value,
                             //     return null."
                             None => return Ok(None),
-                            Some(ref parent) if self.is_root_node(parent.r())
-                                            || self.is_current_node(parent.r()) =>
+                            Some(ref parent) if self.is_root_node(&parent)
+                                            || self.is_current_node(&parent) =>
                                              return Ok(None),
                             // "5. Otherwise, set node to parent."
                             Some(parent) => node = parent
@@ -342,20 +342,20 @@ impl TreeWalker {
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get();
         // "2. If node is root, return null."
-        if self.is_root_node(node.r()) {
+        if self.is_root_node(&node) {
             return Ok(None)
         }
         // "3. Run these substeps:"
         loop {
             // "1. Let sibling be node's next sibling if type is next,
             //  and node's previous sibling if type is previous."
-            let mut sibling_op = next_sibling(node.r());
+            let mut sibling_op = next_sibling(&node);
             // "2. While sibling is not null, run these subsubsteps:"
             while sibling_op.is_some() {
                 // "1. Set node to sibling."
                 node = sibling_op.unwrap();
                 // "2. Filter node and let result be the return value."
-                let result = try!(self.accept_node(node.r()));
+                let result = try!(self.accept_node(&node));
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
                 if NodeFilterConstants::FILTER_ACCEPT == result {
@@ -365,13 +365,13 @@ impl TreeWalker {
 
                 // "4. Set sibling to node's first child if type is next,
                 //     and node's last child if type is previous."
-                sibling_op = next_child(node.r());
+                sibling_op = next_child(&node);
                 // "5. If result is FILTER_REJECT or sibling is null,
                 //     then set sibling to node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
                 match (result, &sibling_op) {
                     (NodeFilterConstants::FILTER_REJECT, _)
-                    | (_, &None) => sibling_op = next_sibling(node.r()),
+                    | (_, &None) => sibling_op = next_sibling(&node),
                     _ => {}
                 }
             }
@@ -379,11 +379,11 @@ impl TreeWalker {
             match node.GetParentNode() {
                 // "4. If node is null or is root, return null."
                 None => return Ok(None),
-                Some(ref n) if self.is_root_node(n.r()) => return Ok(None),
+                Some(ref n) if self.is_root_node(&n) => return Ok(None),
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(&node)) {
                         return Ok(None)
                     }
                 }
@@ -400,7 +400,7 @@ impl TreeWalker {
         match node.GetNextSibling() {
             None => {
                 let mut candidate = Root::from_ref(node);
-                while !self.is_root_node(candidate.r()) && candidate.GetNextSibling().is_none() {
+                while !self.is_root_node(&candidate) && candidate.GetNextSibling().is_none() {
                     match candidate.GetParentNode() {
                         None =>
                             // This can happen if the user set the current node to somewhere
@@ -409,7 +409,7 @@ impl TreeWalker {
                         Some(n) => candidate = n
                     }
                 }
-                if self.is_root_node(candidate.r()) {
+                if self.is_root_node(&candidate) {
                     None
                 } else {
                     candidate.GetNextSibling()

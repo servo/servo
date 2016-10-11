@@ -163,7 +163,7 @@ impl<'a> TreeSink for Sink {
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
         while let Some(ref child) = node.GetFirstChild() {
-            new_parent.AppendChild(child.r()).unwrap();
+            new_parent.AppendChild(&child).unwrap();
         }
 
     }
@@ -200,7 +200,7 @@ impl<'a> Serializable for &'a Node {
                 };
 
                 for handle in children {
-                    try!(handle.r().serialize(serializer, IncludeNode));
+                    try!((&*handle).serialize(serializer, IncludeNode));
                 }
 
                 if traversal_scope == IncludeNode {
@@ -211,7 +211,7 @@ impl<'a> Serializable for &'a Node {
 
             (ChildrenOnly, NodeTypeId::Document(_)) => {
                 for handle in node.children() {
-                    try!(handle.r().serialize(serializer, IncludeNode));
+                    try!((&*handle).serialize(serializer, IncludeNode));
                 }
                 Ok(())
             },
@@ -307,12 +307,11 @@ pub fn parse_html_fragment(context_node: &Node,
                            output: &Node) {
     let window = window_from_node(context_node);
     let context_document = document_from_node(context_node);
-    let context_document = context_document.r();
     let url = context_document.url();
 
     // Step 1.
     let loader = DocumentLoader::new(&*context_document.loader());
-    let document = Document::new(window.r(), None, Some(url.clone()),
+    let document = Document::new(&window, None, Some(url.clone()),
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
                                  DocumentSource::FromParser,
@@ -329,11 +328,11 @@ pub fn parse_html_fragment(context_node: &Node,
         context_elem: context_node,
         form_elem: form.r(),
     };
-    parse_html(document.r(), input, url.clone(), ParseContext::Fragment(fragment_context));
+    parse_html(&document, input, url.clone(), ParseContext::Fragment(fragment_context));
 
     // Step 14.
     let root_element = document.GetDocumentElement().expect("no document element");
     for child in root_element.upcast::<Node>().children() {
-        output.AppendChild(child.r()).unwrap();
+        output.AppendChild(&child).unwrap();
     }
 }

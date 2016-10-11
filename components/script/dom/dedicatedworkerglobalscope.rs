@@ -207,7 +207,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             {
-                let _ar = AutoWorkerReset::new(global.r(), worker);
+                let _ar = AutoWorkerReset::new(&global, worker);
                 scope.execute_script(DOMString::from(source));
             }
 

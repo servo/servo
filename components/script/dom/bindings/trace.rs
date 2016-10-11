@@ -80,7 +80,6 @@ use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
-use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -550,13 +549,6 @@ impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
         RootedVec {
             root: root,
         }
-    }
-}
-
-impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
-    /// Obtain a safe slice of references that can't outlive that RootedVec.
-    pub fn r(&self) -> &[&T] {
-        unsafe { mem::transmute(&self[..]) }
     }
 }
 

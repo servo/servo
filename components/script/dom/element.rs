@@ -1208,8 +1208,7 @@ impl Element {
 
     pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
         self.get_attribute(&ns!(), local_name).map(|attr| {
-            attr.r()
-                .value()
+            attr.value()
                 .as_tokens()
                 .to_vec()
         }).unwrap_or(vec!())
@@ -1235,7 +1234,7 @@ impl Element {
 
         match attribute {
             Some(ref attribute) => {
-                match *attribute.r().value() {
+                match *attribute.value() {
                     AttrValue::Int(_, value) => value,
                     _ => panic!("Expected an AttrValue::Int: \
                                  implement parse_plain_attribute"),
@@ -1502,7 +1501,7 @@ impl ElementMethods for Element {
             let old_attr = Root::from_ref(&*self.attrs.borrow()[position]);
 
             // Step 3.
-            if old_attr.r() == attr {
+            if &*old_attr == attr {
                 return Ok(Some(Root::from_ref(attr)));
             }
 
@@ -1565,7 +1564,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name(window.r(), self.upcast(), localname)
+        HTMLCollection::by_tag_name(&window, self.upcast(), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
@@ -1574,13 +1573,13 @@ impl ElementMethods for Element {
                               localname: DOMString)
                               -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name_ns(window.r(), self.upcast(), localname, maybe_ns)
+        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_class_name(window.r(), self.upcast(), classes)
+        HTMLCollection::by_class_name(&window, self.upcast(), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
@@ -1594,7 +1593,7 @@ impl ElementMethods for Element {
                          rect.size.width.to_f64_px(),
                          rect.size.height.to_f64_px())
         });
-        DOMRectList::new(win.r(), rects)
+        DOMRectList::new(&win, rects)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
@@ -1911,7 +1910,7 @@ impl ElementMethods for Element {
             // Step 4.
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(ns!(html), atom!("body")),
-                                                None, context_document.r(),
+                                                None, &context_document,
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },
@@ -1938,7 +1937,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::children(window.r(), self.upcast())
+        HTMLCollection::children(&window, self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -2638,8 +2637,6 @@ impl Element {
             return;
         }
         for ancestor in node.ancestors() {
-            let ancestor = ancestor;
-            let ancestor = ancestor.r();
             if !ancestor.is::<HTMLFieldSetElement>() {
                 continue;
             }

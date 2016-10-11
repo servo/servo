@@ -41,10 +41,10 @@ impl HTMLOptionsCollection {
 
     fn add_new_elements(&self, count: u32) -> ErrorResult {
         let root = self.upcast().root_node();
-        let document = document_from_node(root.r());
+        let document = document_from_node(&*root);
 
         for _ in 0..count {
-            let element = HTMLOptionElement::new(atom!("option"), None, document.r());
+            let element = HTMLOptionElement::new(atom!("option"), None, &document);
             let node = element.upcast::<Node>();
             try!(root.AppendChild(node));
         };
@@ -94,12 +94,12 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, root.r(), None).map(|_| ())
+                Node::pre_insert(node, &root, None).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
-                let child_node = child.r().upcast::<Node>();
+                let child_node = child.upcast::<Node>();
 
-                root.r().ReplaceChild(node, child_node).map(|_| ())
+                root.ReplaceChild(node, child_node).map(|_| ())
             }
         } else {
             // Step 1
@@ -138,14 +138,14 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         };
 
         // Step 1
-        if node.is_ancestor_of(root.r()) {
+        if node.is_ancestor_of(&root) {
             return Err(Error::HierarchyRequest);
         }
 
         if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {
             // Step 2
             let before_node = before_element.upcast::<Node>();
-            if !root.r().is_ancestor_of(before_node) {
+            if !root.is_ancestor_of(before_node) {
                 return Err(Error::NotFound);
             }
 
@@ -173,13 +173,13 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         };
 
         // Step 6
-        Node::pre_insert(node, parent.r(), reference_node.r()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.r()).map(|_| ())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove
     fn Remove(&self, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.r().Remove();
+            element.Remove();
         }
     }
 }

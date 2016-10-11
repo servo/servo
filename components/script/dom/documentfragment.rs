@@ -41,7 +41,7 @@ impl DocumentFragment {
     pub fn Constructor(global: &GlobalScope) -> Fallible<Root<DocumentFragment>> {
         let document = global.as_window().Document();
 
-        Ok(DocumentFragment::new(document.r()))
+        Ok(DocumentFragment::new(&document))
     }
 }
 
