@@ -1494,11 +1494,9 @@ impl BlockFlow {
         debug_assert!(!self.is_flex());
 
         // Compute the available space for us, based on the actual floats.
-        let rect = self.base.floats.available_rect(
-            self.base.position.start.b,
-            self.fragment.border_box.size.block,
-            content_box.size.inline
-        );
+        let rect = self.base.floats.available_rect(Au(0),
+                                                   self.fragment.border_box.size.block,
+                                                   content_box.size.inline);
         let available_inline_size = if let Some(rect) = rect {
             // Offset our position by whatever displacement is needed to not impact the floats.
             // Also, account for margins sliding behind floats.
