@@ -10,6 +10,7 @@ build = "build.rs"
 [lib]
 name = "style"
 path = "lib.rs"
+doctest = false
 
 [features]
 gecko = []
