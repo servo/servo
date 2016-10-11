@@ -262,18 +262,6 @@ pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
 
-/// Data for passing between threads/processes to indicate a particular action to
-/// take on a provided network listener.
-#[derive(Deserialize, Serialize)]
-pub enum ResponseAction {
-    /// Invoke headers_available
-    HeadersAvailable(Result<Metadata, NetworkError>),
-    /// Invoke data_available
-    DataAvailable(Vec<u8>),
-    /// Invoke response_complete
-    ResponseComplete(Result<(), NetworkError>)
-}
-
 impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
     /// Execute the default action on a provided listener.
     fn process(self, listener: &mut T) {

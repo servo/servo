@@ -5,7 +5,7 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::{CoreResourceThread, NetworkError, ResponseAction, fetch_async, FetchResponseMsg, FetchMetadata};
+use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg, FetchMetadata, Metadata};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
@@ -223,6 +223,18 @@ impl ImageListener {
         };
         sender.send(msg).ok();
     }
+}
+
+/// Data for passing between threads/processes to indicate a particular action to
+/// take on a provided network listener.
+#[derive(Deserialize, Serialize)]
+pub enum ResponseAction {
+    /// Invoke headers_available
+    HeadersAvailable(Result<Metadata, NetworkError>),
+    /// Invoke data_available
+    DataAvailable(Vec<u8>),
+    /// Invoke response_complete
+    ResponseComplete(Result<(), NetworkError>)
 }
 
 struct ResourceLoadInfo {
