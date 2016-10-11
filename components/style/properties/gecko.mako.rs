@@ -23,7 +23,7 @@ use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageVa
 use gecko_bindings::bindings::{Gecko_EnsureImageLayersLength, Gecko_CreateGradient};
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
-use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
@@ -949,9 +949,12 @@ fn static_assert() {
         image_layers_field = "mImage" if shorthand == "background" else "mMask"
     %>
     pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
         unsafe {
             Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                          other.gecko.${image_layers_field}.mLayers.len());
+                                          other.gecko.${image_layers_field}.mLayers.len(),
+                                          LayerType::${shorthand.title()});
         }
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
@@ -965,8 +968,11 @@ fn static_assert() {
 
     pub fn set_${shorthand}_${name}(&mut self,
                                     v: longhands::${shorthand}_${name}::computed_value::T) {
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len());
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
+                                        LayerType::${shorthand.title()});
         }
 
         self.gecko.${image_layers_field}.${field_name}Count = v.0.len() as u32;
@@ -1032,6 +1038,8 @@ fn static_assert() {
     </%self:simple_image_array_property>
 
     pub fn copy_${shorthand}_position_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
         self.gecko.${image_layers_field}.mPositionXCount
                 = cmp::min(1, other.gecko.${image_layers_field}.mPositionXCount);
         self.gecko.${image_layers_field}.mPositionYCount
@@ -1040,7 +1048,8 @@ fn static_assert() {
             other.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition;
         unsafe {
             Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
-                                          other.gecko.${image_layers_field}.mLayers.len());
+                                          other.gecko.${image_layers_field}.mLayers.len(),
+                                          LayerType::${shorthand.title()});
         }
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
                                   .zip(other.gecko.${image_layers_field}.mLayers.iter())
@@ -1077,8 +1086,11 @@ fn static_assert() {
 
     pub fn set_${shorthand}_position(&mut self,
                                      v: longhands::${shorthand}_position::computed_value::T) {
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len());
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
+                                        LayerType::${shorthand.title()});
         }
 
         self.gecko.${image_layers_field}.mPositionXCount = v.0.len() as u32;
@@ -1344,10 +1356,8 @@ fn static_assert() {
                 Gecko_SetNullImageValue(&mut image.mImage)
             }
             // XXXManishearth clear mSourceURI for masks
-            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.0.len());
-            for image in &mut self.gecko.${image_layers_field}.mLayers {
-                Gecko_InitializeImageLayer(image, LayerType::${shorthand.title()});
-            }
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.0.len(),
+                                          LayerType::${shorthand.title()});
         }
 
         self.gecko.${image_layers_field}.mImageCount = images.0.len() as u32;
