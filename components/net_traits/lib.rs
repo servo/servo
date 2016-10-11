@@ -287,19 +287,6 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
     }
 }
 
-/// A target for async networking events. Commonly used to dispatch a runnable event to another
-/// thread storing the wrapped closure for later execution.
-#[derive(Deserialize, Serialize)]
-pub struct AsyncResponseTarget {
-    pub sender: IpcSender<ResponseAction>,
-}
-
-impl AsyncResponseTarget {
-    pub fn invoke_with_listener(&self, action: ResponseAction) {
-        self.sender.send(action).unwrap()
-    }
-}
-
 /// A wrapper for a network load that can either be channel or event-based.
 #[derive(Deserialize, Serialize)]
 pub enum LoadConsumer {
