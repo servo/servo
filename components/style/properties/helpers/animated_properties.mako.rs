@@ -25,6 +25,7 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 use values::computed::position::Position;
+use values::computed::ToComputedValue;
 
 
 
@@ -143,6 +144,64 @@ impl AnimatedProperty {
         }
     }
 }
+
+/// An enum to represent a single computed value belonging to an animated
+/// property in order to be interpolated with another one. When interpolating,
+/// both values need to belong to the same property.
+///
+/// This is different to AnimatedProperty in the sense that AnimatedProperty
+/// also knows the final value to be used during the animation.
+///
+/// This is to be used in Gecko integration code.
+///
+/// FIXME: We need to add a path for custom properties, but that's trivial after
+/// this (is a similar path to that of PropertyDeclaration).
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum AnimationValue {
+    % for prop in data.longhands:
+        % if prop.animatable:
+            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+        % endif
+    % endfor
+}
+
+impl AnimationValue {
+    pub fn uncompute(&self) -> PropertyDeclaration {
+        use properties::{longhands, DeclaredValue};
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    AnimationValue::${prop.camel_case}(ref from) => {
+                        PropertyDeclaration::${prop.camel_case}(
+                            DeclaredValue::Value(
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                    }
+                % endif
+            % endfor
+        }
+    }
+}
+
+impl Interpolate for AnimationValue {
+    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    (&AnimationValue::${prop.camel_case}(ref from),
+                     &AnimationValue::${prop.camel_case}(ref to)) => {
+                        from.interpolate(to, time).map(AnimationValue::${prop.camel_case})
+                    }
+                % endif
+            % endfor
+            _ => {
+                panic!("Expected interpolation of computed values of the same \
+                        property, got: {:?}, {:?}", self, other);
+            }
+        }
+    }
+}
+
 
 /// A trait used to implement [interpolation][interpolated-types].
 ///
