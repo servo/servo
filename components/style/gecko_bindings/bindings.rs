@@ -826,21 +826,21 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(set: RawServoStyleSetOwned);
 }
 extern "C" {
-    pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowedMut,
+    pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
                                            sheet: RawServoStyleSheetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowedMut,
+    pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowed,
                                             sheet:
                                                 RawServoStyleSheetBorrowed);
 }
 extern "C" {
-    pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowedMut,
+    pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowed,
                                            sheet: RawServoStyleSheetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_InsertStyleSheetBefore(set:
-                                                     RawServoStyleSetBorrowedMut,
+                                                     RawServoStyleSetBorrowed,
                                                  sheet:
                                                      RawServoStyleSheetBorrowed,
                                                  reference:
@@ -912,7 +912,7 @@ extern "C" {
                                                        ServoComputedValuesBorrowedOrNull,
                                                    pseudoTag: *mut nsIAtom,
                                                    set:
-                                                       RawServoStyleSetBorrowedMut)
+                                                       RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
@@ -922,7 +922,7 @@ extern "C" {
                                                         RawGeckoElementBorrowed,
                                                     pseudo_tag: *mut nsIAtom,
                                                     set:
-                                                        RawServoStyleSetBorrowedMut,
+                                                        RawServoStyleSetBorrowed,
                                                     is_probe: bool)
      -> ServoComputedValuesStrong;
 }
@@ -953,7 +953,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
-                                set: RawServoStyleSetBorrowedMut);
+                                set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
