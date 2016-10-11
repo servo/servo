@@ -2748,7 +2748,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                               interface.get());
 """ % {"id": name, "name": str_to_const_array(name)})
 
-        if len(self.descriptor.prototypeChain) == 1:
+        parentName = self.descriptor.getParentName()
+        if not parentName:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
                 getPrototypeProto = "prototype_proto.set(JS_GetErrorPrototype(cx))"
             elif self.descriptor.interface.isIteratorInterface():
@@ -2757,7 +2758,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 getPrototypeProto = "prototype_proto.set(JS_GetObjectPrototype(cx, global))"
         else:
             getPrototypeProto = ("%s::GetProtoObject(cx, global, prototype_proto.handle_mut())" %
-                                 toBindingNamespace(self.descriptor.getParentName()))
+                                 toBindingNamespace(parentName))
 
         code = [CGGeneric("""\
 rooted!(in(cx) let mut prototype_proto = ptr::null_mut());

@@ -44,7 +44,9 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
-use dom::servohtmlparser::ParserContext;
+use dom::servoparser::{ParserContext, ServoParser};
+use dom::servoparser::html::{ParseContext, parse_html};
+use dom::servoparser::xml::{self, parse_xml};
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
@@ -71,9 +73,6 @@ use net_traits::{IpcSend, LoadData as NetLoadData};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use network_listener::NetworkListener;
-use parse::ParserRoot;
-use parse::html::{ParseContext, parse_html};
-use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
@@ -490,7 +489,7 @@ impl ScriptThreadFactory for ScriptThread {
 
 impl ScriptThread {
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
-                                  -> Option<ParserRoot> {
+                                  -> Option<Root<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, metadata)
@@ -1414,7 +1413,7 @@ impl ScriptThread {
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_headers_available(&self, id: &PipelineId,
-                                     metadata: Option<Metadata>) -> Option<ParserRoot> {
+                                     metadata: Option<Metadata>) -> Option<Root<ServoParser>> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| { load.pipeline_id == *id });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
@@ -1544,7 +1543,7 @@ impl ScriptThread {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> ParserRoot {
+    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoParser> {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.

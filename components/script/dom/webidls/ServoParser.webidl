@@ -5,7 +5,6 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface ServoXMLParser {
-};
-
+[Exposed=(Window,Worker),
+ NoInterfaceObject]
+interface ServoParser {};

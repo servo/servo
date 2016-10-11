@@ -83,6 +83,7 @@ pub enum ProfilerCategory {
     ScriptWebSocketEvent = 0x73,
     ScriptWorkerEvent = 0x74,
     ScriptServiceWorkerEvent = 0x75,
+    ScriptParseXML = 0x76,
     ApplicationHeartbeat = 0x90,
 }
 
