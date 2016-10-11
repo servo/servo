@@ -261,18 +261,6 @@ pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
 }
 
-/// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
-pub trait AsyncResponseListener {
-    /// The response headers for a request have been received.
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>);
-    /// A portion of the response body has been received. This data is unavailable after
-    /// this method returned, and must be stored accordingly.
-    fn data_available(&mut self, payload: Vec<u8>);
-    /// The response is complete. If the provided status is an Err value, there is no guarantee
-    /// that the response body was completely read.
-    fn response_complete(&mut self, status: Result<(), NetworkError>);
-}
-
 /// Data for passing between threads/processes to indicate a particular action to
 /// take on a provided network listener.
 #[derive(Deserialize, Serialize)]
@@ -283,17 +271,6 @@ pub enum ResponseAction {
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
     ResponseComplete(Result<(), NetworkError>)
-}
-
-impl<T: AsyncResponseListener> Action<T> for ResponseAction {
-    /// Execute the default action on a provided listener.
-    fn process(self, listener: &mut T) {
-        match self {
-            ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
-            ResponseAction::DataAvailable(d) => listener.data_available(d),
-            ResponseAction::ResponseComplete(r) => listener.response_complete(r),
-        }
-    }
 }
 
 impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
