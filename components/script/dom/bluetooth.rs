@@ -10,6 +10,7 @@ use dom::bindings::error::Error::{self, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
@@ -17,11 +18,14 @@ use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
-use js::conversions::ToJSValConvertible;
+use ipc_channel::router::ROUTER;
+use js::jsapi::JSAutoCompartment;
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
+use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg, BluetoothResponseListener, BluetoothResultMsg};
+use network_listener::{NetworkListener, PreInvoke};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
@@ -38,6 +42,11 @@ const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 24
 const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
 const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
+
+struct BluetoothContext {
+    promise: Option<TrustedPromise>,
+    bluetooth: Trusted<Bluetooth>,
+}
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 #[dom_struct]
@@ -64,61 +73,41 @@ impl Bluetooth {
         global_ref.as_window().bluetooth_thread()
     }
 
-    fn request_device(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
-        // Step 1.
-        // TODO(#4282): Reject promise.
-        if (option.filters.is_some() && option.acceptAllDevices) ||
-           (option.filters.is_none() && !option.acceptAllDevices) {
-            return Err(Type(OPTIONS_ERROR.to_owned()));
-        }
-        // Step 2.
-        if !option.acceptAllDevices {
-            return self.request_bluetooth_devices(&option.filters, &option.optionalServices);
-        }
-
-        self.request_bluetooth_devices(&None, &option.optionalServices)
-        // TODO(#4282): Step 3-5: Reject and resolve promise.
-    }
-
+    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_bluetooth_devices(&self,
+                                 p: &Rc<Promise>,
                                  filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
-                                 optional_services: &Option<Vec<BluetoothServiceUUID>>)
-                                 -> Fallible<Root<BluetoothDevice>> {
+                                 optional_services: &Option<Vec<BluetoothServiceUUID>>) {
         // TODO: Step 1: Triggered by user activation.
 
         // Step 2.
-        let option = try!(convert_request_device_options(filters, optional_services));
+        let option = match convert_request_device_options(filters, optional_services) {
+            Ok(o) => o,
+            Err(e) => {
+                p.reject_error(p.global().r().get_cx(), e);
+                return;
+            }
+        };
 
         // TODO: Step 3-5: Implement the permission API.
 
         // Note: Steps 6-8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
         let (sender, receiver) = ipc::channel().unwrap();
+        let bt_context = Arc::new(Mutex::new(BluetoothContext {
+            promise: Some(TrustedPromise::new(p.clone())),
+            bluetooth: Trusted::new(self),
+        }));
+        let listener = NetworkListener {
+            context: bt_context,
+            script_chan: self.global().r().networking_task_source(),
+            wrapper: None,
+        };
+        ROUTER.add_route(receiver.to_opaque(), box move |message| {
+            listener.notify_response(message.to().unwrap());
+        });
         self.get_bluetooth_thread().send(BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
-        let device = receiver.recv().unwrap();
-
-        // TODO: Step 9-10: Implement the permission API.
-
-        // Step 11: This step is optional.
-
-        // Step 12-13.
-        match device {
-            Ok(device) => {
-                let ad_data = BluetoothAdvertisingData::new(self.global().r(),
-                                                            device.appearance,
-                                                            device.tx_power,
-                                                            device.rssi);
-                Ok(BluetoothDevice::new(self.global().r(),
-                                        DOMString::from(device.id),
-                                        device.name.map(DOMString::from),
-                                        &ad_data))
-            },
-            Err(error) => {
-                Err(Error::from(error))
-            },
-        }
-
     }
 }
 
@@ -270,18 +259,6 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                                 service_data_uuid))
 }
 
-#[allow(unrooted_must_root)]
-pub fn result_to_promise<T: ToJSValConvertible>(global_ref: GlobalRef,
-                                                bluetooth_result: Fallible<T>)
-                                                -> Rc<Promise> {
-    let p = Promise::new(global_ref);
-    match bluetooth_result {
-        Ok(v) => p.resolve_native(p.global().r().get_cx(), &v),
-        Err(e) => p.reject_error(p.global().r().get_cx(), e),
-    }
-    p
-}
-
 impl From<BluetoothError> for Error {
     fn from(error: BluetoothError) -> Self {
         match error {
@@ -298,6 +275,62 @@ impl BluetoothMethods for Bluetooth {
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Rc<Promise> {
-        result_to_promise(self.global().r(), self.request_device(option))
+        let p = Promise::new(self.global().r());
+        // Step 1.
+        // TODO(#4282): Reject promise.
+        if (option.filters.is_some() && option.acceptAllDevices) ||
+           (option.filters.is_none() && !option.acceptAllDevices) {
+            p.reject_error(p.global().r().get_cx(), Error::Type(OPTIONS_ERROR.to_owned()));
+            return p;
+        }
+        // Step 2.
+        if !option.acceptAllDevices {
+            self.request_bluetooth_devices(&p, &option.filters, &option.optionalServices);
+        } else {
+            self.request_bluetooth_devices(&p, &None, &option.optionalServices);
+        }
+        // TODO(#4282): Step 3-5: Reject and resolve promise.
+        return p;
+    }
+}
+
+impl PreInvoke for BluetoothContext {}
+
+impl BluetoothResponseListener for BluetoothContext {
+    #[allow(unrooted_must_root)]
+    fn response(&mut self, result: BluetoothResultMsg) {
+        let promise = self.promise.take().expect("bt promise is missing").root();
+        let promise_cx = promise.global().r().get_cx();
+
+        // JSAutoCompartment needs to be manually made.
+        // Otherwise, Servo will crash.
+        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        match result {
+            BluetoothResultMsg::RequestDevice(device) => {
+                // Step 12-13.
+                let ad_data = BluetoothAdvertisingData::new(self.bluetooth.root().global().r(),
+                                                            device.appearance,
+                                                            device.tx_power,
+                                                            device.rssi);
+                let dev = BluetoothDevice::new(self.bluetooth.root().global().r(),
+                                               DOMString::from(device.id),
+                                               device.name.map(DOMString::from),
+                                               &ad_data);
+                promise.resolve_native(
+                    promise_cx,
+                    &dev);
+            },
+            BluetoothResultMsg::Error(error) => {
+                promise.reject_error(
+                    promise_cx,
+                    Error::from(error));
+            },
+            _ => {
+                promise.reject_error(
+                    promise_cx,
+                    Error::Type("Something went wrong...".to_owned()));
+            }
+        }
+        self.promise = Some(TrustedPromise::new(promise));
     }
 }
