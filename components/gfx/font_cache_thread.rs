@@ -5,9 +5,9 @@
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, CoreResourceThread, ResponseAction, load_async};
+use net_traits::{CoreResourceThread, FetchResponseMsg, fetch_async, FetchMetadata};
+use net_traits::request::{Destination, RequestInit, Type as RequestType};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -206,27 +206,31 @@ impl FontCache {
         }
 
         match src {
-            Source::Url(ref url_source) => {
-                let url = &url_source.url;
-                let (data_sender, data_receiver) = ipc::channel().unwrap();
-                let data_target = AsyncResponseTarget {
-                    sender: data_sender,
+            Source::Url(url_source) => {
+                // https://drafts.csswg.org/css-fonts/#font-fetching-requirements
+                let url = url_source.url;
+                let request = RequestInit {
+                    url: url.clone(),
+                    type_: RequestType::Font,
+                    destination: Destination::Font,
+                    origin: url.clone(),
+                    .. RequestInit::default()
                 };
-                load_async(LoadContext::Font,
-                           self.core_resource_thread.clone(),
-                           url.clone(),
-                           None,
-                           None,
-                           None,
-                           data_target);
+
                 let channel_to_self = self.channel_to_self.clone();
-                let url = (*url).clone();
                 let bytes = Mutex::new(Vec::new());
                 let response_valid = Mutex::new(false);
-                ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
-                    let response: ResponseAction = message.to().unwrap();
+                fetch_async(request, &self.core_resource_thread, move |response| {
                     match response {
-                        ResponseAction::HeadersAvailable(meta_result) => {
+                        FetchResponseMsg::ProcessRequestBody |
+                        FetchResponseMsg::ProcessRequestEOF => (),
+                        FetchResponseMsg::ProcessResponse(meta_result) => {
+                            let meta_result = meta_result.map(|m| {
+                                match m {
+                                    FetchMetadata::Unfiltered(m) => m,
+                                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                                }
+                            });
                             let is_response_valid = match meta_result {
                                 Ok(ref metadata) => {
                                     metadata.content_type.as_ref().map_or(false, |content_type| {
@@ -243,12 +247,12 @@ impl FontCache {
                                              .unwrap_or(format!("<Network Error>")));
                             *response_valid.lock().unwrap() = is_response_valid;
                         }
-                        ResponseAction::DataAvailable(new_bytes) => {
+                        FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
                             if *response_valid.lock().unwrap() {
                                 bytes.lock().unwrap().extend(new_bytes.into_iter())
                             }
                         }
-                        ResponseAction::ResponseComplete(response) => {
+                        FetchResponseMsg::ProcessResponseEOF(response) => {
                             if response.is_err() || !*response_valid.lock().unwrap() {
                                 let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
                                 channel_to_self.send(msg).unwrap();
