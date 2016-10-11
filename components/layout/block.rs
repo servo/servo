@@ -1390,8 +1390,22 @@ impl BlockFlow {
             // and its inline-size is our content inline-size.
             let kid_mode = flow::base(kid).writing_mode;
             {
+                // Don't assign positions to children unless they're going to be reflowed.
+                // Otherwise, the position we assign might be incorrect and never fixed up. (Issue
+                // #13704.)
+                //
+                // For instance, floats have their true inline position calculated in
+                // `assign_block_size()`, which won't do anything unless `REFLOW` is set. So, if a
+                // float child does not have `REFLOW` set, we must be careful to avoid touching its
+                // inline position, as no logic will run afterward to set its true value.
                 let kid_base = flow::mut_base(kid);
-                if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                let reflow_damage = if kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                    REFLOW_OUT_OF_FLOW
+                } else {
+                    REFLOW
+                };
+                if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) &&
+                        kid_base.restyle_damage.contains(reflow_damage) {
                     kid_base.position.start.i =
                         if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
                             inline_start_content_edge
