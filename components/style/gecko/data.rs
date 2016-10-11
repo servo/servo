@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use animation::Animation;
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use context::SharedStyleContext;
 use dom::OpaqueNode;
 use euclid::size::TypedSize2D;
@@ -22,7 +23,7 @@ use stylesheets::Stylesheet;
 use thread_state;
 use workqueue::WorkQueue;
 
-pub struct PerDocumentStyleData {
+pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
     pub stylist: Arc<Stylist>,
 
@@ -44,6 +45,8 @@ pub struct PerDocumentStyleData {
     pub num_threads: usize,
 }
 
+pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
+
 lazy_static! {
     pub static ref NUM_THREADS: usize = {
         match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
@@ -54,14 +57,14 @@ lazy_static! {
 }
 
 impl PerDocumentStyleData {
-    pub fn new() -> PerDocumentStyleData {
+    pub fn new() -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
         let device = Device::new(MediaType::Screen, window_size);
 
         let (new_anims_sender, new_anims_receiver) = channel();
 
-        PerDocumentStyleData {
+        PerDocumentStyleData(AtomicRefCell::new(PerDocumentStyleDataImpl {
             stylist: Arc::new(Stylist::new(device)),
             stylesheets: vec![],
             stylesheets_changed: true,
@@ -75,9 +78,19 @@ impl PerDocumentStyleData {
                 WorkQueue::new("StyleWorker", thread_state::LAYOUT, *NUM_THREADS).ok()
             },
             num_threads: *NUM_THREADS,
-        }
+        }))
     }
 
+    pub fn borrow(&self) -> AtomicRef<PerDocumentStyleDataImpl> {
+        self.0.borrow()
+    }
+
+    pub fn borrow_mut(&self) -> AtomicRefMut<PerDocumentStyleDataImpl> {
+        self.0.borrow_mut()
+    }
+}
+
+impl PerDocumentStyleDataImpl {
     pub fn flush_stylesheets(&mut self) {
         // The stylist wants to be flushed if either the stylesheets change or the
         // device dimensions change. When we add support for media queries, we'll
@@ -96,7 +109,7 @@ unsafe impl HasFFI for PerDocumentStyleData {
 unsafe impl HasSimpleFFI for PerDocumentStyleData {}
 unsafe impl HasBoxFFI for PerDocumentStyleData {}
 
-impl Drop for PerDocumentStyleData {
+impl Drop for PerDocumentStyleDataImpl {
     fn drop(&mut self) {
         if let Some(ref mut queue) = self.work_queue {
             queue.shutdown();
