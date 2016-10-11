@@ -494,12 +494,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
-                                         len: usize);
-}
-extern "C" {
-    pub fn Gecko_InitializeImageLayer(layer: *mut nsStyleImageLayers_Layer,
-                                      layer_type:
-                                          nsStyleImageLayers_LayerType);
+                                         len: usize,
+                                         layer_type:
+                                             nsStyleImageLayers_LayerType);
 }
 extern "C" {
     pub fn Gecko_ResetStyleCoord(unit: *mut nsStyleUnit,
