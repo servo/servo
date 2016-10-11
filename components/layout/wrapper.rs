@@ -68,7 +68,7 @@ impl<T: LayoutNode> LayoutNodeLayoutData for T {
     }
 
     fn initialize_data(self) {
-        if self.borrow_data().is_none() {
+        if self.borrow_layout_data().is_none() {
             let ptr: NonOpaqueStyleAndLayoutData =
                 Box::into_raw(box AtomicRefCell::new(PersistentLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {

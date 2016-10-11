@@ -229,14 +229,7 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
 {
     use properties::longhands::display::computed_value as display;
 
-    // Ensure we have style data available. This must be done externally because
-    // there's no way to initialize the style data from the style system
-    // (because in Servo it's coupled with the layout data too).
-    //
-    // Ideally we'd have an initialize_data() or something similar but just for
-    // style data.
-    debug_assert!(node.borrow_data().is_some(),
-                  "Need to initialize the data before calling ensure_node_styled");
+    // NB: The node data must be initialized here.
 
     // We need to go to the root and ensure their style is up to date.
     //
@@ -257,7 +250,7 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     //
     // We only need to mark whether we have display none, and forget about it,
     // our style is up to date.
-    if let Some(ref style) = node.borrow_data().unwrap().style {
+    if let Some(ref style) = node.get_existing_style() {
         if !*parents_had_display_none {
             *parents_had_display_none = style.get_box().clone_display() == display::T::none;
             return;
@@ -308,7 +301,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
         if node.has_changed() {
-            node.unstyle();
+            node.set_style(None);
         }
 
         // Check to see whether we can share a style with someone.
@@ -385,11 +378,15 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
         }
     } else {
         // Finish any expired transitions.
-        animation::complete_expired_transitions(
+        let mut existing_style = node.get_existing_style().unwrap();
+        let had_animations_to_expire = animation::complete_expired_transitions(
             node.opaque(),
-            node.mutate_data().unwrap().style.as_mut().unwrap(),
+            &mut existing_style,
             context.shared_context()
         );
+        if had_animations_to_expire {
+            node.set_style(Some(existing_style));
+        }
     }
 
     let unsafe_layout_node = node.to_unsafe();

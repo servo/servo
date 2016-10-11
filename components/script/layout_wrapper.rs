@@ -60,7 +60,7 @@ use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::PersistentStyleData;
+use style::data::{PersistentStyleData, PseudoStyles};
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
 use style::dom::UnsafeNode;
 use style::element_state::*;
@@ -105,6 +105,14 @@ impl<'ln> ServoLayoutNode<'ln> {
             node: *node,
             chain: self.chain,
         }
+    }
+
+    pub fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
+        self.get_style_data().map(|d| d.borrow())
+    }
+
+    pub fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
+        self.get_style_data().map(|d| d.borrow_mut())
     }
 
     fn script_type_id(&self) -> NodeTypeId {
@@ -234,12 +242,24 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         old_value - 1
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
-        self.get_style_data().map(|d| d.borrow())
+    fn get_existing_style(&self) -> Option<Arc<ComputedValues>> {
+        self.borrow_data().and_then(|x| x.style.clone())
     }
 
-    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
-        self.get_style_data().map(|d| d.borrow_mut())
+    fn set_style(&self, style: Option<Arc<ComputedValues>>) {
+        self.mutate_data().unwrap().style = style;
+    }
+
+    fn take_pseudo_styles(&self) -> PseudoStyles {
+        use std::mem;
+        let mut tmp = PseudoStyles::default();
+        mem::swap(&mut tmp, &mut self.mutate_data().unwrap().per_pseudo);
+        tmp
+    }
+
+    fn set_pseudo_styles(&self, styles: PseudoStyles) {
+        debug_assert!(self.borrow_data().unwrap().per_pseudo.is_empty());
+        self.mutate_data().unwrap().per_pseudo = styles;
     }
 
     fn restyle_damage(self) -> RestyleDamage {
