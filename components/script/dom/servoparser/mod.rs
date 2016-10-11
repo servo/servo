@@ -28,7 +28,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
-use net_traits::{AsyncResponseListener, Metadata, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
@@ -331,11 +331,21 @@ impl ParserContext {
     }
 }
 
-impl AsyncResponseListener for ParserContext {
-    fn headers_available(&mut self, meta_result: Result<Metadata, NetworkError>) {
+impl FetchResponseListener for ParserContext {
+    fn process_request_body(&mut self) {}
+
+    fn process_request_eof(&mut self) {}
+
+    fn process_response(&mut self,
+                        meta_result: Result<FetchMetadata, NetworkError>) {
         let mut ssl_error = None;
         let metadata = match meta_result {
-            Ok(meta) => Some(meta),
+            Ok(meta) => {
+                Some(match meta {
+                    FetchMetadata::Unfiltered(m) => m,
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                })
+            },
             Err(NetworkError::SslValidation(url, reason)) => {
                 ssl_error = Some(reason);
                 let mut meta = Metadata::default(url);
@@ -407,7 +417,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, payload: Vec<u8>) {
         if !self.is_synthesized_document {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
@@ -419,7 +429,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
