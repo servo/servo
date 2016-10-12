@@ -968,17 +968,8 @@ ${helpers.single_keyword("-moz-appearance",
         }
 
         let url = context.parse_url(&*try!(input.expect_url()));
-        match context.extra_data {
-            ParserContextExtraData {
-                base: Some(ref base),
-                referrer: Some(ref referrer),
-                principal: Some(ref principal),
-            } => {
-                let extra_data = UrlExtraData {
-                    base: base.clone(),
-                    referrer: referrer.clone(),
-                    principal: principal.clone(),
-                };
+        match UrlExtraData::make_from(context) {
+            Some(extra_data) => {
                 Ok(SpecifiedValue::Url(url, extra_data))
             },
             _ => {
