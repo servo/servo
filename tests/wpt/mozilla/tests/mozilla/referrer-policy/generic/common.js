@@ -192,7 +192,45 @@ function queryAnchor(url, callback, referrer_policy) {
 
   function doQuery() {
     var id = token();
-    var url_with_params = url + "&id=" + id + "&tagAttrs=" + JSON.stringify(referrer_policy);
+
+    var document_url = new URL(url);
+    var document_protocol = document_url.protocol;
+    var document_host = document_url.host;
+
+    // TODO This is a workaround to pass tests which their referrer policy
+    // changed when source and destination has different protocol or host.
+    //
+    // Here we store url's protocol and host, then make url's protocol and
+    // host equal to window's. Finally, we pass the protocol and host we
+    // stored as url arguments while loading url. So that url knows what
+    // protocol and host to load the actual document.py and makes tests
+    // meaningful and correct.
+    document_url.protocol = window.location.protocol;
+    document_url.host = window.location.host;
+
+    // Due to limitation of current test implementation, we are unable to
+    // capture referrer policy from meta tags and http header of test
+    // harness directly. To overcome it, we extract these information from
+    // meta tags and pass it to url which we're going to load for future
+    // use.
+    var meta_referrer = undefined;
+    var http_referrer = undefined;
+    for (var meta of document.head.querySelectorAll("meta")) {
+      if (meta.name === "referrer") {
+        meta_referrer = meta.content;
+      } else if (meta.name === "http-referrer-policy") {
+        http_referrer = meta.content;
+      }
+    }
+
+    var url_with_params = document_url.toString() +
+      "&id=" + id +
+      "&tagAttrs=" + JSON.stringify(referrer_policy) +
+      "&metaReferrer=" + meta_referrer +
+      "&httpReferrer=" + http_referrer +
+      "&protocol=" + document_protocol +
+      "&host=" + document_host;
+
     var iframe = appendIframeToBody(url_with_params);
     iframe.addEventListener("load", function listener() {
       if ((iframe.contentDocument !== null) &&
@@ -201,13 +239,16 @@ function queryAnchor(url, callback, referrer_policy) {
       }
 
       var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?path=a-tag-document-url&id=' + id, false);
+      xhr.send();
+      var expected_url = JSON.parse(xhr.responseText);
+
+      var xhr = new XMLHttpRequest();
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
       xhr.onload = function(e) {
         var server_data = JSON.parse(this.responseText);
-        server_data.referrer = unescape(server_data.referrer);
-        server_data.headers.referer = unescape(server_data.headers.referer);
 
-        callback(server_data, url_with_params);
+        callback(server_data, expected_url);
       };
       xhr.send();
 
@@ -252,7 +293,7 @@ function queryLink(url, callback, referrer_policy) {
       for (var attr in referrer_policy) {
         // TODO crashed when you assigned value to rel attribute
         if (attr === "rel") {
-          link.relList.add("noreferrer");
+          link.relList.add(referrer_policy[attr]);
         } else {
           link[attr] = referrer_policy[attr];
         }
