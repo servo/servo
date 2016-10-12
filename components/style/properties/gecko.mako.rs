@@ -1988,7 +1988,9 @@ clip-path
         use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
 
         self.gecko.mColumnCount = match v.0 {
-            Some(number) => cmp::min(number, nsStyleColumn_kMaxColumnCount),
+            Some(number) => unsafe {
+                cmp::min(number, nsStyleColumn_kMaxColumnCount)
+            },
             None => NS_STYLE_COLUMN_COUNT_AUTO
         };
     }
