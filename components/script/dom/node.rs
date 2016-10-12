@@ -1935,12 +1935,9 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-getrootnode
-    fn GetRootNode(&self, options: &GetRootNodeOptions) -> Root<Node> {
-        if options.composed {
-            self.inclusive_ancestors().last().unwrap()
-        } else {
-            self.ancestors().last().unwrap()
-        }
+    fn GetRootNode(&self, _options: &GetRootNodeOptions) -> Root<Node> {
+        // TODO Figure out how to detect shadow-root nodes.
+        self.inclusive_ancestors().last().unwrap()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
