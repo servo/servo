@@ -26,3 +26,4 @@ pub fn deref_mut<'a>(r: &'a mut FlowRef) -> &'a mut Flow {
         &mut *(ptr as *mut Flow)
     }
 }
+

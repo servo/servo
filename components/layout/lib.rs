@@ -8,8 +8,11 @@
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![feature(raw)]
 #![feature(step_by)]
+#![feature(structural_match)]
+#![feature(rustc_attrs)]
 
 #![deny(unsafe_code)]
 
@@ -43,10 +46,13 @@ extern crate plugins as servo_plugins;
 extern crate profile_traits;
 #[macro_use]
 extern crate range;
-extern crate rustc_serialize;
 extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
