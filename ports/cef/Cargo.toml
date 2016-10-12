@@ -20,7 +20,6 @@ devtools = {path = "../../components/devtools"}
 euclid = "0.10.1"
 gleam = "0.2.8"
 glutin_app = {path = "../glutin"}
-layers = {git = "https://github.com/servo/rust-layers"}
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 msg = {path = "../../components/msg"}

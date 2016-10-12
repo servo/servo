@@ -58,8 +58,8 @@ pub struct CanvasPaintThread<'a> {
     path_builder: PathBuilder,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    webrender_api: Option<webrender_traits::RenderApi>,
-    webrender_image_key: Option<webrender_traits::ImageKey>,
+    webrender_api: webrender_traits::RenderApi,
+    webrender_image_key: webrender_traits::ImageKey,
 }
 
 #[derive(Clone)]
@@ -100,12 +100,12 @@ impl<'a> CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
-           webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+           webrender_api_sender: webrender_traits::RenderApiSender,
            antialias: bool) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
-        let webrender_api = webrender_api_sender.map(|wr| wr.create_api());
-        let webrender_image_key = webrender_api.as_ref().map(|wr| wr.alloc_image());
+        let webrender_api = webrender_api_sender.create_api();
+        let webrender_image_key = webrender_api.alloc_image();
         CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
@@ -119,7 +119,7 @@ impl<'a> CanvasPaintThread<'a> {
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
-                 webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+                 webrender_api_sender: webrender_traits::RenderApiSender,
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
@@ -542,14 +542,12 @@ impl<'a> CanvasPaintThread<'a> {
 
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            if let Some(ref webrender_api) = self.webrender_api {
-                let size = self.drawtarget.get_size();
-                webrender_api.update_image(self.webrender_image_key.unwrap(),
-                                           size.width as u32,
-                                           size.height as u32,
-                                           webrender_traits::ImageFormat::RGBA8,
-                                           element.into());
-            }
+            let size = self.drawtarget.get_size();
+            self.webrender_api.update_image(self.webrender_image_key,
+                                            size.width as u32,
+                                            size.height as u32,
+                                            webrender_traits::ImageFormat::RGBA8,
+                                            element.into());
 
             let pixel_data = CanvasPixelData {
                 image_data: IpcSharedMemory::from_bytes(element),
@@ -710,9 +708,7 @@ impl<'a> CanvasPaintThread<'a> {
 
 impl<'a> Drop for CanvasPaintThread<'a> {
     fn drop(&mut self) {
-        if let Some(ref mut wr) = self.webrender_api {
-            wr.delete_image(self.webrender_image_key.unwrap());
-        }
+        self.webrender_api.delete_image(self.webrender_image_key);
     }
 }
 

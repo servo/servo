@@ -1220,42 +1220,20 @@ impl Window {
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Point2D<f32> {
-        // WebRender always keeps the scroll offsets up to date and stored here in the window. So,
-        // if WR is in use, all we need to do is to check our list of scroll offsets and return the
-        // result.
-        if opts::get().use_webrender {
-            let mut node = Root::from_ref(node);
-            loop {
-                if let Some(scroll_offset) = self.scroll_offsets
-                                                 .borrow()
-                                                 .get(&node.to_untrusted_node_address()) {
-                    return *scroll_offset
-                }
-                node = match node.GetParentNode() {
-                    Some(node) => node,
-                    None => break,
-                }
+        let mut node = Root::from_ref(node);
+        loop {
+            if let Some(scroll_offset) = self.scroll_offsets
+                                             .borrow()
+                                             .get(&node.to_untrusted_node_address()) {
+                return *scroll_offset
             }
-            let offset = self.current_viewport.get().origin;
-            return Point2D::new(offset.x.to_f32_px(), offset.y.to_f32_px())
+            node = match node.GetParentNode() {
+                Some(node) => node,
+                None => break,
+            }
         }
-
-        let node = node.to_trusted_node_address();
-        if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::NodeLayerIdQuery(node),
-                        ReflowReason::Query) {
-            return Point2D::zero();
-        }
-
-        let layer_id = self.layout_rpc.node_layer_id().layer_id;
-
-        let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        let global_scope = self.upcast::<GlobalScope>();
-        global_scope
-            .constellation_chan()
-            .send(ConstellationMsg::GetScrollOffset(global_scope.pipeline_id(), layer_id, send))
-            .unwrap();
-        recv.recv().unwrap_or(Point2D::zero())
+        let offset = self.current_viewport.get().origin;
+        Point2D::new(offset.x.to_f32_px(), offset.y.to_f32_px())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll

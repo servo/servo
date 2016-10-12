@@ -109,7 +109,7 @@ impl FontContext {
                           descriptor: FontTemplateDescriptor,
                           pt_size: Au,
                           variant: font_variant::T,
-                          font_key: Option<webrender_traits::FontKey>) -> Result<Font, ()> {
+                          font_key: webrender_traits::FontKey) -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
@@ -197,7 +197,8 @@ impl FontContext {
                                                                   desc.clone(),
                                                                   style.font_size,
                                                                   style.font_variant,
-                                                                  template_info.font_key);
+                                                                  template_info.font_key
+                                                                               .expect("No font key present!"));
                         let font = match layout_font {
                             Ok(layout_font) => {
                                 let layout_font = Rc::new(RefCell::new(layout_font));
@@ -242,7 +243,7 @@ impl FontContext {
                                                       desc.clone(),
                                                       style.font_size,
                                                       style.font_variant,
-                                                      template_info.font_key);
+                                                      template_info.font_key.expect("No font key present!"));
             match layout_font {
                 Ok(layout_font) => {
                     let layout_font = Rc::new(RefCell::new(layout_font));

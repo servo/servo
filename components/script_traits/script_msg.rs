@@ -128,8 +128,6 @@ pub enum ScriptMsg {
     ResizeTo(Size2D<u32>),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
-    /// Get Scroll Offset
-    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// A log entry, with the pipeline id and thread name
     LogEntry(Option<PipelineId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.

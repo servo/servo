@@ -192,9 +192,6 @@ pub struct Opts {
     /// Enable vsync in the compositor
     pub enable_vsync: bool,
 
-    /// True to enable the webrender painting/compositing backend.
-    pub use_webrender: bool,
-
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
@@ -211,9 +208,6 @@ pub struct Opts {
 
     /// Directory for a default config directory
     pub config_dir: Option<String>,
-
-    // Which rendering API to use.
-    pub render_api: RenderApi,
 
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
@@ -452,15 +446,6 @@ enum UserAgent {
     Android,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub enum RenderApi {
-    GL,
-    ES2,
-}
-
-const DEFAULT_RENDER_API: RenderApi = RenderApi::GL;
-
 fn default_user_agent_string(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
@@ -549,10 +534,8 @@ pub fn default_opts() -> Opts {
         exit_after_load: false,
         no_native_titlebar: false,
         enable_vsync: true,
-        use_webrender: true,
         webrender_stats: false,
         use_msaa: false,
-        render_api: DEFAULT_RENDER_API,
         config_dir: None,
         full_backtraces: false,
         is_printing_version: false,
@@ -800,15 +783,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         opt_match.opt_present("b") ||
         !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
 
-    let use_webrender = !opt_match.opt_present("c");
-
-    let render_api = match opt_match.opt_str("G") {
-        Some(ref ga) if ga == "gl" => RenderApi::GL,
-        Some(ref ga) if ga == "es2" => RenderApi::ES2,
-        None => DEFAULT_RENDER_API,
-        _ => args_fail(&format!("error: graphics option must be gl or es2:")),
-    };
-
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
     let opts = Opts {
@@ -842,7 +816,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         sandbox: opt_match.opt_present("S"),
         random_pipeline_closure_probability: random_pipeline_closure_probability,
         random_pipeline_closure_seed: random_pipeline_closure_seed,
-        render_api: render_api,
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
         show_debug_parallel_paint: debug_options.show_parallel_paint,
@@ -862,7 +835,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,
         enable_vsync: !debug_options.disable_vsync,
-        use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir"),
