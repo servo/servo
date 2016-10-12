@@ -192,7 +192,20 @@ function queryAnchor(url, callback, referrer_policy) {
 
   function doQuery() {
     var id = token();
-    var url_with_params = url + "&id=" + id + "&tagAttrs=" + JSON.stringify(referrer_policy);
+
+    var meta_referrer = undefined;
+    for (var meta of document.head.querySelectorAll("meta")) {
+      if (meta.name === "referrer") {
+        meta_referrer = meta.content;
+        break;
+      }
+    }
+
+    var url_with_params = url +
+      "&id=" + id +
+      "&tagAttrs=" + JSON.stringify(referrer_policy) +
+      "&metaReferrer=" + meta_referrer;
+
     var iframe = appendIframeToBody(url_with_params);
     iframe.addEventListener("load", function listener() {
       if ((iframe.contentWindow !== null) &&
@@ -204,8 +217,6 @@ function queryAnchor(url, callback, referrer_policy) {
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
       xhr.onload = function(e) {
         var server_data = JSON.parse(this.responseText);
-        server_data.referrer = unescape(server_data.referrer);
-        server_data.headers.referer = unescape(server_data.headers.referer);
 
         callback(server_data, url_with_params);
       };
@@ -252,7 +263,7 @@ function queryLink(url, callback, referrer_policy) {
       for (var attr in referrer_policy) {
         // TODO crashed when you assigned value to rel attribute
         if (attr === "rel") {
-          link.relList.add("noreferrer");
+          link.relList.add(referrer_policy[attr]);
         } else {
           link[attr] = referrer_policy[attr];
         }
