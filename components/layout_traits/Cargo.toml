@@ -15,7 +15,6 @@ script_traits = {path = "../script_traits"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
-util = {path = "../util"}
 ipc-channel = "0.5"
 url = {version = "1.2", features = ["heap_size"]}
 

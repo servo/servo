@@ -4,7 +4,7 @@
 
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
-use layers::geometry::DevicePixel;
+use gfx_traits::DevicePixel;
 use script_traits::{EventResult, TouchId};
 use self::TouchState::*;
 

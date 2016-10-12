@@ -133,57 +133,50 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             devtools::start_server(port)
         });
 
-        let (webrender, webrender_api_sender) = if opts::get().use_webrender {
-            if let Ok(mut resource_path) = resources_dir_path() {
-                resource_path.push("shaders");
+        let mut resource_path = resources_dir_path().unwrap();
+        resource_path.push("shaders");
 
-                // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-                let scale_factor = window.scale_factor().get();
-                let device_pixel_ratio = match opts.device_pixels_per_px {
-                    Some(device_pixels_per_px) => device_pixels_per_px,
-                    None => match opts.output_file {
-                        Some(_) => 1.0,
-                        None => scale_factor,
-                    }
-                };
+        let (webrender, webrender_api_sender) = {
+            // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
+            let scale_factor = window.scale_factor().get();
+            let device_pixel_ratio = match opts.device_pixels_per_px {
+                Some(device_pixels_per_px) => device_pixels_per_px,
+                None => match opts.output_file {
+                    Some(_) => 1.0,
+                    None => scale_factor,
+                }
+            };
 
-                let renderer_kind = if opts::get().should_use_osmesa() {
-                    webrender_traits::RendererKind::OSMesa
-                } else {
-                    webrender_traits::RendererKind::Native
-                };
-
-                let (webrender, webrender_sender) =
-                    webrender::Renderer::new(webrender::RendererOptions {
-                        device_pixel_ratio: device_pixel_ratio,
-                        resource_path: resource_path,
-                        enable_aa: opts.enable_text_antialiasing,
-                        enable_msaa: opts.use_msaa,
-                        enable_profiler: opts.webrender_stats,
-                        debug: opts.webrender_debug,
-                        enable_recording: false,
-                        precache_shaders: opts.precache_shaders,
-                        enable_scrollbars: opts.output_file.is_none(),
-                        renderer_kind: renderer_kind,
-                    });
-                (Some(webrender), Some(webrender_sender))
+            let renderer_kind = if opts::get().should_use_osmesa() {
+                webrender_traits::RendererKind::OSMesa
             } else {
-                (None, None)
-            }
-        } else {
-            (None, None)
+                webrender_traits::RendererKind::Native
+            };
+
+            webrender::Renderer::new(webrender::RendererOptions {
+                device_pixel_ratio: device_pixel_ratio,
+                resource_path: resource_path,
+                enable_aa: opts.enable_text_antialiasing,
+                enable_msaa: opts.use_msaa,
+                enable_profiler: opts.webrender_stats,
+                debug: opts.webrender_debug,
+                enable_recording: false,
+                precache_shaders: opts.precache_shaders,
+                enable_scrollbars: opts.output_file.is_none(),
+                renderer_kind: renderer_kind,
+            })
         };
 
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
         let (constellation_chan, sw_senders) = create_constellation(opts.clone(),
-                                                                          compositor_proxy.clone_compositor_proxy(),
-                                                                          time_profiler_chan.clone(),
-                                                                          mem_profiler_chan.clone(),
-                                                                          devtools_chan,
-                                                                          supports_clipboard,
-                                                                          webrender_api_sender.clone());
+                                                                    compositor_proxy.clone_compositor_proxy(),
+                                                                    time_profiler_chan.clone(),
+                                                                    mem_profiler_chan.clone(),
+                                                                    devtools_chan,
+                                                                    supports_clipboard,
+                                                                    webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
         script::init(sw_senders);
@@ -247,7 +240,7 @@ fn create_constellation(opts: opts::Opts,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
-                        webrender_api_sender: Option<webrender_traits::RenderApiSender>)
+                        webrender_api_sender: webrender_traits::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
 
@@ -257,9 +250,9 @@ fn create_constellation(opts: opts::Opts,
                              time_profiler_chan.clone(),
                              opts.config_dir.map(Into::into));
     let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
-                                                    webrender_api_sender.as_ref().map(|wr| wr.create_api()));
+                                                    webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
-                                                 webrender_api_sender.as_ref().map(|wr| wr.create_api()));
+                                                 Some(webrender_api_sender.create_api()));
 
     let resource_sender = public_resource_threads.sender();
 

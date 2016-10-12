@@ -23,9 +23,8 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::point::Point2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+use gfx_traits::DevicePixel;
 use gleam::gl;
-use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use std::cell::RefCell;
@@ -282,19 +281,6 @@ impl WindowMethods for Window {
             // need to figure out a method for actually getting the scale factor instead of this nonsense
             ScaleFactor::new(1.0 as f32)
         }
-    }
-
-    #[cfg(target_os="linux")]
-    fn native_display(&self) -> NativeDisplay {
-        use x11::xlib;
-        unsafe {
-            NativeDisplay::new(DISPLAY as *mut xlib::Display)
-        }
-    }
-
-    #[cfg(not(target_os="linux"))]
-    fn native_display(&self) -> NativeDisplay {
-        NativeDisplay::new()
     }
 
     fn create_compositor_channel(&self)

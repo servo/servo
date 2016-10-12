@@ -10,15 +10,11 @@
 
 #![deny(unsafe_code)]
 
-extern crate app_units;
-
-extern crate azure;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate gleam;
 extern crate image;
 extern crate ipc_channel;
-extern crate layers;
 #[macro_use]
 extern crate log;
 extern crate msg;
@@ -39,18 +35,14 @@ extern crate webrender_traits;
 pub use compositor_thread::CompositorProxy;
 pub use compositor::IOCompositor;
 use euclid::size::TypedSize2D;
-use gfx_traits::ChromeToPaintMsg;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use std::sync::mpsc::Sender;
 use style_traits::PagePx;
 
 mod compositor;
-mod compositor_layer;
 pub mod compositor_thread;
 mod delayed_composition;
-mod surface_map;
 mod touch;
 pub mod windowing;
 
@@ -66,5 +58,4 @@ pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub layout_chan: IpcSender<LayoutControlMsg>,
-    pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }

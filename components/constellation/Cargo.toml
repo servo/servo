@@ -19,7 +19,6 @@ euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 ipc-channel = "0.5"
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
 msg = {path = "../msg"}

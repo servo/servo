@@ -29,7 +29,7 @@ use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Size2D};
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
@@ -938,12 +938,6 @@ pub struct BaseFlow {
     /// The clipping region for this flow and its descendants, in layer coordinates.
     pub clip: ClippingRegion,
 
-    /// The stacking-relative position of the display port.
-    ///
-    /// FIXME(pcwalton): This might be faster as an Arc, since this varies only
-    /// per-stacking-context.
-    pub stacking_relative_position_of_display_port: Rect<Au>,
-
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
 
@@ -1122,7 +1116,6 @@ impl BaseFlow {
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
             clip: ClippingRegion::max(),
-            stacking_relative_position_of_display_port: Rect::zero(),
             flags: flags,
             writing_mode: writing_mode,
             thread_id: 0,

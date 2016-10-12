@@ -252,8 +252,8 @@ struct ImageCache {
     // The placeholder image used when an image fails to load
     placeholder_image: Option<Arc<Image>>,
 
-    // Webrender API instance, if enabled.
-    webrender_api: Option<webrender_traits::RenderApi>,
+    // Webrender API instance.
+    webrender_api: webrender_traits::RenderApi,
 }
 
 /// Message that the decoder worker threads send to main image cache thread.
@@ -318,24 +318,23 @@ impl LoadOrigin for ImageCacheOrigin {
     }
 }
 
-fn get_placeholder_image(webrender_api: &Option<webrender_traits::RenderApi>) -> io::Result<Arc<Image>> {
+fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Result<Arc<Image>> {
     let mut placeholder_path = try!(resources_dir_path());
     placeholder_path.push("rippy.png");
     let mut file = try!(File::open(&placeholder_path));
     let mut image_data = vec![];
     try!(file.read_to_end(&mut image_data));
     let mut image = load_from_memory(&image_data).unwrap();
-    if let Some(ref webrender_api) = *webrender_api {
-        let format = convert_format(image.format);
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&*image.bytes);
-        image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
-    }
+    let format = convert_format(image.format);
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(&*image.bytes);
+    image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
     Ok(Arc::new(image))
 }
+
 impl ImageCache {
     fn run(core_resource_thread: CoreResourceThread,
-           webrender_api: Option<webrender_traits::RenderApi>,
+           webrender_api: webrender_traits::RenderApi,
            ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
         // Preload the placeholder image, used when images fail to load.
         let placeholder_image = get_placeholder_image(&webrender_api).ok();
@@ -479,16 +478,14 @@ impl ImageCache {
     fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
         let pending_load = self.pending_loads.remove(&key).unwrap();
 
-        if let Some(ref webrender_api) = self.webrender_api {
-            match load_result {
-                LoadResult::Loaded(ref mut image) => {
-                    let format = convert_format(image.format);
-                    let mut bytes = Vec::new();
-                    bytes.extend_from_slice(&*image.bytes);
-                    image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
-                }
-                LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
+        match load_result {
+            LoadResult::Loaded(ref mut image) => {
+                let format = convert_format(image.format);
+                let mut bytes = Vec::new();
+                bytes.extend_from_slice(&*image.bytes);
+                image.id = Some(self.webrender_api.add_image(image.width, image.height, format, bytes));
             }
+            LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }
 
         let image_response = match load_result {
@@ -627,7 +624,7 @@ impl ImageCache {
 
 /// Create a new image cache.
 pub fn new_image_cache_thread(core_resource_thread: CoreResourceThread,
-                              webrender_api: Option<webrender_traits::RenderApi>) -> ImageCacheThread {
+                              webrender_api: webrender_traits::RenderApi) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
 
     spawn_named("ImageCacheThread".to_owned(), move || {

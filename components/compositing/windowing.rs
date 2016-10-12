@@ -9,8 +9,7 @@ use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use layers::geometry::DevicePixel;
-use layers::platform::surface::NativeDisplay;
+use gfx_traits::DevicePixel;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
@@ -138,9 +137,6 @@ pub trait WindowMethods {
 
     /// Returns the scale factor of the system (device pixels / screen pixels).
     fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel>;
-
-    /// Gets the OS native graphics display for this window.
-    fn native_display(&self) -> NativeDisplay;
 
     /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
     /// UFCS in Rust yet.
