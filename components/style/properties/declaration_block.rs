@@ -6,6 +6,7 @@ use cssparser::{DeclarationListParser, parse_important, ToCss};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
+use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::fmt;
 use stylesheets::Origin;
@@ -66,16 +67,140 @@ impl PropertyDeclarationBlock {
     pub fn get(&self, property_name: &str) -> Option< &(PropertyDeclaration, Importance)> {
         self.declarations.iter().find(|&&(ref decl, _)| decl.matches(property_name))
     }
-}
 
-impl PropertyDeclarationBlock {
-    // Take a declaration block known to contain a single property,
-    // and serialize it
-    pub fn to_css_single_value<W>(&self, dest: &mut W, name: &str)
-        -> fmt::Result where W: fmt::Write {
+    /// Find the value of the given property in this block and serialize it
+    ///
+    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    pub fn property_value_to_css<W>(&self, property_name: &str, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
+        // Step 1
+        let property = property_name.to_ascii_lowercase();
+
+        // Step 2
+        if let Some(shorthand) = Shorthand::from_name(&property) {
+            // Step 2.1
+            let mut list = Vec::new();
+
+            // Step 2.2
+            for longhand in shorthand.longhands() {
+                // Step 2.2.1
+                let declaration = self.get(longhand);
+
+                // Step 2.2.2 & 2.2.3
+                match declaration {
+                    Some(&(ref declaration, _importance)) => list.push(declaration),
+                    None => return Ok(()),
+                }
+            }
+
+            // Step 2.3
+            // TODO: importance is hardcoded because method does not implement it yet
+            let importance = Importance::Normal;
+            let appendable_value = shorthand.get_shorthand_appendable_value(list).unwrap();
+            return append_declaration_value(dest, appendable_value, importance)
+        }
+
+        if let Some(&(ref value, _importance)) = self.get(property_name) {
+            // Step 3
+            value.to_css(dest)
+        } else {
+            // Step 4
+            Ok(())
+        }
+    }
+
+    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    pub fn property_priority(&self, property_name: &str) -> Importance {
+        // Step 1
+        let property = property_name.to_ascii_lowercase();
+
+        // Step 2
+        if let Some(shorthand) = Shorthand::from_name(&property) {
+            // Step 2.1 & 2.2 & 2.3
+            if shorthand.longhands().iter().all(|l| {
+                self.get(l).map_or(false, |&(_, importance)| importance.important())
+            }) {
+                Importance::Important
+            } else {
+                Importance::Normal
+            }
+        } else {
+            // Step 3
+            self.get(&property).map_or(Importance::Normal, |&(_, importance)| importance)
+        }
+    }
+
+    pub fn set_parsed_declaration(&mut self, declaration: PropertyDeclaration,
+                                  importance: Importance) {
+        for slot in &mut *self.declarations {
+            if slot.0.name() == declaration.name() {
+                match (slot.1, importance) {
+                    (Importance::Normal, Importance::Important) => {
+                        self.important_count += 1;
+                    }
+                    (Importance::Important, Importance::Normal) => {
+                        self.important_count -= 1;
+                    }
+                    _ => {}
+                }
+                *slot = (declaration, importance);
+                return
+            }
+        }
+
+        self.declarations.push((declaration, importance));
+        if importance.important() {
+            self.important_count += 1;
+        }
+    }
+
+    pub fn set_importance(&mut self, property_names: &[&str], new_importance: Importance) {
+        for &mut (ref declaration, ref mut importance) in &mut self.declarations {
+            if property_names.iter().any(|p| declaration.matches(p)) {
+                match (*importance, new_importance) {
+                    (Importance::Normal, Importance::Important) => {
+                        self.important_count += 1;
+                    }
+                    (Importance::Important, Importance::Normal) => {
+                        self.important_count -= 1;
+                    }
+                    _ => {}
+                }
+                *importance = new_importance;
+            }
+        }
+    }
+
+    /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
+    pub fn remove_property(&mut self, property_name: &str) {
+        // Step 2
+        let property = property_name.to_ascii_lowercase();
+
+        match Shorthand::from_name(&property) {
+            // Step 4
+            Some(shorthand) => self.remove_longhands(shorthand.longhands()),
+            // Step 5
+            None => self.remove_longhands(&[&*property]),
+        }
+    }
+
+    fn remove_longhands(&mut self, names: &[&str]) {
+        let important_count = &mut self.important_count;
+        self.declarations.retain(|&(ref declaration, importance)| {
+            let retain = !names.iter().any(|n| declaration.matches(n));
+            if !retain && importance.important() {
+                *important_count -= 1
+            }
+            retain
+        })
+    }
+
+    /// Take a declaration block known to contain a single property and serialize it.
+    pub fn single_value_to_css<W>(&self, property_name: &str, dest: &mut W) -> fmt::Result
+    where W: fmt::Write {
         match self.declarations.len() {
             0 => Err(fmt::Error),
-            1 if self.declarations[0].0.name().eq_str_ignore_ascii_case(name) => {
+            1 if self.declarations[0].0.name().eq_str_ignore_ascii_case(property_name) => {
                 self.declarations[0].0.to_css(dest)
             }
             _ => {
@@ -84,7 +209,7 @@ impl PropertyDeclarationBlock {
                     -> &PropertyDeclaration {
                     &dec.0
                 }
-                let shorthand = try!(Shorthand::from_name(name).ok_or(fmt::Error));
+                let shorthand = try!(Shorthand::from_name(property_name).ok_or(fmt::Error));
                 if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
                     return Err(fmt::Error)
                 }

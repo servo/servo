@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use app_units::Au;
-use cssparser::{Color, ToCss};
+use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::{Attr, AttrHelpersForLayout};
@@ -735,14 +735,8 @@ impl Element {
 
     // this sync method is called upon modification of the style_attribute property,
     // therefore, it should not trigger subsequent mutation events
-    pub fn sync_property_with_attrs_style(&self) {
-        let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
-            declarations.read().to_css_string()
-        } else {
-            String::new()
-        };
-
-        let mut new_style = AttrValue::String(style_str);
+    pub fn set_style_attr(&self, new_value: String) {
+        let mut new_style = AttrValue::String(new_value);
 
         if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &atom!("style")) {
             style_attr.swap_value(&mut new_style);
@@ -762,125 +756,6 @@ impl Element {
 
          assert!(attr.GetOwnerElement().r() == Some(self));
          self.attrs.borrow_mut().push(JS::from_ref(&attr));
-    }
-
-    pub fn remove_inline_style_property(&self, property: &str) {
-        fn remove(element: &Element, property: &str) {
-            let mut inline_declarations = element.style_attribute.borrow_mut();
-            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-                let mut importance = None;
-                let index = declarations.read().declarations.iter().position(|&(ref decl, i)| {
-                    let matching = decl.matches(property);
-                    if matching {
-                        importance = Some(i)
-                    }
-                    matching
-                });
-                if let Some(index) = index {
-                    let mut declarations = declarations.write();
-                    declarations.declarations.remove(index);
-                    if importance.unwrap().important() {
-                        declarations.important_count -= 1;
-                    }
-                }
-            }
-        }
-
-        remove(self, property);
-        self.sync_property_with_attrs_style();
-    }
-
-    pub fn update_inline_style(&self,
-                               declarations: Vec<PropertyDeclaration>,
-                               importance: Importance) {
-        fn update(element: &Element, declarations: Vec<PropertyDeclaration>,
-                  importance: Importance) {
-            let mut inline_declarations = element.style_attribute().borrow_mut();
-            if let &mut Some(ref mut declaration_block) = &mut *inline_declarations {
-                {
-                    let mut declaration_block = declaration_block.write();
-                    let declaration_block = &mut *declaration_block;
-                    let existing_declarations = &mut declaration_block.declarations;
-
-                    'outer: for incoming_declaration in declarations {
-                        for existing_declaration in &mut *existing_declarations {
-                            if existing_declaration.0.name() == incoming_declaration.name() {
-                                match (existing_declaration.1, importance) {
-                                    (Importance::Normal, Importance::Important) => {
-                                        declaration_block.important_count += 1;
-                                    }
-                                    (Importance::Important, Importance::Normal) => {
-                                        declaration_block.important_count -= 1;
-                                    }
-                                    _ => {}
-                                }
-                                *existing_declaration = (incoming_declaration, importance);
-                                continue 'outer;
-                            }
-                        }
-                        existing_declarations.push((incoming_declaration, importance));
-                        if importance.important() {
-                            declaration_block.important_count += 1;
-                        }
-                    }
-                }
-                return;
-            }
-
-            let important_count = if importance.important() {
-                declarations.len() as u32
-            } else {
-                0
-            };
-
-            *inline_declarations = Some(Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
-                important_count: important_count,
-            })));
-        }
-
-        update(self, declarations, importance);
-        self.sync_property_with_attrs_style();
-    }
-
-    pub fn set_inline_style_property_priority(&self,
-                                              properties: &[&str],
-                                              new_importance: Importance) {
-        {
-            let mut inline_declarations = self.style_attribute().borrow_mut();
-            if let &mut Some(ref mut block) = &mut *inline_declarations {
-                let mut block = block.write();
-                let block = &mut *block;
-                let declarations = &mut block.declarations;
-                for &mut (ref declaration, ref mut importance) in declarations {
-                    if properties.iter().any(|p| declaration.name() == **p) {
-                        match (*importance, new_importance) {
-                            (Importance::Normal, Importance::Important) => {
-                                block.important_count += 1;
-                            }
-                            (Importance::Important, Importance::Normal) => {
-                                block.important_count -= 1;
-                            }
-                            _ => {}
-                        }
-                        *importance = new_importance;
-                    }
-                }
-            }
-        }
-
-        self.sync_property_with_attrs_style();
-    }
-
-    pub fn get_inline_style_declaration<F, R>(&self, property: &str, f: F) -> R
-    where F: FnOnce(Option<&(PropertyDeclaration, Importance)>) -> R {
-        let style_attr = self.style_attribute.borrow();
-        if let Some(ref block) = *style_attr {
-            let block = block.read();
-            f(block.get(property))
-        } else {
-            f(None)
-        }
     }
 
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {

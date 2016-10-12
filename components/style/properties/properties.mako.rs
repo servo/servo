@@ -410,15 +410,6 @@ impl Shorthand {
         }
     }
 
-    /// Serializes possible shorthand value to String.
-    pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, importance: Importance) -> String
-    where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
-        let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
-        let mut result = String::new();
-        append_declaration_value(&mut result, appendable_value, importance).unwrap();
-        result
-    }
-
     /// Serializes possible shorthand name with value to input buffer given a list of longhand declarations.
     /// On success, returns true if shorthand value is written and false if no shorthand value is present.
     pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
@@ -1983,6 +1974,8 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
     }
 }
 
+
+// FIXME: https://github.com/w3c/csswg-drafts/issues/580
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
         % for property in data.shorthands + data.longhands:
