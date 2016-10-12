@@ -158,17 +158,6 @@ class MachCommands(CommandBase):
                     return suite
         return None
 
-    @Command('test-geckolib',
-             description='Test geckolib sanity checks',
-             category='testing')
-    def test_geckolib(self):
-        self.ensure_bootstrapped()
-
-        env = self.build_env()
-        env["RUST_BACKTRACE"] = "1"
-
-        return call(["cargo", "test"], env=env, cwd=path.join("ports", "geckolib"))
-
     @Command('test-perf',
              description='Run the page load performance test',
              category='testing')
