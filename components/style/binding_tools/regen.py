@@ -11,7 +11,6 @@ import argparse
 import platform
 import copy
 import subprocess
-import tempfile
 
 import regen_atoms
 
@@ -42,7 +41,6 @@ COMPILATION_TARGETS = {
     # Generation of style structs.
     "structs": {
         "target_dir": "../gecko_bindings",
-        "test": True,
         "flags": [
             "--ignore-functions",
             "--ignore-methods",
@@ -540,48 +538,10 @@ Option<&'a {0}>;".format(ty))
         return 1
 
     print("OK")
+    print("(please test with ./mach test-stylo)")
 
     if verbose:
         print(output)
-
-    if current_target.get("test", False) and not skip_test:
-        print("[RUSTC]... ", end='')
-        sys.stdout.flush()
-
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            test_file = f.name
-        output = None
-        try:
-            rustc_command = ["rustc", output_filename, "--test", "-o", test_file]
-            output = subprocess.check_output(rustc_command, stderr=subprocess.STDOUT)
-            output = output.decode('utf8')
-        except subprocess.CalledProcessError as e:
-            print("FAIL\n", e.output.decode('utf8'))
-            return 1
-
-        print("OK")
-
-        if verbose:
-            print(output)
-
-        print("[RUSTC_TEST]... ", end='')
-        sys.stdout.flush()
-
-        try:
-            output = subprocess.check_output([test_file], stderr=subprocess.STDOUT)
-            output = output.decode('utf8')
-        except subprocess.CalledProcessError as e:
-            print("tests failed: ", e.output.decode('utf8'))
-            return 1
-
-        os.remove(test_file)
-        print("OK")
-
-        # TODO: this -3 is hacky as heck
-        print(output.split('\n')[-3])
-
-        if verbose:
-            print(output)
 
     return 0
 
