@@ -23,10 +23,11 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use net_traits::{LoadContext, load_whole_resource, IpcSend, CustomResponseMediator};
+use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
-use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg};
+use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
@@ -151,10 +152,24 @@ impl ServiceWorkerGlobalScope {
             thread_state::initialize(SCRIPT | IN_WORKER);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &init.resource_threads.sender(),
-                                                          script_url,
-                                                          &worker_load_origin) {
+
+            let WorkerScriptLoadOrigin { referrer_url, referrer_policy, pipeline_id } = worker_load_origin;
+
+            let request = RequestInit {
+                url: script_url.clone(),
+                type_: RequestType::Script,
+                destination: Destination::ServiceWorker,
+                credentials_mode: CredentialsMode::Include,
+                use_url_credentials: true,
+                origin: script_url,
+                pipeline_id: pipeline_id,
+                referrer_url: referrer_url,
+                referrer_policy: referrer_policy,
+                .. RequestInit::default()
+            };
+
+            let (url, source) = match load_whole_resource(request,
+                                                          &init.resource_threads.sender()) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     return;

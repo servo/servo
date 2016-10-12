@@ -27,9 +27,8 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{IpcSend, LoadOrigin};
-use net_traits::{LoadContext, load_whole_resource};
+use net_traits::{IpcSend, load_whole_resource};
+use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
@@ -179,18 +178,6 @@ impl WorkerGlobalScope {
     }
 }
 
-impl LoadOrigin for WorkerGlobalScope {
-    fn referrer_url(&self) -> Option<Url> {
-        None
-    }
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
-    }
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.upcast::<GlobalScope>().pipeline_id())
-    }
-}
-
 impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
     fn Self_(&self) -> Root<WorkerGlobalScope> {
@@ -221,10 +208,20 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &global_scope.resource_threads().sender(),
-                                                          url,
-                                                          self) {
+            let request = NetRequestInit {
+                url: url.clone(),
+                type_: RequestType::Script,
+                destination: Destination::Script,
+                credentials_mode: CredentialsMode::Include,
+                use_url_credentials: true,
+                origin: self.worker_url.clone(),
+                pipeline_id: Some(self.upcast::<GlobalScope>().pipeline_id()),
+                referrer_url: None,
+                referrer_policy: None,
+                .. NetRequestInit::default()
+            };
+            let (url, source) = match load_whole_resource(request,
+                                                          &global_scope.resource_threads().sender()) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

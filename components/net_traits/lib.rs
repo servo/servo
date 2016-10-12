@@ -542,22 +542,28 @@ pub enum ProgressMsg {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(context: LoadContext,
-                           core_resource_thread: &CoreResourceThread,
-                           url: Url,
-                           load_origin: &LoadOrigin)
-        -> Result<(Metadata, Vec<u8>), NetworkError> {
-    let (start_chan, start_port) = ipc::channel().unwrap();
-    let load_data = LoadData::new(context, url, load_origin);
-    core_resource_thread.send(CoreResourceMsg::Load(load_data, LoadConsumer::Channel(start_chan), None)).unwrap();
-    let response = start_port.recv().unwrap();
+pub fn load_whole_resource(request: RequestInit,
+                           core_resource_thread: &CoreResourceThread)
+                           -> Result<(Metadata, Vec<u8>), NetworkError> {
+    let (action_sender, action_receiver) = ipc::channel().unwrap();
+    core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 
     let mut buf = vec!();
+    let mut metadata = None;
     loop {
-        match response.progress_port.recv().unwrap() {
-            ProgressMsg::Payload(data) => buf.extend_from_slice(&data),
-            ProgressMsg::Done(Ok(())) => return Ok((response.metadata, buf)),
-            ProgressMsg::Done(Err(e)) => return Err(e)
+        match action_receiver.recv().unwrap() {
+            FetchResponseMsg::ProcessRequestBody |
+            FetchResponseMsg::ProcessRequestEOF => (),
+            FetchResponseMsg::ProcessResponse(Ok(m)) => {
+                metadata = Some(match m {
+                    FetchMetadata::Unfiltered(m) => m,
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                })
+            },
+            FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
+            FetchResponseMsg::ProcessResponseEOF(Ok(())) => return Ok((metadata.unwrap(), buf)),
+            FetchResponseMsg::ProcessResponse(Err(e)) |
+            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e)
         }
     }
 }
