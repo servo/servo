@@ -1984,6 +1984,7 @@ clip-path
 
     ${impl_coord_copy('column_width', 'mColumnWidth')}
 
+    #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
         use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
 
