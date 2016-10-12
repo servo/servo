@@ -465,24 +465,6 @@ impl LoadOrigin for LoadOriginData {
 }
 
 /// Instruct the resource thread to make a new request.
-pub fn load_async(context: LoadContext,
-                  core_resource_thread: CoreResourceThread,
-                  url: Url,
-                  pipeline: Option<PipelineId>,
-                  referrer_policy: Option<ReferrerPolicy>,
-                  referrer_url: Option<Url>,
-                  listener: AsyncResponseTarget) {
-    let load = LoadOriginData {
-        pipeline: pipeline,
-        referrer_policy: referrer_policy,
-        referrer_url: referrer_url
-    };
-    let load_data = LoadData::new(context, url, &load);
-    let consumer = LoadConsumer::Listener(listener);
-    core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
-}
-
-/// Instruct the resource thread to make a new request.
 pub fn fetch_async<F>(request: RequestInit,
                       core_resource_thread: &CoreResourceThread,
                       f: F)
