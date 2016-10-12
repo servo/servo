@@ -143,7 +143,7 @@ impl TimelineActor {
         }
     }
 
-    fn pull_timeline_data(&self, receiver: IpcReceiver<TimelineMarker>, mut emitter: Emitter) {
+    fn pull_timeline_data(&self, receiver: IpcReceiver<Option<TimelineMarker>>, mut emitter: Emitter) {
         let is_recording = self.is_recording.clone();
 
         if !*is_recording.lock().unwrap() {
@@ -157,7 +157,7 @@ impl TimelineActor {
                 }
 
                 let mut markers = vec![];
-                while let Ok(marker) = receiver.try_recv() {
+                while let Ok(Some(marker)) = receiver.try_recv() {
                     markers.push(emitter.marker(marker));
                 }
                 emitter.send(markers);
@@ -182,7 +182,7 @@ impl Actor for TimelineActor {
             "start" => {
                 **self.is_recording.lock().as_mut().unwrap() = true;
 
-                let (tx, rx) = ipc::channel::<TimelineMarker>().unwrap();
+                let (tx, rx) = ipc::channel::<Option<TimelineMarker>>().unwrap();
                 self.script_sender.send(SetTimelineMarkers(self.pipeline,
                                                            self.marker_types.clone(),
                                                            tx)).unwrap();
