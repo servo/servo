@@ -20,7 +20,6 @@ extern crate gfx_traits;
 extern crate heapsize;
 extern crate hyper_serde;
 extern crate ipc_channel;
-extern crate layers;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
@@ -33,7 +32,6 @@ extern crate serde_derive;
 extern crate style_traits;
 extern crate time;
 extern crate url;
-extern crate util;
 
 mod script_msg;
 pub mod webdriver_msg;
@@ -46,12 +44,12 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use gfx_traits::DevicePixel;
 use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
@@ -68,7 +66,6 @@ use std::fmt;
 use std::sync::mpsc::{Receiver, Sender};
 use style_traits::{PagePx, UnsafeNode, ViewportPx};
 use url::Url;
-use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -138,9 +135,6 @@ pub struct NewLayoutInfo {
     pub frame_type: FrameType,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
-    /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
-    /// `Sender<LayoutToPaintMsg>`.
-    pub paint_chan: OptionalOpaqueIpcSender,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A sender for the layout thread to communicate to the constellation.

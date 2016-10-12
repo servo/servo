@@ -1566,8 +1566,6 @@ impl Flow for InlineFlow {
 
                     block_flow.base.stacking_relative_position =
                         stacking_relative_content_box.origin;
-                    block_flow.base.stacking_relative_position_of_display_port =
-                        self.base.stacking_relative_position_of_display_port;
 
                     // Write the clip in our coordinate system into the child flow. (The kid will
                     // fix it up to be in its own coordinate system if necessary.)
@@ -1581,8 +1579,6 @@ impl Flow for InlineFlow {
 
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
-                    block_flow.base.stacking_relative_position_of_display_port =
-                        self.base.stacking_relative_position_of_display_port;
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()
@@ -1602,8 +1598,6 @@ impl Flow for InlineFlow {
 
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
-                    block_flow.base.stacking_relative_position_of_display_port =
-                        self.base.stacking_relative_position_of_display_port;
 
                     // As above, this is in our coordinate system for now.
                     block_flow.base.clip = self.base.clip.clone()

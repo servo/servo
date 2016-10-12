@@ -8,16 +8,14 @@ use SendableFrameTree;
 use compositor::CompositingReason;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
-use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
+use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
-use layers::layers::{BufferRequest, LayerBufferSet};
-use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState, PipelineId};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
@@ -63,55 +61,6 @@ impl RenderListener for Box<CompositorProxy + 'static> {
     }
 }
 
-/// Implementation of the abstract `PaintListener` interface.
-impl PaintListener for Box<CompositorProxy + 'static + Send> {
-    fn native_display(&mut self) -> Option<NativeDisplay> {
-        let (chan, port) = channel();
-        self.send(Msg::GetNativeDisplay(chan));
-        // If the compositor is shutting down when a paint thread
-        // is being created, the compositor won't respond to
-        // this message, resulting in an eventual panic. Instead,
-        // just return None in this case, since the paint thread
-        // will exit shortly and never actually be requested
-        // to paint buffers by the compositor.
-        port.recv().unwrap_or(None)
-    }
-
-    fn assign_painted_buffers(&mut self,
-                              pipeline_id: PipelineId,
-                              epoch: Epoch,
-                              replies: Vec<(LayerId, Box<LayerBufferSet>)>,
-                              frame_tree_id: FrameTreeId) {
-        self.send(Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id));
-    }
-
-    fn ignore_buffer_requests(&mut self, buffer_requests: Vec<BufferRequest>) {
-        let mut native_surfaces = Vec::new();
-        for request in buffer_requests.into_iter() {
-            if let Some(native_surface) = request.native_surface {
-                native_surfaces.push(native_surface);
-            }
-        }
-        if !native_surfaces.is_empty() {
-            self.send(Msg::ReturnUnusedNativeSurfaces(native_surfaces));
-        }
-    }
-
-    fn initialize_layers_for_pipeline(&mut self,
-                                      pipeline_id: PipelineId,
-                                      properties: Vec<LayerProperties>,
-                                      epoch: Epoch) {
-        // FIXME(#2004, pcwalton): This assumes that the first layer determines the page size, and
-        // that all other layers are immediate children of it. This is sufficient to handle
-        // `position: fixed` but will not be sufficient to handle `overflow: scroll` or transforms.
-        self.send(Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties));
-    }
-
-    fn notify_paint_thread_exiting(&mut self, pipeline_id: PipelineId) {
-        self.send(Msg::PaintThreadExited(pipeline_id))
-    }
-}
-
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
     /// Requests that the compositor shut down.
@@ -122,18 +71,8 @@ pub enum Msg {
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
 
-    /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
-    /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
-    /// is the pixel format.
-    GetNativeDisplay(Sender<Option<NativeDisplay>>),
-
-    /// Tells the compositor to create or update the layers for a pipeline if necessary
-    /// (i.e. if no layer with that ID exists).
-    InitializeLayersForPipeline(PipelineId, Epoch, Vec<LayerProperties>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
-    /// Requests that the compositor assign the painted buffers to the given layers.
-    AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the current page has changed its URL.
@@ -158,8 +97,6 @@ pub enum Msg {
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
     CreatePng(IpcSender<Option<Image>>),
-    /// Informs the compositor that the paint thread for the given pipeline has exited.
-    PaintThreadExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// A reply to the compositor asking if the output image is stable.
@@ -168,9 +105,6 @@ pub enum Msg {
     NewFavicon(Url),
     /// <head> tag finished parsing
     HeadParsed,
-    /// Signal that the paint thread ignored the paint requests that carried
-    /// these native surfaces, so that they can be re-added to the surface cache.
-    ReturnUnusedNativeSurfaces(Vec<NativeSurface>),
     /// Collect memory reports and send them back to the given mem::ReportsChan.
     CollectMemoryReports(mem::ReportsChan),
     /// A status message to be displayed by the browser chrome.
@@ -181,8 +115,6 @@ pub enum Msg {
     MoveTo(Point2D<i32>),
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
-    /// Get scroll offset of a layer
-    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// Pipeline visibility changed
     PipelineVisibilityChanged(PipelineId, bool),
     /// WebRender has successfully processed a scroll. The boolean specifies whether a composite is
@@ -201,10 +133,7 @@ impl Debug for Msg {
         match *self {
             Msg::Exit => write!(f, "Exit"),
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
-            Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
-            Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
-            Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
@@ -217,12 +146,10 @@ impl Debug for Msg {
             Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
-            Msg::PaintThreadExited(..) => write!(f, "PaintThreadExited"),
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
-            Msg::ReturnUnusedNativeSurfaces(..) => write!(f, "ReturnUnusedNativeSurfaces"),
             Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
             Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
@@ -230,7 +157,6 @@ impl Debug for Msg {
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
-            Msg::GetScrollOffset(..) => write!(f, "GetScrollOffset"),
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
         }
     }
@@ -248,7 +174,7 @@ pub struct InitialCompositorState {
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
-    /// Instance of webrender API if enabled
-    pub webrender: Option<webrender::Renderer>,
-    pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    /// Instance of webrender API
+    pub webrender: webrender::Renderer,
+    pub webrender_api_sender: webrender_traits::RenderApiSender,
 }

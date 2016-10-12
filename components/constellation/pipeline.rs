@@ -11,11 +11,9 @@ use euclid::size::TypedSize2D;
 #[cfg(not(target_os = "windows"))]
 use gaol;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::paint_thread::{LayoutToPaintMsg, PaintThread};
-use gfx_traits::ChromeToPaintMsg;
+use gfx_traits::DevicePixel;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId, PipelineNamespaceId};
 use net_traits::{IpcSend, ResourceThreads};
@@ -31,11 +29,9 @@ use std::env;
 use std::ffi::OsStr;
 use std::io::Error as IOError;
 use std::process;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
 use url::Url;
-use util;
-use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{PREFS, Pref};
 use webrender_traits;
@@ -58,7 +54,6 @@ pub struct Pipeline {
     pub layout_chan: IpcSender<LayoutControlMsg>,
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
-    pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
     /// URL corresponding to the most recently-loaded page.
     pub url: Url,
     /// The title of the most recently-loaded page.
@@ -127,8 +122,8 @@ pub struct InitialPipelineState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// Pipeline visibility to be inherited
     pub prev_visibility: Option<bool>,
-    /// Optional webrender api (if enabled).
-    pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    /// Webrender api.
+    pub webrender_api_sender: webrender_traits::RenderApiSender,
     /// Whether this pipeline is considered private.
     pub is_private: bool,
 }
@@ -143,8 +138,6 @@ impl Pipeline {
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
-        let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
 
@@ -160,7 +153,6 @@ impl Pipeline {
                     new_pipeline_id: state.id,
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
-                    paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
@@ -177,16 +169,6 @@ impl Pipeline {
                 (script_chan, Some((script_port, pipeline_port)))
             }
         };
-
-        PaintThread::create(state.id,
-                            state.load_data.url.clone(),
-                            chrome_to_paint_chan.clone(),
-                            layout_to_paint_port,
-                            chrome_to_paint_port,
-                            state.compositor_proxy.clone_compositor_proxy(),
-                            state.font_cache_thread.clone(),
-                            state.time_profiler_chan.clone(),
-                            state.mem_profiler_chan.clone());
 
         let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
@@ -238,7 +220,6 @@ impl Pipeline {
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
                 prefs: PREFS.cloned(),
-                layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
                 pipeline_namespace_id: state.pipeline_namespace_id,
                 layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
@@ -264,7 +245,6 @@ impl Pipeline {
                                      script_chan,
                                      pipeline_chan,
                                      state.compositor_proxy,
-                                     chrome_to_paint_chan,
                                      state.is_private,
                                      state.load_data.url,
                                      state.window_size,
@@ -281,7 +261,6 @@ impl Pipeline {
            script_chan: IpcSender<ConstellationControlMsg>,
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
-           chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            is_private: bool,
            url: Url,
            size: Option<TypedSize2D<f32, PagePx>>,
@@ -294,7 +273,6 @@ impl Pipeline {
             script_chan: script_chan,
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
-            chrome_to_paint_chan: chrome_to_paint_chan,
             url: url,
             title: None,
             children: vec!(),
@@ -304,15 +282,6 @@ impl Pipeline {
             is_private: is_private,
             is_mature: false,
         }
-    }
-
-    pub fn grant_paint_permission(&self) {
-        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::PaintPermissionGranted);
-    }
-
-    pub fn revoke_paint_permission(&self) {
-        debug!("pipeline revoking paint channel paint permission");
-        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {
@@ -353,9 +322,6 @@ impl Pipeline {
         if let Err(e) = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)) {
             warn!("Sending script exit message failed ({}).", e);
         }
-        if let Err(e) = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit) {
-            warn!("Sending paint exit message failed ({}).", e);
-        }
         if let Err(e) = self.layout_chan.send(LayoutControlMsg::ExitNow) {
             warn!("Sending layout exit message failed ({}).", e);
         }
@@ -366,7 +332,6 @@ impl Pipeline {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
             layout_chan: self.layout_chan.clone(),
-            chrome_to_paint_chan: self.chrome_to_paint_chan.clone(),
         }
     }
 
@@ -430,7 +395,6 @@ pub struct UnprivilegedPipelineContent {
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
-    layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
     prefs: HashMap<String, Pref>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
@@ -439,7 +403,7 @@ pub struct UnprivilegedPipelineContent {
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
     script_content_process_shutdown_port: IpcReceiver<()>,
-    webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    webrender_api_sender: webrender_traits::RenderApiSender,
 }
 
 impl UnprivilegedPipelineContent {
@@ -472,7 +436,6 @@ impl UnprivilegedPipelineContent {
                     self.pipeline_port,
                     self.layout_to_constellation_chan,
                     self.script_chan,
-                    self.layout_to_paint_chan,
                     self.image_cache_thread,
                     self.font_cache_thread,
                     self.time_profiler_chan,

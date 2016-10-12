@@ -25,10 +25,9 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayIte
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection, GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
-use gfx::display_list::{LayerInfo, LayeredItem, LineDisplayItem, OpaqueNode};
+use gfx::display_list::{LayerInfo, LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
-use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx_traits::{ScrollPolicy, StackingContextId, color};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
@@ -59,6 +58,17 @@ use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::opts;
+
+static THREAD_TINT_COLORS: [Color; 8] = [
+    Color { r: 6.0 / 255.0, g: 153.0 / 255.0, b: 198.0 / 255.0, a: 0.7 },
+    Color { r: 255.0 / 255.0, g: 212.0 / 255.0, b: 83.0 / 255.0, a: 0.7 },
+    Color { r: 116.0 / 255.0, g: 29.0 / 255.0, b: 109.0 / 255.0, a: 0.7 },
+    Color { r: 204.0 / 255.0, g: 158.0 / 255.0, b: 199.0 / 255.0, a: 0.7 },
+    Color { r: 242.0 / 255.0, g: 46.0 / 255.0, b: 121.0 / 255.0, a: 0.7 },
+    Color { r: 116.0 / 255.0, g: 203.0 / 255.0, b: 196.0 / 255.0, a: 0.7 },
+    Color { r: 255.0 / 255.0, g: 249.0 / 255.0, b: 201.0 / 255.0, a: 0.7 },
+    Color { r: 137.0 / 255.0, g: 196.0 / 255.0, b: 78.0 / 255.0, a: 0.7 },
+];
 
 fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
     &arr[index % arr.len()]
@@ -230,8 +240,6 @@ pub trait FragmentDisplayListBuilding {
     /// * `relative_containing_block_size`: The size of the containing block that
     ///   `position: relative` makes use of.
     /// * `clip`: The region to clip the display items to.
-    /// * `stacking_relative_display_port`: The position and size of the display port with respect
-    ///   to the nearest ancestor stacking context.
     fn build_display_list(&mut self,
                           state: &mut DisplayListBuildState,
                           stacking_relative_flow_origin: &Point2D<Au>,
@@ -239,8 +247,7 @@ pub trait FragmentDisplayListBuilding {
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
                           display_list_section: DisplayListSection,
-                          clip: &ClippingRegion,
-                          stacking_relative_display_port: &Rect<Au>);
+                          clip: &ClippingRegion);
 
     /// Adjusts the clipping region for all descendants of this fragment as appropriate.
     fn adjust_clipping_region_for_children(&self,
@@ -497,13 +504,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                image_url: &Url,
                                                index: usize) {
         let background = style.get_background();
-        let fetch_image_data_as_well = !opts::get().use_webrender;
         let webrender_image = state.shared_layout_context
                                    .get_webrender_image_for_url(image_url,
-                                                                UsePlaceholder::No,
-                                                                fetch_image_data_as_well);
+                                                                UsePlaceholder::No);
 
-        if let Some((webrender_image, image_data)) = webrender_image {
+        if let Some(webrender_image) = webrender_image {
             debug!("(building display list) building background image");
 
             // Use `background-size` to get the size.
@@ -633,7 +638,7 @@ impl FragmentDisplayListBuilding for Fragment {
             state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
               base: base,
               webrender_image: webrender_image,
-              image_data: image_data.map(Arc::new),
+              image_data: None,
               stretch_size: stretch_size,
               tile_spacing: tile_spacing,
               image_rendering: style.get_inheritedbox().image_rendering.clone(),
@@ -1080,8 +1085,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           relative_containing_block_mode: WritingMode,
                           border_painting_mode: BorderPaintingMode,
                           display_list_section: DisplayListSection,
-                          clip: &ClippingRegion,
-                          stacking_relative_display_port: &Rect<Au>) {
+                          clip: &ClippingRegion) {
         self.restyle_damage.remove(REPAINT);
         if self.style().get_inheritedbox().visibility != visibility::T::visible {
             return
@@ -1101,14 +1105,6 @@ impl FragmentDisplayListBuilding for Fragment {
                stacking_relative_border_box,
                stacking_relative_flow_origin,
                self);
-
-        // webrender deals with all culling via aabb
-        if !opts::get().use_webrender {
-            if !stacking_relative_border_box.intersects(stacking_relative_display_port) {
-                debug!("Fragment::build_display_list: outside display port");
-                return
-            }
-        }
 
         // Check the clip rect. If there's nothing to render at all, don't even construct display
         // list items.
@@ -1270,17 +1266,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         iframe: fragment_info.pipeline_id,
                     });
 
-                    if opts::get().use_webrender {
-                        state.add_display_item(item);
-                    } else {
-                        state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
-                            item: item,
-                            layer_info: LayerInfo::new(self.layer_id(),
-                                                       ScrollPolicy::Scrollable,
-                                                       Some(fragment_info.pipeline_id),
-                                                       color::transparent()),
-                        }));
-                    }
+                    state.add_display_item(item);
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
@@ -1311,7 +1297,6 @@ impl FragmentDisplayListBuilding for Fragment {
                     let computed_width = canvas_fragment_info.canvas_inline_size().to_px();
                     let computed_height = canvas_fragment_info.canvas_block_size().to_px();
 
-                    let layer_id = self.layer_id();
                     let canvas_data = match canvas_fragment_info.ipc_renderer {
                         Some(ref ipc_renderer) => {
                             let ipc_renderer = ipc_renderer.lock().unwrap();
@@ -1338,7 +1323,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                     width: computed_width as u32,
                                     height: computed_height as u32,
                                     format: PixelFormat::RGBA8,
-                                    key: canvas_data.image_key,
+                                    key: Some(canvas_data.image_key),
                                 },
                                 stretch_size: stacking_relative_content_box.size,
                                 tile_spacing: Size2D::zero(),
@@ -1353,17 +1338,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         }
                     };
 
-                    if opts::get().use_webrender {
-                        state.add_display_item(display_item);
-                    } else {
-                        state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
-                            item: display_item,
-                            layer_info: LayerInfo::new(layer_id,
-                                                       ScrollPolicy::Scrollable,
-                                                       None,
-                                                       color::transparent()),
-                        }));
-                    }
+                    state.add_display_item(display_item);
                 }
             }
             SpecificFragmentInfo::UnscannedText(_) => {
@@ -1381,7 +1356,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> StackingContext {
-        let use_webrender = opts::get().use_webrender;
         let border_box = match mode {
             StackingContextCreationMode::InnerScrollWrapper => {
                 Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
@@ -1396,10 +1370,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
         let overflow = match mode {
-            StackingContextCreationMode::InnerScrollWrapper if !use_webrender => {
-                Rect::new(Point2D::zero(), base_flow.overflow.paint.size)
-            }
-            StackingContextCreationMode::InnerScrollWrapper if use_webrender => {
+            StackingContextCreationMode::InnerScrollWrapper => {
                 Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
             }
             StackingContextCreationMode::OuterScrollWrapper => {
@@ -1874,8 +1845,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_section,
-                                &self.base.clip,
-                                &self.base.stacking_relative_position_of_display_port);
+                                &self.base.clip);
 
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);
     }
@@ -1982,8 +1952,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                         .relative_containing_block_mode,
                                     BorderPaintingMode::Separate,
                                     DisplayListSection::Content,
-                                    &self.base.clip,
-                                    &self.base.stacking_relative_position_of_display_port);
+                                    &self.base.clip);
     }
 
     fn build_display_list_for_inline(&mut self, state: &mut DisplayListBuildState) {
@@ -2039,10 +2008,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                           .relative_containing_block_mode,
                                       BorderPaintingMode::Separate,
                                       DisplayListSection::Content,
-                                      &self.block_flow.base.clip,
-                                      &self.block_flow
-                                           .base
-                                           .stacking_relative_position_of_display_port);
+                                      &self.block_flow.base.clip);
         }
 
         // Draw the rest of the block.

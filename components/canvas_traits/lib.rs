@@ -69,7 +69,7 @@ pub enum CanvasData {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct CanvasPixelData {
     pub image_data: IpcSharedMemory,
-    pub image_key: Option<webrender_traits::ImageKey>,
+    pub image_key: webrender_traits::ImageKey,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

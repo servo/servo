@@ -349,16 +349,18 @@ impl FontCache {
     }
 
     fn get_font_template_info(&mut self, template: Arc<FontTemplateData>) -> FontTemplateInfo {
-        let webrender_fonts = &mut self.webrender_fonts;
-        let font_key = self.webrender_api.as_ref().map(|webrender_api| {
-            *webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
+        let mut font_key = None;
+
+        if let Some(ref webrender_api) = self.webrender_api {
+            let webrender_fonts = &mut self.webrender_fonts;
+            font_key = Some(*webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
                 match (template.bytes_if_in_memory(), template.native_font()) {
                     (Some(bytes), _) => webrender_api.add_raw_font(bytes),
                     (None, Some(native_font)) => webrender_api.add_native_font(native_font),
                     (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
                 }
-            })
-        });
+            }));
+        }
 
         FontTemplateInfo {
             font_template: template,

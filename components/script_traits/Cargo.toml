@@ -20,7 +20,6 @@ heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 hyper_serde = "0.1.4"
 ipc-channel = "0.5"
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 libc = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
@@ -33,4 +32,3 @@ serde_derive = "0.8"
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size"]}
-util = {path = "../util"}

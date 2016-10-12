@@ -5,7 +5,7 @@
 use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
-use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap, byte_swap_and_premultiply};
+use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap_and_premultiply};
 use cssparser::{Parser, RGBA};
 use cssparser::Color as CSSColor;
 use dom::bindings::cell::DOMRefCell;
@@ -47,7 +47,6 @@ use std::cell::Cell;
 use std::str::FromStr;
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
-use util::opts;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
@@ -297,14 +296,7 @@ impl CanvasRenderingContext2D {
                     Some((mut data, size)) => {
                         // Pixels come from cache in BGRA order and drawImage expects RGBA so we
                         // have to swap the color values
-                        if opts::get().use_webrender {
-                            // Webrender doesn't pre-multiply alpha when decoding
-                            // images, but canvas expects the images to be
-                            // pre-multiplied alpha.
-                            byte_swap_and_premultiply(&mut data);
-                        } else {
-                            byte_swap(&mut data);
-                        }
+                        byte_swap_and_premultiply(&mut data);
                         let size = Size2D::new(size.width as f64, size.height as f64);
                         (data, size)
                     },

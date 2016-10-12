@@ -22,7 +22,6 @@ harfbuzz-sys = "0.1"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 ipc-channel = "0.5"
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
@@ -31,8 +30,6 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.2.2"
 plugins = {path = "../plugins"}
-profile_traits = {path = "../profile_traits"}
-rand = "0.3"
 range = {path = "../range"}
 rustc-serialize = "0.3"
 serde = "0.8"

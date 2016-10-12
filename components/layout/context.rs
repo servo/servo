@@ -15,7 +15,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx_traits::LayerId;
 use heapsize::HeapSizeOf;
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc;
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -196,36 +196,27 @@ impl SharedLayoutContext {
 
     pub fn get_webrender_image_for_url(&self,
                                        url: &Url,
-                                       use_placeholder: UsePlaceholder,
-                                       fetch_image_data_as_well: bool)
-                                       -> Option<(WebRenderImageInfo, Option<IpcSharedMemory>)> {
-        if !fetch_image_data_as_well {
-            let webrender_image_cache = self.webrender_image_cache.read().unwrap();
-            if let Some(existing_webrender_image) =
-                    webrender_image_cache.get(&((*url).clone(), use_placeholder)) {
-                return Some(((*existing_webrender_image).clone(), None))
-            }
+                                       use_placeholder: UsePlaceholder)
+                                       -> Option<WebRenderImageInfo> {
+        if let Some(existing_webrender_image) = self.webrender_image_cache
+                                                    .read()
+                                                    .unwrap()
+                                                    .get(&((*url).clone(), use_placeholder)) {
+            return Some((*existing_webrender_image).clone())
         }
 
         match self.get_or_request_image_or_meta((*url).clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {
-                    let bytes = if !fetch_image_data_as_well {
-                        None
-                    } else {
-                        Some(image.bytes.clone())
-                    };
-                    Some((image_info, bytes))
-                } else if !fetch_image_data_as_well {
+                    Some(image_info)
+                } else {
                     let mut webrender_image_cache = self.webrender_image_cache
                                                         .write()
                                                         .unwrap();
                     webrender_image_cache.insert(((*url).clone(), use_placeholder),
                                                  image_info);
-                    Some((image_info, None))
-                } else {
-                    Some((image_info, Some(image.bytes.clone())))
+                    Some(image_info)
                 }
             }
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(_)) => None,
