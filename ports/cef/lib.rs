@@ -6,7 +6,6 @@
 #![feature(core_intrinsics)]
 #![feature(link_args)]
 #![feature(plugin)]
-#![feature(try_borrow)]
 #![feature(unicode)]
 
 #![allow(non_camel_case_types)]
