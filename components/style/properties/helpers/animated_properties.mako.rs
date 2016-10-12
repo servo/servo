@@ -25,6 +25,7 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 use values::computed::position::Position;
+use values::computed::ToComputedValue;
 
 
 
@@ -154,39 +155,97 @@ impl AnimatedProperty {
     }
 }
 
+/// An enum to represent a single computed value belonging to an animated
+/// property in order to be interpolated with another one. When interpolating,
+/// both values need to belong to the same property.
+///
+/// This is different to AnimatedProperty in the sense that AnimatedProperty
+/// also knows the final value to be used during the animation.
+///
+/// This is to be used in Gecko integration code.
+///
+/// FIXME: We need to add a path for custom properties, but that's trivial after
+/// this (is a similar path to that of PropertyDeclaration).
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum AnimationValue {
+    % for prop in data.longhands:
+        % if prop.animatable:
+            ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
+        % endif
+    % endfor
+}
+
+impl AnimationValue {
+    pub fn uncompute(&self) -> PropertyDeclaration {
+        use properties::{longhands, DeclaredValue};
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    AnimationValue::${prop.camel_case}(ref from) => {
+                        PropertyDeclaration::${prop.camel_case}(
+                            DeclaredValue::Value(
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                    }
+                % endif
+            % endfor
+        }
+    }
+}
+
+impl Interpolate for AnimationValue {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    (&AnimationValue::${prop.camel_case}(ref from),
+                     &AnimationValue::${prop.camel_case}(ref to)) => {
+                        from.interpolate(to, progress).map(AnimationValue::${prop.camel_case})
+                    }
+                % endif
+            % endfor
+            _ => {
+                panic!("Expected interpolation of computed values of the same \
+                        property, got: {:?}, {:?}", self, other);
+            }
+        }
+    }
+}
+
+
 /// A trait used to implement [interpolation][interpolated-types].
 ///
 /// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
 pub trait Interpolate: Sized {
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()>;
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()>;
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait RepeatableListInterpolate: Interpolate {}
 
 impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         use num_integer::lcm;
         let len = lcm(self.len(), other.len());
         self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
-            me.interpolate(you, time)
+            me.interpolate(you, progress)
         }).collect()
     }
 }
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Au {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * time).round() as i32))
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * progress).round() as i32))
     }
 }
 
 impl <T> Interpolate for Option<T> where T: Interpolate {
     #[inline]
-    fn interpolate(&self, other: &Option<T>, time: f64) -> Result<Option<T>, ()> {
+    fn interpolate(&self, other: &Option<T>, progress: f64) -> Result<Option<T>, ()> {
         match (self, other) {
             (&Some(ref this), &Some(ref other)) => {
-                Ok(this.interpolate(other, time).ok())
+                Ok(this.interpolate(other, progress).ok())
             }
             _ => Err(()),
         }
@@ -196,46 +255,46 @@ impl <T> Interpolate for Option<T> where T: Interpolate {
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f32 {
     #[inline]
-    fn interpolate(&self, other: &f32, time: f64) -> Result<Self, ()> {
-        Ok(((*self as f64) + ((*other as f64) - (*self as f64)) * time) as f32)
+    fn interpolate(&self, other: &f32, progress: f64) -> Result<Self, ()> {
+        Ok(((*self as f64) + ((*other as f64) - (*self as f64)) * progress) as f32)
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f64 {
     #[inline]
-    fn interpolate(&self, other: &f64, time: f64) -> Result<Self, ()> {
-        Ok(*self + (*other - *self) * time)
+    fn interpolate(&self, other: &f64, progress: f64) -> Result<Self, ()> {
+        Ok(*self + (*other - *self) * progress)
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for i32 {
     #[inline]
-    fn interpolate(&self, other: &i32, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &i32, progress: f64) -> Result<Self, ()> {
         let a = *self as f64;
         let b = *other as f64;
-        Ok((a + (b - a) * time).round() as i32)
+        Ok((a + (b - a) * progress).round() as i32)
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Angle {
     #[inline]
-    fn interpolate(&self, other: &Angle, time: f64) -> Result<Self, ()> {
-        self.radians().interpolate(&other.radians(), time).map(Angle)
+    fn interpolate(&self, other: &Angle, progress: f64) -> Result<Self, ()> {
+        self.radians().interpolate(&other.radians(), progress).map(Angle)
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Interpolate for Visibility {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (Visibility::visible, _) | (_, Visibility::visible) => {
-                Ok(if time >= 0.0 && time <= 1.0 {
+                Ok(if progress >= 0.0 && progress <= 1.0 {
                     Visibility::visible
-                } else if time < 0.0 {
+                } else if progress < 0.0 {
                     *self
                 } else {
                     *other
@@ -249,11 +308,11 @@ impl Interpolate for Visibility {
 /// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for ZIndex {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (ZIndex::Number(ref this),
              ZIndex::Number(ref other)) => {
-                this.interpolate(other, time).map(ZIndex::Number)
+                this.interpolate(other, progress).map(ZIndex::Number)
             }
             _ => Err(()),
         }
@@ -262,9 +321,9 @@ impl Interpolate for ZIndex {
 
 impl<T: Interpolate + Copy> Interpolate for Size2D<T> {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        let width = try!(self.width.interpolate(&other.width, time));
-        let height = try!(self.height.interpolate(&other.height, time));
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        let width = try!(self.width.interpolate(&other.width, progress));
+        let height = try!(self.height.interpolate(&other.height, progress));
 
         Ok(Size2D::new(width, height))
     }
@@ -272,9 +331,9 @@ impl<T: Interpolate + Copy> Interpolate for Size2D<T> {
 
 impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        let x = try!(self.x.interpolate(&other.x, time));
-        let y = try!(self.y.interpolate(&other.y, time));
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        let x = try!(self.x.interpolate(&other.x, progress));
+        let y = try!(self.y.interpolate(&other.y, progress));
 
         Ok(Point2D::new(x, y))
     }
@@ -282,19 +341,19 @@ impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
 
 impl Interpolate for BorderRadiusSize {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, time).map(BorderRadiusSize)
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        self.0.interpolate(&other.0, progress).map(BorderRadiusSize)
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for VerticalAlign {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref this)),
              VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref other))) => {
-                this.interpolate(other, time).map(|value| {
+                this.interpolate(other, progress).map(|value| {
                     VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(value))
                 })
             }
@@ -304,8 +363,8 @@ impl Interpolate for VerticalAlign {
 }
 impl Interpolate for BackgroundSize {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        self.0.interpolate(&other.0, time).map(BackgroundSize)
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        self.0.interpolate(&other.0, progress).map(BackgroundSize)
     }
 }
 
@@ -313,12 +372,12 @@ impl Interpolate for BackgroundSize {
 /// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for RGBA {
     #[inline]
-    fn interpolate(&self, other: &RGBA, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &RGBA, progress: f64) -> Result<Self, ()> {
         Ok(RGBA {
-            red: try!(self.red.interpolate(&other.red, time)),
-            green: try!(self.green.interpolate(&other.green, time)),
-            blue: try!(self.blue.interpolate(&other.blue, time)),
-            alpha: try!(self.alpha.interpolate(&other.alpha, time)),
+            red: try!(self.red.interpolate(&other.red, progress)),
+            green: try!(self.green.interpolate(&other.green, progress)),
+            blue: try!(self.blue.interpolate(&other.blue, progress)),
+            alpha: try!(self.alpha.interpolate(&other.alpha, progress)),
         })
     }
 }
@@ -326,10 +385,10 @@ impl Interpolate for RGBA {
 /// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for CSSParserColor {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (CSSParserColor::RGBA(ref this), CSSParserColor::RGBA(ref other)) => {
-                this.interpolate(other, time).map(CSSParserColor::RGBA)
+                this.interpolate(other, progress).map(CSSParserColor::RGBA)
             }
             _ => Err(()),
         }
@@ -339,10 +398,10 @@ impl Interpolate for CSSParserColor {
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for CalcLengthOrPercentage {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         fn interpolate_half<T>(this: Option<T>,
                                other: Option<T>,
-                               time: f64)
+                               progress: f64)
                                -> Result<Option<T>, ()>
             where T: Default + Interpolate
         {
@@ -351,14 +410,14 @@ impl Interpolate for CalcLengthOrPercentage {
                 (this, other) => {
                     let this = this.unwrap_or(T::default());
                     let other = other.unwrap_or(T::default());
-                    this.interpolate(&other, time).map(Some)
+                    this.interpolate(&other, progress).map(Some)
                 }
             }
         }
 
         Ok(CalcLengthOrPercentage {
-            length: try!(interpolate_half(self.length, other.length, time)),
-            percentage: try!(interpolate_half(self.percentage, other.percentage, time)),
+            length: try!(interpolate_half(self.length, other.length, progress)),
+            percentage: try!(interpolate_half(self.percentage, other.percentage, progress)),
         })
     }
 }
@@ -366,20 +425,20 @@ impl Interpolate for CalcLengthOrPercentage {
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentage {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (LengthOrPercentage::Length(ref this),
              LengthOrPercentage::Length(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentage::Length)
+                this.interpolate(other, progress).map(LengthOrPercentage::Length)
             }
             (LengthOrPercentage::Percentage(ref this),
              LengthOrPercentage::Percentage(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentage::Percentage)
+                this.interpolate(other, progress).map(LengthOrPercentage::Percentage)
             }
             (this, other) => {
                 let this: CalcLengthOrPercentage = From::from(this);
                 let other: CalcLengthOrPercentage = From::from(other);
-                this.interpolate(&other, time)
+                this.interpolate(&other, progress)
                     .map(LengthOrPercentage::Calc)
             }
         }
@@ -389,15 +448,15 @@ impl Interpolate for LengthOrPercentage {
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrAuto {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (LengthOrPercentageOrAuto::Length(ref this),
              LengthOrPercentageOrAuto::Length(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentageOrAuto::Length)
+                this.interpolate(other, progress).map(LengthOrPercentageOrAuto::Length)
             }
             (LengthOrPercentageOrAuto::Percentage(ref this),
              LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentageOrAuto::Percentage)
+                this.interpolate(other, progress).map(LengthOrPercentageOrAuto::Percentage)
             }
             (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
                 Ok(LengthOrPercentageOrAuto::Auto)
@@ -405,7 +464,7 @@ impl Interpolate for LengthOrPercentageOrAuto {
             (this, other) => {
                 let this: Option<CalcLengthOrPercentage> = From::from(this);
                 let other: Option<CalcLengthOrPercentage> = From::from(other);
-                match this.interpolate(&other, time) {
+                match this.interpolate(&other, progress) {
                     Ok(Some(result)) => Ok(LengthOrPercentageOrAuto::Calc(result)),
                     _ => Err(()),
                 }
@@ -417,15 +476,15 @@ impl Interpolate for LengthOrPercentageOrAuto {
 /// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrNone {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (LengthOrPercentageOrNone::Length(ref this),
              LengthOrPercentageOrNone::Length(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentageOrNone::Length)
+                this.interpolate(other, progress).map(LengthOrPercentageOrNone::Length)
             }
             (LengthOrPercentageOrNone::Percentage(ref this),
              LengthOrPercentageOrNone::Percentage(ref other)) => {
-                this.interpolate(other, time).map(LengthOrPercentageOrNone::Percentage)
+                this.interpolate(other, progress).map(LengthOrPercentageOrNone::Percentage)
             }
             (LengthOrPercentageOrNone::None, LengthOrPercentageOrNone::None) => {
                 Ok(LengthOrPercentageOrNone::None)
@@ -439,15 +498,15 @@ impl Interpolate for LengthOrPercentageOrNone {
 /// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for LineHeight {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (LineHeight::Length(ref this),
              LineHeight::Length(ref other)) => {
-                this.interpolate(other, time).map(LineHeight::Length)
+                this.interpolate(other, progress).map(LineHeight::Length)
             }
             (LineHeight::Number(ref this),
              LineHeight::Number(ref other)) => {
-                this.interpolate(other, time).map(LineHeight::Number)
+                this.interpolate(other, progress).map(LineHeight::Number)
             }
             (LineHeight::Normal, LineHeight::Normal) => {
                 Ok(LineHeight::Normal)
@@ -460,10 +519,10 @@ impl Interpolate for LineHeight {
 /// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
 impl Interpolate for FontWeight {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let a = (*self as u32) as f64;
         let b = (*other as u32) as f64;
-        let weight = a + (b - a) * time;
+        let weight = a + (b - a) * progress;
         Ok(if weight < 150. {
             FontWeight::Weight100
         } else if weight < 250. {
@@ -489,10 +548,10 @@ impl Interpolate for FontWeight {
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for Position {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(Position {
-            horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-            vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+            horizontal: try!(self.horizontal.interpolate(&other.horizontal, progress)),
+            vertical: try!(self.vertical.interpolate(&other.vertical, progress)),
         })
     }
 }
@@ -501,20 +560,20 @@ impl RepeatableListInterpolate for Position {}
 
 impl Interpolate for BackgroundPosition {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, time))))
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, progress))))
     }
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         Ok(TextShadow {
-            offset_x: try!(self.offset_x.interpolate(&other.offset_x, time)),
-            offset_y: try!(self.offset_y.interpolate(&other.offset_y, time)),
-            blur_radius: try!(self.blur_radius.interpolate(&other.blur_radius, time)),
-            color: try!(self.color.interpolate(&other.color, time)),
+            offset_x: try!(self.offset_x.interpolate(&other.offset_x, progress)),
+            offset_y: try!(self.offset_y.interpolate(&other.offset_y, progress)),
+            blur_radius: try!(self.blur_radius.interpolate(&other.blur_radius, progress)),
+            color: try!(self.color.interpolate(&other.color, progress)),
         })
     }
 }
@@ -522,7 +581,7 @@ impl Interpolate for TextShadow {
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadowList {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         let zero = TextShadow {
             offset_x: Au(0),
             offset_y: Au(0),
@@ -538,12 +597,12 @@ impl Interpolate for TextShadowList {
         for i in 0..max_len {
             let shadow = match (self.0.get(i), other.0.get(i)) {
                 (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, time)),
+                    => try!(shadow.interpolate(other, progress)),
                 (Some(shadow), None) => {
-                    shadow.interpolate(&zero, time).unwrap()
+                    shadow.interpolate(&zero, progress).unwrap()
                 }
                 (None, Some(shadow)) => {
-                    zero.interpolate(&shadow, time).unwrap()
+                    zero.interpolate(&shadow, progress).unwrap()
                 }
                 (None, None) => unreachable!(),
             };
@@ -557,7 +616,7 @@ impl Interpolate for TextShadowList {
 
 impl Interpolate for BoxShadowList {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         // The inset value must change
         let mut zero = BoxShadow {
             offset_x: Au(0),
@@ -576,14 +635,14 @@ impl Interpolate for BoxShadowList {
         for i in 0..max_len {
             let shadow = match (self.0.get(i), other.0.get(i)) {
                 (Some(shadow), Some(other))
-                    => try!(shadow.interpolate(other, time)),
+                    => try!(shadow.interpolate(other, progress)),
                 (Some(shadow), None) => {
                     zero.inset = shadow.inset;
-                    shadow.interpolate(&zero, time).unwrap()
+                    shadow.interpolate(&zero, progress).unwrap()
                 }
                 (None, Some(shadow)) => {
                     zero.inset = shadow.inset;
-                    zero.interpolate(&shadow, time).unwrap()
+                    zero.interpolate(&shadow, progress).unwrap()
                 }
                 (None, None) => unreachable!(),
             };
@@ -597,16 +656,16 @@ impl Interpolate for BoxShadowList {
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for BoxShadow {
     #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         if self.inset != other.inset {
             return Err(());
         }
 
-        let x = try!(self.offset_x.interpolate(&other.offset_x, time));
-        let y = try!(self.offset_y.interpolate(&other.offset_y, time));
-        let color = try!(self.color.interpolate(&other.color, time));
-        let spread = try!(self.spread_radius.interpolate(&other.spread_radius, time));
-        let blur = try!(self.blur_radius.interpolate(&other.blur_radius, time));
+        let x = try!(self.offset_x.interpolate(&other.offset_x, progress));
+        let y = try!(self.offset_y.interpolate(&other.offset_y, progress));
+        let color = try!(self.color.interpolate(&other.color, progress));
+        let spread = try!(self.spread_radius.interpolate(&other.spread_radius, progress));
+        let blur = try!(self.blur_radius.interpolate(&other.blur_radius, progress));
 
         Ok(BoxShadow {
             offset_x: x,
@@ -620,10 +679,10 @@ impl Interpolate for BoxShadow {
 }
 
 impl Interpolate for LengthOrNone {
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
             (LengthOrNone::Length(ref len), LengthOrNone::Length(ref other)) =>
-                len.interpolate(&other, time).map(LengthOrNone::Length),
+                len.interpolate(&other, progress).map(LengthOrNone::Length),
             _ => Err(()),
         }
     }
@@ -705,7 +764,7 @@ impl Interpolate for LengthOrNone {
     /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
     fn interpolate_transform_list(from_list: &[TransformOperation],
                                   to_list: &[TransformOperation],
-                                  time: f64) -> TransformList {
+                                  progress: f64) -> TransformList {
         let mut result = vec![];
 
         if can_interpolate_list(from_list, to_list) {
@@ -713,27 +772,27 @@ impl Interpolate for LengthOrNone {
                 match (from, to) {
                     (&TransformOperation::Matrix(from),
                      &TransformOperation::Matrix(_to)) => {
-                        let interpolated = from.interpolate(&_to, time).unwrap();
+                        let interpolated = from.interpolate(&_to, progress).unwrap();
                         result.push(TransformOperation::Matrix(interpolated));
                     }
                     (&TransformOperation::Skew(fx, fy),
                      &TransformOperation::Skew(tx, ty)) => {
-                        let ix = fx.interpolate(&tx, time).unwrap();
-                        let iy = fy.interpolate(&ty, time).unwrap();
+                        let ix = fx.interpolate(&tx, progress).unwrap();
+                        let iy = fy.interpolate(&ty, progress).unwrap();
                         result.push(TransformOperation::Skew(ix, iy));
                     }
                     (&TransformOperation::Translate(fx, fy, fz),
                      &TransformOperation::Translate(tx, ty, tz)) => {
-                        let ix = fx.interpolate(&tx, time).unwrap();
-                        let iy = fy.interpolate(&ty, time).unwrap();
-                        let iz = fz.interpolate(&tz, time).unwrap();
+                        let ix = fx.interpolate(&tx, progress).unwrap();
+                        let iy = fy.interpolate(&ty, progress).unwrap();
+                        let iz = fz.interpolate(&tz, progress).unwrap();
                         result.push(TransformOperation::Translate(ix, iy, iz));
                     }
                     (&TransformOperation::Scale(fx, fy, fz),
                      &TransformOperation::Scale(tx, ty, tz)) => {
-                        let ix = fx.interpolate(&tx, time).unwrap();
-                        let iy = fy.interpolate(&ty, time).unwrap();
-                        let iz = fz.interpolate(&tz, time).unwrap();
+                        let ix = fx.interpolate(&tx, progress).unwrap();
+                        let iy = fy.interpolate(&ty, progress).unwrap();
+                        let iz = fz.interpolate(&tz, progress).unwrap();
                         result.push(TransformOperation::Scale(ix, iy, iz));
                     }
                     (&TransformOperation::Rotate(fx, fy, fz, fa),
@@ -743,12 +802,12 @@ impl Interpolate for LengthOrNone {
                         let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
                         let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
                         if fx == tx && fy == ty && fz == tz {
-                            let ia = fa.interpolate(&ta, time).unwrap();
+                            let ia = fa.interpolate(&ta, progress).unwrap();
                             result.push(TransformOperation::Rotate(fx, fy, fz, ia));
                         } else {
                             let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
                             let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                            let interpolated = matrix_f.interpolate(&matrix_t, time).unwrap();
+                            let interpolated = matrix_f.interpolate(&matrix_t, progress).unwrap();
 
                             result.push(TransformOperation::Matrix(interpolated));
                         }
@@ -759,7 +818,7 @@ impl Interpolate for LengthOrNone {
                         let mut td_matrix = ComputedMatrix::identity();
                         fd_matrix.m43 = -1. / fd.to_f32_px();
                         td_matrix.m43 = -1. / _td.to_f32_px();
-                        let interpolated = fd_matrix.interpolate(&td_matrix, time).unwrap();
+                        let interpolated = fd_matrix.interpolate(&td_matrix, progress).unwrap();
                         result.push(TransformOperation::Matrix(interpolated));
                     }
                     _ => {
@@ -830,37 +889,37 @@ impl Interpolate for LengthOrNone {
     }
 
     impl Interpolate for InnerMatrix2D {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(InnerMatrix2D {
-                m11: try!(self.m11.interpolate(&other.m11, time)),
-                m12: try!(self.m12.interpolate(&other.m12, time)),
-                m21: try!(self.m21.interpolate(&other.m21, time)),
-                m22: try!(self.m22.interpolate(&other.m22, time)),
+                m11: try!(self.m11.interpolate(&other.m11, progress)),
+                m12: try!(self.m12.interpolate(&other.m12, progress)),
+                m21: try!(self.m21.interpolate(&other.m21, progress)),
+                m22: try!(self.m22.interpolate(&other.m22, progress)),
             })
         }
     }
 
     impl Interpolate for Translate2D {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Translate2D(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress))
             ))
         }
     }
 
     impl Interpolate for Scale2D {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Scale2D(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress))
             ))
         }
     }
 
     impl Interpolate for MatrixDecomposed2D {
         /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             // If x-axis of one is flipped, and y-axis of the other,
             // convert to an unflipped rotation.
             let mut scale = self.scale;
@@ -890,10 +949,10 @@ impl Interpolate for LengthOrNone {
             }
 
             // Interpolate all values.
-            let translate = try!(self.translate.interpolate(&other.translate, time));
-            let scale = try!(scale.interpolate(&other.scale, time));
-            let angle = try!(angle.interpolate(&other_angle, time));
-            let matrix = try!(self.matrix.interpolate(&other.matrix, time));
+            let translate = try!(self.translate.interpolate(&other.translate, progress));
+            let scale = try!(scale.interpolate(&other.scale, progress));
+            let angle = try!(angle.interpolate(&other_angle, progress));
+            let matrix = try!(self.matrix.interpolate(&other.matrix, progress));
 
             Ok(MatrixDecomposed2D {
                 translate: translate,
@@ -905,24 +964,24 @@ impl Interpolate for LengthOrNone {
     }
 
     impl Interpolate for ComputedMatrix {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             if self.is_3d() || other.is_3d() {
                 let decomposed_from = decompose_3d_matrix(*self);
                 let decomposed_to = decompose_3d_matrix(*other);
                 match (decomposed_from, decomposed_to) {
                     (Ok(from), Ok(to)) => {
-                        let interpolated = try!(from.interpolate(&to, time));
+                        let interpolated = try!(from.interpolate(&to, progress));
                         Ok(ComputedMatrix::from(interpolated))
                     },
                     _ => {
-                        let interpolated = if time < 0.5 {*self} else {*other};
+                        let interpolated = if progress < 0.5 {*self} else {*other};
                         Ok(interpolated)
                     }
                 }
             } else {
                 let decomposed_from = MatrixDecomposed2D::from(*self);
                 let decomposed_to = MatrixDecomposed2D::from(*other);
-                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, time));
+                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, progress));
                 Ok(ComputedMatrix::from(interpolated))
             }
         }
@@ -1228,56 +1287,56 @@ impl Interpolate for LengthOrNone {
     }
 
     impl Interpolate for Translate3D {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Translate3D(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time)),
-                try!(self.2.interpolate(&other.2, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress)),
+                try!(self.2.interpolate(&other.2, progress))
             ))
         }
     }
 
     impl Interpolate for Scale3D {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Scale3D(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time)),
-                try!(self.2.interpolate(&other.2, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress)),
+                try!(self.2.interpolate(&other.2, progress))
             ))
         }
     }
 
     impl Interpolate for Skew {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Skew(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time)),
-                try!(self.2.interpolate(&other.2, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress)),
+                try!(self.2.interpolate(&other.2, progress))
             ))
         }
     }
 
     impl Interpolate for Perspective {
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             Ok(Perspective(
-                try!(self.0.interpolate(&other.0, time)),
-                try!(self.1.interpolate(&other.1, time)),
-                try!(self.2.interpolate(&other.2, time)),
-                try!(self.3.interpolate(&other.3, time))
+                try!(self.0.interpolate(&other.0, progress)),
+                try!(self.1.interpolate(&other.1, progress)),
+                try!(self.2.interpolate(&other.2, progress)),
+                try!(self.3.interpolate(&other.3, progress))
             ))
         }
     }
 
     impl Interpolate for MatrixDecomposed3D {
         /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
-        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
             let mut interpolated = *self;
 
             // Interpolate translate, scale, skew and perspective components.
-            interpolated.translate = try!(self.translate.interpolate(&other.translate, time));
-            interpolated.scale = try!(self.scale.interpolate(&other.scale, time));
-            interpolated.skew = try!(self.skew.interpolate(&other.skew, time));
-            interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, time));
+            interpolated.translate = try!(self.translate.interpolate(&other.translate, progress));
+            interpolated.scale = try!(self.scale.interpolate(&other.scale, progress));
+            interpolated.skew = try!(self.skew.interpolate(&other.skew, progress));
+            interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, progress));
 
             // Interpolate quaternions using spherical linear interpolation (Slerp).
             let mut product = self.quaternion.0 * other.quaternion.0 +
@@ -1294,12 +1353,12 @@ impl Interpolate for LengthOrNone {
             }
 
             let theta = product.acos();
-            let w = (time as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+            let w = (progress as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
 
             let mut a = *self;
             let mut b = *other;
             % for i in range(4):
-                a.quaternion.${i} *= (time as f32 * theta).cos() - product * w;
+                a.quaternion.${i} *= (progress as f32 * theta).cos() - product * w;
                 b.quaternion.${i} *= w;
                 interpolated.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
             % endfor
@@ -1508,22 +1567,22 @@ impl Interpolate for LengthOrNone {
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
     impl Interpolate for TransformList {
         #[inline]
-        fn interpolate(&self, other: &TransformList, time: f64) -> Result<Self, ()> {
+        fn interpolate(&self, other: &TransformList, progress: f64) -> Result<Self, ()> {
             // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
             let result = match (&self.0, &other.0) {
                 (&Some(ref from_list), &Some(ref to_list)) => {
                     // Two lists of transforms
-                    interpolate_transform_list(from_list, &to_list, time)
+                    interpolate_transform_list(from_list, &to_list, progress)
                 }
                 (&Some(ref from_list), &None) => {
                     // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
                     let to_list = build_identity_transform_list(from_list);
-                    interpolate_transform_list(from_list, &to_list, time)
+                    interpolate_transform_list(from_list, &to_list, progress)
                 }
                 (&None, &Some(ref to_list)) => {
                     // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
                     let from_list = build_identity_transform_list(to_list);
-                    interpolate_transform_list(&from_list, to_list, time)
+                    interpolate_transform_list(&from_list, to_list, progress)
                 }
                 _ => {
                     // http://dev.w3.org/csswg/css-transforms/#none-none-animation
