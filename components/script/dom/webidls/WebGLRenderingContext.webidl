@@ -41,7 +41,7 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface WebGLRenderingContextBase
 {
 
@@ -762,7 +762,6 @@ interface WebGLRenderingContextBase
     void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 };
 
-[Exposed=(Window,Worker)]
 interface WebGLRenderingContext
 {
 };
