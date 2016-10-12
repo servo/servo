@@ -2215,18 +2215,29 @@ impl Fragment {
             // CSS 2.1 § 10.8: "The height of each inline-level box in the line box is calculated.
             // For replaced elements, inline-block elements, and inline-table elements, this is the
             // height of their margin box."
+            //
+            // CSS 2.1 § 10.8.1: "The baseline of an 'inline-block' is the baseline of its last
+            // line box in the normal flow, unless it has either no in-flow line boxes or if its
+            // 'overflow' property has a computed value other than 'visible', in which case the
+            // baseline is the bottom margin edge."
+            //
+            // NB: We must use `block_flow.fragment.border_box.size.block` here instead of
+            // `block_flow.base.position.size.block` because sometimes the latter is late-computed
+            // and isn't up to date at this point.
             let block_flow = flow.as_block();
-            let is_auto = style.get_position().height == LengthOrPercentageOrAuto::Auto;
-            let baseline_offset = match flow.baseline_offset_of_last_line_box_in_flow() {
-                Some(baseline_offset) if is_auto => baseline_offset,
-                _ => block_flow.fragment.border_box.size.block,
-            };
             let start_margin = block_flow.fragment.margin.block_start;
             let end_margin = block_flow.fragment.margin.block_end;
-            let block_size_above_baseline = baseline_offset + start_margin;
-            let depth_below_baseline = flow::base(&**flow).position.size.block - baseline_offset +
-                end_margin;
-            InlineMetrics::new(block_size_above_baseline, depth_below_baseline, baseline_offset)
+            if style.get_box().overflow_y.0 == overflow_x::T::visible {
+                if let Some(baseline_offset) = flow.baseline_offset_of_last_line_box_in_flow() {
+                    let ascent = baseline_offset + start_margin;
+                    let space_below_baseline = block_flow.fragment.border_box.size.block -
+                        baseline_offset + end_margin;
+                    return InlineMetrics::new(ascent, space_below_baseline, baseline_offset)
+                }
+            }
+            let ascent = block_flow.fragment.border_box.size.block + end_margin;
+            let space_above_baseline = start_margin + ascent;
+            InlineMetrics::new(space_above_baseline, Au(0), ascent)
         }
     }
 
