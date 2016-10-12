@@ -10,7 +10,7 @@
 
 use flow;
 use flow_ref::FlowRef;
-use rustc_serialize::json;
+use serde_json::{to_string, to_value, Value};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fs::File;
@@ -36,20 +36,20 @@ macro_rules! layout_debug_scope(
     )
 );
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ScopeData {
     name: String,
-    pre: String,
-    post: String,
+    pre: Value,
+    post: Value,
     children: Vec<Box<ScopeData>>,
 }
 
 impl ScopeData {
-    fn new(name: String, pre: String) -> ScopeData {
+    fn new(name: String, pre: Value) -> ScopeData {
         ScopeData {
             name: name,
             pre: pre,
-            post: String::new(),
+            post: Value::Null,
             children: vec!(),
         }
     }
@@ -67,7 +67,7 @@ impl Scope {
         STATE_KEY.with(|ref r| {
             match *r.borrow_mut() {
                 Some(ref mut state) => {
-                    let flow_trace = json::encode(&flow::base(&*state.flow_root)).unwrap();
+                    let flow_trace = to_value(&flow::base(&*state.flow_root));
                     let data = box ScopeData::new(name.clone(), flow_trace);
                     state.scope_stack.push(data);
                 }
@@ -85,7 +85,7 @@ impl Drop for Scope {
             match *r.borrow_mut() {
                  Some(ref mut state) => {
                     let mut current_scope = state.scope_stack.pop().unwrap();
-                    current_scope.post = json::encode(&flow::base(&*state.flow_root)).unwrap();
+                    current_scope.post = to_value(&flow::base(&*state.flow_root));
                     let previous_scope = state.scope_stack.last_mut().unwrap();
                     previous_scope.children.push(current_scope);
                 }
@@ -109,7 +109,7 @@ pub fn begin_trace(flow_root: FlowRef) {
     assert!(STATE_KEY.with(|ref r| r.borrow().is_none()));
 
     STATE_KEY.with(|ref r| {
-        let flow_trace = json::encode(&flow::base(&*flow_root)).unwrap();
+        let flow_trace = to_value(&flow::base(&*flow_root));
         let state = State {
             scope_stack: vec![box ScopeData::new("root".to_owned(), flow_trace)],
             flow_root: flow_root.clone(),
@@ -125,9 +125,9 @@ pub fn end_trace(generation: u32) {
     let mut thread_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
     assert!(thread_state.scope_stack.len() == 1);
     let mut root_scope = thread_state.scope_stack.pop().unwrap();
-    root_scope.post = json::encode(&flow::base(&*thread_state.flow_root)).unwrap();
+    root_scope.post = to_value(&flow::base(&*thread_state.flow_root));
 
-    let result = json::encode(&root_scope).unwrap();
+    let result = to_string(&root_scope).unwrap();
     let mut file = File::create(format!("layout_trace-{}.json", generation)).unwrap();
     file.write_all(result.as_bytes()).unwrap();
 }

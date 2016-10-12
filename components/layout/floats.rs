@@ -14,7 +14,7 @@ use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::values::computed::LengthOrPercentageOrAuto;
 
 /// The kind of float: left or right.
-#[derive(Clone, RustcEncodable, Debug, Copy)]
+#[derive(Clone, Serialize, Debug, Copy)]
 pub enum FloatKind {
     Left,
     Right

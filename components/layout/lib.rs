@@ -44,9 +44,12 @@ extern crate plugins as servo_plugins;
 extern crate profile_traits;
 #[macro_use]
 extern crate range;
-extern crate rustc_serialize;
 extern crate script_layout_interface;
 extern crate script_traits;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 #[macro_use] extern crate servo_atoms;
 extern crate smallvec;
 extern crate style;

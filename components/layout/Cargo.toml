@@ -31,11 +31,12 @@ parking_lot = {version = "0.3.3", features = ["nightly"]}
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
-rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = "0.14"
+serde = "0.8"
 serde_derive = "0.8"
+serde_json = "0.8"
 servo_atoms = {path = "../atoms"}
 smallvec = "0.1"
 style = {path = "../style"}
