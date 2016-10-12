@@ -95,7 +95,8 @@ def generate_selection(selection, spec, subresource_path,
                 'content="referrer %(referrer_policy)s">' % spec
         elif selection['delivery_method'] == 'http-rp':
             selection['meta_delivery_method'] = \
-                "<!-- No meta: Referrer policy delivered via HTTP headers. -->"
+                '<!-- No meta: Referrer policy delivered via HTTP headers. -->' \
+                '<meta name="http-referrer-policy" content="%(referrer_policy)s">' % spec
             test_headers_filename = test_filename + ".headers"
             with open(test_headers_filename, "w") as f:
                 f.write('Referrer-Policy: ' + \

@@ -394,7 +394,7 @@
 
   "subresource_path": {
     "iframe-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/document.py",
-    "a-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/a-tag.html",
+    "a-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/a-tag.py",
     "link-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/link.py"
   }
 }
