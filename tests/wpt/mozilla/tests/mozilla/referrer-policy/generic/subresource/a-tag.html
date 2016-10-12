@@ -3,33 +3,43 @@
   <head>
   </head>
   <body>
-    <a id="button">go</a>
     <script>
       var url = new URL(window.location.toString());
       var id = url.searchParams.get("id");
       var redirection = url.searchParams.get("redirection");
       var cache_destroyer = url.searchParams.get("cache_destroyer");
       var tag_attrs = url.searchParams.get("tagAttrs");
-
-      console.log(id);
-      console.log(redirection);
-      console.log(cache_destroyer);
-      console.log(tag_attrs);
+      var meta_referrer = url.searchParams.get("metaReferrer");
 
       var referrer_policy;
       try {
-        referrer_policy = JSON.parse(tag_attrs);  
+        referrer_policy = JSON.parse(tag_attrs);
       } catch(e) {
         referrer_policy = {};
       }
 
-      var a = document.getElementById("button");
+      if (meta_referrer !== "undefined") {
+        var meta = document.createElement("meta");
+        meta.name = "referrer";
+        meta.content = meta_referrer;
+
+        document.head.appendChild(meta);
+      }
+
+      var a = document.createElement("a");
       a.href = "/_mozilla/mozilla/referrer-policy/generic/subresource/document.py?id=" + id + "&redirection=" + redirection +
                "&cache_destroyer=" + cache_destroyer;
 
       for (var attr in referrer_policy) {
-        a[attr] = referrer_policy[attr];
+        // TODO crashed when you assigned value to rel attribute
+        if (attr === "rel") {
+          a.relList.add(referrer_policy[attr]);
+        } else {
+          a[attr] = referrer_policy[attr];
+        }
       }
+
+      document.body.appendChild(a);
 
       a.click();
     </script>
