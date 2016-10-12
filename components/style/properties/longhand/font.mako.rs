@@ -353,3 +353,11 @@ ${helpers.single_keyword("font-kerning",
                          "auto none normal",
                          products="gecko",
                          animatable=False)}
+
+${helpers.single_keyword("font-variant-position",
+                         "normal sub super",
+                         products="gecko",
+                         gecko_ffi_name="mFont.variantPosition",
+                         gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
+                         animatable=False)}
+
