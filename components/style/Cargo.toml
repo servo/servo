@@ -13,7 +13,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = []
+gecko = ["nsstring_vendor"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
@@ -36,6 +36,7 @@ lazy_static = "0.2"
 log = "0.3.5"
 libc = "0.2"
 matches = "0.1"
+nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
 num_cpus = "0.2.2"

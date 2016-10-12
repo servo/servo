@@ -68,6 +68,7 @@ extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
+#[cfg(feature = "gecko")] extern crate nsstring_vendor as nsstring;
 extern crate num_integer;
 extern crate num_traits;
 #[cfg(feature = "gecko")] extern crate num_cpus;

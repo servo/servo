@@ -12,7 +12,88 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-${helpers.single_keyword("text-overflow", "clip ellipsis", animatable=False)}
+% if product == "servo":
+    ${helpers.single_keyword("text-overflow", "clip ellipsis", animatable=False)}
+% else:
+<%helpers:longhand name="text-overflow" animatable="False">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[derive(PartialEq, Eq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum Side {
+        Clip,
+        Ellipsis,
+        String(String),
+    }
+
+    #[derive(PartialEq, Eq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        pub first: Side,
+        pub second: Option<Side>
+    }
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        SpecifiedValue {
+            first: Side::Clip,
+            second: None
+        }
+    }
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let first = try!(Side::parse(input));
+        let second = Side::parse(input).ok();
+        Ok(SpecifiedValue {
+            first: first,
+            second: second,
+        })
+    }
+    impl Parse for Side {
+        fn parse(input: &mut Parser) -> Result<Side, ()> {
+            if let Ok(ident) = input.try(|input| input.expect_ident()) {
+                match_ignore_ascii_case! { ident,
+                    "clip" => Ok(Side::Clip),
+                    "ellipsis" => Ok(Side::Ellipsis),
+                    _ => Err(())
+                }
+            } else {
+                Ok(Side::String(try!(input.expect_string()).into_owned()))
+            }
+        }
+    }
+
+    impl ToCss for Side {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                Side::Clip => dest.write_str("clip"),
+                Side::Ellipsis => dest.write_str("ellipsis"),
+                Side::String(ref s) => dest.write_str(s)
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.first.to_css(dest));
+            if let Some(ref second) = self.second {
+                try!(dest.write_str(" "));
+                try!(second.to_css(dest));
+            }
+            Ok(())
+        }
+    }
+</%helpers:longhand>
+% endif
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",

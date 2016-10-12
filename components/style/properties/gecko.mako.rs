@@ -451,7 +451,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # These live in an nsFont member in Gecko. Should be straightforward to do manually.
     force_stub += ["font-kerning", "font-variant"]
     # These have unusual representations in gecko.
-    force_stub += ["list-style-type", "text-overflow"]
+    force_stub += ["list-style-type"]
     # In a nsTArray, have to be done manually, but probably not too much work
     # (the "filling them", not the "making them work")
     force_stub += ["animation-name", "animation-duration",
@@ -1640,7 +1640,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-color text-decoration-line"
+                  skip_longhands="text-decoration-color text-decoration-line text-overflow"
                   skip_additionals="*">
 
     ${impl_color("text_decoration_color", "mTextDecorationColor", need_clone=True)}
@@ -1660,6 +1660,62 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('text_decoration_line', 'mTextDecorationLine')}
+
+
+    fn clear_overflow_sides_if_string(&mut self) {
+        use gecko_bindings::structs::nsStyleTextOverflowSide;
+        use nsstring::nsString;
+        fn clear_if_string(side: &mut nsStyleTextOverflowSide) {
+            if side.mType == structs::NS_STYLE_TEXT_OVERFLOW_STRING as u8 {
+                side.mString.assign(&nsString::new());
+                side.mType = structs::NS_STYLE_TEXT_OVERFLOW_CLIP as u8;
+            }
+        }
+        clear_if_string(&mut self.gecko.mTextOverflow.mLeft);
+        clear_if_string(&mut self.gecko.mTextOverflow.mRight);
+    }
+    pub fn set_text_overflow(&mut self, v: longhands::text_overflow::computed_value::T) {
+        use gecko_bindings::structs::nsStyleTextOverflowSide;
+        use properties::longhands::text_overflow::{SpecifiedValue, Side};
+
+        fn set(side: &mut nsStyleTextOverflowSide, value: &Side) {
+            use nsstring::nsCString;
+            let ty = match *value {
+                Side::Clip => structs::NS_STYLE_TEXT_OVERFLOW_CLIP,
+                Side::Ellipsis => structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
+                Side::String(ref s) => {
+                    side.mString.assign_utf8(&nsCString::from(&**s));
+                    structs::NS_STYLE_TEXT_OVERFLOW_STRING
+                }
+            };
+            side.mType = ty as u8;
+        }
+
+        self.clear_overflow_sides_if_string();
+        if v.second.is_none() {
+            self.gecko.mTextOverflow.mLogicalDirections = true;
+        }
+
+        let SpecifiedValue { ref first, ref second } = v;
+        let second = second.as_ref().unwrap_or(&first);
+
+        set(&mut self.gecko.mTextOverflow.mLeft, first);
+        set(&mut self.gecko.mTextOverflow.mRight, second);
+    }
+
+    pub fn copy_text_overflow_from(&mut self, other: &Self) {
+        use gecko_bindings::structs::nsStyleTextOverflowSide;
+        fn set(side: &mut nsStyleTextOverflowSide, other: &nsStyleTextOverflowSide) {
+            if other.mType == structs::NS_STYLE_TEXT_OVERFLOW_STRING as u8 {
+                side.mString.assign(&other.mString)
+            }
+            side.mType = other.mType
+        }
+        self.clear_overflow_sides_if_string();
+        set(&mut self.gecko.mTextOverflow.mLeft, &other.gecko.mTextOverflow.mLeft);
+        set(&mut self.gecko.mTextOverflow.mRight, &other.gecko.mTextOverflow.mRight);
+        self.gecko.mTextOverflow.mLogicalDirections = other.gecko.mTextOverflow.mLogicalDirections;
+    }
 
     #[inline]
     pub fn has_underline(&self) -> bool {

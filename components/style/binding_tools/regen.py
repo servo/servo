@@ -68,7 +68,9 @@ COMPILATION_TARGETS = {
         "raw_lines": [
             # We can get rid of this when the bindings move into the style crate.
             "pub enum OpaqueStyleData {}",
+            "pub use nsstring::nsStringRepr as nsString;"
         ],
+        "blacklist_types": ["nsString"],
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
@@ -424,6 +426,11 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
     if "opaque_types" in current_target:
         for ty in current_target["opaque_types"]:
             flags.append("--opaque-type")
+            flags.append(ty)
+
+    if "blacklist_types" in current_target:
+        for ty in current_target["blacklist_types"]:
+            flags.append("--blacklist-type")
             flags.append(ty)
 
     if "servo_nullable_arc_types" in current_target:
