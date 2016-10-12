@@ -30,10 +30,11 @@ ordered-float = "0.2.2"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
-rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = "0.13"
+serde = "0.8"
+serde_json = "0.8"
 serde_derive = "0.8"
 smallvec = "0.1"
 string_cache = {version = "0.2.26", features = ["heap_size"]}
