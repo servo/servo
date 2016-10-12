@@ -12,7 +12,7 @@ use context::{LayoutContext, SharedLayoutContext};
 use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use flow::{self, Flow, FlowClass, OpaqueFlow};
+use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::print_tree::PrintTree;
@@ -81,42 +81,53 @@ impl TableCellFlow {
     pub fn valign_children(&mut self) {
         // Note to the reader: this code has been tested with negative margins.
         // We end up with a "end" that's before the "start," but the math still works out.
-        let first_start = flow::base(self).children.front().map(|kid| {
+        let mut extents = None;
+        for kid in flow::base(self).children.iter() {
             let kid_base = flow::base(kid);
-            flow::base(kid).position.start.b
-                - kid_base.collapsible_margins.block_start_margin_for_noncollapsible_context()
-        });
-        if let Some(mut first_start) = first_start {
-            let mut last_end = first_start;
-            for kid in flow::base(self).children.iter() {
-                let kid_base = flow::base(kid);
-                let start = kid_base.position.start.b
-                    - kid_base.collapsible_margins.block_start_margin_for_noncollapsible_context();
-                let end = kid_base.position.start.b + kid_base.position.size.block
-                    + kid_base.collapsible_margins.block_end_margin_for_noncollapsible_context();
-                if start < first_start {
-                    first_start = start;
-                }
-                if end > last_end {
-                    last_end = end;
-                }
+            if kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                continue
             }
-            let kids_size = last_end - first_start;
-            let self_size = flow::base(self).position.size.block -
-                self.block_flow.fragment.border_padding.block_start_end();
-            let kids_self_gap = self_size - kids_size;
-
-            // This offset should also account for vertical_align::T::baseline.
-            // Need max cell ascent from the first row of this cell.
-            let offset = match self.block_flow.fragment.style().get_box().vertical_align {
-                vertical_align::T::middle => kids_self_gap / 2,
-                vertical_align::T::bottom => kids_self_gap,
-                _ => Au(0),
-            };
-            if offset != Au(0) {
-                for kid in flow::mut_base(self).children.iter_mut() {
-                    flow::mut_base(kid).position.start.b = flow::mut_base(kid).position.start.b + offset;
+            let start = kid_base.position.start.b -
+                kid_base.collapsible_margins.block_start_margin_for_noncollapsible_context();
+            let end = kid_base.position.start.b + kid_base.position.size.block +
+                kid_base.collapsible_margins.block_end_margin_for_noncollapsible_context();
+            match extents {
+                Some((ref mut first_start, ref mut last_end)) => {
+                    if start < *first_start {
+                        *first_start = start
+                    }
+                    if end > *last_end {
+                        *last_end = end
+                    }
                 }
+                None => extents = Some((start, end)),
+            }
+        }
+        let (first_start, last_end) = match extents {
+            Some(extents) => extents,
+            None => return,
+        };
+
+        let kids_size = last_end - first_start;
+        let self_size = flow::base(self).position.size.block -
+            self.block_flow.fragment.border_padding.block_start_end();
+        let kids_self_gap = self_size - kids_size;
+
+        // This offset should also account for vertical_align::T::baseline.
+        // Need max cell ascent from the first row of this cell.
+        let offset = match self.block_flow.fragment.style().get_box().vertical_align {
+            vertical_align::T::middle => kids_self_gap / 2,
+            vertical_align::T::bottom => kids_self_gap,
+            _ => Au(0),
+        };
+        if offset == Au(0) {
+            return
+        }
+
+        for kid in flow::mut_base(self).children.iter_mut() {
+            let mut kid_base = flow::mut_base(kid);
+            if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                kid_base.position.start.b += offset
             }
         }
     }

@@ -5232,6 +5232,18 @@
             "url": "/_mozilla/css/table_valign_presentational_hint_a.html"
           }
         ],
+        "css/table_vertical_align_absolute_a.html": [
+          {
+            "path": "css/table_vertical_align_absolute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_vertical_align_absolute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_vertical_align_absolute_a.html"
+          }
+        ],
         "css/table_vertical_align_margin_padding.html": [
           {
             "path": "css/table_vertical_align_margin_padding.html",
@@ -19036,6 +19048,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_valign_presentational_hint_ref.html"
+        }
+      ],
+      "css/table_vertical_align_absolute_a.html": [
+        {
+          "path": "css/table_vertical_align_absolute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_vertical_align_absolute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_vertical_align_absolute_a.html"
         }
       ],
       "css/table_vertical_align_margin_padding.html": [
