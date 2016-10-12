@@ -23,13 +23,17 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use devtools_traits::CSSError;
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
+use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
@@ -47,6 +51,7 @@ use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
 use dom::servoparser::html::{ParseContext, parse_html};
 use dom::servoparser::xml::{self, parse_xml};
+use dom::transitionevent::TransitionEvent;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
@@ -65,6 +70,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{ReferrerPolicy, WindowSizeType};
@@ -97,6 +103,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use style::context::ReflowGoal;
+use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
@@ -917,6 +924,8 @@ impl ScriptThread {
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
+            ConstellationControlMsg::TransitionEnd(unsafe_node, name, duration) =>
+                self.handle_transition_event(unsafe_node, name, duration),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
@@ -1520,6 +1529,35 @@ impl ScriptThread {
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
         document.run_the_animation_frame_callbacks();
+    }
+
+    /// Handles firing of transition events.
+    #[allow(unsafe_code)]
+    fn handle_transition_event(&self, unsafe_node: UnsafeNode, name: String, duration: f64) {
+        let node = unsafe { ServoLayoutNode::from_unsafe(&unsafe_node) };
+        let node = unsafe { node.get_jsmanaged().get_for_script() };
+        let window = window_from_node(node);
+
+        if let Some(el) = node.downcast::<Element>() {
+            if &*window.GetComputedStyle(el, None).Display() == "none" {
+                return;
+            }
+        }
+
+        let init = TransitionEventInit {
+            parent: EventInit {
+                bubbles: true,
+                cancelable: false,
+            },
+            propertyName: DOMString::from(name),
+            elapsedTime: Finite::new(duration as f32).unwrap(),
+            // FIXME: Handle pseudo-elements properly
+            pseudoElement: DOMString::new()
+        };
+        let transition_event = TransitionEvent::new(window.upcast(),
+                                                    atom!("transitionend"),
+                                                    &init);
+        transition_event.upcast::<Event>().fire(node.upcast());
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.

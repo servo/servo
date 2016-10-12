@@ -451,6 +451,14 @@ impl<T: Reflectable> LayoutJS<T> {
         debug_assert!(thread_state::get().is_layout());
         *self.ptr
     }
+
+    /// Returns a reference to the interior of this JS object. This method is
+    /// safe to call because it originates from the layout thread, and it cannot
+    /// mutate DOM nodes.
+    pub fn get_for_script(&self) -> &T {
+        debug_assert!(thread_state::get().is_script());
+        unsafe { &**self.ptr }
+    }
 }
 
 /// Get a reference out of a rooted value.
