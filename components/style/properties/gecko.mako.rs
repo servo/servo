@@ -893,7 +893,7 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+        use properties::longhands::_moz_binding::computed_value::T as BindingValue;
         match v {
             BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
             BindingValue::Url(ref url, ref extra_data) => {
