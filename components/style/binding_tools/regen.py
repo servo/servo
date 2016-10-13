@@ -228,7 +228,7 @@ COMPILATION_TARGETS = {
             "StyleBasicShapeType", "StyleBasicShape", "nsCSSShadowArray",
             "nsIPrincipal", "nsIURI",
             "RawGeckoNode", "RawGeckoElement", "RawGeckoDocument",
-            "nsString"
+            "nsString", "nsStyleQuoteValues"
         ],
         "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
