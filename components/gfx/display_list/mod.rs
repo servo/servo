@@ -977,6 +977,11 @@ impl ClippingRegion {
             }).collect(),
         }
     }
+
+    #[inline]
+    pub fn is_max(&self) -> bool {
+        self.main == max_rect() && self.complex.is_empty()
+    }
 }
 
 impl fmt::Debug for ClippingRegion {
