@@ -262,7 +262,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          _force_positioned_stacking_level: bool) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContextClass(ref stacking_context_item) => {
+                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
                     let stacking_context = &stacking_context_item.stacking_context;
                     debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
@@ -283,7 +283,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                     builder.push_stacking_context(stacking_context_id);
 
                 }
-                &DisplayItem::PopStackingContextClass(_) => return,
+                &DisplayItem::PopStackingContext(_) => return,
                 _ => item.convert_to_webrender(builder, frame_builder),
             }
         }
@@ -354,7 +354,7 @@ impl WebRenderDisplayListConverter for DisplayList {
         let mut traversal = DisplayListTraversal::new(self);
         let item = traversal.next();
         match item {
-            Some(&DisplayItem::PushStackingContextClass(ref stacking_context_item)) => {
+            Some(&DisplayItem::PushStackingContext(ref stacking_context_item)) => {
                 let stacking_context = &stacking_context_item.stacking_context;
                 stacking_context.convert_to_webrender(&mut traversal,
                                                       api,
@@ -375,7 +375,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             builder: &mut webrender_traits::DisplayListBuilder,
                             frame_builder: &mut WebRenderFrameBuilder) {
         match *self {
-            DisplayItem::SolidColorClass(ref item) => {
+            DisplayItem::SolidColor(ref item) => {
                 let color = item.color.to_colorf();
                 if color.a > 0.0 {
                     builder.push_rect(item.base.bounds.to_rectf(),
@@ -383,7 +383,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       color);
                 }
             }
-            DisplayItem::TextClass(ref item) => {
+            DisplayItem::Text(ref item) => {
                 let mut origin = item.baseline_origin.clone();
                 let mut glyphs = vec!();
 
@@ -418,7 +418,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       &mut frame_builder.auxiliary_lists_builder);
                 }
             }
-            DisplayItem::ImageClass(ref item) => {
+            DisplayItem::Image(ref item) => {
                 if let Some(id) = item.webrender_image.key {
                     if item.stretch_size.width > Au(0) &&
                        item.stretch_size.height > Au(0) {
@@ -431,12 +431,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     }
                 }
             }
-            DisplayItem::WebGLClass(ref item) => {
+            DisplayItem::WebGL(ref item) => {
                 builder.push_webgl_canvas(item.base.bounds.to_rectf(),
                                           item.base.clip.to_clip_region(frame_builder),
                                           item.context_id);
             }
-            DisplayItem::BorderClass(ref item) => {
+            DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let left = webrender_traits::BorderSide {
                     width: item.border_widths.left.to_f32_px(),
@@ -467,7 +467,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                     bottom,
                                     radius);
             }
-            DisplayItem::GradientClass(ref item) => {
+            DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let start_point = item.start_point.to_pointf();
                 let end_point = item.end_point.to_pointf();
@@ -482,13 +482,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       stops,
                                       &mut frame_builder.auxiliary_lists_builder);
             }
-            DisplayItem::LineClass(..) => {
-                println!("TODO DisplayItem::LineClass");
+            DisplayItem::Line(..) => {
+                println!("TODO DisplayItem::Line");
             }
-            DisplayItem::LayeredItemClass(..) => {
+            DisplayItem::LayeredItem(..) => {
                 panic!("Unexpected in webrender!");
             }
-            DisplayItem::BoxShadowClass(ref item) => {
+            DisplayItem::BoxShadow(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let box_bounds = item.box_bounds.to_rectf();
                 builder.push_box_shadow(rect,
@@ -501,14 +501,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.border_radius.to_f32_px(),
                                         item.clip_mode.to_clip_mode());
             }
-            DisplayItem::IframeClass(ref item) => {
+            DisplayItem::Iframe(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let pipeline_id = item.iframe.to_webrender();
                 builder.push_iframe(rect,
                                     item.base.clip.to_clip_region(frame_builder),
                                     pipeline_id);
             }
-            DisplayItem::PushStackingContextClass(_) | DisplayItem::PopStackingContextClass(_) => {}
+            DisplayItem::PushStackingContext(_) | DisplayItem::PopStackingContext(_) => {}
         }
     }
 }

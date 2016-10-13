@@ -128,7 +128,7 @@ impl DisplayList {
         let stacking_context_id = stacking_context.id;
         let real_stacking_context = stacking_context.context_type == StackingContextType::Real;
         if real_stacking_context {
-            list.push(DisplayItem::PushStackingContextClass(Box::new(PushStackingContextItem {
+            list.push(DisplayItem::PushStackingContext(Box::new(PushStackingContextItem {
                 base: BaseDisplayItem::empty(),
                 stacking_context: stacking_context,
             })));
@@ -176,7 +176,7 @@ impl DisplayList {
         list.extend(child_items);
 
         if real_stacking_context {
-            list.push(DisplayItem::PopStackingContextClass(Box::new(
+            list.push(DisplayItem::PopStackingContext(Box::new(
                 PopStackingContextItem {
                     base: BaseDisplayItem::empty(),
                     stacking_context_id: stacking_context_id,
@@ -225,7 +225,7 @@ impl DisplayList {
                            tile_rect: Option<Rect<Au>>) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContextClass(ref stacking_context_item) => {
+                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
                     let context = &stacking_context_item.stacking_context;
                     if context.intersects_rect_in_parent_context(tile_rect) {
                         self.draw_stacking_context(traversal,
@@ -237,7 +237,7 @@ impl DisplayList {
                         traversal.skip_to_end_of_stacking_context(context.id);
                     }
                 }
-                &DisplayItem::PopStackingContextClass(_) => return,
+                &DisplayItem::PopStackingContext(_) => return,
                 _ => {
                     if item.intersects_rect_in_parent_context(tile_rect) {
                         item.draw_into_context(paint_context);
@@ -360,7 +360,7 @@ impl DisplayList {
                                  result: &mut Vec<DisplayItemMetadata>) {
         while let Some(item) = traversal.next() {
             match item {
-                &DisplayItem::PushStackingContextClass(ref stacking_context_item) => {
+                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
                     self.hit_test_stacking_context(traversal,
                                                    &stacking_context_item.stacking_context,
                                                    translated_point,
@@ -368,7 +368,7 @@ impl DisplayList {
                                                    scroll_offsets,
                                                    result);
                 }
-                &DisplayItem::PopStackingContextClass(_) => return,
+                &DisplayItem::PopStackingContext(_) => return,
                 _ => {
                     if let Some(meta) = item.hit_test(*translated_point) {
                         result.push(meta);
@@ -461,7 +461,7 @@ impl<'a> DisplayListTraversal<'a> {
 
         let stacking_context_start = display_list.list[0..start].iter().rposition(|item|
             match item {
-                &DisplayItem::PushStackingContextClass(ref item) =>
+                &DisplayItem::PushStackingContext(ref item) =>
                     item.stacking_context.id == stacking_context_id,
                 _ => false,
             }).unwrap_or(start);
@@ -483,7 +483,7 @@ impl<'a> DisplayListTraversal<'a> {
         self.next_item_index = self.display_list.list[self.next_item_index..].iter()
                                                                              .position(|item| {
             match item {
-                &DisplayItem::PopStackingContextClass(ref item) => item.stacking_context_id == id,
+                &DisplayItem::PopStackingContext(ref item) => item.stacking_context_id == id,
                 _ => false
             }
         }).unwrap_or(self.display_list.list.len());
@@ -511,8 +511,8 @@ impl<'a> Iterator for DisplayListTraversal<'a> {
             // is to ensure that we properly position items when we are processing a display list
             // slice that is relative to a certain stacking context.
             match item {
-                &DisplayItem::PushStackingContextClass(_) |
-                &DisplayItem::PopStackingContextClass(_) => return Some(item),
+                &DisplayItem::PushStackingContext(_) |
+                &DisplayItem::PopStackingContext(_) => return Some(item),
                 _ => {}
             }
         }
@@ -758,18 +758,18 @@ impl fmt::Debug for StackingContext {
 /// One drawing command in the list.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
 pub enum DisplayItem {
-    SolidColorClass(Box<SolidColorDisplayItem>),
-    TextClass(Box<TextDisplayItem>),
-    ImageClass(Box<ImageDisplayItem>),
-    WebGLClass(Box<WebGLDisplayItem>),
-    BorderClass(Box<BorderDisplayItem>),
-    GradientClass(Box<GradientDisplayItem>),
-    LineClass(Box<LineDisplayItem>),
-    BoxShadowClass(Box<BoxShadowDisplayItem>),
-    LayeredItemClass(Box<LayeredItem>),
-    IframeClass(Box<IframeDisplayItem>),
-    PushStackingContextClass(Box<PushStackingContextItem>),
-    PopStackingContextClass(Box<PopStackingContextItem>),
+    SolidColor(Box<SolidColorDisplayItem>),
+    Text(Box<TextDisplayItem>),
+    Image(Box<ImageDisplayItem>),
+    WebGL(Box<WebGLDisplayItem>),
+    Border(Box<BorderDisplayItem>),
+    Gradient(Box<GradientDisplayItem>),
+    Line(Box<LineDisplayItem>),
+    BoxShadow(Box<BoxShadowDisplayItem>),
+    LayeredItem(Box<LayeredItem>),
+    Iframe(Box<IframeDisplayItem>),
+    PushStackingContext(Box<PushStackingContextItem>),
+    PopStackingContext(Box<PopStackingContextItem>),
 }
 
 /// Information common to all display items.
@@ -1303,18 +1303,18 @@ impl DisplayItem {
         }
 
         match *self {
-            DisplayItem::SolidColorClass(ref solid_color) => {
+            DisplayItem::SolidColor(ref solid_color) => {
                 if !solid_color.color.a.approx_eq(&0.0) {
                     paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
                 }
             }
 
-            DisplayItem::TextClass(ref text) => {
+            DisplayItem::Text(ref text) => {
                 debug!("Drawing text at {:?}.", text.base.bounds);
                 paint_context.draw_text(&**text);
             }
 
-            DisplayItem::ImageClass(ref image_item) => {
+            DisplayItem::Image(ref image_item) => {
                 debug!("Drawing image at {:?}.", image_item.base.bounds);
                 paint_context.draw_image(
                     &image_item.base.bounds,
@@ -1327,11 +1327,11 @@ impl DisplayItem {
                     image_item.image_rendering.clone());
             }
 
-            DisplayItem::WebGLClass(_) => {
+            DisplayItem::WebGL(_) => {
                 panic!("Shouldn't be here, WebGL display items are created just with webrender");
             }
 
-            DisplayItem::BorderClass(ref border) => {
+            DisplayItem::Border(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
                                           &border.border_widths,
                                           &border.radius,
@@ -1339,18 +1339,18 @@ impl DisplayItem {
                                           &border.style)
             }
 
-            DisplayItem::GradientClass(ref gradient) => {
+            DisplayItem::Gradient(ref gradient) => {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
                                                    &gradient.start_point,
                                                    &gradient.end_point,
                                                    &gradient.stops);
             }
 
-            DisplayItem::LineClass(ref line) => {
+            DisplayItem::Line(ref line) => {
                 paint_context.draw_line(&line.base.bounds, line.color, line.style)
             }
 
-            DisplayItem::BoxShadowClass(ref box_shadow) => {
+            DisplayItem::BoxShadow(ref box_shadow) => {
                 paint_context.draw_box_shadow(&box_shadow.box_bounds,
                                               &box_shadow.offset,
                                               box_shadow.color,
@@ -1359,13 +1359,13 @@ impl DisplayItem {
                                               box_shadow.clip_mode);
             }
 
-            DisplayItem::LayeredItemClass(ref item) => item.item.draw_into_context(paint_context),
+            DisplayItem::LayeredItem(ref item) => item.item.draw_into_context(paint_context),
 
-            DisplayItem::IframeClass(..) => {}
+            DisplayItem::Iframe(..) => {}
 
-            DisplayItem::PushStackingContextClass(..) => {}
+            DisplayItem::PushStackingContext(..) => {}
 
-            DisplayItem::PopStackingContextClass(..) => {}
+            DisplayItem::PopStackingContext(..) => {}
         }
     }
 
@@ -1384,18 +1384,18 @@ impl DisplayItem {
 
     pub fn base(&self) -> &BaseDisplayItem {
         match *self {
-            DisplayItem::SolidColorClass(ref solid_color) => &solid_color.base,
-            DisplayItem::TextClass(ref text) => &text.base,
-            DisplayItem::ImageClass(ref image_item) => &image_item.base,
-            DisplayItem::WebGLClass(ref webgl_item) => &webgl_item.base,
-            DisplayItem::BorderClass(ref border) => &border.base,
-            DisplayItem::GradientClass(ref gradient) => &gradient.base,
-            DisplayItem::LineClass(ref line) => &line.base,
-            DisplayItem::BoxShadowClass(ref box_shadow) => &box_shadow.base,
-            DisplayItem::LayeredItemClass(ref layered_item) => layered_item.item.base(),
-            DisplayItem::IframeClass(ref iframe) => &iframe.base,
-            DisplayItem::PushStackingContextClass(ref stacking_context) => &stacking_context.base,
-            DisplayItem::PopStackingContextClass(ref item) => &item.base,
+            DisplayItem::SolidColor(ref solid_color) => &solid_color.base,
+            DisplayItem::Text(ref text) => &text.base,
+            DisplayItem::Image(ref image_item) => &image_item.base,
+            DisplayItem::WebGL(ref webgl_item) => &webgl_item.base,
+            DisplayItem::Border(ref border) => &border.base,
+            DisplayItem::Gradient(ref gradient) => &gradient.base,
+            DisplayItem::Line(ref line) => &line.base,
+            DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
+            DisplayItem::LayeredItem(ref layered_item) => layered_item.item.base(),
+            DisplayItem::Iframe(ref iframe) => &iframe.base,
+            DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
+            DisplayItem::PopStackingContext(ref item) => &item.base,
         }
     }
 
@@ -1438,7 +1438,7 @@ impl DisplayItem {
         }
 
         match *self {
-            DisplayItem::BorderClass(ref border) => {
+            DisplayItem::Border(ref border) => {
                 // If the point is inside the border, it didn't hit the border!
                 let interior_rect =
                     Rect::new(
@@ -1456,7 +1456,7 @@ impl DisplayItem {
                     return None;
                 }
             }
-            DisplayItem::BoxShadowClass(_) => {
+            DisplayItem::BoxShadow(_) => {
                 // Box shadows can never be hit.
                 return None;
             }
@@ -1469,34 +1469,34 @@ impl DisplayItem {
 
 impl fmt::Debug for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let DisplayItem::PushStackingContextClass(ref item) = *self {
+        if let DisplayItem::PushStackingContext(ref item) = *self {
             return write!(f, "PushStackingContext({:?})", item.stacking_context);
         }
 
-        if let DisplayItem::PopStackingContextClass(ref item) = *self {
+        if let DisplayItem::PopStackingContext(ref item) = *self {
             return write!(f, "PopStackingContext({:?}", item.stacking_context_id);
         }
 
         write!(f, "{} @ {:?} {:?}",
             match *self {
-                DisplayItem::SolidColorClass(ref solid_color) =>
+                DisplayItem::SolidColor(ref solid_color) =>
                     format!("SolidColor rgba({}, {}, {}, {})",
                             solid_color.color.r,
                             solid_color.color.g,
                             solid_color.color.b,
                             solid_color.color.a),
-                DisplayItem::TextClass(_) => "Text".to_owned(),
-                DisplayItem::ImageClass(_) => "Image".to_owned(),
-                DisplayItem::WebGLClass(_) => "WebGL".to_owned(),
-                DisplayItem::BorderClass(_) => "Border".to_owned(),
-                DisplayItem::GradientClass(_) => "Gradient".to_owned(),
-                DisplayItem::LineClass(_) => "Line".to_owned(),
-                DisplayItem::BoxShadowClass(_) => "BoxShadow".to_owned(),
-                DisplayItem::LayeredItemClass(ref layered_item) =>
+                DisplayItem::Text(_) => "Text".to_owned(),
+                DisplayItem::Image(_) => "Image".to_owned(),
+                DisplayItem::WebGL(_) => "WebGL".to_owned(),
+                DisplayItem::Border(_) => "Border".to_owned(),
+                DisplayItem::Gradient(_) => "Gradient".to_owned(),
+                DisplayItem::Line(_) => "Line".to_owned(),
+                DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
+                DisplayItem::LayeredItem(ref layered_item) =>
                     format!("LayeredItem({:?})", layered_item.item),
-                DisplayItem::IframeClass(_) => "Iframe".to_owned(),
-                DisplayItem::PushStackingContextClass(_) => "".to_owned(),
-                DisplayItem::PopStackingContextClass(_) => "".to_owned(),
+                DisplayItem::Iframe(_) => "Iframe".to_owned(),
+                DisplayItem::PushStackingContext(_) => "".to_owned(),
+                DisplayItem::PopStackingContext(_) => "".to_owned(),
             },
             self.bounds(),
             self.base().clip
