@@ -354,13 +354,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_enumerated_getter!(Type,
                             "type",
                             "text",
-                            ("hidden") | ("search") | ("tel") |
-                            ("url") | ("email") | ("password") |
-                            ("datetime") | ("date") | ("month") |
-                            ("week") | ("time") | ("datetime-local") |
-                            ("number") | ("range") | ("color") |
-                            ("checkbox") | ("radio") | ("file") |
-                            ("submit") | ("image") | ("reset") | ("button"));
+                            "hidden" | "search" | "tel" |
+                            "url" | "email" | "password" |
+                            "datetime" | "date" | "month" |
+                            "week" | "time" | "datetime-local" |
+                            "number" | "range" | "color" |
+                            "checkbox" | "radio" | "file" |
+                            "submit" | "image" | "reset" | "button");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_atomic_setter!(SetType, "type");
@@ -453,13 +453,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_enumerated_getter!(FormEnctype,
                             "formenctype",
                             "application/x-www-form-urlencoded",
-                            ("text/plain") | ("multipart/form-data"));
+                            "text/plain" | "multipart/form-data");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
-    make_enumerated_getter!(FormMethod, "formmethod", "get", ("post") | ("dialog"));
+    make_enumerated_getter!(FormMethod, "formmethod", "get", "post" | "dialog");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod");

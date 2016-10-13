@@ -104,7 +104,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "autocomplete", "on", ("off"));
+    make_enumerated_getter!(Autocomplete, "autocomplete", "on", "off");
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
     make_setter!(SetAutocomplete, "autocomplete");
@@ -113,7 +113,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_enumerated_getter!(Enctype,
                             "enctype",
                             "application/x-www-form-urlencoded",
-                            ("text/plain") | ("multipart/form-data"));
+                            "text/plain" | "multipart/form-data");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
     make_setter!(SetEnctype, "enctype");
@@ -129,7 +129,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_enumerated_getter!(Method, "method", "get", ("post") | ("dialog"));
+    make_enumerated_getter!(Method, "method", "get", "post" | "dialog");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
     make_setter!(SetMethod, "method");

@@ -297,7 +297,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
+    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", "use-credentials");
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_setter!(SetCrossOrigin, "crossorigin");
 
