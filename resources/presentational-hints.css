@@ -37,18 +37,18 @@ table[align=center i] { margin-left: auto; margin-right: auto; }
 }
 
 caption[align=bottom i] { caption-side: bottom; }
-:matches(p, h1, h2, h3, h4, h5, h6)[align=left i] { text-align: left; }
-:matches(p, h1, h2, h3, h4, h5, h6)[align=right i] { text-align: right; }
-:matches(p, h1, h2, h3, h4, h5, h6)[align=center i] { text-align: center; }
-:matches(p, h1, h2, h3, h4, h5, h6)[align=justify i] { text-align: justify; }
-:matches(thead, tbody, tfoot, tr, td, th)[valign=top i] { vertical-align: top; }
-:matches(thead, tbody, tfoot, tr, td, th)[valign=middle i] { vertical-align: middle; }
-:matches(thead, tbody, tfoot, tr, td, th)[valign=bottom i] { vertical-align: bottom; }
-:matches(thead, tbody, tfoot, tr, td, th)[valign=baseline i] { vertical-align: baseline; }
+p[align=left i], h1[align=left i], h2[align=left i], h3[align=left i], h4[align=left i], h5[align=left i], h6[align=left i] { text-align: left; }
+p[align=right i], h1[align=right i], h2[align=right i], h3[align=right i], h4[align=right i], h5[align=right i], h6[align=right i] { text-align: right; }
+p[align=center i], h1[align=center i], h2[align=center i], h3[align=center i], h4[align=center i], h5[align=center i], h6[align=center i] { text-align: center; }
+p[align=justify i], h1[align=justify i], h2[align=justify i], h3[align=justify i], h4[align=justify i], h5[align=justify i], h6[align=justify i] { text-align: justify; }
+thead[valign=top i], tbody[valign=top i], tfoot[valign=top i], tr[valign=top i], td[valign=top i], th[valign=top i] { vertical-align: top; }
+thead[valign=middle i], tbody[valign=middle i], tfoot[valign=middle i], tr[valign=middle i], td[valign=middle i], th[valign=middle i] { vertical-align: middle; }
+thead[valign=bottom i], tbody[valign=bottom i], tfoot[valign=bottom i], tr[valign=bottom i], td[valign=bottom i], th[valign=bottom i] { vertical-align: bottom; }
+thead[valign=baseline i], tbody[valign=baseline i], tfoot[valign=baseline i], tr[valign=baseline i], td[valign=baseline i], th[valign=baseline i] { vertical-align: baseline; }
 
 td[nowrap], th[nowrap] { white-space: nowrap; }
 
-table:matches([rules=none i], [rules=groups i], [rules=rows i], [rules=cols i], [rules=all i]) {
+table[rules=none i], table[rules=groups i], table[rules=rows i], table[rules=cols i], table[rules=all i] {
   border-style: hidden;
   border-collapse: collapse;
 }
@@ -78,18 +78,24 @@ table:-servo-nonzero-border > tfoot > tr > th {
   border-style: inset;
 }
 
-table:matches([rules=none i], [rules=groups i], [rules=rows i]) > tr > :matches(td, th),
-table:matches([rules=none i], [rules=groups i], [rules=rows i]) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+table[rules=none i] > tr > td, table[rules=groups i] > tr > td, table[rules=rows i] > tr > td, table[rules=none i] > tr > th, table[rules=groups i] > tr > th, table[rules=rows i] > tr > th,
+table[rules=none i] > thead > tr > td, table[rules=groups i] > thead > tr > td, table[rules=rows i] > thead > tr > td, table[rules=none i] > thead > tr > th, table[rules=groups i] > thead > tr > th, table[rules=rows i] > thead > tr > th,
+table[rules=none i] > tbody > tr > td, table[rules=groups i] > tbody > tr > td, table[rules=rows i] > tbody > tr > td, table[rules=none i] > tbody > tr > th, table[rules=groups i] > tbody > tr > th, table[rules=rows i] > tbody > tr > th,
+table[rules=none i] > tfoot > tr > td, table[rules=groups i] > tfoot > tr > td, table[rules=rows i] > tfoot > tr > td, table[rules=none i] > tfoot > tr > th, table[rules=groups i] > tfoot > tr > th, table[rules=rows i] > tfoot > tr > th {
   border-width: 1px;
   border-style: none;
 }
-table[rules=cols i] > tr > :matches(td, th),
-table[rules=cols i] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+table[rules=cols i] > tr > td, table[rules=cols i] > tr > th,
+table[rules=cols i] > thead > tr > td, table[rules=cols i] > thead > tr > th,
+table[rules=cols i] > tbody > tr > td, table[rules=cols i] > tbody > tr > th,
+table[rules=cols i] > tfoot > tr > td, table[rules=cols i] > tfoot > tr > th {
   border-width: 1px;
   border-style: none solid;
 }
-table[rules=all i] > tr > :matches(td, th),
-table[rules=all i] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+table[rules=all i] > tr > td, table[rules=all i] > tr > th,
+table[rules=all i] > thead > tr > td, table[rules=all i] > thead > tr > th,
+table[rules=all i] > tbody > tr > td, table[rules=all i] > tbody > tr > th,
+table[rules=all i] > tfoot > tr > td, table[rules=all i] > tfoot > tr > th {
   border-width: 1px;
   border-style: solid;
 }
@@ -100,14 +106,19 @@ table[rules=groups i] > colgroup {
   border-right-width: 1px;
   border-right-style: solid;
 }
-table[rules=groups i] > :matches(thead, tbody, tfoot) {
+table[rules=groups i] > tr,
+table[rules=groups i] > thead > tr,
+table[rules=groups i] > tbody > tr,
+table[rules=groups i] > tfoot > tr {
   border-top-width: 1px;
   border-top-style: solid;
   border-bottom-width: 1px;
   border-bottom-style: solid;
 }
 table[rules=rows i] > tr,
-table[rules=rows i] > :matches(thead, tbody, tfoot) > tr {
+table[rules=rows i] > thead > tr,
+table[rules=rows i] > tbody > tr,
+table[rules=rows i] > tfoot > tr {
   border-top-width: 1px;
   border-top-style: solid;
   border-bottom-width: 1px;
@@ -124,25 +135,26 @@ hr[color], hr[noshade] { border-style: solid; }
 
 iframe[frameborder=0], iframe[frameborder=no i] { border: none; }
 
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=left i] {
+applet[align=left i], embed[align=left i], iframe[align=left i], img[type=image i][align=left i], object[align=left i] {
   float: left;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=right i] {
+applet[align=right i], embed[align=right i], iframe[align=right i], img[type=image i][align=right i], object[align=right i] {
   float: right;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=top i] {
+applet[align=top i], embed[align=top i], iframe[align=top i], img[type=image i][align=top i], object[align=top i] {
   vertical-align: top;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=baseline i] {
+applet[align=baseline i], embed[align=baseline i], iframe[align=baseline i], img[type=image i][align=baseline i], object[align=baseline i] {
   vertical-align: baseline;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=texttop i] {
+applet[align=texttop i], embed[align=texttop i], iframe[align=texttop i], img[type=image i][align=texttop i], object[align=texttop i] {
   vertical-align: text-top;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object):matches([align=absmiddle i], [align=abscenter i]) {
+applet[align=absmiddle i], embed[align=absmiddle i], iframe[align=absmiddle i], img[type=image i][align=absmiddle i], object[align=absmiddle i],
+applet[align=abscenter i], embed[align=abscenter i], iframe[align=abscenter i], img[type=image i][align=abscenter i], object[align=abscenter i] {
   vertical-align: middle;
 }
-:matches(applet, embed, iframe, img, input[type=image i], object)[align=bottom i] {
+applet[align=bottom i], embed[align=bottom i], iframe[align=bottom i], img[type=image i][align=bottom i], object[align=bottom i] {
   vertical-align: bottom;
 }
 /*
