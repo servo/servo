@@ -190,6 +190,7 @@ pub struct AutoMargins {
 }
 
 /// Messages to process in a particular script thread, as instructed by a devtools client.
+/// TODO: better error handling, e.g. if pipeline id lookup fails?
 #[derive(Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.
@@ -209,7 +210,7 @@ pub enum DevtoolScriptControlMsg {
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
-    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<TimelineMarker>),
+    SetTimelineMarkers(PipelineId, Vec<TimelineMarkerType>, IpcSender<Option<TimelineMarker>>),
     /// Withdraw request for live timeline notifications for a given pipeline.
     DropTimelineMarkers(PipelineId, Vec<TimelineMarkerType>),
     /// Request a callback directed at the given actor name from the next animation frame

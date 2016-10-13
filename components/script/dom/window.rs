@@ -172,7 +172,7 @@ pub struct Window {
     /// no devtools server
     devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
-    devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
+    devtools_marker_sender: DOMRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
@@ -1435,12 +1435,12 @@ impl Window {
     pub fn emit_timeline_marker(&self, marker: TimelineMarker) {
         let sender = self.devtools_marker_sender.borrow();
         let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(marker).unwrap();
+        sender.send(Some(marker)).unwrap();
     }
 
     pub fn set_devtools_timeline_markers(&self,
                                          markers: Vec<TimelineMarkerType>,
-                                         reply: IpcSender<TimelineMarker>) {
+                                         reply: IpcSender<Option<TimelineMarker>>) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().extend(markers.into_iter());
     }

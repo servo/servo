@@ -250,16 +250,21 @@ pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications:
 }
 
 pub fn handle_set_timeline_markers(context: &BrowsingContext,
+                                   pipeline: PipelineId,
                                    marker_types: Vec<TimelineMarkerType>,
-                                   reply: IpcSender<TimelineMarker>) {
-    let window = context.active_window();
-    window.set_devtools_timeline_markers(marker_types, reply);
+                                   reply: IpcSender<Option<TimelineMarker>>) {
+    match context.find(pipeline) {
+        None => reply.send(None).unwrap(),
+        Some(context) => context.active_window().set_devtools_timeline_markers(marker_types, reply),
+    }
 }
 
 pub fn handle_drop_timeline_markers(context: &BrowsingContext,
+                                    pipeline: PipelineId,
                                     marker_types: Vec<TimelineMarkerType>) {
-    let window = context.active_window();
-    window.drop_devtools_timeline_markers(marker_types);
+    if let Some(context) = context.find(pipeline) {
+        context.active_window().drop_devtools_timeline_markers(marker_types);
+    }
 }
 
 pub fn handle_request_animation_frame(context: &BrowsingContext,
