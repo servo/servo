@@ -5,6 +5,7 @@
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use filemanager_thread::{TestProvider, TEST_PROVIDER};
 use http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
@@ -22,6 +23,7 @@ use hyper::uri::RequestUri;
 use msg::constellation_msg::{ReferrerPolicy, TEST_PIPELINE_ID};
 use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
+use net::filemanager_thread::FileManager;
 use net::http_loader::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
@@ -46,11 +48,12 @@ struct FetchResponseCollector {
     sender: Sender<Response>,
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext<TestProvider> {
     FetchContext {
         state: HttpState::new(),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
+        filemanager: FileManager::new(TEST_PROVIDER),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

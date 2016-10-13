@@ -10,9 +10,9 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-const TEST_PROVIDER: &'static TestProvider = &TestProvider;
+pub const TEST_PROVIDER: &'static TestProvider = &TestProvider;
 
-struct TestProvider;
+pub struct TestProvider;
 
 impl UIProvider for TestProvider {
     fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
