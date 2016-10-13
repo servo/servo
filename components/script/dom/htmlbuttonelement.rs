@@ -83,7 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_enumerated_getter!(Type, "type", "submit", ("reset") | ("button") | ("menu"));
+    make_enumerated_getter!(Type, "type", "submit", "reset" | "button" | "menu");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
@@ -98,13 +98,13 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     make_enumerated_getter!(FormEnctype,
                             "formenctype",
                             "application/x-www-form-urlencoded",
-                            ("text/plain") | ("multipart/form-data"));
+                            "text/plain" | "multipart/form-data");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_enumerated_getter!(FormMethod, "formmethod", "get", ("post") | ("dialog"));
+    make_enumerated_getter!(FormMethod, "formmethod", "get", "post" | "dialog");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_setter!(SetFormMethod, "formmethod");

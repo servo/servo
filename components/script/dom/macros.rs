@@ -145,7 +145,7 @@ macro_rules! make_string_or_document_url_getter(
 
 #[macro_export]
 macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:tt, $default:expr, $(($choices: pat))|+) => (
+    ( $attr:ident, $htmlname:tt, $default:expr, $($choices: pat)|+) => (
         fn $attr(&self) -> DOMString {
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
