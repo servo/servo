@@ -449,7 +449,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # These are currently being shuffled to a different style struct on the gecko side.
     force_stub += ["backface-visibility", "transform-box", "transform-style"]
     # These live in an nsFont member in Gecko. Should be straightforward to do manually.
-    force_stub += ["font-kerning", "font-variant"]
+    force_stub += ["font-variant"]
     # These have unusual representations in gecko.
     force_stub += ["list-style-type"]
     # In a nsTArray, have to be done manually, but probably not too much work
@@ -739,7 +739,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-stretch font-style font-size font-weight"
+    skip_longhands="font-family font-kerning font-stretch font-style font-size font-weight"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -789,6 +789,11 @@ fn static_assert() {
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
     }
+
+    <% kerning_keyword = Keyword("font-kerning", "auto normal none",
+                                 gecko_constant_prefix='NS_FONT_KERNING') %>
+
+    ${impl_keyword('font_kerning', 'mFont.kerning', kerning_keyword, need_clone=False)}
 
     <% stretch_keyword = Keyword("font-stretch",
                                  "normal ultra-condensed extra-condensed condensed " +
