@@ -13,6 +13,7 @@ doctest = false
 app_units = "0.3"
 cssparser = {version = "0.7", features = ["heap_size"]}
 euclid = "0.10.1"
+owning_ref = "0.2.2"
 parking_lot = "0.3"
 rustc-serialize = "0.3"
 selectors = "0.13"
