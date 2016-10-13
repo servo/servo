@@ -160,24 +160,16 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 })
             }
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
-                spawn_named("add sliced URL entry".to_owned(), move || {
-                    store.add_sliced_url_entry(id, rel_pos, sender, origin);
-                })
+                store.add_sliced_url_entry(id, rel_pos, sender, origin);
             }
             FileManagerThreadMsg::DecRef(id, origin, sender) => {
-                spawn_named("dec ref".to_owned(), move || {
-                    let _ = sender.send(store.dec_ref(&id, &origin));
-                })
+                let _ = sender.send(store.dec_ref(&id, &origin));
             }
             FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
-                spawn_named("revoke blob url".to_owned(), move || {
-                    let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
-                })
+                let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
             }
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
-                spawn_named("activate blob url".to_owned(), move || {
-                    let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
-                });
+                let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
             }
         }
     }
