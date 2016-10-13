@@ -8,9 +8,7 @@
 use dom::bindings::js::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, CoreResourceMsg, load_async};
-use net_traits::{FetchResponseMsg, LoadContext, ResourceThreads, IpcSend};
+use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
 use std::thread;
 use url::Url;
@@ -36,20 +34,10 @@ impl LoadType {
             LoadType::PageSource(ref url) => url,
         }
     }
-
-    fn to_load_context(&self) -> LoadContext {
-        match *self {
-            LoadType::Image(_) => LoadContext::Image,
-            LoadType::Script(_) => LoadContext::Script,
-            LoadType::Subframe(_) | LoadType::PageSource(_) => LoadContext::Browsing,
-            LoadType::Stylesheet(_) => LoadContext::Style,
-            LoadType::Media(_) => LoadContext::AudioVideo,
-        }
-    }
 }
 
 /// Canary value ensuring that manually added blocking loads (ie. ones that weren't
-/// created via DocumentLoader::{load_async, fetch_async}) are always removed by the time
+/// created via DocumentLoader::fetch_async) are always removed by the time
 /// that the owner is destroyed.
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
@@ -95,24 +83,21 @@ impl Drop for LoadBlocker {
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
     resource_threads: ResourceThreads,
-    pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
 }
 
 impl DocumentLoader {
     pub fn new(existing: &DocumentLoader) -> DocumentLoader {
-        DocumentLoader::new_with_threads(existing.resource_threads.clone(), None, None)
+        DocumentLoader::new_with_threads(existing.resource_threads.clone(), None)
     }
 
     pub fn new_with_threads(resource_threads: ResourceThreads,
-                            pipeline: Option<PipelineId>,
                             initial_load: Option<Url>) -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
             resource_threads: resource_threads,
-            pipeline: pipeline,
             blocking_loads: initial_loads,
             events_inhibited: false,
         }
@@ -121,24 +106,6 @@ impl DocumentLoader {
     /// Add a load to the list of blocking loads.
     fn add_blocking_load(&mut self, load: LoadType) {
         self.blocking_loads.push(load);
-    }
-
-    /// Create and initiate a new network request.
-    pub fn load_async(&mut self,
-                      load: LoadType,
-                      listener: AsyncResponseTarget,
-                      referrer: &Document,
-                      referrer_policy: Option<ReferrerPolicy>) {
-        let context = load.to_load_context();
-        let url = load.url().clone();
-        self.add_blocking_load(load);
-        load_async(context,
-                   self.resource_threads.sender(),
-                   url,
-                   self.pipeline,
-                   referrer_policy.or(referrer.get_referrer_policy()),
-                   Some(referrer.url().clone()),
-                   listener);
     }
 
     /// Initiate a new fetch.
