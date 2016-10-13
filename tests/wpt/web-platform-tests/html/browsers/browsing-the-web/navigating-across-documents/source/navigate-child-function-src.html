@@ -6,12 +6,13 @@
 <div id=log></div>
 <iframe src="support/set-parent-src.html"></iframe>
 <script>
-  onload = function() {
+async_test(function() {
+  onload = this.step_func(function() {
     var fr = document.querySelector("iframe")
     fr.contentWindow.go()
-    fr.onload = function() {
+    fr.onload = this.step_func_done(function() {
       assert_equals(fr.contentDocument.referrer, document.URL)
-      done()
-    }
-  }
+    })
+  })
+})
 </script>
