@@ -148,7 +148,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                 spawn_named("read file".to_owned(), move || {
-                    if let Err(e) = store.try_read_file(sender.clone(), id, check_url_validity,
+                    if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
                                                         origin, cancel_listener) {
                         let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
                     }
@@ -374,7 +374,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         })
     }
 
-    fn get_blob_buf(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+    fn get_blob_buf(&self, sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                     id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
                     check_url_validity: bool,
                     cancel_listener: Option<CancellationListener>) -> Result<(), BlobURLStoreError> {
@@ -437,7 +437,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
     }
 
     // Convenient wrapper over get_blob_buf
-    fn try_read_file(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+    fn try_read_file(&self, sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                      id: Uuid, check_url_validity: bool, origin_in: FileOrigin,
                      cancel_listener: Option<CancellationListener>) -> Result<(), BlobURLStoreError> {
         self.get_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity, cancel_listener)
@@ -550,7 +550,7 @@ fn select_files_pref_enabled() -> bool {
 
 const CHUNK_SIZE: usize = 8192;
 
-fn chunked_read(sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+fn chunked_read(sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                 file: &mut File, size: usize, opt_filename: Option<String>,
                 type_string: String, cancel_listener: Option<CancellationListener>) {
     // First chunk
