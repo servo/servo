@@ -15,7 +15,7 @@ matrix:
          - ./mach test-compiletest
          - ./mach test-unit
          - ./mach build-geckolib
-         - ./mach test-geckolib
+         - ./mach test-stylo
          - bash etc/ci/check_no_unwrap.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
