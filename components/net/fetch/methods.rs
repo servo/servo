@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use blob_loader::load_blob_sync;
 use connector::create_http_connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
@@ -464,7 +465,29 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
             }
         },
 
-        "blob" | "ftp" => {
+        "blob" => {
+            println!("Loading blob {}", url.as_str());
+            // Step 2.
+            if *request.method.borrow() != Method::Get {
+                return Response::network_error();
+            }
+
+            match load_blob_sync(url.clone(), context.filemanager.clone()) {
+                Ok((headers, bytes)) => {
+                    let mut response = Response::new();
+                    response.url = Some(url.clone());
+                    response.headers = headers;
+                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                    response
+                },
+                Err(e) => {
+                    debug!("Failed to load {}: {:?}", url, e);
+                    Response::network_error()
+                },
+            }
+        },
+
+        "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
