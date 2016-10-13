@@ -23,7 +23,7 @@ use util::thread::spawn_named;
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
 
-pub fn factory<UI: 'static + UIProvider>(filemanager: Arc<FileManager<UI>>)
+pub fn factory<UI: 'static + UIProvider>(filemanager: FileManager<UI>)
               -> Box<FnBox(LoadData, LoadConsumer, Arc<MimeClassifier>, CancellationListener) + Send> {
     box move |load_data: LoadData, start_chan, classifier, cancel_listener| {
         spawn_named(format!("blob loader for {}", load_data.url), move || {
@@ -35,7 +35,7 @@ pub fn factory<UI: 'static + UIProvider>(filemanager: Arc<FileManager<UI>>)
 fn load_blob<UI: 'static + UIProvider>
             (load_data: LoadData, start_chan: LoadConsumer,
              classifier: Arc<MimeClassifier>,
-             filemanager: Arc<FileManager<UI>>,
+             filemanager: FileManager<UI>,
              cancel_listener: CancellationListener) {
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {

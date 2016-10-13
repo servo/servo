@@ -475,7 +475,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
-    filemanager: Arc<FileManager<TFDProvider>>,
+    filemanager: FileManager<TFDProvider>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -490,7 +490,7 @@ impl CoreResourceManager {
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             profiler_chan: profiler_chan,
-            filemanager: Arc::new(FileManager::new(TFD_PROVIDER)),
+            filemanager: FileManager::new(TFD_PROVIDER),
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }

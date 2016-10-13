@@ -116,6 +116,15 @@ pub struct FileManager<UI: 'static + UIProvider> {
     store: Arc<FileManagerStore<UI>>,
 }
 
+// Not derived to avoid an unnecessary `UI: Clone` bound.
+impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
+    fn clone(&self) -> Self {
+        FileManager {
+            store: self.store.clone(),
+        }
+    }
+}
+
 impl<UI: 'static + UIProvider> FileManager<UI> {
     pub fn new(ui: &'static UI) -> FileManager<UI> {
         FileManager {
