@@ -4,11 +4,12 @@
 
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
+use dom::bindings::js::RootedReference;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
@@ -125,7 +126,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  scope.clone(),
                                                                  self);
                                                                  
-        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
+        ScriptThread::set_registration(scope, &*worker_registration, self.global().pipeline_id());
 
         promise.resolve_native(ctx, &*worker_registration);
         promise
