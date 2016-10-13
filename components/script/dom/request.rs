@@ -420,7 +420,7 @@ impl Request {
         r
     }
 
-    fn clone_from(r: &Request) -> Root<Request> {
+    fn clone_from(r: &Request) -> Fallible<Root<Request>> {
         let req = r.request.borrow();
         let url = req.url();
         let is_service_worker_global_scope = req.is_service_worker_global_scope;
@@ -436,8 +436,9 @@ impl Request {
         *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
+        try!(r_clone.Headers().fill(Some(HeadersInit::Headers(r.Headers()))));
         r_clone.Headers().set_guard(headers_guard);
-        r_clone
+        Ok(r_clone)
     }
 
     pub fn get_request(&self) -> NetTraitsRequest {
@@ -613,7 +614,7 @@ impl RequestMethods for Request {
         }
 
         // Step 2
-        Ok(Request::clone_from(self))
+        Request::clone_from(self)
     }
 
     #[allow(unrooted_must_root)]
