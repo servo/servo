@@ -168,6 +168,48 @@ fn test_fetch_data() {
 }
 
 #[test]
+fn test_fetch_blob() {
+    use ipc_channel::ipc;
+    use net_traits::blob_url_store::BlobBuf;
+    use net_traits::filemanager_thread::FileManagerThreadMsg;
+
+    let context = new_fetch_context(None);
+
+    let bytes = b"content";
+    let blob_buf = BlobBuf {
+        filename: Some("test.txt".into()),
+        type_string: "text/plain".into(),
+        size: bytes.len() as u64,
+        bytes: bytes.to_vec(),
+    };
+
+    let origin = Url::parse("http://www.example.org/").unwrap();
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    let message = FileManagerThreadMsg::PromoteMemory(blob_buf, true, sender, "http://www.example.org".into());
+    context.filemanager.handle(message, None);
+    let id = receiver.recv().unwrap().unwrap();
+    let url = Url::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
+
+
+    let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
+    let fetch_response = fetch(Rc::new(request), &mut None, context);
+
+    assert!(!fetch_response.is_network_error());
+
+    assert_eq!(fetch_response.headers.len(), 2);
+
+    let content_type: &ContentType = fetch_response.headers.get().unwrap();
+    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Plain, vec![]));
+
+    let content_length: &ContentLength = fetch_response.headers.get().unwrap();
+    assert_eq!(**content_length, bytes.len() as u64);
+
+    assert_eq!(*fetch_response.body.lock().unwrap(),
+               ResponseBody::Done(bytes.to_vec()));
+}
+
+#[test]
 fn test_fetch_file() {
     let mut path = resources_dir_path().expect("Cannot find resource dir");
     path.push("servo.css");
