@@ -31,13 +31,13 @@ use style::gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclar
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsHTMLCSSStyleSheet, ServoComputedValuesBorrowedOrNull};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
-use style::gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
 use style::gecko_bindings::structs::nsString;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
+use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{ComputedValues, Importance, PropertyDeclaration};
@@ -186,11 +186,11 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(bytes: *const u8,
 
     let base_str = unsafe { from_utf8_unchecked(slice::from_raw_parts(base_bytes, base_length as usize)) };
     let url = Url::parse(base_str).unwrap();
-    let extra_data = ParserContextExtraData {
+    let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
         referrer: Some(GeckoArcURI::new(referrer)),
         principal: Some(GeckoArcPrincipal::new(principal)),
-    };
+    }};
     let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter),
                                               extra_data));
     unsafe {
@@ -390,11 +390,11 @@ pub extern "C" fn Servo_ParseProperty(property_bytes: *const u8,
     let base_str = unsafe { from_utf8_unchecked(slice::from_raw_parts(base_bytes,
                                                                       base_length as usize)) };
     let base_url = Url::parse(base_str).unwrap();
-    let extra_data = ParserContextExtraData {
+    let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
         referrer: Some(GeckoArcURI::new(referrer)),
         principal: Some(GeckoArcPrincipal::new(principal)),
-    };
+    }};
 
     let context = ParserContext::new_with_extra_data(Origin::Author, &base_url,
                                                      Box::new(StdoutErrorReporter),

@@ -896,9 +896,9 @@ fn static_assert() {
                     Gecko_SetMozBinding(&mut self.gecko,
                                         url.as_str().as_ptr(),
                                         url.as_str().len() as u32,
-                                        extra_data.base.as_raw(),
-                                        extra_data.referrer.as_raw(),
-                                        extra_data.principal.as_raw());
+                                        extra_data.base.get(),
+                                        extra_data.referrer.get(),
+                                        extra_data.principal.get());
                 }
             }
         }

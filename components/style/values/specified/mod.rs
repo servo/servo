@@ -6,7 +6,7 @@ use app_units::Au;
 use cssparser::{self, Parser, ToCss, Token};
 use euclid::size::Size2D;
 #[cfg(feature = "gecko")]
-use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
+use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
