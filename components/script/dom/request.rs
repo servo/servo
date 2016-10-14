@@ -308,21 +308,26 @@ impl Request {
         // Step 27
         let mut headers_copy = r.Headers();
 
-        // This is equivalent to the specification's concept of
-        // "associated headers list".
-        if let RequestInfo::Request(ref input_request) = input {
-            headers_copy = input_request.Headers();
-        }
-
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
-            if let &HeadersInit::Headers(ref init_headers) = possible_header {
-                headers_copy = init_headers.clone();
+            match possible_header {
+                &HeadersInit::Headers(ref init_headers) => {
+                    headers_copy = init_headers.clone();
+                }
+                &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
+                    try!(headers_copy.fill(Some(
+                        HeadersInit::ByteStringSequenceSequence(init_sequence.clone()))));
+                },
+                &HeadersInit::ByteStringMozMap(ref init_map) => {
+                    try!(headers_copy.fill(Some(
+                        HeadersInit::ByteStringMozMap(init_map.clone()))));
+                },
             }
         }
 
         // Step 29
-        r.Headers().empty_header_list();
+        // When r.Headers()'s header list is emptied,
+        // r.Headers that was filled in Step 28 becomes empty.
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
@@ -341,7 +346,19 @@ impl Request {
         }
 
         // Step 31
-        try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
+        if let Some(HeadersInit::Headers(_)) = init.headers {
+            try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
+        };
+
+        // This is equivalent to the specification's concept of
+        // "associated headers list". If an init headers is not given,
+        // but an input with headers is given, set request's
+        // headers as the input's Headers.
+        if let None = init.headers {
+            if let RequestInfo::Request(ref input_request) = input {
+                try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
+            }
+        };
 
         // Step 32
         let mut input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -368,7 +385,6 @@ impl Request {
         }
 
         // Step 34
-        // TODO: `ReadableStream` object is not implemented in Servo yet.
         if let Some(Some(ref init_body)) = init.body {
             // Step 34.2
             let extracted_body_tmp = init_body.extract();
