@@ -96,8 +96,8 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: &RequestInit) -> Rc
     }));
     let listener = NetworkListener {
         context: fetch_context,
-        script_chan: global.networking_task_source(),
-        wrapper: None,
+        task_source: global.networking_task_source(),
+        wrapper: Some(global.get_runnable_wrapper())
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
