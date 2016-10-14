@@ -41,6 +41,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use task_source::file_reading::FileReadingTaskSource;
+use task_source::networking::NetworkingTaskSource;
 use timers::{IsInterval, TimerCallback};
 use url::Url;
 
@@ -359,6 +360,10 @@ impl WorkerGlobalScope {
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         FileReadingTaskSource(self.script_chan())
+    }
+
+    pub fn networking_task_source(&self) -> NetworkingTaskSource {
+        NetworkingTaskSource(self.script_chan())
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {

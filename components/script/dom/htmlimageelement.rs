@@ -26,8 +26,6 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
-use script_runtime::CommonScriptMsg;
-use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
 use std::i32;
 use std::sync::Arc;
@@ -140,7 +138,7 @@ impl HTMLImageElement {
 
                     let trusted_node = Trusted::new(self);
                     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-                    let script_chan = window.networking_task_source();
+                    let task_source = window.networking_task_source();
                     let wrapper = window.get_runnable_wrapper();
                     ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                         // Return the image via a message to the script thread, which marks the element
@@ -148,9 +146,7 @@ impl HTMLImageElement {
                         let image_response = message.to().unwrap();
                         let runnable = box ImageResponseHandlerRunnable::new(
                             trusted_node.clone(), image_response);
-                        let runnable = wrapper.wrap_runnable(runnable);
-                        let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
-                            UpdateReplacedElement, runnable));
+                        let _ = task_source.queue_with_wrapper(runnable, &wrapper);
                     });
 
                     image_cache.request_image_and_metadata(img_url,
