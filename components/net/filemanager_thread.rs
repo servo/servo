@@ -116,6 +116,15 @@ pub struct FileManager<UI: 'static + UIProvider> {
     store: Arc<FileManagerStore<UI>>,
 }
 
+// Not derived to avoid an unnecessary `UI: Clone` bound.
+impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
+    fn clone(&self) -> Self {
+        FileManager {
+            store: self.store.clone(),
+        }
+    }
+}
+
 impl<UI: 'static + UIProvider> FileManager<UI> {
     pub fn new(ui: &'static UI) -> FileManager<UI> {
         FileManager {
@@ -139,7 +148,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                 spawn_named("read file".to_owned(), move || {
-                    if let Err(e) = store.try_read_file(sender.clone(), id, check_url_validity,
+                    if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
                                                         origin, cancel_listener) {
                         let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
                     }
@@ -151,24 +160,16 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 })
             }
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
-                spawn_named("add sliced URL entry".to_owned(), move || {
-                    store.add_sliced_url_entry(id, rel_pos, sender, origin);
-                })
+                store.add_sliced_url_entry(id, rel_pos, sender, origin);
             }
             FileManagerThreadMsg::DecRef(id, origin, sender) => {
-                spawn_named("dec ref".to_owned(), move || {
-                    let _ = sender.send(store.dec_ref(&id, &origin));
-                })
+                let _ = sender.send(store.dec_ref(&id, &origin));
             }
             FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
-                spawn_named("revoke blob url".to_owned(), move || {
-                    let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
-                })
+                let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
             }
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
-                spawn_named("activate blob url".to_owned(), move || {
-                    let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
-                });
+                let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
             }
         }
     }
@@ -365,7 +366,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         })
     }
 
-    fn get_blob_buf(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+    fn get_blob_buf(&self, sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                     id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
                     check_url_validity: bool,
                     cancel_listener: Option<CancellationListener>) -> Result<(), BlobURLStoreError> {
@@ -428,7 +429,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
     }
 
     // Convenient wrapper over get_blob_buf
-    fn try_read_file(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+    fn try_read_file(&self, sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                      id: Uuid, check_url_validity: bool, origin_in: FileOrigin,
                      cancel_listener: Option<CancellationListener>) -> Result<(), BlobURLStoreError> {
         self.get_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity, cancel_listener)
@@ -541,7 +542,7 @@ fn select_files_pref_enabled() -> bool {
 
 const CHUNK_SIZE: usize = 8192;
 
-fn chunked_read(sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+fn chunked_read(sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
                 file: &mut File, size: usize, opt_filename: Option<String>,
                 type_string: String, cancel_listener: Option<CancellationListener>) {
     // First chunk

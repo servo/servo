@@ -5,6 +5,7 @@
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use filemanager_thread::{TestProvider, TEST_PROVIDER};
 use http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
@@ -22,6 +23,7 @@ use hyper::uri::RequestUri;
 use msg::constellation_msg::{ReferrerPolicy, TEST_PIPELINE_ID};
 use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
+use net::filemanager_thread::FileManager;
 use net::http_loader::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
@@ -46,11 +48,12 @@ struct FetchResponseCollector {
     sender: Sender<Response>,
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext<TestProvider> {
     FetchContext {
         state: HttpState::new(),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
+        filemanager: FileManager::new(TEST_PROVIDER),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
@@ -162,6 +165,48 @@ fn test_fetch_data() {
         },
         ResponseBody::Empty => panic!(),
     }
+}
+
+#[test]
+fn test_fetch_blob() {
+    use ipc_channel::ipc;
+    use net_traits::blob_url_store::BlobBuf;
+    use net_traits::filemanager_thread::FileManagerThreadMsg;
+
+    let context = new_fetch_context(None);
+
+    let bytes = b"content";
+    let blob_buf = BlobBuf {
+        filename: Some("test.txt".into()),
+        type_string: "text/plain".into(),
+        size: bytes.len() as u64,
+        bytes: bytes.to_vec(),
+    };
+
+    let origin = Url::parse("http://www.example.org/").unwrap();
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    let message = FileManagerThreadMsg::PromoteMemory(blob_buf, true, sender, "http://www.example.org".into());
+    context.filemanager.handle(message, None);
+    let id = receiver.recv().unwrap().unwrap();
+    let url = Url::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
+
+
+    let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
+    let fetch_response = fetch(Rc::new(request), &mut None, context);
+
+    assert!(!fetch_response.is_network_error());
+
+    assert_eq!(fetch_response.headers.len(), 2);
+
+    let content_type: &ContentType = fetch_response.headers.get().unwrap();
+    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Plain, vec![]));
+
+    let content_length: &ContentLength = fetch_response.headers.get().unwrap();
+    assert_eq!(**content_length, bytes.len() as u64);
+
+    assert_eq!(*fetch_response.body.lock().unwrap(),
+               ResponseBody::Done(bytes.to_vec()));
 }
 
 #[test]

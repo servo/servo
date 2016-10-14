@@ -475,7 +475,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
-    filemanager: Arc<FileManager<TFDProvider>>,
+    filemanager: FileManager<TFDProvider>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -490,7 +490,7 @@ impl CoreResourceManager {
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             profiler_chan: profiler_chan,
-            filemanager: Arc::new(FileManager::new(TFD_PROVIDER)),
+            filemanager: FileManager::new(TFD_PROVIDER),
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }
@@ -592,6 +592,7 @@ impl CoreResourceManager {
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
+        let filemanager = self.filemanager.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
@@ -599,7 +600,12 @@ impl CoreResourceManager {
             // todo referrer policy?
             // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
-            let context = FetchContext { state: http_state, user_agent: ua, devtools_chan: dc };
+            let context = FetchContext {
+                state: http_state,
+                user_agent: ua,
+                devtools_chan: dc,
+                filemanager: filemanager,
+            };
             fetch(Rc::new(request), &mut target, context);
         })
     }

@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use blob_loader::load_blob_sync;
 use connector::create_http_connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CORSCache;
+use filemanager_thread::{FileManager, UIProvider};
 use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use http_loader::{auth_from_cache, determine_request_referrer};
@@ -50,23 +52,28 @@ enum Data {
     Done,
 }
 
-pub struct FetchContext {
+pub struct FetchContext<UI: 'static + UIProvider> {
     pub state: HttpState,
     pub user_agent: Cow<'static, str>,
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    pub filemanager: FileManager<UI>,
 }
 
 type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub fn fetch(request: Rc<Request>, target: &mut Target, context: FetchContext) -> Response {
+pub fn fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                       target: &mut Target,
+                                       context: FetchContext<UI>)
+                                       -> Response {
     fetch_with_cors_cache(request, &mut CORSCache::new(), target, context)
 }
 
-pub fn fetch_with_cors_cache(request: Rc<Request>,
-                             cache: &mut CORSCache,
-                             target: &mut Target,
-                             context: FetchContext) -> Response {
+pub fn fetch_with_cors_cache<UI: 'static + UIProvider>(request: Rc<Request>,
+                                                       cache: &mut CORSCache,
+                                                       target: &mut Target,
+                                                       context: FetchContext<UI>)
+                                                       -> Response {
     // Step 1
     if request.window.get() == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
@@ -131,9 +138,14 @@ pub fn fetch_with_cors_cache(request: Rc<Request>,
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
-              recursive_flag: bool, target: &mut Target, done_chan: &mut DoneChannel,
-              context: &FetchContext) -> Response {
+fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                        cache: &mut CORSCache,
+                                        cors_flag: bool,
+                                        recursive_flag: bool,
+                                        target: &mut Target,
+                                        done_chan: &mut DoneChannel,
+                                        context: &FetchContext<UI>)
+                                        -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
@@ -389,9 +401,12 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
-               target: &mut Target, done_chan: &mut DoneChannel,
-               context: &FetchContext) -> Response {
+fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                         cache: &mut CORSCache,
+                                         target: &mut Target,
+                                         done_chan: &mut DoneChannel,
+                                         context: &FetchContext<UI>)
+                                         -> Response {
     let url = request.current_url();
 
     match url.scheme() {
@@ -450,7 +465,29 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
             }
         },
 
-        "blob" | "ftp" => {
+        "blob" => {
+            println!("Loading blob {}", url.as_str());
+            // Step 2.
+            if *request.method.borrow() != Method::Get {
+                return Response::network_error();
+            }
+
+            match load_blob_sync(url.clone(), context.filemanager.clone()) {
+                Ok((headers, bytes)) => {
+                    let mut response = Response::new();
+                    response.url = Some(url.clone());
+                    response.headers = headers;
+                    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                    response
+                },
+                Err(e) => {
+                    debug!("Failed to load {}: {:?}", url, e);
+                    Response::network_error()
+                },
+            }
+        },
+
+        "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
@@ -460,14 +497,15 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
-fn http_fetch(request: Rc<Request>,
-              cache: &mut CORSCache,
-              cors_flag: bool,
-              cors_preflight_flag: bool,
-              authentication_fetch_flag: bool,
-              target: &mut Target,
-              done_chan: &mut DoneChannel,
-              context: &FetchContext) -> Response {
+fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                        cache: &mut CORSCache,
+                                        cors_flag: bool,
+                                        cors_preflight_flag: bool,
+                                        authentication_fetch_flag: bool,
+                                        target: &mut Target,
+                                        done_chan: &mut DoneChannel,
+                                        context: &FetchContext<UI>)
+                                        -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
     // Step 1
@@ -631,13 +669,14 @@ fn http_fetch(request: Rc<Request>,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: Rc<Request>,
-                       cache: &mut CORSCache,
-                       response: Rc<Response>,
-                       cors_flag: bool,
-                       target: &mut Target,
-                       done_chan: &mut DoneChannel,
-                       context: &FetchContext) -> Response {
+fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                                 cache: &mut CORSCache,
+                                                 response: Rc<Response>,
+                                                 cors_flag: bool,
+                                                 target: &mut Target,
+                                                 done_chan: &mut DoneChannel,
+                                                 context: &FetchContext<UI>)
+                                                 -> Response {
     // Step 1
     assert_eq!(response.return_internal.get(), true);
 
@@ -711,11 +750,12 @@ fn http_redirect_fetch(request: Rc<Request>,
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
-fn http_network_or_cache_fetch(request: Rc<Request>,
-                               credentials_flag: bool,
-                               authentication_fetch_flag: bool,
-                               done_chan: &mut DoneChannel,
-                               context: &FetchContext) -> Response {
+fn http_network_or_cache_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                                         credentials_flag: bool,
+                                                         authentication_fetch_flag: bool,
+                                                         done_chan: &mut DoneChannel,
+                                                         context: &FetchContext<UI>)
+                                                         -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
 
@@ -1108,8 +1148,10 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
-                        context: &FetchContext) -> Response {
+fn cors_preflight_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                                  cache: &mut CORSCache,
+                                                  context: &FetchContext<UI>)
+                                                  -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()),
                                      request.is_service_worker_global_scope, request.pipeline_id.get());
