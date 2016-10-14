@@ -84,6 +84,16 @@ impl HTMLSelectElement {
                            HTMLSelectElementBinding::Wrap)
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
+    pub fn reset(&self) {
+        let node = self.upcast::<Node>();
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            opt.set_selectedness(opt.DefaultSelected());
+            opt.set_dirtiness(false);
+        }
+        self.ask_for_reset();
+    }
+
     // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
     pub fn ask_for_reset(&self) {
         if self.Multiple() {
