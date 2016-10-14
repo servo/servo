@@ -9,6 +9,7 @@
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
+extern crate owning_ref;
 extern crate parking_lot;
 extern crate rustc_serialize;
 extern crate selectors;
@@ -22,6 +23,7 @@ mod attr;
 mod cache;
 mod logical_geometry;
 mod media_queries;
+mod owning_handle;
 mod parsing;
 mod properties;
 mod selector_matching;
