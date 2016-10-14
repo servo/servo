@@ -634,8 +634,7 @@ impl HTMLFormElement {
                 //    {}
                 //}
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-                    // Unimplemented
-                    {}
+                    child.downcast::<HTMLSelectElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                     child.downcast::<HTMLTextAreaElement>().unwrap().reset();
