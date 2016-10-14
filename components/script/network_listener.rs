@@ -3,16 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
-use script_runtime::{CommonScriptMsg, ScriptChan};
-use script_runtime::ScriptThreadEventCategory::NetworkEvent;
 use script_thread::{Runnable, RunnableWrapper};
 use std::sync::{Arc, Mutex};
+use task_source::TaskSource;
+use task_source::networking::NetworkingTaskSource;
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to
 /// a target thread, where they are invoked on the provided context object.
 pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
-    pub script_chan: Box<ScriptChan + Send>,
+    pub task_source: NetworkingTaskSource,
     pub wrapper: Option<RunnableWrapper>,
 }
 
@@ -23,9 +23,9 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
             action: action,
         };
         let result = if let Some(ref wrapper) = self.wrapper {
-            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, wrapper.wrap_runnable(runnable)))
+            self.task_source.queue_with_wrapper(runnable, wrapper)
         } else {
-            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, runnable))
+            self.task_source.queue_wrapperless(runnable)
         };
         if let Err(err) = result {
             warn!("failed to deliver network data: {:?}", err);

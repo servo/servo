@@ -243,8 +243,8 @@ impl HTMLLinkElement {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: document.window().networking_task_source(),
-            wrapper: Some(document.window().get_runnable_wrapper()),
+            task_source: document.window().networking_task_source(),
+            wrapper: Some(document.window().get_runnable_wrapper())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());

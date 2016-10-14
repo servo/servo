@@ -521,11 +521,10 @@ impl HTMLMediaElement {
             let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
             let (action_sender, action_receiver) = ipc::channel().unwrap();
             let window = window_from_node(self);
-            let script_chan = window.networking_task_source();
             let listener = NetworkListener {
                 context: context,
-                script_chan: script_chan,
-                wrapper: Some(window.get_runnable_wrapper()),
+                task_source: window.networking_task_source(),
+                wrapper: Some(window.get_runnable_wrapper())
             };
 
             ROUTER.add_route(action_receiver.to_opaque(), box move |message| {

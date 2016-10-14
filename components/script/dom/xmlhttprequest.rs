@@ -49,13 +49,12 @@ use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::PipelineId;
-use net_traits::{CoreResourceThread, FetchMetadata, FilteredMetadata};
+use net_traits::{FetchMetadata, FilteredMetadata};
 use net_traits::{FetchResponseListener, LoadOrigin, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
-use script_runtime::ScriptChan;
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -63,6 +62,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str;
 use std::sync::{Arc, Mutex};
+use task_source::networking::NetworkingTaskSource;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Position, Url};
@@ -214,8 +214,8 @@ impl XMLHttpRequest {
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
-                          script_chan: Box<ScriptChan + Send>,
-                          core_resource_thread: CoreResourceThread,
+                          task_source: NetworkingTaskSource,
+                          global: &GlobalScope,
                           init: RequestInit) {
         impl FetchResponseListener for XHRContext {
             fn process_request_body(&mut self) {
@@ -262,13 +262,13 @@ impl XMLHttpRequest {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: script_chan,
-            wrapper: None,
+            task_source: task_source,
+            wrapper: Some(global.get_runnable_wrapper())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
         });
-        core_resource_thread.send(Fetch(init, action_sender)).unwrap();
+        global.core_resource_thread().send(Fetch(init, action_sender)).unwrap();
     }
 }
 
@@ -1293,16 +1293,15 @@ impl XMLHttpRequest {
             sync_status: DOMRefCell::new(None),
         }));
 
-        let (script_chan, script_port) = if self.sync.get() {
+        let (task_source, script_port) = if self.sync.get() {
             let (tx, rx) = global.new_script_pair();
-            (tx, Some(rx))
+            (NetworkingTaskSource(tx), Some(rx))
         } else {
             (global.networking_task_source(), None)
         };
 
-        let core_resource_thread = global.core_resource_thread();
-        XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                           core_resource_thread, init);
+        XMLHttpRequest::initiate_async_xhr(context.clone(), task_source,
+                                           global, init);
 
         if let Some(script_port) = script_port {
             loop {

@@ -267,7 +267,7 @@ impl Window {
         self.user_interaction_task_source.clone()
     }
 
-    pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn networking_task_source(&self) -> NetworkingTaskSource {
         self.networking_task_source.clone()
     }
 

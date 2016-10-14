@@ -132,8 +132,8 @@ impl EventSource {
         let context = EventSourceContext;
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
-            script_chan: global.script_chan(),
-            wrapper: None
+            task_source: global.networking_task_source(),
+            wrapper: Some(global.get_runnable_wrapper())
         };
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
