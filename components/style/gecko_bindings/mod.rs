@@ -4,7 +4,6 @@
 
 #[allow(dead_code, improper_ctypes, non_camel_case_types)]
 pub mod bindings;
-pub mod ptr;
 
 // FIXME: We allow `improper_ctypes` (for now), because the lint doesn't allow
 // foreign structs to have `PhantomData`. We should remove this once the lint

@@ -164,6 +164,9 @@ use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::nsString;
+use gecko_bindings::structs::nsStyleQuoteValues;
+unsafe impl Send for nsStyleQuoteValues {}
+unsafe impl Sync for nsStyleQuoteValues {}
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -542,6 +545,17 @@ extern "C" {
 extern "C" {
     pub fn Gecko_ReleaseCSSShadowArrayArbitraryThread(aPtr:
                                                           *mut nsCSSShadowArray);
+}
+extern "C" {
+    pub fn Gecko_NewStyleQuoteValues(len: u32) -> *mut nsStyleQuoteValues;
+}
+extern "C" {
+    pub fn Gecko_AddRefQuoteValuesArbitraryThread(aPtr:
+                                                      *mut nsStyleQuoteValues);
+}
+extern "C" {
+    pub fn Gecko_ReleaseQuoteValuesArbitraryThread(aPtr:
+                                                       *mut nsStyleQuoteValues);
 }
 extern "C" {
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);

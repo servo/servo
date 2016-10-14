@@ -896,9 +896,9 @@ fn static_assert() {
                     Gecko_SetMozBinding(&mut self.gecko,
                                         url.as_str().as_ptr(),
                                         url.as_str().len() as u32,
-                                        extra_data.base.as_raw(),
-                                        extra_data.referrer.as_raw(),
-                                        extra_data.principal.as_raw());
+                                        extra_data.base.get(),
+                                        extra_data.referrer.get(),
+                                        extra_data.principal.get());
                 }
             }
         }
@@ -1448,7 +1448,7 @@ fn static_assert() {
     </%self:simple_image_array_property>
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
+<%self:impl_trait style_struct_name="List" skip_longhands="list-style-type quotes" skip_additionals="*">
 
     ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
                            data.longhands_by_name["list-style-type"].keyword)}
@@ -1456,6 +1456,27 @@ fn static_assert() {
         unsafe {
             Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);
         }
+    }
+
+    pub fn set_quotes(&mut self, other: longhands::quotes::computed_value::T) {
+        use gecko_bindings::bindings::Gecko_NewStyleQuoteValues;
+        use gecko_bindings::sugar::refptr::UniqueRefPtr;
+        use nsstring::nsCString;
+
+        let mut refptr = unsafe {
+            UniqueRefPtr::from_addrefed(Gecko_NewStyleQuoteValues(other.0.len() as u32))
+        };
+
+        for (servo, gecko) in other.0.into_iter().zip(refptr.mQuotePairs.iter_mut()) {
+            gecko.first.assign_utf8(&nsCString::from(&*servo.0));
+            gecko.second.assign_utf8(&nsCString::from(&*servo.1));
+        }
+
+        unsafe { self.gecko.mQuotes.set_move(refptr.get()) }
+    }
+
+    pub fn copy_quotes_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mQuotes.set(&other.gecko.mQuotes); }
     }
 
 </%self:impl_trait>

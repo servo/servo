@@ -104,7 +104,7 @@ ${helpers.single_keyword("list-style-type", """
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="quotes" products="servo" animatable="False">
+<%helpers:longhand name="quotes" animatable="False">
     use std::borrow::Cow;
     use std::fmt;
     use values::NoViewportPercentage;
