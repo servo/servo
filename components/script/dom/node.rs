@@ -1935,8 +1935,8 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-rootnode
-    fn RootNode(&self) -> Root<Node> {
+    // https://dom.spec.whatwg.org/#dom-node-getrootnode
+    fn GetRootNode(&self) -> Root<Node> {
         self.inclusive_ancestors().last().unwrap()
     }
 
@@ -2704,3 +2704,4 @@ impl Into<LayoutElementType> for ElementTypeId {
         }
     }
 }
+
