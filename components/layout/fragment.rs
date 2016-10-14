@@ -1379,10 +1379,10 @@ impl Fragment {
             };
             let offset_b = if offsets.block_start != LengthOrPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.block_start,
-                                      container_size.inline).specified_or_zero()
+                                      container_size.block).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.block_end,
-                                       container_size.inline).specified_or_zero()
+                                       container_size.block).specified_or_zero()
             };
             LogicalSize::new(style.writing_mode, offset_i, offset_b)
         }
