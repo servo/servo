@@ -70,7 +70,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -1007,6 +1007,10 @@ impl ScriptThread {
                 self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id) =>
                 self.handle_exit_pipeline_msg(pipeline_id),
+            ConstellationControlMsg::ActivateHistoryState(pipeline_id, history_state_id) =>
+                self.handle_activate_history_state(pipeline_id, history_state_id),
+            ConstellationControlMsg::RemoveHistoryStateEntries(pipeline_id, history_state_ids) =>
+                self.handle_remove_history_state_entries(pipeline_id, history_state_ids),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -2175,6 +2179,20 @@ impl ScriptThread {
     fn handle_reload(&self, pipeline_id: PipelineId) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
             window.Location().Reload();
+        }
+    }
+
+    fn handle_activate_history_state(&self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let browsing_context = window.browsing_context();
+            browsing_context.activate_history_state(history_state_id);
+        }
+    }
+
+    fn handle_remove_history_state_entries(&self, pipeline_id: PipelineId, history_state_ids: Vec<HistoryStateId>) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let browsing_context = window.browsing_context();
+            browsing_context.remove_history_state_entries(history_state_ids);
         }
     }
 
