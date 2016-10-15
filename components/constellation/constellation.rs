@@ -230,13 +230,12 @@ struct FrameState {
 }
 
 impl FrameState {
-    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
+    fn new(pipeline_id: PipelineId, frame_id: FrameId, history_state_id: HistoryStateId) -> FrameState {
         FrameState {
             instant: Instant::now(),
             pipeline_id: pipeline_id,
             frame_id: frame_id,
-            // TODO(ConnorGBrewster): Should this be hardcoded like this?
-            history_state_id: HistoryStateId(0),
+            history_state_id: history_state_id,
         }
     }
 }
@@ -254,14 +253,16 @@ impl Frame {
         Frame {
             id: id,
             prev: vec!(),
-            current: FrameState::new(pipeline_id, id),
+            // TODO(ConnorGBrewster): Should HistoryStateId(0) be hardcoded like this?
+            current: FrameState::new(pipeline_id, id, HistoryStateId(0)),
             next: vec!(),
         }
     }
 
     fn load(&mut self, pipeline_id: PipelineId) {
         self.prev.push(self.current.clone());
-        self.current = FrameState::new(pipeline_id, self.id);
+        // TODO(ConnorGBrewster): Should HistoryStateId(0) be hardcoded like this?
+        self.current = FrameState::new(pipeline_id, self.id, HistoryStateId(0));
     }
 
     fn remove_forward_entries(&mut self) -> Vec<FrameState> {
@@ -269,7 +270,12 @@ impl Frame {
     }
 
     fn replace_current(&mut self, pipeline_id: PipelineId) -> FrameState {
-        replace(&mut self.current, FrameState::new(pipeline_id, self.id))
+        replace(&mut self.current, FrameState::new(pipeline_id, self.id, HistoryStateId(0)))
+    }
+
+    fn push_state(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        self.prev.push(self.current.clone());
+        self.current = FrameState::new(pipeline_id, self.id, history_state_id);
     }
 }
 
@@ -341,10 +347,16 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
                     continue;
                 },
             };
+            // The same pipeline can exist in multiple entries across a Frame, so we need to
+            // avoid checking a pipeline more than once for its children.
+            let mut checked_pipelines = vec!();
             for entry in frame.prev.iter().chain(frame.next.iter()).chain(once(&frame.current)) {
-                if let Some(pipeline) = self.pipelines.get(&entry.pipeline_id) {
-                    self.stack.extend(pipeline.children.iter().map(|&c| c));
+                if !checked_pipelines.contains(&entry.pipeline_id) {
+                    if let Some(pipeline) = self.pipelines.get(&entry.pipeline_id) {
+                        self.stack.extend(pipeline.children.iter().map(|&c| c));
+                    }
                 }
+                checked_pipelines.push(entry.pipeline_id);
             }
             return Some(frame)
         }
@@ -920,6 +932,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::JointSessionHistoryLength(pipeline_id, sender) => {
                 debug!("constellation got joint session history length message from script");
                 self.handle_joint_session_history_length(pipeline_id, sender);
+            }
+            // Handle a history state pushed request.
+            FromScriptMsg::HistoryStatePushed(pipeline_id, history_state_id) => {
+                debug!("constellation got histort state pushed message from script");
+                self.handle_history_state_pushed(pipeline_id, history_state_id);
             }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument(pipeline_id) => {
@@ -1661,6 +1678,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let _ = sender.send(length as u32);
     }
 
+    fn handle_history_state_pushed(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
+            None => return warn!("Pipeline closed after history state was pushed."),
+        };
+        let frame = match self.frames.get_mut(&frame_id) {
+            Some(frame) => frame,
+            None => return warn!("Frame closed after history state was pushed."),
+        };
+        if frame.current.pipeline_id != pipeline_id {
+            // Pipeline is not fully active. Abort.
+            return;
+        }
+        frame.push_state(pipeline_id, history_state_id);
+    }
+
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         // Send to the explicitly focused pipeline (if it exists), or the root
         // frame's current pipeline. If neither exist, fall back to sending to
@@ -1931,10 +1964,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
 
-        let prev_pipeline_id = match self.frames.get_mut(&frame_id) {
+        let (prev_entry, next_entry) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
-                let prev = frame.current.pipeline_id;
-
+                let prev_entry = frame.current.clone();
                 // Check that this frame contains the pipeline passed in, so that this does not
                 // change Frame's state before realizing `next_pipeline_id` is invalid.
                 if frame.next.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
@@ -1957,42 +1989,51 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             frame.next.push(entry);
                         }
                     }
-                } else if prev != next_pipeline_id {
+                } else if prev_entry.pipeline_id != next_pipeline_id {
                     return warn!("Tried to traverse frame {:?} to pipeline {:?} it does not contain.",
                         frame_id, next_pipeline_id);
                 }
 
-                prev
+                (prev_entry, frame.current.clone())
             },
             None => return warn!("no frame to traverse"),
         };
 
-        let pipeline_info = self.pipelines.get(&prev_pipeline_id).and_then(|p| p.parent_info);
+        let pipeline_info = self.pipelines.get(&prev_entry.pipeline_id).and_then(|p| p.parent_info);
 
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
         if update_focus_pipeline {
-            self.focus_pipeline_id = Some(next_pipeline_id);
+            self.focus_pipeline_id = Some(next_entry.pipeline_id);
         }
 
         // Suspend the old pipeline, and resume the new one.
-        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
+        if let Some(prev_pipeline) = self.pipelines.get(&prev_entry.pipeline_id) {
             prev_pipeline.freeze();
         }
-        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
+        if let Some(next_pipeline) = self.pipelines.get(&next_entry.pipeline_id) {
             next_pipeline.thaw();
         }
 
         // Set paint permissions correctly for the compositor layers.
         self.send_frame_tree();
 
+        // Notify the corresponding browsing context to activate the specified history state.
+        match self.pipelines.get(&next_entry.pipeline_id) {
+            Some(pipeline) => {
+                let msg = ConstellationControlMsg::ActivateHistoryState(next_entry.pipeline_id, next_entry.history_state_id);
+                let _ = pipeline.script_chan.send(msg);
+            },
+            None => return warn!("Pipeline {:?} traversed after closure.", next_entry.pipeline_id),
+        };
+
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = pipeline_info {
             let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                                                                 frame_id,
-                                                                next_pipeline_id);
+                                                                next_entry.pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2003,7 +2044,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward traversal.
-            self.trigger_mozbrowserlocationchange(next_pipeline_id);
+            self.trigger_mozbrowserlocationchange(next_entry.pipeline_id);
         }
     }
 
@@ -2294,16 +2335,44 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     continue;
                 }
             };
-            evicted_pipelines.extend(frame.remove_forward_entries());
+            let mut discarded_history_states = vec!();
+            for entry in frame.remove_forward_entries() {
+                if entry.pipeline_id == frame.current.pipeline_id {
+                    // This means the pipeline should not be closed, but we should tell the
+                    // browsing context to drop the history states that correspond to these entries
+                    discarded_history_states.push(entry.history_state_id);
+                } else {
+                    evicted_pipelines.push(entry);
+                }
+            }
+            // Notify the BrowsingContext in the script thread to remove the StateEntries that are
+            // now no longer accesible.
+            if !discarded_history_states.is_empty() {
+                let pipeline_id = frame.current.pipeline_id;
+                match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => {
+                        let msg = ConstellationControlMsg::RemoveHistoryStateEntries(pipeline_id,
+                            discarded_history_states);
+                        let _ = pipeline.script_chan.send(msg);
+                    },
+                    None => return warn!("Pipeline {:?} closed after removing state entries", pipeline_id),
+                }
+            }
+            // The same pipeline can exist in multiple entries across a Frame, so we need to
+            // avoid checking a pipeline more than once for its children.
+            let mut checked_pipelines = vec!();
             for entry in frame.next.iter().chain(frame.prev.iter()).chain(once(&frame.current)) {
-                let pipeline = match self.pipelines.get(&entry.pipeline_id) {
-                    Some(pipeline) => pipeline,
-                    None => {
-                        warn!("Removed forward history after pipeline {:?} closure.", entry.pipeline_id);
-                        continue;
-                    }
-                };
-                frames_to_clear.extend_from_slice(&pipeline.children);
+                if !checked_pipelines.contains(&entry.pipeline_id) {
+                    let pipeline = match self.pipelines.get(&entry.pipeline_id) {
+                        Some(pipeline) => pipeline,
+                        None => {
+                            warn!("Removed forward history after pipeline {:?} closure.", entry.pipeline_id);
+                            continue;
+                        }
+                    };
+                    frames_to_clear.extend_from_slice(&pipeline.children);
+                    checked_pipelines.push(entry.pipeline_id);
+                }
             }
         }
         for entry in evicted_pipelines {

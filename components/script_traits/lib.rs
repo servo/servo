@@ -54,7 +54,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
@@ -252,7 +252,11 @@ pub enum ConstellationControlMsg {
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
-    Reload(PipelineId)
+    Reload(PipelineId),
+    /// Notifies a browsing context to activate the specified history state.
+    ActivateHistoryState(PipelineId, HistoryStateId),
+    /// Notifies a browsing context to remove the specified history state entries.
+    RemoveHistoryStateEntries(PipelineId, Vec<HistoryStateId>),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -284,7 +288,9 @@ impl fmt::Debug for ConstellationControlMsg {
             DispatchStorageEvent(..) => "DispatchStorageEvent",
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload"
+            Reload(..) => "Reload",
+            ActivateHistoryState(..) => "ActivateHistoryState",
+            RemoveHistoryStateEntries(..) => "RemoveHistoryStateEntries",
         })
     }
 }

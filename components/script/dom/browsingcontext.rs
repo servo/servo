@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
@@ -29,6 +30,7 @@ use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::get_object_class;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use servo_url::ServoUrl;
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::collections::HashMap;
 
@@ -108,37 +110,43 @@ impl BrowsingContext {
         next_id
     }
 
+    // TODO(ConnorGBrewster): Store and do something with `document`, `title`, and `url`
     pub fn replace_session_history_entry(&self,
-                                         title: Option<DOMString>,
-                                         url: Option<ServoUrl>,
+                                         _title: Option<DOMString>,
+                                         _url: Option<ServoUrl>,
                                          state: HandleValue) {
-        // let document = &*self.active_document();
-        // let mut history = self.history.borrow_mut();
-        // let url = match url {
-        //     Some(url) => url,
-        //     None => document.url().clone(),
-        // };
-        // let title = match title {
-        //     Some(title) => title,
-        //     None => document.Title(),
-        // };
-        // // TODO(ConnorGBrewster):
-        // // Set Document's Url to url
-        // // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
-        // // Currently you can't mutate document.url
-        // history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
         let mut states = self.states.borrow_mut();
         states.insert(self.active_state.get(), HistoryState::new(Some(state)));
+        // NOTE: We do not need to notify the constellation, as the history state id
+        // will stay the same and no new entry is added.
     }
 
     pub fn push_session_history_entry(&self,
-                                        document: &Document,
-                                        title: Option<DOMString>,
-                                        url: Option<ServoUrl>,
-                                        state: Option<HandleValue>) {
+                                      _document: &Document,
+                                      _title: Option<DOMString>,
+                                      _url: Option<ServoUrl>,
+                                      state: HandleValue) {
         let next_id = self.next_history_state_id();
         let mut states = self.states.borrow_mut();
-        states.insert(next_id, HistoryState::new(state));
+        states.insert(next_id, HistoryState::new(Some(state)));
+        self.active_state.set(next_id);
+        // Notify the constellation about this new entry so it can be added to the
+        // joint session history.
+        let window = self.active_window();
+        let global_scope = window.upcast::<GlobalScope>();
+        let msg = ConstellationMsg::HistoryStatePushed(global_scope.pipeline_id(), next_id);
+        let _ = global_scope.constellation_chan().send(msg);
+    }
+
+    pub fn remove_history_state_entries(&self, history_state_ids: Vec<HistoryStateId>) {
+        for history_state_id in history_state_ids {
+            let mut states = self.states.borrow_mut();
+            states.remove(&history_state_id);
+        }
+    }
+
+    pub fn activate_history_state(&self, history_state_id: HistoryStateId) {
+        self.active_state.set(history_state_id);
     }
 
     pub fn active_document(&self) -> Root<Document> {
