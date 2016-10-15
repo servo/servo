@@ -54,7 +54,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
+use msg::constellation_msg::{HistoryStateId, PipelineId, PipelineNamespaceId, ReferrerPolicy};
 use msg::constellation_msg::{TraversalDirection, WindowSizeType};
 use net_traits::{LoadOrigin, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -215,7 +215,11 @@ pub enum ConstellationControlMsg {
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
-    Reload(PipelineId)
+    Reload(PipelineId),
+    /// Notifies a browsing context to activate the specified history state.
+    ActivateHistoryState(PipelineId, HistoryStateId),
+    /// Notifies a browsing context to remove the specified history state entries.
+    RemoveHistoryStateEntries(PipelineId, Vec<HistoryStateId>),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -245,7 +249,9 @@ impl fmt::Debug for ConstellationControlMsg {
             DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload"
+            Reload(..) => "Reload",
+            ActivateHistoryState(..) => "ActivateHistoryState",
+            RemoveHistoryStateEntries(..) => "RemoveHistoryStateEntries",
         })
     }
 }
