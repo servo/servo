@@ -47,8 +47,8 @@ use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::LayerId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
-use model::{self, IntrinsicISizes, MarginCollapseInfo};
-use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
+use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
+use model::{specified, specified_or_none};
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use script_layout_interface::restyle_damage::REPOSITION;
@@ -57,7 +57,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position, text_align, transform, transform_style};
+use style::computed_values::{position, text_align, transform_style};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
@@ -2070,12 +2070,9 @@ impl Flow for BlockFlow {
             self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
-        //
-        // `clip` is in the child coordinate system.
-        let mut clip;
-        let origin_for_children;
+        let relative_offset = relative_offset.to_physical(self.base.writing_mode);
         let is_stacking_context = self.fragment.establishes_stacking_context();
-        if is_stacking_context {
+        let origin_for_children = if is_stacking_context {
             // We establish a stacking context, so the position of our children is vertically
             // correct, but has to be adjusted to accommodate horizontal margins. (Note the
             // calculation involving `position` below and recall that inline-direction flow
@@ -2083,13 +2080,10 @@ impl Flow for BlockFlow {
             //
             // FIXME(pcwalton): Is this vertical-writing-direction-safe?
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
-            origin_for_children = Point2D::new(-margin.left, Au(0));
-            clip = self.base.clip.translate(&-self.base.stacking_relative_position);
+            Point2D::new(-margin.left, Au(0))
         } else {
-            let relative_offset = relative_offset.to_physical(self.base.writing_mode);
-            origin_for_children = self.base.stacking_relative_position + relative_offset;
-            clip = self.base.clip.clone();
-        }
+            self.base.stacking_relative_position + relative_offset
+        };
 
         let stacking_relative_position_of_display_port_for_children =
             if is_stacking_context || self.is_root() {
@@ -2120,9 +2114,17 @@ impl Flow for BlockFlow {
                                                   .early_absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
-        self.fragment.adjust_clipping_region_for_children(
-            &mut clip,
-            &stacking_relative_border_box);
+
+        // Our parent set our `clip` field to the clipping region in its coordinate system. Change
+        // it to our coordinate system.
+        self.switch_coordinate_system_if_necessary();
+        self.fragment.adjust_clip_for_style(&mut self.base.clip, &stacking_relative_border_box);
+
+        // Compute the clipping region for children, taking our `overflow` properties and so forth
+        // into account.
+        let mut clip_for_children = self.base.clip.clone();
+        self.fragment.adjust_clipping_region_for_children(&mut clip_for_children,
+                                                          &stacking_relative_border_box);
 
         // Process children.
         for kid in self.base.child_iter_mut() {
@@ -2166,50 +2168,18 @@ impl Flow for BlockFlow {
 
             flow::mut_base(kid).late_absolute_position_info =
                 late_absolute_position_info_for_children;
-            let clip = if kid.is_block_like() {
-                let mut clip = clip.clone();
-                let kid = kid.as_block();
-                // TODO(notriddle): To properly support transformations, we either need
-                // non-rectangular clipping regions in display lists, or clipping
-                // regions in terms of the parent coordinate system instead of the
-                // child coordinate system.
-                //
-                // This is a workaround for a common idiom of transform: translate().
-                if let Some(ref operations) = kid.fragment.style().get_effects().transform.0 {
-                    for operation in operations {
-                        match *operation {
-                            transform::ComputedOperation::Translate(tx, ty, _) => {
-                                // N.B. When the clipping value comes from us, it
-                                // shouldn't be transformed.
-                                let tx = if let overflow_x::T::hidden = kid.fragment.style().get_box()
-                                                                           .overflow_x {
-                                    Au(0)
-                                } else {
-                                    model::specified(tx, kid.base.block_container_inline_size)
-                                };
-                                let ty = if let overflow_x::T::hidden = kid.fragment.style().get_box()
-                                                                           .overflow_y.0 {
-                                    Au(0)
-                                } else {
-                                    model::specified(
-                                        ty,
-                                        kid.base.block_container_explicit_block_size.unwrap_or(Au(0))
-                                    )
-                                };
-                                let off = Point2D::new(tx, ty);
-                                clip = clip.translate(&-off);
-                            }
-                            _ => {}
-                        };
-                    }
-                }
-                clip
-            } else {
-                clip.clone()
-            };
-            flow::mut_base(kid).clip = clip;
             flow::mut_base(kid).stacking_relative_position_of_display_port =
                 stacking_relative_position_of_display_port_for_children;
+
+            // This clipping region is in our coordinate system. The child will fix it up to be in
+            // its own coordinate system by itself if necessary.
+            //
+            // Rationale: If the child is absolutely positioned, it hasn't been positioned at this
+            // point (as absolutely-positioned flows position themselves in
+            // `compute_absolute_position()`). Therefore, we don't always know what the child's
+            // coordinate system is here. So we store the clipping region in our coordinate system
+            // for now; the child will move it later if needed.
+            flow::mut_base(kid).clip = clip_for_children.clone()
         }
 
         self.base.restyle_damage.remove(REPOSITION)

@@ -15,7 +15,7 @@ use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
-use euclid::{Matrix4D, Point2D, Point3D, Radians, Rect, SideOffsets2D, Size2D};
+use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
@@ -242,7 +242,7 @@ pub trait FragmentDisplayListBuilding {
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>);
 
-    /// Adjusts the clipping region for descendants of this fragment as appropriate.
+    /// Adjusts the clipping region for all descendants of this fragment as appropriate.
     fn adjust_clipping_region_for_children(&self,
                                            current_clip: &mut ClippingRegion,
                                            stacking_relative_border_box: &Rect<Au>);
@@ -293,6 +293,9 @@ pub trait FragmentDisplayListBuilding {
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> StackingContext;
+
+    /// Returns the 4D matrix representing this fragment's transform.
+    fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32>;
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -1107,12 +1110,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         }
 
-        // Calculate the clip rect. If there's nothing to render at all, don't even construct
-        // display list items.
-        let mut clip = (*clip).clone();
-        self.adjust_clip_for_style(&mut clip, &stacking_relative_border_box);
+        // Check the clip rect. If there's nothing to render at all, don't even construct display
+        // list items.
         let empty_rect = !clip.might_intersect_rect(&stacking_relative_border_box);
-
         if self.is_primary_fragment() && !empty_rect {
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
@@ -1122,13 +1122,13 @@ impl FragmentDisplayListBuilding for Fragment {
                         &*node.style,
                         display_list_section,
                         &stacking_relative_border_box,
-                        &clip);
+                        clip);
                     self.build_display_list_for_box_shadow_if_applicable(
                         state,
                         &*node.style,
                         display_list_section,
                         &stacking_relative_border_box,
-                        &clip);
+                        clip);
 
                     let mut style = node.style.clone();
                     properties::modify_border_style_for_inline_sides(
@@ -1141,13 +1141,13 @@ impl FragmentDisplayListBuilding for Fragment {
                         border_painting_mode,
                         &stacking_relative_border_box,
                         display_list_section,
-                        &clip);
+                        clip);
 
                     self.build_display_list_for_outline_if_applicable(
                         state,
                         &*node.style,
                         &stacking_relative_border_box,
-                        &clip);
+                        clip);
                 }
             }
 
@@ -1156,22 +1156,22 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                      &*self.style,
                                                                      display_list_section,
                                                                      &stacking_relative_border_box,
-                                                                     &clip);
+                                                                     clip);
                 self.build_display_list_for_box_shadow_if_applicable(state,
                                                                      &*self.style,
                                                                      display_list_section,
                                                                      &stacking_relative_border_box,
-                                                                     &clip);
+                                                                     clip);
                 self.build_display_list_for_borders_if_applicable(state,
                                                                   &*self.style,
                                                                   border_painting_mode,
                                                                   &stacking_relative_border_box,
                                                                   display_list_section,
-                                                                  &clip);
+                                                                  clip);
                 self.build_display_list_for_outline_if_applicable(state,
                                                                   &*self.style,
                                                                   &stacking_relative_border_box,
-                                                                  &clip);
+                                                                  clip);
             }
         }
 
@@ -1181,11 +1181,11 @@ impl FragmentDisplayListBuilding for Fragment {
             self.build_display_items_for_selection_if_necessary(state,
                                                                 &stacking_relative_border_box,
                                                                 display_list_section,
-                                                                &clip);
+                                                                clip);
         }
 
         if empty_rect {
-            return;
+            return
         }
 
         debug!("Fragment::build_display_list: intersected. Adding display item...");
@@ -1193,12 +1193,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // Create special per-fragment-type display items.
         self.build_fragment_type_specific_display_items(state,
                                                         &stacking_relative_border_box,
-                                                        &clip);
+                                                        clip);
 
         if opts::get().show_debug_fragment_borders {
-           self.build_debug_borders_around_fragment(state,
-                                                    &stacking_relative_border_box,
-                                                    &clip);
+           self.build_debug_borders_around_fragment(state, &stacking_relative_border_box, clip)
         }
     }
 
@@ -1417,56 +1415,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
 
-        let mut transform = Matrix4D::identity();
-        if let Some(ref operations) = self.style().get_effects().transform.0 {
-            let transform_origin = self.style().get_effects().transform_origin;
-            let transform_origin =
-                Point3D::new(model::specified(transform_origin.horizontal,
-                                              border_box.size.width).to_f32_px(),
-                             model::specified(transform_origin.vertical,
-                                              border_box.size.height).to_f32_px(),
-                             transform_origin.depth.to_f32_px());
-
-            let pre_transform = Matrix4D::create_translation(transform_origin.x,
-                                                             transform_origin.y,
-                                                             transform_origin.z);
-            let post_transform = Matrix4D::create_translation(-transform_origin.x,
-                                                              -transform_origin.y,
-                                                              -transform_origin.z);
-
-            for operation in operations {
-                let matrix = match *operation {
-                    transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                        let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                        Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
-                    }
-                    transform::ComputedOperation::Perspective(d) => {
-                        create_perspective_matrix(d)
-                    }
-                    transform::ComputedOperation::Scale(sx, sy, sz) => {
-                        Matrix4D::create_scale(sx, sy, sz)
-                    }
-                    transform::ComputedOperation::Translate(tx, ty, tz) => {
-                        let tx = model::specified(tx, border_box.size.width).to_f32_px();
-                        let ty = model::specified(ty, border_box.size.height).to_f32_px();
-                        let tz = tz.to_f32_px();
-                        Matrix4D::create_translation(tx, ty, tz)
-                    }
-                    transform::ComputedOperation::Matrix(m) => {
-                        m.to_gfx_matrix()
-                    }
-                    transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                        Matrix4D::create_skew(Radians::new(theta_x.radians()),
-                                              Radians::new(theta_y.radians()))
-                    }
-                };
-
-                transform = transform.pre_mul(&matrix);
-            }
-
-            transform = pre_transform.pre_mul(&transform).pre_mul(&post_transform);
-        }
-
+        let transform = self.transform_matrix(&border_box);
         let perspective = match self.style().get_effects().perspective {
             LengthOrNone::Length(d) => {
                 let perspective_origin = self.style().get_effects().perspective_origin;
@@ -1545,13 +1494,9 @@ impl FragmentDisplayListBuilding for Fragment {
             return
         }
 
-        // Account for style-specified `clip`.
-        self.adjust_clip_for_style(current_clip, stacking_relative_border_box);
-
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y.0;
-
-        if let (overflow_x::T::visible, overflow_x::T::visible) = (overflow_x, overflow_y) {
+        if overflow_x == overflow_x::T::visible && overflow_y == overflow_x::T::visible {
             return
         }
 
@@ -1562,7 +1507,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 stacking_relative_border_box
             }
             overflow_clip_box::T::content_box => {
-                overflow_clip_rect_owner = self.stacking_relative_content_box(stacking_relative_border_box);
+                overflow_clip_rect_owner =
+                    self.stacking_relative_content_box(stacking_relative_border_box);
                 &overflow_clip_rect_owner
             }
         };
@@ -1570,8 +1516,8 @@ impl FragmentDisplayListBuilding for Fragment {
         // Clip according to the values of `overflow-x` and `overflow-y`.
         //
         // FIXME(pcwalton): This may be more complex than it needs to be, since it seems to be
-        // impossible with the computed value rules as they are to have `overflow-x: visible` with
-        // `overflow-y: <scrolling>` or vice versa!
+        // impossible with the computed value rules as they are to have `overflow-x: visible`
+        // with `overflow-y: <scrolling>` or vice versa!
         if let overflow_x::T::hidden = self.style.get_box().overflow_x {
             let mut bounds = current_clip.bounding_rect();
             let max_x = cmp::min(bounds.max_x(), overflow_clip_rect.max_x());
@@ -1590,7 +1536,8 @@ impl FragmentDisplayListBuilding for Fragment {
         let border_radii = build_border_radius(stacking_relative_border_box,
                                                self.style.get_border());
         if !border_radii.is_square() {
-            current_clip.intersect_with_rounded_rect(stacking_relative_border_box, &border_radii)
+            current_clip.intersect_with_rounded_rect(stacking_relative_border_box,
+                                                     &border_radii)
         }
     }
 
@@ -1731,6 +1678,64 @@ impl FragmentDisplayListBuilding for Fragment {
             clip_mode: BoxShadowClipMode::None,
         }));
     }
+
+    fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
+        let mut transform = Matrix4D::identity();
+        let operations = match self.style.get_effects().transform.0 {
+            None => return transform,
+            Some(ref operations) => operations,
+        };
+
+        let transform_origin = &self.style.get_effects().transform_origin;
+        let transform_origin_x = model::specified(transform_origin.horizontal,
+                                                  stacking_relative_border_box.size
+                                                                              .width).to_f32_px();
+        let transform_origin_y = model::specified(transform_origin.vertical,
+                                                  stacking_relative_border_box.size
+                                                                              .height).to_f32_px();
+        let transform_origin_z = transform_origin.depth.to_f32_px();
+
+        let pre_transform = Matrix4D::create_translation(transform_origin_x,
+                                                         transform_origin_y,
+                                                         transform_origin_z);
+        let post_transform = Matrix4D::create_translation(-transform_origin_x,
+                                                          -transform_origin_y,
+                                                          -transform_origin_z);
+
+        for operation in operations {
+            let matrix = match *operation {
+                transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
+                    let theta = 2.0f32 * f32::consts::PI - theta.radians();
+                    Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
+                }
+                transform::ComputedOperation::Perspective(d) => {
+                    create_perspective_matrix(d)
+                }
+                transform::ComputedOperation::Scale(sx, sy, sz) => {
+                    Matrix4D::create_scale(sx, sy, sz)
+                }
+                transform::ComputedOperation::Translate(tx, ty, tz) => {
+                    let tx =
+                        model::specified(tx, stacking_relative_border_box.size.width).to_f32_px();
+                    let ty =
+                        model::specified(ty, stacking_relative_border_box.size.height).to_f32_px();
+                    let tz = tz.to_f32_px();
+                    Matrix4D::create_translation(tx, ty, tz)
+                }
+                transform::ComputedOperation::Matrix(m) => {
+                    m.to_gfx_matrix()
+                }
+                transform::ComputedOperation::Skew(theta_x, theta_y) => {
+                    Matrix4D::create_skew(Radians::new(theta_x.radians()),
+                                          Radians::new(theta_y.radians()))
+                }
+            };
+
+            transform = transform.pre_mul(&matrix);
+        }
+
+        pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+    }
 }
 
 pub trait BlockFlowDisplayListBuilding {
@@ -1738,6 +1743,16 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode);
+
+    /// Changes this block's clipping region from its parent's coordinate system to its own
+    /// coordinate system if necessary (i.e. if this block is a stacking context).
+    ///
+    /// The clipping region is initially in each block's parent's coordinate system because the
+    /// parent of each block does not have enough information to determine what the child's
+    /// coordinate system is on its own. Specifically, if the child is absolutely positioned, the
+    /// parent does not know where the child's absolute position is at the time it assigns clipping
+    /// regions, because flows compute their own absolute positions.
+    fn switch_coordinate_system_if_necessary(&mut self);
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -1848,14 +1863,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let clip_owner;
-        let clip = if establishes_stacking_context {
-            clip_owner = self.base.clip.translate(&-self.base.stacking_relative_position);
-            &clip_owner
-        } else {
-            &self.base.clip
-        };
-
         self.fragment
             .build_display_list(state,
                                 &self.base.stacking_relative_position,
@@ -1867,10 +1874,60 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_section,
-                                clip,
+                                &self.base.clip,
                                 &self.base.stacking_relative_position_of_display_port);
 
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);
+    }
+
+    fn switch_coordinate_system_if_necessary(&mut self) {
+        // Avoid overflows!
+        if self.base.clip.is_max() {
+            return
+        }
+
+        if !self.fragment.establishes_stacking_context() {
+            return
+        }
+
+        let stacking_relative_border_box =
+            self.fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
+                                                       &self.base
+                                                            .early_absolute_position_info
+                                                            .relative_containing_block_size,
+                                                       self.base
+                                                           .early_absolute_position_info
+                                                           .relative_containing_block_mode,
+                                                       CoordinateSystem::Parent);
+        self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
+
+        // Account for `transform`, if applicable.
+        if self.fragment.style.get_effects().transform.0.is_none() {
+            return
+        }
+        let transform = match self.fragment
+                                  .transform_matrix(&stacking_relative_border_box)
+                                  .inverse() {
+            Some(transform) => transform,
+            None => {
+                // Singular matrix. Ignore it.
+                return
+            }
+        };
+
+        // FIXME(pcwalton): This is inaccurate: not all transforms are 2D, and not all clips are
+        // axis-aligned.
+        let bounding_rect = self.base.clip.bounding_rect();
+        let bounding_rect = Rect::new(Point2D::new(bounding_rect.origin.x.to_f32_px(),
+                                                   bounding_rect.origin.y.to_f32_px()),
+                                      Size2D::new(bounding_rect.size.width.to_f32_px(),
+                                                  bounding_rect.size.height.to_f32_px()));
+        let clip_rect = transform.to_2d().transform_rect(&bounding_rect);
+        let clip_rect = Rect::new(Point2D::new(Au::from_f32_px(clip_rect.origin.x),
+                                               Au::from_f32_px(clip_rect.origin.y)),
+                                  Size2D::new(Au::from_f32_px(clip_rect.size.width),
+                                              Au::from_f32_px(clip_rect.size.height)));
+        self.base.clip = ClippingRegion::from_rect(&clip_rect)
     }
 }
 
@@ -2117,3 +2174,4 @@ pub enum StackingContextCreationMode {
     PseudoPositioned,
     PseudoFloat,
 }
+

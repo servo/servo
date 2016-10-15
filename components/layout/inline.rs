@@ -7,8 +7,7 @@
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
 use context::{LayoutContext, SharedLayoutContext};
-use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
@@ -1547,15 +1546,11 @@ impl Flow for InlineFlow {
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
                 fragment.stacking_relative_content_box(&stacking_relative_border_box);
-            let mut clip = self.base.clip.clone();
-            fragment.adjust_clipping_region_for_children(&mut clip,
-                                                         &stacking_relative_border_box);
+
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     let flow = flow_ref::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(flow).clip = clip;
-
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;
@@ -1573,10 +1568,13 @@ impl Flow for InlineFlow {
                         stacking_relative_content_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
                         self.base.stacking_relative_position_of_display_port;
+
+                    // Write the clip in our coordinate system into the child flow. (The kid will
+                    // fix it up to be in its own coordinate system if necessary.)
+                    block_flow.base.clip = self.base.clip.clone()
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     let flow = flow_ref::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(flow).clip = clip;
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;
@@ -1585,11 +1583,12 @@ impl Flow for InlineFlow {
                         stacking_relative_border_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
                         self.base.stacking_relative_position_of_display_port;
+
+                    // As above, this is in our coordinate system for now.
+                    block_flow.base.clip = self.base.clip.clone()
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let flow = flow_ref::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(flow).clip = clip;
-
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;
@@ -1605,6 +1604,9 @@ impl Flow for InlineFlow {
                         stacking_relative_border_box.origin;
                     block_flow.base.stacking_relative_position_of_display_port =
                         self.base.stacking_relative_position_of_display_port;
+
+                    // As above, this is in our coordinate system for now.
+                    block_flow.base.clip = self.base.clip.clone()
                 }
                 _ => {}
             }

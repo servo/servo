@@ -935,7 +935,9 @@ pub struct BaseFlow {
     /// assignment.
     pub late_absolute_position_info: LateAbsolutePositionInfo,
 
-    /// The clipping region for this flow and its descendants, in layer coordinates.
+    /// The clipping region for this flow and its descendants, in the coordinate system of the
+    /// nearest ancestor stacking context. If this flow itself represents a stacking context, then
+    /// this is in the flow's own coordinate system.
     pub clip: ClippingRegion,
 
     /// The stacking-relative position of the display port.

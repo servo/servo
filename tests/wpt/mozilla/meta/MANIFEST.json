@@ -4668,6 +4668,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/relative_position_clip_a.html": [
+          {
+            "path": "css/relative_position_clip_a.html",
+            "references": [
+              [
+                "/_mozilla/css/relative_position_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/relative_position_clip_a.html"
+          }
+        ],
         "css/relative_position_vertical_percentage_a.html": [
           {
             "path": "css/relative_position_vertical_percentage_a.html",
@@ -18484,6 +18496,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/relative_position_clip_a.html": [
+        {
+          "path": "css/relative_position_clip_a.html",
+          "references": [
+            [
+              "/_mozilla/css/relative_position_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/relative_position_clip_a.html"
         }
       ],
       "css/relative_position_vertical_percentage_a.html": [
