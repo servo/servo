@@ -8,10 +8,10 @@ use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
@@ -94,7 +94,7 @@ impl History {
         if replace {
             self.window.browsing_context().replace_session_history_entry(Some(title), Some(url), state.handle());
         } else {
-            self.window.browsing_context().push_session_history_entry(&*document, Some(title), Some(url), state.handle());
+            self.window.browsing_context().push_session_history_entry(Some(title), Some(url), state.handle());
         }
 
         Ok(())

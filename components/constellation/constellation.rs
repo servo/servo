@@ -2050,7 +2050,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Notify the corresponding browsing context to activate the specified history state.
         match self.pipelines.get(&next_entry.pipeline_id) {
             Some(pipeline) => {
-                let msg = ConstellationControlMsg::ActivateHistoryState(next_entry.pipeline_id, next_entry.history_state_id);
+                let msg = ConstellationControlMsg::ActivateHistoryState(next_entry.pipeline_id,
+                        next_entry.history_state_id);
                 let _ = pipeline.script_chan.send(msg);
             },
             None => return warn!("Pipeline {:?} traversed after closure.", next_entry.pipeline_id),
