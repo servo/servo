@@ -64,7 +64,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameType, HistoryStateId, LoadData, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{ReferrerPolicy, WindowSizeType};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
 use net_traits::{IpcSend, LoadData as NetLoadData};
@@ -929,6 +929,10 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            ConstellationControlMsg::ActivateHistoryState(pipeline_id, history_state_id) =>
+                self.handle_activate_history_state(pipeline_id, history_state_id),
+            ConstellationControlMsg::RemoveHistoryStateEntries(pipeline_id, history_state_ids) =>
+                self.handle_remove_history_state_entries(pipeline_id, history_state_ids),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -2172,6 +2176,22 @@ impl ScriptThread {
             let win = context.active_window();
             let location = win.Location();
             location.Reload();
+        }
+    }
+
+    fn handle_activate_history_state(&self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        if let Some(context) = self.find_child_context(pipeline_id) {
+            let win = context.active_window();
+            let browsing_context = win.browsing_context();
+            browsing_context.activate_history_state(history_state_id);
+        }
+    }
+
+    fn handle_remove_history_state_entries(&self, pipeline_id: PipelineId, history_state_ids: Vec<HistoryStateId>) {
+        if let Some(context) = self.find_child_context(pipeline_id) {
+            let win = context.active_window();
+            let browsing_context = win.browsing_context();
+            browsing_context.remove_history_state_entries(history_state_ids);
         }
     }
 

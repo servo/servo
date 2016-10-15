@@ -16,7 +16,7 @@ use euclid::size::Size2D;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineId, TraversalDirection};
+use msg::constellation_msg::{HistoryStateId, PipelineId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
@@ -91,6 +91,8 @@ pub enum ScriptMsg {
     TraverseHistory(Option<PipelineId>, TraversalDirection),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(PipelineId, IpcSender<u32>),
+    /// Notifies the constellation that a history state entry has been pushed
+    HistoryStatePushed(PipelineId, HistoryStateId),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.

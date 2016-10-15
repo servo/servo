@@ -7,11 +7,12 @@ use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::globalscope::GlobalScope;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use ipc_channel::ipc;
@@ -56,7 +57,7 @@ impl History {
         // Step 5
         let cloned_data = try!(StructuredCloneData::write(cx, data));
         rooted!(in(cx) let mut state = NullValue());
-        cloned_data.read(GlobalRef::Window(&*self.window), state.handle_mut());
+        cloned_data.read(self.window.upcast::<GlobalScope>(), state.handle_mut());
         let url = match url {
             Some(url) => {
                 // Step 6
@@ -93,7 +94,7 @@ impl History {
         if replace {
             self.window.browsing_context().replace_session_history_entry(Some(title), Some(url), state.handle());
         } else {
-            self.window.browsing_context().push_session_history_entry(&*document, Some(title), Some(url), Some(state.handle()));
+            self.window.browsing_context().push_session_history_entry(&*document, Some(title), Some(url), state.handle());
         }
 
         Ok(())

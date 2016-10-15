@@ -28,6 +28,7 @@ use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use msg::constellation_msg::{HistoryStateId, PipelineId};
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::collections::HashMap;
 use url::Url;
@@ -116,37 +117,43 @@ impl BrowsingContext {
         next_id
     }
 
+    // TODO(ConnorGBrewster): Store and do something with `document`, `title`, and `url`
     pub fn replace_session_history_entry(&self,
-                                         title: Option<DOMString>,
-                                         url: Option<Url>,
+                                         _title: Option<DOMString>,
+                                         _url: Option<Url>,
                                          state: HandleValue) {
-        // let document = &*self.active_document();
-        // let mut history = self.history.borrow_mut();
-        // let url = match url {
-        //     Some(url) => url,
-        //     None => document.url().clone(),
-        // };
-        // let title = match title {
-        //     Some(title) => title,
-        //     None => document.Title(),
-        // };
-        // // TODO(ConnorGBrewster):
-        // // Set Document's Url to url
-        // // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
-        // // Currently you can't mutate document.url
-        // history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
         let mut states = self.states.borrow_mut();
         states.insert(self.active_state.get(), HistoryState::new(Some(state)));
+        // NOTE: We do not need to notify the constellation, as the history state id
+        // will stay the same and no new entry is added.
     }
 
     pub fn push_session_history_entry(&self,
-                                        document: &Document,
-                                        title: Option<DOMString>,
-                                        url: Option<Url>,
-                                        state: Option<HandleValue>) {
+                                      _document: &Document,
+                                      _title: Option<DOMString>,
+                                      _url: Option<Url>,
+                                      state: HandleValue) {
         let next_id = self.next_history_state_id();
         let mut states = self.states.borrow_mut();
-        states.insert(next_id, HistoryState::new(state));
+        states.insert(next_id, HistoryState::new(Some(state)));
+        self.active_state.set(next_id);
+        // Notify the constellation about this new entry so it can be added to the
+        // joint session history.
+        let window = self.active_window();
+        let global_scope = window.upcast::<GlobalScope>();
+        let msg = ConstellationMsg::HistoryStatePushed(self.id, next_id);
+        let _ = global_scope.constellation_chan().send(msg);
+    }
+
+    pub fn remove_history_state_entries(&self, history_state_ids: Vec<HistoryStateId>) {
+        for history_state_id in history_state_ids {
+            let mut states = self.states.borrow_mut();
+            states.remove(&history_state_id);
+        }
+    }
+
+    pub fn activate_history_state(&self, history_state_id: HistoryStateId) {
+        self.active_state.set(history_state_id);
     }
 
     pub fn active_document(&self) -> Root<Document> {
