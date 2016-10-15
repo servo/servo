@@ -110,7 +110,7 @@ impl BrowsingContext {
         next_id
     }
 
-    // TODO(ConnorGBrewster): Store and do something with `document`, `title`, and `url`
+    // TODO(ConnorGBrewster): Store and do something with `title`, and `url`
     pub fn replace_session_history_entry(&self,
                                          _title: Option<DOMString>,
                                          _url: Option<ServoUrl>,
@@ -122,7 +122,6 @@ impl BrowsingContext {
     }
 
     pub fn push_session_history_entry(&self,
-                                      _document: &Document,
                                       _title: Option<DOMString>,
                                       _url: Option<ServoUrl>,
                                       state: HandleValue) {
