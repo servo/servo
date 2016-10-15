@@ -753,6 +753,17 @@ impl BlockFlow {
         }
     }
 
+    /// Writes in the size of the relative containing block for children. (This information
+    /// is also needed to handle RTL.)
+    fn propagate_early_absolute_position_info_to_children(&mut self) {
+        for kid in self.base.child_iter_mut() {
+            flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                relative_containing_block_size: self.fragment.content_box().size,
+                relative_containing_block_mode: self.fragment.style().writing_mode,
+            }
+        }
+    }
+
     /// Assign block-size for current flow.
     ///
     /// * Collapse margins for flow's children and set in-flow child flows' block offsets now that
@@ -1011,16 +1022,9 @@ impl BlockFlow {
                 self.fragment.border_box.size.block = block_size;
             }
 
-            // Write in the size of the relative containing block for children. (This information
-            // is also needed to handle RTL.)
-            for kid in self.base.child_iter_mut() {
-                flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
-                    relative_containing_block_size: self.fragment.content_box().size,
-                    relative_containing_block_mode: self.fragment.style().writing_mode,
-                };
-            }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                self.propagate_early_absolute_position_info_to_children();
                 return None
             }
 
@@ -1050,10 +1054,9 @@ impl BlockFlow {
             // position.
             self.fragment.border_box.size.block = cur_b;
             self.fragment.border_box.start.b = Au(0);
+            self.base.position.size.block = cur_b;
 
-            if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                self.base.position.size.block = cur_b;
-            }
+            self.propagate_early_absolute_position_info_to_children();
 
             // Translate the current set of floats back into the parent coordinate system in the
             // inline direction, and store them in the flow so that flows that come later in the

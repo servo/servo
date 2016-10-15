@@ -4668,6 +4668,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/relative_position_vertical_percentage_a.html": [
+          {
+            "path": "css/relative_position_vertical_percentage_a.html",
+            "references": [
+              [
+                "/_mozilla/css/relative_position_vertical_percentage_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/relative_position_vertical_percentage_a.html"
+          }
+        ],
         "css/removeproperty.html": [
           {
             "path": "css/removeproperty.html",
@@ -18472,6 +18484,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/relative_position_vertical_percentage_a.html": [
+        {
+          "path": "css/relative_position_vertical_percentage_a.html",
+          "references": [
+            [
+              "/_mozilla/css/relative_position_vertical_percentage_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/relative_position_vertical_percentage_a.html"
         }
       ],
       "css/removeproperty.html": [
