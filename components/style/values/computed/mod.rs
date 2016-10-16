@@ -13,7 +13,8 @@ pub use cssparser::Color as CSSColor;
 pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Either, None_};
-pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData, UrlOrNone};
+pub use super::specified::{Angle, BorderStyle, Time, UrlOrNone};
+pub use super::specified::url::UrlExtraData;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 

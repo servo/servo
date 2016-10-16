@@ -10,10 +10,10 @@
 use cssparser::Color as CSSColor;
 use std::fmt;
 use style_traits::ToCss;
-use url::Url;
 use values::computed::{Context, Length, LengthOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified::{self, AngleOrCorner, SizeKeyword, UrlExtraData};
+use values::specified::{self, AngleOrCorner, SizeKeyword};
+use values::specified::url::SpecifiedUrl;
 
 
 impl ToComputedValue for specified::Image {
@@ -22,8 +22,8 @@ impl ToComputedValue for specified::Image {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Image {
         match *self {
-            specified::Image::Url(ref url, ref extra_data) => {
-                Image::Url(url.clone(), extra_data.clone())
+            specified::Image::Url(ref url_value) => {
+                Image::Url(url_value.clone())
             },
             specified::Image::Gradient(ref gradient) => {
                 Image::Gradient(gradient.to_computed_value(context))
@@ -34,8 +34,8 @@ impl ToComputedValue for specified::Image {
     #[inline]
     fn from_computed_value(computed: &Image) -> Self {
         match *computed {
-            Image::Url(ref url, ref extra_data) => {
-                specified::Image::Url(url.clone(), extra_data.clone())
+            Image::Url(ref url_value) => {
+                specified::Image::Url(url_value.clone())
             },
             Image::Gradient(ref linear_gradient) => {
                 specified::Image::Gradient(
@@ -51,14 +51,14 @@ impl ToComputedValue for specified::Image {
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     Gradient(Gradient),
 }
 
 impl fmt::Debug for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Image::Url(ref url, ref _extra_data) => write!(f, "url(\"{}\")", url),
+            Image::Url(ref url) => url.to_css(f),
             Image::Gradient(ref grad) => {
                 if grad.repeating {
                     let _ = write!(f, "repeating-");
@@ -75,9 +75,7 @@ impl fmt::Debug for Image {
 impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            Image::Url(ref url, _) => {
-                url.to_css(dest)
-            }
+            Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest)
         }
     }
