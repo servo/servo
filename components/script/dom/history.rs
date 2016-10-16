@@ -150,7 +150,7 @@ impl HistoryMethods for History {
         self.traverse_history(TraversalDirection::Forward(1));
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-pushtstae
+    // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     fn PushState(&self,
                  cx: *mut JSContext,
                  data: HandleValue,
