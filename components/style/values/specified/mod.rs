@@ -5,11 +5,8 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-#[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use parser::ParserContext;
-#[cfg(feature = "gecko")]
-use parser::ParserContextExtraData;
+use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
 use std::fmt;
@@ -17,7 +14,6 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
-use url::Url;
 
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -30,6 +26,7 @@ pub mod basic_shape;
 pub mod image;
 pub mod length;
 pub mod position;
+pub mod url;
 
 impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
@@ -259,42 +256,6 @@ impl Angle {
             "turn" => Ok(Angle(value * RAD_PER_TURN)),
             "rad" => Ok(Angle(value)),
              _ => Err(())
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct UrlExtraData {
-    #[cfg(feature = "gecko")]
-    pub base: GeckoArcURI,
-    #[cfg(feature = "gecko")]
-    pub referrer: GeckoArcURI,
-    #[cfg(feature = "gecko")]
-    pub principal: GeckoArcPrincipal,
-}
-
-impl UrlExtraData {
-    #[cfg(feature = "servo")]
-    pub fn make_from(_: &ParserContext) -> Option<UrlExtraData> {
-        Some(UrlExtraData { })
-    }
-
-    #[cfg(feature = "gecko")]
-    pub fn make_from(context: &ParserContext) -> Option<UrlExtraData> {
-        match context.extra_data {
-            ParserContextExtraData {
-                base: Some(ref base),
-                referrer: Some(ref referrer),
-                principal: Some(ref principal),
-            } => {
-                Some(UrlExtraData {
-                    base: base.clone(),
-                    referrer: referrer.clone(),
-                    principal: principal.clone(),
-                })
-            },
-            _ => None,
         }
     }
 }
@@ -546,7 +507,7 @@ impl ToCss for Opacity {
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum UrlOrNone {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     None,
 }
 
@@ -556,13 +517,8 @@ impl NoViewportPercentage for UrlOrNone {}
 impl ToCss for UrlOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            UrlOrNone::Url(ref url, _) => {
-                url.to_css(dest)
-            }
-            UrlOrNone::None => {
-                try!(dest.write_str("none"));
-                Ok(())
-            }
+            UrlOrNone::Url(ref url) => url.to_css(dest),
+            UrlOrNone::None => dest.write_str("none"),
         }
     }
 }
@@ -573,17 +529,6 @@ impl UrlOrNone {
             return Ok(UrlOrNone::None);
         }
 
-        let url = context.parse_url(&*try!(input.expect_url()));
-        match UrlExtraData::make_from(context) {
-            Some(extra_data) => {
-                Ok(UrlOrNone::Url(url, extra_data))
-            },
-            _ => {
-                // FIXME(heycam) should ensure we always have a principal, etc., when parsing
-                // style attributes and re-parsing due to CSS Variables.
-                println!("stylo: skipping UrlOrNone declaration without ParserContextExtraData");
-                Err(())
-            },
-        }
+        Ok(UrlOrNone::Url(try!(SpecifiedUrl::parse(context, input))))
     }
 }

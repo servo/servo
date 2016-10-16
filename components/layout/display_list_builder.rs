@@ -612,14 +612,16 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                         style);
                     }
                 }
-                Some(computed::Image::Url(ref image_url, ref _extra_data)) => {
-                    self.build_display_list_for_background_image(state,
-                                                                 style,
-                                                                 display_list_section,
-                                                                 &bounds,
-                                                                 &clip,
-                                                                 image_url,
-                                                                 i);
+                Some(computed::Image::Url(ref image_url)) => {
+                    if let Some(url) = image_url.url() {
+                        self.build_display_list_for_background_image(state,
+                                                                     style,
+                                                                     display_list_section,
+                                                                     &bounds,
+                                                                     &clip,
+                                                                     url,
+                                                                     i);
+                    }
                 }
             }
         }
