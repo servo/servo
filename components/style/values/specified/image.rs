@@ -11,49 +11,45 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::f32::consts::PI;
 use std::fmt;
+use std::sync::Arc;
 use style_traits::ToCss;
 use url::Url;
 use values::computed::ComputedValueAsSpecified;
-use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, UrlExtraData};
+use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
 use values::specified::position::Position;
+use values::specified::url::{SpecifiedUrl, UrlExtraData};
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     Gradient(Gradient),
 }
 
 impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            Image::Url(ref url, ref _extra_data) => {
-                url.to_css(dest)
-            }
-            Image::Gradient(ref gradient) => gradient.to_css(dest)
+            Image::Url(ref url_value) => url_value.to_css(dest),
+            Image::Gradient(ref gradient) => gradient.to_css(dest),
         }
     }
 }
 
 impl Image {
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
-        if let Ok(url) = input.try(|input| input.expect_url()) {
-            match UrlExtraData::make_from(context) {
-                Some(extra_data) => {
-                    Ok(Image::Url(context.parse_url(&url), extra_data))
-                },
-                None => {
-                    // FIXME(heycam) should ensure we always have a principal, etc., when
-                    // parsing style attributes and re-parsing due to CSS Variables.
-                    println!("stylo: skipping declaration without ParserContextExtraData");
-                    Err(())
-                },
-            }
-        } else {
-            Ok(Image::Gradient(try!(Gradient::parse_function(input))))
+        if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+            return Ok(Image::Url(url));
         }
+
+        Ok(Image::Gradient(try!(Gradient::parse_function(input))))
+    }
+
+    /// Creates an already specified image value from an already resolved URL
+    /// for insertion in the cascade.
+    pub fn for_cascade(url: Option<Arc<Url>>, extra_data: UrlExtraData) -> Self {
+        Image::Url(SpecifiedUrl::for_cascade(url, extra_data))
     }
 }
 
