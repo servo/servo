@@ -26,7 +26,7 @@ interface HTMLSelectElement : HTMLElement {
 
   //readonly attribute HTMLCollection selectedOptions;
   //         attribute long selectedIndex;
-  //         attribute DOMString value;
+  attribute DOMString value;
 
   //readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;

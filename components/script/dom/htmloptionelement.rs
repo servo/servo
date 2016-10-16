@@ -64,6 +64,10 @@ impl HTMLOptionElement {
         self.selectedness.set(selected);
     }
 
+    pub fn set_dirtiness(&self, dirtiness: bool) {
+        self.dirtiness.set(dirtiness);
+    }
+
     fn pick_if_selected_and_reset(&self) {
         if let Some(select) = self.upcast::<Node>().ancestors()
                 .filter_map(Root::downcast::<HTMLSelectElement>)
