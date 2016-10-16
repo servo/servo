@@ -1036,11 +1036,13 @@ fn static_assert() {
         use properties::longhands::_moz_binding::computed_value::T as BindingValue;
         match v {
             BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
-            BindingValue::Url(ref url, ref extra_data) => {
+            BindingValue::Url(ref url) => {
+                let extra_data = url.extra_data();
+                let (ptr, len) = url.as_slice_components();
                 unsafe {
                     Gecko_SetMozBinding(&mut self.gecko,
-                                        url.as_str().as_ptr(),
-                                        url.as_str().len() as u32,
+                                        ptr,
+                                        len as u32,
                                         extra_data.base.get(),
                                         extra_data.referrer.get(),
                                         extra_data.principal.get());
@@ -1441,11 +1443,13 @@ fn static_assert() {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            UrlOrNone::Url(ref url, ref extra_data) => {
+            UrlOrNone::Url(ref url) => {
+                let (ptr, len) = url.as_slice_components();
+                let extra_data = url.extra_data();
                 unsafe {
                     Gecko_SetListStyleImage(&mut self.gecko,
-                                            url.as_str().as_ptr(),
-                                            url.as_str().len() as u32,
+                                            ptr,
+                                            len as u32,
                                             extra_data.base.get(),
                                             extra_data.referrer.get(),
                                             extra_data.principal.get());
