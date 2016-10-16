@@ -154,20 +154,20 @@ impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-pushtstate
     #[allow(unsafe_code)]
     unsafe fn PushState(&self,
-                 cx: *mut JSContext,
-                 data: HandleValue,
-                 title: DOMString,
-                 url: Option<USVString>) -> ErrorResult {
+                        cx: *mut JSContext,
+                        data: HandleValue,
+                        title: DOMString,
+                        url: Option<USVString>) -> ErrorResult {
         self.add_state(cx, data, title, url, false)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     #[allow(unsafe_code)]
     unsafe fn ReplaceState(&self,
-                    cx: *mut JSContext,
-                    data: HandleValue,
-                    title: DOMString,
-                    url: Option<USVString>) -> ErrorResult {
+                           cx: *mut JSContext,
+                           data: HandleValue,
+                           title: DOMString,
+                           url: Option<USVString>) -> ErrorResult {
         self.add_state(cx, data, title, url, true)
     }
 }
