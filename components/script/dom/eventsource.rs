@@ -31,6 +31,9 @@ use url::Url;
 header! { (LastEventId, "Last-Event-ID") => [String] }
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+struct GenerationId(u32);
+
+#[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 /// https://html.spec.whatwg.org/multipage/#dom-eventsource-readystate
 enum ReadyState {
     Connecting = 0,
@@ -43,13 +46,16 @@ pub struct EventSource {
     eventtarget: EventTarget,
     url: DOMRefCell<Option<Url>>,
     request: DOMRefCell<Option<RequestInit>>,
+    last_event_id: DOMRefCell<DOMString>,
+    generation_id: Cell<GenerationId>,
+
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
-    last_event_id: DOMRefCell<DOMString>
 }
 
 struct EventSourceContext {
-    event_source: Trusted<EventSource>
+    event_source: Trusted<EventSource>,
+    gen_id: GenerationId
 }
 
 impl EventSourceContext {
@@ -58,6 +64,9 @@ impl EventSourceContext {
         let runnable = box AnnounceConnectionRunnable {
             event_source: self.event_source.clone()
         };
+        if self.gen_id != self.event_source.root().generation_id.get() {
+            return;
+        }
         let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
     }
 
@@ -66,6 +75,9 @@ impl EventSourceContext {
         let runnable = box FailConnectionRunnable {
             event_source: self.event_source.clone()
         };
+        if self.gen_id != self.event_source.root().generation_id.get() {
+            return;
+        }
         let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
     }
 
@@ -78,13 +90,23 @@ impl EventSourceContext {
             event_source: self.event_source.clone(),
             done_chan: sender
         };
+        if self.gen_id != self.event_source.root().generation_id.get() {
+            return;
+        }
         let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
         // Step 4
+        if self.gen_id != self.event_source.root().generation_id.get() {
+            return;
+        }
         let _ = receiver.recv();
         // Step 5
         let runnable = box RefetchRequestRunnable {
             event_source: self.event_source.clone(),
+            gen_id: self.gen_id
         };
+        if self.gen_id != self.event_source.root().generation_id.get() {
+            return;
+        }
         let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
     }
 }
@@ -129,7 +151,11 @@ impl FetchResponseListener for EventSourceContext {
     }
 }
 
-impl PreInvoke for EventSourceContext {}
+impl PreInvoke for EventSourceContext {
+    fn should_invoke(&self) -> bool {
+        self.event_source.root().generation_id.get() == self.gen_id
+    }
+}
 
 impl EventSource {
     fn new_inherited(with_credentials: bool) -> EventSource {
@@ -137,9 +163,11 @@ impl EventSource {
             eventtarget: EventTarget::new_inherited(),
             url: DOMRefCell::new(None),
             request: DOMRefCell::new(None),
+            last_event_id: DOMRefCell::new(DOMString::from("")),
+            generation_id: Cell::new(GenerationId(0)),
+
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials: with_credentials,
-            last_event_id: DOMRefCell::new(DOMString::from(""))
         }
     }
 
@@ -202,7 +230,8 @@ impl EventSource {
         *ev.request.borrow_mut() = Some(request.clone());
         // Step 14
         let context = EventSourceContext {
-            event_source: Trusted::new(&ev)
+            event_source: Trusted::new(&ev),
+            gen_id: ev.generation_id.get()
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
@@ -246,8 +275,9 @@ impl EventSourceMethods for EventSource {
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource-close
     fn Close(&self) {
+        let GenerationId(prev_id) = self.generation_id.get();
+        self.generation_id.set(GenerationId(prev_id + 1));
         self.ready_state.set(ReadyState::Closed);
-        // TODO: Terminate ongoing fetch
     }
 }
 
@@ -311,6 +341,7 @@ impl Runnable for ReestablishConnectionRunnable {
 
 pub struct RefetchRequestRunnable {
     event_source: Trusted<EventSource>,
+    gen_id: GenerationId
 }
 
 impl Runnable for RefetchRequestRunnable {
@@ -332,7 +363,8 @@ impl Runnable for RefetchRequestRunnable {
         }
         // Step 5.4
         let context = EventSourceContext {
-            event_source: self.event_source.clone()
+            event_source: self.event_source.clone(),
+            gen_id: self.gen_id
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
