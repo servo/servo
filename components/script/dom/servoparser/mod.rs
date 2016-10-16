@@ -34,6 +34,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use std::cell::Cell;
+use std::collections::VecDeque;
 use url::Url;
 use util::resource_files::read_resource_file;
 use xml5ever::tokenizer::XmlTokenizer;
@@ -51,7 +52,7 @@ pub struct ServoParser {
     /// does not correspond to a page load.
     pipeline: Option<PipelineId>,
     /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<Vec<String>>,
+    pending_input: DOMRefCell<VecDeque<String>>,
     /// The tokenizer of this parser.
     tokenizer: DOMRefCell<Tokenizer>,
     /// Whether to expect any further input from the associated network request.
@@ -78,7 +79,7 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
             pipeline: pipeline,
-            pending_input: DOMRefCell::new(vec![]),
+            pending_input: DOMRefCell::new(VecDeque::new()),
             tokenizer: DOMRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
@@ -111,7 +112,7 @@ impl ServoParser {
     }
 
     fn push_input_chunk(&self, chunk: String) {
-        self.pending_input.borrow_mut().push(chunk);
+        self.pending_input.borrow_mut().push_back(chunk);
     }
 
     fn take_next_input_chunk(&self) -> Option<String> {
@@ -119,7 +120,7 @@ impl ServoParser {
         if pending_input.is_empty() {
             None
         } else {
-            Some(pending_input.remove(0))
+            pending_input.pop_front()
         }
     }
 
