@@ -373,7 +373,10 @@ impl EventTarget {
             None => self.downcast::<Window>().unwrap().Document(),
         };
 
-        // TODO step 1.2 (browsing context/scripting enabled)
+        // Step 1.2
+        if !document.is_scripting_enabled() {
+            return None;
+        }
 
         // Step 1.3
         let body: Vec<u16> = handler.source.encode_utf16().collect();
