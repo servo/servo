@@ -464,6 +464,21 @@ extern "C" {
      -> *mut nsStyleGradient;
 }
 extern "C" {
+    pub fn Gecko_SetListStyleImageNone(style_struct: *mut nsStyleList);
+}
+extern "C" {
+    pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
+                                   string_bytes: *const u8,
+                                   string_length: u32,
+                                   base_uri: *mut ThreadSafeURIHolder,
+                                   referrer: *mut ThreadSafeURIHolder,
+                                   principal: *mut ThreadSafePrincipalHolder);
+}
+extern "C" {
+    pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
+                                        src: *const nsStyleList);
+}
+extern "C" {
     pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
                                string_bytes: *const u8, string_length: u32,
                                base_uri: *mut ThreadSafeURIHolder,

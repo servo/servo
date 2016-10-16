@@ -10440,8 +10440,8 @@ fn bindgen_test_layout_nsStyleQuoteValues() {
 #[derive(Debug)]
 pub struct nsStyleList {
     pub mListStylePosition: u8,
+    pub mListStyleImage: RefPtr<nsStyleImageRequest>,
     pub mCounterStyle: RefPtr<CounterStyle>,
-    pub mListStyleImage: RefPtr<imgRequestProxy>,
     pub mQuotes: RefPtr<nsStyleQuoteValues>,
     pub mImageRegion: nsRect,
 }
