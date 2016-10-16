@@ -4,9 +4,16 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+  setup({ allow_uncaught_exception: true });
   test(function() {
     var invoked = false;
-    var dom = (new DOMParser()).parseFromString("<div id=\"has-event-handler\" onclick=\"invoked = true;\"></div>", "text/html");
+    window.addEventListener("error", function() {
+      invoked = true;
+    });
+
+    // Make sure that `this_will_error` will in fact error when it's referenced
+    assert_equals(typeof this_will_error, "undefined");
+    var dom = (new DOMParser()).parseFromString("<div id=\"has-event-handler\" onclick=\"this_will_error;\"></div>", "text/html");
     var click = new MouseEvent("click");
     dom.getElementById("has-event-handler").dispatchEvent(click);
     assert_equals(invoked, false);
