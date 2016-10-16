@@ -37745,6 +37745,12 @@
         ]
       },
       "testharness": {
+        "cookies/path/match.html": [
+          {
+            "path": "cookies/path/match.html",
+            "url": "/cookies/path/match.html"
+          }
+        ],
         "html/semantics/forms/the-form-element/form-action-url.html": [
           {
             "path": "html/semantics/forms/the-form-element/form-action-url.html",
