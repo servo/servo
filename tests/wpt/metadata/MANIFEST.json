@@ -37756,6 +37756,18 @@
             "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
             "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
           }
+        ],
+        "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html": [
+          {
+            "path": "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html",
+            "url": "/html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html"
+          }
+        ],
+        "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_enabled.html": [
+          {
+            "path": "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_enabled.html",
+            "url": "/html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_enabled.html"
+          }
         ]
       }
     },

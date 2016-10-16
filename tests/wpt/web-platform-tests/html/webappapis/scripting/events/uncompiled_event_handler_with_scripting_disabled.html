@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Uncompiled event handler should return null with scripting disabled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    var invoked = false;
+    var dom = (new DOMParser()).parseFromString("<div id=\"has-event-handler\" onclick=\"invoked = true;\"></div>", "text/html");
+    var click = new MouseEvent("click");
+    dom.getElementById("has-event-handler").dispatchEvent(click);
+    assert_equals(invoked, false);
+  });
+</script>
