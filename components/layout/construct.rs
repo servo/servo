@@ -43,7 +43,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
+use style::computed_values::{caption_side, display, empty_cells, float, list_style_image, list_style_position};
 use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
@@ -1264,14 +1264,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     fn build_flow_for_list_item(&mut self, node: &ConcreteThreadSafeLayoutNode, flotation: float::T)
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
-        let marker_fragments = match node.style(self.style_context()).get_list().list_style_image.0 {
-            Some(ref url) => {
+        let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
+            list_style_image::T::Url(ref url, ref _extra_data) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             Some((*url).clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
-            None => {
+            list_style_image::T::None => {
                 match ListStyleTypeContent::from_list_style_type(node.style(self.style_context())
                                                                      .get_list()
                                                                      .list_style_type) {

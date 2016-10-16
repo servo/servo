@@ -13,7 +13,7 @@ use super::LocalToCss;
 pub use cssparser::Color as CSSColor;
 pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData};
+pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData, UrlOrNone};
 
 pub mod basic_shape;
 pub mod image;

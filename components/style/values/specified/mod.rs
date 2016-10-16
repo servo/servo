@@ -18,6 +18,7 @@ use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use super::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
+use url::Url;
 
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -1450,5 +1451,51 @@ impl ToComputedValue for Opacity {
 impl ToCss for Opacity {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         self.0.to_css(dest)
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum UrlOrNone {
+    Url(Url, UrlExtraData),
+    None,
+}
+
+impl ComputedValueAsSpecified for UrlOrNone {}
+impl NoViewportPercentage for UrlOrNone {}
+
+impl ToCss for UrlOrNone {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use values::LocalToCss;
+        match *self {
+            UrlOrNone::Url(ref url, _) => {
+                url.to_css(dest)
+            }
+            UrlOrNone::None => {
+                try!(dest.write_str("none"));
+                Ok(())
+            }
+        }
+    }
+}
+
+impl UrlOrNone {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<UrlOrNone, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(UrlOrNone::None);
+        }
+
+        let url = context.parse_url(&*try!(input.expect_url()));
+        match UrlExtraData::make_from(context) {
+            Some(extra_data) => {
+                Ok(UrlOrNone::Url(url, extra_data))
+            },
+            _ => {
+                // FIXME(heycam) should ensure we always have a principal, etc., when parsing
+                // style attributes and re-parsing due to CSS Variables.
+                println!("stylo: skipping UrlOrNone declaration without ParserContextExtraData");
+                Err(())
+            },
+        }
     }
 }

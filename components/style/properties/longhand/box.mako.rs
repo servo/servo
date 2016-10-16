@@ -920,73 +920,8 @@ ${helpers.single_keyword("-moz-appearance",
                          animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
-<%helpers:longhand name="-moz-binding" products="gecko" animatable="False" disable_when_testing="True">
-    use cssparser::{CssStringWriter, ToCss};
-    use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-    use std::fmt::{self, Write};
-    use url::Url;
-    use values::specified::UrlExtraData;
-    use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
-
-    #[derive(PartialEq, Clone, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Url(Url, UrlExtraData),
-        None,
-    }
-
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            use values::LocalToCss;
-            match *self {
-                SpecifiedValue::Url(ref url, _) => {
-                    url.to_css(dest)
-                }
-                SpecifiedValue::None => {
-                    try!(dest.write_str("none"));
-                    Ok(())
-                }
-            }
-        }
-    }
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    #[inline] pub fn get_initial_value() -> SpecifiedValue {
-        SpecifiedValue::None
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue::None);
-        }
-
-        let url = context.parse_url(&*try!(input.expect_url()));
-        match context.extra_data {
-            ParserContextExtraData {
-                base: Some(ref base),
-                referrer: Some(ref referrer),
-                principal: Some(ref principal),
-            } => {
-                let extra_data = UrlExtraData {
-                    base: base.clone(),
-                    referrer: referrer.clone(),
-                    principal: principal.clone(),
-                };
-                Ok(SpecifiedValue::Url(url, extra_data))
-            },
-            _ => {
-                // FIXME(heycam) should ensure we always have a principal, etc., when parsing
-                // style attributes and re-parsing due to CSS Variables.
-                println!("stylo: skipping -moz-binding declaration without ParserContextExtraData");
-                Err(())
-            },
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("-moz-binding", "UrlOrNone", "computed_value::T::None",
+                          needs_context=True,
+                          products="gecko",
+                          animatable="False",
+                          disable_when_testing="True")}
