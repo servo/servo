@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLSelectElement selectedIndex</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<form id=form>
+  <select id=empty></select>
+
+  <select id=default>
+    <option></option>
+    <option></option>
+    <option></option>
+    <option></option>
+    <option></option>
+  </select>
+
+  <select id=disabled>
+    <option disabled></option>
+    <option></option>
+  </select>
+
+  <select id=selected>
+    <option></option>
+    <option selected></option>
+  </select>
+</form>
+
+<script>
+test(function () {
+  var select = document.getElementById('empty');
+  assert_equals(select.selectedIndex, -1);
+}, "get empty");
+
+test(function () {
+  var select = document.getElementById('default');
+  assert_equals(select.selectedIndex, 0);
+}, "get default");
+
+test(function () {
+  var select = document.getElementById('disabled');
+  assert_equals(select.selectedIndex, 1);
+}, "get disabled");
+
+test(function () {
+  var select = document.getElementById('selected');
+  assert_equals(select.selectedIndex, 1);
+}, "get unselected");
+
+test(function () {
+  var select = document.getElementById('empty');
+  select.selectedIndex = 1;
+  assert_equals(select.selectedIndex, -1);
+}, "set empty");
+
+test(function () {
+  var select = document.getElementById('default');
+  assert_equals(select.selectedIndex, 0);
+  select.selectedIndex = 2;
+  assert_equals(select.selectedIndex, 2);
+}, "set");
+
+test(function () {
+  var select = document.getElementById('selected');
+  var form = document.getElementById('form');
+  assert_equals(select.selectedIndex, 1);
+  select.selectedIndex = 0;
+  assert_equals(select.selectedIndex, 0);
+  form.reset();
+  assert_equals(select.selectedIndex, 1);
+}, "set and reset");
+</script>
