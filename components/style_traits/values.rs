@@ -3,9 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::CssStringWriter;
-use std::fmt::{self, Write};
-use url::Url;
+use std::fmt;
 
 /// The real ToCss trait can't be implemented for types in crates that don't
 /// depend on each other.
@@ -27,15 +25,6 @@ pub trait ToCss {
 impl ToCss for Au {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{}px", self.to_f64_px())
-    }
-}
-
-impl ToCss for Url {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("url(\""));
-        try!(write!(CssStringWriter::new(dest), "{}", self));
-        try!(dest.write_str("\")"));
-        Ok(())
     }
 }
 

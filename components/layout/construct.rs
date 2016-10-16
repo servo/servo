@@ -1205,9 +1205,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            list_style_image::T::Url(ref url, ref _extra_data) => {
+            list_style_image::T::Url(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            Some((*url).clone()),
+                                                            url_value.url().map(|u| (**u).clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }

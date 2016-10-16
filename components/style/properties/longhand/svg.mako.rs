@@ -149,20 +149,21 @@ ${helpers.single_keyword("mask-composite",
                           has_uncacheable_values="${product == 'gecko'}">
     use std::fmt;
     use style_traits::ToCss;
-    use url::Url;
-    use values::specified::{Image, UrlExtraData};
+    use std::sync::Arc;
+    use values::specified::Image;
+    use values::specified::url::SpecifiedUrl;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
-        use url::Url;
         use values::computed;
+        use values::specified::url::SpecifiedUrl;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Image(computed::Image),
-            Url(Url, computed::UrlExtraData),
+            Url(SpecifiedUrl),
             None
         }
 
@@ -171,7 +172,7 @@ ${helpers.single_keyword("mask-composite",
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Image(ref image) => image.to_css(dest),
-                    T::Url(ref url, _) => url.to_css(dest),
+                    T::Url(ref url) => url.to_css(dest),
                 }
             }
         }
@@ -183,7 +184,7 @@ ${helpers.single_keyword("mask-composite",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Image(Image),
-        Url(Url, UrlExtraData),
+        Url(SpecifiedUrl),
         None
     }
 
@@ -191,7 +192,7 @@ ${helpers.single_keyword("mask-composite",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Image(ref image) => image.to_css(dest),
-                SpecifiedValue::Url(ref url, _) => url.to_css(dest),
+                SpecifiedValue::Url(ref url) => url.to_css(dest),
                 SpecifiedValue::None => dest.write_str("none"),
             }
         }
@@ -211,11 +212,16 @@ ${helpers.single_keyword("mask-composite",
         } else {
             let image = try!(Image::parse(context, input));
             match image {
-                Image::Url(url, data) => {
-                    if url.fragment().is_some() {
-                        Ok(SpecifiedValue::Url(url, data))
+                Image::Url(url_value) => {
+                    let has_valid_url = match url_value.url() {
+                        Some(url) => url.fragment().is_some(),
+                        None => false,
+                    };
+
+                    if has_valid_url {
+                        Ok(SpecifiedValue::Url(url_value))
                     } else {
-                        Ok(SpecifiedValue::Image(Image::Url(url, data)))
+                        Ok(SpecifiedValue::Image(Image::Url(url_value)))
                     }
                 }
                 image => Ok(SpecifiedValue::Image(image))
@@ -231,8 +237,8 @@ ${helpers.single_keyword("mask-composite",
                 SpecifiedValue::None => computed_value::T::None,
                 SpecifiedValue::Image(ref image) =>
                     computed_value::T::Image(image.to_computed_value(context)),
-                SpecifiedValue::Url(ref url, ref data) =>
-                    computed_value::T::Url(url.clone(), data.clone()),
+                SpecifiedValue::Url(ref url) =>
+                    computed_value::T::Url(url.clone()),
             }
         }
 
@@ -242,8 +248,8 @@ ${helpers.single_keyword("mask-composite",
                 computed_value::T::None => SpecifiedValue::None,
                 computed_value::T::Image(ref image) =>
                     SpecifiedValue::Image(ToComputedValue::from_computed_value(image)),
-                computed_value::T::Url(ref url, ref data) =>
-                    SpecifiedValue::Url(url.clone(), data.clone()),
+                computed_value::T::Url(ref url) =>
+                    SpecifiedValue::Url(url.clone()),
             }
         }
     }

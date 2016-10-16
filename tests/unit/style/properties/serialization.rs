@@ -9,9 +9,8 @@ pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::values::RGBA;
-pub use style::values::specified::UrlExtraData;
+pub use style::values::specified::url::{UrlExtraData, SpecifiedUrl};
 pub use style_traits::ToCss;
-pub use url::Url;
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -430,9 +429,7 @@ mod shorthand_serialization {
 
             let position = DeclaredValue::Value(ListStylePosition::inside);
             let image = DeclaredValue::Value(ListStyleImage::Url(
-                Url::parse("http://servo/test.png").unwrap(),
-                UrlExtraData {},
-            ));
+                SpecifiedUrl::new_for_testing("http://servo/test.png")));
             let style_type = DeclaredValue::Value(ListStyleType::disc);
 
             properties.push(PropertyDeclaration::ListStylePosition(position));
@@ -747,8 +744,7 @@ mod shorthand_serialization {
             let attachment = single_vec_keyword_value!(attachment, scroll);
 
             let image = single_vec_value!(image,
-                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(),
-                                UrlExtraData {})));
+                Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
@@ -802,8 +798,7 @@ mod shorthand_serialization {
             let attachment = single_vec_keyword_value!(attachment, scroll);
 
             let image = single_vec_value!(image,
-                        Some(Image::Url(Url::parse("http://servo/test.png").unwrap(),
-                                        UrlExtraData {})));
+                        Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
@@ -917,8 +912,7 @@ mod shorthand_serialization {
 
             let image = single_vec_value_typedef!(image,
                 image::single_value::SpecifiedValue::Image(
-                    Image::Url(Url::parse("http://servo/test.png").unwrap(),
-                    UrlExtraData {})));
+                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
@@ -968,8 +962,7 @@ mod shorthand_serialization {
 
             let image = single_vec_value_typedef!(image,
                 image::single_value::SpecifiedValue::Image(
-                    Image::Url(Url::parse("http://servo/test.png").unwrap(),
-                    UrlExtraData {})));
+                    Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
