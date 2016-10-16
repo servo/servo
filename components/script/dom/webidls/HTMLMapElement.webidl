@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlmapelement
-[Exposed=(Window,Worker)]
 interface HTMLMapElement : HTMLElement {
   //         attribute DOMString name;
   //readonly attribute HTMLCollection areas;
