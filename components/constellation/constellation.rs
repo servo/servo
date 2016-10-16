@@ -1546,10 +1546,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_history_state_pushed(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
         let frame_id = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline.frame,
+            Some(pipeline) => pipeline.frame_id,
             None => return warn!("Pipeline closed after history state was pushed."),
         };
-        let frame = match frame_id.and_then(|frame_id| self.frames.get_mut(&frame_id)) {
+        let frame = match self.frames.get_mut(&frame_id) {
             Some(frame) => frame,
             None => return warn!("Frame closed after history state was pushed."),
         };
