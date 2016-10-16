@@ -610,7 +610,7 @@ def check_for_possible_duplicate_json_keys(key_value_pairs):
         
 def check_json_ordered(key_value_pairs):
     for i in range (0, len(key_value_pairs)-1):
-        if min(key_value_pairs[i][0], key_value_pairs[i+1][0]) is not key_value_pairs[i][0]:
+        if(key_value_pairs[i][0]>key_value_pairs[i+1][0]:
             raise KeyError(key_value_pairs[i+1][0])
 
 
