@@ -48,6 +48,7 @@ extern crate fnv;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate html5ever;
+#[macro_use]
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image;
