@@ -6,8 +6,6 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-#![allow(unsafe_code)]
-
 use dom::{OpaqueNode, TNode, UnsafeNode};
 use rayon;
 use std::sync::atomic::Ordering;
@@ -16,17 +14,6 @@ use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 use util::opts;
 
 pub const CHUNK_SIZE: usize = 64;
-
-// NB: We build this struct because the closure sent to rayon needs to be
-// 'static :-(
-struct TopDownData<SharedContext: Sync + 'static> {
-    queue: *const rayon::ThreadPool,
-    context: *const SharedContext,
-    root: OpaqueNode,
-    nodes: Box<[UnsafeNode]>,
-}
-
-unsafe impl<SharedContext: Sync + 'static> Send for TopDownData<SharedContext> {}
 
 pub fn traverse_dom<N, C>(root: N,
                           shared_context: &C::SharedContext,
@@ -39,21 +26,12 @@ pub fn traverse_dom<N, C>(root: N,
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
     }
 
-    let data = TopDownData::<C::SharedContext> {
-        root: root.opaque(),
-        queue: queue,
-        context: shared_context,
-        nodes: vec![root.to_unsafe()].into_boxed_slice(),
-    };
-
-    queue.push_and_forget(move || {
-        let data = data;
-        unsafe {
-            top_down_dom::<N, C>(&data.nodes, data.root, (&*data.queue), (&*data.context));
-        }
+    let nodes = vec![root.to_unsafe()].into_boxed_slice();
+    let root = root.opaque();
+    rayon::scope_in(queue, |scope| {
+        let nodes = nodes;
+        top_down_dom::<N, C>(&nodes, root, scope, shared_context);
     });
-
-    queue.wait_all();
 
     if opts::get().style_sharing_stats {
         let hits = STYLE_SHARING_CACHE_HITS.load(Ordering::SeqCst);
@@ -67,11 +45,13 @@ pub fn traverse_dom<N, C>(root: N,
 
 /// A parallel top-down DOM traversal.
 #[inline(always)]
-fn top_down_dom<N, C>(unsafe_nodes: &[UnsafeNode], root: OpaqueNode,
-                      queue: &rayon::ThreadPool,
-                      shared_context: &C::SharedContext)
+#[allow(unsafe_code)]
+fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
+                                        root: OpaqueNode,
+                                        scope: &'a rayon::Scope<'scope>,
+                                        shared_context: &'scope C::SharedContext)
     where N: TNode,
-          C: DomTraversalContext<N>
+          C: DomTraversalContext<N>,
 {
     let context = C::new(shared_context, root);
 
@@ -121,18 +101,10 @@ fn top_down_dom<N, C>(unsafe_nodes: &[UnsafeNode], root: OpaqueNode,
     context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
-        let data = TopDownData::<C::SharedContext> {
-            root: root,
-            queue: queue,
-            context: shared_context,
-            nodes: chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice(),
-        };
-
-        queue.push_and_forget(move || {
-            let data = data;
-            unsafe {
-                top_down_dom::<N, C>(&data.nodes, data.root, (&*data.queue), (&*data.context))
-            }
+        let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
+        scope.spawn(move |scope| {
+            let nodes = nodes;
+            top_down_dom::<N, C>(&nodes, root, scope, shared_context)
         })
     }
 }
@@ -148,6 +120,7 @@ fn top_down_dom<N, C>(unsafe_nodes: &[UnsafeNode], root: OpaqueNode,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
+#[allow(unsafe_code)]
 fn bottom_up_dom<N, C>(root: OpaqueNode,
                        unsafe_node: UnsafeNode,
                        shared_context: &C::SharedContext)

@@ -75,7 +75,6 @@ extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
 extern crate quickersort;
-extern crate rand;
 extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;

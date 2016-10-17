@@ -765,8 +765,6 @@ impl LayoutThread {
     fn exit_now(&mut self) {
         // Drop the rayon threadpool if present.
         let _ = self.parallel_traversal.take();
-
-        let _ = self.paint_chan.send(LayoutToPaintMsg::Exit);
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,

@@ -17,7 +17,7 @@ gecko = ["nsstring_vendor"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "selectors/unstable", "string_cache",
+         "selectors/unstable", "string_cache", "rayon/unstable",
          "url/heap_size", "plugins", "parking_lot/nightly"]
 testing = []
 
@@ -43,7 +43,7 @@ owning_ref = "0.2.2"
 parking_lot = "0.3.3"
 quickersort = "2.0.0"
 rand = "0.3"
-rayon = "0.4"
+rayon = { git = "https://github.com/nikomatsakis/rayon" }
 rustc-serialize = "0.3"
 selectors = "0.13"
 serde = {version = "0.8", optional = true}
