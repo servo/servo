@@ -41,9 +41,7 @@ impl TestRunnerMethods for TestRunner {
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(BluetoothMethodMsg::Test(String::from(dataSetName), sender)).unwrap();
-
-        let result = receiver.recv().unwrap();
-        match result {
+        match receiver.recv().unwrap().into() {
             Ok(()) => {
                 Ok(())
             },
