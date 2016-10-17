@@ -154,7 +154,7 @@ class MachCommands(CommandBase):
         # Absolute paths for all directories to be considered
         grep_paths = root_dirs_abs + tests_dirs_abs
         return call(
-            ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
+            ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js', ':(exclude)*.min.css'],
             env=self.build_env())
 
     @Command('fetch',

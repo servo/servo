@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Servo Layout Debugger</title>
+
+        <!-- Bootstrap -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- Treeview -->
+        <link href="css/bootstrap-treeview.min.css" rel="stylesheet">
+
+        <!-- JSDiffPatch -->
+        <link href="css/formatters/html.css" rel="stylesheet">
+
+        <!-- Custom -->
+        <link href="css/main.css" rel="stylesheet">
+
+        <!--[if lt IE 9]>
+          <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+          <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    </head>
+    <body>
+
+        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">Servo Layout Debugger</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="container" role="main">
+            <div class="row">
+                <div class="col-sm-3">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="well">
+                                <input type=file>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div id="trace-tree">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <ul id="trace-list" class="list-group">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-9">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class='panel panel-default'>
+                                <div class='panel-heading'>Flow Tree</div>
+                                <div class='panel-body' id="flow-tree"></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <div id="flow-diffs"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- jQuery -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <!-- Bootstrap -->
+        <script src="js/bootstrap.min.js"></script>
+        <!-- Treeview -->
+        <script src="js/bootstrap-treeview.min.js"></script>
+        <!-- JSDiffPatch -->
+        <script src="js/bundle.min.js"></script>
+        <script src="js/formatters.min.js"></script>
+
+        <script>
+            function create_flow_tree(trace_node) {
+                var node = {
+                    text: trace_node.class + " (" + trace_node.data.base.id + ")",
+                    id: trace_node.data.base.id,
+                    icon: "dummy",
+                };
+
+                var children = [];
+                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
+                    children.push(create_flow_tree(trace_node.data.base.children[i]));
+                }
+
+                if (children.length > 0) {
+                    node.nodes = children;
+                }
+
+                return node;
+            }
+
+            function create_flow_hash(trace_node, flow_hash) {
+                flow_hash[trace_node.data.base.id] = trace_node;
+
+                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
+                    create_flow_hash(trace_node.data.base.children[i], flow_hash);
+                }
+
+                delete trace_node.data.base.children;
+            }
+
+            function flatten_trace(trace_node) {
+                var flow_tree = create_flow_tree(trace_node.children[0]);
+
+                var flow_hash = {};
+                create_flow_hash(trace_node.children[0], flow_hash);
+
+                return {
+                    tree: flow_tree,
+                    flows: flow_hash,
+                }
+            }
+
+            function create_tree_node(trace_node) {
+                var pre_trace = flatten_trace(JSON.parse(trace_node.pre));
+                var post_trace = flatten_trace(JSON.parse(trace_node.post));
+
+                var tree_node = {
+                    text: trace_node.name,
+                    icon: "dummy",
+                    flow_tree: pre_trace.tree,      // assume pre/post trace always have same tree!
+                    pre: pre_trace.flows,
+                    post: post_trace.flows,
+                };
+
+                var children = [];
+
+                for (var i=0 ; i < trace_node.children.length ; ++i) {
+                    children.push(create_tree_node(trace_node.children[i]));
+                }
+
+                if (children.length > 0) {
+                    tree_node.nodes = children;
+                }
+
+                return tree_node;
+            }
+
+            function update_flow_tree_bgcolor(flow_tree_node, node_color_hash) {
+                flow_tree_node.backColor = node_color_hash[flow_tree_node.id];
+                if (flow_tree_node.nodes !== undefined) {
+                    for (var i=0 ; i < flow_tree_node.nodes.length ; ++i) {
+                        update_flow_tree_bgcolor(flow_tree_node.nodes[i], node_color_hash)
+                    }
+                }
+            }
+
+            function new_data_loaded(data) {
+                jsondiffpatch.formatters.html.hideUnchanged();
+
+                var node_color_hash = {};
+                var tree = [ create_tree_node(data) ];
+                $('#trace-tree').treeview({data: tree, levels: 3});
+                $('#trace-tree').on('nodeSelected', function(event, node) {
+                    $("#flow-diffs").empty();
+
+                    for (var key in node.pre) {
+                        var flow_left = node.pre[key];
+                        var flow_right = node.post[key];
+
+                        var delta = jsondiffpatch.create({
+                            objectHash: function(obj) {
+                                if (obj.data !== undefined && obj.data.base !== undefined) {
+                                    return obj.data.base.id;
+                                }
+                                if (obj.id !== undefined) {
+                                    return obj.id;
+                                }
+                                return JSON.stringify(obj);
+                            }
+                        }).diff(flow_left, flow_right);
+
+                        if (delta !== undefined) {
+                            var diff_id = "diff-" + key;
+                            $("#flow-diffs").append(
+                                    "<div class='panel panel-default'><div class='panel-heading'>" +
+                                    flow_left.class + " (" + key + ")" +
+                                    "</div><div class='panel-body' id=" +
+                                    diff_id +
+                                    "></div></div>");
+
+                            document.getElementById(diff_id).innerHTML =
+                                jsondiffpatch.formatters.html.format(delta, flow_left);
+                            node_color_hash[key] = "rgba(255, 0, 0, 0.7)";
+                        } else {
+                            node_color_hash[key] = "rgb(212, 248, 212)";
+                        }
+                    }
+
+                    update_flow_tree_bgcolor(node.flow_tree, node_color_hash);
+                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100});
+                });
+            }
+
+            $( document ).ready(function() {
+                var upload = document.getElementsByTagName('input')[0];
+                upload.onchange = function (e) {
+                    e.preventDefault();
+
+                    var file = upload.files[0],
+                    reader = new FileReader();
+                    reader.onload = function (event) {
+                        new_data_loaded(JSON.parse(event.target.result));
+                    };
+
+                    reader.readAsText(file);
+                    return false;
+                };
+            });
+        </script>
+    </body>
+</html>
