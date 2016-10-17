@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#nonelementparentnode
-[NoInterfaceObject,
- Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface NonElementParentNode {
   [Pure]
   Element? getElementById(DOMString elementId);

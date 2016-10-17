@@ -4,7 +4,7 @@
 
 //https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 
-[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTServer {
   readonly attribute BluetoothDevice device;
   readonly attribute boolean connected;

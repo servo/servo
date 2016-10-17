@@ -23,7 +23,7 @@
  */
 
 
-[Pref="dom.forcetouch.enabled", Exposed=(Window,Worker)]
+[Pref="dom.forcetouch.enabled"]
 interface ForceTouchEvent : UIEvent {
     // Represents the amount of force required to perform a regular click.
     readonly attribute float SERVO_FORCE_AT_MOUSE_DOWN;

@@ -18,7 +18,7 @@ dictionary RequestDeviceOptions {
   boolean acceptAllDevices = false;
 };
 
-[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
+[Pref="dom.bluetooth.enabled"]
 interface Bluetooth {
 //  [SecureContext]
 //  readonly attribute BluetoothDevice? referringDevice;

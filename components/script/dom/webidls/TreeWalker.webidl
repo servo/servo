@@ -6,7 +6,6 @@
  * https://dom.spec.whatwg.org/#interface-treewalker
  */
 
-[Exposed=(Window,Worker)]
 interface TreeWalker {
   [SameObject]
   readonly attribute Node root;

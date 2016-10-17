@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-mouseevent
-[Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict), Exposed=(Window,Worker)]
+[Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict)]
 interface MouseEvent : UIEvent {
     readonly    attribute long           screenX;
     readonly    attribute long           screenY;

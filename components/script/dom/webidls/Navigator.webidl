@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#navigator
-[Exposed=(Window,Worker)]
 interface Navigator {
   // objects implementing this interface also implement the interfaces given below
 };
@@ -28,7 +27,7 @@ interface NavigatorID {
   readonly attribute DOMString userAgent;
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface NavigatorBluetooth {
     readonly attribute Bluetooth bluetooth;
 };
@@ -47,7 +46,7 @@ interface NavigatorLanguage {
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorplugins
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface NavigatorPlugins {
   [SameObject] readonly attribute PluginArray plugins;
   [SameObject] readonly attribute MimeTypeArray mimeTypes;
@@ -55,7 +54,7 @@ interface NavigatorPlugins {
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorcookies
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface NavigatorCookies {
   readonly attribute boolean cookieEnabled;
 };
