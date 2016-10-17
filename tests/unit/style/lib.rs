@@ -5,6 +5,7 @@
 #![cfg(test)]
 #![feature(plugin)]
 #![feature(core_intrinsics)]
+#![feature(test)]
 
 extern crate app_units;
 extern crate cssparser;
@@ -16,11 +17,13 @@ extern crate selectors;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
 extern crate style_traits;
+extern crate test;
 extern crate url;
 extern crate util;
 
 mod attr;
 mod cache;
+mod cgt_arena;
 mod logical_geometry;
 mod media_queries;
 mod owning_handle;
