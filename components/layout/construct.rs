@@ -529,6 +529,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
                     }
                     self.generate_anonymous_table_flows_if_necessary(flow, &mut kid_flow, &kid);
+                    kid_flow.finish();
                     flow.add_new_child(kid_flow);
                 }
                 abs_descendants.push_descendants(kid_abs_descendants);
