@@ -1487,7 +1487,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects"
-                  skip_longhands="box-shadow">
+                  skip_longhands="box-shadow filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
         use cssparser::Color;
 
@@ -1534,6 +1534,74 @@ fn static_assert() {
         }).collect();
         longhands::box_shadow::computed_value::T(buf)
     }
+
+    pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
+        use properties::longhands::filter::computed_value::Filter::*;
+        use gecko_bindings::structs::nsStyleFilter;
+        use gecko_bindings::structs::{NS_STYLE_FILTER_BLUR,
+                                      NS_STYLE_FILTER_BRIGHTNESS,
+                                      NS_STYLE_FILTER_CONTRAST,
+                                      NS_STYLE_FILTER_GRAYSCALE,
+                                      NS_STYLE_FILTER_INVERT,
+                                      NS_STYLE_FILTER_OPACITY,
+                                      NS_STYLE_FILTER_SATURATE,
+                                      NS_STYLE_FILTER_SEPIA,
+                                      NS_STYLE_FILTER_HUE_ROTATE,
+                                     };
+        use gecko_bindings::structs::nsStyleCoord;
+
+        fn fill_filter(m_type: u32, value: CoordDataValue, gecko_filter: &mut nsStyleFilter){
+            gecko_filter.mType = m_type;
+            gecko_filter.mFilterParameter.set_value(value);
+        }
+
+        unsafe {
+            Gecko_ResetFilters(&mut self.gecko, v.filters.len());
+        }
+        assert!(v.filters.len() == self.gecko.mFilters.len());
+
+
+
+        for (servo, gecko_filter) in v.filters.into_iter().zip(self.gecko.mFilters.iter_mut()) {
+            //TODO: URL, drop-shadow
+            match servo {
+                Blur(len) =>          fill_filter(NS_STYLE_FILTER_BLUR,
+                                                  CoordDataValue::Coord(len.0),
+                                                  gecko_filter),
+                Brightness(factor) => fill_filter(NS_STYLE_FILTER_BRIGHTNESS,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                Contrast(factor) =>   fill_filter(NS_STYLE_FILTER_CONTRAST,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                Grayscale(factor) =>  fill_filter(NS_STYLE_FILTER_GRAYSCALE,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                HueRotate(angle) =>   fill_filter(NS_STYLE_FILTER_HUE_ROTATE,
+                                                  CoordDataValue::Radian(angle.radians()),
+                                                  gecko_filter),
+                Invert(factor) =>     fill_filter(NS_STYLE_FILTER_INVERT,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                Opacity(factor) =>    fill_filter(NS_STYLE_FILTER_OPACITY,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                Saturate(factor) =>   fill_filter(NS_STYLE_FILTER_SATURATE,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+                Sepia(factor) =>      fill_filter(NS_STYLE_FILTER_SEPIA,
+                                                  CoordDataValue::Factor(factor),
+                                                  gecko_filter),
+            }
+        }
+    }
+
+    pub fn copy_filter_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_CopyFiltersFrom(&other.gecko, &mut self.gecko);
+        }
+    }
+
 </%self:impl_trait>
 
 

@@ -518,6 +518,12 @@ extern "C" {
     pub fn Gecko_DestroyClipPath(clip: *mut StyleClipPath);
 }
 extern "C" {
+    pub fn Gecko_ResetFilters(effects: *mut nsStyleEffects, len: usize);
+}
+extern "C" {
+    pub fn Gecko_CopyFiltersFrom(aSrc: &nsStyleEffects, aDest: *mut nsStyleEffects);
+}
+extern "C" {
     pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
      -> *mut StyleBasicShape;
 }
