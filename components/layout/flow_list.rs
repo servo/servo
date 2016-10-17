@@ -5,10 +5,14 @@
 use flow::Flow;
 use flow_ref::{self, FlowRef};
 use std::collections::{LinkedList, linked_list};
+use std::ops::{Index, IndexMut};
 
-// This needs to be reworked now that we have dynamically-sized types in Rust.
-// Until then, it's just a wrapper around LinkedList.
-
+/// This needs to be reworked now that we have dynamically-sized types in Rust.
+/// Until then, it's just a wrapper around LinkedList.
+///
+/// NB(pcwalton): DO NOT leak `FlowRef` to layout! In particular, DO NOT add a method like
+/// `iter_flow_ref` or `iter_flow_ref_mut` that attempts to hand `FlowRef`s out to layout! It can
+/// cause races and memory safety problems!
 pub struct FlowList {
     flows: LinkedList<FlowRef>,
 }
@@ -52,25 +56,24 @@ impl FlowList {
         }
     }
 
-    /// Provide a forward iterator
+    /// Provide a forward iterator.
+    ///
+    /// NB(pcwalton): This does not hand out `FlowRef`s by design! Do not add a method to do so!
+    /// See the comment above in `FlowList`.
     #[inline]
     pub fn iter<'a>(&'a self) -> impl DoubleEndedIterator<Item = &'a Flow> {
         self.flows.iter().map(|flow| &**flow)
     }
 
     /// Provide a forward iterator with mutable references
+    ///
+    /// NB(pcwalton): This does not hand out `FlowRef`s by design! Do not add a method to do so!
+    /// See the comment above in `FlowList`.
     #[inline]
     pub fn iter_mut(&mut self) -> MutFlowListIterator {
         MutFlowListIterator {
             it: self.flows.iter_mut(),
         }
-    }
-
-    /// Provide a forward iterator with FlowRef items
-    #[inline]
-    pub fn iter_flow_ref_mut<'a>(&'a mut self)
-                                 -> impl DoubleEndedIterator<Item = &'a mut FlowRef> {
-        self.flows.iter_mut()
     }
 
     /// O(1)
@@ -90,6 +93,21 @@ impl FlowList {
         FlowList {
             flows: self.flows.split_off(i)
         }
+    }
+}
+
+impl Index<usize> for FlowList {
+    /// NB(pcwalton): O(n)!
+    type Output = Flow;
+    fn index(&self, index: usize) -> &Flow {
+        &**self.flows.iter().nth(index).unwrap()
+    }
+}
+
+impl IndexMut<usize> for FlowList {
+    /// NB(pcwalton): O(n)!
+    fn index_mut(&mut self, index: usize) -> &mut Flow {
+        self.iter_mut().nth(index).unwrap()
     }
 }
 

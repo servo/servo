@@ -267,7 +267,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
                             let new_style =
                                 context.stylist
                                        .precomputed_values_for_pseudo(&style_pseudo,
-                                                                      data.style.as_ref());
+                                                                      data.style.as_ref(),
+                                                                      false);
                             data.per_pseudo
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }

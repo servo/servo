@@ -1221,6 +1221,11 @@ impl LayoutThread {
         if opts::get().dump_style_tree {
             node.dump_style();
         }
+        if opts::get().dump_flow_tree {
+            if let Some(ref mut root_flow) = self.root_flow {
+                root_flow.print("Pre layout flow tree".to_owned());
+            }
+        }
 
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,

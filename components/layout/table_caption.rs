@@ -29,7 +29,7 @@ pub struct TableCaptionFlow {
 impl TableCaptionFlow {
     pub fn from_fragment(fragment: Fragment) -> TableCaptionFlow {
         TableCaptionFlow {
-            block_flow: BlockFlow::from_fragment(fragment, None)
+            block_flow: BlockFlow::from_fragment(fragment),
         }
     }
 }

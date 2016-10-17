@@ -36,7 +36,7 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
-use flow::{FragmentationContext, NEEDS_LAYER, PreorderFlowTraversal};
+use flow::{FragmentationContext, MARGINS_CANNOT_COLLAPSE, NEEDS_LAYER, PreorderFlowTraversal};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
@@ -534,7 +534,12 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> BlockFlow {
+    pub fn from_fragment(fragment: Fragment) -> BlockFlow {
+        BlockFlow::from_fragment_and_float_kind(fragment, None)
+    }
+
+    pub fn from_fragment_and_float_kind(fragment: Fragment, float_kind: Option<FloatKind>)
+                                        -> BlockFlow {
         let writing_mode = fragment.style().writing_mode;
         BlockFlow {
             base: BaseFlow::new(Some(fragment.style()), writing_mode, match float_kind {
@@ -688,6 +693,7 @@ impl BlockFlow {
     /// calculated in the bubble-inline-sizes traversal.
     pub fn get_shrink_to_fit_inline_size(&self, available_inline_size: Au) -> Au {
         let content_intrinsic_inline_sizes = self.content_intrinsic_inline_sizes();
+        //println!("... content_intrinsic_inline_sizes={:?}", content_intrinsic_inline_sizes);
         min(content_intrinsic_inline_sizes.preferred_inline_size,
             max(content_intrinsic_inline_sizes.minimum_inline_size, available_inline_size))
     }
@@ -1417,6 +1423,10 @@ impl BlockFlow {
                 kid_base.block_container_writing_mode = containing_block_mode;
             }
 
+            /*println!("set block_container_inline_size to {:?} -- {:?}",
+                     flow::base(kid).block_container_inline_size,
+                     kid);*/
+
             // Call the callback to propagate extra inline size information down to the child. This
             // is currently used for tables.
             callback(kid,
@@ -1455,7 +1465,8 @@ impl BlockFlow {
             display::T::table_caption |
             display::T::table_row_group |
             display::T::table |
-            display::T::inline_block => {
+            display::T::inline_block |
+            display::T::flex => {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
@@ -1582,12 +1593,16 @@ impl BlockFlow {
     /// used for calculating shrink-to-fit width. Assumes that intrinsic sizes have already been
     /// computed for this flow.
     fn content_intrinsic_inline_sizes(&self) -> IntrinsicISizes {
-        let surrounding_inline_size = self.fragment.surrounding_intrinsic_inline_size();
+        let (border_padding, margin) = self.fragment.surrounding_intrinsic_inline_size();
+        /*println!("... content_intrinsic_inline_sizes(): intrinsic inline sizes={:?} \
+                  surrounding_inline_size={:?}",
+                 self.base.intrinsic_inline_sizes,
+                 surrounding_inline_size);*/
         IntrinsicISizes {
             minimum_inline_size: self.base.intrinsic_inline_sizes.minimum_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
             preferred_inline_size: self.base.intrinsic_inline_sizes.preferred_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
         }
     }
 
@@ -1620,6 +1635,7 @@ impl BlockFlow {
         // FIXME(pcwalton): This doesn't exactly follow that algorithm at the moment.
         // FIXME(pcwalton): This should consider all float descendants, not just children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
+        //println!("... computation start (self fragment intrinsic size): {:?}", computation);
         let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
         let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
         let mut preferred_inline_size_of_children_without_text_or_replaced_fragments = Au(0);
@@ -1629,6 +1645,8 @@ impl BlockFlow {
             }
 
             let child_base = flow::mut_base(kid);
+            /*println!("... kid intrinsic inline sizes={:?}",
+                     child_base.intrinsic_inline_sizes.minimum_inline_size);*/
             let float_kind = child_base.flags.float_kind();
             computation.content_intrinsic_sizes.minimum_inline_size =
                 max(computation.content_intrinsic_sizes.minimum_inline_size,
@@ -1937,7 +1955,9 @@ impl Flow for BlockFlow {
                 self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
             }
             None
-        } else if self.is_root() || self.formatting_context_type() != FormattingContextType::None {
+        } else if self.is_root() ||
+                self.formatting_context_type() != FormattingContextType::None ||
+                self.base.flags.contains(MARGINS_CANNOT_COLLAPSE) {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow {:?}",
                    flow::base(self).debug_id());
@@ -2378,10 +2398,11 @@ pub trait ISizeAndMarginsComputer {
 
         let margin = style.logical_margin();
         let position = style.logical_position();
+        //println!("... compute_inline_size_constraint_inputs(): margin={:?}", margin);
 
         let available_inline_size = containing_block_inline_size -
             block.fragment.border_padding.inline_start_end();
-        ISizeConstraintInput::new(computed_inline_size,
+        let result = ISizeConstraintInput::new(computed_inline_size,
                                   MaybeAuto::from_style(margin.inline_start,
                                                         containing_block_inline_size),
                                   MaybeAuto::from_style(margin.inline_end,
@@ -2391,7 +2412,9 @@ pub trait ISizeAndMarginsComputer {
                                   MaybeAuto::from_style(position.inline_end,
                                                         containing_block_inline_size),
                                   style.get_inheritedtext().text_align,
-                                  available_inline_size)
+                                  available_inline_size);
+        //println!("... constraint inputs={:?}", result);
+        result
     }
 
     /// Set the used values for inline-size and margins from the relevant constraint equation.
@@ -2418,6 +2441,7 @@ pub trait ISizeAndMarginsComputer {
             let fragment = block.fragment();
             fragment.margin.inline_start = solution.margin_inline_start;
             fragment.margin.inline_end = solution.margin_inline_end;
+            //println!("solution={:?}", solution);
 
             // The associated fragment has the border box of this flow.
             inline_size = solution.inline_size + fragment.border_padding.inline_start_end();
@@ -2535,6 +2559,7 @@ pub trait ISizeAndMarginsComputer {
              input.inline_start_margin,
              input.inline_end_margin,
              input.available_inline_size);
+        //println!("... solve_block_inline_size_constraints(): input={:?}", input);
 
         // Check for direction of parent flow (NOT Containing Block)
         let block_mode = block.base.writing_mode;
@@ -2630,7 +2655,11 @@ pub trait ISizeAndMarginsComputer {
                 }
             };
 
-        ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
+        let solution = ISizeConstraintSolution::new(inline_size,
+                                                    inline_start_margin,
+                                                    inline_end_margin);
+        //println!("... solution={:?}", solution);
+        solution
     }
 }
 

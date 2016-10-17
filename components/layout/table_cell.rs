@@ -46,10 +46,19 @@ pub struct TableCellFlow {
 }
 
 impl TableCellFlow {
+    pub fn from_fragment(fragment: Fragment) -> TableCellFlow {
+        TableCellFlow {
+            block_flow: BlockFlow::from_fragment(fragment),
+            collapsed_borders: CollapsedBordersForCell::new(),
+            column_span: 1,
+            visible: true,
+        }
+    }
+
     pub fn from_node_fragment_and_visibility_flag<N: ThreadSafeLayoutNode>(
             node: &N, fragment: Fragment, visible: bool) -> TableCellFlow {
         TableCellFlow {
-            block_flow: BlockFlow::from_fragment(fragment, None),
+            block_flow: BlockFlow::from_fragment(fragment),
             collapsed_borders: CollapsedBordersForCell::new(),
             column_span: node.get_colspan(),
             visible: visible,
