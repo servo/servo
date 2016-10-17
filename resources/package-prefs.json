@@ -1,5 +1,6 @@
 {
   "dom.bluetooth.enabled": false,
+  "dom.bluetooth.testing.enabled": false,
   "dom.forcetouch.enabled": true,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": true,

@@ -6,7 +6,7 @@
 
 // callback BluetoothManualChooserEventsCallback = void(sequence<DOMString> events);
 
-[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
+[Pref="dom.bluetooth.testing.enabled", Exposed=Window]
 interface TestRunner {
   [Throws]
   void setBluetoothMockDataSet(DOMString dataSetName);
