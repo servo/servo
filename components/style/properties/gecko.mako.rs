@@ -19,6 +19,7 @@ use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
+use gecko_bindings::bindings::Gecko_CopyCursorArrayFrom;
 use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
@@ -28,6 +29,8 @@ use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
 use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
+use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
+use gecko_bindings::bindings::Gecko_SetCursorImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
@@ -2195,12 +2198,12 @@ clip-path
 <%self:impl_trait style_struct_name="Pointing"
                   skip_longhands="cursor">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
-        use properties::longhands::cursor::computed_value::T;
+        use properties::longhands::cursor::computed_value::Keyword;
         use style_traits::cursor::Cursor;
 
-        self.gecko.mCursor = match v {
-            T::AutoCursor => structs::NS_STYLE_CURSOR_AUTO,
-            T::SpecifiedCursor(cursor) => match cursor {
+        self.gecko.mCursor = match v.keyword {
+            Keyword::AutoCursor => structs::NS_STYLE_CURSOR_AUTO,
+            Keyword::SpecifiedCursor(cursor) => match cursor {
                 Cursor::None => structs::NS_STYLE_CURSOR_NONE,
                 Cursor::Default => structs::NS_STYLE_CURSOR_DEFAULT,
                 Cursor::Pointer => structs::NS_STYLE_CURSOR_POINTER,
@@ -2238,9 +2241,34 @@ clip-path
                 Cursor::ZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
             }
         } as u8;
+
+        unsafe {
+            Gecko_SetCursorArrayLength(&mut self.gecko, v.images.len());
+        }
+        for i in 0..v.images.len() {
+            let image = &v.images[i];
+            let extra_data = image.url.extra_data();
+            let (ptr, len) = image.url.as_slice_components();
+            unsafe {
+                Gecko_SetCursorImage(&mut self.gecko.mCursorImages[i],
+                                     ptr, len as u32,
+                                     extra_data.base.get(),
+                                     extra_data.referrer.get(),
+                                     extra_data.principal.get());
+            }
+            // We don't need to record this struct as uncacheable, like when setting
+            // background-image to a url() value, since only properties in reset structs
+            // are re-used from the applicable declaration cache, and the Pointing struct
+            // is an inherited struct.
+        }
     }
 
-    ${impl_simple_copy('cursor', 'mCursor')}
+    pub fn copy_cursor_from(&mut self, other: &Self) {
+        self.gecko.mCursor = other.gecko.mCursor;
+        unsafe {
+            Gecko_CopyCursorArrayFrom(&mut self.gecko, &other.gecko);
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
