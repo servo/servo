@@ -172,9 +172,11 @@ class MachCommands(CommandBase):
              description='Run unit tests',
              category='testing')
     @CommandArgument('--package', '-p', default=None, help="Specific package to test")
+    @CommandArgument('--bench', default=False, action="store_true",
+                     help="Run in bench mode")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern or file path")
-    def test_unit(self, test_name=None, package=None):
+    def test_unit(self, test_name=None, package=None, bench=False):
         if test_name is None:
             test_name = []
 
@@ -228,7 +230,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0:
-            args = ["cargo", "test"]
+            args = ["cargo", "bench" if bench else "test"]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             args += test_patterns
@@ -239,7 +241,7 @@ class MachCommands(CommandBase):
 
         # Run style tests with the testing feature
         if has_style:
-            args = ["cargo", "test", "-p", "style_tests", "--features"]
+            args = ["cargo", "bench" if bench else "test", "-p", "style_tests", "--features"]
             if features:
                 args += ["%s" % ' '.join(features + ["testing"])]
             else:
