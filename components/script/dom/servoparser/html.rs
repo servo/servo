@@ -63,7 +63,7 @@ impl<'a> TreeSink for Sink {
         JS::from_ref(self.document.upcast())
     }
 
-    fn get_template_contents(&self, target: JS<Node>) -> JS<Node> {
+    fn get_template_contents(&mut self, target: JS<Node>) -> JS<Node> {
         let template = target.downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
         JS::from_ref(template.Content().upcast())
