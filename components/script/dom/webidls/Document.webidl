@@ -8,7 +8,7 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
-[Constructor, Exposed=(Window,Worker)]
+[Constructor]
 interface Document : Node {
   [SameObject]
   readonly attribute DOMImplementation implementation;

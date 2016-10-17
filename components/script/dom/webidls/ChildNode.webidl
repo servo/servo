@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-childnode
  */
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface ChildNode {
   [Throws, Unscopable]
   void before((Node or DOMString)... nodes);
@@ -18,7 +18,7 @@ interface ChildNode {
   void remove();
 };
 
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject]
 interface NonDocumentTypeChildNode {
   [Pure]
   readonly attribute Element? previousElementSibling;

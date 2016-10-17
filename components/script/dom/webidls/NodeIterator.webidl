@@ -6,7 +6,6 @@
  */
 // Import from http://hg.mozilla.org/mozilla-central/raw-file/a5a720259d79/dom/webidl/NodeIterator.webidl
 
-[Exposed=(Window,Worker)]
 interface NodeIterator {
   [SameObject]
   readonly attribute Node root;

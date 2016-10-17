@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://dom.spec.whatwg.org/#interface-documentfragment
-[Constructor, Exposed=(Window,Worker)]
+[Constructor]
 interface DocumentFragment : Node {
 };
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://w3c.github.io/touch-events/#idl-def-TouchEvent
-[Exposed=(Window,Worker)]
 interface TouchEvent : UIEvent {
     readonly    attribute TouchList touches;
     readonly    attribute TouchList targetTouches;

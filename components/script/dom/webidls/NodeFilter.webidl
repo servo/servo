@@ -7,7 +7,6 @@
  */
 // Import from http://hg.mozilla.org/mozilla-central/file/a5a720259d79/dom/webidl/NodeFilter.webidl
 
-[Exposed=(Window,Worker)]
 callback interface NodeFilter {
   // Constants for acceptNode()
   const unsigned short FILTER_ACCEPT = 1;

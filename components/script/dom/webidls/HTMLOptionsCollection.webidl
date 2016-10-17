@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmloptionscollection
-[Exposed=(Window,Worker)]
 interface HTMLOptionsCollection : HTMLCollection {
   // inherits item(), namedItem()
   attribute unsigned long length; // shadows inherited length

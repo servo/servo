@@ -4,7 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 
-[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothDevice {
     readonly attribute DOMString id;
     readonly attribute DOMString? name;

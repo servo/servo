@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#interface-uievent
-[Constructor(DOMString type, optional UIEventInit eventInitDict), Exposed=(Window,Worker)]
+[Constructor(DOMString type, optional UIEventInit eventInitDict)]
 interface UIEvent : Event {
   //  readonly    attribute WindowProxy? view;
   readonly attribute Window? view;
@@ -18,7 +18,6 @@ dictionary UIEventInit : EventInit {
 };
 
 // https://w3c.github.io/uievents/#idl-interface-UIEvent-initializers
-[Exposed=(Window,Worker)]
 partial interface UIEvent {
     // Deprecated in DOM Level 3
     void initUIEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg, long detailArg);
