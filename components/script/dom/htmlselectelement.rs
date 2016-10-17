@@ -258,6 +258,37 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn Remove(&self) {
         self.upcast::<Element>().Remove()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-value
+    fn Value(&self) -> DOMString {
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLOptionElement>)
+            .filter(|opt_elem| opt_elem.Selected())
+            .map(|opt_elem| opt_elem.Value())
+            .next()
+            .unwrap_or_default()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-value
+    fn SetValue(&self, value: DOMString) {
+        let mut opt_iter = self.upcast::<Node>()
+                               .traverse_preorder()
+                               .filter_map(Root::downcast::<HTMLOptionElement>);
+        // Reset until we find an <option> with a matching value
+        for opt in opt_iter.by_ref() {
+            if opt.Value() == value {
+                opt.set_selectedness(true);
+                opt.set_dirtiness(true);
+                break;
+            }
+            opt.set_selectedness(false);
+        }
+        // Reset remaining <option> elements
+        for opt in opt_iter {
+            opt.set_selectedness(false);
+        }
+    }
 }
 
 impl VirtualMethods for HTMLSelectElement {
