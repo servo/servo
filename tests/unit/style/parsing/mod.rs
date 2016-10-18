@@ -33,6 +33,7 @@ macro_rules! assert_roundtrip {
 
 
 mod basic_shape;
+mod image;
 mod mask;
 mod position;
 mod selectors;
