@@ -11,13 +11,10 @@
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
-extern crate hyper;
-extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate url;
 extern crate webrender_traits;
 
 pub mod constellation_msg;

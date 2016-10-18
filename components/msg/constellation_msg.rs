@@ -5,12 +5,9 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use hyper::header::Headers;
-use hyper::method::Method;
 use ipc_channel::ipc::IpcSharedMemory;
 use std::cell::Cell;
 use std::fmt;
-use url::Url;
 use webrender_traits;
 
 #[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
@@ -183,36 +180,6 @@ pub struct Image {
     pub bytes: IpcSharedMemory,
     #[ignore_heap_size_of = "Defined in webrender_traits"]
     pub id: Option<webrender_traits::ImageKey>,
-}
-
-/// Similar to net::resource_thread::LoadData
-/// can be passed to LoadUrl to load a page with GET/POST
-/// parameters or headers
-#[derive(Clone, Deserialize, Serialize)]
-pub struct LoadData {
-    pub url: Url,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub method: Method,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub headers: Headers,
-    pub data: Option<Vec<u8>>,
-    pub referrer_policy: Option<ReferrerPolicy>,
-    pub referrer_url: Option<Url>,
-}
-
-impl LoadData {
-    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
-        LoadData {
-            url: url,
-            method: Method::Get,
-            headers: Headers::new(),
-            data: None,
-            referrer_policy: referrer_policy,
-            referrer_url: referrer_url,
-        }
-    }
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
