@@ -19,7 +19,7 @@ void main(void) {
     vec2 relative_pos_in_rect = vLocalPos - vLocalRect.xy;
 #endif
 
-    alpha = min(alpha, do_clip(local_pos, vClipRect, vClipRadius));
+    alpha = min(alpha, do_clip(local_pos));
 
     // We calculate the particular tile this fragment belongs to, taking into
     // account the spacing in between tiles. We only paint if our fragment does

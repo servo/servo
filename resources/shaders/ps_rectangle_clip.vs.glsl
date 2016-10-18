@@ -15,11 +15,7 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 #endif
 
-    vClipRect = vec4(rect.clip.rect.xy, rect.clip.rect.xy + rect.clip.rect.zw);
-    vClipRadius = vec4(rect.clip.top_left.outer_inner_radius.x,
-                       rect.clip.top_right.outer_inner_radius.x,
-                       rect.clip.bottom_right.outer_inner_radius.x,
-                       rect.clip.bottom_left.outer_inner_radius.x);
+    write_clip(rect.clip);
 
     vColor = rect.color;
 }

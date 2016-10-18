@@ -4,8 +4,6 @@
 
 flat varying vec4 vColor0;
 flat varying vec4 vColor1;
-flat varying vec4 vClipRect;
-flat varying vec4 vClipRadius;
 varying float vF;
 
 #ifdef WR_FEATURE_TRANSFORM

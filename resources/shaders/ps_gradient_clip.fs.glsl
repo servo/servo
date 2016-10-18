@@ -11,7 +11,7 @@ void main(void) {
     vec2 local_pos = vPos;
 #endif
 
-    alpha = min(alpha, do_clip(local_pos, vClipRect, vClipRadius));
+    alpha = min(alpha, do_clip(local_pos));
     oFragColor = mix(vColor0, vColor1, vF) * vec4(1, 1, 1, alpha);
 
 #ifdef WR_FEATURE_TRANSFORM
