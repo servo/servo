@@ -438,8 +438,8 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 *self = GeckoChildrenIterator::Current(next);
                 curr
             },
-            GeckoChildrenIterator::GeckoIterator(ref it) => unsafe {
-                Gecko_GetNextStyleChild(&it).map(GeckoNode)
+            GeckoChildrenIterator::GeckoIterator(ref mut it) => unsafe {
+                Gecko_GetNextStyleChild(it).map(GeckoNode)
             }
         }
     }

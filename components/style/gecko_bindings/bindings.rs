@@ -242,7 +242,7 @@ extern "C" {
     pub fn Gecko_DropStyleChildrenIterator(it: StyleChildrenIteratorOwned);
 }
 extern "C" {
-    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowed)
+    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowedMut)
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
