@@ -400,7 +400,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
         state.add_display_item(
-            DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+            DisplayItem::SolidColor(box SolidColorDisplayItem {
                 base: base,
                 color: background_color.to_gfx_color(),
             }));
@@ -635,7 +635,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     self.node,
                                                     style.get_cursor(Cursor::Default),
                                                     display_list_section);
-            state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
+            state.add_display_item(DisplayItem::Image(box ImageDisplayItem {
               base: base,
               webrender_image: webrender_image,
               image_data: None,
@@ -774,7 +774,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
-        let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
+        let gradient_display_item = DisplayItem::Gradient(box GradientDisplayItem {
             base: base,
             start_point: center - delta,
             end_point: center + delta,
@@ -804,7 +804,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                       self.node,
                                                       style.get_cursor(Cursor::Default),
                                                       display_list_section);
-            state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
+            state.add_display_item(DisplayItem::BoxShadow(box BoxShadowDisplayItem {
                 base: base,
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
@@ -876,7 +876,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   display_list_section);
-        state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
+        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(colors.top.to_gfx_color(),
@@ -919,7 +919,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Outlines);
-        state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
+        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(width),
             color: SideOffsets2D::new_all_same(color),
@@ -944,7 +944,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
-        state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
+        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
@@ -965,7 +965,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
-        state.add_display_item(DisplayItem::LineClass(box LineDisplayItem {
+        state.add_display_item(DisplayItem::Line(box LineDisplayItem {
             base: base,
             color: color::rgb(0, 200, 0),
             style: border_style::T::dashed,
@@ -982,7 +982,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   self.style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
-        state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
+        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
@@ -1034,7 +1034,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                       self.style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(
-                DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+                DisplayItem::SolidColor(box SolidColorDisplayItem {
                     base: base,
                     color: background_color.to_gfx_color(),
             }));
@@ -1072,7 +1072,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   self.style.get_cursor(cursor),
                                                   display_list_section);
-        state.add_display_item(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+        state.add_display_item(DisplayItem::SolidColor(box SolidColorDisplayItem {
             base: base,
             color: self.style().get_color().color.to_gfx_color(),
         }));
@@ -1261,7 +1261,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
-                    let item = DisplayItem::IframeClass(box IframeDisplayItem {
+                    let item = DisplayItem::Iframe(box IframeDisplayItem {
                         base: base,
                         iframe: fragment_info.pipeline_id,
                     });
@@ -1278,7 +1278,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         self.node,
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
-                    state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
+                    state.add_display_item(DisplayItem::Image(box ImageDisplayItem {
                         base: base,
                         webrender_image: WebRenderImageInfo::from_image(image),
                         image_data: Some(Arc::new(image.bytes.clone())),
@@ -1316,7 +1316,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         DisplayListSection::Content);
                     let display_item = match canvas_data {
                         CanvasData::Pixels(canvas_data) => {
-                            DisplayItem::ImageClass(box ImageDisplayItem {
+                            DisplayItem::Image(box ImageDisplayItem {
                                 base: base,
                                 image_data: Some(Arc::new(canvas_data.image_data)),
                                 webrender_image: WebRenderImageInfo {
@@ -1331,7 +1331,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             })
                         }
                         CanvasData::WebGL(context_id) => {
-                            DisplayItem::WebGLClass(box WebGLDisplayItem {
+                            DisplayItem::WebGL(box WebGLDisplayItem {
                                 base: base,
                                 context_id: context_id,
                             })
@@ -1560,7 +1560,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   self.node,
                                                   self.style().get_cursor(cursor),
                                                   DisplayListSection::Content);
-        state.add_display_item(DisplayItem::TextClass(box TextDisplayItem {
+        state.add_display_item(DisplayItem::Text(box TextDisplayItem {
             base: base,
             text_run: text_fragment.run.clone(),
             range: text_fragment.range,
@@ -1638,7 +1638,7 @@ impl FragmentDisplayListBuilding for Fragment {
             self.node,
             self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content);
-        state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
+        state.add_display_item(DisplayItem::BoxShadow(box BoxShadowDisplayItem {
             base: base,
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
@@ -2054,7 +2054,7 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
             node,
             None,
             DisplayListSection::Content);
-        state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
+        state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
             color: SideOffsets2D::new_all_same(color),
