@@ -18,6 +18,7 @@ euclid = "0.10.1"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
+hyper = "0.9.9"
 hyper_serde = "0.1.4"
 ipc-channel = "0.5"
 libc = "0.2"
