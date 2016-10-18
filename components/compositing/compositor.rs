@@ -805,6 +805,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
+            (Msg::SetFullscreenState(state), ShutdownState::NotShuttingDown) => {
+                self.window.set_fullscreen_state(state);
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.

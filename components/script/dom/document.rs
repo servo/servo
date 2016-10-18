@@ -75,6 +75,7 @@ use dom::pagetransitionevent::PageTransitionEvent;
 use dom::popstateevent::PopStateEvent;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
+use dom::promise::Promise;
 use dom::range::Range;
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
@@ -91,7 +92,7 @@ use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime, HandleValue};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
@@ -265,6 +266,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// Entry node for fullscreen.
+    fullscreen_element: MutNullableHeap<JS<Element>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1852,6 +1855,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            fullscreen_element: MutNullableHeap::new(None),
         }
     }
 
@@ -2021,6 +2025,33 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::ElementStateChanged);
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn set_fullscreen_element(&self, node: Option<&Element>) -> Rc<Promise> {
+        if let Some(ref element) = self.fullscreen_element.get() {
+            element.set_fullscren_state(false);
+        }
+
+        self.fullscreen_element.set(node);
+
+        self.upcast::<EventTarget>().fire_simple_event("fullscreenchange");
+
+        if let Some(ref element) = self.fullscreen_element.get() {
+            println!("test");
+            element.set_fullscren_state(false);
+        }
+
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::ElementStateChanged);
+
+        let event = ConstellationMsg::SetFullscreenState(node.is_some());
+        self.window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+
+        let promise = Promise::new(self.global().r());
+        promise.resolve(self.global().r().get_cx(), HandleValue::undefined());
+        promise
     }
 }
 
@@ -2999,6 +3030,34 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
     document_and_element_event_handlers!();
+
+    // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
+    event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
+
+    // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenchange
+    event_handler!(fullscreenchange, GetOnfullscreenchange, SetOnfullscreenchange);
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenenabled
+    fn FullscreenEnabled(&self) -> bool {
+        self.fullscreen_element.get().is_some()
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreen
+    fn Fullscreen(&self) -> bool {
+        self.FullscreenEnabled()
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement
+    fn GetFullscreenElement(&self) -> Option<Root<Element>> {
+        self.fullscreen_element.get()
+    }
+
+
+    #[allow(unrooted_must_root)]
+    // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
+    fn ExitFullscreen(&self) -> Rc<Promise> {
+        self.set_fullscreen_element(None)
+    }
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
