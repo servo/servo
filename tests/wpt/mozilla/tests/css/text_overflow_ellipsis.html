@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=mismatch href=text_overflow_ref.html>
+<style>
+p {
+    width: 128px;
+    background: gold;
+}
+p.hidden {
+    overflow: hidden;
+}
+.overflow-ellipsis {
+    text-overflow: ellipsis;
+}
+</style>
+</head>
+<body>
+<p>mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
+<p class="hidden overflow-ellipsis">mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
+</body>
+</html>
