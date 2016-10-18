@@ -52,8 +52,7 @@ use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
-use msg::constellation_msg::{TraversalDirection, WindowSizeType};
+use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy, TraversalDirection};
 use net_traits::{LoadOrigin, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image::base::Image;
@@ -619,6 +618,15 @@ pub struct WindowSizeData {
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
     pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
+}
+
+/// The type of window size change.
+#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+pub enum WindowSizeType {
+    /// Initial load.
+    Initial,
+    /// Window resize.
+    Resize,
 }
 
 /// Messages to the constellation originating from the WebDriver server.

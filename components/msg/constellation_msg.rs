@@ -9,12 +9,6 @@ use std::cell::Cell;
 use std::fmt;
 use webrender_traits;
 
-#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
-pub enum WindowSizeType {
-    Initial,
-    Resize,
-}
-
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,
