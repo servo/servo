@@ -766,7 +766,6 @@ pub enum DisplayItem {
     Gradient(Box<GradientDisplayItem>),
     Line(Box<LineDisplayItem>),
     BoxShadow(Box<BoxShadowDisplayItem>),
-    LayeredItem(Box<LayeredItem>),
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
@@ -1251,16 +1250,6 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
-/// Contains an item that should get its own layer during layer creation.
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct LayeredItem {
-    /// Fields common to all display items.
-    pub item: DisplayItem,
-
-    /// The id of the layer this item belongs to.
-    pub layer_info: LayerInfo,
-}
-
 /// Defines a stacking context.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct PushStackingContextItem {
@@ -1359,8 +1348,6 @@ impl DisplayItem {
                                               box_shadow.clip_mode);
             }
 
-            DisplayItem::LayeredItem(ref item) => item.item.draw_into_context(paint_context),
-
             DisplayItem::Iframe(..) => {}
 
             DisplayItem::PushStackingContext(..) => {}
@@ -1392,7 +1379,6 @@ impl DisplayItem {
             DisplayItem::Gradient(ref gradient) => &gradient.base,
             DisplayItem::Line(ref line) => &line.base,
             DisplayItem::BoxShadow(ref box_shadow) => &box_shadow.base,
-            DisplayItem::LayeredItem(ref layered_item) => layered_item.item.base(),
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
@@ -1492,8 +1478,6 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Gradient(_) => "Gradient".to_owned(),
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
-                DisplayItem::LayeredItem(ref layered_item) =>
-                    format!("LayeredItem({:?})", layered_item.item),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
                 DisplayItem::PushStackingContext(_) => "".to_owned(),
                 DisplayItem::PopStackingContext(_) => "".to_owned(),

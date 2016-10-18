@@ -485,9 +485,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
             }
-            DisplayItem::LayeredItem(..) => {
-                panic!("Unexpected in webrender!");
-            }
             DisplayItem::BoxShadow(ref item) => {
                 let rect = item.base.bounds.to_rectf();
                 let box_bounds = item.box_bounds.to_rectf();
