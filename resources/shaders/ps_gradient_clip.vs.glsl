@@ -29,11 +29,7 @@ void main(void) {
             break;
     }
 
-    vClipRect = vec4(gradient.clip.rect.xy, gradient.clip.rect.xy + gradient.clip.rect.zw);
-    vClipRadius = vec4(gradient.clip.top_left.outer_inner_radius.x,
-                       gradient.clip.top_right.outer_inner_radius.x,
-                       gradient.clip.bottom_right.outer_inner_radius.x,
-                       gradient.clip.bottom_left.outer_inner_radius.x);
+    write_clip(gradient.clip);
 
     vColor0 = gradient.color0;
     vColor1 = gradient.color1;

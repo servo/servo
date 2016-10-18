@@ -545,39 +545,6 @@ Composite fetch_composite(int index) {
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-float do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
-    vec2 ref_tl = clip_rect.xy + vec2( radius.x,  radius.x);
-    vec2 ref_tr = clip_rect.zy + vec2(-radius.y,  radius.y);
-    vec2 ref_br = clip_rect.zw + vec2(-radius.z, -radius.z);
-    vec2 ref_bl = clip_rect.xw + vec2( radius.w, -radius.w);
-
-    float d_tl = distance(pos, ref_tl);
-    float d_tr = distance(pos, ref_tr);
-    float d_br = distance(pos, ref_br);
-    float d_bl = distance(pos, ref_bl);
-
-    float pixels_per_fragment = length(fwidth(pos.xy));
-    float nudge = 0.5 * pixels_per_fragment;
-
-    bool out0 = pos.x < ref_tl.x && pos.y < ref_tl.y && d_tl > radius.x - nudge;
-    bool out1 = pos.x > ref_tr.x && pos.y < ref_tr.y && d_tr > radius.y - nudge;
-    bool out2 = pos.x > ref_br.x && pos.y > ref_br.y && d_br > radius.z - nudge;
-    bool out3 = pos.x < ref_bl.x && pos.y > ref_bl.y && d_bl > radius.w - nudge;
-
-    float distance_from_border = (float(out0) * (d_tl - radius.x + nudge)) +
-                                 (float(out1) * (d_tr - radius.y + nudge)) +
-                                 (float(out2) * (d_br - radius.z + nudge)) +
-                                 (float(out3) * (d_bl - radius.w + nudge));
-
-    // Move the distance back into pixels.
-    distance_from_border /= pixels_per_fragment;
-
-    // Apply a more gradual fade out to transparent.
-    //distance_from_border -= 0.5;
-
-    return smoothstep(1.0, 0.0, distance_from_border);
-}
-
 float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {
     vec2 clamped = clamp(p, origin, origin + size);
     return distance(clamped, p);

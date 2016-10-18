@@ -15,11 +15,7 @@ void main(void) {
     vLocalRect = image.info.local_rect;
 #endif
 
-    vClipRect = vec4(image.clip.rect.xy, image.clip.rect.xy + image.clip.rect.zw);
-    vClipRadius = vec4(image.clip.top_left.outer_inner_radius.x,
-                       image.clip.top_right.outer_inner_radius.x,
-                       image.clip.bottom_right.outer_inner_radius.x,
-                       image.clip.bottom_left.outer_inner_radius.x);
+    write_clip(image.clip);
 
     vec2 st0 = image.st_rect.xy;
     vec2 st1 = image.st_rect.zw;
