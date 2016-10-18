@@ -31,8 +31,30 @@ macro_rules! assert_roundtrip {
     }
 }
 
+macro_rules! assert_roundtrip_with_context {
+    ($fun:expr, $string:expr) => {
+        assert_roundtrip_with_context!($fun, $string, $string);
+    };
+    ($fun:expr,$input:expr, $output:expr) => {
+        let url = Url::parse("http://localhost").unwrap();
+        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        let mut parser = Parser::new($input);
+        let parsed = $fun(&context, &mut parser)
+                     .expect(&format!("Failed to parse {}", $input));
+        let serialized = ::cssparser::ToCss::to_css_string(&parsed);
+        assert_eq!(serialized, $output);
+
+        let mut parser = Parser::new(&serialized);
+        let re_parsed = $fun(&context, &mut parser)
+                        .expect(&format!("Failed to parse {}", $input));
+        let re_serialized = ::cssparser::ToCss::to_css_string(&re_parsed);
+        assert_eq!(serialized, re_serialized);
+    }
+}
+
 
 mod basic_shape;
+mod image;
 mod mask;
 mod position;
 mod selectors;
