@@ -11,14 +11,6 @@ use style::properties::shorthands::mask;
 use style::stylesheets::Origin;
 use url::Url;
 
-macro_rules! parse_longhand {
-    ($name:ident, $s:expr) => {{
-        let url = Url::parse("http://localhost").unwrap();
-        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-        $name::parse(&context, &mut Parser::new($s)).unwrap()
-    }};
-}
-
 #[test]
 fn mask_shorthand_should_parse_all_available_properties_when_specified() {
     let url = Url::parse("http://localhost").unwrap();
