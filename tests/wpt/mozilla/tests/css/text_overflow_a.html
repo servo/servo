@@ -6,15 +6,20 @@
 p {
     width: 128px;
     background: gold;
+}
+.overflow-ellipsis {
+    overflow: hidden;
     text-overflow: ellipsis;
 }
-#hideme {
+.overflow-string {
     overflow: hidden;
+    text-overflow: " [..]";
 }
 </style>
 </head>
 <body>
-<p id=hideme>mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
+<p class="overflow-ellipsis">mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
+<p class="overflow-string">mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
 <p>mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm</p>
 </body>
 </html>

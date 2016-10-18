@@ -46,7 +46,7 @@ use style::computed_values::content::ContentItem;
 use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::{longhands, ServoComputedValues};
 use style::str::char_is_whitespace;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
@@ -1004,12 +1004,18 @@ impl Fragment {
     }
 
     /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
-    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
+    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext)
+    -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
+        let text_overflow_string: Option<String> = match self.style().get_text().text_overflow.first {
+            longhands::text_overflow::Side::Clip => None,
+            longhands::text_overflow::Side::Ellipsis => Some("…".to_string()),
+            longhands::text_overflow::Side::String(ref string) => Some(string.to_string())
+        };
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
+                    box UnscannedTextFragmentInfo::new(text_overflow_string.unwrap(), None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
