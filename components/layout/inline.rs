@@ -31,11 +31,11 @@ use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use style::arc_ptr_eq;
-use style::computed_values::{display, overflow_x, position, text_align, text_justify};
-use style::computed_values::{text_overflow, vertical_align, white_space};
+use style::computed_values::{display, position, text_align, text_justify};
+use style::computed_values::{vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::{longhands, ServoComputedValues};
 use text;
 use unicode_bidi;
 
@@ -687,18 +687,23 @@ impl LineBreaker {
         let mut need_ellipsis = false;
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
-        match (fragment.style().get_text().text_overflow,
-               fragment.style().get_box().overflow_x) {
-            (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
-            (text_overflow::T::ellipsis, _) => {
+
+        let text_overflow_string: Option<String> = match fragment.style().get_text().text_overflow.first {
+            longhands::text_overflow::Side::Clip => None,
+            longhands::text_overflow::Side::Ellipsis => {
                 need_ellipsis = fragment.margin_box_inline_size() > available_inline_size;
+                Some("...".to_string())
             }
-        }
+            longhands::text_overflow::Side::String(ref string) => {
+                need_ellipsis = fragment.margin_box_inline_size() > available_inline_size;
+                Some(string.to_string())
+            }
+        };
 
         if !need_ellipsis {
             self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
         } else {
-            let ellipsis = fragment.transform_into_ellipsis(layout_context);
+            let ellipsis = fragment.transform_into_ellipsis(layout_context, text_overflow_string);
             if let Some(truncation_info) =
                     fragment.truncate_to_inline_size(available_inline_size -
                                                      ellipsis.margin_box_inline_size()) {

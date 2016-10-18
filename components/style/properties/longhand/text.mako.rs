@@ -12,9 +12,6 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-% if product == "servo":
-    ${helpers.single_keyword("text-overflow", "clip ellipsis", animatable=False)}
-% else:
 <%helpers:longhand name="text-overflow" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
@@ -93,7 +90,6 @@
         }
     }
 </%helpers:longhand>
-% endif
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",

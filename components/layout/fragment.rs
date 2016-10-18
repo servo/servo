@@ -1004,12 +1004,13 @@ impl Fragment {
     }
 
     /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
-    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
+    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext, text_overflow_string: Option<String>)
+    -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
+                    box UnscannedTextFragmentInfo::new(text_overflow_string.unwrap().to_owned(), None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
