@@ -5,7 +5,6 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use ipc_channel::ipc::IpcSharedMemory;
 use std::cell::Cell;
 use std::fmt;
 use webrender_traits;
@@ -161,25 +160,6 @@ bitflags! {
         const ALT = 0x04,
         const SUPER = 0x08,
     }
-}
-
-#[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
-pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
-}
-
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
-    pub format: PixelFormat,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
-    #[ignore_heap_size_of = "Defined in webrender_traits"]
-    pub id: Option<webrender_traits::ImageKey>,
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]

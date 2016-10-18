@@ -11,7 +11,6 @@
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
-extern crate ipc_channel;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
