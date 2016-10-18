@@ -661,6 +661,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |

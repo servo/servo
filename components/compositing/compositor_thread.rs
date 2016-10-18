@@ -126,6 +126,8 @@ pub enum Msg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(PipelineId, IpcSender<()>),
+    /// Enter or exit fullscreen
+    SetFullscreenState(bool),
 }
 
 impl Debug for Msg {
@@ -158,6 +160,7 @@ impl Debug for Msg {
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
+            Msg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
         }
     }
 }

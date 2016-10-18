@@ -61,6 +61,7 @@ use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::promise::Promise;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -79,6 +80,7 @@ use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, Namespace, QualName};
@@ -1979,6 +1981,13 @@ impl ElementMethods for Element {
             None => return Err(Error::NotSupported)
         }
     }
+
+    // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    #[allow(unrooted_must_root)]
+    fn RequestFullscreen(&self) -> Rc<Promise> {
+        let doc = document_from_node(self);
+        doc.enter_fullscreen(self)
+    }
 }
 
 pub fn fragment_affecting_attributes() -> [Atom; 3] {
@@ -2226,6 +2235,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
@@ -2501,7 +2511,21 @@ impl Element {
     }
 
     pub fn set_target_state(&self, value: bool) {
-       self.set_state(IN_TARGET_STATE, value)
+        self.set_state(IN_TARGET_STATE, value)
+    }
+
+    pub fn fullscreen_state(&self) -> bool {
+        self.state.get().contains(IN_FULLSCREEN_STATE)
+    }
+
+    pub fn set_fullscren_state(&self, value: bool) {
+        self.set_state(IN_FULLSCREEN_STATE, value)
+    }
+
+    pub fn is_connected(&self) -> bool {
+        let node = self.upcast::<Node>();
+        let root = node.RootNode();
+        root.is::<Document>()
     }
 }
 
