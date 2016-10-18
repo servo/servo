@@ -319,6 +319,7 @@ COMPILATION_TARGETS = {
             "RawGeckoNode",
             "RawGeckoElement",
             "RawGeckoDocument",
+            "RawServoDeclarationBlockStrong",
         ],
         "whitelist_functions": [
             "Servo_.*",
