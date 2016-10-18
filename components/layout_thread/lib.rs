@@ -935,7 +935,7 @@ impl LayoutThread {
                                                  Matrix4D::identity(),
                                                  Matrix4D::identity(),
                                                  true,
-                                                 false,
+                                                 None,
                                                  None);
 
                         let display_list_entries =
