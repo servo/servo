@@ -17,11 +17,11 @@ from ..wpttest import WdspecResult, WdspecSubtestResult
 
 errors = None
 marionette = None
+pytestrunner = None
 webdriver = None
 
 here = os.path.join(os.path.split(__file__)[0])
 
-from . import pytestrunner
 from .base import (ExecutorException,
                    Protocol,
                    RefTestExecutor,
@@ -41,7 +41,7 @@ extra_timeout = 5 # seconds
 
 
 def do_delayed_imports():
-    global errors, marionette, webdriver
+    global errors, marionette
 
     # Marionette client used to be called marionette, recently it changed
     # to marionette_driver for unfathomable reasons
@@ -50,8 +50,6 @@ def do_delayed_imports():
         from marionette import errors
     except ImportError:
         from marionette_driver import marionette, errors
-
-    import webdriver
 
 
 class MarionetteProtocol(Protocol):
@@ -292,7 +290,7 @@ class RemoteMarionetteProtocol(Protocol):
 class ExecuteAsyncScriptRun(object):
     def __init__(self, logger, func, marionette, url, timeout):
         self.logger = logger
-        self.result = None
+        self.result = (None, None)
         self.marionette = marionette
         self.func = func
         self.url = url
@@ -323,11 +321,9 @@ class ExecuteAsyncScriptRun(object):
             wait_timeout = None
 
         flag = self.result_flag.wait(wait_timeout)
-        if self.result is None:
+        if self.result[1] is None:
             self.logger.debug("Timed out waiting for a result")
-            assert not flag
             self.result = False, ("EXTERNAL-TIMEOUT", None)
-
         return self.result
 
     def _run(self):
@@ -409,7 +405,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                 "timeout": timeout_ms,
                                 "explicit_timeout": timeout is None}
 
-        return marionette.execute_async_script(script, new_sandbox=False)
+        rv = marionette.execute_async_script(script, new_sandbox=False)
+        return rv
 
 
 class MarionetteRefTestExecutor(RefTestExecutor):
@@ -487,7 +484,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
 class WdspecRun(object):
     def __init__(self, func, session, path, timeout):
         self.func = func
-        self.result = None
+        self.result = (None, None)
         self.session = session
         self.path = path
         self.timeout = timeout
@@ -504,8 +501,7 @@ class WdspecRun(object):
         executor.start()
 
         flag = self.result_flag.wait(self.timeout)
-        if self.result is None:
-            assert not flag
+        if self.result[1] is None:
             self.result = False, ("EXTERNAL-TIMEOUT", None)
 
         return self.result
@@ -528,6 +524,7 @@ class WdspecRun(object):
 class MarionetteWdspecExecutor(WdspecExecutor):
     def __init__(self, browser, server_config, webdriver_binary,
                  timeout_multiplier=1, close_after_done=True, debug_info=None):
+        self.do_delayed_imports()
         WdspecExecutor.__init__(self, browser, server_config,
                                 timeout_multiplier=timeout_multiplier,
                                 debug_info=debug_info)
@@ -557,3 +554,8 @@ class MarionetteWdspecExecutor(WdspecExecutor):
         harness_result = ("OK", None)
         subtest_results = pytestrunner.run(path, session, timeout=timeout)
         return (harness_result, subtest_results)
+
+    def do_delayed_imports(self):
+        global pytestrunner, webdriver
+        from . import pytestrunner
+        import webdriver

@@ -170,25 +170,28 @@ class MachCommands(CommandBase):
                 print(cargo_path)
                 call(["cargo", "fetch"], env=self.build_env())
 
-    @Command('wpt-upgrade',
+    @Command('wptrunner-upgrade',
              description='upgrade wptrunner.',
              category='devenv')
     def upgrade_wpt_runner(self):
+        env = self.build_env()
         with cd(path.join(self.context.topdir, 'tests', 'wpt', 'harness')):
-            code = call(["git", "init"], env=self.build_env())
+            code = call(["git", "init"], env=env)
             if code:
                 return code
+            # No need to report an error if this fails, as it will for the first use
+            call(["git", "remote", "rm", "upstream"], env=env)
             code = call(
-                ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=self.build_env())
+                ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=env)
             if code:
                 return code
-            code = call(["git", "fetch", "upstream"], env=self.build_env())
+            code = call(["git", "fetch", "upstream"], env=env)
             if code:
                 return code
-            code = call(["git", "reset", "--hard", "remotes/upstream/master"], env=self.build_env())
+            code = call(["git", "reset", "--hard", "remotes/upstream/master"], env=env)
             if code:
                 return code
-            code = call(["rm", "-rf", ".git"], env=self.build_env())
+            code = call(["rm", "-rf", ".git"], env=env)
             if code:
                 return code
             return 0

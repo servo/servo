@@ -27,6 +27,7 @@ class TestChunker(object):
         self.chunk_number = chunk_number
         assert self.chunk_number <= self.total_chunks
         self.logger = structured.get_default_logger()
+        assert self.logger
 
     def __call__(self, manifest):
         raise NotImplementedError

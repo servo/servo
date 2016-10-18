@@ -4,11 +4,13 @@
 
 import base64
 import hashlib
+import httplib
 import json
 import os
 import subprocess
 import tempfile
 import threading
+import traceback
 import urlparse
 import uuid
 from collections import defaultdict
@@ -19,11 +21,19 @@ from .base import (ExecutorException,
                    Protocol,
                    RefTestImplementation,
                    testharness_result_converter,
-                   reftest_result_converter)
+                   reftest_result_converter,
+                   WdspecExecutor)
 from .process import ProcessTestExecutor
 from ..browsers.base import browser_command
-render_arg = None
+from ..wpttest import WdspecResult, WdspecSubtestResult
+from ..webdriver_server import ServoDriverServer
+from .executormarionette import WdspecRun
 
+pytestrunner = None
+render_arg = None
+webdriver = None
+
+extra_timeout = 5 # seconds
 
 def do_delayed_imports():
     global render_arg
@@ -205,7 +215,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                 self.binary,
                 [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
                  "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously,replace-surrogates",
-                 "--output=%s" % output_path, full_url],
+                 "--output=%s" % output_path, full_url] + self.browser.binary_args,
                 self.debug_info)
 
             for stylesheet in self.browser.user_stylesheets:
@@ -214,10 +224,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             for pref, value in test.environment.get('prefs', {}).iteritems():
                 command += ["--pref", "%s=%s" % (pref, value)]
 
-            if viewport_size:
-                command += ["--resolution", viewport_size]
-            else:
-                command += ["--resolution", "800x600"]
+            command += ["--resolution", viewport_size or "800x600"]
 
             if dpi:
                 command += ["--device-pixel-ratio", dpi]
@@ -278,3 +285,83 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             self.logger.process_output(self.proc.pid,
                                        line,
                                        " ".join(self.command))
+
+class ServoWdspecProtocol(Protocol):
+    def __init__(self, executor, browser):
+        self.do_delayed_imports()
+        Protocol.__init__(self, executor, browser)
+        self.session = None
+        self.server = None
+
+    def setup(self, runner):
+        try:
+            self.server = ServoDriverServer(self.logger, binary=self.browser.binary, binary_args=self.browser.binary_args, render_backend=self.browser.render_backend)
+            self.server.start(block=False)
+            self.logger.info(
+                "WebDriver HTTP server listening at %s" % self.server.url)
+
+            self.logger.info(
+                "Establishing new WebDriver session with %s" % self.server.url)
+            self.session = webdriver.Session(
+                self.server.host, self.server.port, self.server.base_path)
+        except Exception:
+            self.logger.error(traceback.format_exc())
+            self.executor.runner.send_message("init_failed")
+        else:
+            self.executor.runner.send_message("init_succeeded")
+
+    def teardown(self):
+        if self.server is not None:
+            try:
+                if self.session.session_id is not None:
+                    self.session.end()
+            except Exception:
+                pass
+            if self.server.is_alive:
+                self.server.stop()
+
+    @property
+    def is_alive(self):
+        conn = httplib.HTTPConnection(self.server.host, self.server.port)
+        conn.request("HEAD", self.server.base_path + "invalid")
+        res = conn.getresponse()
+        return res.status == 404
+
+    def do_delayed_imports(self):
+        global pytestrunner, webdriver
+        from . import pytestrunner
+        import webdriver
+
+
+class ServoWdspecExecutor(WdspecExecutor):
+    def __init__(self, browser, server_config,
+                 timeout_multiplier=1, close_after_done=True, debug_info=None,
+                 **kwargs):
+        WdspecExecutor.__init__(self, browser, server_config,
+                                timeout_multiplier=timeout_multiplier,
+                                debug_info=debug_info)
+        self.protocol = ServoWdspecProtocol(self, browser)
+
+    def is_alive(self):
+        return self.protocol.is_alive
+
+    def on_environment_change(self, new_environment):
+        pass
+
+    def do_test(self, test):
+        timeout = test.timeout * self.timeout_multiplier + extra_timeout
+
+        success, data = WdspecRun(self.do_wdspec,
+                                  self.protocol.session,
+                                  test.path,
+                                  timeout).run()
+
+        if success:
+            return self.convert_result(test, data)
+
+        return (test.result_cls(*data), [])
+
+    def do_wdspec(self, session, path, timeout):
+        harness_result = ("OK", None)
+        subtest_results = pytestrunner.run(path, session, timeout=timeout)
+        return (harness_result, subtest_results)

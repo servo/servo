@@ -14,7 +14,6 @@ from .base import (Protocol,
                    RefTestImplementation,
                    TestharnessExecutor,
                    strip_server)
-from .. import webdriver
 from ..testrunner import Stop
 
 webdriver = None
@@ -26,7 +25,7 @@ extra_timeout = 5
 
 def do_delayed_imports():
     global webdriver
-    import webdriver
+    from tools import webdriver
 
 
 class ServoWebDriverProtocol(Protocol):
