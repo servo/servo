@@ -37,7 +37,7 @@ pip install virtualenv
 ``` sh
 sudo port install python27 py27-virtualenv cmake
 ```
-#### On OS X <= 10.11 (El Capitan), you also have to install openssl
+#### On OS X >= 10.11 (El Capitan), you also have to install OpenSSL
 
 ``` sh
 brew install openssl
@@ -48,7 +48,7 @@ export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 ./mach build ...
 ```
 
-If you've already partially compiled servo but forgot to do this step, run ./mach clean, set the shell variables, and recompile.
+If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
 
 #### On Debian-based Linuxes
 
