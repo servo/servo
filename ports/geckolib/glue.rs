@@ -24,10 +24,10 @@ use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::{DUMMY_BASE_URL, GeckoDeclarationBlock};
 use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
+use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
-use style::gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsHTMLCSSStyleSheet, ServoComputedValuesBorrowedOrNull};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
@@ -127,7 +127,7 @@ pub extern "C" fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: ServoDeclarationBlockBorrowed,
+pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclarationBlockBorrowed,
                                                     previous_style: ServoComputedValuesBorrowed)
   -> ServoComputedValuesStrong
 {
@@ -381,7 +381,7 @@ pub extern "C" fn Servo_ParseProperty(property_bytes: *const u8,
                                       base: *mut ThreadSafeURIHolder,
                                       referrer: *mut ThreadSafeURIHolder,
                                       principal: *mut ThreadSafePrincipalHolder)
-                                      -> ServoDeclarationBlockStrong {
+                                      -> RawServoDeclarationBlockStrong {
     // All this string wrangling is temporary until the Gecko string bindings land (bug 1294742).
     let name = unsafe { from_utf8_unchecked(slice::from_raw_parts(property_bytes,
                                                                   property_length as usize)) };
@@ -404,7 +404,7 @@ pub extern "C" fn Servo_ParseProperty(property_bytes: *const u8,
     match PropertyDeclaration::parse(name, &context, &mut Parser::new(value_str),
                                      &mut results, false) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
-        _ => return ServoDeclarationBlockStrong::null(),
+        _ => return RawServoDeclarationBlockStrong::null(),
     }
 
     let results = results.into_iter().map(|r| (r, Importance::Normal)).collect();
@@ -421,7 +421,7 @@ pub extern "C" fn Servo_ParseProperty(property_bytes: *const u8,
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             cache: *mut nsHTMLCSSStyleSheet)
-                                            -> ServoDeclarationBlockStrong {
+                                            -> RawServoDeclarationBlockStrong {
     let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
     Arc::new(GeckoDeclarationBlock {
         declarations: GeckoElement::parse_style_attribute(value).map(|block| {
@@ -433,41 +433,41 @@ pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: RawServoDeclarationBlockBorrowed) {
     unsafe { GeckoDeclarationBlock::addref(declarations) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_Release(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_Release(declarations: RawServoDeclarationBlockBorrowed) {
     unsafe { GeckoDeclarationBlock::release(declarations) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
-                                                b: ServoDeclarationBlockBorrowed)
+pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
+                                                b: RawServoDeclarationBlockBorrowed)
                                                 -> bool {
     GeckoDeclarationBlock::as_arc(&a) == GeckoDeclarationBlock::as_arc(&b)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_GetCache(declarations: ServoDeclarationBlockBorrowed)
+pub extern "C" fn Servo_DeclarationBlock_GetCache(declarations: RawServoDeclarationBlockBorrowed)
                                                  -> *mut nsHTMLCSSStyleSheet {
     GeckoDeclarationBlock::as_arc(&declarations).cache.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetImmutable(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_SetImmutable(declarations: RawServoDeclarationBlockBorrowed) {
     GeckoDeclarationBlock::as_arc(&declarations).immutable.store(true, Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_ClearCachePointer(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_ClearCachePointer(declarations: RawServoDeclarationBlockBorrowed) {
     GeckoDeclarationBlock::as_arc(&declarations).cache.store(ptr::null_mut(), Ordering::Relaxed)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
-    declarations: ServoDeclarationBlockBorrowed,
+    declarations: RawServoDeclarationBlockBorrowed,
     buffer: *mut nsString)
 {
     let mut string = String::new();

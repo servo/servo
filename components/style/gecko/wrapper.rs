@@ -81,7 +81,7 @@ impl PartialEq for GeckoDeclarationBlock {
 }
 
 unsafe impl HasFFI for GeckoDeclarationBlock {
-    type FFIType = bindings::ServoDeclarationBlock;
+    type FFIType = bindings::RawServoDeclarationBlock;
 }
 unsafe impl HasArcFFI for GeckoDeclarationBlock {}
 

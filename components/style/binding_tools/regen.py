@@ -309,7 +309,7 @@ COMPILATION_TARGETS = {
         ],
         "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
-            "ServoDeclarationBlock"
+            "RawServoDeclarationBlock"
         ],
         "servo_owned_types": [
             "RawServoStyleSet",

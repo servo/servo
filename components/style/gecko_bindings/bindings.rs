@@ -10,11 +10,11 @@ pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 enum RawServoStyleSheetVoid{ }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
-pub type ServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
-enum ServoDeclarationBlockVoid{ }
-pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
+pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
+pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
+pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
+enum RawServoDeclarationBlockVoid{ }
+pub struct RawServoDeclarationBlock(RawServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = Option<&'a RawGeckoNode>;
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
@@ -370,7 +370,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
-     -> ServoDeclarationBlockBorrowedOrNull;
+     -> RawServoDeclarationBlockBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
@@ -865,11 +865,11 @@ extern "C" {
                                base: *mut ThreadSafeURIHolder,
                                referrer: *mut ThreadSafeURIHolder,
                                principal: *mut ThreadSafePrincipalHolder)
-     -> ServoDeclarationBlockStrong;
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_RestyleWithAddedDeclaration(declarations:
-                                                 ServoDeclarationBlockBorrowed,
+                                                 RawServoDeclarationBlockBorrowed,
                                              previous_style:
                                                  ServoComputedValuesBorrowed)
      -> ServoComputedValuesStrong;
@@ -877,37 +877,37 @@ extern "C" {
 extern "C" {
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
-     -> ServoDeclarationBlockStrong;
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_AddRef(declarations:
-                                             ServoDeclarationBlockBorrowed);
+                                             RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Release(declarations:
-                                              ServoDeclarationBlockBorrowed);
+                                              RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
-                                         b: ServoDeclarationBlockBorrowed)
+    pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
+                                         b: RawServoDeclarationBlockBorrowed)
      -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_GetCache(declarations:
-                                               ServoDeclarationBlockBorrowed)
+                                               RawServoDeclarationBlockBorrowed)
      -> *mut nsHTMLCSSStyleSheet;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SetImmutable(declarations:
-                                                   ServoDeclarationBlockBorrowed);
+                                                   RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_ClearCachePointer(declarations:
-                                                        ServoDeclarationBlockBorrowed);
+                                                        RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
-                                                        ServoDeclarationBlockBorrowed,
+                                                        RawServoDeclarationBlockBorrowed,
                                                     buffer: *mut nsString);
 }
 extern "C" {
