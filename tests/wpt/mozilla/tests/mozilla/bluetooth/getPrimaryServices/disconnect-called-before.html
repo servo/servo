@@ -14,7 +14,6 @@ promise_test(t => {
     .then(gattServer => {
         gattServer.disconnect();
         return promise_rejects(t, 'NetworkError', gattServer.getPrimaryServices());
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'disconnect() called before getPrimaryServices. Reject with NetworkError.');
 </script>

@@ -10,7 +10,6 @@ promise_test(t => {
         filters: [{services: [heart_rate.name]}]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'SyntaxError', gattServer.getPrimaryServices(wrong.name)))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(gattServer => promise_rejects(t, 'SyntaxError', gattServer.getPrimaryServices(wrong.name)));
 }, 'Wrong Service name. Reject with SyntaxError.');
 </script>

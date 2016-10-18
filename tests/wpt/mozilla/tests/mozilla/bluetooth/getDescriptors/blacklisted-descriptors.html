@@ -12,7 +12,10 @@ promise_test(t => {
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(blacklist_test_service_uuid))
     .then(service => service.getCharacteristic(blacklist_exclude_reads_characteristic_uuid))
-    .then(characteristic => promise_rejects(t, 'NotFoundError', characteristic.getDescriptors()))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(characteristic => characteristic.getDescriptors())
+    .then(descriptors => {
+        assert_equals(descriptors.length, 1);
+        assert_equals(descriptors[0].uuid, blacklist_exclude_reads_descriptor_uuid);
+    });
 }, 'The descriptors are blacklisted.');
 </script>

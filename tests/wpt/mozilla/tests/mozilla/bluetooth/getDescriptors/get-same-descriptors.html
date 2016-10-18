@@ -23,7 +23,6 @@ promise_test(() => {
         for (let i = 0; i < descs1.length; i++) {
             assert_equals(descs1[i], descs2[i]);
         }
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Calls to get the same descriptor should return the same object.');
 </script>

@@ -17,8 +17,7 @@ promise_test(() => {
     .then(descriptor => {
         assert_equals(descriptor.value, null);
         return descriptor.readValue()
-        .then(() => assert_equals(descriptor.value, '11'));
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+        .then(() => assert_equals(descriptor.value, '1'));
+    });
 }, 'Succesful read should update descriptor.value');
 </script>

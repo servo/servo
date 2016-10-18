@@ -11,7 +11,6 @@ promise_test(t => {
         optionalServices: [generic_access.name]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryServices()))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(gattServer => promise_rejects(t, 'NotFoundError', gattServer.getPrimaryServices()));
 }, 'Request for absent service. Reject with NotFoundError.');
 </script>

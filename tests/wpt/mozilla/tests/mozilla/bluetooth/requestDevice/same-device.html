@@ -13,7 +13,6 @@ promise_test(() => {
     .then(devices => {
         assert_equals(devices[0], devices[1]);
         assert_equals(devices[1], devices[2]);
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Returned device should always be the same.');
 </script>

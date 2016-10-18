@@ -14,7 +14,6 @@ promise_test(t => {
     .then(gattServer => Promise.all([
         promise_rejects(t, expected, gattServer.getPrimaryServices(glucose.alias)),
         promise_rejects(t, expected, gattServer.getPrimaryServices(glucose.name)),
-        promise_rejects(t, expected, gattServer.getPrimaryServices(glucose.uuid))]))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+        promise_rejects(t, expected, gattServer.getPrimaryServices(glucose.uuid))]));
 }, 'Request for absent service without permission. Reject with SecurityError.');
 </script>

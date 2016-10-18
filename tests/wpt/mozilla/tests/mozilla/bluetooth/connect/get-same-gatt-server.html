@@ -10,7 +10,6 @@ promise_test(() => {
         filters: [{services: [heart_rate.name]}]
     })
     .then(device => Promise.all([device.gatt.connect(), device.gatt.connect()]))
-    .then(gattServers => assert_equals(gattServers[0], gattServers[1]))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(gattServers => assert_equals(gattServers[0], gattServers[1]));
 }, 'Multiple connects should return the same gatt object.');
 </script>

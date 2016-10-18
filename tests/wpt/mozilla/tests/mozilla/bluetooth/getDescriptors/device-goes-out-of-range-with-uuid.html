@@ -16,7 +16,6 @@ promise_test(t => {
     .then(characteristic => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
         return promise_rejects(t, 'NetworkError', characteristic.getDescriptors(number_of_digitals.name));
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Device goes out of range. Reject with NetworkError.');
 </script>

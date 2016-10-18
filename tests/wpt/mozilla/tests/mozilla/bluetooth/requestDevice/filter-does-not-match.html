@@ -90,7 +90,7 @@ promise_test(t => {
         test_promises = test_promises
             .then(() => promise_rejects(
                 t, 'NotFoundError', window.navigator.bluetooth.requestDevice(args)))
-            .catch(error => assert_unreached('Promise should have resolved. ' + error));
+            ;
     });
     return test_promises;
 }, 'If at least one filter member doesn\'t match the promise must reject.');
