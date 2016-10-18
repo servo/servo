@@ -178,14 +178,6 @@ extern "C" {
     pub fn Gecko_ClearPODTArray(aArray: *mut ::std::os::raw::c_void,
                                 aElementSize: usize, aElementAlign: usize);
 }
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsHTMLCSSStyleSheet {
-    pub _address: u8,
-}
-impl Clone for nsHTMLCSSStyleSheet {
-    fn clone(&self) -> Self { *self }
-}
 extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
 }
@@ -372,7 +364,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
-     -> RawServoDeclarationBlockBorrowedOrNull;
+     -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
@@ -877,8 +869,7 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
-                                     cache: *mut nsHTMLCSSStyleSheet)
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -893,19 +884,6 @@ extern "C" {
     pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                          b: RawServoDeclarationBlockBorrowed)
      -> bool;
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_GetCache(declarations:
-                                               RawServoDeclarationBlockBorrowed)
-     -> *mut nsHTMLCSSStyleSheet;
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_SetImmutable(declarations:
-                                                   RawServoDeclarationBlockBorrowed);
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_ClearCachePointer(declarations:
-                                                        RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:

@@ -9,10 +9,11 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko_bindings::bindings::{RawServoStyleSheet, ServoComputedValues};
+use gecko_bindings::bindings::{RawServoStyleSheet, ServoComputedValues, RawServoDeclarationBlock};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
-use properties::ComputedValues;
+use parking_lot::RwLock;
+use properties::{ComputedValues, PropertyDeclarationBlock};
 use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage, LengthOrPercentageOrAuto};
 
@@ -24,6 +25,11 @@ unsafe impl HasFFI for ComputedValues {
     type FFIType = ServoComputedValues;
 }
 unsafe impl HasArcFFI for ComputedValues {}
+
+unsafe impl HasFFI for RwLock<PropertyDeclarationBlock> {
+    type FFIType = RawServoDeclarationBlock;
+}
+unsafe impl HasArcFFI for RwLock<PropertyDeclarationBlock> {}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
