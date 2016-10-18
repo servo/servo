@@ -1124,7 +1124,9 @@ impl Window {
         // When all these conditions are met, notify the constellation
         // that this pipeline is ready to write the image (from the script thread
         // perspective at least).
-        if (opts::get().output_file.is_some() || opts::get().exit_after_load) && for_display {
+        if (opts::get().output_file.is_some() ||
+            opts::get().exit_after_load ||
+            opts::get().webdriver_port.is_some()) && for_display {
             let document = self.Document();
 
             // Checks if the html element has reftest-wait attribute present.
