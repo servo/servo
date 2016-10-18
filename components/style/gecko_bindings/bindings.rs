@@ -10,17 +10,19 @@ pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 enum RawServoStyleSheetVoid{ }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
-pub type ServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
-enum ServoDeclarationBlockVoid{ }
-pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
+pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
+pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
+pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
+enum RawServoDeclarationBlockVoid{ }
+pub struct RawServoDeclarationBlock(RawServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = Option<&'a RawGeckoNode>;
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
 pub type RawGeckoElementBorrowedOrNull<'a> = Option<&'a RawGeckoElement>;
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
+pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlockStrong;
+pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
@@ -176,14 +178,6 @@ extern "C" {
     pub fn Gecko_ClearPODTArray(aArray: *mut ::std::os::raw::c_void,
                                 aElementSize: usize, aElementAlign: usize);
 }
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsHTMLCSSStyleSheet {
-    pub _address: u8,
-}
-impl Clone for nsHTMLCSSStyleSheet {
-    fn clone(&self) -> Self { *self }
-}
 extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
 }
@@ -242,7 +236,7 @@ extern "C" {
     pub fn Gecko_DropStyleChildrenIterator(it: StyleChildrenIteratorOwned);
 }
 extern "C" {
-    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowed)
+    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowedMut)
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
@@ -370,7 +364,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
-     -> ServoDeclarationBlockBorrowedOrNull;
+     -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
@@ -865,49 +859,35 @@ extern "C" {
                                base: *mut ThreadSafeURIHolder,
                                referrer: *mut ThreadSafeURIHolder,
                                principal: *mut ThreadSafePrincipalHolder)
-     -> ServoDeclarationBlockStrong;
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_RestyleWithAddedDeclaration(declarations:
-                                                 ServoDeclarationBlockBorrowed,
+                                                 RawServoDeclarationBlockBorrowed,
                                              previous_style:
                                                  ServoComputedValuesBorrowed)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
-                                     cache: *mut nsHTMLCSSStyleSheet)
-     -> ServoDeclarationBlockStrong;
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32)
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_AddRef(declarations:
-                                             ServoDeclarationBlockBorrowed);
+                                             RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Release(declarations:
-                                              ServoDeclarationBlockBorrowed);
+                                              RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
-                                         b: ServoDeclarationBlockBorrowed)
+    pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
+                                         b: RawServoDeclarationBlockBorrowed)
      -> bool;
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_GetCache(declarations:
-                                               ServoDeclarationBlockBorrowed)
-     -> *mut nsHTMLCSSStyleSheet;
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_SetImmutable(declarations:
-                                                   ServoDeclarationBlockBorrowed);
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_ClearCachePointer(declarations:
-                                                        ServoDeclarationBlockBorrowed);
-}
-extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
-                                                        ServoDeclarationBlockBorrowed,
+                                                        RawServoDeclarationBlockBorrowed,
                                                     buffer: *mut nsString);
 }
 extern "C" {

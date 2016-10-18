@@ -162,6 +162,20 @@ impl<T> Strong<T> {
     }
 
     #[inline]
+    /// Given a reference to a strong FFI reference,
+    /// converts it to a reference to a servo-side Arc
+    /// Returns None on null.
+    ///
+    /// Strong<GeckoType> -> Arc<ServoType>
+    pub fn as_arc_opt<U>(&self) -> Option<&Arc<U>> where U: HasArcFFI<FFIType = T> {
+        if self.is_null() {
+            None
+        } else {
+            unsafe { Some(transmute(self)) }
+        }
+    }
+
+    #[inline]
     /// Produces a null strong FFI reference
     pub fn null() -> Self {
         unsafe { transmute(ptr::null::<T>()) }

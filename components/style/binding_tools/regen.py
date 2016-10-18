@@ -309,7 +309,7 @@ COMPILATION_TARGETS = {
         ],
         "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
-            "ServoDeclarationBlock"
+            "RawServoDeclarationBlock"
         ],
         "servo_owned_types": [
             "RawServoStyleSet",
@@ -319,6 +319,7 @@ COMPILATION_TARGETS = {
             "RawGeckoNode",
             "RawGeckoElement",
             "RawGeckoDocument",
+            "RawServoDeclarationBlockStrong",
         ],
         "whitelist_functions": [
             "Servo_.*",

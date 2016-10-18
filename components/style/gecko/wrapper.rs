@@ -30,7 +30,7 @@ use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRT
 use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::OpaqueStyleData;
-use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasFFI};
+use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use libc::uintptr_t;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
@@ -45,7 +45,6 @@ use std::fmt;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicPtr};
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use url::Url;
 
@@ -56,35 +55,6 @@ impl NonOpaqueStyleData {
         NonOpaqueStyleData(AtomicRefCell::new(PersistentStyleData::new()))
     }
 }
-
-
-pub struct GeckoDeclarationBlock {
-    pub declarations: Option<Arc<RwLock<PropertyDeclarationBlock>>>,
-    // XXX The following two fields are made atomic to work around the
-    // ownership system so that they can be changed inside a shared
-    // instance. It wouldn't provide safety as Rust usually promises,
-    // but it is fine as far as we only access them in a single thread.
-    // If we need to access them in different threads, we would need
-    // to redesign how it works with MiscContainer in Gecko side.
-    pub cache: AtomicPtr<bindings::nsHTMLCSSStyleSheet>,
-    pub immutable: AtomicBool,
-}
-
-impl PartialEq for GeckoDeclarationBlock {
-    fn eq(&self, other: &GeckoDeclarationBlock) -> bool {
-        match (&self.declarations, &other.declarations) {
-            (&None, &None) => true,
-            (&Some(ref s), &Some(ref other)) => *s.read() == *other.read(),
-            _ => false,
-        }
-    }
-}
-
-unsafe impl HasFFI for GeckoDeclarationBlock {
-    type FFIType = bindings::ServoDeclarationBlock;
-}
-unsafe impl HasArcFFI for GeckoDeclarationBlock {}
-
 
 // We can eliminate OpaqueStyleData when the bindings move into the style crate.
 fn to_opaque_style_data(d: *mut NonOpaqueStyleData) -> *mut OpaqueStyleData {
@@ -438,8 +408,8 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 *self = GeckoChildrenIterator::Current(next);
                 curr
             },
-            GeckoChildrenIterator::GeckoIterator(ref it) => unsafe {
-                Gecko_GetNextStyleChild(&it).map(GeckoNode)
+            GeckoChildrenIterator::GeckoIterator(ref mut it) => unsafe {
+                Gecko_GetNextStyleChild(it).map(GeckoNode)
             }
         }
     }
@@ -486,13 +456,13 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
-    pub fn parse_style_attribute(value: &str) -> Option<PropertyDeclarationBlock> {
+    pub fn parse_style_attribute(value: &str) -> PropertyDeclarationBlock {
         // FIXME(bholley): Real base URL and error reporter.
         let base_url = &*DUMMY_BASE_URL;
         // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
         // properly.
         let extra_data = ParserContextExtraData::default();
-        Some(parse_style_attribute(value, &base_url, Box::new(StdoutErrorReporter), extra_data))
+        parse_style_attribute(value, &base_url, Box::new(StdoutErrorReporter), extra_data)
     }
 }
 
@@ -512,12 +482,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.0) };
-        if declarations.is_none() {
-            None
-        } else {
-            let declarations = GeckoDeclarationBlock::arc_from_borrowed(&declarations).unwrap();
-            declarations.declarations.as_ref().map(|r| r as *const Arc<_>).map(|ptr| unsafe { &*ptr })
-        }
+        declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
     fn get_state(&self) -> ElementState {
