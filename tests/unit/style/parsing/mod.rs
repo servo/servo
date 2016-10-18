@@ -32,6 +32,14 @@ macro_rules! assert_roundtrip {
 }
 
 
+macro_rules! parse_longhand {
+    ($name:ident, $s:expr) => {{
+        let url = Url::parse("http://localhost").unwrap();
+        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        $name::parse(&context, &mut Parser::new($s)).unwrap()
+    }};
+}
+
 mod basic_shape;
 mod mask;
 mod position;
