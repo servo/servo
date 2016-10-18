@@ -112,7 +112,7 @@ pub struct Font {
     shaper: Option<Shaper>,
     shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
     glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
-    pub font_key: Option<webrender_traits::FontKey>,
+    pub font_key: webrender_traits::FontKey,
 }
 
 impl Font {
@@ -121,7 +121,7 @@ impl Font {
                descriptor: FontTemplateDescriptor,
                requested_pt_size: Au,
                actual_pt_size: Au,
-               font_key: Option<webrender_traits::FontKey>) -> Font {
+               font_key: webrender_traits::FontKey) -> Font {
         let metrics = handle.metrics();
         Font {
             handle: handle,

@@ -172,8 +172,8 @@ pub struct Constellation<Message, LTF, STF> {
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
 
-    // Webrender interface, if enabled.
-    webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    // Webrender interface.
+    webrender_api_sender: webrender_traits::RenderApiSender,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -209,8 +209,8 @@ pub struct InitialConstellationState {
     pub mem_profiler_chan: mem::ProfilerChan,
     /// Whether the constellation supports the clipboard.
     pub supports_clipboard: bool,
-    /// Optional webrender API reference (if enabled).
-    pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    /// Webrender API.
+    pub webrender_api_sender: webrender_traits::RenderApiSender,
 }
 
 #[derive(Debug, Clone)]
@@ -971,9 +971,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
             }
 
-            FromScriptMsg::GetScrollOffset(pid, lid, send) => {
-                self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
-            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
@@ -1852,8 +1849,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // Set paint permissions correctly for the compositor layers.
-        self.revoke_paint_permission(prev_pipeline_id);
-        self.send_frame_tree_and_grant_paint_permission();
+        self.send_frame_tree();
 
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
@@ -1910,12 +1906,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            // The new pipeline is replacing an old one.
-            // Remove paint permissions for the pipeline being replaced.
-            self.revoke_paint_permission(old_pipeline_id);
-        };
-
         if self.frames.contains_key(&frame_change.frame_id) {
             // Mature the new pipeline, and return frames evicted from history.
             if let Some(ref mut pipeline) = self.pipelines.get_mut(&frame_change.new_pipeline_id) {
@@ -1958,8 +1948,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.clear_joint_session_future(top_level_frame_id);
         }
 
-        // Build frame tree and send permission
-        self.send_frame_tree_and_grant_paint_permission();
+        // Build frame tree
+        self.send_frame_tree();
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
@@ -2339,20 +2329,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         })
     }
 
-    // Revoke paint permission from a pipeline, and all children.
-    fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            for frame in self.current_frame_tree_iter(pipeline.frame_id) {
-                if let Some(pipeline) = self.pipelines.get(&frame.current.pipeline_id) {
-                    pipeline.revoke_paint_permission();
-                }
-            }
-        }
-    }
-
-    // Send the current frame tree to compositor, and grant paint
-    // permission to each pipeline in the current frame tree.
-    fn send_frame_tree_and_grant_paint_permission(&mut self) {
+    // Send the current frame tree to compositor
+    fn send_frame_tree(&mut self) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
@@ -2364,10 +2342,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 warn!("Compositor has discarded SetFrameTree");
                 return; // Our message has been discarded, probably shutting down.
             }
-        }
-
-        for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| pipeline.grant_paint_permission());
         }
     }
 

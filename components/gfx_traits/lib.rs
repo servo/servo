@@ -11,11 +11,7 @@
 #![deny(unsafe_code)]
 
 extern crate azure;
-extern crate euclid;
 extern crate heapsize;
-extern crate layers;
-extern crate msg;
-extern crate profile_traits;
 #[macro_use]
 extern crate range;
 extern crate rustc_serialize;
@@ -24,16 +20,8 @@ extern crate serde;
 extern crate serde_derive;
 
 pub mod color;
-mod paint_listener;
 pub mod print_tree;
 
-pub use paint_listener::PaintListener;
-use azure::azure_hl::Color;
-use euclid::Matrix4D;
-use euclid::rect::Rect;
-use layers::layers::BufferRequest;
-use msg::constellation_msg::PipelineId;
-use profile_traits::mem::ReportsChan;
 use range::RangeIndex;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
@@ -50,6 +38,20 @@ static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
 const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
 
+// Units for use with euclid::length and euclid::scale_factor.
+
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[derive(Copy, Clone, RustcEncodable, Debug)]
+pub enum DevicePixel {}
+
+/// One pixel in layer coordinate space.
+///
+/// This unit corresponds to a "pixel" in layer coordinate space, which after scaling and
+/// transformation becomes a device pixel.
+#[derive(Copy, Clone, RustcEncodable, Debug)]
+pub enum LayerPixel {}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
@@ -126,33 +128,6 @@ impl LayerId {
     pub fn kind(&self) -> LayerType {
         self.0
     }
-}
-
-/// All layer-specific information that the painting task sends to the compositor other than the
-/// buffer contents of the layer itself.
-#[derive(Copy, Clone, HeapSizeOf)]
-pub struct LayerProperties {
-    /// An opaque ID. This is usually the address of the flow and index of the box within it.
-    pub id: LayerId,
-    /// The id of the parent layer.
-    pub parent_id: Option<LayerId>,
-    /// The position and size of the layer in pixels.
-    pub rect: Rect<f32>,
-    /// The background color of the layer.
-    pub background_color: Color,
-    /// The scrolling policy of this layer.
-    pub scroll_policy: ScrollPolicy,
-    /// The transform for this layer
-    pub transform: Matrix4D<f32>,
-    /// The perspective transform for this layer
-    pub perspective: Matrix4D<f32>,
-    /// The subpage that this layer represents. If this is `Some`, this layer represents an
-    /// iframe.
-    pub subpage_pipeline_id: Option<PipelineId>,
-    /// Whether this layer establishes a new 3d rendering context.
-    pub establishes_3d_context: bool,
-    /// Whether this layer scrolls its overflow area.
-    pub scrolls_overflow_area: bool,
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
@@ -271,20 +246,4 @@ int_range_index! {
              point to the middle of a glyph."]
     #[derive(HeapSizeOf)]
     struct ByteIndex(isize)
-}
-
-pub struct PaintRequest {
-    pub buffer_requests: Vec<BufferRequest>,
-    pub scale: f32,
-    pub layer_id: LayerId,
-    pub epoch: Epoch,
-    pub layer_kind: LayerKind,
-}
-
-pub enum ChromeToPaintMsg {
-    Paint(Vec<PaintRequest>, FrameTreeId),
-    PaintPermissionGranted,
-    PaintPermissionRevoked,
-    CollectReports(ReportsChan),
-    Exit,
 }

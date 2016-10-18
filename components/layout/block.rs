@@ -31,7 +31,7 @@ use app_units::{Au, MAX_AU};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -64,10 +64,6 @@ use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::clamp;
-use util::geometry::max_rect;
-
-/// The number of screens of data we're allowed to generate display lists for in each direction.
-const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
@@ -1959,7 +1955,7 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, _layout_context: &SharedLayoutContext) {
         if self.base.flags.contains(NEEDS_LAYER) {
             self.fragment.flags.insert(HAS_LAYER)
         }
@@ -1970,7 +1966,6 @@ impl Flow for BlockFlow {
 
         if self.is_root() {
             self.base.clip = ClippingRegion::max();
-            self.base.stacking_relative_position_of_display_port = max_rect();
         }
 
         let transform_style = self.fragment.style().get_used_transform_style();
@@ -1983,7 +1978,6 @@ impl Flow for BlockFlow {
                 (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
                 (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
                     self.base.clip = ClippingRegion::max();
-                    self.base.stacking_relative_position_of_display_port = max_rect();
                 }
                 _ => {}
             }
@@ -2085,25 +2079,6 @@ impl Flow for BlockFlow {
             self.base.stacking_relative_position + relative_offset
         };
 
-        let stacking_relative_position_of_display_port_for_children =
-            if is_stacking_context || self.is_root() {
-                let visible_rect =
-                    match layout_context.visible_rects.get(&self.layer_id()) {
-                        Some(visible_rect) => *visible_rect,
-                        None => Rect::new(Point2D::zero(), layout_context.style_context.viewport_size),
-                    };
-
-                let viewport_size = layout_context.style_context.viewport_size;
-                visible_rect.inflate(viewport_size.width * DISPLAY_PORT_SIZE_FACTOR,
-                                     viewport_size.height * DISPLAY_PORT_SIZE_FACTOR)
-            } else if is_stacking_context {
-                self.base
-                    .stacking_relative_position_of_display_port
-                    .translate(&-self.base.stacking_relative_position)
-            } else {
-                self.base.stacking_relative_position_of_display_port
-            };
-
         let stacking_relative_border_box =
             self.fragment
                 .stacking_relative_border_box(&self.base.stacking_relative_position,
@@ -2168,8 +2143,6 @@ impl Flow for BlockFlow {
 
             flow::mut_base(kid).late_absolute_position_info =
                 late_absolute_position_info_for_children;
-            flow::mut_base(kid).stacking_relative_position_of_display_port =
-                stacking_relative_position_of_display_port_for_children;
 
             // This clipping region is in our coordinate system. The child will fix it up to be in
             // its own coordinate system by itself if necessary.

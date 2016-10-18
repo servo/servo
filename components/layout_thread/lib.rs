@@ -56,7 +56,6 @@ use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{Epoch, FragmentType, LayerId, ScrollPolicy, StackingContextId, color};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -120,7 +119,6 @@ use style::timer::Timer;
 use style::workqueue::WorkQueue;
 use url::Url;
 use util::geometry::max_rect;
-use util::ipc::OptionalIpcSender;
 use util::opts;
 use util::prefs::PREFS;
 use util::resource_files::read_resource_file;
@@ -163,9 +161,6 @@ pub struct LayoutThread {
 
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
-
-    /// The channel on which messages can be sent to the painting thread.
-    paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -232,8 +227,8 @@ pub struct LayoutThread {
                                               WebRenderImageInfo,
                                               BuildHasherDefault<FnvHasher>>>>,
 
-    // Webrender interface, if enabled.
-    webrender_api: Option<webrender_traits::RenderApi>,
+    // Webrender interface.
+    webrender_api: webrender_traits::RenderApi,
 
     /// The timer object to control the timing of the animations. This should
     /// only be a test-mode timer during testing for animations.
@@ -255,13 +250,12 @@ impl LayoutThreadFactory for LayoutThread {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
-              paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: IpcSender<()>,
-              webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+              webrender_api_sender: webrender_traits::RenderApiSender,
               layout_threads: usize) {
         thread::spawn_named(format!("LayoutThread {:?}", id),
                       move || {
@@ -276,7 +270,6 @@ impl LayoutThreadFactory for LayoutThread {
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
-                                             paint_chan,
                                              image_cache_thread,
                                              font_cache_thread,
                                              time_profiler_chan,
@@ -388,12 +381,11 @@ impl LayoutThread {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
-           paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_thread: ImageCacheThread,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
-           webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+           webrender_api_sender: webrender_traits::RenderApiSender,
            layout_threads: usize)
            -> LayoutThread {
         let device = Device::new(
@@ -439,7 +431,6 @@ impl LayoutThread {
             pipeline_port: pipeline_receiver,
             script_chan: script_chan.clone(),
             constellation_chan: constellation_chan.clone(),
-            paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             image_cache_thread: image_cache_thread,
@@ -460,7 +451,7 @@ impl LayoutThread {
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
             epoch: Epoch(0),
             viewport_size: Size2D::new(Au(0), Au(0)),
-            webrender_api: webrender_api_sender.map(|wr| wr.create_api()),
+            webrender_api: webrender_api_sender.create_api(),
             rw_data: Arc::new(Mutex::new(
                 LayoutThreadData {
                     constellation_chan: constellation_chan,
@@ -763,13 +754,12 @@ impl LayoutThread {
                              info.pipeline_port,
                              info.constellation_chan,
                              info.script_chan.clone(),
-                             info.paint_chan.to::<LayoutToPaintMsg>(),
                              self.image_cache_thread.clone(),
                              self.font_cache_thread.clone(),
                              self.time_profiler_chan.clone(),
                              self.mem_profiler_chan.clone(),
                              info.content_process_shutdown_chan,
-                             self.webrender_api.as_ref().map(|wr| wr.clone_sender()),
+                             self.webrender_api.clone_sender(),
                              info.layout_threads);
     }
 
@@ -805,8 +795,6 @@ impl LayoutThread {
         if let Some(ref mut traversal) = self.parallel_traversal {
             traversal.shutdown()
         }
-
-        let _ = self.paint_chan.send(LayoutToPaintMsg::Exit);
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
@@ -1009,45 +997,38 @@ impl LayoutThread {
 
             self.epoch.next();
 
-            if let Some(ref mut webrender_api) = self.webrender_api {
-                // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let Epoch(epoch_number) = self.epoch;
-                let epoch = webrender_traits::Epoch(epoch_number);
-                let pipeline_id = self.id.to_webrender();
+            // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
+            let Epoch(epoch_number) = self.epoch;
+            let epoch = webrender_traits::Epoch(epoch_number);
+            let pipeline_id = self.id.to_webrender();
 
-                // TODO(gw) For now only create a root scrolling layer!
-                let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
-                let root_scroll_layer_id = frame_builder.next_scroll_layer_id();
-                let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                    webrender_api,
-                    pipeline_id,
-                    epoch,
-                    Some(root_scroll_layer_id),
-                    &mut frame_builder);
-                let root_background_color = get_root_flow_background_color(layout_root);
-                let root_background_color =
-                    webrender_traits::ColorF::new(root_background_color.r,
-                                                  root_background_color.g,
-                                                  root_background_color.b,
-                                                  root_background_color.a);
+            // TODO(gw) For now only create a root scrolling layer!
+            let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
+            let root_scroll_layer_id = frame_builder.next_scroll_layer_id();
+            let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
+                &mut self.webrender_api,
+                pipeline_id,
+                epoch,
+                Some(root_scroll_layer_id),
+                &mut frame_builder);
+            let root_background_color = get_root_flow_background_color(layout_root);
+            let root_background_color =
+                webrender_traits::ColorF::new(root_background_color.r,
+                                              root_background_color.g,
+                                              root_background_color.b,
+                                              root_background_color.a);
 
-                let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
-                                                self.viewport_size.height.to_f32_px());
+            let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
+                                            self.viewport_size.height.to_f32_px());
 
-                webrender_api.set_root_stacking_context(
-                    sc_id,
-                    root_background_color,
-                    epoch,
-                    pipeline_id,
-                    viewport_size,
-                    frame_builder.stacking_contexts,
-                    frame_builder.display_lists,
-                    frame_builder.auxiliary_lists_builder.finalize());
-            } else {
-                self.paint_chan
-                    .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
-                    .unwrap();
-            }
+            self.webrender_api.set_root_stacking_context(sc_id,
+                                                         root_background_color,
+                                                         epoch,
+                                                         pipeline_id,
+                                                         viewport_size,
+                                                         frame_builder.stacking_contexts,
+                                                         frame_builder.display_lists,
+                                                         frame_builder.auxiliary_lists_builder.finalize());
         });
     }
 

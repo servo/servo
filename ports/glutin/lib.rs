@@ -11,9 +11,9 @@ extern crate compositing;
 #[allow(unused_extern_crates)]
 #[cfg(target_os = "android")] extern crate egl;
 extern crate euclid;
+extern crate gfx_traits;
 extern crate gleam;
 extern crate glutin;
-extern crate layers;
 #[macro_use] extern crate log;
 extern crate msg;
 extern crate net_traits;
@@ -22,7 +22,6 @@ extern crate script_traits;
 extern crate style_traits;
 extern crate url;
 extern crate util;
-#[cfg(target_os = "linux")] extern crate x11;
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
 #[cfg(target_os = "windows")] extern crate gdi32;

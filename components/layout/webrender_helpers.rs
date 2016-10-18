@@ -411,7 +411,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     builder.push_text(item.base.bounds.to_rectf(),
                                       item.base.clip.to_clip_region(frame_builder),
                                       glyphs,
-                                      item.text_run.font_key.expect("Font not added to webrender!"),
+                                      item.text_run.font_key,
                                       item.text_color.to_colorf(),
                                       item.text_run.actual_pt_size,
                                       item.blur_radius,

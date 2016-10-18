@@ -21,7 +21,6 @@ use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
 use style::stylesheets::Stylesheet;
 use url::Url;
-use util::ipc::OptionalOpaqueIpcSender;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -148,7 +147,6 @@ pub struct NewLayoutThreadInfo {
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
-    pub paint_chan: OptionalOpaqueIpcSender,
     pub content_process_shutdown_chan: IpcSender<()>,
     pub layout_threads: usize,
 }
