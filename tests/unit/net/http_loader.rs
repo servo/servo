@@ -18,7 +18,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy, TEST_PIPELINE_ID};
+use msg::constellation_msg::{PipelineId, TEST_PIPELINE_ID};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
@@ -26,7 +26,7 @@ use net::http_loader::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UI
 use net::http_loader::{HttpResponse, LoadErrorType};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
-use net_traits::{CustomResponse, LoadOrigin, Metadata};
+use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
 use std::sync::{Arc, RwLock, mpsc};

@@ -25,7 +25,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
-use msg::constellation_msg::ReferrerPolicy;
+use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
 use std::default::Default;

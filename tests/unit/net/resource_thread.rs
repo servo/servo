@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::PipelineId;
 use net::resource_thread::new_core_resource_thread;
 use net_traits::{CoreResourceMsg, LoadConsumer, LoadContext, LoadData};
-use net_traits::{LoadOrigin, NetworkError, ProgressMsg};
+use net_traits::{LoadOrigin, NetworkError, ProgressMsg, ReferrerPolicy};
 use net_traits::hosts::{host_replacement, parse_hostsfile};
 use profile_traits::time::ProfilerChan;
 use std::borrow::ToOwned;
