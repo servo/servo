@@ -35,5 +35,7 @@ bitflags! {
         const IN_PLACEHOLDER_SHOWN_STATE = 0x0100,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-target"]
         const IN_TARGET_STATE = 0x0200,
+        #[doc = "https://fullscreen.spec.whatwg.org/#%3Afullscreen-pseudo-class"]
+        const IN_FULLSCREEN_STATE = 0x0400,
     }
 }
