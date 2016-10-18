@@ -52,7 +52,7 @@ use util::prefs::{PREFS, PrefValue};
 use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters};
-use webdriver::command::{LocatorParameters, Parameters};
+use webdriver::command::{LocatorParameters, Parameters, SwitchToWindowParameters};
 use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::command::WindowSizeParameters;
@@ -504,6 +504,20 @@ impl Handler {
         }
     }
 
+    fn handle_dismiss_alert(&mut self) -> WebDriverResult<WebDriverResponse> {
+        //TODO figure out how to interact with blocking native UI
+        Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_switch_to_window(&mut self, parameters: &SwitchToWindowParameters) -> WebDriverResult<WebDriverResponse> {
+        if parameters.handle == self.session.as_ref().unwrap().id.to_string() {
+            Ok(WebDriverResponse::Void)
+        } else {
+            Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
+                                    "Switching to another window is not supported"))
+        }
+    }
+
     fn handle_switch_to_frame(&mut self, parameters: &SwitchToFrameParameters) -> WebDriverResult<WebDriverResponse> {
         use webdriver::common::FrameId;
         let frame_id = match parameters.id {
@@ -873,6 +887,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetTitle => self.handle_title(),
             WebDriverCommand::GetWindowHandle => self.handle_window_handle(),
             WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
+            WebDriverCommand::SwitchToWindow(ref parameters) => self.handle_switch_to_window(parameters),
             WebDriverCommand::SwitchToFrame(ref parameters) => self.handle_switch_to_frame(parameters),
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
@@ -900,6 +915,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                     ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
                 }
             }
+            WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
         }

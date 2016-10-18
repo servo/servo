@@ -131,7 +131,7 @@ class Test(object):
                    inherit_metadata,
                    test_metadata,
                    timeout=timeout,
-                   path=manifest_item.path,
+                   path=manifest_item.source_file.path,
                    protocol="https" if hasattr(manifest_item, "https") and manifest_item.https else "http")
 
     @property
