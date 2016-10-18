@@ -10,19 +10,17 @@ pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 enum RawServoStyleSheetVoid{ }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
-pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
-pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
-pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
-enum RawServoDeclarationBlockVoid{ }
-pub struct RawServoDeclarationBlock(RawServoDeclarationBlockVoid);
+pub type ServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
+enum ServoDeclarationBlockVoid{ }
+pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = Option<&'a RawGeckoNode>;
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
 pub type RawGeckoElementBorrowedOrNull<'a> = Option<&'a RawGeckoElement>;
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
-pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlockStrong;
-pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
@@ -39,90 +37,70 @@ pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut StyleChildr
 pub type StyleChildrenIteratorOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
 enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
-use gecko_bindings::structs::nsStyleFont;
-unsafe impl Send for nsStyleFont {}
-unsafe impl Sync for nsStyleFont {}
-use gecko_bindings::structs::nsStyleColor;
-unsafe impl Send for nsStyleColor {}
-unsafe impl Sync for nsStyleColor {}
-use gecko_bindings::structs::nsStyleList;
-unsafe impl Send for nsStyleList {}
-unsafe impl Sync for nsStyleList {}
-use gecko_bindings::structs::nsStyleText;
-unsafe impl Send for nsStyleText {}
-unsafe impl Sync for nsStyleText {}
-use gecko_bindings::structs::nsStyleVisibility;
-unsafe impl Send for nsStyleVisibility {}
-unsafe impl Sync for nsStyleVisibility {}
-use gecko_bindings::structs::nsStyleUserInterface;
-unsafe impl Send for nsStyleUserInterface {}
-unsafe impl Sync for nsStyleUserInterface {}
-use gecko_bindings::structs::nsStyleTableBorder;
-unsafe impl Send for nsStyleTableBorder {}
-unsafe impl Sync for nsStyleTableBorder {}
-use gecko_bindings::structs::nsStyleSVG;
-unsafe impl Send for nsStyleSVG {}
-unsafe impl Sync for nsStyleSVG {}
-use gecko_bindings::structs::nsStyleVariables;
-unsafe impl Send for nsStyleVariables {}
-unsafe impl Sync for nsStyleVariables {}
+use gecko_bindings::structs::FontFamilyList;
+use gecko_bindings::structs::FontFamilyType;
+use gecko_bindings::structs::RawGeckoDocument;
+use gecko_bindings::structs::RawGeckoElement;
+use gecko_bindings::structs::RawGeckoNode;
+use gecko_bindings::structs::ServoElementSnapshot;
+use gecko_bindings::structs::SheetParsingMode;
+use gecko_bindings::structs::StyleBasicShape;
+use gecko_bindings::structs::StyleBasicShapeType;
+use gecko_bindings::structs::StyleClipPath;
+use gecko_bindings::structs::nsCSSShadowArray;
+use gecko_bindings::structs::nsChangeHint;
+use gecko_bindings::structs::nsFont;
+use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsIPrincipal;
+use gecko_bindings::structs::nsIURI;
+use gecko_bindings::structs::nsMainThreadPtrHolder;
+use gecko_bindings::structs::nsRestyleHint;
+use gecko_bindings::structs::nsString;
 use gecko_bindings::structs::nsStyleBackground;
 unsafe impl Send for nsStyleBackground {}
 unsafe impl Sync for nsStyleBackground {}
-use gecko_bindings::structs::nsStylePosition;
-unsafe impl Send for nsStylePosition {}
-unsafe impl Sync for nsStylePosition {}
-use gecko_bindings::structs::nsStyleTextReset;
-unsafe impl Send for nsStyleTextReset {}
-unsafe impl Sync for nsStyleTextReset {}
-use gecko_bindings::structs::nsStyleDisplay;
-unsafe impl Send for nsStyleDisplay {}
-unsafe impl Sync for nsStyleDisplay {}
-use gecko_bindings::structs::nsStyleContent;
-unsafe impl Send for nsStyleContent {}
-unsafe impl Sync for nsStyleContent {}
-use gecko_bindings::structs::nsStyleUIReset;
-unsafe impl Send for nsStyleUIReset {}
-unsafe impl Sync for nsStyleUIReset {}
-use gecko_bindings::structs::nsStyleTable;
-unsafe impl Send for nsStyleTable {}
-unsafe impl Sync for nsStyleTable {}
-use gecko_bindings::structs::nsStyleMargin;
-unsafe impl Send for nsStyleMargin {}
-unsafe impl Sync for nsStyleMargin {}
-use gecko_bindings::structs::nsStylePadding;
-unsafe impl Send for nsStylePadding {}
-unsafe impl Sync for nsStylePadding {}
 use gecko_bindings::structs::nsStyleBorder;
 unsafe impl Send for nsStyleBorder {}
 unsafe impl Sync for nsStyleBorder {}
-use gecko_bindings::structs::nsStyleOutline;
-unsafe impl Send for nsStyleOutline {}
-unsafe impl Sync for nsStyleOutline {}
-use gecko_bindings::structs::nsStyleXUL;
-unsafe impl Send for nsStyleXUL {}
-unsafe impl Sync for nsStyleXUL {}
-use gecko_bindings::structs::nsStyleSVGReset;
-unsafe impl Send for nsStyleSVGReset {}
-unsafe impl Sync for nsStyleSVGReset {}
+use gecko_bindings::structs::nsStyleColor;
+unsafe impl Send for nsStyleColor {}
+unsafe impl Sync for nsStyleColor {}
 use gecko_bindings::structs::nsStyleColumn;
 unsafe impl Send for nsStyleColumn {}
 unsafe impl Sync for nsStyleColumn {}
-use gecko_bindings::structs::nsStyleEffects;
-unsafe impl Send for nsStyleEffects {}
-unsafe impl Sync for nsStyleEffects {}
-use gecko_bindings::structs::nsStyleImage;
-unsafe impl Send for nsStyleImage {}
-unsafe impl Sync for nsStyleImage {}
-use gecko_bindings::structs::nsStyleGradient;
-unsafe impl Send for nsStyleGradient {}
-unsafe impl Sync for nsStyleGradient {}
+use gecko_bindings::structs::nsStyleContent;
+unsafe impl Send for nsStyleContent {}
+unsafe impl Sync for nsStyleContent {}
+use gecko_bindings::structs::nsStyleContext;
+unsafe impl Send for nsStyleContext {}
+unsafe impl Sync for nsStyleContext {}
 use gecko_bindings::structs::nsStyleCoord;
 unsafe impl Send for nsStyleCoord {}
 unsafe impl Sync for nsStyleCoord {}
+use gecko_bindings::structs::nsStyleCoord_Calc;
+unsafe impl Send for nsStyleCoord_Calc {}
+unsafe impl Sync for nsStyleCoord_Calc {}
+use gecko_bindings::structs::nsStyleCoord_CalcValue;
+unsafe impl Send for nsStyleCoord_CalcValue {}
+unsafe impl Sync for nsStyleCoord_CalcValue {}
+use gecko_bindings::structs::nsStyleDisplay;
+unsafe impl Send for nsStyleDisplay {}
+unsafe impl Sync for nsStyleDisplay {}
+use gecko_bindings::structs::nsStyleEffects;
+unsafe impl Send for nsStyleEffects {}
+unsafe impl Sync for nsStyleEffects {}
+use gecko_bindings::structs::nsStyleFont;
+unsafe impl Send for nsStyleFont {}
+unsafe impl Sync for nsStyleFont {}
+use gecko_bindings::structs::nsStyleGradient;
+unsafe impl Send for nsStyleGradient {}
+unsafe impl Sync for nsStyleGradient {}
 use gecko_bindings::structs::nsStyleGradientStop;
 unsafe impl Send for nsStyleGradientStop {}
 unsafe impl Sync for nsStyleGradientStop {}
+use gecko_bindings::structs::nsStyleImage;
+unsafe impl Send for nsStyleImage {}
+unsafe impl Sync for nsStyleImage {}
 use gecko_bindings::structs::nsStyleImageLayers;
 unsafe impl Send for nsStyleImageLayers {}
 unsafe impl Sync for nsStyleImageLayers {}
@@ -132,43 +110,63 @@ unsafe impl Sync for nsStyleImageLayers_Layer {}
 use gecko_bindings::structs::nsStyleImageLayers_LayerType;
 unsafe impl Send for nsStyleImageLayers_LayerType {}
 unsafe impl Sync for nsStyleImageLayers_LayerType {}
-use gecko_bindings::structs::nsStyleUnit;
-unsafe impl Send for nsStyleUnit {}
-unsafe impl Sync for nsStyleUnit {}
-use gecko_bindings::structs::nsStyleUnion;
-unsafe impl Send for nsStyleUnion {}
-unsafe impl Sync for nsStyleUnion {}
-use gecko_bindings::structs::nsStyleCoord_CalcValue;
-unsafe impl Send for nsStyleCoord_CalcValue {}
-unsafe impl Sync for nsStyleCoord_CalcValue {}
-use gecko_bindings::structs::nsStyleCoord_Calc;
-unsafe impl Send for nsStyleCoord_Calc {}
-unsafe impl Sync for nsStyleCoord_Calc {}
-use gecko_bindings::structs::nsRestyleHint;
-use gecko_bindings::structs::ServoElementSnapshot;
-use gecko_bindings::structs::nsChangeHint;
-use gecko_bindings::structs::SheetParsingMode;
-use gecko_bindings::structs::nsMainThreadPtrHolder;
-use gecko_bindings::structs::nsFont;
-use gecko_bindings::structs::FontFamilyList;
-use gecko_bindings::structs::FontFamilyType;
-use gecko_bindings::structs::nsIAtom;
-use gecko_bindings::structs::nsStyleContext;
-unsafe impl Send for nsStyleContext {}
-unsafe impl Sync for nsStyleContext {}
-use gecko_bindings::structs::StyleClipPath;
-use gecko_bindings::structs::StyleBasicShapeType;
-use gecko_bindings::structs::StyleBasicShape;
-use gecko_bindings::structs::nsCSSShadowArray;
-use gecko_bindings::structs::nsIPrincipal;
-use gecko_bindings::structs::nsIURI;
-use gecko_bindings::structs::RawGeckoNode;
-use gecko_bindings::structs::RawGeckoElement;
-use gecko_bindings::structs::RawGeckoDocument;
-use gecko_bindings::structs::nsString;
+use gecko_bindings::structs::nsStyleList;
+unsafe impl Send for nsStyleList {}
+unsafe impl Sync for nsStyleList {}
+use gecko_bindings::structs::nsStyleMargin;
+unsafe impl Send for nsStyleMargin {}
+unsafe impl Sync for nsStyleMargin {}
+use gecko_bindings::structs::nsStyleOutline;
+unsafe impl Send for nsStyleOutline {}
+unsafe impl Sync for nsStyleOutline {}
+use gecko_bindings::structs::nsStylePadding;
+unsafe impl Send for nsStylePadding {}
+unsafe impl Sync for nsStylePadding {}
+use gecko_bindings::structs::nsStylePosition;
+unsafe impl Send for nsStylePosition {}
+unsafe impl Sync for nsStylePosition {}
 use gecko_bindings::structs::nsStyleQuoteValues;
 unsafe impl Send for nsStyleQuoteValues {}
 unsafe impl Sync for nsStyleQuoteValues {}
+use gecko_bindings::structs::nsStyleSVG;
+unsafe impl Send for nsStyleSVG {}
+unsafe impl Sync for nsStyleSVG {}
+use gecko_bindings::structs::nsStyleSVGReset;
+unsafe impl Send for nsStyleSVGReset {}
+unsafe impl Sync for nsStyleSVGReset {}
+use gecko_bindings::structs::nsStyleTable;
+unsafe impl Send for nsStyleTable {}
+unsafe impl Sync for nsStyleTable {}
+use gecko_bindings::structs::nsStyleTableBorder;
+unsafe impl Send for nsStyleTableBorder {}
+unsafe impl Sync for nsStyleTableBorder {}
+use gecko_bindings::structs::nsStyleText;
+unsafe impl Send for nsStyleText {}
+unsafe impl Sync for nsStyleText {}
+use gecko_bindings::structs::nsStyleTextReset;
+unsafe impl Send for nsStyleTextReset {}
+unsafe impl Sync for nsStyleTextReset {}
+use gecko_bindings::structs::nsStyleUIReset;
+unsafe impl Send for nsStyleUIReset {}
+unsafe impl Sync for nsStyleUIReset {}
+use gecko_bindings::structs::nsStyleUnion;
+unsafe impl Send for nsStyleUnion {}
+unsafe impl Sync for nsStyleUnion {}
+use gecko_bindings::structs::nsStyleUnit;
+unsafe impl Send for nsStyleUnit {}
+unsafe impl Sync for nsStyleUnit {}
+use gecko_bindings::structs::nsStyleUserInterface;
+unsafe impl Send for nsStyleUserInterface {}
+unsafe impl Sync for nsStyleUserInterface {}
+use gecko_bindings::structs::nsStyleVariables;
+unsafe impl Send for nsStyleVariables {}
+unsafe impl Sync for nsStyleVariables {}
+use gecko_bindings::structs::nsStyleVisibility;
+unsafe impl Send for nsStyleVisibility {}
+unsafe impl Sync for nsStyleVisibility {}
+use gecko_bindings::structs::nsStyleXUL;
+unsafe impl Send for nsStyleXUL {}
+unsafe impl Sync for nsStyleXUL {}
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -177,6 +175,14 @@ extern "C" {
 extern "C" {
     pub fn Gecko_ClearPODTArray(aArray: *mut ::std::os::raw::c_void,
                                 aElementSize: usize, aElementAlign: usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsHTMLCSSStyleSheet {
+    pub _address: u8,
+}
+impl Clone for nsHTMLCSSStyleSheet {
+    fn clone(&self) -> Self { *self }
 }
 extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
@@ -236,7 +242,7 @@ extern "C" {
     pub fn Gecko_DropStyleChildrenIterator(it: StyleChildrenIteratorOwned);
 }
 extern "C" {
-    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowedMut)
+    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
@@ -364,7 +370,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
-     -> RawServoDeclarationBlockStrongBorrowedOrNull;
+     -> ServoDeclarationBlockBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
@@ -859,35 +865,49 @@ extern "C" {
                                base: *mut ThreadSafeURIHolder,
                                referrer: *mut ThreadSafeURIHolder,
                                principal: *mut ThreadSafePrincipalHolder)
-     -> RawServoDeclarationBlockStrong;
+     -> ServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_RestyleWithAddedDeclaration(declarations:
-                                                 RawServoDeclarationBlockBorrowed,
+                                                 ServoDeclarationBlockBorrowed,
                                              previous_style:
                                                  ServoComputedValuesBorrowed)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32)
-     -> RawServoDeclarationBlockStrong;
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
+                                     cache: *mut nsHTMLCSSStyleSheet)
+     -> ServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_AddRef(declarations:
-                                             RawServoDeclarationBlockBorrowed);
+                                             ServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Release(declarations:
-                                              RawServoDeclarationBlockBorrowed);
+                                              ServoDeclarationBlockBorrowed);
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
-                                         b: RawServoDeclarationBlockBorrowed)
+    pub fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
+                                         b: ServoDeclarationBlockBorrowed)
      -> bool;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_GetCache(declarations:
+                                               ServoDeclarationBlockBorrowed)
+     -> *mut nsHTMLCSSStyleSheet;
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetImmutable(declarations:
+                                                   ServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_ClearCachePointer(declarations:
+                                                        ServoDeclarationBlockBorrowed);
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
-                                                        RawServoDeclarationBlockBorrowed,
+                                                        ServoDeclarationBlockBorrowed,
                                                     buffer: *mut nsString);
 }
 extern "C" {
