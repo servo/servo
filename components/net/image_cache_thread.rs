@@ -5,9 +5,9 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::PipelineId;
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, CoreResourceThread, LoadConsumer, LoadData, LoadOrigin};
-use net_traits::{LoadContext, NetworkError, ResponseAction};
+use net_traits::{LoadContext, NetworkError, ResponseAction, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};

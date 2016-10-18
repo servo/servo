@@ -7,8 +7,8 @@ extern crate hyper_serde;
 
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{LoadContext, LoadData, LoadOrigin, NetworkError};
+use msg::constellation_msg::PipelineId;
+use net_traits::{LoadContext, LoadData, LoadOrigin, NetworkError, ReferrerPolicy};
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Done, Payload};
 use self::hyper::header::ContentType;
