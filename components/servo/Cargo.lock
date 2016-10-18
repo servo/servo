@@ -1385,7 +1385,6 @@ dependencies = [
  "cssparser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "serde 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1485,6 +1484,7 @@ dependencies = [
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.6.0 (git+https://github.com/servo/webrender)",
  "websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2647,6 +2647,7 @@ dependencies = [
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
+ "net_traits 0.0.1",
  "plugins 0.0.1",
  "regex 0.1.76 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",

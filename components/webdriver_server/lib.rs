@@ -18,6 +18,7 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate msg;
+extern crate net_traits;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
@@ -33,8 +34,8 @@ use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::{FrameId, PipelineId};
-use msg::constellation_msg::{PixelFormat, TraversalDirection};
+use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use net_traits::image::base::PixelFormat;
 use regex::Captures;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};

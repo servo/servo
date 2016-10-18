@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use image::base::ImageMetadata;
+use image::base::{Image, ImageMetadata};
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::Image;
 use std::sync::Arc;
 use url::Url;
 
