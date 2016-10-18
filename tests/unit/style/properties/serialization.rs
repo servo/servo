@@ -421,7 +421,8 @@ mod shorthand_serialization {
 
             let position = DeclaredValue::Value(ListStylePosition::inside);
             let image = DeclaredValue::Value(ListStyleImage::Url(
-                Url::parse("http://servo/test.png").unwrap()
+                Url::parse("http://servo/test.png").unwrap(),
+                UrlExtraData {},
             ));
             let style_type = DeclaredValue::Value(ListStyleType::disc);
 

@@ -237,7 +237,9 @@ class MachCommands(CommandBase):
 
             if features:
                 args += ["--features", "%s" % ' '.join(features)]
-            return call(args, env=env, cwd=self.servo_crate())
+            err = call(args, env=env, cwd=self.servo_crate())
+            if err is not 0:
+                return err
 
         # Run style tests with the testing feature
         if has_style:
