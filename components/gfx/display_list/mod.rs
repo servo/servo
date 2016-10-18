@@ -589,14 +589,14 @@ pub struct StackingContext {
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
 
-    /// Whether this stacking context scrolls its overflow area.
-    pub scrolls_overflow_area: bool,
-
     /// The layer info for this stacking context, if there is any.
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
     pub children: Vec<StackingContext>,
+
+    /// If this StackingContext scrolls its overflow area, this will contain the id.
+    pub overflow_scroll_id: Option<StackingContextId>,
 }
 
 impl StackingContext {
@@ -612,8 +612,8 @@ impl StackingContext {
                transform: Matrix4D<f32>,
                perspective: Matrix4D<f32>,
                establishes_3d_context: bool,
-               scrolls_overflow_area: bool,
-               layer_info: Option<LayerInfo>)
+               layer_info: Option<LayerInfo>,
+               scroll_id: Option<StackingContextId>)
                -> StackingContext {
         StackingContext {
             id: id,
@@ -626,9 +626,9 @@ impl StackingContext {
             transform: transform,
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
-            scrolls_overflow_area: scrolls_overflow_area,
             layer_info: layer_info,
             children: Vec::new(),
+            overflow_scroll_id: scroll_id,
         }
     }
 
@@ -648,13 +648,10 @@ impl StackingContext {
     fn update_overflow_for_all_children(&mut self) {
         for child in self.children.iter() {
             if self.context_type == StackingContextType::Real &&
-               child.context_type == StackingContextType::Real &&
-               !self.scrolls_overflow_area {
+               child.context_type == StackingContextType::Real {
                 // This child might be transformed, so we need to take into account
                 // its transformed overflow rect too, but at the correct position.
-                let overflow =
-                    child.overflow_rect_in_parent_space();
-
+                let overflow = child.overflow_rect_in_parent_space();
                 self.overflow = self.overflow.union(&overflow);
             }
         }
@@ -740,7 +737,7 @@ impl fmt::Debug for StackingContext {
             "Pseudo-StackingContext"
         };
 
-        let scrollable_string = if self.scrolls_overflow_area {
+        let scrollable_string = if self.overflow_scroll_id.is_some() {
             " (scrolls overflow area)"
         } else {
             ""
