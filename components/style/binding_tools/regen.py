@@ -118,6 +118,7 @@ COMPILATION_TARGETS = {
             "nsCSSValuePairList_heap",
             "nsCSSValueTokenStream",
             "nsCSSValueTriplet_heap",
+            "nsCursorImage",
             "nsFont",
             "nsIAtom",
             "nsMainThreadPtrHandle",
