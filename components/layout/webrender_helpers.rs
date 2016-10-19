@@ -298,9 +298,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                 mut scroll_policy: ScrollPolicy,
                                 frame_builder: &mut WebRenderFrameBuilder)
                                 -> webrender_traits::StackingContextId {
-        if let Some(ref layer_info) = self.layer_info {
-            scroll_policy = layer_info.scroll_policy
-        }
+        scroll_policy = self.scroll_policy;
 
         let webrender_scroll_policy = match scroll_policy {
             ScrollPolicy::Scrollable => webrender_traits::ScrollPolicy::Scrollable,

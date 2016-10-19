@@ -44,7 +44,6 @@ use dom::screen::Screen;
 use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
-use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
@@ -935,11 +934,11 @@ impl Window {
         //let document = self.Document();
         // Step 12
         self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32),
-                              LayerId::null(), behavior, None);
+                              behavior, None);
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    pub fn perform_a_scroll(&self, x: f32, y: f32, layer_id: LayerId,
+    pub fn perform_a_scroll(&self, x: f32, y: f32,
                             behavior: ScrollBehavior, element: Option<&Element>) {
         //TODO Step 1
         let point = Point2D::new(x, y);
@@ -959,7 +958,7 @@ impl Window {
 
         let global_scope = self.upcast::<GlobalScope>();
         let message = ConstellationMsg::ScrollFragmentPoint(
-            global_scope.pipeline_id(), layer_id, point, smooth);
+            global_scope.pipeline_id(), point, smooth);
         global_scope.constellation_chan().send(message).unwrap();
     }
 
@@ -1239,19 +1238,11 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    pub fn scroll_node(&self, node: TrustedNodeAddress,
+    pub fn scroll_node(&self, _node: TrustedNodeAddress,
                        x_: f64, y_: f64, behavior: ScrollBehavior) {
-        if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::NodeLayerIdQuery(node),
-                        ReflowReason::Query) {
-            return;
-        }
-
-        let layer_id = self.layout_rpc.node_layer_id().layer_id;
-
         // Step 12
         self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32), y_.to_f32().unwrap_or(0.0f32),
-                              layer_id, behavior, None);
+                              behavior, None);
     }
 
     pub fn resolved_style_query(&self,
@@ -1609,7 +1600,6 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(..) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
-        ReflowQueryType::NodeLayerIdQuery(_n) => "\tNodeLayerIdQuery",
         ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",

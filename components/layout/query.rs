@@ -12,14 +12,13 @@ use euclid::size::Size2D;
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
-use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
-use script_layout_interface::rpc::{NodeLayerIdResponse, NodeOverflowResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
+use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
+use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -60,8 +59,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
-
-    pub layer_id_response: Option<LayerId>,
 
     /// A queued response for the node at a given point
     pub hit_test_response: (Option<DisplayItemMetadata>, bool),
@@ -177,13 +174,6 @@ impl LayoutRPC for LayoutRPCImpl {
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
-        }
-    }
-
-    fn node_layer_id(&self) -> NodeLayerIdResponse {
-        NodeLayerIdResponse {
-            layer_id: self.0.lock().unwrap().layer_id_response
-                          .expect("layer_id is not correctly fetched, see PR #9968")
         }
     }
 
@@ -585,11 +575,6 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
-}
-
-pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N) -> LayerId {
-    let layout_node = requested_node.to_threadsafe();
-    layout_node.layer_id()
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
