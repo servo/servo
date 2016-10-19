@@ -221,15 +221,18 @@ fn create_heart_rate_service(device: &BluetoothDevice,
                                               vec![3]));
 
     // Body Sensor Location Characteristic 1
-    let _body_sensor_location_characteristic_1 =
+    let body_sensor_location_characteristic_1 =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![1]));
+                                              vec![49]));
+    try!(body_sensor_location_characteristic_1.set_flags(vec![READ_FLAG.to_string()]));
+
     // Body Sensor Location Characteristic 2
-    let _body_sensor_location_characteristic_2 =
+    let body_sensor_location_characteristic_2 =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![2]));
+                                              vec![50]));
+    try!(body_sensor_location_characteristic_2.set_flags(vec![READ_FLAG.to_string()]));
     Ok(heart_rate_service)
 }
 
@@ -252,10 +255,17 @@ fn create_generic_access_service(device: &BluetoothDevice,
     try!(device_name_characteristic.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
 
     // Number of Digitals descriptor
-    let _number_of_digitals_descriptor =
+    let number_of_digitals_descriptor_1 =
         try!(create_descriptor_with_value(&device_name_characteristic,
                                           NUMBER_OF_DIGITALS_UUID.to_owned(),
-                                          vec![49, 49]));
+                                          vec![49; 2]));
+    try!(number_of_digitals_descriptor_1.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
+
+    let number_of_digitals_descriptor_2 =
+        try!(create_descriptor_with_value(&device_name_characteristic,
+                                          NUMBER_OF_DIGITALS_UUID.to_owned(),
+                                          vec![42; 2]));
+    try!(number_of_digitals_descriptor_2.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
 
     // Characteristic User Description Descriptor
     let _characteristic_user_description =
