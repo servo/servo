@@ -91,6 +91,7 @@ pub struct Response {
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
+    pub referrer: Option<Url>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
@@ -111,6 +112,7 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            referrer: None,
             internal_response: None,
             return_internal: Cell::new(true)
         }
@@ -128,6 +130,7 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            referrer: None,
             internal_response: None,
             return_internal: Cell::new(true)
         }
@@ -244,6 +247,7 @@ impl Response {
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
+            metadata.referrer = response.referrer.clone();
             metadata
         };
 
