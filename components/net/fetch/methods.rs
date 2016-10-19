@@ -1024,7 +1024,8 @@ fn http_network_fetch(request: Rc<Request>,
             response.status = Some(res.response.status);
             response.raw_status = Some((res.response.status_raw().0,
                                         res.response.status_raw().1.as_bytes().to_vec()));
-                        response.headers = res.response.headers.clone();
+            response.headers = res.response.headers.clone();
+            response.referrer = request.referrer.borrow().to_url().cloned();
 
             let res_body = response.body.clone();
 
