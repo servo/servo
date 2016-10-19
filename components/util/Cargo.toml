@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [features]
 # servo as opposed to geckolib
-servo = ["serde", "serde_derive", "ipc-channel", "app_units/plugins",
+servo = ["serde", "serde_derive", "app_units/plugins",
          "euclid/unstable", "url/heap_size", "url/serde", "plugins"]
 
 [dependencies]
@@ -20,7 +20,6 @@ bitflags = "0.7"
 euclid = "0.10.1"
 getopts = "0.2.11"
 heapsize = "0.3.0"
-ipc-channel = {version = "0.5", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "0.2.2"
