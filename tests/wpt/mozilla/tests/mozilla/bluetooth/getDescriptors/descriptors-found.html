@@ -15,10 +15,11 @@ promise_test(() => {
     .then(service => service.getCharacteristic(device_name.name))
     .then(characteristic => characteristic.getDescriptors())
     .then(descriptors => {
-        assert_equals(descriptors.length, 3);
+        assert_equals(descriptors.length, 4);
         assert_equals(descriptors[0].uuid, number_of_digitals.uuid);
-        assert_equals(descriptors[1].uuid, characteristic_user_description_uuid);
-        assert_equals(descriptors[2].uuid, client_characteristic_configuration.uuid);
+        assert_equals(descriptors[1].uuid, number_of_digitals.uuid);
+        assert_equals(descriptors[2].uuid, characteristic_user_description_uuid);
+        assert_equals(descriptors[3].uuid, client_characteristic_configuration.uuid);
     });
 }, 'Find descriptors with UUID in service.');
 </script>

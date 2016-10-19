@@ -13,14 +13,15 @@ promise_test(() => {
     .then(gattServer => gattServer.getPrimaryService(generic_access.name))
     .then(service => service.getCharacteristic(device_name.name))
     .then(characteristic => characteristic.getDescriptors(number_of_digitals.name))
-    .then(descriptors => {
-        for (let i = 1; i < descriptors.length; i++) {
-            descriptors[i].readValue()
-            .then(value => {
-                assert_equals(value.byteLength, 2);
-                assert_equals(value.getUint8(0), 11);
-            })
-        }
+    .then(descriptors => Promise.all([
+        descriptors[0].readValue(),
+        descriptors[1].readValue()]))
+    .then(value_arrays => {
+            assert_equals(value_arrays.length, 2);
+            assert_equals(value_arrays[0].length, 2);
+            assert_equals(value_arrays[0], '11');
+            assert_equals(value_arrays[1].length, 2);
+            assert_equals(value_arrays[1], '**');
     });
 }, 'Find descriptors with UUID in service.');
 </script>

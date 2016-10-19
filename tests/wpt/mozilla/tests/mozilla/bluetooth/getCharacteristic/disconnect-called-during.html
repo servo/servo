@@ -19,5 +19,5 @@ promise_test(t => {
             return promise;
         });
     });
-}, 'disconnect() called before getCharacteristic. Reject with NetworkError.');
+}, 'disconnect() called during getCharacteristic. Reject with NetworkError.');
 </script>

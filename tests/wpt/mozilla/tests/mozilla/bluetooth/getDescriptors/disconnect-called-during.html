@@ -20,5 +20,5 @@ promise_test(t => {
             return promise;
         });
     });
-}, 'disconnect() called before getDescriptors. Reject with NetworkError.');
+}, 'disconnect() called during getDescriptors. Reject with NetworkError.');
 </script>

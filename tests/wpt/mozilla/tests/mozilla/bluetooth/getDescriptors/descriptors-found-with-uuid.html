@@ -20,8 +20,9 @@ promise_test(() => {
             characteristic.getDescriptors(number_of_digitals.uuid)])
         .then(descriptors_arrays => {
             descriptors_arrays.forEach(descriptors => {
-                assert_equals(descriptors.length, 1);
+                assert_equals(descriptors.length, 2);
                 assert_equals(descriptors[0].uuid, number_of_digitals.uuid);
+                assert_equals(descriptors[1].uuid, number_of_digitals.uuid);
             });
         });
     });

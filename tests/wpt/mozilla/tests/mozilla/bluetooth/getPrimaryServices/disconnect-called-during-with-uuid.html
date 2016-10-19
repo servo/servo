@@ -15,5 +15,5 @@ promise_test(t => {
         gattServer.disconnect();
         return promise;
     });
-}, 'disconnect() called before getPrimaryServices. Reject with NetworkError.');
+}, 'disconnect() called during getPrimaryServices. Reject with NetworkError.');
 </script>

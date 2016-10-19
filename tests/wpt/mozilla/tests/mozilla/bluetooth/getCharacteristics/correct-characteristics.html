@@ -12,14 +12,15 @@ promise_test(() => {
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
     .then(service => service.getCharacteristics(body_sensor_location.name))
-    .then(characteristics => {
-        for (let i = 1; i < characteristics.length; i++) {
-            characteristics[i].readValue()
-            .then(value => {
-                assert_equals(value.byteLength, 1);
-                assert_equals(value.getUint8(0), i);
-            })
-        }
+    .then(characteristics => Promise.all([
+        characteristics[0].readValue(),
+        characteristics[1].readValue()]))
+    .then(value_arrays => {
+            assert_equals(value_arrays.length, 2);
+            assert_equals(value_arrays[0].length, 1);
+            assert_equals(value_arrays[0], '1');
+            assert_equals(value_arrays[1].length, 1);
+            assert_equals(value_arrays[1], '2');
     });
 }, 'Find characteristics with UUID in service.');
 </script>
