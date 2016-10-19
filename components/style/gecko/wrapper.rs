@@ -22,9 +22,9 @@ use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
-use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_SetNodeFlags;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
@@ -92,10 +92,6 @@ impl<'ln> GeckoNode<'ln> {
     // We can use a Cell<T>, but that's a bit of a pain.
     fn set_flags(&self, flags: u32) {
         unsafe { Gecko_SetNodeFlags(self.0, flags) }
-    }
-
-    fn unset_flags(&self, flags: u32) {
-        unsafe { Gecko_UnsetNodeFlags(self.0, flags) }
     }
 
     fn get_node_data(&self) -> Option<&NonOpaqueStyleData> {
@@ -241,14 +237,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    // NOTE: This is not relevant for Gecko, since we get explicit restyle hints
-    // when a content has changed.
-    fn has_changed(&self) -> bool { false }
-
-    unsafe fn set_changed(&self, _value: bool) {
-        unimplemented!()
-    }
-
     fn is_dirty(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
@@ -259,12 +247,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.flags() & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
     }
 
-    unsafe fn set_dirty(&self, value: bool) {
-        if value {
-            self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32)
-        } else {
-            self.unset_flags(NODE_IS_DIRTY_FOR_SERVO as u32)
-        }
+    unsafe fn set_dirty(&self) {
+        self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32)
     }
 
     fn has_dirty_descendants(&self) -> bool {
@@ -276,12 +260,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
-    unsafe fn set_dirty_descendants(&self, value: bool) {
-        if value {
-            self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
-        } else {
-            self.unset_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
-        }
+    unsafe fn set_dirty_descendants(&self) {
+        self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn can_be_fragmented(&self) -> bool {
@@ -307,8 +287,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.borrow_data().and_then(|x| x.style.clone())
     }
 
-    fn set_style(&self, style: Option<Arc<ComputedValues>>) {
-        self.mutate_data().unwrap().style = style;
+    fn set_style(&self, style: Arc<ComputedValues>) {
+        self.mutate_data().unwrap().style = Some(style);
     }
 
     fn take_pseudo_styles(&self) -> PseudoStyles {
@@ -321,6 +301,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn set_pseudo_styles(&self, styles: PseudoStyles) {
         debug_assert!(self.borrow_data().unwrap().per_pseudo.is_empty());
         self.mutate_data().unwrap().per_pseudo = styles;
+    }
+
+    fn style_text_node(&self, style: Arc<ComputedValues>) {
+        debug_assert!(self.is_text_node());
+        self.mutate_data().unwrap().style = Some(style);
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {

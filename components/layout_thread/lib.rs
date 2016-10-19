@@ -1135,12 +1135,12 @@ impl LayoutThread {
                 while let Some(node) = next {
                     if node.needs_dirty_on_viewport_size_changed() {
                         // NB: The dirty bit is propagated down the tree.
-                        unsafe { node.set_dirty(true); }
+                        unsafe { node.set_dirty(); }
 
                         let mut current = node.parent_node();
                         while let Some(node) = current {
                             if node.has_dirty_descendants() { break; }
-                            unsafe { node.set_dirty_descendants(true); }
+                            unsafe { node.set_dirty_descendants(); }
                             current = node.parent_node();
                         }
 
@@ -1161,7 +1161,7 @@ impl LayoutThread {
             if needs_dirtying {
                 // NB: The dirty flag is propagated down during the restyle
                 // process.
-                node.set_dirty(true);
+                node.set_dirty();
             }
         }
         if needs_reflow {
