@@ -56,11 +56,11 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(Arc::new(NamespaceRule {
+            CSSRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
                 url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
-            })),
-            CSSRule::Style(Arc::new(StyleRule {
+            }))),
+            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -98,8 +98,8 @@ fn test_parse_stylesheet() {
                     ],
                     important_count: 2,
                 })),
-            })),
-            CSSRule::Style(Arc::new(StyleRule {
+            }))),
+            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -144,8 +144,8 @@ fn test_parse_stylesheet() {
                     ],
                     important_count: 0,
                 })),
-            })),
-            CSSRule::Style(Arc::new(StyleRule {
+            }))),
+            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -220,11 +220,11 @@ fn test_parse_stylesheet() {
                     ],
                     important_count: 0,
                 })),
-            })),
-            CSSRule::Keyframes(Arc::new(KeyframesRule {
+            }))),
+            CSSRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
-                    Arc::new(Keyframe {
+                    Arc::new(RwLock::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
                         block: Arc::new(RwLock::new(PropertyDeclarationBlock {
@@ -235,8 +235,8 @@ fn test_parse_stylesheet() {
                             ],
                             important_count: 0,
                         }))
-                    }),
-                    Arc::new(Keyframe {
+                    })),
+                    Arc::new(RwLock::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
                         block: Arc::new(RwLock::new(PropertyDeclarationBlock {
@@ -251,9 +251,9 @@ fn test_parse_stylesheet() {
                             ],
                             important_count: 0,
                         })),
-                    }),
+                    })),
                 ]
-            }))
+            })))
 
         ],
     };

@@ -12,15 +12,17 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use cssparser::ToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+use media_queries::Device;
 use parser::{ParserContext, log_css_error};
 use properties::ComputedValues;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::ViewportPx;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
-use stylesheets::Origin;
+use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -54,7 +56,7 @@ macro_rules! declare_viewport_descriptor_inner {
         [ ]
         $number_of_variants: expr
     ) => {
-        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ViewportDescriptor {
             $(
@@ -188,7 +190,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ViewportDescriptorDeclaration {
     pub origin: Origin,
@@ -309,31 +311,26 @@ impl ViewportRule {
     {
         let parser = ViewportRuleParser { context: context };
 
-        let mut errors = vec![];
-        let valid_declarations = DeclarationListParser::new(input, parser)
-            .filter_map(|result| {
-                match result {
-                    Ok(declarations) => Some(declarations),
-                    Err(range) => {
-                        errors.push(range);
-                        None
+        let mut cascade = Cascade::new();
+        let mut parser = DeclarationListParser::new(input, parser);
+        while let Some(result) = parser.next() {
+            match result {
+                Ok(declarations) => {
+                    for declarations in declarations {
+                        cascade.add(Cow::Owned(declarations))
                     }
                 }
-            })
-            .flat_map(|declarations| declarations.into_iter())
-            .collect::<Vec<_>>();
-
-        for range in errors {
-            let pos = range.start;
-            let message = format!("Unsupported @viewport descriptor declaration: '{}'",
-                                  input.slice(range));
-            log_css_error(input, pos, &*message, &context);
+                Err(range) => {
+                    let pos = range.start;
+                    let message = format!("Unsupported @viewport descriptor declaration: '{}'",
+                                          parser.input.slice(range));
+                    log_css_error(parser.input, pos, &*message, &context);
+                }
+            }
         }
-
-        Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })
+        Ok(ViewportRule { declarations: cascade.finish() })
     }
 
-    #[allow(unsafe_code)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
         macro_rules! push_descriptor {
@@ -471,25 +468,6 @@ impl ViewportRule {
     }
 }
 
-pub trait ViewportRuleCascade: Iterator + Sized {
-    fn cascade(self) -> ViewportRule;
-}
-
-impl<'a, I> ViewportRuleCascade for I
-    where I: Iterator<Item=&'a ViewportRule>
-{
-    #[inline]
-    fn cascade(self) -> ViewportRule {
-        ViewportRule {
-            declarations: self.flat_map(|r| r.declarations.iter()).cascade()
-        }
-    }
-}
-
-trait ViewportDescriptorDeclarationCascade: Iterator + Sized {
-    fn cascade(self) -> Vec<ViewportDescriptorDeclaration>;
-}
-
 /// Computes the cascade precedence as according to
 /// http://dev.w3.org/csswg/css-cascade/#cascade-origin
 fn cascade_precendence(origin: Origin, important: bool) -> u8 {
@@ -512,45 +490,53 @@ impl ViewportDescriptorDeclaration {
     }
 }
 
-#[allow(unsafe_code)]
-fn cascade<'a, I>(iter: I) -> Vec<ViewportDescriptorDeclaration>
-    where I: Iterator<Item=&'a ViewportDescriptorDeclaration>
-{
-    let mut declarations: Vec<Option<(usize, &'a ViewportDescriptorDeclaration)>> =
-        vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
+pub struct Cascade {
+    declarations: Vec<Option<(usize, ViewportDescriptorDeclaration)>>,
+    count_so_far: usize,
+}
 
-    // index is used to reconstruct order of appearance after all declarations
-    // have been added to the map
-    let mut index = 0;
-    for declaration in iter {
-        let descriptor = declaration.descriptor.discriminant_value();
-
-        match declarations[descriptor] {
-            Some((ref mut entry_index, ref mut entry_declaration)) => {
-                if declaration.higher_or_equal_precendence(entry_declaration) {
-                    *entry_declaration = declaration;
-                    *entry_index = index;
-                    index += 1;
-                }
-            }
-            ref mut entry @ None => {
-                *entry = Some((index, declaration));
-                index += 1;
-            }
+impl Cascade {
+    pub fn new() -> Self {
+        Cascade {
+            declarations: vec![None; VIEWPORT_DESCRIPTOR_VARIANTS],
+            count_so_far: 0,
         }
     }
 
-    // sort the descriptors by order of appearance
-    declarations.sort_by_key(|entry| entry.map(|(index, _)| index));
-    declarations.into_iter().filter_map(|entry| entry.map(|(_, decl)| *decl)).collect::<Vec<_>>()
-}
+    pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
+    where I: IntoIterator, I::Item: AsRef<Stylesheet> {
+        let mut cascade = Self::new();
+        for stylesheet in stylesheets {
+            stylesheet.as_ref().effective_viewport_rules(device, |rule| {
+                for declaration in &rule.declarations {
+                    cascade.add(Cow::Borrowed(declaration))
+                }
+            })
+        }
+        cascade
+    }
 
-impl<'a, I> ViewportDescriptorDeclarationCascade for I
-    where I: Iterator<Item=&'a ViewportDescriptorDeclaration>
-{
-    #[inline]
-    fn cascade(self) -> Vec<ViewportDescriptorDeclaration> {
-        cascade(self)
+    pub fn add(&mut self, declaration: Cow<ViewportDescriptorDeclaration>)  {
+        let descriptor = declaration.descriptor.discriminant_value();
+
+        match self.declarations[descriptor] {
+            Some((ref mut order_of_appearance, ref mut entry_declaration)) => {
+                if declaration.higher_or_equal_precendence(entry_declaration) {
+                    *entry_declaration = declaration.into_owned();
+                    *order_of_appearance = self.count_so_far;
+                }
+            }
+            ref mut entry @ None => {
+                *entry = Some((self.count_so_far, declaration.into_owned()));
+            }
+        }
+        self.count_so_far += 1;
+    }
+
+    pub fn finish(mut self) -> Vec<ViewportDescriptorDeclaration> {
+        // sort the descriptors by order of appearance
+        self.declarations.sort_by_key(|entry| entry.as_ref().map(|&(index, _)| index));
+        self.declarations.into_iter().filter_map(|entry| entry.map(|(_, decl)| decl)).collect()
     }
 }
 
