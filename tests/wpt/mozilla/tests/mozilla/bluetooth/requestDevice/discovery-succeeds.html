@@ -14,7 +14,6 @@ promise_test(() => {
         devices.forEach(device => {
             assert_true(device instanceof BluetoothDevice);
         });
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Mock will resolve.');
 </script>

@@ -10,7 +10,6 @@ promise_test(() => {
         filters: [{services: [battery_service.name]},
                   {services: [heart_rate.name]}]
     })
-    .then(glucose_device => assert_equals(glucose_device.name, mock_device_name.heart_rate))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(glucose_device => assert_equals(glucose_device.name, mock_device_name.heart_rate));
 }, 'An extra filter doesn\'t prevent matching.');
 </script>

@@ -58,7 +58,7 @@ promise_test(() => {
                 assert_equals(device.name, matching_name);
                 assert_true(device.name.startsWith(matching_namePrefix));
             })
-            .catch(error => assert_unreached('Promise should have resolved. ' + error));
+            ;
     });
     return test_promises;
 }, 'Matches a filter if all present members match.');

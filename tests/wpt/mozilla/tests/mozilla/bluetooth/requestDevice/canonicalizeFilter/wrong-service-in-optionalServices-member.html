@@ -34,7 +34,7 @@ promise_test(t => {
         test_promises = test_promises
             .then(() => promise_rejects(
                 t, 'SyntaxError', window.navigator.bluetooth.requestDevice(args)))
-            .catch(error => assert_unreached('Promise should have resolved. ' + error));
+            ;
     });
     return test_promises;
 }, 'Invalid optional service must reject the promise.');

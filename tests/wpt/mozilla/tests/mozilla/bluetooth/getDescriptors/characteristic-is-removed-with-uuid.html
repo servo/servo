@@ -16,7 +16,6 @@ promise_test(t => {
     .then(characteristic => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.missing_characteristic_heart_rate);
         return promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name));
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Characteristic is removed. Reject with InvalidStateError.');
 </script>

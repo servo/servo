@@ -13,7 +13,6 @@ promise_test(t => {
     .then(gattServer => gattServer.getPrimaryService(blacklist_test_service_uuid))
     .then(service => service.getCharacteristic(blacklist_exclude_reads_characteristic_uuid))
     .then(characteristic => promise_rejects(t, 'SecurityError',
-                                            characteristic.getDescriptor(blacklist_descriptor_uuid)))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+                                            characteristic.getDescriptor(blacklist_descriptor_uuid)));
 }, 'The descriptor is blacklisted.');
 </script>

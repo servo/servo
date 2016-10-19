@@ -18,7 +18,6 @@ promise_test(t => {
         window.testRunner.setBluetoothMockDataSet(adapter_type.missing_service_heart_rate);
         return promise_rejects(t, 'InvalidStateError',
                                descriptor.writeValue(new Uint8Array(1)));
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Service gets removed. Reject with InvalidStateError.');
 </script>

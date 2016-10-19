@@ -27,7 +27,6 @@ promise_test(() => {
                     'Characteristic service should be the same as service.');
             });
         });
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Request for characteristic. Should return right characteristic');
 </script>

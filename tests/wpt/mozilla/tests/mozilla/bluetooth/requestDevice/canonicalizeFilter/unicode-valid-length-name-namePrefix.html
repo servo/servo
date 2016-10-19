@@ -12,8 +12,7 @@ promise_test(() => {
     return window.navigator.bluetooth.requestDevice({
         filters: [{namePrefix: valid_unicode_name}]
     })
-    .then(device => assert_equals(device.name, valid_unicode_name))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(device => assert_equals(device.name, valid_unicode_name));
 }, 'A name containing unicode characters whose utf8 length is less than 30 ' +
    'must not throw an error.');
 </script>

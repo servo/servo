@@ -17,7 +17,6 @@ promise_test(() => {
         characteristic.writeValue(new Uint8Array(1)),
         // characteristic.writeValue(new ArrayBuffer(1)),
         // characteristic.writeValue(new DataView(new ArrayBuffer(1)))
-    ]))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    ]));
 }, 'A regular write request to a writable characteristic should succeed.');
 </script>

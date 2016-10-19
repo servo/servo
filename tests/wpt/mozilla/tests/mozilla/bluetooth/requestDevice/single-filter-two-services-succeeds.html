@@ -9,7 +9,6 @@ promise_test(() => {
     return window.navigator.bluetooth.requestDevice({
         filters: [{services: [glucose.name, tx_power.name]}]
     })
-    .then(device => assert_equals(device.name, mock_device_name.glucose))
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    .then(device => assert_equals(device.name, mock_device_name.glucose));
 }, 'Filter with 2 services returns a matching device.');
 </script>

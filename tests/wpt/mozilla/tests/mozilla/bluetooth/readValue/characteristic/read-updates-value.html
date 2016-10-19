@@ -17,7 +17,6 @@ promise_test(() => {
         assert_equals(characteristic.value, null);
         return characteristic.readValue()
         .then(() => assert_equals(characteristic.value, mock_device_name.heart_rate));
-    })
-    .catch(error => assert_unreached('Promise should have resolved. ' + error));
+    });
 }, 'Succesful read should update characteristic.value');
 </script>
