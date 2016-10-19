@@ -19,13 +19,13 @@ use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection, GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
-use gfx::display_list::{LayerInfo, LineDisplayItem, OpaqueNode};
+use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx_traits::{ScrollPolicy, StackingContextId, color};
@@ -1410,12 +1410,6 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        let layer_info = if self.flags.contains(HAS_LAYER) {
-            Some(LayerInfo::new(self.layer_id(), scroll_policy, None, color::transparent()))
-        } else {
-            None
-        };
-
         let transform_style = self.style().get_used_transform_style();
         let establishes_3d_context = scrolls_overflow_area ||
             transform_style == transform_style::T::flat;
@@ -1436,7 +1430,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              transform,
                              perspective,
                              establishes_3d_context,
-                             layer_info,
+                             scroll_policy,
                              scroll_id)
     }
 

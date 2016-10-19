@@ -6,7 +6,7 @@ use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use gfx_traits::{Epoch, LayerId};
+use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -47,10 +47,6 @@ pub enum Msg {
 
     /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,
-
-    /// Updates the layout visible rects, affecting the area that display lists will be constructed
-    /// for.
-    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
 
     /// Destroys layout data associated with a DOM node.
     ///
@@ -99,7 +95,6 @@ pub enum ReflowQueryType {
     NodeOverflowQuery(TrustedNodeAddress),
     HitTestQuery(Point2D<f32>, Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
-    NodeLayerIdQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),

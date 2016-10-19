@@ -933,11 +933,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_alert(pipeline_id, message, sender);
             }
 
-            FromScriptMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
+            FromScriptMsg::ScrollFragmentPoint(pipeline_id, point, smooth) => {
                 self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
-                                                               layer_id,
-                                                               point,
-                                                               smooth));
+                                                                                point,
+                                                                                smooth));
             }
 
             FromScriptMsg::GetClientWindow(send) => {

@@ -36,15 +36,14 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
-use flow::{FragmentationContext, NEEDS_LAYER, PreorderFlowTraversal};
+use flow::{FragmentationContext, PreorderFlowTraversal};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use flow_ref::FlowRef;
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::LayerId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
@@ -57,12 +56,12 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position, text_align, transform_style};
+use style::computed_values::{position, text_align};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
-use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
+use style::values::computed::LengthOrPercentageOrAuto;
 use util::clamp;
 
 /// Information specific to floated blocks.
@@ -793,8 +792,6 @@ impl BlockFlow {
         let mut break_at = None;
         let content_box = self.fragment.content_box();
         if self.base.restyle_damage.contains(REFLOW) {
-            self.determine_if_layer_needed();
-
             // Our current border-box position.
             let mut cur_b = Au(0);
 
@@ -1679,34 +1676,6 @@ impl BlockFlow {
         self.base.flags = flags
     }
 
-    fn determine_if_layer_needed(&mut self) {
-        // Fixed position layers get layers.
-        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) && self.is_fixed() {
-            self.base.flags.insert(NEEDS_LAYER);
-            return
-        }
-
-        // This flow needs a layer if it has a 3d transform, or provides perspective
-        // to child layers. See http://dev.w3.org/csswg/css-transforms/#3d-rendering-contexts.
-        let has_3d_transform = self.fragment.style().transform_requires_layer();
-        let has_perspective = self.fragment.style().get_effects().perspective !=
-            LengthOrNone::None;
-
-        if has_3d_transform || has_perspective {
-            self.base.flags.insert(NEEDS_LAYER);
-            return
-        }
-
-        match (self.fragment.style().get_box().overflow_x,
-               self.fragment.style().get_box().overflow_y.0) {
-            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
-            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
-                self.base.flags.insert(NEEDS_LAYER);
-            }
-            _ => {}
-        }
-    }
-
     pub fn block_stacking_context_type(&self) -> BlockStackingContextType {
         if self.fragment.establishes_stacking_context() {
             return BlockStackingContextType::StackingContext
@@ -1956,10 +1925,6 @@ impl Flow for BlockFlow {
     }
 
     fn compute_absolute_position(&mut self, _layout_context: &SharedLayoutContext) {
-        if self.base.flags.contains(NEEDS_LAYER) {
-            self.fragment.flags.insert(HAS_LAYER)
-        }
-
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
@@ -1967,8 +1932,6 @@ impl Flow for BlockFlow {
         if self.is_root() {
             self.base.clip = ClippingRegion::max();
         }
-
-        let transform_style = self.fragment.style().get_used_transform_style();
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
@@ -2103,16 +2066,6 @@ impl Flow for BlockFlow {
 
         // Process children.
         for kid in self.base.child_iter_mut() {
-            // If this layer preserves the 3d context of children,
-            // then children will need a render layer.
-            // TODO(gw): This isn't always correct. In some cases
-            // this may create extra layers than needed. I think
-            // there are also some edge cases where children don't
-            // get a layer when they should.
-            if transform_style == transform_style::T::preserve_3d {
-                flow::mut_base(kid).flags.insert(NEEDS_LAYER);
-            }
-
             if flow::base(kid).flags.contains(INLINE_POSITION_IS_STATIC) ||
                     flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
                 let kid_base = flow::mut_base(kid);
@@ -2175,14 +2128,6 @@ impl Flow for BlockFlow {
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au> {
         (self.fragment.border_box - self.fragment.style().logical_border_width()).size
-    }
-
-    fn layer_id(&self) -> LayerId {
-        self.fragment.layer_id()
-    }
-
-    fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        self.fragment.layer_id_for_overflow_scroll()
     }
 
     fn is_absolute_containing_block(&self) -> bool {
