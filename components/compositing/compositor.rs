@@ -578,6 +578,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
                 let res = self.composite_specific_target(CompositeTarget::WindowAndPng);
+                if let Err(ref e) = res {
+                    info!("Error retrieving PNG: {:?}", e);
+                }
                 let img = res.unwrap_or(None);
                 if let Err(e) = reply.send(img) {
                     warn!("Sending reply to create png failed ({}).", e);

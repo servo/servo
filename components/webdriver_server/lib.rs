@@ -772,7 +772,7 @@ impl Handler {
         let mut img = None;
         let pipeline_id = try!(self.root_pipeline());
 
-        let interval = 20;
+        let interval = 1000;
         let iterations = 30_000 / interval;
 
         for _ in 0..iterations {
