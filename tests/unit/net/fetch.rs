@@ -708,7 +708,7 @@ fn response_is_done(response: &Response) -> bool {
             (*response.body.lock().unwrap()).is_done()
         }
         // if the internal response cannot have a body, it shouldn't block the "done" state
-        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error => true
+        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true
     };
 
     let internal_complete = if let Some(ref res) = response.internal_response {
