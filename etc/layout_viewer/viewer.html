@@ -94,6 +94,7 @@
                     text: trace_node.class + " (" + trace_node.data.base.id + ")",
                     id: trace_node.data.base.id,
                     icon: "dummy",
+                    href: "#diff-" + trace_node.data.base.id
                 };
 
                 var children = [];
@@ -192,13 +193,13 @@
                         if (delta !== undefined) {
                             var diff_id = "diff-" + key;
                             $("#flow-diffs").append(
-                                    "<div class='panel panel-default'><div class='panel-heading'>" +
-                                    flow_left.class + " (" + key + ")" +
-                                    "</div><div class='panel-body' id=" +
-                                    diff_id +
-                                    "></div></div>");
+                              "<div class='panel panel-default' id='" +
+                              diff_id +
+                              "'><div class='panel-heading'>" +
+                              flow_left.class + " (" + key + ")" +
+                              "</div><div class='panel-body'></div></div>");
 
-                            document.getElementById(diff_id).innerHTML =
+                            document.getElementById(diff_id).getElementsByClassName('panel-body')[0].innerHTML =
                                 jsondiffpatch.formatters.html.format(delta, flow_left);
                             node_color_hash[key] = "rgba(255, 0, 0, 0.7)";
                         } else {
