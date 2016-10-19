@@ -17,7 +17,7 @@ use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx_traits::{FragmentType, LayerId, LayerType, StackingContextId};
+use gfx_traits::{FragmentType, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
@@ -48,7 +48,7 @@ use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::str::char_is_whitespace;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
@@ -121,9 +121,6 @@ pub struct Fragment {
 
     /// The pseudo-element that this fragment represents.
     pub pseudo: PseudoElementType<()>,
-
-    /// Various flags for this fragment.
-    pub flags: FragmentFlags,
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     /// This ID should not be considered stable across multiple layouts or fragment
@@ -919,7 +916,6 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
-            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -948,7 +944,6 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
-            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -976,7 +971,6 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
-            flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -2535,9 +2529,6 @@ impl Fragment {
             _ => {}
         }
 
-        if self.flags.contains(HAS_LAYER) {
-            return true
-        }
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
@@ -2550,6 +2541,18 @@ impl Fragment {
         if self.style().get_effects().transform.0.is_some() {
             return true
         }
+
+        // TODO(mrobinson): Determine if this is necessary, since blocks with
+        // transformations already create stacking contexts.
+        if self.style().get_effects().perspective != LengthOrNone::None {
+            return true
+        }
+
+        // Fixed position blocks always create stacking contexts.
+        if self.style.get_box().position == position::T::fixed {
+            return true
+        }
+
         match self.style().get_used_transform_style() {
             transform_style::T::flat | transform_style::T::preserve_3d => {
                 return true
@@ -2874,21 +2877,6 @@ impl Fragment {
         }
     }
 
-    pub fn layer_id(&self) -> LayerId {
-        let layer_type = match self.pseudo {
-            PseudoElementType::Normal => LayerType::FragmentBody,
-            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
-            PseudoElementType::After(_) => LayerType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary(_) => LayerType::FragmentBody,
-            PseudoElementType::DetailsContent(_) => LayerType::FragmentBody,
-        };
-        LayerId::new_of_type(layer_type, self.node.id() as usize)
-    }
-
-    pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
-    }
-
     /// Returns true if any of the inline styles associated with this fragment have
     /// `vertical-align` set to `top` or `bottom`.
     pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
@@ -3091,13 +3079,6 @@ impl Overflow {
     pub fn translate(&mut self, point: &Point2D<Au>) {
         self.scroll = self.scroll.translate(point);
         self.paint = self.paint.translate(point);
-    }
-}
-
-bitflags! {
-    pub flags FragmentFlags: u8 {
-        /// Whether this fragment has a layer.
-        const HAS_LAYER = 0x01,
     }
 }
 

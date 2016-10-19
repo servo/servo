@@ -15,19 +15,16 @@
 //! low-level drawing primitives.
 
 use app_units::Au;
-use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 use euclid::{Matrix4D, Point2D, Rect, Size2D};
-use euclid::approxeq::ApproxEq;
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use gfx_traits::{LayerId, ScrollPolicy, StackingContextId};
+use gfx_traits::{ScrollPolicy, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
-use paint_context::PaintContext;
 use range::Range;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
@@ -38,7 +35,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, ScreenPx, max_rect};
+use util::geometry::{self, max_rect};
 use webrender_traits::{self, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -50,44 +47,6 @@ pub use azure::azure_hl::GradientStop;
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
-
-/// LayerInfo is used to store PaintLayer metadata during DisplayList construction.
-/// It is also used for tracking LayerIds when creating layers to preserve ordering when
-/// layered DisplayItems should render underneath unlayered DisplayItems.
-#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize, Debug)]
-pub struct LayerInfo {
-    /// The base LayerId of this layer.
-    pub layer_id: LayerId,
-
-    /// The scroll policy of this layer.
-    pub scroll_policy: ScrollPolicy,
-
-    /// The subpage that this layer represents, if there is one.
-    pub subpage_pipeline_id: Option<PipelineId>,
-
-    /// The id for the next layer in the sequence. This is used for synthesizing
-    /// layers for content that needs to be displayed on top of this layer.
-    pub next_layer_id: LayerId,
-
-    /// The color of the background in this layer. Used for unpainted content.
-    pub background_color: Color,
-}
-
-impl LayerInfo {
-    pub fn new(id: LayerId,
-               scroll_policy: ScrollPolicy,
-               subpage_pipeline_id: Option<PipelineId>,
-               background_color: Color)
-               -> LayerInfo {
-        LayerInfo {
-            layer_id: id,
-            scroll_policy: scroll_policy,
-            subpage_pipeline_id: subpage_pipeline_id,
-            next_layer_id: id.companion_layer_id(),
-            background_color: background_color,
-        }
-    }
-}
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
 pub struct DisplayList {
@@ -185,156 +144,6 @@ impl DisplayList {
         }
     }
 
-    /// Draws the DisplayList in order.
-    pub fn draw_into_context<'a>(&self,
-                                 paint_context: &mut PaintContext,
-                                 transform: &Matrix4D<f32>,
-                                 stacking_context_id: StackingContextId,
-                                 start: usize,
-                                 end: usize) {
-        let mut traversal = DisplayListTraversal::new_partial(self,
-                                                              stacking_context_id,
-                                                              start,
-                                                              end);
-        self.draw_with_state(&mut traversal,
-                             paint_context,
-                             transform,
-                             &Point2D::zero(),
-                             None);
-    }
-
-    /// Draws a single DisplayItem into the given PaintContext.
-    pub fn draw_item_at_index_into_context(&self,
-                                           paint_context: &mut PaintContext,
-                                           transform: &Matrix4D<f32>,
-                                           index: usize) {
-        let old_transform = paint_context.draw_target.get_transform();
-        paint_context.draw_target.set_transform(&transform.to_2d());
-
-        let item = &self.list[index];
-        item.draw_into_context(paint_context);
-
-        paint_context.draw_target.set_transform(&old_transform);
-    }
-
-    fn draw_with_state<'a>(&'a self,
-                           traversal: &mut DisplayListTraversal,
-                           paint_context: &mut PaintContext,
-                           transform: &Matrix4D<f32>,
-                           subpixel_offset: &Point2D<Au>,
-                           tile_rect: Option<Rect<Au>>) {
-        while let Some(item) = traversal.next() {
-            match item {
-                &DisplayItem::PushStackingContext(ref stacking_context_item) => {
-                    let context = &stacking_context_item.stacking_context;
-                    if context.intersects_rect_in_parent_context(tile_rect) {
-                        self.draw_stacking_context(traversal,
-                                                   context,
-                                                   paint_context,
-                                                   transform,
-                                                   subpixel_offset);
-                    } else {
-                        traversal.skip_to_end_of_stacking_context(context.id);
-                    }
-                }
-                &DisplayItem::PopStackingContext(_) => return,
-                _ => {
-                    if item.intersects_rect_in_parent_context(tile_rect) {
-                        item.draw_into_context(paint_context);
-                    }
-                }
-            }
-        }
-    }
-
-    fn draw_stacking_context(&self,
-                             traversal: &mut DisplayListTraversal,
-                             stacking_context: &StackingContext,
-                             paint_context: &mut PaintContext,
-                             transform: &Matrix4D<f32>,
-                             subpixel_offset: &Point2D<Au>) {
-        debug_assert!(stacking_context.context_type == StackingContextType::Real);
-
-        let draw_target = paint_context.get_or_create_temporary_draw_target(
-            &stacking_context.filters,
-            stacking_context.blend_mode);
-
-        let old_transform = paint_context.draw_target.get_transform();
-        let pixels_per_px = paint_context.screen_pixels_per_px();
-        let (transform, subpixel_offset) = match stacking_context.layer_info {
-            // If this stacking context starts a layer, the offset and
-            // transformation are handled by layer position within the
-            // compositor.
-            Some(..) => (*transform, *subpixel_offset),
-            None => {
-                let origin = stacking_context.bounds.origin + *subpixel_offset;
-                let pixel_snapped_origin =
-                    Point2D::new(origin.x.to_nearest_pixel(pixels_per_px.get()),
-                                 origin.y.to_nearest_pixel(pixels_per_px.get()));
-
-                let transform = transform
-                    .pre_translated(pixel_snapped_origin.x as AzFloat,
-                                    pixel_snapped_origin.y as AzFloat,
-                                    0.0)
-                    .pre_mul(&stacking_context.transform);
-
-                if transform.is_identity_or_simple_translation() {
-                    let pixel_snapped_origin = Point2D::new(Au::from_f32_px(pixel_snapped_origin.x),
-                                                            Au::from_f32_px(pixel_snapped_origin.y));
-                    (transform, origin - pixel_snapped_origin)
-                } else {
-                    // In the case of a more complicated transformation, don't attempt to
-                    // preserve subpixel offsets. This causes problems with reference tests
-                    // that do scaling and rotation and it's unclear if we even want to be doing
-                    // this.
-                    (transform, Point2D::zero())
-                }
-            }
-        };
-
-        let transformed_transform =
-            match transformed_tile_rect(paint_context.screen_rect, &transform) {
-                Some(transformed) => transformed,
-                None => {
-                    // https://drafts.csswg.org/css-transforms/#transform-function-lists
-                    // If a transform function causes the current transformation matrix (CTM)
-                    // of an object to be non-invertible, the object and its content do not
-                    // get displayed.
-                    return;
-                },
-            };
-
-        {
-            let mut paint_subcontext = PaintContext {
-                draw_target: draw_target.clone(),
-                font_context: &mut *paint_context.font_context,
-                page_rect: paint_context.page_rect,
-                screen_rect: paint_context.screen_rect,
-                clip_rect: Some(stacking_context.overflow),
-                transient_clip: None,
-                layer_kind: paint_context.layer_kind,
-                subpixel_offset: subpixel_offset,
-            };
-
-            // Set up our clip rect and transform.
-            paint_subcontext.draw_target.set_transform(&transform.to_2d());
-            paint_subcontext.push_clip_if_applicable();
-
-            self.draw_with_state(traversal,
-                                 &mut paint_subcontext,
-                                 &transform,
-                                 &subpixel_offset,
-                                 Some(transformed_transform));
-
-            paint_subcontext.remove_transient_clip_if_applicable();
-            paint_subcontext.pop_clip_if_applicable();
-        }
-
-        draw_target.set_transform(&old_transform);
-        paint_context.draw_temporary_draw_target_if_necessary(
-            &draw_target, &stacking_context.filters, stacking_context.blend_mode);
-    }
-
     // Return all nodes containing the point of interest, bottommost first, and
     // respecting the `pointer-events` CSS property.
     pub fn hit_test(&self,
@@ -385,12 +194,10 @@ impl DisplayList {
                         client_point: &Point2D<Au>,
                         scroll_offsets: &ScrollOffsetMap,
                         result: &mut Vec<DisplayItemMetadata>) {
-        let is_fixed = stacking_context.layer_info.map_or(false,
-            |info| info.scroll_policy == ScrollPolicy::FixedPosition);
-
         // Convert the parent translated point into stacking context local transform space if the
         // stacking context isn't fixed.  If it's fixed, we need to use the client point anyway.
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
+        let is_fixed = stacking_context.scroll_policy == ScrollPolicy::FixedPosition;
         let mut translated_point = if is_fixed {
             *client_point
         } else {
@@ -521,23 +328,6 @@ impl<'a> Iterator for DisplayListTraversal<'a> {
     }
 }
 
-fn transformed_tile_rect(tile_rect: TypedRect<usize, ScreenPx>,
-                         transform: &Matrix4D<f32>)
-                         -> Option<Rect<Au>> {
-    // Invert the current transform, then use this to back transform
-    // the tile rect (placed at the origin) into the space of this
-    // stacking context.
-    let inverse_transform = match transform.inverse() {
-        Some(inverse) => inverse,
-        None => return None,
-    };
-    let inverse_transform_2d = inverse_transform.to_2d();
-    let tile_size = Size2D::new(tile_rect.to_f32().size.width, tile_rect.to_f32().size.height);
-    let tile_rect = Rect::new(Point2D::zero(), tile_size).to_untyped();
-    Some(geometry::f32_rect_to_au_rect(inverse_transform_2d.transform_rect(&tile_rect)))
-}
-
-
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
@@ -589,8 +379,8 @@ pub struct StackingContext {
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
 
-    /// The layer info for this stacking context, if there is any.
-    pub layer_info: Option<LayerInfo>,
+    /// The scroll policy of this layer.
+    pub scroll_policy: ScrollPolicy,
 
     /// Children of this StackingContext.
     pub children: Vec<StackingContext>,
@@ -612,7 +402,7 @@ impl StackingContext {
                transform: Matrix4D<f32>,
                perspective: Matrix4D<f32>,
                establishes_3d_context: bool,
-               layer_info: Option<LayerInfo>,
+               scroll_policy: ScrollPolicy,
                scroll_id: Option<StackingContextId>)
                -> StackingContext {
         StackingContext {
@@ -626,7 +416,7 @@ impl StackingContext {
             transform: transform,
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
-            layer_info: layer_info,
+            scroll_policy: scroll_policy,
             children: Vec::new(),
             overflow_scroll_id: scroll_id,
         }
@@ -682,21 +472,6 @@ impl StackingContext {
         }
         print_tree.end_level();
     }
-
-    fn intersects_rect_in_parent_context(&self, rect: Option<Rect<Au>>) -> bool {
-        // We only do intersection checks for real stacking contexts, since
-        // pseudo stacking contexts might not have proper position information.
-        if self.context_type != StackingContextType::Real {
-            return true;
-        }
-
-        let rect = match rect {
-            Some(ref rect) => rect,
-            None => return true,
-        };
-
-        self.overflow_rect_in_parent_space().intersects(rect)
-    }
 }
 
 impl Ord for StackingContext {
@@ -729,9 +504,7 @@ impl PartialEq for StackingContext {
 
 impl fmt::Debug for StackingContext {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let type_string = if self.layer_info.is_some() {
-            "Layered StackingContext"
-        } else if self.context_type == StackingContextType::Real {
+        let type_string =  if self.context_type == StackingContextType::Real {
             "StackingContext"
         } else {
             "Pseudo-StackingContext"
@@ -1280,92 +1053,6 @@ pub enum BoxShadowClipMode {
 }
 
 impl DisplayItem {
-    /// Paints this display item into the given painting context.
-    fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        let this_clip = &self.base().clip;
-        match paint_context.transient_clip {
-            Some(ref transient_clip) if transient_clip == this_clip => {}
-            Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
-        }
-
-        match *self {
-            DisplayItem::SolidColor(ref solid_color) => {
-                if !solid_color.color.a.approx_eq(&0.0) {
-                    paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
-                }
-            }
-
-            DisplayItem::Text(ref text) => {
-                debug!("Drawing text at {:?}.", text.base.bounds);
-                paint_context.draw_text(&**text);
-            }
-
-            DisplayItem::Image(ref image_item) => {
-                debug!("Drawing image at {:?}.", image_item.base.bounds);
-                paint_context.draw_image(
-                    &image_item.base.bounds,
-                    &image_item.stretch_size,
-                    &image_item.tile_spacing,
-                    &image_item.webrender_image,
-                    &image_item.image_data
-                               .as_ref()
-                               .expect("Non-WR painting needs image data!")[..],
-                    image_item.image_rendering.clone());
-            }
-
-            DisplayItem::WebGL(_) => {
-                panic!("Shouldn't be here, WebGL display items are created just with webrender");
-            }
-
-            DisplayItem::Border(ref border) => {
-                paint_context.draw_border(&border.base.bounds,
-                                          &border.border_widths,
-                                          &border.radius,
-                                          &border.color,
-                                          &border.style)
-            }
-
-            DisplayItem::Gradient(ref gradient) => {
-                paint_context.draw_linear_gradient(&gradient.base.bounds,
-                                                   &gradient.start_point,
-                                                   &gradient.end_point,
-                                                   &gradient.stops);
-            }
-
-            DisplayItem::Line(ref line) => {
-                paint_context.draw_line(&line.base.bounds, line.color, line.style)
-            }
-
-            DisplayItem::BoxShadow(ref box_shadow) => {
-                paint_context.draw_box_shadow(&box_shadow.box_bounds,
-                                              &box_shadow.offset,
-                                              box_shadow.color,
-                                              box_shadow.blur_radius,
-                                              box_shadow.spread_radius,
-                                              box_shadow.clip_mode);
-            }
-
-            DisplayItem::Iframe(..) => {}
-
-            DisplayItem::PushStackingContext(..) => {}
-
-            DisplayItem::PopStackingContext(..) => {}
-        }
-    }
-
-    pub fn intersects_rect_in_parent_context(&self, rect: Option<Rect<Au>>) -> bool {
-        let rect = match rect {
-            Some(ref rect) => rect,
-            None => return true,
-        };
-
-        if !rect.intersects(&self.bounds()) {
-            return false;
-        }
-
-        self.base().clip.might_intersect_rect(&rect)
-    }
-
     pub fn base(&self) -> &BaseDisplayItem {
         match *self {
             DisplayItem::SolidColor(ref solid_color) => &solid_color.base,

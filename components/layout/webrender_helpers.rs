@@ -26,7 +26,6 @@ trait WebRenderStackingContextConverter {
                                 pipeline_id: webrender_traits::PipelineId,
                                 epoch: webrender_traits::Epoch,
                                 scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
-                                scroll_policy: ScrollPolicy,
                                 frame_builder: &mut WebRenderFrameBuilder)
                                 -> webrender_traits::StackingContextId;
 
@@ -36,7 +35,6 @@ trait WebRenderStackingContextConverter {
                                          pipeline_id: webrender_traits::PipelineId,
                                          epoch: webrender_traits::Epoch,
                                          scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
-                                         scroll_policy: ScrollPolicy,
                                          builder: &mut webrender_traits::DisplayListBuilder,
                                          frame_builder: &mut WebRenderFrameBuilder,
                                          force_positioned_stacking_level: bool);
@@ -256,7 +254,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          pipeline_id: webrender_traits::PipelineId,
                                          epoch: webrender_traits::Epoch,
                                          scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
-                                         scroll_policy: ScrollPolicy,
                                          builder: &mut webrender_traits::DisplayListBuilder,
                                          frame_builder: &mut WebRenderFrameBuilder,
                                          _force_positioned_stacking_level: bool) {
@@ -278,7 +275,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                                               pipeline_id,
                                                               epoch,
                                                               scroll_layer_id_for_children,
-                                                              scroll_policy,
                                                               frame_builder);
                     builder.push_stacking_context(stacking_context_id);
 
@@ -295,14 +291,9 @@ impl WebRenderStackingContextConverter for StackingContext {
                                 pipeline_id: webrender_traits::PipelineId,
                                 epoch: webrender_traits::Epoch,
                                 scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
-                                mut scroll_policy: ScrollPolicy,
                                 frame_builder: &mut WebRenderFrameBuilder)
                                 -> webrender_traits::StackingContextId {
-        if let Some(ref layer_info) = self.layer_info {
-            scroll_policy = layer_info.scroll_policy
-        }
-
-        let webrender_scroll_policy = match scroll_policy {
+        let webrender_scroll_policy = match self.scroll_policy {
             ScrollPolicy::Scrollable => webrender_traits::ScrollPolicy::Scrollable,
             ScrollPolicy::FixedPosition => webrender_traits::ScrollPolicy::Fixed,
         };
@@ -353,7 +344,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                                pipeline_id,
                                                epoch,
                                                None,
-                                               scroll_policy,
                                                &mut inner_builder,
                                                frame_builder,
                                                false);
@@ -367,7 +357,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                                pipeline_id,
                                                epoch,
                                                scroll_layer_id,
-                                               scroll_policy,
                                                &mut builder,
                                                frame_builder,
                                                false);
@@ -397,7 +386,6 @@ impl WebRenderDisplayListConverter for DisplayList {
                                                       pipeline_id,
                                                       epoch,
                                                       scroll_layer_id,
-                                                      ScrollPolicy::Scrollable,
                                                       frame_builder)
             }
             _ => unreachable!("DisplayList did not start with StackingContext."),

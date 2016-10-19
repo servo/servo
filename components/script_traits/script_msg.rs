@@ -13,7 +13,6 @@ use canvas_traits::CanvasMsg;
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
-use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, TraversalDirection};
@@ -114,7 +113,7 @@ pub enum ScriptMsg {
     /// Check if an alert dialog box should be presented
     Alert(PipelineId, String, IpcSender<bool>),
     /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
+    ScrollFragmentPoint(PipelineId, Point2D<f32>, bool),
     /// Set title of current page
     /// https://html.spec.whatwg.org/multipage/#document.title
     SetTitle(PipelineId, Option<String>),
