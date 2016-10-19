@@ -131,8 +131,8 @@
             }
 
             function create_tree_node(trace_node) {
-                var pre_trace = flatten_trace(JSON.parse(trace_node.pre));
-                var post_trace = flatten_trace(JSON.parse(trace_node.post));
+                var pre_trace = flatten_trace(trace_node.pre);
+                var post_trace = flatten_trace(trace_node.post);
 
                 var tree_node = {
                     text: trace_node.name,
