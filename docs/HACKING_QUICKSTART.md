@@ -102,23 +102,29 @@ See [Cargo's documentation about Cargo.toml and Cargo.lock files](http://doc.cra
 
 As explained above, Servo depends on a lot of libraries, which makes it very modular. While working on a bug in Servo, you'll often end up in one of its dependencies. You will then want to compile your own version of the dependency (and maybe compiling against the HEAD of the library will fix the issue!).
 
-For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [Glutin](https://github.com/tomaka/glutin). Glutin itself depends on a cocoa library named [cocoa-rs](http://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *glutin* and *cocoa-rs*.
+For example, Servo uses WebRender, a library located outside of the Servo repository.
 
 This is how my projects are laid out:
 
 ```
 ~/my-projects/servo/
-~/my-projects/cocoa-rs/
-~/my-projects/glutin/
+~/my-projects/webrender/
 ```
 
 These are all git repositories.
 
-To make it so that servo uses `~/my-projects/cocoa-rs/` and `~/my-projects/glutin/` , create a `~/my-projects/servo/.cargo/config` file:
+To make Servo compile with your local version of WebRender, you need to add a `[replace]` section in the relevant `Cargo.toml` file.
+There are many `Cargo.toml` files under `port/` and `components/`. Find the one that declares the dependency that you want to override.
 
-``` shell
-$ cat ~/my-projects/servo/.cargo/config
-paths = ['../glutin', '../cocoa-rs']
+Servo depends on `webrender` and `webrender_traits`, which are both located in `~/my-projects/webrender/`.
+The dependency is declared in `~/my-projects/servo/components/servo/Cargo.toml`.
+
+At the end of the toml file, add:
+
+```
+[replace]
+"webrender:0.6.0" = { path = '/Users/UserName/Path/To/webrender/webrender/' }
+"webrender_traits:0.6.0" = { path = '/Users/UserName/Path/To/webrender/webrender_traits' }
 ```
 
 This will tell any cargo project to not use the online version of the dependency, but your local clone.
