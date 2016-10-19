@@ -24,24 +24,15 @@
         <![endif]-->
     </head>
     <body>
-
-        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-            <div class="container">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="#">Servo Layout Debugger</a>
-                </div>
-            </div>
-        </div>
-
         <div class="container" role="main">
             <div class="row">
-                <div class="col-sm-3">
+                <div class="col-sm-12">
+                  <h1> Servo Layout Viewer </h1>
+                  <p> Check the <a href="https://github.com/servo/servo/blob/master/etc/layout_viewer/README.md">README</a> for instructions.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
                     <div class="row">
                         <div class="col-sm-12">
                             <div class="well">
@@ -62,7 +53,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-9">
+                <div class="col-sm-8">
                     <div class="row">
                         <div class="col-sm-12">
                             <div class='panel panel-default'>
@@ -208,7 +199,7 @@
                     }
 
                     update_flow_tree_bgcolor(node.flow_tree, node_color_hash);
-                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100});
+                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
                 });
             }
 
