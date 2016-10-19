@@ -215,6 +215,15 @@ impl Position {
             }
         }
     }
+
+    pub fn center() -> Position {
+        Position {
+            horiz_keyword: Some(Keyword::Center),
+            horiz_position: None,
+            vert_keyword: Some(Keyword::Center),
+            vert_position: None,
+        }
+    }
 }
 
 impl Keyword {

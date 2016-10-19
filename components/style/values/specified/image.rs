@@ -14,7 +14,7 @@ use std::fmt;
 use url::Url;
 use values::computed::ComputedValueAsSpecified;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, UrlExtraData};
-use values::specified::position::{Keyword, Position};
+use values::specified::position::Position;
 
 /// Specified values for an image according to CSS-IMAGES.
 /// https://drafts.csswg.org/css-images/#image-values
@@ -163,23 +163,48 @@ impl GradientKind {
 
     /// Parses a radial gradient from the given arguments.
     pub fn parse_radial(input: &mut Parser) -> Result<GradientKind, ()> {
-        let mut needs_comma = false;
-        let shape = if let Ok(shape) = EndingShape::parse(input) {
-            needs_comma = true;
-            shape
-        } else {
-            EndingShape::Circle(LengthOrKeyword::Keyword(SizeKeyword::FarthestSide))
-        };
+        let mut needs_comma = true;
 
-        let position = if input.try(|input| input.expect_ident_matching("at")).is_ok() {
-            needs_comma = true;
-            try!(Position::parse(input))
+        // Ending shape and position can be in various order. Checks all probabilities.
+        let (shape, position) = if let Ok(position) = input.try(parse_position) {
+            // Handle just <position>
+            (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)), position)
+        } else if let Ok((first, second)) = input.try(parse_two_length) {
+            // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>? <position>?
+            let _ = input.try(|input| input.expect_ident_matching("ellipse"));
+            (EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(first, second)),
+             input.try(parse_position).unwrap_or(Position::center()))
+        } else if let Ok(length) = input.try(Length::parse) {
+            // Handle <Length> <circle>? <position>?
+            let _ = input.try(|input| input.expect_ident_matching("circle"));
+            (EndingShape::Circle(LengthOrKeyword::Length(length)),
+             input.try(parse_position).unwrap_or(Position::center()))
+        } else if let Ok(keyword) = input.try(SizeKeyword::parse) {
+            // Handle <keyword> <shape-keyword>? <position>?
+            let shape = if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
+                EndingShape::Circle(LengthOrKeyword::Keyword(keyword))
+            } else {
+                let _ = input.try(|input| input.expect_ident_matching("ellipse"));
+                EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(keyword))
+            };
+            (shape, input.try(parse_position).unwrap_or(Position::center()))
         } else {
-            Position {
-                horiz_keyword: Some(Keyword::Center),
-                horiz_position: None,
-                vert_keyword: Some(Keyword::Center),
-                vert_position: None,
+            // Handle <shape-keyword> <length>? <position>?
+            if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
+                // Handle <ellipse> <LengthOrPercentageOrKeyword>? <position>?
+                let length = input.try(LengthOrPercentageOrKeyword::parse)
+                                  .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+                (EndingShape::Ellipse(length), input.try(parse_position).unwrap_or(Position::center()))
+            } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
+                // Handle <ellipse> <LengthOrKeyword>? <position>?
+                let length = input.try(LengthOrKeyword::parse)
+                                  .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+                (EndingShape::Circle(length), input.try(parse_position).unwrap_or(Position::center()))
+            } else {
+                // If there is no shape keyword, it should set to default.
+                needs_comma = false;
+                (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)),
+                 input.try(parse_position).unwrap_or(Position::center()))
             }
         };
 
@@ -189,6 +214,17 @@ impl GradientKind {
 
         Ok(GradientKind::Radial(shape, position))
     }
+}
+
+fn parse_two_length(input: &mut Parser) -> Result<(LengthOrPercentage, LengthOrPercentage), ()> {
+    let first = try!(LengthOrPercentage::parse(input));
+    let second = try!(LengthOrPercentage::parse(input));
+    Ok((first, second))
+}
+
+fn parse_position(input: &mut Parser) -> Result<Position, ()> {
+    try!(input.expect_ident_matching("at"));
+    input.try(Position::parse)
 }
 
 /// Specified values for an angle or a corner in a linear gradient.
@@ -299,44 +335,6 @@ impl Parse for ColorStop {
 pub enum EndingShape {
     Circle(LengthOrKeyword),
     Ellipse(LengthOrPercentageOrKeyword),
-}
-
-impl Parse for EndingShape {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        // FIXME(#13664): Normally size can come before shape keywords but currently
-        // parsing fails if size comes before shape keyword.
-        match_ignore_ascii_case! { try!(input.expect_ident()),
-            "circle" => {
-                let position = input.try(LengthOrKeyword::parse).unwrap_or(
-                    LengthOrKeyword::Keyword(SizeKeyword::FarthestSide));
-                Ok(EndingShape::Circle(position))
-            },
-            "ellipse" => {
-              let length = input.try(LengthOrPercentageOrKeyword::parse)
-                                .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestSide));
-                Ok(EndingShape::Ellipse(length))
-            },
-            _ => {
-                // If two <length> is present, it defaults to ellipse, otherwise defaults to circle.
-                if let Ok(length) = LengthOrPercentageOrKeyword::parse(input) {
-                    if let LengthOrPercentageOrKeyword::Keyword(keyword) = length {
-                        // A single keyword is valid for both ellipse and circle, but we default to circle.
-                        // The grammar for ending shapes for circle and ellipse have overlap so we cannot simply
-                        // try to parse as circle first
-                        Ok(EndingShape::Circle(LengthOrKeyword::Keyword(keyword)))
-                    } else {
-                        Ok(EndingShape::Ellipse(length))
-                    }
-                } else {
-                    // If both shape and size are omitted, we do not parse as an EndingShape
-                    // Instead, GradientKind::parse_radial will go ahead and parse the stops
-                    // This is necessary because GradientKind::parse_radial needs to know
-                    // whether or not to expect a comma
-                    Ok(EndingShape::Circle(try!(input.try(LengthOrKeyword::parse))))
-                }
-            }
-        }
-    }
 }
 
 impl ToCss for EndingShape {
