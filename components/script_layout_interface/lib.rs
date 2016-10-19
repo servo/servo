@@ -6,7 +6,6 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#![deny(unsafe_code)]
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]

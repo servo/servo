@@ -77,6 +77,9 @@ pub trait LayoutNode: TNode {
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
 
+    fn has_changed(&self) -> bool;
+    unsafe fn clear_dirty_bits(&self);
+
     fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>>;
 
     fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
