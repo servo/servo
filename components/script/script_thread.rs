@@ -1536,6 +1536,9 @@ impl ScriptThread {
         let node = unsafe { node.get_jsmanaged().get_for_script() };
         let window = window_from_node(node);
 
+        // Not quite the right thing - see #13865.
+        node.dirty(NodeDamage::NodeStyleDamaged);
+
         if let Some(el) = node.downcast::<Element>() {
             if &*window.GetComputedStyle(el, None).Display() == "none" {
                 return;
