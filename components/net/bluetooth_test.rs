@@ -109,6 +109,8 @@ const CLIENT_CHARACTERISTIC_CONFIGURATION_UUID: &'static str = "00002902-0000-10
 // viewer?attributeXmlFile=org.bluetooth.descriptor.number_of_digitals.xml
 const NUMBER_OF_DIGITALS_UUID: &'static str = "00002909-0000-1000-8000-00805f9b34fb";
 
+const HEART_RATE_DEVICE_NAME_DESCRIPTION: &'static str = "The name of this device.";
+
 fn generate_id() -> Uuid {
     let mut id = Uuid::nil();
     let mut generated = false;
@@ -218,7 +220,7 @@ fn create_heart_rate_service(device: &BluetoothDevice,
     let _heart_rate_measurement_characteristic =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![3]));
+                                              vec![0]));
 
     // Body Sensor Location Characteristic 1
     let body_sensor_location_characteristic_1 =
@@ -258,26 +260,26 @@ fn create_generic_access_service(device: &BluetoothDevice,
     let number_of_digitals_descriptor_1 =
         try!(create_descriptor_with_value(&device_name_characteristic,
                                           NUMBER_OF_DIGITALS_UUID.to_owned(),
-                                          vec![49; 2]));
+                                          vec![49]));
     try!(number_of_digitals_descriptor_1.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
 
     let number_of_digitals_descriptor_2 =
         try!(create_descriptor_with_value(&device_name_characteristic,
                                           NUMBER_OF_DIGITALS_UUID.to_owned(),
-                                          vec![42; 2]));
+                                          vec![50]));
     try!(number_of_digitals_descriptor_2.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
 
     // Characteristic User Description Descriptor
     let _characteristic_user_description =
         try!(create_descriptor_with_value(&device_name_characteristic,
                                           CHARACTERISTIC_USER_DESCRIPTION_UUID.to_owned(),
-                                          vec![22, 33, 44, 55]));
+                                          HEART_RATE_DEVICE_NAME_DESCRIPTION.as_bytes().to_vec()));
 
     // Client Characteristic Configuration descriptor
     let _client_characteristic_configuration =
         try!(create_descriptor_with_value(&device_name_characteristic,
                                           CLIENT_CHARACTERISTIC_CONFIGURATION_UUID.to_owned(),
-                                          vec![0, 0]));
+                                          vec![0]));
 
     // Peripheral Privacy Flag Characteristic
     let peripheral_privacy_flag_characteristic =
@@ -358,17 +360,17 @@ fn create_two_heart_rate_services_device(adapter: &BluetoothAdapter) -> Result<(
     let _heart_rate_measurement_characteristic =
         try!(create_characteristic_with_value(&heart_rate_service_empty_1,
                                               HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![3]));
+                                              vec![0]));
 
     let _body_sensor_location_characteristic_1 =
         try!(create_characteristic_with_value(&heart_rate_service_empty_1,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![1]));
+                                              vec![49]));
 
     let _body_sensor_location_characteristic_2 =
         try!(create_characteristic_with_value(&heart_rate_service_empty_2,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
-                                              vec![2]));
+                                              vec![50]));
     Ok(())
 }
 
@@ -394,12 +396,12 @@ fn create_blacklisted_device(adapter: &BluetoothAdapter) -> Result<(), Box<Error
     let _blacklist_exclude_reads_descriptor =
         try!(create_descriptor_with_value(&blacklist_exclude_reads_characteristic,
                                           BLACKLIST_EXCLUDE_READS_DESCRIPTOR_UUID.to_owned(),
-                                          vec![054, 054, 054]));
+                                          vec![54; 3]));
 
     let _blacklist_descriptor =
         try!(create_descriptor_with_value(&blacklist_exclude_reads_characteristic,
                                           BLACKLIST_DESCRIPTOR_UUID.to_owned(),
-                                          vec![054, 054, 054]));
+                                          vec![54; 3]));
 
     let device_information_service = try!(create_service(&connectable_device, DEVICE_INFORMATION_UUID.to_owned()));
 
