@@ -945,7 +945,7 @@ fn http_network_or_cache_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
     // Step 18
     if response.is_none() {
         response = Some(http_network_fetch(http_request.clone(), credentials_flag,
-                                           done_chan, context.devtools_chan.clone()));
+                                           done_chan, context));
     }
     let response = response.unwrap();
 
@@ -979,10 +979,11 @@ fn http_network_or_cache_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 }
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
-fn http_network_fetch(request: Rc<Request>,
-                      _credentials_flag: bool,
-                      done_chan: &mut DoneChannel,
-                      devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> Response {
+fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
+                                                _credentials_flag: bool,
+                                                done_chan: &mut DoneChannel,
+                                                context: &FetchContext<UI>)
+                                                -> Response {
     // TODO: Implement HTTP network fetch spec
 
     // Step 1
@@ -1002,7 +1003,7 @@ fn http_network_fetch(request: Rc<Request>,
     let url = request.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let request_id = devtools_chan.as_ref().map(|_| {
+    let request_id = context.devtools_chan.as_ref().map(|_| {
         uuid::Uuid::new_v4().simple().to_string()
     });
 
@@ -1036,7 +1037,7 @@ fn http_network_fetch(request: Rc<Request>,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             };
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
-            let devtools_sender = devtools_chan.clone();
+            let devtools_sender = context.devtools_chan.clone();
             let meta_status = meta.status.clone();
             let meta_headers = meta.headers.clone();
             spawn_named(format!("fetch worker thread"), move || {
