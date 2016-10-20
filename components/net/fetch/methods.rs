@@ -10,7 +10,7 @@ use fetch::cors_cache::CORSCache;
 use filemanager_thread::{FileManager, UIProvider};
 use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
-use http_loader::{auth_from_cache, determine_request_referrer};
+use http_loader::{auth_from_cache, determine_request_referrer, set_cookies_from_headers};
 use http_loader::{send_response_to_devtools, send_request_to_devtools, LoadErrorType};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -980,7 +980,7 @@ fn http_network_or_cache_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                                _credentials_flag: bool,
+                                                credentials_flag: bool,
                                                 done_chan: &mut DoneChannel,
                                                 context: &FetchContext<UI>)
                                                 -> Response {
@@ -1148,8 +1148,14 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
     // TODO this step isn't possible yet
     // Step 13
 
+    // Step 14.
+    if credentials_flag {
+        // TODO: should block cookies?
+        set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
+    }
+
     // TODO these steps
-    // Step 14
+    // Step 15
         // Substep 1
         // Substep 2
             // Sub-substep 1
@@ -1158,7 +1164,7 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
             // Sub-substep 4
         // Substep 3
 
-    // Step 15
+    // Step 16
     response
 }
 
