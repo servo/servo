@@ -203,7 +203,7 @@ dependencies = [
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "util 0.0.1",
  "webrender_traits 0.6.0 (git+https://github.com/servo/webrender)",
@@ -317,7 +317,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1454,17 +1454,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "offscreen_gl_context"
-version = "0.4.3"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1814,7 +1819,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1887,7 +1892,7 @@ dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2515,7 +2520,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.6.0"
-source = "git+https://github.com/servo/webrender#dff3e5dbcc3a40b3c5db37bf2e31422c61bf6dde"
+source = "git+https://github.com/servo/webrender#dce9d1ab8607f6b39cbcebad1d3e9272ad8cd75e"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2531,7 +2536,7 @@ dependencies = [
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.6.0 (git+https://github.com/servo/webrender)",
@@ -2540,7 +2545,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.6.0"
-source = "git+https://github.com/servo/webrender#dff3e5dbcc3a40b3c5db37bf2e31422c61bf6dde"
+source = "git+https://github.com/servo/webrender#dce9d1ab8607f6b39cbcebad1d3e9272ad8cd75e"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2549,7 +2554,7 @@ dependencies = [
  "gleam 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -2764,7 +2769,7 @@ dependencies = [
 "checksum num_cpus 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)" = "cee7e88156f3f9e19bdd598f8d6c9db7bf4078f99f8381f43a55b09648d1a6e3"
 "checksum objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7c9311aa5acd7bee14476afa0f0557f564e9d0d61218a8b833d9b1f871fa5fba"
 "checksum odds 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)" = "f3701cfdec1676e319ad37ff96c31de39df8c92006032976153366f52693bf40"
-"checksum offscreen_gl_context 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ffcda42bebbbbee2b403bc46d8ea85e0dcf25b5242592bde6eae7788d67cd655"
+"checksum offscreen_gl_context 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "000307b66855b01357765d9ac8d32a66aa09f3dcc3a7ccb272f74c76df475c9c"
 "checksum ogg 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "426d8dc59cdd206be1925461087350385c0a02f291d87625829c6d08e72b457b"
 "checksum ogg_metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e755cc735fa6faa709cb23048433d9201d6caa85fa96215386ccdd5e9b40ad01"
 "checksum open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c228597177bc4a6876e278f7c7948ac033bfcb4d163ccdd5a009557c8fe5fa1e"
