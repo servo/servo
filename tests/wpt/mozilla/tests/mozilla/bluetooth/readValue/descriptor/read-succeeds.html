@@ -15,6 +15,6 @@ promise_test(() => {
     .then(service => service.getCharacteristic(device_name.name))
     .then(characteristic => characteristic.getDescriptor(number_of_digitals.name))
     .then(descriptor => descriptor.readValue())
-    .then(value => assert_equals(value, '11'));
+    .then(value => assert_equals(value, '1'));
 }, 'A read request succeeds and returns the descriptor\'s value.');
 </script>

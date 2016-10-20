@@ -18,10 +18,10 @@ promise_test(() => {
         descriptors[1].readValue()]))
     .then(value_arrays => {
             assert_equals(value_arrays.length, 2);
-            assert_equals(value_arrays[0].length, 2);
-            assert_equals(value_arrays[0], '11');
-            assert_equals(value_arrays[1].length, 2);
-            assert_equals(value_arrays[1], '**');
+            assert_equals(value_arrays[0].length, 1);
+            assert_equals(value_arrays[0], '1');
+            assert_equals(value_arrays[1].length, 1);
+            assert_equals(value_arrays[1], '2');
     });
 }, 'Find descriptors with UUID in service.');
 </script>
