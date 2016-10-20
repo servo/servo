@@ -523,7 +523,7 @@ impl ToGfxMatrix for ComputedMatrix {
 /// parameter, and when it is present the constraint will be subtracted. This is
 /// used to adjust the constraint for `box-sizing: border-box`, and when you do so
 /// make sure the size you want to clamp is intended to be used for content box.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct SizeConstraint {
     min_size: Au,
     max_size: Option<Au>,

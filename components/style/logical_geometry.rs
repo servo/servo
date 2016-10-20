@@ -215,6 +215,7 @@ impl Debug for DebugWritingMode {
 
 // Used to specify the logical direction.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "servo", derive(Serialize))]
 pub enum Direction {
     Inline,
     Block
