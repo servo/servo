@@ -505,7 +505,7 @@ impl ToGfxMatrix for ComputedMatrix {
 }
 
 // Used to specify the logical direction.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 pub enum Direction {
     Inline,
     Block
@@ -518,7 +518,7 @@ pub enum Direction {
 /// A `max` of `None` is equivalent to no limmit for the size in the given
 /// dimension. The `min` is >= 0, as negative values are illegal and by
 /// default `min` is 0.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct MinMaxConstraint {
     min: Au,
     max: Option<Au>

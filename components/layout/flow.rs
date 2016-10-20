@@ -30,6 +30,7 @@ use block::{BlockFlow, FormattingContextType};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Size2D};
+use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
@@ -167,6 +168,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell(&self) -> &TableCellFlow {
         panic!("called as_table_cell() on a non-tablecell flow")
+    }
+
+    /// If this is a flex flow, returns the underlying object. Fails otherwise.
+    fn as_flex(&self) -> &FlexFlow {
+        panic!("called as_flex() on a non-flex flow")
     }
 
     /// If this is a table row, table rowgroup, or table flow, returns column intrinsic
