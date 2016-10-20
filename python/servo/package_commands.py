@@ -153,14 +153,14 @@ class PackageCommands(CommandBase):
                 return e.returncode
         elif is_macosx():
 
-            dir_to_build = '/'.join(binary_path.split('/')[:-1])
+            dir_to_build = path.dirname(binary_path)
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
             now = datetime.utcnow()
 
             print("Creating Servo.app")
-            dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
-            dir_to_app = dir_to_dmg + '/Servo.app'
-            dir_to_resources = dir_to_app + '/Contents/Resources/'
+            dir_to_dmg = path.join(path.dirname(binary_path), 'dmg')
+            dir_to_app = path.join(dir_to_dmg, 'Servo.app')
+            dir_to_resources = path.join(dir_to_app, 'Contents/Resources/')
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
@@ -211,10 +211,9 @@ class PackageCommands(CommandBase):
 
             print("Creating dmg")
             os.symlink('/Applications', dir_to_dmg + '/Applications')
-            dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
             time = now.replace(microsecond=0).isoformat()
             time = time.replace(':', '-')
-            dmg_path += time + "-servo-tech-demo.dmg"
+            dmg_path = path.join(dir_to_build, time + "-servo-tech-demo.dmg")
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
@@ -225,11 +224,11 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
-            dir_to_brew = '/'.join(binary_path.split('/')[:-2]) + '/brew_tmp/'
-            dir_to_tar = '/'.join(dir_to_build.split('/')[:-1]) + '/brew/'
+            dir_to_brew = path.join(path.dirname(binary_path), 'brew_tmp')
+            dir_to_tar = path.join(dir_to_build, 'brew')
             if not path.exists(dir_to_tar):
                 os.makedirs(dir_to_tar)
-            tar_path = dir_to_tar + now.strftime("servo-%Y-%m-%d.tar.gz")
+            tar_path = path.join(dir_to_tar, now.strftime("servo-%Y-%m-%d.tar.gz"))
             if path.exists(dir_to_brew):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_brew)
@@ -287,7 +286,7 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_temp = path.join(os.path.dirname(binary_path), 'packaging-temp')
+            dir_to_temp = path.join(path.dirname(binary_path), 'packaging-temp')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
@@ -318,7 +317,7 @@ class PackageCommands(CommandBase):
             print("Creating tarball")
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
-            tar_path = path.join(self.get_target_dir(), time + '-servo-tech-demo.tar.gz')
+            tar_path = path.join(os.path.dirname(binary_path), time + '-servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 

@@ -25,9 +25,20 @@ upload() {
     s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
 }
 
+package_path() {
+    local -r release_build_dir="target/release"
+    local -r debug_build_dir="target/debug"
+
+    if [[ -d "${release_build_dir}" ]]; then
+        echo "${release_build_dir}"
+    elif [[ -d "${debug_build_dir}" ]]; then
+        echo "${debug_build_dir}"
+    fi
+}
+
 
 main() {
-    if [[ "${#}" != 1 ]]; then
+    if (( "${#}" != 1 )); then
         usage >&2
         return 1
     fi
@@ -40,13 +51,16 @@ main() {
         package=target/arm-linux-androideabi/release/*."${extension}"
     elif [[ "${platform}" == "linux" ]]; then
         extension=tar.gz
-        package=target/*."${extension}"
+        build_path="$(package_path)"
+        package=${build_path}/*."${extension}"
     elif [[ "${platform}" == "mac" ]]; then
         extension=dmg
-        package=target/*."${extension}"
+        build_path="$(package_path)"
+        package=${build_path}/*."${extension}"
     elif [[ "${platform}" == "macbrew" ]]; then
         extension=tar.gz
-        package=target/brew/*."${extension}"
+        build_path="$(package_path)"
+        package=${build_path}/brew/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
         extension=msi
         package=target/release/msi/*.msi
