@@ -45,6 +45,7 @@ style_tests = {path = "../../tests/unit/style"}
 util_tests = {path = "../../tests/unit/util"}
 
 [dependencies]
+backtrace = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
@@ -88,7 +89,6 @@ features = ["serde_derive"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"
-backtrace = "0.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.3"

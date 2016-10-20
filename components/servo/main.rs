@@ -20,7 +20,6 @@
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
-#[cfg(not(target_os = "android"))]
 extern crate backtrace;
 // The window backed by glutin
 extern crate glutin_app as app;
