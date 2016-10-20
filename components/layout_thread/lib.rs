@@ -560,8 +560,10 @@ impl LayoutThread {
                 self.handle_request_helper(Msg::SetStackingContextScrollStates(new_scroll_states),
                                            possibly_locked_rw_data)
             },
-            Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
-                self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
+            Request::FromPipeline(LayoutControlMsg::TickAnimations(
+                    script_animation_callbacks_present)) => {
+                self.handle_request_helper(Msg::TickAnimations(script_animation_callbacks_present),
+                                           possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
@@ -606,7 +608,9 @@ impl LayoutThread {
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&data, possibly_locked_rw_data));
             },
-            Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::TickAnimations(script_animation_callbacks_present) => {
+                self.tick_all_animations(possibly_locked_rw_data, script_animation_callbacks_present)
+            }
             Msg::SetStackingContextScrollStates(new_scroll_states) => {
                 self.set_stacking_context_scroll_states(new_scroll_states,
                                                         possibly_locked_rw_data);
@@ -623,8 +627,11 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch).unwrap();
             },
-            Msg::AdvanceClockMs(how_many, do_tick) => {
-                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick);
+            Msg::AdvanceClockMs(how_many, do_tick, script_callbacks) => {
+                self.handle_advance_clock_ms(how_many,
+                                             possibly_locked_rw_data,
+                                             do_tick,
+                                             script_callbacks);
             }
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -758,10 +765,11 @@ impl LayoutThread {
     fn handle_advance_clock_ms<'a, 'b>(&mut self,
                                        how_many_ms: i32,
                                        possibly_locked_rw_data: &mut RwData<'a, 'b>,
-                                       tick_animations: bool) {
+                                       tick_animations: bool,
+                                       script_animation_callbacks_present: bool) {
         self.timer.increment(how_many_ms as f64 / 1000.0);
         if tick_animations {
-            self.tick_all_animations(possibly_locked_rw_data);
+            self.tick_all_animations(possibly_locked_rw_data, script_animation_callbacks_present);
         }
     }
 
@@ -1344,12 +1352,16 @@ impl LayoutThread {
         rw_data.stacking_context_scroll_offsets = layout_scroll_states
     }
 
-    fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn tick_all_animations<'a, 'b>(&mut self,
+                                   possibly_locked_rw_data: &mut RwData<'a, 'b>,
+                                   script_animation_callbacks_present: bool) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        self.tick_animations(&mut rw_data);
+        self.tick_animations(&mut rw_data, script_animation_callbacks_present);
     }
 
-    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+    fn tick_animations(&mut self,
+                       rw_data: &mut LayoutThreadData,
+                       script_animation_callbacks_present: bool) {
         if opts::get().relayout_event {
             println!("**** pipeline={}\tForDisplay\tSpecial\tAnimationTick", self.id);
         }
@@ -1389,6 +1401,16 @@ impl LayoutThread {
                                                          &mut *rw_data,
                                                          &mut layout_context);
             assert!(layout_context.pending_images.is_none());
+
+            if script_animation_callbacks_present {
+                // Now that we're done sending transition events, etc, tell script
+                // it can run the animation callbacks.
+                //
+                // This order is defined by:
+                // https://html.spec.whatwg.org/multipage/#run-css-animations-and-send-events
+                let msg = ConstellationControlMsg::TickAllAnimations(self.id);
+                self.script_chan.send(msg).unwrap();
+            }
         }
     }
 

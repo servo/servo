@@ -94,7 +94,7 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
+use script_traits::{AnimationState, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
@@ -897,8 +897,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got window resize message");
                 self.handle_window_size_msg(new_size, size_type);
             }
-            FromCompositorMsg::TickAnimation(pipeline_id, tick_type) => {
-                self.handle_tick_animation(pipeline_id, tick_type)
+            FromCompositorMsg::TickAnimation(pipeline_id, script_callbacks_present) => {
+                self.handle_tick_animation(pipeline_id, script_callbacks_present)
             }
             FromCompositorMsg::WebDriverCommand(command) => {
                 debug!("constellation got webdriver command message");
@@ -1540,23 +1540,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                                                                animation_state))
     }
 
-    fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
-        let result = match tick_type {
-            AnimationTickType::Script => {
-                let msg = ConstellationControlMsg::TickAllAnimations(pipeline_id);
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
-                }
-            }
-            AnimationTickType::Layout => {
-                let msg = LayoutControlMsg::TickAnimations;
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.layout_chan.send(msg),
-                    None => return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id),
-                }
-            }
+    fn handle_tick_animation(&mut self,
+                             pipeline_id: PipelineId,
+                             script_callbacks_running: bool) {
+        let msg = LayoutControlMsg::TickAnimations(script_callbacks_running);
+
+        let result = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.layout_chan.send(msg),
+            None => return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id),
         };
+
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
         }

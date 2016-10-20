@@ -117,8 +117,8 @@ pub enum LayoutControlMsg {
     ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
-    /// Asks layout to run another step in its animation.
-    TickAnimations,
+    /// Asks layout to run another step in its animations.
+    TickAnimations(bool /* script_animation_callbacks_present */),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetStackingContextScrollStates(Vec<StackingContextScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
@@ -638,15 +638,6 @@ impl MozBrowserErrorType {
     }
 }
 
-/// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Deserialize, Serialize)]
-pub enum AnimationTickType {
-    /// The script thread.
-    Script,
-    /// The layout thread.
-    Layout,
-}
-
 /// The scroll state of a stacking context.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub struct StackingContextScrollState {
@@ -731,7 +722,7 @@ pub enum ConstellationMsg {
     /// Inform the constellation of a window being resized.
     WindowSize(WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId, AnimationTickType),
+    TickAnimation(PipelineId, bool /* script_animation_callbacks_present */),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
