@@ -4,7 +4,6 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use animation;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
@@ -366,17 +365,6 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
-        }
-    } else {
-        // Finish any expired transitions.
-        let mut existing_style = node.get_existing_style().unwrap();
-        let had_animations_to_expire = animation::complete_expired_transitions(
-            node.opaque(),
-            &mut existing_style,
-            context.shared_context()
-        );
-        if had_animations_to_expire {
-            node.set_style(existing_style);
         }
     }
 
