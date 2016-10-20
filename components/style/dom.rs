@@ -116,17 +116,13 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     fn as_document(&self) -> Option<Self::ConcreteDocument>;
 
-    fn has_changed(&self) -> bool;
-
-    unsafe fn set_changed(&self, value: bool);
-
     fn is_dirty(&self) -> bool;
 
-    unsafe fn set_dirty(&self, value: bool);
+    unsafe fn set_dirty(&self);
 
     fn has_dirty_descendants(&self) -> bool;
 
-    unsafe fn set_dirty_descendants(&self, value: bool);
+    unsafe fn set_dirty_descendants(&self);
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool;
 
@@ -155,7 +151,7 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     fn get_existing_style(&self) -> Option<Arc<ComputedValues>>;
 
     /// Sets the computed style for this node.
-    fn set_style(&self, style: Option<Arc<ComputedValues>>);
+    fn set_style(&self, style: Arc<ComputedValues>);
 
     /// Transfers ownership of the existing pseudo styles, if any, to the
     /// caller. The stored pseudo styles are replaced with an empty map.
@@ -163,6 +159,9 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     /// Sets the pseudo styles on the element, replacing any existing styles.
     fn set_pseudo_styles(&self, styles: PseudoStyles);
+
+    /// Set the style for a text node.
+    fn style_text_node(&self, style: Arc<ComputedValues>);
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
@@ -235,19 +234,19 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
         let mut curr = node;
         while let Some(parent) = curr.parent_node() {
             if parent.has_dirty_descendants() { break }
-            unsafe { parent.set_dirty_descendants(true); }
+            unsafe { parent.set_dirty_descendants(); }
             curr = parent;
         }
 
         // Process hints.
         if hint.contains(RESTYLE_SELF) {
-            unsafe { node.set_dirty(true); }
+            unsafe { node.set_dirty(); }
         // XXX(emilio): For now, dirty implies dirty descendants if found.
         } else if hint.contains(RESTYLE_DESCENDANTS) {
-            unsafe { node.set_dirty_descendants(true); }
+            unsafe { node.set_dirty_descendants(); }
             let mut current = node.first_child();
             while let Some(node) = current {
-                unsafe { node.set_dirty(true); }
+                unsafe { node.set_dirty(); }
                 current = node.next_sibling();
             }
         }
@@ -256,7 +255,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
             let mut next = ::selectors::Element::next_sibling_element(self);
             while let Some(sib) = next {
                 let sib_node = sib.as_node();
-                unsafe { sib_node.set_dirty(true) };
+                unsafe { sib_node.set_dirty() };
                 next = ::selectors::Element::next_sibling_element(&sib);
             }
         }

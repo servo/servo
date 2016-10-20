@@ -62,7 +62,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::{PersistentStyleData, PseudoStyles};
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
-use style::dom::UnsafeNode;
+use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
@@ -190,28 +190,20 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.node.downcast().map(ServoLayoutDocument::from_layout_js)
     }
 
-    fn has_changed(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_CHANGED) }
-    }
-
-    unsafe fn set_changed(&self, value: bool) {
-        self.node.set_flag(HAS_CHANGED, value)
-    }
-
     fn is_dirty(&self) -> bool {
         unsafe { self.node.get_flag(IS_DIRTY) }
     }
 
-    unsafe fn set_dirty(&self, value: bool) {
-        self.node.set_flag(IS_DIRTY, value)
+    unsafe fn set_dirty(&self) {
+        self.node.set_flag(IS_DIRTY, true)
     }
 
     fn has_dirty_descendants(&self) -> bool {
         unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
-    unsafe fn set_dirty_descendants(&self, value: bool) {
-        self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    unsafe fn set_dirty_descendants(&self) {
+        self.node.set_flag(HAS_DIRTY_DESCENDANTS, true)
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -246,8 +238,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.borrow_data().and_then(|x| x.style.clone())
     }
 
-    fn set_style(&self, style: Option<Arc<ComputedValues>>) {
-        self.mutate_data().unwrap().style = style;
+    fn set_style(&self, style: Arc<ComputedValues>) {
+        self.mutate_data().unwrap().style = Some(style);
     }
 
     fn take_pseudo_styles(&self) -> PseudoStyles {
@@ -259,11 +251,24 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.mutate_data().unwrap().per_pseudo = styles;
     }
 
+    fn style_text_node(&self, style: Arc<ComputedValues>) {
+        debug_assert!(self.is_text_node());
+        let mut data = self.get_partial_layout_data().unwrap().borrow_mut();
+        data.style_data.style = Some(style);
+        if self.has_changed() {
+            data.restyle_damage = RestyleDamage::rebuild_and_reflow();
+        }
+    }
+
     fn restyle_damage(self) -> RestyleDamage {
         self.get_partial_layout_data().unwrap().borrow().restyle_damage
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
+        let mut damage = damage;
+        if self.has_changed() {
+            damage = RestyleDamage::rebuild_and_reflow();
+        }
         self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
     }
 
@@ -328,6 +333,16 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     fn type_id(&self) -> LayoutNodeType {
         self.script_type_id().into()
+    }
+
+    fn has_changed(&self) -> bool {
+        unsafe { self.node.get_flag(HAS_CHANGED) }
+    }
+
+    unsafe fn clear_dirty_bits(&self) {
+        self.node.set_flag(HAS_CHANGED, false);
+        self.node.set_flag(IS_DIRTY, false);
+        self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
     }
 
     fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>> {

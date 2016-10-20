@@ -745,7 +745,7 @@ pub trait ElementMatchMethods : TElement {
                         RestyleResult::Continue
                     };
 
-                    node.set_style(Some(shared_style));
+                    node.set_style(shared_style);
 
                     return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
                 }
@@ -890,9 +890,7 @@ pub trait MatchMethods : TNode {
         // In Servo, this is also true, since text nodes generate UnscannedText
         // fragments, which aren't repairable by incremental layout.
         if self.is_text_node() {
-            let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.as_ref().unwrap());
-
-            self.set_style(Some(cloned_parent_style));
+            self.style_text_node(ComputedValues::style_for_child_text_node(parent_style.as_ref().unwrap()));
 
             return RestyleResult::Continue;
         }
@@ -931,7 +929,7 @@ pub trait MatchMethods : TNode {
                                                         context, applicable_declarations,
                                                         &mut applicable_declarations_cache);
 
-            self.set_style(Some(new_style));
+            self.set_style(new_style);
 
             self.set_can_be_fragmented(parent.map_or(false, |p| {
                 p.can_be_fragmented() ||

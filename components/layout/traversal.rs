@@ -118,12 +118,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
         tnode.set_restyle_damage(RestyleDamage::empty());
     }
 
-    unsafe {
-        node.set_changed(false);
-        node.set_dirty(false);
-        node.set_dirty_descendants(false);
-    }
-
+    unsafe { node.clear_dirty_bits(); }
     remove_from_bloom_filter(context, root, node);
 }
 
