@@ -403,7 +403,7 @@ ${helpers.predefined_type("opacity",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="filter" products="servo" animatable="False">
+<%helpers:longhand name="filter" animatable="False">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser::ToCss;
     use std::fmt;

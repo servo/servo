@@ -516,6 +516,13 @@ extern "C" {
      -> *mut StyleBasicShape;
 }
 extern "C" {
+    pub fn Gecko_ResetFilters(effects: *mut nsStyleEffects, new_len: usize);
+}
+extern "C" {
+    pub fn Gecko_CopyFiltersFrom(aSrc: *mut nsStyleEffects,
+                                 aDest: *mut nsStyleEffects);
+}
+extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
                                         max_len: u32);
 }

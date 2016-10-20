@@ -11203,7 +11203,7 @@ fn bindgen_test_layout_nsStyleSVG() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleFilter {
-    pub mType: i32,
+    pub mType: u32,
     pub mFilterParameter: nsStyleCoord,
     pub __bindgen_anon_1: nsStyleFilter__bindgen_ty_bindgen_id_236550,
 }
