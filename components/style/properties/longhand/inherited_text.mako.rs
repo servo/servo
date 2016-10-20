@@ -737,7 +737,182 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="text-emphasis-style" products="none" animatable="False">
+    use computed_values::writing_mode::T as writing_mode;
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::NoViewportPercentage;
 
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub mod computed_value {
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            Keyword(Keyword),
+            None,
+            String(String),
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct Keyword {
+            pub fill: bool,
+            pub shape: super::ShapeKeyword,
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Keyword(Keyword),
+        None,
+        String(String),
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                computed_value::T::Keyword(ref keyword) => keyword.to_css(dest),
+                computed_value::T::None => dest.write_str("none"),
+                computed_value::T::String(ref string) => write!(dest, "\"{}\"", string),
+            }
+        }
+    }
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Keyword(ref keyword) => keyword.to_css(dest),
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::String(ref string) => write!(dest, "\"{}\"", string),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Keyword {
+        pub fill: Option<bool>,
+        pub shape: Option<ShapeKeyword>,
+    }
+
+    impl ToCss for Keyword {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let mut has_fill = false;
+            if let Some(fill) = self.fill {
+                has_fill = true;
+                if fill {
+                    try!(dest.write_str("filled"));
+                } else {
+                    try!(dest.write_str("open"));
+                }
+            }
+            if let Some(shape) = self.shape {
+                if has_fill {
+                    try!(dest.write_str(" "));
+                }
+                try!(shape.to_css(dest));
+            }
+            Ok(())
+        }
+    }
+    impl ToCss for computed_value::Keyword {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.fill {
+                try!(dest.write_str("filled"));
+            } else {
+                try!(dest.write_str("open"));
+            }
+            try!(dest.write_str(" "));
+            self.shape.to_css(dest)
+        }
+    }
+
+    define_css_keyword_enum!(ShapeKeyword:
+                             "dot" => Dot,
+                             "circle" => Circle,
+                             "double-circle" => DoubleCircle,
+                             "triangle" => Triangle,
+                             "sesame" => Sesame);
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::None
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::Keyword(ref keyword) => {
+                    let default_shape = if context.style().get_inheritedbox()
+                                                  .writing_mode == writing_mode::horizontal_tb {
+                        ShapeKeyword::Circle
+                    } else {
+                        ShapeKeyword::Sesame
+                    };
+                    computed_value::T::Keyword(computed_value::Keyword {
+                        fill: keyword.fill.unwrap_or(true),
+                        shape: keyword.shape.unwrap_or(default_shape)
+                    })
+                },
+                SpecifiedValue::None => computed_value::T::None,
+                SpecifiedValue::String(ref s) => {
+                    let string = if s.len() > 1 {
+                        s.chars().nth(0).unwrap().to_string()
+                    } else { s.clone() };
+                    computed_value::T::String(string)
+                }
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::Keyword(ref keyword) => SpecifiedValue::Keyword(Keyword {
+                    fill: Some(keyword.fill),
+                    shape: Some(keyword.shape)
+                }),
+                computed_value::T::None => SpecifiedValue::None,
+                computed_value::T::String(ref string) => SpecifiedValue::String(string.clone())
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(SpecifiedValue::None);
+        }
+
+        if let Ok(s) = input.try(|input| input.expect_string()) {
+            // Handle <string>
+            Ok(SpecifiedValue::String(s.into_owned()))
+        } else {
+            // Handle a pair of keywords
+            let mut shape = input.try(ShapeKeyword::parse);
+            let fill = if input.try(|input| input.expect_ident_matching("filled")).is_ok() {
+                Some(true)
+            } else if input.try(|input| input.expect_ident_matching("open")).is_ok() {
+                Some(false)
+            } else { None };
+            if let Err(_) = shape {
+                shape = input.try(ShapeKeyword::parse);
+            }
+
+            // At least one of shape or fill must be handled
+            if let (None, Err(_)) = (fill, shape) {
+                Err(())
+            } else {
+                Ok(SpecifiedValue::Keyword(Keyword {
+                    fill: fill,
+                    shape: shape.ok()
+                }))
+            }
+        }
+    }
+</%helpers:longhand>
 
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
