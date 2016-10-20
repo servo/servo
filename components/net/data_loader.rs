@@ -59,7 +59,7 @@ pub fn decode(url: &Url) -> Result<DecodeData, DecodeError> {
 
     let mut bytes = percent_decode(parts[1].as_bytes()).collect::<Vec<_>>();
     if is_base64 {
-        // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
+        // FIXME(#2909): It's unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
         bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {

@@ -5,19 +5,9 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use hyper::header::Headers;
-use hyper::method::Method;
-use ipc_channel::ipc::IpcSharedMemory;
 use std::cell::Cell;
 use std::fmt;
-use url::Url;
 use webrender_traits;
-
-#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
-pub enum WindowSizeType {
-    Initial,
-    Resize,
-}
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
@@ -163,55 +153,6 @@ bitflags! {
         const CONTROL = 0x02,
         const ALT = 0x04,
         const SUPER = 0x08,
-    }
-}
-
-#[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
-pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
-}
-
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
-    pub format: PixelFormat,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
-    #[ignore_heap_size_of = "Defined in webrender_traits"]
-    pub id: Option<webrender_traits::ImageKey>,
-}
-
-/// Similar to net::resource_thread::LoadData
-/// can be passed to LoadUrl to load a page with GET/POST
-/// parameters or headers
-#[derive(Clone, Deserialize, Serialize)]
-pub struct LoadData {
-    pub url: Url,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub method: Method,
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub headers: Headers,
-    pub data: Option<Vec<u8>>,
-    pub referrer_policy: Option<ReferrerPolicy>,
-    pub referrer_url: Option<Url>,
-}
-
-impl LoadData {
-    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
-        LoadData {
-            url: url,
-            method: Method::Get,
-            headers: Headers::new(),
-            data: None,
-            referrer_policy: referrer_policy,
-            referrer_url: referrer_url,
-        }
     }
 }
 
@@ -363,16 +304,4 @@ pub const TEST_FRAME_ID: FrameId = FrameId { namespace_id: TEST_NAMESPACE, index
 pub enum FrameType {
     IFrame,
     MozBrowserIFrame,
-}
-
-/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
-/// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
-pub enum ReferrerPolicy {
-    NoReferrer,
-    NoReferrerWhenDowngrade,
-    Origin,
-    SameOrigin,
-    OriginWhenCrossOrigin,
-    UnsafeUrl,
 }

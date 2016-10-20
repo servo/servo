@@ -4,8 +4,26 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, ImageFormat};
+use webrender_traits;
 
-pub use msg::constellation_msg::{Image, PixelFormat};
+#[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+pub enum PixelFormat {
+    K8,         // Luminance channel only
+    KA8,        // Luminance + alpha
+    RGB8,       // RGB, 8 bits per channel
+    RGBA8,      // RGB + alpha, 8 bits per channel
+}
+
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
+    #[ignore_heap_size_of = "Defined in webrender_traits"]
+    pub id: Option<webrender_traits::ImageKey>,
+}
 
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub struct ImageMetadata {

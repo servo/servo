@@ -16,6 +16,7 @@ image = "0.10"
 ipc-channel = "0.5"
 log = "0.3.5"
 msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
 plugins = {path = "../plugins"}
 regex = "0.1.55"
 rustc-serialize = "0.3.4"

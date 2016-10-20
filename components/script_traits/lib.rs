@@ -18,6 +18,7 @@ extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
+extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate libc;
@@ -49,13 +50,15 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
+use hyper::header::Headers;
+use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
-use msg::constellation_msg::{TraversalDirection, WindowSizeType};
-use net_traits::{LoadOrigin, ResourceThreads};
+use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
+use net_traits::{LoadOrigin, ReferrerPolicy, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
 use profile_traits::mem;
@@ -122,6 +125,43 @@ pub enum LayoutControlMsg {
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
+}
+
+/// Similar to net::resource_thread::LoadData
+/// can be passed to LoadUrl to load a page with GET/POST
+/// parameters or headers
+#[derive(Clone, Deserialize, Serialize)]
+pub struct LoadData {
+    /// The URL.
+    pub url: Url,
+    /// The method.
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    pub method: Method,
+    /// The headers.
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    pub headers: Headers,
+    /// The data.
+    pub data: Option<Vec<u8>>,
+    /// The referrer policy.
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// The referrer URL.
+    pub referrer_url: Option<Url>,
+}
+
+impl LoadData {
+    /// Create a new `LoadData` object.
+    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
+        LoadData {
+            url: url,
+            method: Method::Get,
+            headers: Headers::new(),
+            data: None,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url,
+        }
+    }
 }
 
 /// The initial data associated with a newly-created framed pipeline.
@@ -583,6 +623,15 @@ pub struct WindowSizeData {
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
     pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
+}
+
+/// The type of window size change.
+#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+pub enum WindowSizeType {
+    /// Initial load.
+    Initial,
+    /// Window resize.
+    Resize,
 }
 
 /// Messages to the constellation originating from the WebDriver server.
