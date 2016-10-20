@@ -589,10 +589,13 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
     let mut response = response.unwrap();
 
     // Step 5
-    match response.actual_response().status.unwrap() {
+    match response.actual_response().status {
         // Code 301, 302, 303, 307, 308
-        StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
-        StatusCode::TemporaryRedirect | StatusCode::PermanentRedirect => {
+        Some(StatusCode::MovedPermanently) |
+        Some(StatusCode::Found) |
+        Some(StatusCode::SeeOther) |
+        Some(StatusCode::TemporaryRedirect) |
+        Some(StatusCode::PermanentRedirect) => {
             response = match request.redirect_mode.get() {
                 RedirectMode::Error => Response::network_error(),
                 RedirectMode::Manual => {
@@ -608,7 +611,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         },
 
         // Code 401
-        StatusCode::Unauthorized => {
+        Some(StatusCode::Unauthorized) => {
             // Step 1
             // FIXME: Figure out what to do with request window objects
             if cors_flag || !credentials {
@@ -633,7 +636,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         }
 
         // Code 407
-        StatusCode::ProxyAuthenticationRequired => {
+        Some(StatusCode::ProxyAuthenticationRequired) => {
             // Step 1
             // TODO: Figure out what to do with request window objects
 
