@@ -1439,6 +1439,10 @@ impl Document {
         }
     }
 
+    pub fn has_animation_callbacks(&self) -> bool {
+        !self.animation_frame_list.borrow().is_empty()
+    }
+
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
         let mut animation_frame_list =
@@ -1456,7 +1460,7 @@ impl Document {
         // This means that if the animation callback adds a new callback for
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
-        if self.animation_frame_list.borrow().is_empty() {
+        if !self.has_animation_callbacks() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut animation_frame_list);
             let global_scope = self.window.upcast::<GlobalScope>();

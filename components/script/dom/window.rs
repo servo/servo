@@ -980,7 +980,9 @@ impl Window {
     /// Advances the layout animation clock by `delta` milliseconds, and then
     /// forces a reflow if `tick` is true.
     pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
-        self.layout_chan.send(Msg::AdvanceClockMs(delta, tick)).unwrap();
+        let has_animation_callbacks = self.Document().has_animation_callbacks();
+        self.layout_chan
+            .send(Msg::AdvanceClockMs(delta, tick, has_animation_callbacks)).unwrap();
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This

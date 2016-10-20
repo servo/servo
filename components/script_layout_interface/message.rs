@@ -37,13 +37,14 @@ pub enum Msg {
     GetRPC(Sender<Box<LayoutRPC + Send>>),
 
     /// Requests that the layout thread render the next frame of all animations.
-    TickAnimations,
+    TickAnimations(bool /* script_callbacks_running */),
 
     /// Updates layout's timer for animation testing from script.
     ///
-    /// The inner field is the number of *milliseconds* to advance, and the bool
-    /// field is whether animations should be force-ticked.
-    AdvanceClockMs(i32, bool),
+    /// The inner field is the number of *milliseconds* to advance, the first
+    /// bool field is whether animations should be force-ticked, and the second
+    /// one whether there are script animation callbacks or not.
+    AdvanceClockMs(i32, bool /* force_tick */, bool /* script_callbacks_present */),
 
     /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,

@@ -23,7 +23,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, Tra
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::mem::{self, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
+use script_traits::{AnimationState, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
 use script_traits::{MouseEventType, StackingContextScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
@@ -1218,15 +1218,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
         self.schedule_delayed_composite_if_necessary();
         let animation_callbacks_running = self.pipeline_details(pipeline_id).animation_callbacks_running;
-        if animation_callbacks_running {
-            let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
-            }
-        }
 
         // We still need to tick layout unfortunately, see things like #12749.
-        let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Layout);
+        let msg = ConstellationMsg::TickAnimation(pipeline_id, animation_callbacks_running);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending tick to constellation failed ({}).", e);
         }
