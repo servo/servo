@@ -63,6 +63,7 @@ macro_rules! parse_longhand {
 
 mod basic_shape;
 mod image;
+mod inherited_text;
 mod mask;
 mod position;
 mod selectors;
