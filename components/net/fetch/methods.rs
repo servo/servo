@@ -28,8 +28,7 @@ use net_traits::{FetchTaskTarget, FetchMetadata, NetworkError};
 use net_traits::request::{CacheMode, CredentialsMode, Destination};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
-use net_traits::response::{HttpsState, TerminationReason};
-use net_traits::response::{Response, ResponseBody, ResponseType};
+use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -1099,8 +1098,14 @@ fn http_network_fetch(request: Rc<Request>,
                 }
             });
         },
-        Err(_) => {
-            response.termination_reason = Some(TerminationReason::Fatal);
+        Err(error) => {
+            let error = match error.error {
+                LoadErrorType::ConnectionAborted { .. } => unreachable!(),
+                LoadErrorType::Ssl { reason } => NetworkError::SslValidation(error.url, reason),
+                LoadErrorType::Cancelled => NetworkError::LoadCancelled,
+                e => NetworkError::Internal(e.description().to_owned())
+            };
+            return Response::network_error(error);
         }
     };
 
