@@ -35,7 +35,7 @@ use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercent
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum AxisSize {
     Definite(Au),
     MinMax(SizeConstraint),
@@ -102,7 +102,7 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
 
 /// Represents a child in a flex container. Most fields here are used in
 /// flex size resolving, and items are sorted by the 'order' property.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct FlexItem {
     /// Main size of a flex item, used to store results of flexible length calcuation.
     pub main_size: Au,
@@ -240,7 +240,7 @@ impl FlexItem {
 
 /// A line in a flex container.
 // TODO(stshine): More fields are required to handle collapsed items and baseline alignment.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct FlexLine {
     /// Range of items belong to this line in 'self.items'.
     pub range: Range<usize>,
@@ -330,7 +330,7 @@ impl FlexLine {
 }
 
 /// A block with the CSS `display` property equal to `flex`.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct FlexFlow {
     /// Data common to all block flows.
     block_flow: BlockFlow,
@@ -496,7 +496,7 @@ impl FlexFlow {
                                       inline_end_content_edge: Au,
                                       content_inline_size: Au) {
         let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
-        debug!("block_mode_assign_inline_sizes");
+        debug!("flex::block_mode_assign_inline_sizes");
 
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
