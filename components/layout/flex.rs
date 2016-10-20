@@ -35,7 +35,7 @@ use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercent
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum AxisSize {
     Definite(Au),
     MinMax(MinMaxConstraint),
@@ -102,7 +102,7 @@ fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
 
 /// Represents a child in a flex container. Most fields here are used in
 /// flex size resolving, and items are sorted by the 'order' property.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct FlexItem {
     /// Main size of a flex item, used to store results of flexible length calcuation.
     pub main_size: Au,
@@ -126,6 +126,42 @@ struct FlexItem {
     /// True if this flow has property 'visibility::collapse'.
     pub is_strut: bool
 }
+
+/*
+impl Serialize for FlexItem {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error>{
+        // style is omitted
+        let mut state = try!(serializer.serialize_struct("FlexItem", 10));
+        try!(serializer.serialize_struct_elt(&mut state, "main_size", self.main_size));
+        try!(serializer.serialize_struct_elt(&mut state, "base_size", self.base_size));
+        try!(serializer.serialize_struct_elt(&mut state, "min_size", self.min_size));
+        try!(serializer.serialize_struct_elt(&mut state, "max_size", self.max_size));
+        try!(serializer.serialize_struct_elt(&mut state, "index", self.index));
+        try!(serializer.serialize_struct_elt(&mut state, "flex_grow", self.flex_grow));
+        try!(serializer.serialize_struct_elt(&mut state, "flex_shrink", self.flex_shrink));
+        try!(serializer.serialize_struct_elt(&mut state, "order", self.order));
+        try!(serializer.serialize_struct_elt(&mut state, "is_frozen", self.is_frozen));
+        try!(serializer.serialize_struct_elt(&mut state, "is_strut", self.is_strut));
+
+        let flow_val = ObjectBuilder::new()
+            .insert("class", self.flow.class())
+            .insert("data", match self.flow.class() {
+                FlowClass::Block => to_value(self.flow.as_block()),
+                FlowClass::Inline => to_value(self.flow.as_inline()),
+                FlowClass::Table => to_value(self.flow.as_table()),
+                FlowClass::TableWrapper => to_value(self.flow.as_table_wrapper()),
+                FlowClass::TableRowGroup => to_value(self.flow.as_table_rowgroup()),
+                FlowClass::TableRow => to_value(self.flow.as_table_row()),
+                FlowClass::TableCell => to_value(self.flow.as_table_cell()),
+                _ => { Value::Null }     // TODO: Support captions
+            })
+            .build();
+
+        try!(serializer.serialize_struct_elt(&mut state, "flow", flow_val));
+        serializer.serialize_struct_end(state)
+    }
+}
+*/
 
 impl FlexItem {
     pub fn new(index: usize, flow: &Flow) -> FlexItem {
@@ -240,7 +276,7 @@ impl FlexItem {
 
 /// A line in a flex container.
 // TODO(stshine): More fields are required to handle collapsed items and baseline alignment.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct FlexLine {
     /// Range of items belong to this line in 'self.items'.
     pub range: Range<usize>,
@@ -330,7 +366,7 @@ impl FlexLine {
 }
 
 /// A block with the CSS `display` property equal to `flex`.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct FlexFlow {
     /// Data common to all block flows.
     block_flow: BlockFlow,
@@ -492,7 +528,7 @@ impl FlexFlow {
                                       inline_end_content_edge: Au,
                                       content_inline_size: Au) {
         let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
-        debug!("block_mode_assign_inline_sizes");
+        debug!("flex::block_mode_assign_inline_sizes");
 
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
@@ -820,6 +856,10 @@ impl Flow for FlexFlow {
 
     fn mark_as_root(&mut self) {
         self.block_flow.mark_as_root();
+    }
+
+    fn as_flex(&self) -> &FlexFlow {
+        self
     }
 
     fn bubble_inline_sizes(&mut self) {
