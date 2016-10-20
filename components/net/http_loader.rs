@@ -484,7 +484,7 @@ pub fn set_request_cookies(url: &Url, headers: &mut Headers, cookie_jar: &Arc<Rw
 }
 
 fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
-                      request: Url,
+                      request: &Url,
                       cookie_val: String) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let source = CookieSource::HTTP;
@@ -492,19 +492,19 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
 
     if let Ok(SetCookie(cookies)) = header {
         for bare_cookie in cookies {
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
+            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
                 cookie_jar.push(cookie, source);
             }
         }
     }
 }
 
-fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+fn set_cookies_from_response(url: &Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = response.headers().get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
                 set_cookie_for_url(&cookie_jar,
-                                   url.clone(),
+                                   &url,
                                    cookie_value);
             }
         }
@@ -731,7 +731,7 @@ pub fn process_response_headers(response: &HttpResponse,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-fetch step 9
     if load_data.credentials_flag {
-        set_cookies_from_response(url.clone(), response, cookie_jar);
+        set_cookies_from_response(url, response, cookie_jar);
     }
     update_sts_list_from_response(url, response, hsts_list);
 }
