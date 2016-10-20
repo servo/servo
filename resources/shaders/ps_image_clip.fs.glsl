@@ -11,8 +11,8 @@ void main(void) {
 
     // We clamp the texture coordinate calculation here to the local rectangle boundaries,
     // which makes the edge of the texture stretch instead of repeat.
-    vec2 pos_for_texture =
-         clamp(pos, vLocalRect.xy, vLocalRect.xy + vLocalRect.zw) - vLocalRect.xy;
+    vec2 relative_pos_in_rect =
+         clamp(local_pos, vLocalRect.xy, vLocalRect.xy + vLocalRect.zw) - vLocalRect.xy;
 #else
     float alpha = 1.f;
     vec2 local_pos = vLocalPos;
