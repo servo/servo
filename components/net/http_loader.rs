@@ -499,7 +499,7 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     }
 }
 
-fn set_cookies_from_headers(url: &Url, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_cookies_from_headers(url: &Url, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = headers.get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
