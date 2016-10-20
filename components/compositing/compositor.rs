@@ -15,7 +15,7 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
+use script_traits::{AnimationState, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
 use script_traits::{MouseEventType, ScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
@@ -1058,20 +1058,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
         let animation_callbacks_running = self.pipeline_details(pipeline_id).animation_callbacks_running;
-        if animation_callbacks_running {
-            let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
-            }
-        }
 
-        // We may need to tick animations in layout. (See #12749.)
-        let animations_running = self.pipeline_details(pipeline_id).animations_running;
-        if animations_running {
-            let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Layout);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
-            }
+        // We still need to tick layout unfortunately, see things like #12749.
+        let msg = ConstellationMsg::TickAnimation(pipeline_id, animation_callbacks_running);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending tick to constellation failed ({}).", e);
         }
     }
 
