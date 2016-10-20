@@ -16,6 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use parking_lot::RwLock;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -80,7 +81,7 @@ impl HTMLMetaElement {
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: vec![CSSRule::Viewport(Arc::new(translated_rule))],
+                        rules: vec![CSSRule::Viewport(Arc::new(RwLock::new(translated_rule)))],
                         origin: Origin::Author,
                         media: None,
                         // Viewport constraints are always recomputed on resize; they don't need to

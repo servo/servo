@@ -16,10 +16,7 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_impl::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
-use smallvec::SmallVec;
 use std::cell::Cell;
-use std::iter::Iterator;
-use std::slice;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use url::Url;
@@ -67,14 +64,36 @@ pub enum CSSRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
-    Namespace(Arc<NamespaceRule>),
-    Style(Arc<StyleRule>),
-    Media(Arc<MediaRule>),
-    FontFace(Arc<FontFaceRule>),
-    Viewport(Arc<ViewportRule>),
-    Keyframes(Arc<KeyframesRule>),
+    Namespace(Arc<RwLock<NamespaceRule>>),
+    Style(Arc<RwLock<StyleRule>>),
+    Media(Arc<RwLock<MediaRule>>),
+    FontFace(Arc<RwLock<FontFaceRule>>),
+    Viewport(Arc<RwLock<ViewportRule>>),
+    Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
+impl CSSRule {
+    /// Call `f` with the slice of rules directly contained inside this rule.
+    ///
+    /// Note that only some types of rules can contain rules. An empty slice is used for others.
+    pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
+    where F: FnMut(&[CSSRule], Option<&MediaQueryList>) -> R {
+        match *self {
+            CSSRule::Namespace(_) |
+            CSSRule::Style(_) |
+            CSSRule::FontFace(_) |
+            CSSRule::Viewport(_) |
+            CSSRule::Keyframes(_) => {
+                f(&[], None)
+            }
+            CSSRule::Media(ref lock) => {
+                let media_rule = lock.read();
+                let mq = media_rule.media_queries.read();
+                f(&media_rule.rules, Some(&mq))
+            }
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -87,21 +106,13 @@ pub struct NamespaceRule {
 #[derive(Debug)]
 pub struct KeyframesRule {
     pub name: Atom,
-    pub keyframes: Vec<Arc<Keyframe>>,
+    pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
 }
 
 #[derive(Debug)]
 pub struct MediaRule {
-    pub media_queries: Arc<MediaQueryList>,
+    pub media_queries: Arc<RwLock<MediaQueryList>>,
     pub rules: Vec<CSSRule>,
-}
-
-
-impl MediaRule {
-    #[inline]
-    pub fn evaluate(&self, device: &Device) -> bool {
-        self.media_queries.evaluate(device)
-    }
 }
 
 #[derive(Debug)]
@@ -189,12 +200,6 @@ impl Stylesheet {
         self.media.as_ref().map_or(true, |ref media| media.evaluate(device))
     }
 
-    /// Return an iterator over all the rules within the style-sheet.
-    #[inline]
-    pub fn rules(&self) -> Rules {
-        Rules::new(self.rules.iter(), None)
-    }
-
     /// Return an iterator over the effective rules within the style-sheet, as
     /// according to the supplied `Device`.
     ///
@@ -202,165 +207,48 @@ impl Stylesheet {
     /// nested rules will be skipped. Use `rules` if all rules need to be
     /// examined.
     #[inline]
-    pub fn effective_rules<'a>(&'a self, device: &'a Device) -> Rules<'a> {
-        Rules::new(self.rules.iter(), Some(device))
+    pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CSSRule) {
+        effective_rules(&self.rules, device, &mut f);
     }
 }
 
-/// `CSSRule` iterator.
-///
-/// The iteration order is pre-order. Specifically, this implies that a
-/// conditional group rule will come before its nested rules.
-pub struct Rules<'a> {
-    // 2 because normal case is likely to be just one level of nesting (@media)
-    stack: SmallVec<[slice::Iter<'a, CSSRule>; 2]>,
-    device: Option<&'a Device>
-}
-
-impl<'a> Rules<'a> {
-    fn new(iter: slice::Iter<'a, CSSRule>, device: Option<&'a Device>) -> Rules<'a> {
-        let mut stack: SmallVec<[slice::Iter<'a, CSSRule>; 2]> = SmallVec::new();
-        stack.push(iter);
-
-        Rules { stack: stack, device: device }
+fn effective_rules<F>(rules: &[CSSRule], device: &Device, f: &mut F) where F: FnMut(&CSSRule) {
+    for rule in rules {
+        f(rule);
+        rule.with_nested_rules_and_mq(|rules, mq| {
+            if let Some(media_queries) = mq {
+                if !media_queries.evaluate(device) {
+                    return
+                }
+            }
+            effective_rules(rules, device, f)
+        })
     }
 }
 
-impl<'a> Iterator for Rules<'a> {
-    type Item = &'a CSSRule;
-
-    fn next(&mut self) -> Option<&'a CSSRule> {
-        while !self.stack.is_empty() {
-            let top = self.stack.len() - 1;
-            while let Some(rule) = self.stack[top].next() {
-                // handle conditional group rules
-                if let &CSSRule::Media(ref rule) = rule {
-                    if let Some(device) = self.device {
-                        if rule.evaluate(device) {
-                            self.stack.push(rule.rules.iter());
-                        } else {
-                            continue
+macro_rules! rule_filter {
+    ($( $method: ident($variant:ident => $rule_type: ident), )+) => {
+        impl Stylesheet {
+            $(
+                pub fn $method<F>(&self, device: &Device, mut f: F) where F: FnMut(&$rule_type) {
+                    self.effective_rules(device, |rule| {
+                        if let CSSRule::$variant(ref lock) = *rule {
+                            let rule = lock.read();
+                            f(&rule)
                         }
-                    } else {
-                        self.stack.push(rule.rules.iter());
-                    }
+                    })
                 }
-
-                return Some(rule)
-            }
-
-            self.stack.pop();
-        }
-        None
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        // TODO: track total number of rules in style-sheet for upper bound?
-        (0, None)
-    }
-}
-
-pub mod rule_filter {
-    //! Specific `CSSRule` variant iterators.
-
-    use std::marker::PhantomData;
-    use super::{CSSRule, KeyframesRule, MediaRule, StyleRule};
-    use super::super::font_face::FontFaceRule;
-    use super::super::viewport::ViewportRule;
-
-    macro_rules! rule_filter {
-        ($variant:ident -> $value:ty) => {
-            /// An iterator that only yields rules that are of the synonymous `CSSRule` variant.
-            #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-            pub struct $variant<'a, I> {
-                iter: I,
-                _lifetime: PhantomData<&'a ()>
-            }
-
-            impl<'a, I> $variant<'a, I>
-                where I: Iterator<Item=&'a CSSRule> {
-                #[inline]
-                pub fn new(iter: I) -> $variant<'a, I> {
-                    $variant {
-                        iter: iter,
-                        _lifetime: PhantomData
-                    }
-                }
-            }
-
-            impl<'a, I> Iterator for $variant<'a, I>
-                where I: Iterator<Item=&'a CSSRule> {
-                type Item = &'a $value;
-
-                fn next(&mut self) -> Option<&'a $value> {
-                    while let Some(rule) = self.iter.next() {
-                        match *rule {
-                            CSSRule::$variant(ref value) => return Some(value),
-                            _ => continue
-                        }
-                    }
-                    None
-                }
-
-                #[inline]
-                fn size_hint(&self) -> (usize, Option<usize>) {
-                    (0, self.iter.size_hint().1)
-                }
-            }
+            )+
         }
     }
-
-    rule_filter!(Media -> MediaRule);
-    rule_filter!(Style -> StyleRule);
-    rule_filter!(FontFace -> FontFaceRule);
-    rule_filter!(Viewport -> ViewportRule);
-    rule_filter!(Keyframes -> KeyframesRule);
 }
 
-/// Extension methods for `CSSRule` iterators.
-pub trait CSSRuleIteratorExt<'a>: Iterator<Item=&'a CSSRule> + Sized {
-    /// Yield only @font-face rules.
-    fn font_face(self) -> rule_filter::FontFace<'a, Self>;
-
-    /// Yield only @media rules.
-    fn media(self) -> rule_filter::Media<'a, Self>;
-
-    /// Yield only style rules.
-    fn style(self) -> rule_filter::Style<'a, Self>;
-
-    /// Yield only @viewport rules.
-    fn viewport(self) -> rule_filter::Viewport<'a, Self>;
-
-    /// Yield only @keyframes rules.
-    fn keyframes(self) -> rule_filter::Keyframes<'a, Self>;
-}
-
-impl<'a, I> CSSRuleIteratorExt<'a> for I where I: Iterator<Item=&'a CSSRule> {
-    #[inline]
-    fn font_face(self) -> rule_filter::FontFace<'a, I> {
-        rule_filter::FontFace::new(self)
-    }
-
-    #[inline]
-    fn media(self) -> rule_filter::Media<'a, I> {
-        rule_filter::Media::new(self)
-    }
-
-    #[inline]
-    fn style(self) -> rule_filter::Style<'a, I> {
-        rule_filter::Style::new(self)
-    }
-
-    #[inline]
-    fn viewport(self) -> rule_filter::Viewport<'a, I> {
-        rule_filter::Viewport::new(self)
-    }
-
-    #[inline]
-    fn keyframes(self) -> rule_filter::Keyframes<'a, I> {
-        rule_filter::Keyframes::new(self)
-    }
+rule_filter! {
+    effective_style_rules(Style => StyleRule),
+    effective_media_rules(Media => MediaRule),
+    effective_font_face_rules(FontFace => FontFaceRule),
+    effective_viewport_rules(Viewport => ViewportRule),
+    effective_keyframes_rules(Keyframes => KeyframesRule),
 }
 
 fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule> {
@@ -399,7 +287,7 @@ enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
     /// A @media rule prelude, with its media queries.
-    Media(Arc<MediaQueryList>),
+    Media(Arc<RwLock<MediaQueryList>>),
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
@@ -440,10 +328,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         None
                     };
 
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(NamespaceRule {
-                        prefix: opt_prefix,
-                        url: url,
-                    }))))
+                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(RwLock::new(
+                        NamespaceRule {
+                            prefix: opt_prefix,
+                            url: url,
+                        }
+                    )))))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
@@ -498,7 +388,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(media_queries))))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(RwLock::new(media_queries)))))
             },
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
@@ -527,22 +417,24 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
-                Ok(CSSRule::FontFace(Arc::new(try!(parse_font_face_block(self.context, input)))))
+                Ok(CSSRule::FontFace(Arc::new(RwLock::new(
+                    try!(parse_font_face_block(self.context, input))))))
             }
             AtRulePrelude::Media(media_queries) => {
-                Ok(CSSRule::Media(Arc::new(MediaRule {
+                Ok(CSSRule::Media(Arc::new(RwLock::new(MediaRule {
                     media_queries: media_queries,
                     rules: parse_nested_rules(self.context, input),
-                })))
+                }))))
             }
             AtRulePrelude::Viewport => {
-                Ok(CSSRule::Viewport(Arc::new(try!(ViewportRule::parse(input, self.context)))))
+                Ok(CSSRule::Viewport(Arc::new(RwLock::new(
+                    try!(ViewportRule::parse(input, self.context))))))
             }
             AtRulePrelude::Keyframes(name) => {
-                Ok(CSSRule::Keyframes(Arc::new(KeyframesRule {
+                Ok(CSSRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&self.context, input),
-                })))
+                }))))
             }
         }
     }
@@ -558,9 +450,9 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
 
     fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
                    -> Result<CSSRule, ()> {
-        Ok(CSSRule::Style(Arc::new(StyleRule {
+        Ok(CSSRule::Style(Arc::new(RwLock::new(StyleRule {
             selectors: prelude,
             block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
-        })))
+        }))))
     }
 }

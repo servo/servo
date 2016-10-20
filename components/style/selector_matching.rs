@@ -30,8 +30,8 @@ use std::slice;
 use std::sync::Arc;
 use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet, UserAgentStylesheets};
-use viewport::{MaybeNew, ViewportRuleCascade};
+use stylesheets::{CSSRule, Origin, Stylesheet, UserAgentStylesheets};
+use viewport::{self, MaybeNew, ViewportRule};
 
 pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
 
@@ -162,79 +162,90 @@ impl Stylist {
         if !stylesheet.is_effective_for_device(&self.device) {
             return;
         }
-        let mut rules_source_order = self.rules_source_order;
 
-        for rule in stylesheet.effective_rules(&self.device) {
+        // Work around borrowing all of `self` if `self.something` is used in it
+        // instead of just `self.something`
+        macro_rules! borrow_self_field {
+            ($($x: ident),+) => {
+                $(
+                    let $x = &mut self.$x;
+                )+
+            }
+        }
+        borrow_self_field!(pseudos_map, element_map, state_deps, sibling_affecting_selectors,
+                           non_common_style_affecting_attributes_selectors, rules_source_order,
+                           animations, precomputed_pseudo_element_decls);
+        stylesheet.effective_rules(&self.device, |rule| {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
+                    let style_rule = style_rule.read();
                     for selector in &style_rule.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            self.pseudos_map
+                            pseudos_map
                                 .entry(pseudo.clone())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
                                 .borrow_for_origin(&stylesheet.origin)
                         } else {
-                            self.element_map.borrow_for_origin(&stylesheet.origin)
+                            element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
                         map.insert(Rule {
                             selector: selector.complex_selector.clone(),
                             declarations: style_rule.block.clone(),
                             specificity: selector.specificity,
-                            source_order: rules_source_order,
+                            source_order: *rules_source_order,
                         });
                     }
-                    rules_source_order += 1;
+                    *rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
-                        self.state_deps.note_selector(&selector.complex_selector);
+                        state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
-                            self.sibling_affecting_selectors.push(selector.clone());
+                            sibling_affecting_selectors.push(selector.clone());
                         }
 
                         if selector.matches_non_common_style_affecting_attribute() {
-                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
+                            non_common_style_affecting_attributes_selectors.push(selector.clone());
                         }
                     }
-
-                    self.rules_source_order = rules_source_order;
                 }
                 CSSRule::Keyframes(ref keyframes_rule) => {
-                    debug!("Found valid keyframes rule: {:?}", keyframes_rule);
+                    let keyframes_rule = keyframes_rule.read();
+                    debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
                     if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        self.animations.insert(keyframes_rule.name.clone(),
+                        animations.insert(keyframes_rule.name.clone(),
                                                animation);
                     } else {
                         // If there's a valid keyframes rule, even if it doesn't
                         // produce an animation, should shadow other animations
                         // with the same name.
-                        self.animations.remove(&keyframes_rule.name);
+                        animations.remove(&keyframes_rule.name);
                     }
                 }
                 // We don't care about any other rule.
                 _ => {}
             }
-        }
+        });
 
         debug!("Stylist stats:");
         debug!(" - Got {} sibling-affecting selectors",
-               self.sibling_affecting_selectors.len());
+               sibling_affecting_selectors.len());
         debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               self.non_common_style_affecting_attributes_selectors.len());
+               non_common_style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
-               self.state_deps.len());
+               state_deps.len());
 
         TheSelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
             // fly. It should be a bit slower, but we'd take rid of the
             // extra field, and avoid this precomputation entirely.
-            if let Some(map) = self.pseudos_map.remove(&pseudo) {
+            if let Some(map) = pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
 
                 map.user_agent.get_universal_rules(&mut declarations);
 
-                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
+                precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         })
     }
@@ -296,18 +307,32 @@ impl Stylist {
     }
 
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
-        let cascaded_rule = stylesheets.iter()
-            .flat_map(|s| s.effective_rules(&self.device).viewport())
-            .cascade();
+        let cascaded_rule = ViewportRule {
+            declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
+        };
 
         self.viewport_constraints = ViewportConstraints::maybe_new(device.viewport_size, &cascaded_rule);
         if let Some(ref constraints) = self.viewport_constraints {
             device = Device::new(MediaType::Screen, constraints.size);
         }
 
+        fn mq_eval_changed(rules: &[CSSRule], before: &Device, after: &Device) -> bool {
+            for rule in rules {
+                if rule.with_nested_rules_and_mq(|rules, mq| {
+                    if let Some(mq) = mq {
+                        if mq.evaluate(before) != mq.evaluate(after) {
+                            return true
+                        }
+                    }
+                    mq_eval_changed(rules, before, after)
+                }) {
+                    return true
+                }
+            }
+            false
+        }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-                stylesheet.rules().media().any(|media_rule|
-                    media_rule.evaluate(&self.device) != media_rule.evaluate(&device))
+            mq_eval_changed(&stylesheet.rules, &self.device, &device)
         });
 
         self.device = device;

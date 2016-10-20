@@ -9,7 +9,7 @@ use media_queries::CSSErrorReporterTest;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::stylesheets::{Stylesheet, Origin, CSSRuleIteratorExt};
+use style::stylesheets::{Stylesheet, Origin};
 use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
@@ -19,8 +19,13 @@ use url::Url;
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
-        Stylesheet::from_str($css, Url::parse("http://localhost").unwrap(), Origin::$origin, $error_reporter,
-                              ParserContextExtraData::default());
+        Box::new(Stylesheet::from_str(
+            $css,
+            Url::parse("http://localhost").unwrap(),
+            Origin::$origin,
+            $error_reporter,
+            ParserContextExtraData::default()
+        ))
     }
 }
 
@@ -33,10 +38,10 @@ fn test_viewport_rule<F>(css: &str,
                              ::util::prefs::PrefValue::Boolean(true));
     let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest));
     let mut rule_count = 0;
-    for rule in stylesheet.effective_rules(&device).viewport() {
+    stylesheet.effective_viewport_rules(&device, |rule| {
         rule_count += 1;
         callback(&rule.declarations, css);
-    }
+    });
     assert!(rule_count > 0);
 }
 
@@ -253,10 +258,7 @@ fn multiple_stylesheets_cascading() {
         stylesheet!("@viewport { min-width: 200px; min-height: 200px; }", User, error_reporter.clone()),
         stylesheet!("@viewport { min-width: 300px; }", Author, error_reporter.clone())];
 
-    let declarations = stylesheets.iter()
-        .flat_map(|s| s.effective_rules(&device).viewport())
-        .cascade()
-        .declarations;
+    let declarations = Cascade::from_stylesheets(&stylesheets, &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, Zoom: Zoom::Number(1.));
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px));
@@ -268,10 +270,7 @@ fn multiple_stylesheets_cascading() {
         User, error_reporter.clone()),
         stylesheet!("@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }",
         Author, error_reporter.clone())];
-    let declarations = stylesheets.iter()
-        .flat_map(|s| s.effective_rules(&device).viewport())
-        .cascade()
-        .declarations;
+    let declarations = Cascade::from_stylesheets(&stylesheets, &device).finish();
     assert_decl_len!(declarations == 3);
     assert_decl_eq!(&declarations[0], UserAgent, MinWidth: viewport_length!(100., px), !important);
     assert_decl_eq!(&declarations[1], User, MinHeight: viewport_length!(200., px), !important);

@@ -171,12 +171,12 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
 }
 
 impl KeyframesAnimation {
-    pub fn from_keyframes(keyframes: &[Arc<Keyframe>]) -> Option<Self> {
+    pub fn from_keyframes(keyframes: &[Arc<RwLock<Keyframe>>]) -> Option<Self> {
         if keyframes.is_empty() {
             return None;
         }
 
-        let animated_properties = get_animated_properties(&keyframes[0]);
+        let animated_properties = get_animated_properties(&keyframes[0].read());
         if animated_properties.is_empty() {
             return None;
         }
@@ -184,6 +184,7 @@ impl KeyframesAnimation {
         let mut steps = vec![];
 
         for keyframe in keyframes {
+            let keyframe = keyframe.read();
             for percentage in keyframe.selector.0.iter() {
                 steps.push(KeyframesStep::new(*percentage, KeyframesStepValue::Declarations {
                     block: keyframe.block.clone(),
@@ -224,7 +225,7 @@ struct KeyframeListParser<'a> {
     context: &'a ParserContext<'a>,
 }
 
-pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Vec<Arc<Keyframe>> {
+pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Vec<Arc<RwLock<Keyframe>>> {
     RuleListParser::new_for_nested_rule(input, KeyframeListParser { context: context })
         .filter_map(Result::ok)
         .collect()
@@ -233,12 +234,12 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Vec<A
 enum Void {}
 impl<'a> AtRuleParser for KeyframeListParser<'a> {
     type Prelude = Void;
-    type AtRule = Arc<Keyframe>;
+    type AtRule = Arc<RwLock<Keyframe>>;
 }
 
 impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
     type Prelude = KeyframeSelector;
-    type QualifiedRule = Arc<Keyframe>;
+    type QualifiedRule = Arc<RwLock<Keyframe>>;
 
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<Self::Prelude, ()> {
         let start = input.position();
@@ -271,13 +272,13 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
             }
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
         }
-        Ok(Arc::new(Keyframe {
+        Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
             block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                 declarations: declarations,
                 important_count: 0,
             })),
-        }))
+        })))
     }
 }
 
