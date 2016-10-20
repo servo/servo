@@ -499,8 +499,8 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     }
 }
 
-fn set_cookies_from_response(url: &Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
-    if let Some(cookies) = response.headers().get_raw("set-cookie") {
+fn set_cookies_from_headers(url: &Url, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    if let Some(cookies) = headers.get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
                 set_cookie_for_url(&cookie_jar,
@@ -731,7 +731,7 @@ pub fn process_response_headers(response: &HttpResponse,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-fetch step 9
     if load_data.credentials_flag {
-        set_cookies_from_response(url, response, cookie_jar);
+        set_cookies_from_headers(url, response.headers(), cookie_jar);
     }
     update_sts_list_from_response(url, response, hsts_list);
 }
