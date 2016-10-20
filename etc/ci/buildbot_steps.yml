@@ -113,6 +113,11 @@ windows-dev:
   - ./mach test-unit
   - ./mach build-geckolib
 
+windows-dev-yaml:
+  - ./mach build --dev
+  - ./mach test-unit
+  - ./mach build-geckolib
+
 windows-nightly:
   - ./mach build --release
   - ./mach package --release
