@@ -19,16 +19,16 @@
 var div = document.getElementById('check-me');
 var span = div.childNodes[0];
 async_test(function(t) {
-  window.addEventListener('load', function() {
+  window.addEventListener('load', t.step_func(function() {
     assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(255, 0, 0)');
     div.id = "check-me-2";
-    requestAnimationFrame(function() {
+    requestAnimationFrame(t.step_func(function() {
       var test = new window.TestBinding();
       test.advanceClock(2000);
       span.innerHTML = "a";
       assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
       t.done();
-    });
-  })
-})
+    }));
+  }));
+});
 </script>
