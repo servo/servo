@@ -304,8 +304,8 @@ ${helpers.predefined_type("flex-basis",
     % else:
         // servo versions (no keyword support)
         ${helpers.predefined_type("min-%s" % size,
-                                  "LengthOrPercentage",
-                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "LengthOrPercentageOrAuto",
+                                  "computed::LengthOrPercentageOrAuto::Length(Au(0))",
                                   "parse_non_negative",
                                   needs_context=False,
                                   spec=spec % ("min-%s" % size),

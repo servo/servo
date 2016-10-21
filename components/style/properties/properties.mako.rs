@@ -1522,14 +1522,14 @@ impl ComputedValues {
 
     /// Get the logical computed min inline size.
     #[inline]
-    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     /// Get the logical computed min block size.
     #[inline]
-    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::LengthOrPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }

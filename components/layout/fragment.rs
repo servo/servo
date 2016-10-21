@@ -931,7 +931,7 @@ impl Fragment {
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             specified = MaybeAuto::from_style(style.content_inline_size(),
                                               Au(0)).specified_or_zero();
-            specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
+            specified = max(model::specified_or_auto(style.min_inline_size(), Au(0)), specified);
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
             }
@@ -1516,7 +1516,7 @@ impl Fragment {
                     LengthOrPercentageOrAuto::Length(length) => length,
                     LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
                 };
-
+                
                 let size_constraint = self.size_constraint(None, Direction::Inline);
                 inline_size = size_constraint.clamp(inline_size);
 
