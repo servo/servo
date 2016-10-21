@@ -4,8 +4,10 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
+use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use dom::{OpaqueNode, TNode, UnsafeNode};
+use data::NodeData;
+use dom::{OpaqueNode, StylingMode, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -22,6 +24,7 @@ pub type Generation = u32;
 /// an element.
 ///
 /// So far this only happens where a display: none node is found.
+#[derive(Clone, Copy, PartialEq)]
 pub enum RestyleResult {
     Continue,
     Stop,
@@ -172,29 +175,29 @@ pub trait DomTraversalContext<N: TNode> {
     /// If it's false, then process_postorder has no effect at all.
     fn needs_postorder_traversal(&self) -> bool { true }
 
-    /// Returns if the node should be processed by the preorder traversal (and
-    /// then by the post-order one).
-    ///
-    /// Note that this is true unconditionally for servo, since it requires to
-    /// bubble the widths bottom-up for all the DOM.
-    fn should_process(&self, node: N) -> bool {
-        opts::get().nonincremental_layout || node.is_dirty() || node.has_dirty_descendants()
-    }
+    /// Helper for the traversal implementations to select the children that
+    /// should be enqueued for processing.
+    fn traverse_children<F: FnMut(N)>(parent: N, mut f: F)
+    {
+        // If we enqueue any children for traversal, we need to set the dirty
+        // descendants bit. Avoid doing it more than once.
+        let mut marked_dirty_descendants = false;
 
-    /// Do an action over the child before pushing him to the work queue.
-    ///
-    /// By default, propagate the IS_DIRTY flag down the tree.
-    #[allow(unsafe_code)]
-    fn pre_process_child_hook(&self, parent: N, kid: N) {
-        // NOTE: At this point is completely safe to modify either the parent or
-        // the child, since we have exclusive access to both of them.
-        if parent.is_dirty() {
-            unsafe {
-                kid.set_dirty();
-                parent.set_dirty_descendants();
+        for kid in parent.children() {
+            if kid.styling_mode() != StylingMode::Stop {
+                if !marked_dirty_descendants {
+                    unsafe { parent.set_dirty_descendants(); }
+                    marked_dirty_descendants = true;
+                }
+                f(kid);
             }
         }
     }
+
+    /// Ensures the existence of the NodeData, and returns it. This can't live
+    /// on TNode because of the trait-based separation between Servo's script
+    /// and layout crates.
+    fn ensure_node_data(node: &N) -> &AtomicRefCell<NodeData>;
 
     fn local_context(&self) -> &LocalStyleContext;
 }
@@ -281,11 +284,12 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, N, C>(context: &'a C,
-                                 root: OpaqueNode,
-                                 node: N) -> RestyleResult
+pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
+                                    root: OpaqueNode,
+                                    node: N) -> RestyleResult
     where N: TNode,
-          C: StyleContext<'a>
+          C: StyleContext<'a>,
+          D: DomTraversalContext<N>
 {
     // Get the parent node.
     let parent_opt = match node.parent_node() {
@@ -296,9 +300,10 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     // Get the style bloom filter.
     let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
 
-    let nonincremental_layout = opts::get().nonincremental_layout;
     let mut restyle_result = RestyleResult::Continue;
-    if nonincremental_layout || node.is_dirty() {
+    let mode = node.styling_mode();
+    debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
+    if mode != StylingMode::Traverse {
         // Check to see whether we can share a style with someone.
         let style_sharing_candidate_cache =
             &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
@@ -370,6 +375,23 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
         }
     }
 
+    // If we restyled this node, conservatively mark all our children as needing
+    // processing. The eventual algorithm we're designing does this in a more granular
+    // fashion.
+    if mode == StylingMode::Restyle && restyle_result == RestyleResult::Continue {
+        for kid in node.children() {
+            let mut data = D::ensure_node_data(&kid).borrow_mut();
+            if kid.is_text_node() {
+                data.ensure_restyle_data();
+            } else {
+                data.gather_previous_styles(|| kid.get_styles_from_frame());
+                if data.previous_styles().is_some() {
+                    data.ensure_restyle_data();
+                }
+            }
+        }
+    }
+
     let unsafe_layout_node = node.to_unsafe();
 
     // Before running the children, we need to insert our nodes into the bloom
@@ -380,9 +402,5 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 
-    if nonincremental_layout {
-        RestyleResult::Continue
-    } else {
-        restyle_result
-    }
+    restyle_result
 }

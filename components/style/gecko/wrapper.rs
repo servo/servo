@@ -6,7 +6,7 @@
 
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::{NodeData, NodeStyles};
+use data::NodeData;
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -95,18 +95,11 @@ impl<'ln> GeckoNode<'ln> {
                                                .get(pseudo).map(|c| c.clone()))
     }
 
-    fn styles_from_frame(&self) -> Option<NodeStyles> {
-        // FIXME(bholley): Once we start dropping NodeData from nodes when
-        // creating frames, we'll want to teach this method to actually get
-        // style data from the frame.
-        None
-    }
-
     fn get_node_data(&self) -> Option<&AtomicRefCell<NodeData>> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
 
-    fn ensure_node_data(&self) -> &AtomicRefCell<NodeData> {
+    pub fn ensure_data(&self) -> &AtomicRefCell<NodeData> {
         match self.get_node_data() {
             Some(x) => x,
             None => {
@@ -224,18 +217,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn is_dirty(&self) -> bool {
-        // Return true unconditionally if we're not yet styled. This is a hack
-        // and should go away soon.
-        if self.get_node_data().is_none() {
-            return true;
-        }
-
+    fn deprecated_dirty_bit_is_set(&self) -> bool {
         self.flags() & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
-    }
-
-    unsafe fn set_dirty(&self) {
-        self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32)
     }
 
     fn has_dirty_descendants(&self) -> bool {
@@ -271,14 +254,19 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn begin_styling(&self) -> AtomicRefMut<NodeData> {
-        let mut data = self.ensure_node_data().borrow_mut();
-        data.gather_previous_styles(|| self.styles_from_frame());
+        let mut data = self.ensure_data().borrow_mut();
+        data.gather_previous_styles(|| self.get_styles_from_frame());
         data
     }
 
     fn style_text_node(&self, style: Arc<ComputedValues>) {
         debug_assert!(self.is_text_node());
-        self.ensure_node_data().borrow_mut().style_text_node(style);
+
+        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
+        // drive the post-traversal. This will go away soon.
+        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32); }
+
+        self.ensure_data().borrow_mut().style_text_node(style);
     }
 
     fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
@@ -291,6 +279,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage) {
+        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
+        // drive the post-traversal. This will go away soon.
+        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
+
         unsafe { Gecko_StoreStyleDifference(self.0, damage.0) }
     }
 

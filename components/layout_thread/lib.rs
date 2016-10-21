@@ -1146,7 +1146,7 @@ impl LayoutThread {
         if !needs_dirtying {
             for (el, snapshot) in modified_elements {
                 let hint = rw_data.stylist.compute_restyle_hint(&el, &snapshot, el.get_state());
-                el.note_restyle_hint(hint);
+                el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
             }
         }
 
