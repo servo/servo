@@ -87,10 +87,25 @@ function runTest(reset, description) {
     assert_false(document.getElementById("rd2").checked, "The checked attribute of the input element in radio should be false.");
     assert_true(document.getElementById("cb1").checked, "The checked attribute of the input element in checkbox should be true.");
     assert_false(document.getElementById("cb2").checked, "The checked attribute of the input element in checkbox should be false.");
+  }, "Resetting <input> " + description);
+
+  test(function() {
+    setPreconditions("Setting preconditions for resetting " + description);
+    reset();
     assert_equals(document.getElementById("ta").value, document.getElementById("ta").textContent, "The value attribute of the textarea element should be reset.");
     assert_equals(document.getElementById("ta").value, "abc", "The value attribute of the textarea element should be 'abc'.");
+  }, "Resetting <textarea> " + description);
+
+  test(function() {
+    setPreconditions("Setting preconditions for resetting " + description);
+    reset();
     assert_equals(document.getElementById("opt").textContent, document.getElementById("opt").defaultValue, "The textContent of the output element should be reset.");
     assert_equals(document.getElementById("opt").textContent, "abc", "The textContent of the output element should be 'abc'.");
+  }, "Resetting <output> " + description);
+
+  test(function() {
+    setPreconditions("Setting preconditions for resetting " + description);
+    reset();
     assert_true(document.getElementById("slt1").options[0].selected, "The first option in the select element should be selected.");
     assert_false(document.getElementById("slt1").options[1].selected, "The second option in the select element should not be selected.");
     assert_false(document.getElementById("slt2").options[0].selected, "The first option in the select element should not be selected.");
@@ -98,8 +113,8 @@ function runTest(reset, description) {
     assert_false(document.getElementById("slt3").options[0].selected, "The first option in the select element with multiple attribute should not be selected.");
     assert_true(document.getElementById("slt3").options[1].selected, "The second option in the select element with multiple attribute should be selected.");
     assert_true(document.getElementById("slt3").options[2].selected, "The third option in the select element with multiple attribute should be selected.");
-    //TODO: The keygen reset algorithm
-  }, "Resetting the form " + description);
+  }, "Resetting <select> " + description);
+  //TODO: The keygen reset algorithm
 }
 
 </script>
