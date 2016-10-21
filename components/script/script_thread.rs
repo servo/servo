@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameType, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{ReferrerPolicy, WindowSizeType};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
 use net_traits::{IpcSend, LoadData as NetLoadData};
@@ -84,7 +84,7 @@ use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryTyp
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{InitialScriptState, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData};
