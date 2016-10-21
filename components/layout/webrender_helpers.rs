@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use azure::azure_hl::Color;
-use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal};
 use gfx::display_list::{GradientStop, StackingContext, StackingContextType};
@@ -25,7 +25,6 @@ trait WebRenderStackingContextConverter {
                                 api: &mut webrender_traits::RenderApi,
                                 pipeline_id: webrender_traits::PipelineId,
                                 epoch: webrender_traits::Epoch,
-                                scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                                 frame_builder: &mut WebRenderFrameBuilder)
                                 -> webrender_traits::StackingContextId;
 
@@ -34,7 +33,6 @@ trait WebRenderStackingContextConverter {
                                          api: &mut webrender_traits::RenderApi,
                                          pipeline_id: webrender_traits::PipelineId,
                                          epoch: webrender_traits::Epoch,
-                                         scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                                          builder: &mut webrender_traits::DisplayListBuilder,
                                          frame_builder: &mut WebRenderFrameBuilder,
                                          force_positioned_stacking_level: bool);
@@ -45,7 +43,6 @@ pub trait WebRenderDisplayListConverter {
                             api: &mut webrender_traits::RenderApi,
                             pipeline_id: webrender_traits::PipelineId,
                             epoch: webrender_traits::Epoch,
-                            scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                             frame_builder: &mut WebRenderFrameBuilder)
                             -> webrender_traits::StackingContextId;
 }
@@ -253,7 +250,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          api: &mut webrender_traits::RenderApi,
                                          pipeline_id: webrender_traits::PipelineId,
                                          epoch: webrender_traits::Epoch,
-                                         scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                                          builder: &mut webrender_traits::DisplayListBuilder,
                                          frame_builder: &mut WebRenderFrameBuilder,
                                          _force_positioned_stacking_level: bool) {
@@ -263,18 +259,11 @@ impl WebRenderStackingContextConverter for StackingContext {
                     let stacking_context = &stacking_context_item.stacking_context;
                     debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
-                    let scroll_layer_id_for_children = if self.overflow_scroll_id.is_some() {
-                        scroll_layer_id
-                    } else {
-                        None
-                    };
-
                     let stacking_context_id =
                         stacking_context.convert_to_webrender(traversal,
                                                               api,
                                                               pipeline_id,
                                                               epoch,
-                                                              scroll_layer_id_for_children,
                                                               frame_builder);
                     builder.push_stacking_context(stacking_context_id);
 
@@ -290,7 +279,6 @@ impl WebRenderStackingContextConverter for StackingContext {
                                 api: &mut webrender_traits::RenderApi,
                                 pipeline_id: webrender_traits::PipelineId,
                                 epoch: webrender_traits::Epoch,
-                                scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                                 frame_builder: &mut WebRenderFrameBuilder)
                                 -> webrender_traits::StackingContextId {
         let webrender_scroll_policy = match self.scroll_policy {
@@ -300,10 +288,11 @@ impl WebRenderStackingContextConverter for StackingContext {
 
         let webrender_stacking_context_id = self.id.convert_to_webrender();
 
-        let outer_overflow = if self.overflow_scroll_id.is_none() {
-            self.overflow.to_rectf()
+        let scroll_layer_id = if self.overflow_scroll_id.is_some() ||
+                                 self.id == StackingContextId::root() {
+            Some(frame_builder.next_scroll_layer_id())
         } else {
-            Rect::new(Point2D::zero(), self.bounds.size).to_rectf()
+            None
         };
 
         let mut sc =
@@ -311,7 +300,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                                    scroll_layer_id,
                                                    webrender_scroll_policy,
                                                    self.bounds.to_rectf(),
-                                                   outer_overflow,
+                                                   self.overflow.to_rectf(),
                                                    self.z_index,
                                                    &self.transform,
                                                    &self.perspective,
@@ -321,47 +310,13 @@ impl WebRenderStackingContextConverter for StackingContext {
                                                    &mut frame_builder.auxiliary_lists_builder);
 
         let mut builder = webrender_traits::DisplayListBuilder::new();
-
-        if let Some(inner_stacking_context_id) = self.overflow_scroll_id {
-            let inner_webrender_stacking_context_id =
-                inner_stacking_context_id.convert_to_webrender();
-            let mut inner_sc =
-                webrender_traits::StackingContext::new(inner_webrender_stacking_context_id,
-                                                       Some(frame_builder.next_scroll_layer_id()),
-                                                       webrender_scroll_policy,
-                                                       self.overflow.to_rectf(),
-                                                       self.overflow.to_rectf(),
-                                                       self.z_index,
-                                                       &Matrix4D::identity(),
-                                                       &Matrix4D::identity(),
-                                                       false,
-                                                       webrender_traits::MixBlendMode::Normal,
-                                                       Vec::new(),
-                                                       &mut frame_builder.auxiliary_lists_builder);
-            let mut inner_builder = webrender_traits::DisplayListBuilder::new();
-            self.convert_children_to_webrender(traversal,
-                                               api,
-                                               pipeline_id,
-                                               epoch,
-                                               None,
-                                               &mut inner_builder,
-                                               frame_builder,
-                                               false);
-
-            frame_builder.add_display_list(api, inner_builder.finalize(), &mut inner_sc);
-            let new_id = frame_builder.add_stacking_context(api, pipeline_id, inner_sc);
-            builder.push_stacking_context(new_id);
-        } else {
-            self.convert_children_to_webrender(traversal,
-                                               api,
-                                               pipeline_id,
-                                               epoch,
-                                               scroll_layer_id,
-                                               &mut builder,
-                                               frame_builder,
-                                               false);
-        }
-
+        self.convert_children_to_webrender(traversal,
+                                           api,
+                                           pipeline_id,
+                                           epoch,
+                                           &mut builder,
+                                           frame_builder,
+                                           false);
 
         frame_builder.add_display_list(api, builder.finalize(), &mut sc);
         frame_builder.add_stacking_context(api, pipeline_id, sc)
@@ -373,7 +328,6 @@ impl WebRenderDisplayListConverter for DisplayList {
                             api: &mut webrender_traits::RenderApi,
                             pipeline_id: webrender_traits::PipelineId,
                             epoch: webrender_traits::Epoch,
-                            scroll_layer_id: Option<webrender_traits::ScrollLayerId>,
                             frame_builder: &mut WebRenderFrameBuilder)
                             -> webrender_traits::StackingContextId {
         let mut traversal = DisplayListTraversal::new(self);
@@ -385,7 +339,6 @@ impl WebRenderDisplayListConverter for DisplayList {
                                                       api,
                                                       pipeline_id,
                                                       epoch,
-                                                      scroll_layer_id,
                                                       frame_builder)
             }
             _ => unreachable!("DisplayList did not start with StackingContext."),
