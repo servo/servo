@@ -151,7 +151,9 @@ impl MarginCollapseInfo {
 
                 if may_collapse_through {
                     match fragment.style().min_block_size() {
-                        LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                        LengthOrPercentageOrAuto::Length(Au(0)) |
+                        LengthOrPercentageOrAuto::Percentage(0.) |
+                        LengthOrPercentageOrAuto::Auto => {
                             FinalMarginState::MarginsCollapseThrough
                         },
                         _ => {
@@ -446,6 +448,16 @@ pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au
     }
 }
 
+pub fn specified_or_auto(length: LengthOrPercentageOrAuto, containing_length: Au) -> Au {
+    match length {
+        LengthOrPercentageOrAuto::Length(length) => length,
+        LengthOrPercentageOrAuto::Percentage(p) => containing_length.scale_by(p),
+        LengthOrPercentageOrAuto::Calc(calc) =>
+            containing_length.scale_by(calc.percentage()) + calc.length(),
+        LengthOrPercentageOrAuto::Auto => Au(0),
+    }
+}
+
 pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     match length {
         LengthOrPercentage::Length(length) => length,
@@ -520,22 +532,23 @@ pub struct MinMaxConstraint {
 impl MinMaxConstraint {
     /// Create a `MinMaxConstraint` for a dimension given the min, max, and content box size for
     /// an axis
-    pub fn new(content_size: Option<Au>, min: LengthOrPercentage,
+    pub fn new(content_size: Option<Au>, min: LengthOrPercentageOrAuto,
                max: LengthOrPercentageOrNone) -> MinMaxConstraint {
         let min = match min {
-            LengthOrPercentage::Length(length) => length,
-            LengthOrPercentage::Percentage(percent) => {
+            LengthOrPercentageOrAuto::Length(length) => length,
+            LengthOrPercentageOrAuto::Percentage(percent) => {
                 match content_size {
                     Some(size) => size.scale_by(percent),
                     None => Au(0),
                 }
             },
-            LengthOrPercentage::Calc(calc) => {
+            LengthOrPercentageOrAuto::Calc(calc) => {
                 match content_size {
                     Some(size) => size.scale_by(calc.percentage()),
                     None => Au(0),
                 }
             }
+            LengthOrPercentageOrAuto::Auto => Au(0), // FIXME: auto min-size
         };
 
         let max = match max {

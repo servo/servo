@@ -20,7 +20,7 @@ use gfx::display_list::StackingContext;
 use gfx_traits::ScrollRootId;
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
-use model::{specified, specified_or_none};
+use model::{specified_or_auto, specified_or_none};
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::sync::Arc;
@@ -30,8 +30,8 @@ use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
+use style::values::computed::LengthOrPercentageOrNone;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -45,8 +45,8 @@ enum AxisSize {
 impl AxisSize {
     /// Generate a new available cross or main axis size from the specified size of the container,
     /// containing block size, min constraint, and max constraint
-    pub fn new(size: LengthOrPercentageOrAuto, content_size: Option<Au>, min: LengthOrPercentage,
-               max: LengthOrPercentageOrNone) -> AxisSize {
+    pub fn new(size: LengthOrPercentageOrAuto, content_size: Option<Au>,
+               min: LengthOrPercentageOrAuto, max: LengthOrPercentageOrNone) -> AxisSize {
         match size {
             LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(length),
             LengthOrPercentageOrAuto::Percentage(percent) => {
@@ -177,8 +177,7 @@ impl FlexItem {
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(block.fragment.style.max_inline_size(),
                                                   containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified(block.fragment.style.min_inline_size(),
-                                          containing_length);
+                self.min_size = specified_or_auto(block.fragment.style.min_inline_size(), containing_length);
             }
             Direction::Block => {
                 let basis = from_flex_basis(block.fragment.style.get_position().flex_basis,
@@ -190,8 +189,7 @@ impl FlexItem {
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(block.fragment.style.max_block_size(),
                                                   containing_length).unwrap_or(MAX_AU);
-                self.min_size = specified(block.fragment.style.min_block_size(),
-                                          containing_length);
+                self.min_size = specified_or_auto(block.fragment.style.min_block_size(), containing_length);
             }
         }
     }
