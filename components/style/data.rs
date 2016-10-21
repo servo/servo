@@ -124,11 +124,22 @@ impl NodeData {
         }
     }
 
-    pub fn current_styles(&self) -> &NodeStyles {
+    pub fn has_current_styles(&self) -> bool {
         match self.styles {
-            NodeDataStyles::Current(ref s) => s,
-            _ => panic!("Calling current_styles before or during styling"),
+            NodeDataStyles::Current(_) => true,
+            _ => false,
         }
+    }
+
+    pub fn get_current_styles(&self) -> Option<&NodeStyles> {
+        match self.styles {
+            NodeDataStyles::Current(ref s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn current_styles(&self) -> &NodeStyles {
+        self.get_current_styles().expect("Calling current_styles before or during styling")
     }
 
     // Servo does lazy pseudo computation in layout and needs mutable access

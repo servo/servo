@@ -107,10 +107,6 @@ impl<'ln> ServoLayoutNode<'ln> {
         }
     }
 
-    pub fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
-        self.get_style_data().map(|d| d.borrow())
-    }
-
     pub fn mutate_data(&self) -> Option<AtomicRefMut<NodeData>> {
         self.get_style_data().map(|d| d.borrow_mut())
     }
@@ -249,8 +245,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         }
     }
 
-    fn get_current_style(&self) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().map(|x| x.current_styles().primary.clone())
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+        self.get_style_data().map(|d| d.borrow())
     }
 
     fn restyle_damage(self) -> RestyleDamage {

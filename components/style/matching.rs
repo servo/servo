@@ -442,7 +442,8 @@ impl StyleSharingCandidateCache {
         }
 
         let node = element.as_node();
-        let style = node.get_current_style().unwrap();
+        let data = node.borrow_data().unwrap();
+        let style = &data.current_styles().primary;
 
         let box_style = style.get_box();
         if box_style.transition_property_count() > 0 {
@@ -882,7 +883,8 @@ pub trait MatchMethods : TNode {
         where Ctx: StyleContext<'a>
     {
         // Get our parent's style.
-        let parent_style = parent.as_ref().map(|x| x.get_current_style().unwrap());
+        let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
+        let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary);
 
         // In the case we're styling a text node, we don't need to compute the
         // restyle damage, since it's a subset of the restyle damage of the
@@ -893,7 +895,7 @@ pub trait MatchMethods : TNode {
         // In Servo, this is also true, since text nodes generate UnscannedText
         // fragments, which aren't repairable by incremental layout.
         if self.is_text_node() {
-            self.style_text_node(ComputedValues::style_for_child_text_node(parent_style.as_ref().unwrap()));
+            self.style_text_node(ComputedValues::style_for_child_text_node(parent_style.clone().unwrap()));
             return RestyleResult::Continue;
         }
 
@@ -917,7 +919,7 @@ pub trait MatchMethods : TNode {
 
             new_styles = NodeStyles::new(
                 self.cascade_node_pseudo_element(context,
-                                                 parent_style.as_ref(),
+                                                 parent_style.clone(),
                                                  old_primary,
                                                  &applicable_declarations.normal,
                                                  &mut applicable_declarations_cache,
@@ -937,7 +939,7 @@ pub trait MatchMethods : TNode {
 
             self.set_can_be_fragmented(parent.map_or(false, |p| {
                 p.can_be_fragmented() ||
-                parent_style.as_ref().unwrap().is_multicol()
+                parent_style.unwrap().is_multicol()
             }));
 
             (damage, restyle_result)

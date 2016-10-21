@@ -95,10 +95,6 @@ impl<'ln> GeckoNode<'ln> {
                                                .get(pseudo).map(|c| c.clone()))
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
-        self.get_node_data().map(|x| x.borrow())
-    }
-
     fn styles_from_frame(&self) -> Option<NodeStyles> {
         // FIXME(bholley): Once we start dropping NodeData from nodes when
         // creating frames, we'll want to teach this method to actually get
@@ -285,8 +281,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.ensure_node_data().borrow_mut().style_text_node(style);
     }
 
-    fn get_current_style(&self) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().map(|x| x.current_styles().primary.clone())
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+        self.get_node_data().map(|x| x.borrow())
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {

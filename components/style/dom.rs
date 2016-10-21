@@ -6,7 +6,7 @@
 
 #![allow(unsafe_code)]
 
-use atomic_refcell::AtomicRefMut;
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use data::NodeData;
 use element_state::ElementState;
 use parking_lot::RwLock;
@@ -150,14 +150,14 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     /// steps from begin_styling like computing the previous style.
     fn style_text_node(&self, style: Arc<ComputedValues>);
 
+    /// Immutable borrows the NodeData.
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>>;
+
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);
-
-    /// Returns the up-to-date style for this node.
-    fn get_current_style(&self) -> Option<Arc<ComputedValues>>;
 
     fn parent_node(&self) -> Option<Self>;
 
