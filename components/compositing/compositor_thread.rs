@@ -126,6 +126,10 @@ pub enum Msg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(PipelineId, IpcSender<()>),
+    /// Runs a closure in the compositor thread.
+    /// It's used to dispatch functions from webrender to the main thread's event loop.
+    /// Required to allow WGL GLContext sharing in Windows.
+    Dispatch(Box<Fn() + Send>)
 }
 
 impl Debug for Msg {
@@ -158,6 +162,7 @@ impl Debug for Msg {
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
+            Msg::Dispatch(..) => write!(f, "Dispatch"),
         }
     }
 }
