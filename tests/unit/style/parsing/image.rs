@@ -10,6 +10,36 @@ use style::values::specified::image::*;
 use url::Url;
 
 #[test]
+fn test_linear_gradient() {
+    // Parsing from the right
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to left, red, green)",
+                                                 "linear-gradient(4.712389rad, red, green)");
+
+    // Parsing from the left
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right, red, green)",
+                                                 "linear-gradient(1.5707964rad, red, green)");
+
+    // Parsing with two values for <side-or-corner>
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
+
+    // Parsing with <angle>
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",
+                                                 "linear-gradient(0.7853982rad, red, green)");
+
+   // Parsing with more than two entries in <color-stop-list>
+   assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, yellow, green)",
+                                                "linear-gradient(3.1415927rad, red, yellow, green)");
+
+   // Parsing with percentage in the <color-stop-list>
+   assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green, yellow 50%)",
+                                                "linear-gradient(3.1415927rad, red, green, yellow 50%)");
+
+    // Parsing without <angle> and <side-or-corner>
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green)",
+                                                 "linear-gradient(3.1415927rad, red, green)");
+}
+
+#[test]
 fn test_radial_gradient() {
     // Parsing with all values
     assert_roundtrip_with_context!(Image::parse, "radial-gradient(circle closest-side at 20px 30px, red, green)");
