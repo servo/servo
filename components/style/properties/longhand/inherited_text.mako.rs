@@ -737,7 +737,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-style" products="none" animatable="False">
+<%helpers:longhand name="text-emphasis-style" products="gecko" animatable="False">
     use computed_values::writing_mode::T as writing_mode;
     use cssparser::ToCss;
     use std::fmt;
