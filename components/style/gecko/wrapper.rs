@@ -6,7 +6,7 @@
 
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::{PersistentStyleData, PseudoStyles};
+use data::{NodeData, NodeStyles};
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -29,7 +29,6 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsIContent, nsStyleContext};
-use gecko_bindings::structs::OpaqueStyleData;
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use libc::uintptr_t;
 use parking_lot::RwLock;
@@ -47,22 +46,6 @@ use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use url::Url;
-
-pub struct NonOpaqueStyleData(AtomicRefCell<PersistentStyleData>);
-
-impl NonOpaqueStyleData {
-    pub fn new() -> Self {
-        NonOpaqueStyleData(AtomicRefCell::new(PersistentStyleData::new()))
-    }
-}
-
-// We can eliminate OpaqueStyleData when the bindings move into the style crate.
-fn to_opaque_style_data(d: *mut NonOpaqueStyleData) -> *mut OpaqueStyleData {
-    d as *mut OpaqueStyleData
-}
-fn from_opaque_style_data(d: *mut OpaqueStyleData) -> *mut NonOpaqueStyleData {
-    d as *mut NonOpaqueStyleData
-}
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
 // magic guarantees that our LayoutFoo references won't outlive the root, and
@@ -94,40 +77,44 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { Gecko_SetNodeFlags(self.0, flags) }
     }
 
-    fn get_node_data(&self) -> Option<&NonOpaqueStyleData> {
-        unsafe {
-            from_opaque_style_data(self.0.mServoData.get()).as_ref()
-        }
-    }
-
-    pub fn initialize_data(self) {
-        if self.get_node_data().is_none() {
-            let ptr = Box::new(NonOpaqueStyleData::new());
-            debug_assert!(self.0.mServoData.get().is_null());
-            self.0.mServoData.set(to_opaque_style_data(Box::into_raw(ptr)));
-        }
-    }
-
-    pub fn clear_data(self) {
-        if !self.get_node_data().is_none() {
-            let d = from_opaque_style_data(self.0.mServoData.get());
-            let _ = unsafe { Box::from_raw(d) };
+    pub fn clear_data(&self) {
+        let ptr = self.0.mServoData.get();
+        if !ptr.is_null() {
+            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
             self.0.mServoData.set(ptr::null_mut());
+
+            // Perform a mutable borrow of the data in debug builds. This
+            // serves as an assertion that there are no outstanding borrows
+            // when we destroy the data.
+            debug_assert!({ let _ = data.borrow_mut(); true });
         }
     }
 
     pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().and_then(|data| data.per_pseudo.get(pseudo).map(|c| c.clone()))
+        self.borrow_data().and_then(|data| data.current_styles().pseudos
+                                               .get(pseudo).map(|c| c.clone()))
     }
 
-    #[inline(always)]
-    fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
-        self.get_node_data().as_ref().map(|d| d.0.borrow())
+    fn styles_from_frame(&self) -> Option<NodeStyles> {
+        // FIXME(bholley): Once we start dropping NodeData from nodes when
+        // creating frames, we'll want to teach this method to actually get
+        // style data from the frame.
+        None
     }
 
-    #[inline(always)]
-    fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
-        self.get_node_data().as_ref().map(|d| d.0.borrow_mut())
+    fn get_node_data(&self) -> Option<&AtomicRefCell<NodeData>> {
+        unsafe { self.0.mServoData.get().as_ref() }
+    }
+
+    fn ensure_node_data(&self) -> &AtomicRefCell<NodeData> {
+        match self.get_node_data() {
+            Some(x) => x,
+            None => {
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(NodeData::new())));
+                self.0.mServoData.set(ptr);
+                unsafe { &* ptr }
+            },
+        }
     }
 }
 
@@ -283,29 +270,19 @@ impl<'ln> TNode for GeckoNode<'ln> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    fn get_existing_style(&self) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().and_then(|x| x.style.clone())
-    }
-
-    fn set_style(&self, style: Arc<ComputedValues>) {
-        self.mutate_data().unwrap().style = Some(style);
-    }
-
-    fn take_pseudo_styles(&self) -> PseudoStyles {
-        use std::mem;
-        let mut tmp = PseudoStyles::default();
-        mem::swap(&mut tmp, &mut self.mutate_data().unwrap().per_pseudo);
-        tmp
-    }
-
-    fn set_pseudo_styles(&self, styles: PseudoStyles) {
-        debug_assert!(self.borrow_data().unwrap().per_pseudo.is_empty());
-        self.mutate_data().unwrap().per_pseudo = styles;
+    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
+        let mut data = self.ensure_node_data().borrow_mut();
+        data.gather_previous_styles(|| self.styles_from_frame());
+        data
     }
 
     fn style_text_node(&self, style: Arc<ComputedValues>) {
         debug_assert!(self.is_text_node());
-        self.mutate_data().unwrap().style = Some(style);
+        self.ensure_node_data().borrow_mut().style_text_node(style);
+    }
+
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+        self.get_node_data().map(|x| x.borrow())
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {

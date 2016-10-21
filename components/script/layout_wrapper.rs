@@ -52,7 +52,7 @@ use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::{replace, transmute};
+use std::mem::transmute;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use string_cache::{Atom, Namespace};
@@ -60,7 +60,7 @@ use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::{PersistentStyleData, PseudoStyles};
+use style::data::NodeData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
@@ -107,11 +107,7 @@ impl<'ln> ServoLayoutNode<'ln> {
         }
     }
 
-    pub fn borrow_data(&self) -> Option<AtomicRef<PersistentStyleData>> {
-        self.get_style_data().map(|d| d.borrow())
-    }
-
-    pub fn mutate_data(&self) -> Option<AtomicRefMut<PersistentStyleData>> {
+    pub fn mutate_data(&self) -> Option<AtomicRefMut<NodeData>> {
         self.get_style_data().map(|d| d.borrow_mut())
     }
 
@@ -234,30 +230,23 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         old_value - 1
     }
 
-    fn get_existing_style(&self) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().and_then(|x| x.style.clone())
-    }
-
-    fn set_style(&self, style: Arc<ComputedValues>) {
-        self.mutate_data().unwrap().style = Some(style);
-    }
-
-    fn take_pseudo_styles(&self) -> PseudoStyles {
-        replace(&mut self.mutate_data().unwrap().per_pseudo, PseudoStyles::default())
-    }
-
-    fn set_pseudo_styles(&self, styles: PseudoStyles) {
-        debug_assert!(self.borrow_data().unwrap().per_pseudo.is_empty());
-        self.mutate_data().unwrap().per_pseudo = styles;
+    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
+        let mut data = self.mutate_data().unwrap();
+        data.gather_previous_styles(|| None);
+        data
     }
 
     fn style_text_node(&self, style: Arc<ComputedValues>) {
         debug_assert!(self.is_text_node());
         let mut data = self.get_partial_layout_data().unwrap().borrow_mut();
-        data.style_data.style = Some(style);
+        data.style_data.style_text_node(style);
         if self.has_changed() {
             data.restyle_damage = RestyleDamage::rebuild_and_reflow();
         }
+    }
+
+    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+        self.get_style_data().map(|d| d.borrow())
     }
 
     fn restyle_damage(self) -> RestyleDamage {
@@ -345,11 +334,11 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
     }
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
         unsafe {
             self.get_jsmanaged().get_style_and_layout_data().map(|d| {
                 let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
-                let psd: &AtomicRefCell<PersistentStyleData> = transmute(ppld);
+                let psd: &AtomicRefCell<NodeData> = transmute(ppld);
                 psd
             })
         }
@@ -413,11 +402,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 
     fn debug_style_str(self) -> String {
         if let Some(data) = self.borrow_data() {
-            if let Some(data) = data.style.as_ref() {
-                format!("{:?}: {:?}", self.script_type_id(), data)
-            } else {
-                format!("{:?}: style=None", self.script_type_id())
-            }
+            format!("{:?}: {:?}", self.script_type_id(), &*data)
         } else {
             format!("{:?}: style_data=None", self.script_type_id())
         }
@@ -922,7 +907,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
         self.node.get_style_data()
     }
 }

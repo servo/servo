@@ -18,7 +18,7 @@ use string_cache::{Atom, Namespace};
 use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::PersistentStyleData;
+use style::data::NodeData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
@@ -83,7 +83,7 @@ pub trait LayoutNode: TNode {
 
     unsafe fn clear_dirty_bits(&self);
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>>;
+    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
 
     fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
@@ -190,7 +190,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
         if self.get_style_data()
                .unwrap()
                .borrow()
-               .per_pseudo
+               .current_styles().pseudos
                .contains_key(&PseudoElement::Before) {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
@@ -203,7 +203,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
         if self.get_style_data()
                .unwrap()
                .borrow()
-               .per_pseudo
+               .current_styles().pseudos
                .contains_key(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
@@ -249,7 +249,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
                 self.get_style_data().unwrap().borrow()
-                    .style.as_ref().unwrap().clone()
+                    .current_styles().primary.clone()
             },
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
@@ -262,13 +262,13 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
                         if !self.get_style_data()
                                 .unwrap()
                                 .borrow()
-                                .per_pseudo.contains_key(&style_pseudo) {
+                                .current_styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist
                                        .precomputed_values_for_pseudo(&style_pseudo,
-                                                                      data.style.as_ref());
-                            data.per_pseudo
+                                                                      Some(&data.current_styles().primary));
+                            data.current_pseudos_mut()
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
@@ -277,22 +277,22 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
                         if !self.get_style_data()
                                 .unwrap()
                                 .borrow()
-                                .per_pseudo.contains_key(&style_pseudo) {
+                                .current_styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist
                                        .lazily_compute_pseudo_element_style(
                                            &self.as_element(),
                                            &style_pseudo,
-                                           data.style.as_ref().unwrap());
-                            data.per_pseudo
+                                           &data.current_styles().primary);
+                            data.current_pseudos_mut()
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
                 }
 
                 self.get_style_data().unwrap().borrow()
-                    .per_pseudo.get(&style_pseudo)
+                    .current_styles().pseudos.get(&style_pseudo)
                     .unwrap().clone()
             }
         }
@@ -310,34 +310,19 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
         let data = self.get_style_data().unwrap().borrow();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
-                => data.style.as_ref().unwrap().clone(),
+                => data.current_styles().primary.clone(),
             other
-                => data.per_pseudo.get(&other.style_pseudo_element()).unwrap().clone(),
+                => data.current_styles().pseudos.get(&other.style_pseudo_element()).unwrap().clone(),
         }
     }
 
     #[inline]
     fn selected_style(&self, _context: &SharedStyleContext) -> Arc<ServoComputedValues> {
         let data = self.get_style_data().unwrap().borrow();
-        data.per_pseudo
+        data.current_styles().pseudos
             .get(&PseudoElement::Selection)
-            .unwrap_or(data.style.as_ref().unwrap()).clone()
-    }
-
-    /// Removes the style from this node.
-    ///
-    /// Unlike the version on TNode, this handles pseudo-elements.
-    fn unstyle(self) {
-        let mut data = self.get_style_data().unwrap().borrow_mut();
-
-        match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => {
-                data.style = None;
-            }
-            other => {
-                data.per_pseudo.remove(&other.style_pseudo_element());
-            }
-        };
+            .unwrap_or(&data.current_styles().primary)
+            .clone()
     }
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
@@ -377,7 +362,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     fn get_colspan(&self) -> u32;
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>>;
+    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.
