@@ -1594,7 +1594,7 @@ impl Document {
         // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
         // animation frame is one in which the callback did not mutate the DOM—that is, an
         // animation frame that wasn't actually used for animation.)
-        if !self.has_animation_callback() ||
+        if !self.has_animation_callbacks() ||
                 (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut *animation_frame_list);

@@ -80,7 +80,7 @@ use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, Runnabl
 use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -187,9 +187,6 @@ pub struct Window {
     devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
     devtools_marker_sender: DOMRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
-
-    /// Pending resize event, if any.
-    resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     parent_info: Option<(PipelineId, FrameType)>,
@@ -1549,16 +1546,6 @@ impl Window {
         self.pending_reflow_count.set(self.pending_reflow_count.get() + 1);
     }
 
-    pub fn set_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_event.set(Some((event, event_type)));
-    }
-
-    pub fn steal_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
-        let event = self.resize_event.get();
-        self.resize_event.set(None);
-        event
-    }
-
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
         let rect = f32_rect_to_au_rect(viewport.clone());
         self.current_viewport.set(rect);
@@ -1770,7 +1757,6 @@ impl Window {
             bluetooth_thread: bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(max_rect()),
-            resize_event: Cell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
             window_size: Cell::new(window_size),
