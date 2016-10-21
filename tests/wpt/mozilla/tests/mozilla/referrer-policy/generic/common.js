@@ -193,6 +193,21 @@ function queryAnchor(url, callback, referrer_policy) {
   function doQuery() {
     var id = token();
 
+    var documentUrl = new URL(url);
+    var documentProtocol = documentUrl.protocol;
+    var documentHost = documentUrl.host;
+
+    // TODO This is a workaround to pass tests which their referrer policy
+    // changed when source and destination has different protocol or host.
+    //
+    // Here we store url's protocol and host, then make url's protocol and
+    // host equal to window's. Finally, we pass the protocol and host we
+    // stored as url arguments while loading url. So that url knows what
+    // protocol and host to load the actual document.py and makes tests
+    // meaningful and correct.
+    documentUrl.protocol = window.location.protocol;
+    documentUrl.host = window.location.host;
+
     var meta_referrer = undefined;
     for (var meta of document.head.querySelectorAll("meta")) {
       if (meta.name === "referrer") {
@@ -201,10 +216,12 @@ function queryAnchor(url, callback, referrer_policy) {
       }
     }
 
-    var url_with_params = url +
+    var url_with_params = documentUrl.toString() +
       "&id=" + id +
       "&tagAttrs=" + JSON.stringify(referrer_policy) +
-      "&metaReferrer=" + meta_referrer;
+      "&metaReferrer=" + meta_referrer +
+      "&protocol=" + documentProtocol +
+      "&host=" + documentHost;
 
     var iframe = appendIframeToBody(url_with_params);
     iframe.addEventListener("load", function listener() {

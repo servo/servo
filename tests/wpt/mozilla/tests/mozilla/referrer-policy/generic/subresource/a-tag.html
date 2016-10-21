@@ -10,6 +10,8 @@
       var cache_destroyer = url.searchParams.get("cache_destroyer");
       var tag_attrs = url.searchParams.get("tagAttrs");
       var meta_referrer = url.searchParams.get("metaReferrer");
+      var protocol = url.searchParams.get("protocol");
+      var host = url.searchParams.get("host");
 
       var referrer_policy;
       try {
@@ -27,8 +29,11 @@
       }
 
       var a = document.createElement("a");
-      a.href = "/_mozilla/mozilla/referrer-policy/generic/subresource/document.py?id=" + id + "&redirection=" + redirection +
-               "&cache_destroyer=" + cache_destroyer;
+      a.href = protocol + "//" + host +
+        "/_mozilla/mozilla/referrer-policy/generic/subresource/document.py" +
+        "?id=" + id +
+        "&redirection=" + redirection +
+        "&cache_destroyer=" + cache_destroyer;
 
       for (var attr in referrer_policy) {
         // TODO crashed when you assigned value to rel attribute
