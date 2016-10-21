@@ -27,3 +27,8 @@ url = {version = "1.2", features = ["heap_size"]}
 websocket = "0.17"
 uuid = { version = "0.3.1", features = ["v4", "serde"] }
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender"
+default_features = false
+features = ["serde_derive"]
