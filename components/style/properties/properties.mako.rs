@@ -1640,7 +1640,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                         PropertyDeclaration::Position(_) |
                         PropertyDeclaration::Float(_) |
                         PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
-                        PropertyDeclaration::TextEmphasisStyle(_)
+                        PropertyDeclaration::WritingMode(_)
                     );
                     if
                         % if category_to_cascade_now == "early":

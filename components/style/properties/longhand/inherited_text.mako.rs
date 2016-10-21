@@ -737,7 +737,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-style" products="none" animatable="False">
+<%helpers:longhand name="text-emphasis-style" products="gecko" need_clone="True" animatable="False">
     use computed_values::writing_mode::T as writing_mode;
     use cssparser::ToCss;
     use std::fmt;
@@ -836,6 +836,18 @@ ${helpers.single_keyword("text-align-last",
                              "triangle" => Triangle,
                              "sesame" => Sesame);
 
+    impl ShapeKeyword {
+        pub fn char(&self, fill: bool) -> &str {
+            match *self {
+                ShapeKeyword::Dot => if fill { "\u{2022}" } else { "\u{25e6}" },
+                ShapeKeyword::Circle =>  if fill { "\u{25cf}" } else { "\u{25cb}" },
+                ShapeKeyword::DoubleCircle =>  if fill { "\u{25c9}" } else { "\u{25ce}" },
+                ShapeKeyword::Triangle =>  if fill { "\u{25b2}" } else { "\u{25b3}" },
+                ShapeKeyword::Sesame =>  if fill { "\u{fe45}" } else { "\u{fe46}" },
+            }
+        }
+    }
+
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T::None
@@ -849,7 +861,7 @@ ${helpers.single_keyword("text-align-last",
             match *self {
                 SpecifiedValue::Keyword(ref keyword) => {
                     let default_shape = if context.style().get_inheritedbox()
-                                                  .writing_mode == writing_mode::horizontal_tb {
+                                                  .clone_writing_mode() == writing_mode::horizontal_tb {
                         ShapeKeyword::Circle
                     } else {
                         ShapeKeyword::Sesame
@@ -888,28 +900,28 @@ ${helpers.single_keyword("text-align-last",
 
         if let Ok(s) = input.try(|input| input.expect_string()) {
             // Handle <string>
-            Ok(SpecifiedValue::String(s.into_owned()))
-        } else {
-            // Handle a pair of keywords
-            let mut shape = input.try(ShapeKeyword::parse);
-            let fill = if input.try(|input| input.expect_ident_matching("filled")).is_ok() {
-                Some(true)
-            } else if input.try(|input| input.expect_ident_matching("open")).is_ok() {
-                Some(false)
-            } else { None };
-            if let Err(_) = shape {
-                shape = input.try(ShapeKeyword::parse);
-            }
+            return Ok(SpecifiedValue::String(s.into_owned()));
+        }
 
-            // At least one of shape or fill must be handled
-            if let (None, Err(_)) = (fill, shape) {
-                Err(())
-            } else {
-                Ok(SpecifiedValue::Keyword(Keyword {
-                    fill: fill,
-                    shape: shape.ok()
-                }))
-            }
+        // Handle a pair of keywords
+        let mut shape = input.try(ShapeKeyword::parse);
+        let fill = if input.try(|input| input.expect_ident_matching("filled")).is_ok() {
+            Some(true)
+        } else if input.try(|input| input.expect_ident_matching("open")).is_ok() {
+            Some(false)
+        } else { None };
+        if let Err(_) = shape {
+            shape = input.try(ShapeKeyword::parse);
+        }
+
+        // At least one of shape or fill must be handled
+        if let (None, Err(_)) = (fill, shape) {
+            Err(())
+        } else {
+            Ok(SpecifiedValue::Keyword(Keyword {
+                fill: fill,
+                shape: shape.ok()
+            }))
         }
     }
 </%helpers:longhand>
