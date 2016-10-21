@@ -115,14 +115,14 @@ impl RestyleData {
 #[derive(Debug)]
 pub struct NodeData {
     styles: NodeDataStyles,
-    pub restyle: Option<RestyleData>,
+    pub restyle_data: Option<RestyleData>,
 }
 
 impl NodeData {
     pub fn new() -> Self {
         NodeData {
             styles: NodeDataStyles::Uninitialized,
-            restyle: None,
+            restyle_data: None,
         }
     }
 
@@ -175,25 +175,24 @@ impl NodeData {
         self.styles = match mem::replace(&mut self.styles, Uninitialized) {
             Uninitialized => Previous(f()),
             Current(x) => Previous(Some(x)),
-            _ => panic!("Already have previous styles"),
+            Previous(x) => Previous(x),
         };
     }
 
-    // FIXME(bholley): Called in future patches.
     pub fn ensure_restyle_data(&mut self) {
-        if self.restyle.is_none() {
-            self.restyle = Some(RestyleData::new());
+        if self.restyle_data.is_none() {
+            self.restyle_data = Some(RestyleData::new());
         }
     }
 
     pub fn style_text_node(&mut self, style: Arc<ComputedValues>) {
-        debug_assert!(self.restyle.is_none());
         self.styles = NodeDataStyles::Current(NodeStyles::new(style));
+        self.restyle_data = None;
     }
 
     pub fn finish_styling(&mut self, styles: NodeStyles) {
         debug_assert!(self.styles.is_previous());
         self.styles = NodeDataStyles::Current(styles);
-        self.restyle = None;
+        self.restyle_data = None;
     }
 }
