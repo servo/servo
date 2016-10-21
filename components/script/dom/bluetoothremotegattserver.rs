@@ -10,26 +10,19 @@ use dom::bindings::error::Error::{self, Security};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
-use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothResponseListener, BluetoothResultMsg};
-use network_listener::{NetworkListener, PreInvoke};
+use js::jsapi::JSContext;
+use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothResultMsg};
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-
-struct BluetoothServerContext {
-    promise: Option<TrustedPromise>,
-    server: Trusted<BluetoothRemoteGATTServer>,
-}
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
@@ -76,19 +69,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Rc<Promise> {
         let p = Promise::new(self.global().r());
-        let (sender, receiver) = ipc::channel().unwrap();
-        let bts_context = Arc::new(Mutex::new(BluetoothServerContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            server: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: bts_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GATTServerConnect(String::from(self.Device().Id()), sender)).unwrap();
         return p;
@@ -127,19 +108,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             p.reject_error(p_cx, Security);
             return p;
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        let bts_context = Arc::new(Mutex::new(BluetoothServerContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            server: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: bts_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
         return p;
@@ -166,77 +135,45 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                 }
             }
         };
-        let (sender, receiver) = ipc::channel().unwrap();
-        let bts_context = Arc::new(Mutex::new(BluetoothServerContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            server: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: bts_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
         return p;
     }
 }
 
-impl PreInvoke for BluetoothServerContext {}
-
-impl BluetoothResponseListener for BluetoothServerContext {
-    #[allow(unrooted_must_root)]
-    fn response(&mut self, result: BluetoothResultMsg) {
-        let promise = self.promise.take().expect("bt promise is missing").root();
-        let promise_cx = promise.global().r().get_cx();
-
-        // JSAutoCompartment needs to be manually made.
-        // Otherwise, Servo will crash.
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
+    fn response(&self, result: BluetoothResultMsg, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match result {
             BluetoothResultMsg::GATTServerConnect(connected) => {
-                self.server.root().connected.set(connected);
-                promise.resolve_native(
-                    promise_cx,
-                    &self.server.root());
+                self.connected.set(connected);
+                promise.resolve_native(promise_cx, self);
             },
             BluetoothResultMsg::GetPrimaryService(service) => {
-                let s = BluetoothRemoteGATTService::new(self.server.root().global().r(),
-                                                        &self.server.root().device.get(),
+                let s = BluetoothRemoteGATTService::new(self.global().r(),
+                                                        &self.device.get(),
                                                         DOMString::from(service.uuid),
                                                         service.is_primary,
                                                         service.instance_id);
-                promise.resolve_native(
-                    promise_cx,
-                    &s);
+                promise.resolve_native(promise_cx, &s);
             },
             BluetoothResultMsg::GetPrimaryServices(services_vec) => {
                 let s: Vec<Root<BluetoothRemoteGATTService>> =
                     services_vec.into_iter()
-                                .map(|service| BluetoothRemoteGATTService::new(self.server.root().global().r(),
-                                                                               &self.server.root().device.get(),
+                                .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                                                                               &self.device.get(),
                                                                                DOMString::from(service.uuid),
                                                                                service.is_primary,
                                                                                service.instance_id))
                                .collect();
-                promise.resolve_native(
-                    promise_cx,
-                    &s);
+                promise.resolve_native(promise_cx, &s);
             },
             BluetoothResultMsg::Error(error) => {
-                promise.reject_error(
-                    promise_cx,
-                    Error::from(error));
+                promise.reject_error(promise_cx, Error::from(error));
             },
             _ => {
-                promise.reject_error(
-                    promise_cx,
-                    Error::Type("Something went wrong...".to_owned()));
+                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
             }
         }
-        self.promise = Some(TrustedPromise::new(promise));
     }
 }

@@ -15,26 +15,19 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
+use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use dom::promise::Promise;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoCompartment;
-use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothResponseListener, BluetoothResultMsg};
-use network_listener::{NetworkListener, PreInvoke};
+use ipc_channel::ipc::IpcSender;
+use js::jsapi::JSContext;
+use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothResultMsg};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
-
-struct BluetoothCharacteristicContext {
-    promise: Option<TrustedPromise>,
-    characteristic: Trusted<BluetoothRemoteGATTCharacteristic>,
-}
 
 // Maximum length of an attribute value.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 2169)
@@ -124,19 +117,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, Security);
             return p;
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        let btc_context = Arc::new(Mutex::new(BluetoothCharacteristicContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            characteristic: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: btc_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -165,19 +146,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 }
             }
         };
-        let (sender, receiver) = ipc::channel().unwrap();
-        let btc_context = Arc::new(Mutex::new(BluetoothCharacteristicContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            characteristic: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: btc_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptors(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -205,19 +174,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, NotSupported);
             return p;
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        let btc_context = Arc::new(Mutex::new(BluetoothCharacteristicContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            characteristic: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: btc_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
         return p;
@@ -247,84 +204,49 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, NotSupported);
             return p;
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        let btc_context = Arc::new(Mutex::new(BluetoothCharacteristicContext {
-            promise: Some(TrustedPromise::new(p.clone())),
-            characteristic: Trusted::new(self),
-        }));
-        let listener = NetworkListener {
-            context: btc_context,
-            script_chan: self.global().r().networking_task_source(),
-            wrapper: None,
-        };
-        ROUTER.add_route(receiver.to_opaque(), box move |message| {
-            listener.notify_response(message.to().unwrap());
-        });
+        let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
         return p;
     }
 }
 
-impl PreInvoke for BluetoothCharacteristicContext {}
-
-impl BluetoothResponseListener for BluetoothCharacteristicContext {
-    #[allow(unrooted_must_root)]
-    fn response(&mut self, result: BluetoothResultMsg) {
-        let promise = self.promise.take().expect("bt promise is missing").root();
-        let promise_cx = promise.global().r().get_cx();
-
-        // JSAutoCompartment needs to be manually made.
-        // Otherwise, Servo will crash.
-        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
+    fn response(&self, result: BluetoothResultMsg, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match result {
             BluetoothResultMsg::GetDescriptor(descriptor) => {
                 let d =
-                    BluetoothRemoteGATTDescriptor::new(self.characteristic.root().global().r(),
-                                                       self.characteristic.root().r(),
+                    BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                       &self,
                                                        DOMString::from(descriptor.uuid),
                                                        descriptor.instance_id);
-                promise.resolve_native(
-                    promise_cx,
-                    &d);
+                promise.resolve_native(promise_cx, &d);
             },
             BluetoothResultMsg::GetDescriptors(descriptors_vec) => {
                 let d: Vec<Root<BluetoothRemoteGATTDescriptor>> =
                     descriptors_vec.into_iter()
                                    .map(|desc|
-                                        BluetoothRemoteGATTDescriptor::new(self.characteristic.root().global().r(),
-                                                                           self.characteristic.root().r(),
+                                        BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                                           &self,
                                                                            DOMString::from(desc.uuid),
                                                                            desc.instance_id))
                                   .collect();
-                promise.resolve_native(
-                    promise_cx,
-                    &d);
+                promise.resolve_native(promise_cx, &d);
             },
             BluetoothResultMsg::ReadValue(result) => {
                 let value = ByteString::new(result);
-                let c = self.characteristic.root();
-                *c.value.borrow_mut() = Some(value.clone());
-                promise.resolve_native(
-                    promise_cx,
-                    &value);
+                *self.value.borrow_mut() = Some(value.clone());
+                promise.resolve_native(promise_cx, &value);
             },
             BluetoothResultMsg::WriteValue(result) => {
-                promise.resolve_native(
-                    promise_cx,
-                    &result);
+                promise.resolve_native(promise_cx, &result);
             },
             BluetoothResultMsg::Error(error) => {
-                promise.reject_error(
-                    promise_cx,
-                    Error::from(error));
+                promise.reject_error(promise_cx, Error::from(error));
             },
             _ => {
-                promise.reject_error(
-                    promise_cx,
-                    Error::Type("Something went wrong...".to_owned()));
+                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
             }
         }
-        self.promise = Some(TrustedPromise::new(promise));
     }
 }
