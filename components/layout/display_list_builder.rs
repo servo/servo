@@ -28,7 +28,7 @@ use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGL
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
-use gfx_traits::{ScrollPolicy, StackingContextId, color};
+use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId, color};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
@@ -78,6 +78,7 @@ pub struct DisplayListBuildState<'a> {
     pub shared_layout_context: &'a SharedLayoutContext,
     pub items: Vec<DisplayItem>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
+    pub scroll_root_id_stack: Vec<ScrollRootId>,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -88,6 +89,7 @@ impl<'a> DisplayListBuildState<'a> {
             shared_layout_context: shared_layout_context,
             items: Vec::new(),
             stacking_context_id_stack: vec!(stacking_context_id),
+            scroll_root_id_stack: vec!(ScrollRootId::root()),
         }
     }
 
@@ -95,7 +97,7 @@ impl<'a> DisplayListBuildState<'a> {
         self.items.push(display_item);
     }
 
-    fn stacking_context_id(&self) -> StackingContextId {
+    pub fn stacking_context_id(&self) -> StackingContextId {
         self.stacking_context_id_stack.last().unwrap().clone()
     }
 
@@ -106,6 +108,19 @@ impl<'a> DisplayListBuildState<'a> {
     pub fn pop_stacking_context_id(&mut self) {
         self.stacking_context_id_stack.pop();
         assert!(!self.stacking_context_id_stack.is_empty());
+    }
+
+    pub fn scroll_root_id(&mut self) -> ScrollRootId {
+        self.scroll_root_id_stack.last().unwrap().clone()
+    }
+
+    pub fn push_scroll_root_id(&mut self, id: ScrollRootId) {
+        self.scroll_root_id_stack.push(id);
+    }
+
+    pub fn pop_scroll_root_id(&mut self) {
+        self.scroll_root_id_stack.pop();
+        assert!(!self.scroll_root_id_stack.is_empty());
     }
 
     fn create_base_display_item(&self,
@@ -299,7 +314,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode,
-                               scroll_id: Option<StackingContextId>)
+                               scroll_root_id: Option<ScrollRootId>)
                                -> StackingContext;
 
     /// Returns the 4D matrix representing this fragment's transform.
@@ -1356,7 +1371,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode,
-                               scroll_id: Option<StackingContextId>)
+                               scroll_root_id: Option<ScrollRootId>)
                                -> StackingContext {
         let scrolls_overflow_area = mode == StackingContextCreationMode::ScrollWrapper;
         let border_box =
@@ -1431,7 +1446,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              perspective,
                              establishes_3d_context,
                              scroll_policy,
-                             scroll_id)
+                             scroll_root_id)
     }
 
     fn adjust_clipping_region_for_children(&self,
@@ -1687,7 +1702,9 @@ impl FragmentDisplayListBuilding for Fragment {
 }
 
 pub trait BlockFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_block(&mut self, parent: &mut StackingContext);
+    fn collect_stacking_contexts_for_block(&mut self,
+                                           parent: &mut StackingContext,
+                                           parent_scroll_root_id: ScrollRootId);
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode);
@@ -1704,17 +1721,29 @@ pub trait BlockFlowDisplayListBuilding {
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
-    fn collect_stacking_contexts_for_block(&mut self, parent: &mut StackingContext) {
+    fn collect_stacking_contexts_for_block(&mut self,
+                                           parent: &mut StackingContext,
+                                           parent_scroll_root_id: ScrollRootId) {
         let block_stacking_context_type = self.block_stacking_context_type();
         if block_stacking_context_type == BlockStackingContextType::NonstackingContext {
             self.base.stacking_context_id = parent.id;
-            self.base.collect_stacking_contexts_for_children(parent);
+            self.base.collect_stacking_contexts_for_children(parent, parent_scroll_root_id);
             return;
         }
 
-        let has_scrolling_overflow = self.has_scrolling_overflow();
         let stacking_context_id = StackingContextId::new_of_type(self.fragment.node.id() as usize,
                                                                  self.fragment.fragment_type());
+
+        let has_scrolling_overflow = self.has_scrolling_overflow();
+        let scroll_root_id = if has_scrolling_overflow {
+            ScrollRootId::new_of_type(self.fragment.node.id() as usize,
+                                      self.fragment.fragment_type())
+        } else {
+            parent_scroll_root_id
+        };
+        self.base.scroll_root_id = scroll_root_id;
+
+
         self.base.stacking_context_id = stacking_context_id;
 
         if block_stacking_context_type == BlockStackingContextType::PseudoStackingContext {
@@ -1731,7 +1760,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                                         ScrollPolicy::Scrollable,
                                                                         creation_mode,
                                                                         None);
-            self.base.collect_stacking_contexts_for_children(&mut new_context);
+            self.base.collect_stacking_contexts_for_children(&mut new_context, scroll_root_id);
             let new_children: Vec<StackingContext> = new_context.children.drain(..).collect();
 
             let mut non_floating_children = Vec::new();
@@ -1755,10 +1784,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let (creation_mode, internal_id) = if has_scrolling_overflow {
-            (StackingContextCreationMode::ScrollWrapper,
-             Some(StackingContextId::new_of_type(self.fragment.node.id() as usize,
-                                                 self.fragment.fragment_type())))
-
+            (StackingContextCreationMode::ScrollWrapper, Some(self.base.scroll_root_id))
         } else {
             (StackingContextCreationMode::Normal, None)
         };
@@ -1769,7 +1795,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             scroll_policy,
             creation_mode,
             internal_id);
-        self.base.collect_stacking_contexts_for_children(&mut stacking_context);
+        self.base.collect_stacking_contexts_for_children(&mut stacking_context, scroll_root_id);
 
         parent.add_child(stacking_context);
     }
@@ -1859,7 +1885,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 }
 
 pub trait InlineFlowDisplayListBuilding {
-    fn collect_stacking_contexts_for_inline(&mut self, parent: &mut StackingContext);
+    fn collect_stacking_contexts_for_inline(&mut self,
+                                            parent: &mut StackingContext,
+                                            parent_scroll_root_id: ScrollRootId);
     fn build_display_list_for_inline_fragment_at_index(&mut self,
                                                        state: &mut DisplayListBuildState,
                                                        index: usize);
@@ -1867,18 +1895,21 @@ pub trait InlineFlowDisplayListBuilding {
 }
 
 impl InlineFlowDisplayListBuilding for InlineFlow {
-    fn collect_stacking_contexts_for_inline(&mut self, parent: &mut StackingContext) {
+    fn collect_stacking_contexts_for_inline(&mut self,
+                                            parent: &mut StackingContext,
+                                            parent_scroll_root_id: ScrollRootId) {
         self.base.stacking_context_id = parent.id;
+        self.base.scroll_root_id = parent_scroll_root_id;
 
         for mut fragment in self.fragments.fragments.iter_mut() {
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(parent);
+                    block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
                     let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    block_flow.collect_stacking_contexts(parent);
+                    block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
                 }
                 _ if fragment.establishes_stacking_context() => {
                     fragment.stacking_context_id =

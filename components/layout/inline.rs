@@ -19,6 +19,7 @@ use fragment::SpecificFragmentInfo;
 use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -1613,8 +1614,10 @@ impl Flow for InlineFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
-    fn collect_stacking_contexts(&mut self, parent: &mut StackingContext) {
-        self.collect_stacking_contexts_for_inline(parent);
+    fn collect_stacking_contexts(&mut self,
+                                 parent: &mut StackingContext,
+                                 parent_scroll_root_id: ScrollRootId) {
+        self.collect_stacking_contexts_for_inline(parent, parent_scroll_root_id);
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
