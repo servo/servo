@@ -11,7 +11,7 @@ use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{DevicePixel, LayerPixel, StackingContextId};
+use gfx_traits::{DevicePixel, LayerPixel, ScrollRootId};
 use gfx_traits::{Epoch, FrameTreeId, FragmentType};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
@@ -74,13 +74,13 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
     }
 }
 
-trait ConvertStackingContextFromWebRender {
-    fn from_webrender(&self) -> StackingContextId;
+trait ConvertScrollRootIdFromWebRender {
+    fn from_webrender(&self) -> ScrollRootId;
 }
 
-impl ConvertStackingContextFromWebRender for webrender_traits::ServoStackingContextId {
-    fn from_webrender(&self) -> StackingContextId {
-        StackingContextId::new_of_type(self.1, self.0.from_webrender())
+impl ConvertScrollRootIdFromWebRender for webrender_traits::ServoScrollRootId {
+    fn from_webrender(&self) -> ScrollRootId {
+        ScrollRootId(self.0)
     }
 }
 
@@ -1312,7 +1312,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
             let stacking_context_scroll_state = StackingContextScrollState {
-                stacking_context_id: scroll_layer_state.stacking_context_id.from_webrender(),
+                scroll_root_id: scroll_layer_state.scroll_root_id.from_webrender(),
                 scroll_offset: scroll_layer_state.scroll_offset,
             };
             let pipeline_id = scroll_layer_state.pipeline_id;

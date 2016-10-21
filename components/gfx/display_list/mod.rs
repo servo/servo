@@ -20,7 +20,7 @@ use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use gfx_traits::{ScrollPolicy, StackingContextId};
+use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
@@ -214,10 +214,12 @@ impl DisplayList {
         // We don't perform this adjustment on the root stacking context because
         // the DOM-side code has already translated the point for us (e.g. in
         // `Window::hit_test_query()`) by now.
-        if !is_fixed && stacking_context.id != StackingContextId::root() {
-            if let Some(scroll_offset) = scroll_offsets.get(&stacking_context.id) {
-                translated_point.x -= Au::from_f32_px(scroll_offset.x);
-                translated_point.y -= Au::from_f32_px(scroll_offset.y);
+        if stacking_context.id != StackingContextId::root() {
+            if let Some(scroll_root_id) = stacking_context.overflow_scroll_id {
+                if let Some(scroll_offset) = scroll_offsets.get(&scroll_root_id) {
+                    translated_point.x -= Au::from_f32_px(scroll_offset.x);
+                    translated_point.y -= Au::from_f32_px(scroll_offset.y);
+                }
             }
         }
 
@@ -386,7 +388,7 @@ pub struct StackingContext {
     pub children: Vec<StackingContext>,
 
     /// If this StackingContext scrolls its overflow area, this will contain the id.
-    pub overflow_scroll_id: Option<StackingContextId>,
+    pub overflow_scroll_id: Option<ScrollRootId>,
 }
 
 impl StackingContext {
@@ -403,7 +405,7 @@ impl StackingContext {
                perspective: Matrix4D<f32>,
                establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
-               scroll_id: Option<StackingContextId>)
+               scroll_root_id: Option<ScrollRootId>)
                -> StackingContext {
         StackingContext {
             id: id,
@@ -418,7 +420,7 @@ impl StackingContext {
             establishes_3d_context: establishes_3d_context,
             scroll_policy: scroll_policy,
             children: Vec::new(),
-            overflow_scroll_id: scroll_id,
+            overflow_scroll_id: scroll_root_id,
         }
     }
 
@@ -1194,7 +1196,7 @@ impl WebRenderImageInfo {
 }
 
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
-pub type ScrollOffsetMap = HashMap<StackingContextId, Point2D<f32>>;
+pub type ScrollOffsetMap = HashMap<ScrollRootId, Point2D<f32>>;
 
 
 pub trait SimpleMatrixDetection {
