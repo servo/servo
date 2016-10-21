@@ -35,7 +35,7 @@ use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::StackingContextId;
+use gfx_traits::{ScrollRootId, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -223,7 +223,9 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self, _parent: &mut StackingContext);
+    fn collect_stacking_contexts(&mut self,
+                                 _parent: &mut StackingContext,
+                                 parent_scroll_root_id: ScrollRootId);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -935,6 +937,8 @@ pub struct BaseFlow {
     /// to 0, but it assigned during the collect_stacking_contexts phase of display
     /// list construction.
     pub stacking_context_id: StackingContextId,
+
+    pub scroll_root_id: ScrollRootId,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1105,6 +1109,7 @@ impl BaseFlow {
             writing_mode: writing_mode,
             thread_id: 0,
             stacking_context_id: StackingContextId::new(0),
+            scroll_root_id: ScrollRootId::root(),
         }
     }
 
@@ -1136,9 +1141,11 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self, parent: &mut StackingContext) {
+    pub fn collect_stacking_contexts_for_children(&mut self,
+                                                  parent: &mut StackingContext,
+                                                  parent_scroll_root_id: ScrollRootId) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(parent);
+            kid.collect_stacking_contexts(parent, parent_scroll_root_id);
         }
     }
 
