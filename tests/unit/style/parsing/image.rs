@@ -22,7 +22,7 @@ fn test_linear_gradient() {
     // Parsing with two values for <side-or-corner>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
 
-    // Parsing with angle for <side-or-corner>
+    // Parsing with <angle>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",
                                                  "linear-gradient(0.7853982rad, red, green)");
 
