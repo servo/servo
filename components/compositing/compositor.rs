@@ -12,7 +12,7 @@ use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::{DevicePixel, LayerPixel, StackingContextId};
-use gfx_traits::{Epoch, FrameTreeId, FragmentType, LayerId};
+use gfx_traits::{Epoch, FrameTreeId, FragmentType};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -523,9 +523,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.title_for_main_frame();
             }
 
-            (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _),
+            (Msg::ScrollFragmentPoint(pipeline_id, point, _),
              ShutdownState::NotShuttingDown) => {
-                self.scroll_fragment_to_point(pipeline_id, layer_id, point);
+                self.scroll_fragment_to_point(pipeline_id, point);
             }
 
             (Msg::MoveTo(point),
@@ -796,7 +796,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn scroll_fragment_to_point(&mut self,
                                 _pipeline_id: PipelineId,
-                                _layer_id: LayerId,
                                 _point: Point2D<f32>) {
         println!("TODO: Support scroll_fragment_to_point again");
     }

@@ -11,7 +11,6 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-extern crate app_units;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
@@ -36,7 +35,6 @@ extern crate url;
 mod script_msg;
 pub mod webdriver_msg;
 
-use app_units::Au;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
 use euclid::length::Length;
@@ -46,7 +44,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx_traits::DevicePixel;
 use gfx_traits::Epoch;
-use gfx_traits::LayerId;
 use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -115,8 +112,6 @@ pub enum LayoutControlMsg {
     GetCurrentEpoch(IpcSender<Epoch>),
     /// Asks layout to run another step in its animation.
     TickAnimations,
-    /// Informs layout as to which regions of the page are visible.
-    SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetStackingContextScrollStates(Vec<StackingContextScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading

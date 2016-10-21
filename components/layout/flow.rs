@@ -35,7 +35,7 @@ use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::{LayerId, LayerType, StackingContextId};
+use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -399,16 +399,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// implications because this can be called on parents concurrently from descendants!
     fn generated_containing_block_size(&self, _: OpaqueFlow) -> LogicalSize<Au>;
 
-    /// Returns a layer ID for the given fragment.
-    fn layer_id(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::FragmentBody, base(self).flow_id())
-    }
-
-    /// Returns a layer ID for the given fragment.
-    fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::OverflowScroll, base(self).flow_id())
-    }
-
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>);
@@ -634,10 +624,6 @@ bitflags! {
     #[doc = "Flags used in flows."]
     pub flags FlowFlags: u32 {
         // text align flags
-        #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
-        #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
-        #[doc = "layer."]
-        const NEEDS_LAYER = 0b0000_0000_0000_0000_0010_0000,
         #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
         const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0000_0100_0000,

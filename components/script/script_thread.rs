@@ -57,7 +57,6 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use gfx_traits::LayerId;
 use hyper::header::{ContentType, Headers, HttpDate, LastModified};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::method::Method;
@@ -1883,10 +1882,7 @@ impl ScriptThread {
         let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
                                  rect.origin.y.to_nearest_px() as f32);
 
-        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id,
-                                                            LayerId::null(),
-                                                            point,
-                                                            false);
+        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id, point, false);
         self.constellation_chan.send(message).unwrap();
     }
 

@@ -8,7 +8,7 @@ use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
-use gfx_traits::{ByteIndex, LayerId, LayerType};
+use gfx_traits::ByteIndex;
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use restyle_damage::RestyleDamage;
@@ -376,21 +376,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     fn iframe_pipeline_id(&self) -> PipelineId;
 
     fn get_colspan(&self) -> u32;
-
-    fn layer_id(&self) -> LayerId {
-        let layer_type = match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => LayerType::FragmentBody,
-            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
-            PseudoElementType::After(_) => LayerType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary(_) => LayerType::FragmentBody,
-            PseudoElementType::DetailsContent(_) => LayerType::FragmentBody,
-        };
-        LayerId::new_of_type(layer_type, self.opaque().id() as usize)
-    }
-
-    fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::OverflowScroll, self.opaque().id() as usize)
-    }
 
     fn get_style_data(&self) -> Option<&AtomicRefCell<PersistentStyleData>>;
 }
