@@ -11,37 +11,25 @@ use url::Url;
 #[test]
 fn text_emphasis_style_longhand_should_parse_properly() {
     use style::properties::longhands::text_emphasis_style;
-    use style::properties::longhands::text_emphasis_style::{ShapeKeyword, SpecifiedValue, Keyword};
+    use style::properties::longhands::text_emphasis_style::{ShapeKeyword, SpecifiedValue, KeywordValue};
 
     let none = parse_longhand!(text_emphasis_style, "none");
     assert_eq!(none, SpecifiedValue::None);
 
     let fill = parse_longhand!(text_emphasis_style, "open");
-    let fill_struct = SpecifiedValue::Keyword(Keyword {
-        fill: Some(false),
-        shape: None
-    });
+    let fill_struct = SpecifiedValue::Keyword(KeywordValue::Fill(false));
     assert_eq!(fill, fill_struct);
 
     let shape = parse_longhand!(text_emphasis_style, "triangle");
-    let shape_struct = SpecifiedValue::Keyword(Keyword {
-        fill: None,
-        shape: Some(ShapeKeyword::Triangle)
-    });
+    let shape_struct = SpecifiedValue::Keyword(KeywordValue::Shape(ShapeKeyword::Triangle));
     assert_eq!(shape, shape_struct);
 
     let fill_shape = parse_longhand!(text_emphasis_style, "filled dot");
-    let fill_shape_struct = SpecifiedValue::Keyword(Keyword {
-        fill: Some(true),
-        shape: Some(ShapeKeyword::Dot)
-    });
+    let fill_shape_struct = SpecifiedValue::Keyword(KeywordValue::FillAndShape(true, ShapeKeyword::Dot));
     assert_eq!(fill_shape, fill_shape_struct);
 
     let shape_fill = parse_longhand!(text_emphasis_style, "dot filled");
-    let shape_fill_struct = SpecifiedValue::Keyword(Keyword {
-        fill: Some(true),
-        shape: Some(ShapeKeyword::Dot)
-    });
+    let shape_fill_struct = SpecifiedValue::Keyword(KeywordValue::FillAndShape(true, ShapeKeyword::Dot));
     assert_eq!(shape_fill, shape_fill_struct);
 
     let a_string = parse_longhand!(text_emphasis_style, "\"a\"");

@@ -750,14 +750,14 @@ ${helpers.single_keyword("text-align-last",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
-            Keyword(Keyword),
+            Keyword(KeywordValue),
             None,
             String(String),
         }
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct Keyword {
+        pub struct KeywordValue {
             pub fill: bool,
             pub shape: super::ShapeKeyword,
         }
@@ -766,7 +766,7 @@ ${helpers.single_keyword("text-align-last",
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
-        Keyword(Keyword),
+        Keyword(KeywordValue),
         None,
         String(String),
     }
@@ -792,24 +792,23 @@ ${helpers.single_keyword("text-align-last",
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Keyword {
-        pub fill: Option<bool>,
-        pub shape: Option<ShapeKeyword>,
+    pub enum KeywordValue {
+        Fill(bool),
+        Shape(ShapeKeyword),
+        FillAndShape(bool, ShapeKeyword),
     }
 
-    impl ToCss for Keyword {
+    impl ToCss for KeywordValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut has_fill = false;
-            if let Some(fill) = self.fill {
-                has_fill = true;
+            if let Some(fill) = self.fill() {
                 if fill {
                     try!(dest.write_str("filled"));
                 } else {
                     try!(dest.write_str("open"));
                 }
             }
-            if let Some(shape) = self.shape {
-                if has_fill {
+            if let Some(shape) = self.shape() {
+                if self.fill().is_some() {
                     try!(dest.write_str(" "));
                 }
                 try!(shape.to_css(dest));
@@ -817,7 +816,7 @@ ${helpers.single_keyword("text-align-last",
             Ok(())
         }
     }
-    impl ToCss for computed_value::Keyword {
+    impl ToCss for computed_value::KeywordValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.fill {
                 try!(dest.write_str("filled"));
@@ -826,6 +825,23 @@ ${helpers.single_keyword("text-align-last",
             }
             try!(dest.write_str(" "));
             self.shape.to_css(dest)
+        }
+    }
+
+    impl KeywordValue {
+        fn fill(&self) -> Option<bool> {
+            match *self {
+                KeywordValue::Fill(fill) |
+                KeywordValue::FillAndShape(fill,_) => Some(fill),
+                _ => None,
+            }
+        }
+        fn shape(&self) -> Option<ShapeKeyword> {
+            match *self {
+                KeywordValue::Shape(shape) |
+                KeywordValue::FillAndShape(_, shape) => Some(shape),
+                _ => None,
+            }
         }
     }
 
@@ -866,16 +882,14 @@ ${helpers.single_keyword("text-align-last",
                     } else {
                         ShapeKeyword::Sesame
                     };
-                    computed_value::T::Keyword(computed_value::Keyword {
-                        fill: keyword.fill.unwrap_or(true),
-                        shape: keyword.shape.unwrap_or(default_shape)
+                    computed_value::T::Keyword(computed_value::KeywordValue {
+                        fill: keyword.fill().unwrap_or(true),
+                        shape: keyword.shape().unwrap_or(default_shape),
                     })
                 },
                 SpecifiedValue::None => computed_value::T::None,
                 SpecifiedValue::String(ref s) => {
-                    let string = if s.len() > 1 {
-                        s.chars().nth(0).unwrap().to_string()
-                    } else { s.clone() };
+                    let string = s.chars().next().as_ref().map(ToString::to_string).unwrap_or_default();
                     computed_value::T::String(string)
                 }
             }
@@ -883,10 +897,8 @@ ${helpers.single_keyword("text-align-last",
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
             match *computed {
-                computed_value::T::Keyword(ref keyword) => SpecifiedValue::Keyword(Keyword {
-                    fill: Some(keyword.fill),
-                    shape: Some(keyword.shape)
-                }),
+                computed_value::T::Keyword(ref keyword) =>
+                    SpecifiedValue::Keyword(KeywordValue::FillAndShape(keyword.fill,keyword.shape)),
                 computed_value::T::None => SpecifiedValue::None,
                 computed_value::T::String(ref string) => SpecifiedValue::String(string.clone())
             }
@@ -910,19 +922,18 @@ ${helpers.single_keyword("text-align-last",
         } else if input.try(|input| input.expect_ident_matching("open")).is_ok() {
             Some(false)
         } else { None };
-        if let Err(_) = shape {
+        if shape.is_err() {
             shape = input.try(ShapeKeyword::parse);
         }
 
         // At least one of shape or fill must be handled
-        if let (None, Err(_)) = (fill, shape) {
-            Err(())
-        } else {
-            Ok(SpecifiedValue::Keyword(Keyword {
-                fill: fill,
-                shape: shape.ok()
-            }))
-        }
+        let keyword_value = match (fill, shape) {
+            (Some(fill), Ok(shape)) => KeywordValue::FillAndShape(fill,shape),
+            (Some(fill), Err(_)) => KeywordValue::Fill(fill),
+            (None, Ok(shape)) => KeywordValue::Shape(shape),
+            _ => return Err(()),
+        };
+        Ok(SpecifiedValue::Keyword(keyword_value))
     }
 </%helpers:longhand>
 
