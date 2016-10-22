@@ -37,7 +37,6 @@ matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
-num_cpus = "0.2.2"
 ordered-float = "0.2.2"
 owning_ref = "0.2.2"
 parking_lot = "0.3.3"
