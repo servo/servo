@@ -11,7 +11,7 @@
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
-                          animatable=True)}
+                          animatable=True, complex_color=True, need_clone=True)}
 
 <%helpers:longhand name="outline-style" need_clone="True" animatable="False">
     pub use values::specified::BorderStyle as SpecifiedValue;

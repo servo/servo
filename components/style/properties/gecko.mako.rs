@@ -732,7 +732,7 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<% skip_outline_longhands = " ".join("outline-color outline-style outline-width".split() +
+<% skip_outline_longhands = " ".join("outline-style outline-width".split() +
                                      ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
@@ -740,8 +740,6 @@ fn static_assert() {
                   skip_additionals="*">
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
-
-    <% impl_color("outline_color", "mOutlineColor", need_clone=True) %>
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
@@ -1451,15 +1449,13 @@ fn static_assert() {
 // TODO: Gecko accepts lists in most background-related properties. We just use
 // the first element (which is the common case), but at some point we want to
 // add support for parsing these lists in servo and pushing to nsTArray's.
-<% skip_background_longhands = """background-color background-repeat
+<% skip_background_longhands = """background-repeat
                                   background-image background-clip
                                   background-origin background-attachment
                                   background-size background-position""" %>
 <%self:impl_trait style_struct_name="Background"
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
-
-    <% impl_color("background_color", "mBackgroundColor", need_clone=True, complex_color=False) %>
 
     <% impl_common_image_layer_properties("background") %>
 
@@ -1686,10 +1682,8 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-color text-decoration-line text-overflow"
+                  skip_longhands="text-decoration-line text-overflow"
                   skip_additionals="*">
-
-    ${impl_color("text_decoration_color", "mTextDecorationColor", need_clone=True)}
 
     pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
@@ -1780,7 +1774,6 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_svg_longhands = """
-flood-color lighting-color stop-color
 mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position mask-size mask-image
 clip-path
 """
@@ -1788,12 +1781,6 @@ clip-path
 <%self:impl_trait style_struct_name="SVG"
                   skip_longhands="${skip_svg_longhands}"
                   skip_additionals="*">
-
-    <% impl_color("flood_color", "mFloodColor", complex_color=False) %>
-
-    <% impl_color("lighting_color", "mLightingColor", complex_color=False) %>
-
-    <% impl_color("stop_color", "mStopColor", complex_color=False) %>
 
     <% impl_common_image_layer_properties("mask") %>
 

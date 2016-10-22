@@ -209,5 +209,6 @@ ${helpers.single_keyword("text-decoration-style",
 ${helpers.predefined_type(
     "text-decoration-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    complex_color=True,
     products="gecko",
     animatable=True)}
