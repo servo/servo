@@ -63,7 +63,7 @@ class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
-                 allowed_in_keyframe_block=True, complex_color=False):
+                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8'):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -78,6 +78,7 @@ class Longhand(object):
         self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
         self.complex_color = complex_color
+        self.cast_type = cast_type
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
