@@ -49,7 +49,7 @@ use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{FrameType, PipelineId, ReferrerPolicy, WindowSizeType};
+use msg::constellation_msg::{FrameType, PipelineId, ReferrerPolicy};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -70,7 +70,7 @@ use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, Runnabl
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
