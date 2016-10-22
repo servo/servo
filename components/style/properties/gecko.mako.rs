@@ -480,16 +480,29 @@ impl Debug for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
-       "LengthOrPercentage": impl_style_coord,
-       "LengthOrPercentageOrAuto": impl_style_coord,
-       "LengthOrPercentageOrNone": impl_style_coord,
-       "Number": impl_simple,
-       "Opacity": impl_simple,
+        "Length": impl_style_coord,
+        "LengthOrPercentage": impl_style_coord,
+        "LengthOrPercentageOrAuto": impl_style_coord,
+        "LengthOrPercentageOrNone": impl_style_coord,
+        "Number": impl_simple,
+        "Opacity": impl_simple,
+        "CSSColor": impl_color,
     }
 
-    keyword_longhands = [x for x in longhands if x.keyword and not x.name in force_stub]
+    def predefined_type_method(longhand):
+        args = dict(ident=longhand.ident, gecko_ffi_name=longhand.gecko_ffi_name,
+                    need_clone=longhand.need_clone)
+        method = predefined_types[longhand.predefined_type]
+
+        # additional type-specific arguments
+        if longhand.predefined_type in ["CSSColor"]:
+            args.update(complex_color=longhand.complex_color)
+
+        method(**args)
+
+    keyword_longhands = [x for x in longhands if x.keyword and x.name not in force_stub]
     predefined_longhands = [x for x in longhands
-                           if x.predefined_type in predefined_types and not x.name in force_stub]
+                            if x.predefined_type in predefined_types and x.name not in force_stub]
     stub_longhands = [x for x in longhands if x not in keyword_longhands + predefined_longhands]
 
     # If one of the longhands is not handled
@@ -522,8 +535,7 @@ impl ${style_struct.gecko_struct_name} {
     for longhand in keyword_longhands:
         impl_keyword(longhand.ident, longhand.gecko_ffi_name, longhand.keyword, longhand.need_clone)
     for longhand in predefined_longhands:
-        impl_fn = predefined_types[longhand.predefined_type]
-        impl_fn(longhand.ident, longhand.gecko_ffi_name, need_clone=longhand.need_clone)
+        predefined_type_method(longhand)
     %>
 
     /*
