@@ -1646,7 +1646,7 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-shadow line-height letter-spacing word-spacing">
+                  skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -1743,6 +1743,55 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>
+
+    fn clear_text_emphasis_style_if_string(&mut self) {
+        use nsstring::nsString;
+        if self.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
+            self.gecko.mTextEmphasisStyleString.assign(&nsString::new());
+            self.gecko.mTextEmphasisStyle = structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8;
+        }
+    }
+
+    pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
+        use nsstring::nsCString;
+        use properties::longhands::text_emphasis_style::computed_value::T;
+        use properties::longhands::text_emphasis_style::ShapeKeyword;
+
+        self.clear_text_emphasis_style_if_string();
+        let (te, s) = match v {
+            T::None => (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE, ""),
+            T::Keyword(ref keyword) => {
+                let fill = if keyword.fill {
+                    structs::NS_STYLE_TEXT_EMPHASIS_STYLE_FILLED
+                } else {
+                    structs::NS_STYLE_TEXT_EMPHASIS_STYLE_OPEN
+                };
+                let shape = match keyword.shape {
+                    ShapeKeyword::Dot => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOT,
+                    ShapeKeyword::Circle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_CIRCLE,
+                    ShapeKeyword::DoubleCircle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_DOUBLE_CIRCLE,
+                    ShapeKeyword::Triangle => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_TRIANGLE,
+                    ShapeKeyword::Sesame => structs::NS_STYLE_TEXT_EMPHASIS_STYLE_SESAME,
+                };
+
+                (shape | fill, keyword.shape.char(keyword.fill))
+            },
+            T::String(ref s) => {
+                (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
+            },
+        };
+        self.gecko.mTextEmphasisStyleString.assign_utf8(&nsCString::from(s));
+        self.gecko.mTextEmphasisStyle = te as u8;
+    }
+
+    pub fn copy_text_emphasis_style_from(&mut self, other: &Self) {
+        self.clear_text_emphasis_style_if_string();
+        if other.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
+            self.gecko.mTextEmphasisStyleString
+                      .assign(&other.gecko.mTextEmphasisStyleString)
+        }
+        self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
+    }
 
 </%self:impl_trait>
 
