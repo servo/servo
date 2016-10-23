@@ -361,3 +361,96 @@ ${helpers.single_keyword("font-variant-position",
                          gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                          animatable=False)}
 
+<%helpers:longhand name="font-feature-settings" animatable="False">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use cssparser::Parser;
+        use std::fmt;
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            Normal,
+            Computed(Vec<FeatureTagValue>)
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct FeatureTagValue {
+            pub tag: String,
+            pub value: i32
+        }
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::Normal => dest.write_str("normal"),
+                    T::Computed(ref ftvs) => {
+                        let mut iter = ftvs.iter();
+                        // handle head element
+                        try!(iter.next().unwrap().to_css(dest));
+                        // handle tail, precede each with a delimiter
+                        for ftv in iter {
+                            try!(dest.write_str(", "));
+                            try!(ftv.to_css(dest));
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        impl ToCss for FeatureTagValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let s = format!("{} {}", self.tag, self.value);
+                dest.write_str(&s)
+            }
+        }
+
+        impl FeatureTagValue {
+            pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
+                let tag = try!(input.expect_string()).into_owned();
+
+                if input.try(|input| input.expect_integer()).is_ok() {
+                    // handle integer, throw if it is negative
+                    let value = 4;  //TODO: capture parsed input here
+                    if value >= 0 {
+                        Ok(FeatureTagValue{ tag: tag, value: value })
+                    } else {
+                        Err(())
+                    }
+                } else if input.try(|input| input.expect_ident_matching("off")).is_ok() {
+                    // off is an alias for '0'
+                    Ok(FeatureTagValue{ tag: tag, value: 0 })
+                } else {
+                    // remainders (empty value and "on" keyword) are aliases for '1'
+                    Ok(FeatureTagValue{ tag:tag, value: 1 })
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            Ok(computed_value::T::Normal)
+        } else {
+            input.parse_comma_separated(|input| {
+                computed_value::FeatureTagValue::parse(input)
+            }).map(computed_value::T::Computed)
+        }
+    }
+</%helpers:longhand>
