@@ -2359,7 +2359,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
         };
 
-        if buff.len() != expected_byte_length as usize {
+        // From the WebGL spec:
+        //
+        //     "If pixels is non-null but its size is less than what
+        //      is required by the specified width, height, format,
+        //      type, and pixel storage parameters, generates an
+        //      INVALID_OPERATION error."
+        if buff.len() < expected_byte_length as usize {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
@@ -2459,8 +2465,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(data) => data,
         };
 
-        if expected_byte_length != 0 &&
-            buff.len() != expected_byte_length as usize {
+        // From the WebGL spec:
+        //
+        //     "If pixels is non-null but its size is less than what
+        //      is required by the specified width, height, format,
+        //      type, and pixel storage parameters, generates an
+        //      INVALID_OPERATION error."
+        if buff.len() < expected_byte_length as usize {
             return Ok(self.webgl_error(InvalidOperation));
         }
 
