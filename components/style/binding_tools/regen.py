@@ -617,10 +617,10 @@ Option<&'a {0}>;".format(ty))
             flags = [debugger, "--args"] + flags
             subprocess.check_call(flags)
         else:
-            output = subprocess.check_output(flags, stderr=subprocess.STDOUT)
-            output = output.decode('utf8')
+            output = subprocess.check_output(flags, stderr=subprocess.STDOUT,
+                                             universal_newlines=True)
     except subprocess.CalledProcessError as e:
-        print("FAIL\n", e.output.decode('utf8'))
+        print("FAIL\n", e.output)
         return 1
 
     print("OK")
