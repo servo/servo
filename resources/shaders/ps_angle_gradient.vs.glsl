@@ -4,10 +4,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 void main(void) {
-    AngleGradient gradient = fetch_angle_gradient(gl_InstanceID);
-    VertexInfo vi = write_vertex(gradient.info);
+    Primitive prim = load_primitive(gl_InstanceID);
+    Gradient gradient = fetch_gradient(prim.prim_index);
 
-    vStopCount = int(gradient.stop_count.x);
+    VertexInfo vi = write_vertex(prim.local_rect,
+                                 prim.local_clip_rect,
+                                 prim.layer,
+                                 prim.tile);
+
+    vStopCount = int(prim.user_data.y);
     vPos = vi.local_clamped_pos;
 
     // Snap the start/end points to device pixel units.
@@ -19,8 +24,11 @@ void main(void) {
     vStartPoint = floor(0.5 + gradient.start_end_point.xy * uDevicePixelRatio) / uDevicePixelRatio;
     vEndPoint = floor(0.5 + gradient.start_end_point.zw * uDevicePixelRatio) / uDevicePixelRatio;
 
-    for (int i=0 ; i < int(gradient.stop_count.x) ; ++i) {
-        vColors[i] = gradient.colors[i];
-        vOffsets[i] = gradient.offsets[i];
+    int stop_index = int(prim.user_data.x);
+
+    for (int i=0 ; i < vStopCount ; ++i) {
+        GradientStop stop = fetch_gradient_stop(stop_index + i);
+        vColors[i] = stop.color;
+        vOffsets[i/4][i%4] = stop.offset.x;
     }
 }

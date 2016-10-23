@@ -13,8 +13,8 @@ flat varying vec4 vLocalRect; // The rect of the border (x, y, w, h) in local sp
 // for corners, this is the beginning of the corner.
 // For the lines, this is the top left of the line.
 flat varying vec2 vRefPoint;
-flat varying uint vBorderStyle;
-flat varying uint vBorderPart; // Which part of the border we're drawing.
+flat varying int vBorderStyle;
+flat varying int vBorderPart; // Which part of the border we're drawing.
 
 flat varying vec4 vPieceRect;
 
@@ -28,6 +28,4 @@ varying vec2 vLocalPos;     // The clamped position in local space.
 // These two are interpolated
 varying float vDistanceFromMixLine;  // This is the distance from the line where two colors
                                      // meet in border corners.
-varying vec2 vDevicePos;    // The clamped position in device space.
-flat varying vec4 vBorders; // the rect of the border in (x, y, width, height) form
 #endif
