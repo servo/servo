@@ -20,8 +20,6 @@ test_interfaces([
   "CustomEvent",
   "DedicatedWorkerGlobalScope",
   "DOMException",
-  "DOMTokenList",
-  "DOMStringMap",
   "ErrorEvent",
   "Event",
   "EventTarget",
