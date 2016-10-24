@@ -104,9 +104,21 @@ pub struct AsyncJobHandler {
     pub global: Trusted<GlobalScope>
 }
 
+impl AsyncJobHandler {
+    fn new(promise: TrustedPromise, scope_url: Url, settle_type: SettleType, global: &GlobalScope) -> AsyncJobHandler {
+        AsyncJobHandler {
+            promise: promise,
+            scope_url: scope_url,
+            settle_type: settle_type,
+            global: Trusted::new(global)
+        }
+    }
+}
+
 impl Runnable for AsyncJobHandler {
     #[allow(unrooted_must_root)]
     fn main_thread_handler(self: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
+        let scope_url = self.scope_url.clone();
         let settle_type = self.settle_type.clone();
         let global = self.global.root();
         let promise = self.promise.root();
@@ -115,9 +127,12 @@ impl Runnable for AsyncJobHandler {
             SettleType::Resolve(reg) => {
                 let reg = reg.root();
                 promise.resolve_native((&*global).get_cx(), &*reg);
+                // invoke finish_job ?
             }
             SettleType::Reject(err_type) => {
                 promise.reject_error((&*global).get_cx(), err_type);
+                script_thread.finish_job(&scope_url);
+                // invoke finish_job ?
             }
         }
     }
@@ -172,8 +187,8 @@ impl JobQueue {
     pub fn run_job(&mut self, run_job_handler: Box<RunJobHandler>, script_thread: &ScriptThread) {
         let scope_url = run_job_handler.scope_url.clone();
         let front_job =  {
-            let job_vec = self.0.get_mut(&scope_url);
-            job_vec.unwrap().remove(0)
+            let job_vec = self.0.get(&scope_url);
+            job_vec.unwrap().first().unwrap()
         };
 
         match front_job.job_type {
@@ -186,31 +201,40 @@ impl JobQueue {
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#register-algorithm
-    pub fn run_register(&mut self, job: &Job, run_job_handler: Box<RunJobHandler>, script_thread: &ScriptThread) {
+    pub fn run_register(&self, job: &Job, run_job_handler: Box<RunJobHandler>, script_thread: &ScriptThread) {
         // Step 1
+        let reg = run_job_handler.reg.root();
+        let global = reg.global();
+        let scope_url = run_job_handler.scope_url.clone();
         if !UrlHelper::is_origin_trustworthy(&job.script_url) {
-            let reg = run_job_handler.reg.root();
-            let global = reg.global();
-            let scope_url = run_job_handler.scope_url.clone();
-            let async_job_handler = AsyncJobHandler {
-                promise: TrustedPromise::new(run_job_handler.promise.root()),
-                scope_url: scope_url,
-                settle_type: SettleType::Reject(Error::Type("Invalid script URL".to_owned())),
-                global: Trusted::new(&*global)
-            };
+            let settle_type = SettleType::Reject(Error::Type("Invalid script URL".to_owned()));
+            let async_job_handler = AsyncJobHandler::new(TrustedPromise::new(run_job_handler.promise.root()),
+                                                         scope_url.clone(),
+                                                         settle_type,
+                                                         &*global);
             return script_thread.queue_async_job(box async_job_handler);
         }
-        // Step 2-3 TODO
+        // Step 2-3
+        if job.script_url.origin() != job.referrer.origin() || job.scope_url.origin() != job.referrer.origin() {
+            let async_job_handler = AsyncJobHandler::new(TrustedPromise::new(run_job_handler.promise.root()),
+                                                         scope_url.clone(),
+                                                         SettleType::Reject(Error::Security),
+                                                         &*global);
+            return script_thread.queue_async_job(box async_job_handler);
+        }
         // Step 4
         let reg = ScriptThread::get_registration(&job.scope_url);
+        // the new registration which needs to be set in the else clause
         let new_reg = &*run_job_handler.reg.root();
-        let global = new_reg.global();
         if reg.is_some() {
             let reg = reg.unwrap();
+            // Step 5.1
             if reg.get_uninstalling() {
                 reg.set_uninstalling(false);
             }
+            // Step 5.2
             let newest_worker = reg.get_newest_worker();
+            // Step 5.3
             if let Some(ref newest_worker) = reg.get_newest_worker() {
                 if (&*newest_worker).get_script_url() == job.script_url {
                     let reg = run_job_handler.reg.clone();
@@ -226,17 +250,29 @@ impl JobQueue {
                 }
             }
         } else {
+            // Step 6.1
             let pipeline = global.pipeline_id();
             ScriptThread::set_registration(job.scope_url.clone(), &*new_reg, pipeline);
             let scope_url = run_job_handler.scope_url.clone();
             let promise = run_job_handler.promise.root();
-            let async_job_handler = AsyncJobHandler {
-                        promise: TrustedPromise::new(promise),
-                        scope_url: scope_url,
-                        settle_type: SettleType::Resolve(Trusted::new(&*new_reg)),
-                        global: Trusted::new(&*global)
-            };
+            let async_job_handler = AsyncJobHandler::new(TrustedPromise::new(promise),
+                                                         scope_url,
+                                                         SettleType::Resolve(Trusted::new(&*new_reg)),
+                                                         &*global);
             script_thread.queue_async_job(box async_job_handler);
+        }
+        // TODO Step 7 Update Algorithm
+    }
+
+    pub fn finish_job(&mut self, scope_url: &Url) {
+        if let Some(job_vec) = self.0.get_mut(&scope_url) {
+            let _ = job_vec.remove(0);
+            if !job_vec.is_empty() {
+                // TODO
+                // invoke run job again ?
+            }
+        } else {
+            //
         }
     }
 }
