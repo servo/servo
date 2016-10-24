@@ -94,6 +94,7 @@ impl DocumentLoader {
 
     pub fn new_with_threads(resource_threads: ResourceThreads,
                             initial_load: Option<Url>) -> DocumentLoader {
+        debug!("Initial blocking load {:?}.", initial_load);
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
@@ -105,6 +106,7 @@ impl DocumentLoader {
 
     /// Add a load to the list of blocking loads.
     fn add_blocking_load(&mut self, load: LoadType) {
+        debug!("Adding blocking load {:?} ({}).", load, self.blocking_loads.len());
         self.blocking_loads.push(load);
     }
 
@@ -119,6 +121,7 @@ impl DocumentLoader {
 
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: &LoadType) {
+        debug!("Removing blocking load {:?} ({}).", load, self.blocking_loads.len());
         let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == *load);
         self.blocking_loads.remove(idx.expect(&format!("unknown completed load {:?}", load)));
     }
