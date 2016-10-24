@@ -846,13 +846,13 @@ name = "heartbeats-simple"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "heartbeats-simple-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heartbeats-simple-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "heartbeats-simple-sys"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2718,7 +2718,7 @@ dependencies = [
 "checksum heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "8c80e194758495a9109566134dc06e42ea0423987d6ceca016edaa90381b3549"
 "checksum heapsize_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c9a70a1ef0122b54e0553f1d960b686c40d33a7953bc63029509a7649c8ee2c4"
 "checksum heartbeats-simple 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "78c0810722eacd0bdd3f1f691524bd9900bf8fed1947f6b883c10ddecd2560b1"
-"checksum heartbeats-simple-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9d975666b80fe43ca3af2294ba5995a0f3a2a00fe8a229ac4788bdfd5f01a45d"
+"checksum heartbeats-simple-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "53c4b67617665d7f4172f381f9843c1bec6a4fccc9a9226529e5b1be40dc1301"
 "checksum hpack 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d2da7d3a34cf6406d9d700111b8eafafe9a251de41ae71d8052748259343b58"
 "checksum html5ever 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)" = "91cb2a55a080da050d202eced2df684f1617b7bcfcd141abbe207fcdc572e18a"
 "checksum httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "46534074dbb80b070d60a5cb8ecadd8963a00a438ae1a95268850a7ef73b67ae"
