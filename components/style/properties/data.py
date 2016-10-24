@@ -29,6 +29,7 @@ class Keyword(object):
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
+        self.ignore_hyphens = None
 
     def gecko_values(self):
         return self.values + self.extra_gecko_values
@@ -45,12 +46,14 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
+        replaced = value.replace("-moz-", '')
+        parts = replaced.split('-')
         if self.gecko_enum_prefix:
-            parts = value.replace("-moz-", "").split("-")
             parts = [p.title() for p in parts]
             return self.gecko_enum_prefix + "::" + "".join(parts)
         else:
-            return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+            value = ''.join(parts) if self.ignore_hyphens else replaced.replace('-', '_')
+            return self.gecko_constant_prefix + '_' + value.upper()
 
     def needs_cast(self):
         return self.gecko_enum_prefix is None
@@ -63,7 +66,8 @@ class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
-                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8'):
+                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
+                 ignore_hyphens=False):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -79,6 +83,11 @@ class Longhand(object):
         self.derived_from = (derived_from or "").split()
         self.complex_color = complex_color
         self.cast_type = cast_type
+
+        # This is a workaround for gecko constants with unexpected names i.e., a constant
+        # corresponding to a keyword 'foo-bar' declared as FOOBAR instead of FOO_BAR
+        if self.keyword is not None:
+            self.keyword.ignore_hyphens = ignore_hyphens
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
