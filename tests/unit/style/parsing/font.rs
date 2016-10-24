@@ -19,25 +19,33 @@ fn font_feature_settings_should_parse_properly() {
     assert_eq!(normal, normal_computed);
 
     let on = parse_longhand!(font_feature_settings, "\"abcd\" on");
-    let on_computed = computed_value::T::Computed(vec![FeatureTagValue{ tag:String::from("abcd"), value: 1 }]);
+    let on_computed = computed_value::T::Computed(vec![
+        FeatureTagValue { tag: String::from("abcd"), value: 1 }
+    ]);
     assert_eq!(on, on_computed);
 
     let off = parse_longhand!(font_feature_settings, "\"abcd\" off");
-    let off_computed = computed_value::T::Computed(vec![FeatureTagValue{ tag:String::from("abcd"), value: 0 }]);
+    let off_computed = computed_value::T::Computed(vec![
+        FeatureTagValue { tag: String::from("abcd"), value: 0 }
+    ]);
     assert_eq!(off, off_computed);
 
     let empty = parse_longhand!(font_feature_settings, "\"abcd\"");
-    let empty_computed = computed_value::T::Computed(vec![FeatureTagValue{ tag:String::from("abcd"), value: 1 }]);
+    let empty_computed = computed_value::T::Computed(vec![
+        FeatureTagValue { tag: String::from("abcd"), value: 1 }
+    ]);
     assert_eq!(empty, empty_computed);
 
     let pos_integer = parse_longhand!(font_feature_settings, "\"abcd\" 100");
-    let pos_integer_computed = computed_value::T::Computed(vec![FeatureTagValue{ tag:String::from("abcd"), value: 100 }]);
-    assert_eq!(pos_integer, pos_integer_computed);
-
-    let pos_integer = parse_longhand!(font_feature_settings, "\"abcd\" off, \"efgh\"");
     let pos_integer_computed = computed_value::T::Computed(vec![
-        FeatureTagValue{ tag:String::from("abcd"), value: 0 },
-        FeatureTagValue{ tag:String::from("efgh"), value: 1 }
+        FeatureTagValue { tag: String::from("abcd"), value: 100 }
     ]);
     assert_eq!(pos_integer, pos_integer_computed);
+
+    let multiple = parse_longhand!(font_feature_settings, "\"abcd\" off, \"efgh\"");
+    let multiple_computed = computed_value::T::Computed(vec![
+        FeatureTagValue { tag: String::from("abcd"), value: 0 },
+        FeatureTagValue { tag: String::from("efgh"), value: 1 }
+    ]);
+    assert_eq!(multiple, multiple_computed);
 }
