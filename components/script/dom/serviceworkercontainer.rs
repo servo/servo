@@ -7,9 +7,10 @@ use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::Registratio
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::refcounted::TrustedPromise;
+use dom::bindings::refcounted::{TrustedPromise, Trusted};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
+use dom::client::Client;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
@@ -25,6 +26,7 @@ use std::rc::Rc;
 pub struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableHeap<JS<ServiceWorker>>,
+    client: MutNullableHeap<JS<Client>>,
 }
 
 impl ServiceWorkerContainer {
@@ -32,21 +34,26 @@ impl ServiceWorkerContainer {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
+            client: Default::default(),
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
-        reflect_dom_object(box ServiceWorkerContainer::new_inherited(), global, Wrap)
+        let container = ServiceWorkerContainer::new_inherited();
+        let client = Client::new(&global.as_window());
+        container.client.set(Some(&*client));
+        reflect_dom_object(box container, global, Wrap)
     }
 }
 
 pub trait Controllable {
     fn set_controller(&self, active_worker: &ServiceWorker);
 }
-
+// TODO remove this trait usage
 impl Controllable for ServiceWorkerContainer {
     fn set_controller(&self, active_worker: &ServiceWorker) {
-        self.controller.set(Some(active_worker));
+        self.client.get().unwrap().set_controller(active_worker);
         self.upcast::<EventTarget>().fire_event(atom!("controllerchange"));
     }
 }
@@ -54,19 +61,23 @@ impl Controllable for ServiceWorkerContainer {
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
-        return self.controller.get()
+        return self.client.get().unwrap().get_controller()
     }
 
     #[allow(unrooted_must_root)]
-    // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method
+    // A: https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and
+    // B: https://w3c.github.io/ServiceWorker/#start-register-algorithm
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Rc<Promise> {
+        // A: Step 1
         let promise = Promise::new(&*self.global());
-        let ctx = self.global().get_cx();
+        // A: Step 2
+        let client = self.client.get().unwrap();
+        let ctx = (&*self.global()).get_cx();
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
-        // Step 3-4
+        // A: Step 3-5
         let script_url = match api_base_url.join(script_url) {
             Ok(url) => url,
             Err(_) => {
@@ -74,7 +85,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 return promise;
             }
         };
-        // Step 5
+        // B: Step 2
         match script_url.scheme() {
             "https" | "http" => {},
             _ => {
@@ -82,13 +93,13 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 return promise;
             }
         }
-        // Step 6
+        // B: Step 3
         if script_url.path().to_ascii_lowercase().contains("%2f") ||
         script_url.path().to_ascii_lowercase().contains("%5c") {
             promise.reject_error(ctx, Error::Type("Script URL contains forbidden characters".to_owned()));
             return promise;
         }
-        // Step 8-9
+        // B: Step 4-5
         let scope = match options.scope {
             Some(ref scope) => {
                 let &USVString(ref inner_scope) = scope;
@@ -102,7 +113,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             },
             None => script_url.join("./").unwrap()
         };
-        // Step 11
+        // B: Step 6
         match scope.scheme() {
             "https" | "http" => {},
             _ => {
@@ -110,7 +121,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 return promise;
             }
         }
-        // Step 12
+        // B: Step 7
         if scope.path().to_ascii_lowercase().contains("%2f") ||
         scope.path().to_ascii_lowercase().contains("%5c") {
             promise.reject_error(ctx, Error::Type("Scope URL contains forbidden characters".to_owned()));
@@ -122,7 +133,8 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  script_url.clone(),
                                                                  scope.clone(),
                                                                  self);
-        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone());
+        // B: Step 8
+        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*client);
         ScriptThread::schedule_job(job, &*worker_registration);
         promise
     }

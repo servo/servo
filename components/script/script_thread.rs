@@ -49,7 +49,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
-use dom::serviceworkerjob::{Job, JobQueue, ResolveJobHandler, RunJobHandler};
+use dom::serviceworkerjob::{Job, JobQueue, AsyncJobHandler, RunJobHandler};
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
 use dom::transitionevent::TransitionEvent;
@@ -1498,10 +1498,9 @@ impl ScriptThread {
         let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
     }
 
-    pub fn queue_resolve_job(&self, resolve_job_handler: Box<ResolveJobHandler>) {
-        let reg = resolve_job_handler.reg.root();
-        let global = reg.global();
-        let _ = self.dom_manipulation_task_source.queue(resolve_job_handler, global.r());
+    pub fn queue_async_job(&self, async_job_handler: Box<AsyncJobHandler>) {
+        let global = async_job_handler.global.root();
+        let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
     pub fn invoke_run_job(&self, run_job_handler: Box<RunJobHandler>) {

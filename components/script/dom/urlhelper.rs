@@ -31,4 +31,16 @@ impl UrlHelper {
     pub fn SetPassword(url: &mut Url, value: USVString) { let _ = quirks::set_password(url, &value.0); }
     pub fn SetProtocol(url: &mut Url, value: USVString) { let _ = quirks::set_protocol(url, &value.0); }
     pub fn SetUsername(url: &mut Url, value: USVString) { let _ = quirks::set_username(url, &value.0); }
+    // https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+    pub fn is_origin_trustworthy(url: &Url) -> bool {
+        // Step 3
+        if url.scheme() == "http" || url.scheme() == "wss" {
+            true
+        // Step 4
+        } else if url.host().is_some() {
+            let host = url.host_str().unwrap();
+            host == "127.0.0.0/8" || host == "::1/128"
+        // Step 5
+        } else  { url.scheme() == "file" }
+    }
 }
