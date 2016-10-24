@@ -65,8 +65,8 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     }
 
     #[allow(unrooted_must_root)]
-    // A: https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and
-    // B: https://w3c.github.io/ServiceWorker/#start-register-algorithm
+    // https://w3c.github.io/ServiceWorker/#service-worker-container-register-method and - A
+    // https://w3c.github.io/ServiceWorker/#start-register-algorithm - B
     fn Register(&self,
                 script_url: USVString,
                 options: &RegistrationOptions) -> Rc<Promise> {
