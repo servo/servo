@@ -88,7 +88,7 @@ use style::matching::{common_style_affecting_attributes, rare_style_affecting_at
 use style::parser::ParserContextExtraData;
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
-use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
+use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
@@ -574,19 +574,16 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(border) = border {
-            let width_value = specified::Length::Absolute(Au::from_px(border as i32));
+            let width_value = specified::BorderWidth::from_length(
+                specified::Length::Absolute(Au::from_px(border as i32)));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(
-                    longhands::border_top_width::SpecifiedValue(width_value)))));
+                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(
-                    longhands::border_left_width::SpecifiedValue(width_value)))));
+                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(width_value))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(
-                    longhands::border_bottom_width::SpecifiedValue(width_value)))));
+                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(width_value))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(
-                    longhands::border_right_width::SpecifiedValue(width_value)))));
+                PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(width_value))));
         }
     }
 
