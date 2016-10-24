@@ -30,7 +30,7 @@ pub struct Opts {
     pub is_running_problem_test: bool,
 
     /// The initial URL to load.
-    pub url: Option<Url>,
+    pub url: Url,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -486,7 +486,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: Some(Url::parse("about:blank").unwrap()),
+        url: Url::parse("about:blank").unwrap(),
         paint_threads: 1,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -787,7 +787,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
-        url: Some(url),
+        url: url,
         paint_threads: paint_threads,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
