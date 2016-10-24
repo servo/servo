@@ -6,7 +6,7 @@ pub use cssparser::ToCss;
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
 pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
-pub use style::values::specified::{BorderStyle, CSSColor, Length};
+pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::values::RGBA;
@@ -192,18 +192,13 @@ mod shorthand_serialization {
 
         #[test]
         fn border_width_should_serialize_correctly() {
-            use style::properties::longhands::border_bottom_width::SpecifiedValue as BottomContainer;
-            use style::properties::longhands::border_left_width::SpecifiedValue as LeftContainer;
-            use style::properties::longhands::border_right_width::SpecifiedValue as RightContainer;
-            use style::properties::longhands::border_top_width::SpecifiedValue as TopContainer;
-
             let mut properties = Vec::new();
 
-            let top_px = DeclaredValue::Value(TopContainer(Length::from_px(10f32)));
-            let bottom_px = DeclaredValue::Value(BottomContainer(Length::from_px(10f32)));
+            let top_px = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(10f32)));
+            let bottom_px = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(10f32)));
 
-            let right_px = DeclaredValue::Value(RightContainer(Length::from_px(15f32)));
-            let left_px = DeclaredValue::Value(LeftContainer(Length::from_px(15f32)));
+            let right_px = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(15f32)));
+            let left_px = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(15f32)));
 
             properties.push(PropertyDeclaration::BorderTopWidth(top_px));
             properties.push(PropertyDeclaration::BorderRightWidth(right_px));
@@ -212,6 +207,24 @@ mod shorthand_serialization {
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-width: 10px 15px;");
+        }
+
+        #[test]
+        fn border_width_with_keywords_should_serialize_correctly() {
+            let mut properties = Vec::new();
+
+            let top_px = DeclaredValue::Value(BorderWidth::Thin);
+            let right_px = DeclaredValue::Value(BorderWidth::Medium);
+            let bottom_px = DeclaredValue::Value(BorderWidth::Thick);
+            let left_px = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(15f32)));
+
+            properties.push(PropertyDeclaration::BorderTopWidth(top_px));
+            properties.push(PropertyDeclaration::BorderRightWidth(right_px));
+            properties.push(PropertyDeclaration::BorderBottomWidth(bottom_px));
+            properties.push(PropertyDeclaration::BorderLeftWidth(left_px));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "border-width: thin medium thick 15px;");
         }
 
         #[test]
@@ -257,10 +270,6 @@ mod shorthand_serialization {
 
 
     mod border_shorthands {
-        use style::properties::longhands::border_bottom_width::SpecifiedValue as BottomContainer;
-        use style::properties::longhands::border_left_width::SpecifiedValue as LeftContainer;
-        use style::properties::longhands::border_right_width::SpecifiedValue as RightContainer;
-        use style::properties::longhands::border_top_width::SpecifiedValue as TopContainer;
         use super::*;
 
         // we can use border-top as a base to test out the different combinations
@@ -270,7 +279,7 @@ mod shorthand_serialization {
         fn directional_border_should_show_all_properties_when_values_are_set() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(TopContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
@@ -289,7 +298,7 @@ mod shorthand_serialization {
         fn directional_border_with_no_specified_style_will_show_style_as_none() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(TopContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Initial;
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
@@ -308,7 +317,7 @@ mod shorthand_serialization {
         fn directional_border_with_no_specified_color_will_not_show_color() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(TopContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Initial;
 
@@ -324,7 +333,7 @@ mod shorthand_serialization {
         fn border_right_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(RightContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Initial;
 
@@ -340,7 +349,7 @@ mod shorthand_serialization {
         fn border_bottom_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(BottomContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Initial;
 
@@ -356,7 +365,7 @@ mod shorthand_serialization {
         fn border_left_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let width = DeclaredValue::Value(LeftContainer(Length::from_px(4f32)));
+            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Initial;
 
@@ -372,7 +381,7 @@ mod shorthand_serialization {
         fn border_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let top_width = DeclaredValue::Value(TopContainer(Length::from_px(4f32)));
+            let top_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let top_style = DeclaredValue::Value(BorderStyle::solid);
             let top_color = DeclaredValue::Initial;
 
@@ -380,7 +389,7 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::BorderTopStyle(top_style));
             properties.push(PropertyDeclaration::BorderTopColor(top_color));
 
-            let right_width = DeclaredValue::Value(RightContainer(Length::from_px(4f32)));
+            let right_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let right_style = DeclaredValue::Value(BorderStyle::solid);
             let right_color = DeclaredValue::Initial;
 
@@ -388,7 +397,7 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::BorderRightStyle(right_style));
             properties.push(PropertyDeclaration::BorderRightColor(right_color));
 
-            let bottom_width = DeclaredValue::Value(BottomContainer(Length::from_px(4f32)));
+            let bottom_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let bottom_style = DeclaredValue::Value(BorderStyle::solid);
             let bottom_color = DeclaredValue::Initial;
 
@@ -396,7 +405,7 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::BorderBottomStyle(bottom_style));
             properties.push(PropertyDeclaration::BorderBottomColor(bottom_color));
 
-            let left_width = DeclaredValue::Value(LeftContainer(Length::from_px(4f32)));
+            let left_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let left_style = DeclaredValue::Value(BorderStyle::solid);
             let left_color = DeclaredValue::Initial;
 
