@@ -411,14 +411,21 @@ ${helpers.single_keyword("font-variant-position",
 
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                let s = format!("{} {}", self.tag, self.value);
+                let s = format!("\"{}\" {}", self.tag, self.value);
                 dest.write_str(&s)
             }
         }
 
         impl FeatureTagValue {
+            /// <string> [ on | off | <integer> ]
             pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
                 let tag = try!(input.expect_string()).into_owned();
+
+                // allowed strings of length 4 containing chars: <U+20, U+7E>
+                if tag.len() != 4 ||
+                   tag.chars().any(|c| c < ' ' || c > '~') {
+                       return Err(())
+                   }
 
                 if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative
@@ -427,11 +434,14 @@ ${helpers.single_keyword("font-variant-position",
                     } else {
                         Err(())
                     }
+                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
+                    // on is an alias for '1'
+                    Ok(FeatureTagValue{ tag: tag, value: 1 })
                 } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
                     // off is an alias for '0'
                     Ok(FeatureTagValue{ tag: tag, value: 0 })
                 } else {
-                    // remainders (empty value and "on" keyword) are aliases for '1'
+                    // empty value is an alias for '1'
                     Ok(FeatureTagValue{ tag:tag, value: 1 })
                 }
             }
@@ -443,13 +453,13 @@ ${helpers.single_keyword("font-variant-position",
         computed_value::T::Normal
     }
 
+    /// normal | <feature-tag-value>#
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(computed_value::T::Normal)
         } else {
-            input.parse_comma_separated(|input| {
-                computed_value::FeatureTagValue::parse(input)
-            }).map(computed_value::T::Computed)
+            input.parse_comma_separated(computed_value::FeatureTagValue::parse)
+                 .map(computed_value::T::Computed)
         }
     }
 </%helpers:longhand>
