@@ -765,7 +765,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-kerning font-stretch font-style font-size font-weight"
+    skip_longhands="font-family font-size font-weight"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -798,9 +798,6 @@ fn static_assert() {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
     }
 
-    <%call expr="impl_keyword('font_style', 'mFont.style',
-        data.longhands_by_name['font-style'].keyword, need_clone=False)"></%call>
-
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
     // actual computed size, and the other of which (mFont.size) is the 'display
     // size' which takes font zooming into account. We don't handle font zooming yet.
@@ -815,19 +812,6 @@ fn static_assert() {
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
     }
-
-    <% kerning_keyword = Keyword("font-kerning", "auto normal none",
-                                 gecko_constant_prefix='NS_FONT_KERNING') %>
-
-    ${impl_keyword('font_kerning', 'mFont.kerning', kerning_keyword, need_clone=False)}
-
-    <% stretch_keyword = Keyword("font-stretch",
-                                 "normal ultra-condensed extra-condensed condensed " +
-                                 "semi-condensed semi-expanded expanded " +
-                                 "extra-expanded ultra-expanded",
-                                 gecko_constant_prefix='NS_FONT_STRETCH') %>
-
-    ${impl_keyword('font_stretch', 'mFont.stretch', stretch_keyword, need_clone=False, cast_type='i16')}
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
@@ -1637,17 +1621,6 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
-
-</%self:impl_trait>
-
-
-<%self:impl_trait style_struct_name="InheritedBox"
-                  skip_longhands="image-rendering">
-
-    <% render_keyword = Keyword("image-rendering",
-                                "auto optimizequality optimizespeed crispedges") %>
-
-    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False)}
 
 </%self:impl_trait>
 
