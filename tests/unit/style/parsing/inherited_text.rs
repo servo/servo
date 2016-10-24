@@ -43,4 +43,8 @@ fn text_emphasis_style_longhand_should_parse_properly() {
     let unicode_string = parse_longhand!(text_emphasis_style, "\"\\25B2\"");
     let unicode_string_struct = SpecifiedValue::String("▲".to_string());
     assert_eq!(unicode_string, unicode_string_struct);
+
+    let devanagari_string = parse_longhand!(text_emphasis_style, "\"षि\"");
+    let devanagari_string_struct = SpecifiedValue::String("षि".to_string());
+    assert_eq!(devanagari_string, devanagari_string_struct);
 }

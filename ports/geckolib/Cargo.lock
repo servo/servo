@@ -394,6 +394,7 @@ dependencies = [
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-segmentation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "walkdir 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -466,6 +467,11 @@ dependencies = [
 
 [[package]]
 name = "unicode-normalization"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "unicode-segmentation"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -587,6 +593,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "3c7ec6d62a20df54e07ab3b78b9a3932972f4b7981de295563686849eb3989af"
 "checksum unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c1f7ceb96afdfeedee42bade65a0d585a6a0106f681b6749c8ff4daa8df30b3f"
 "checksum unicode-normalization 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "26643a2f83bac55f1976fb716c10234485f9202dcd65cfbdf9da49867b271172"
+"checksum unicode-segmentation 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b905d0fc2a1f0befd86b0e72e31d1787944efef9d38b9358a9e92a69757f7e3b"
 "checksum unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1f2ae5ddb18e1c92664717616dd9549dde73f539f01bd7b77c2edb2446bdff91"
 "checksum url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "afe9ec54bc4db14bc8744b7fed060d785ac756791450959b2248443319d5b119"
 "checksum utf8-ranges 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a1ca13c08c41c9c3e04224ed9ff80461d97e121589ff27c753a16cb10830ae0f"
