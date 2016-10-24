@@ -22,8 +22,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg, BluetoothResponseListener};
-use net_traits::bluetooth_thread::{BluetoothResultMsg, BluetoothResponseMsg};
+use net_traits::bluetooth_thread::{BluetoothError, BluetoothRequest, BluetoothResponseListener};
+use net_traits::bluetooth_thread::BluetoothResponse;
 use network_listener::{NetworkListener, PreInvoke};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -50,21 +50,21 @@ struct BluetoothContext<T: AsyncBluetoothListener + Reflectable> {
 }
 
 pub trait AsyncBluetoothListener {
-    fn response(&self, result: BluetoothResultMsg, cx: *mut JSContext, promise: &Rc<Promise>);
+    fn handle_response(&self, result: BluetoothResponse, cx: *mut JSContext, promise: &Rc<Promise>);
 }
 
 impl<Listener: AsyncBluetoothListener + Reflectable> PreInvoke for BluetoothContext<Listener> {}
 
 impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener for BluetoothContext<Listener> {
     #[allow(unrooted_must_root)]
-    fn response(&mut self, result: BluetoothResultMsg) {
+    fn response(&mut self, response: BluetoothResponse) {
         let promise = self.promise.take().expect("bt promise is missing").root();
         let promise_cx = promise.global().r().get_cx();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        self.receiver.root().response(result, promise_cx, &promise);
+        self.receiver.root().handle_response(response, promise_cx, &promise);
     }
 }
 
@@ -87,7 +87,7 @@ impl Bluetooth {
                            BluetoothBinding::Wrap)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.as_window().bluetooth_thread()
@@ -114,14 +114,14 @@ impl Bluetooth {
         // Note: Steps 6-8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
         let sender = response_async(p, Trusted::new(self));
-        self.get_bluetooth_thread().send(BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
+        self.get_bluetooth_thread().send(BluetoothRequest::RequestDevice(option, sender)).unwrap();
     }
 }
 
 pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
         //chan: Box<ScriptChan + Send>,
         promise: &Rc<Promise>,
-        receiver: Trusted<T>) -> IpcSender<BluetoothResponseMsg> {
+        receiver: Trusted<T>) -> IpcSender<BluetoothResponse> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let chan = receiver.root().global().r().networking_task_source();
     let context = Arc::new(Mutex::new(BluetoothContext {
@@ -323,9 +323,9 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn response(&self, result: BluetoothResultMsg, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
-        match result {
-            BluetoothResultMsg::RequestDevice(device) => {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+        match response {
+            BluetoothResponse::RequestDevice(device) => {
                 // Step 12-13.
                 let ad_data = BluetoothAdvertisingData::new(self.global().r(),
                                                             device.appearance,
@@ -337,7 +337,7 @@ impl AsyncBluetoothListener for Bluetooth {
                                                &ad_data);
                 promise.resolve_native(promise_cx, &dev);
             },
-            BluetoothResultMsg::Error(error) => {
+            BluetoothResponse::Error(error) => {
                 promise.reject_error(promise_cx, Error::from(error));
             },
             _ => {

@@ -55,7 +55,7 @@ use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeySt
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
 use msg::constellation_msg::{TraversalDirection, WindowSizeType};
 use net_traits::{LoadOrigin, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
 use profile_traits::mem;
@@ -405,7 +405,7 @@ pub struct InitialScriptState {
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the time profiler thread.

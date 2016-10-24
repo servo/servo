@@ -79,7 +79,7 @@ use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
@@ -249,7 +249,7 @@ fn create_constellation(opts: opts::Opts,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
-    let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
+    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
         new_resource_threads(opts.user_agent.clone(),

@@ -30,7 +30,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use msg::constellation_msg::WindowSizeType;
 use net_traits::{self, IpcSend, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -118,7 +118,7 @@ pub struct Constellation<Message, LTF, STF> {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel through which messages can be sent to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// Sender to Service Worker Manager thread
     swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
@@ -197,7 +197,7 @@ pub struct InitialConstellationState {
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -1067,7 +1067,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
+        if let Err(e) = self.bluetooth_thread.send(BluetoothRequest::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
 

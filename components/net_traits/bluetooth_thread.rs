@@ -65,29 +65,29 @@ pub type BluetoothDescriptorsMsg = Vec<BluetoothDescriptorMsg>;
 pub type BluetoothResult<T> = Result<T, BluetoothError>;
 
 #[derive(Deserialize, Serialize)]
-pub enum BluetoothMethodMsg {
-    RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseMsg>),
-    GATTServerConnect(String, IpcSender<BluetoothResponseMsg>),
+pub enum BluetoothRequest {
+    RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponse>),
+    GATTServerConnect(String, IpcSender<BluetoothResponse>),
     GATTServerDisconnect(String, IpcSender<BluetoothResult<bool>>),
-    GetPrimaryService(String, String, IpcSender<BluetoothResponseMsg>),
-    GetPrimaryServices(String, Option<String>, IpcSender<BluetoothResponseMsg>),
-    GetIncludedService(String, String, IpcSender<BluetoothResponseMsg>),
-    GetIncludedServices(String, Option<String>, IpcSender<BluetoothResponseMsg>),
-    GetCharacteristic(String, String, IpcSender<BluetoothResponseMsg>),
-    GetCharacteristics(String, Option<String>, IpcSender<BluetoothResponseMsg>),
-    GetDescriptor(String, String, IpcSender<BluetoothResponseMsg>),
-    GetDescriptors(String, Option<String>, IpcSender<BluetoothResponseMsg>),
-    ReadValue(String, IpcSender<BluetoothResponseMsg>),
-    WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseMsg>),
+    GetPrimaryService(String, String, IpcSender<BluetoothResponse>),
+    GetPrimaryServices(String, Option<String>, IpcSender<BluetoothResponse>),
+    GetIncludedService(String, String, IpcSender<BluetoothResponse>),
+    GetIncludedServices(String, Option<String>, IpcSender<BluetoothResponse>),
+    GetCharacteristic(String, String, IpcSender<BluetoothResponse>),
+    GetCharacteristics(String, Option<String>, IpcSender<BluetoothResponse>),
+    GetDescriptor(String, String, IpcSender<BluetoothResponse>),
+    GetDescriptors(String, Option<String>, IpcSender<BluetoothResponse>),
+    ReadValue(String, IpcSender<BluetoothResponse>),
+    WriteValue(String, Vec<u8>, IpcSender<BluetoothResponse>),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
 
 #[derive(Deserialize, Serialize)]
-pub enum BluetoothResultMsg {
+pub enum BluetoothResponse {
     RequestDevice(BluetoothDeviceMsg),
     GATTServerConnect(bool),
-    GATTServerDisconnect(bool),
+    //GATTServerDisconnect(bool),
     GetPrimaryService(BluetoothServiceMsg),
     GetPrimaryServices(BluetoothServicesMsg),
     GetIncludedService(BluetoothServiceMsg),
@@ -101,30 +101,13 @@ pub enum BluetoothResultMsg {
     Error(BluetoothError),
 }
 
-#[derive(Deserialize, Serialize)]
-pub enum BluetoothResponseMsg {
-    Response(BluetoothResultMsg),
-}
-
-pub trait BluetoothTaskTarget {
-    fn response(&mut self, result: BluetoothResultMsg);
-}
-
 pub trait BluetoothResponseListener {
-    fn response(&mut self, result: BluetoothResultMsg);
+    fn response(&mut self, response: BluetoothResponse);
 }
 
-impl BluetoothTaskTarget for IpcSender<BluetoothResponseMsg> {
-    fn response(&mut self, result: BluetoothResultMsg) {
-        let _ = self.send(BluetoothResponseMsg::Response(result));
-    }
-}
-
-impl<T: BluetoothResponseListener> Action<T> for BluetoothResponseMsg {
+impl<T: BluetoothResponseListener> Action<T> for BluetoothResponse {
     /// Execute the default action on a provided listener.
     fn process(self, listener: &mut T) {
-        match self {
-            BluetoothResponseMsg::Response(result) => listener.response(result),
-        }
+        listener.response(self)
     }
 }

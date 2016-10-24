@@ -19,7 +19,7 @@ use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId, PipelineNamespaceId};
 use net_traits::{IpcSend, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
@@ -97,7 +97,7 @@ pub struct InitialPipelineState {
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// A channel to the service worker manager thread
     pub swmanager_thread: IpcSender<SWManagerMsg>,
     /// A channel to the image cache thread.
@@ -412,7 +412,7 @@ pub struct UnprivilegedPipelineContent {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,

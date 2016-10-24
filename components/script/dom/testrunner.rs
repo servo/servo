@@ -10,7 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
  #[dom_struct]
@@ -31,7 +31,7 @@ impl TestRunner {
                            TestRunnerBinding::Wrap)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.as_window().bluetooth_thread()
@@ -42,7 +42,7 @@ impl TestRunnerMethods for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread().send(BluetoothMethodMsg::Test(String::from(dataSetName), sender)).unwrap();
+        self.get_bluetooth_thread().send(BluetoothRequest::Test(String::from(dataSetName), sender)).unwrap();
 
         let result = receiver.recv().unwrap();
         match result {

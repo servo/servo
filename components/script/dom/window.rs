@@ -56,7 +56,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, ReferrerPolicy, WindowSizeType};
 use net_traits::ResourceThreads;
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
@@ -232,7 +232,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
@@ -351,7 +351,7 @@ impl Window {
         self.browsing_context.get().unwrap()
     }
 
-    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
@@ -1612,7 +1612,7 @@ impl Window {
                image_cache_chan: ImageCacheChan,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
-               bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+               bluetooth_thread: IpcSender<BluetoothRequest>,
                mem_profiler_chan: mem::ProfilerChan,
                time_profiler_chan: ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

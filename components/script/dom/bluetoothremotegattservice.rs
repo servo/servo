@@ -19,7 +19,7 @@ use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, Blue
 use dom::promise::Promise;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
-use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothResultMsg};
+use net_traits::bluetooth_thread::{BluetoothRequest, BluetoothResponse};
 use std::rc::Rc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
@@ -61,7 +61,7 @@ impl BluetoothRemoteGATTService {
                            BluetoothRemoteGATTServiceBinding::Wrap)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.as_window().bluetooth_thread()
@@ -108,7 +108,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         }
         let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
+            BluetoothRequest::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
     }
 
@@ -137,7 +137,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         };
         let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
+            BluetoothRequest::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
     }
 
@@ -161,7 +161,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         }
         let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::GetIncludedService(self.get_instance_id(),
+            BluetoothRequest::GetIncludedService(self.get_instance_id(),
                                                    uuid,
                                                    sender)).unwrap();
         return p;
@@ -187,7 +187,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         };
         let sender = response_async(&p, Trusted::new(self));
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::GetIncludedServices(self.get_instance_id(),
+            BluetoothRequest::GetIncludedServices(self.get_instance_id(),
                                                     uuid,
                                                     sender)).unwrap();
         return p;
@@ -195,9 +195,9 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
-    fn response(&self, result: BluetoothResultMsg, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
-        match result {
-            BluetoothResultMsg::GetCharacteristic(characteristic) => {
+    fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+        match response {
+            BluetoothResponse::GetCharacteristic(characteristic) => {
                 let properties = BluetoothCharacteristicProperties::new(self.global().r(),
                                                                         characteristic.broadcast,
                                                                         characteristic.read,
@@ -216,7 +216,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                     characteristic.instance_id);
                 promise.resolve_native(promise_cx, &c);
             },
-            BluetoothResultMsg::GetCharacteristics(characteristics_vec) => {
+            BluetoothResponse::GetCharacteristics(characteristics_vec) => {
                 let mut characteristics = vec!();
                 for characteristic in characteristics_vec {
                     let properties = BluetoothCharacteristicProperties::new(self.global().r(),
@@ -237,7 +237,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 }
                 promise.resolve_native(promise_cx, &characteristics);
             },
-            BluetoothResultMsg::GetIncludedService(service) => {
+            BluetoothResponse::GetIncludedService(service) => {
                 let s =
                     BluetoothRemoteGATTService::new(self.global().r(),
                                                     &self.device.get(),
@@ -246,7 +246,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                                                     service.instance_id);
                 promise.resolve_native(promise_cx, &s);
             },
-            BluetoothResultMsg::GetIncludedServices(services_vec) => {
+            BluetoothResponse::GetIncludedServices(services_vec) => {
                 let s: Vec<Root<BluetoothRemoteGATTService>> =
                     services_vec.into_iter()
                                 .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
@@ -257,7 +257,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                                .collect();
                 promise.resolve_native(promise_cx, &s);
             },
-            BluetoothResultMsg::Error(error) => {
+            BluetoothResponse::Error(error) => {
                 promise.reject_error(promise_cx, Error::from(error));
             },
             _ => {

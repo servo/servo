@@ -68,7 +68,7 @@ use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace}
 use msg::constellation_msg::{ReferrerPolicy, WindowSizeType};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
 use net_traits::{IpcSend, LoadData as NetLoadData};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::BluetoothRequest;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
@@ -333,7 +333,7 @@ pub struct ScriptThread {
     /// there are many iframes.
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,
