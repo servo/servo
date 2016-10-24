@@ -123,7 +123,9 @@
 ${helpers.single_keyword("font-style",
                          "normal italic oblique",
                          gecko_constant_prefix="NS_FONT_STYLE",
+                         gecko_ffi_name="mFont.style",
                          animatable=False)}
+
 ${helpers.single_keyword("font-variant",
                          "normal small-caps",
                          animatable=False)}
@@ -347,11 +349,16 @@ ${helpers.single_keyword("font-stretch",
                          "normal ultra-condensed extra-condensed condensed \
                           semi-condensed semi-expanded expanded extra-expanded \
                           ultra-expanded",
+                         gecko_ffi_name="mFont.stretch",
+                         gecko_constant_prefix="NS_FONT_STRETCH",
+                         cast_type='i16',
                          animatable=False)}
 
 ${helpers.single_keyword("font-kerning",
                          "auto none normal",
                          products="gecko",
+                         gecko_ffi_name="mFont.kerning",
+                         gecko_constant_prefix="NS_FONT_KERNING",
                          animatable=False)}
 
 ${helpers.single_keyword("font-variant-position",
