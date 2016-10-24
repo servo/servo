@@ -739,6 +739,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
                       response_chan: IpcSender<()>) {
+        debug!("Setting the frame tree for pipeline {}", frame_tree.pipeline.id);
         if let Err(e) = response_chan.send(()) {
             warn!("Sending reponse to set frame tree failed ({}).", e);
         }

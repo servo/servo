@@ -932,8 +932,8 @@ impl ScriptThread {
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
-                target: frame_id, parent: parent_pipeline_id } =>
-                self.handle_frame_load_event(parent_pipeline_id, frame_id),
+                target: frame_id, parent: parent_id, child: child_id } =>
+                self.handle_frame_load_event(parent_id, frame_id, child_id),
             ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, frame_id) =>
                 self.handle_framed_content_changed(parent_pipeline_id, frame_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
@@ -1193,12 +1193,15 @@ impl ScriptThread {
             None => return warn!("Message sent to closed pipeline {}.", pipeline),
         };
         if doc.loader().is_blocked() {
+            debug!("Script thread got loads complete while loader is blocked.");
             return;
         }
 
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
+        // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
+        // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
         let handler = box DocumentProgressHandler::new(Trusted::new(&doc));
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
@@ -1573,13 +1576,15 @@ impl ScriptThread {
     }
 
     /// Notify the containing document of a child frame that has completed loading.
-    fn handle_frame_load_event(&self, parent_pipeline_id: PipelineId, id: FrameId) {
-        let document = match self.root_browsing_context().find(parent_pipeline_id) {
+    fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
+        let document = match self.root_browsing_context().find(parent_id) {
             Some(browsing_context) => browsing_context.active_document(),
-            None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
+            None => return warn!("Message sent to closed pipeline {}.", parent_id),
         };
-        if let Some(iframe) = document.find_iframe(id) {
-            iframe.iframe_load_event_steps();
+        if let Some(iframe) = document.find_iframe(frame_id) {
+            if iframe.pipeline_id() == Some(child_id) {
+                iframe.iframe_load_event_steps(child_id);
+            }
         }
     }
 

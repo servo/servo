@@ -1399,7 +1399,7 @@ impl Document {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
                 let global_scope = self.window.upcast::<GlobalScope>();
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              Some(global_scope.pipeline_id()),
+                                                              global_scope.pipeline_id(),
                                                               event);
                 global_scope.constellation_chan().send(event).unwrap();
             }
@@ -1512,8 +1512,10 @@ impl Document {
             }
         }
 
-        let loader = self.loader.borrow();
-        if !loader.is_blocked() && !loader.events_inhibited() {
+        if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
+            // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
+            // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
+            debug!("Document loads are complete.");
             let win = self.window();
             let msg = MainThreadScriptMsg::DocumentLoadsComplete(
                 win.upcast::<GlobalScope>().pipeline_id());
