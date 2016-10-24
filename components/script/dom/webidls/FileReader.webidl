@@ -26,7 +26,6 @@ interface FileReader: EventTarget {
 
   // File or Blob data
   readonly attribute FileReaderResult? result;
-  //readonly attribute DOMString? result;
 
   readonly attribute DOMException? error;
 
