@@ -171,9 +171,6 @@ COMPILATION_TARGETS = {
             "nsTArrayHeader",
             "pair",
             "Position",
-            "RawGeckoDocument",
-            "RawGeckoElement",
-            "RawGeckoNode",
             "Runnable",
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
@@ -248,14 +245,17 @@ COMPILATION_TARGETS = {
         "files": [
             "{}/dist/include/mozilla/ServoBindings.h",
         ],
-
-        # Types to just use from the `structs` target.
-        "structs_types": [
-            "FontFamilyList",
-            "FontFamilyType",
+        "whitelist": [
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoNode",
+        ],
+
+        # Types to just use from the `structs` target.
+        "structs_types": [
+            "Element",
+            "FontFamilyList",
+            "FontFamilyType",
             "ServoElementSnapshot",
             "SheetParsingMode",
             "StyleBasicShape",
@@ -265,6 +265,8 @@ COMPILATION_TARGETS = {
             "nsChangeHint",
             "nsFont",
             "nsIAtom",
+            "nsIDocument",
+            "nsINode",
             "nsIPrincipal",
             "nsIURI",
             "nsMainThreadPtrHolder",

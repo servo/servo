@@ -39,11 +39,9 @@ pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut StyleChildr
 pub type StyleChildrenIteratorOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
 enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
+use gecko_bindings::structs::Element;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
-use gecko_bindings::structs::RawGeckoDocument;
-use gecko_bindings::structs::RawGeckoElement;
-use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
@@ -53,6 +51,8 @@ use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsIDocument;
+use gecko_bindings::structs::nsINode;
 use gecko_bindings::structs::nsIPrincipal;
 use gecko_bindings::structs::nsIURI;
 use gecko_bindings::structs::nsMainThreadPtrHolder;
@@ -170,6 +170,32 @@ use gecko_bindings::structs::nsStyleXUL;
 unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
 
+pub type RawGeckoNode = nsINode;
+pub type RawGeckoElement = Element;
+pub type RawGeckoDocument = nsIDocument;
+extern "C" {
+    pub fn Servo_StyleSheet_AddRef(ptr: RawServoStyleSheetBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleSheet_Release(ptr: RawServoStyleSheetBorrowed);
+}
+extern "C" {
+    pub fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed);
+}
+extern "C" {
+    pub fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_AddRef(ptr:
+                                             RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_Release(ptr:
+                                              RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
+}
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
                                       aCapacity: usize, aElementSize: usize);
@@ -822,20 +848,11 @@ extern "C" {
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
-    pub fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed);
-}
-extern "C" {
-    pub fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed);
-}
-extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
      -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
-}
-extern "C" {
-    pub fn Servo_StyleSet_Drop(set: RawServoStyleSetOwned);
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
@@ -880,14 +897,6 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_AddRef(declarations:
-                                             RawServoDeclarationBlockBorrowed);
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_Release(declarations:
-                                              RawServoDeclarationBlockBorrowed);
-}
-extern "C" {
     pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                          b: RawServoDeclarationBlockBorrowed)
      -> bool;
@@ -928,14 +937,6 @@ extern "C" {
     pub fn Servo_ComputedValues_Inherit(parent_style:
                                             ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong;
-}
-extern "C" {
-    pub fn Servo_ComputedValues_AddRef(computed_values:
-                                           ServoComputedValuesBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_Release(computed_values:
-                                            ServoComputedValuesBorrowed);
 }
 extern "C" {
     pub fn Servo_Initialize();
