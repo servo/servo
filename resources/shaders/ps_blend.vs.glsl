@@ -5,17 +5,23 @@
 
 void main(void) {
     Blend blend = fetch_blend(gl_InstanceID);
-    Tile src = fetch_tile(blend.src_id_target_id_opacity.x);
-    Tile dest = fetch_tile(blend.src_id_target_id_opacity.y);
+    Tile src = fetch_tile(blend.src_id_target_id_op_amount.x);
+    Tile dest = fetch_tile(blend.src_id_target_id_op_amount.y);
 
-    vec2 local_pos = mix(vec2(dest.target_rect.xy),
-                         vec2(dest.target_rect.xy + dest.target_rect.zw),
+    vec2 dest_origin = dest.screen_origin_task_origin.zw -
+                       dest.screen_origin_task_origin.xy +
+                       src.screen_origin_task_origin.xy;
+
+    vec2 local_pos = mix(dest_origin,
+                         dest_origin + src.size.xy,
                          aPosition.xy);
 
-    vec2 st0 = vec2(src.target_rect.xy) / 2048.0;
-    vec2 st1 = vec2(src.target_rect.xy + src.target_rect.zw) / 2048.0;
+    vec2 st0 = vec2(src.screen_origin_task_origin.zw) / 2048.0;
+    vec2 st1 = vec2(src.screen_origin_task_origin.zw + src.size.xy) / 2048.0;
     vUv = mix(st0, st1, aPosition.xy);
-    vBrightnessOpacity = blend.src_id_target_id_opacity.zw / 65535.0;
+
+    vOp = blend.src_id_target_id_op_amount.z;
+    vAmount = blend.src_id_target_id_op_amount.w / 65535.0;
 
     gl_Position = uTransform * vec4(local_pos, 0, 1);
 }

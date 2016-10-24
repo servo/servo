@@ -3,4 +3,5 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 varying vec2 vUv;
-varying vec2 vBrightnessOpacity;
+flat varying float vAmount;
+flat varying int vOp;
