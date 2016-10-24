@@ -361,7 +361,7 @@ ${helpers.single_keyword("font-variant-position",
                          gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                          animatable=False)}
 
-<%helpers:longhand name="font-feature-settings" animatable="False">
+<%helpers:longhand name="font-feature-settings" products="none" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::NoViewportPercentage;
@@ -420,15 +420,14 @@ ${helpers.single_keyword("font-variant-position",
             pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
                 let tag = try!(input.expect_string()).into_owned();
 
-                if input.try(|input| input.expect_integer()).is_ok() {
+                if let Ok(value) = input.try(|input| input.expect_integer()) {
                     // handle integer, throw if it is negative
-                    let value = 4;  //TODO: capture parsed input here
                     if value >= 0 {
                         Ok(FeatureTagValue{ tag: tag, value: value })
                     } else {
                         Err(())
                     }
-                } else if input.try(|input| input.expect_ident_matching("off")).is_ok() {
+                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
                     // off is an alias for '0'
                     Ok(FeatureTagValue{ tag: tag, value: 0 })
                 } else {
