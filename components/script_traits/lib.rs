@@ -237,6 +237,8 @@ pub enum ConstellationControlMsg {
         target: FrameId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
+        /// The pipeline that has completed loading.
+        child: PipelineId,
     },
     /// Notifies a parent pipeline that one of its child frames is now active.
     /// PipelineId is for the parent, FrameId is the child frame.

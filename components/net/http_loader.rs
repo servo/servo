@@ -784,7 +784,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         }
 
         if log_enabled!(log::LogLevel::Info) {
-            info!("{}", method);
+            info!("{} {}", method, connection_url);
             for header in headers.iter() {
                 info!(" - {}", header);
             }
