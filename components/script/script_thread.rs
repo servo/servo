@@ -1490,6 +1490,11 @@ impl ScriptThread {
         let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
+    pub fn finish_job(&self, scope_url: &Url) {
+        let job_queue = &mut *self.job_queue_map.borrow_mut();
+        job_queue.finish_job(scope_url);
+    }
+
     pub fn invoke_run_job(&self, run_job_handler: Box<RunJobHandler>) {
         let job_queue = &mut *self.job_queue_map.borrow_mut();
         job_queue.run_job(run_job_handler, self);
