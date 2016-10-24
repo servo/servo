@@ -197,72 +197,90 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
-            BluetoothResponse::GetCharacteristic(characteristic) => {
-                let properties = BluetoothCharacteristicProperties::new(self.global().r(),
-                                                                        characteristic.broadcast,
-                                                                        characteristic.read,
-                                                                        characteristic.write_without_response,
-                                                                        characteristic.write,
-                                                                        characteristic.notify,
-                                                                        characteristic.indicate,
-                                                                        characteristic.authenticated_signed_writes,
-                                                                        characteristic.reliable_write,
-                                                                        characteristic.writable_auxiliaries);
-                let c = BluetoothRemoteGATTCharacteristic::new(
-                    self.global().r(),
-                    &self,
-                    DOMString::from(characteristic.uuid),
-                    &properties,
-                    characteristic.instance_id);
-                promise.resolve_native(promise_cx, &c);
-            },
-            BluetoothResponse::GetCharacteristics(characteristics_vec) => {
-                let mut characteristics = vec!();
-                for characteristic in characteristics_vec {
-                    let properties = BluetoothCharacteristicProperties::new(self.global().r(),
-                                                                            characteristic.broadcast,
-                                                                            characteristic.read,
-                                                                            characteristic.write_without_response,
-                                                                            characteristic.write,
-                                                                            characteristic.notify,
-                                                                            characteristic.indicate,
-                                                                            characteristic.authenticated_signed_writes,
-                                                                            characteristic.reliable_write,
-                                                                            characteristic.writable_auxiliaries);
-                    characteristics.push(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
-                                                                                &self,
-                                                                                DOMString::from(characteristic.uuid),
-                                                                                &properties,
-                                                                                characteristic.instance_id));
+            BluetoothResponse::GetCharacteristic(result) => {
+                match result {
+                    Ok(characteristic) => {
+                        let properties =
+                        BluetoothCharacteristicProperties::new(self.global().r(),
+                                                               characteristic.broadcast,
+                                                               characteristic.read,
+                                                               characteristic.write_without_response,
+                                                               characteristic.write,
+                                                               characteristic.notify,
+                                                               characteristic.indicate,
+                                                               characteristic.authenticated_signed_writes,
+                                                               characteristic.reliable_write,
+                                                               characteristic.writable_auxiliaries);
+                        let c = BluetoothRemoteGATTCharacteristic::new(
+                            self.global().r(),
+                            &self,
+                            DOMString::from(characteristic.uuid),
+                            &properties,
+                            characteristic.instance_id);
+                        promise.resolve_native(promise_cx, &c);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
                 }
-                promise.resolve_native(promise_cx, &characteristics);
             },
-            BluetoothResponse::GetIncludedService(service) => {
-                let s =
-                    BluetoothRemoteGATTService::new(self.global().r(),
-                                                    &self.device.get(),
-                                                    DOMString::from(service.uuid),
-                                                    service.is_primary,
-                                                    service.instance_id);
-                promise.resolve_native(promise_cx, &s);
+            BluetoothResponse::GetCharacteristics(result) => {
+                match result {
+                    Ok(characteristics_vec) => {
+                        let mut characteristics = vec!();
+                        for characteristic in characteristics_vec {
+                            let properties =
+                                BluetoothCharacteristicProperties::new(self.global().r(),
+                                                                       characteristic.broadcast,
+                                                                       characteristic.read,
+                                                                       characteristic.write_without_response,
+                                                                       characteristic.write,
+                                                                       characteristic.notify,
+                                                                       characteristic.indicate,
+                                                                       characteristic.authenticated_signed_writes,
+                                                                       characteristic.reliable_write,
+                                                                       characteristic.writable_auxiliaries);
+                            characteristics.push(
+                                BluetoothRemoteGATTCharacteristic::new(self.global().r(),
+                                                                       &self,
+                                                                       DOMString::from(characteristic.uuid),
+                                                                       &properties,
+                                                                       characteristic.instance_id));
+                        }
+                        promise.resolve_native(promise_cx, &characteristics);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::GetIncludedServices(services_vec) => {
-                let s: Vec<Root<BluetoothRemoteGATTService>> =
-                    services_vec.into_iter()
-                                .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
-                                                                               &self.device.get(),
-                                                                               DOMString::from(service.uuid),
-                                                                               service.is_primary,
-                                                                               service.instance_id))
-                               .collect();
-                promise.resolve_native(promise_cx, &s);
+            BluetoothResponse::GetIncludedService(result) => {
+                match result {
+                    Ok(service) => {
+                        let s =
+                            BluetoothRemoteGATTService::new(self.global().r(),
+                                                            &self.device.get(),
+                                                            DOMString::from(service.uuid),
+                                                            service.is_primary,
+                                                            service.instance_id);
+                        promise.resolve_native(promise_cx, &s);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::Error(error) => {
-                promise.reject_error(promise_cx, Error::from(error));
+            BluetoothResponse::GetIncludedServices(result) => {
+                match result {
+                    Ok(services_vec) => {
+                        let s: Vec<Root<BluetoothRemoteGATTService>> =
+                            services_vec.into_iter()
+                                        .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                                                                                       &self.device.get(),
+                                                                                       DOMString::from(service.uuid),
+                                                                                       service.is_primary,
+                                                                                       service.instance_id))
+                                       .collect();
+                        promise.resolve_native(promise_cx, &s);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            _ => {
-                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
-            }
+            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

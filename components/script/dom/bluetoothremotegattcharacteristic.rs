@@ -214,39 +214,52 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
-            BluetoothResponse::GetDescriptor(descriptor) => {
-                let d =
-                    BluetoothRemoteGATTDescriptor::new(self.global().r(),
-                                                       &self,
-                                                       DOMString::from(descriptor.uuid),
-                                                       descriptor.instance_id);
-                promise.resolve_native(promise_cx, &d);
+            BluetoothResponse::GetDescriptor(result) => {
+                match result {
+                    Ok(descriptor) => {
+                        let d =
+                            BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                               &self,
+                                                               DOMString::from(descriptor.uuid),
+                                                               descriptor.instance_id);
+                        promise.resolve_native(promise_cx, &d);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::GetDescriptors(descriptors_vec) => {
-                let d: Vec<Root<BluetoothRemoteGATTDescriptor>> =
-                    descriptors_vec.into_iter()
-                                   .map(|desc|
-                                        BluetoothRemoteGATTDescriptor::new(self.global().r(),
-                                                                           &self,
-                                                                           DOMString::from(desc.uuid),
-                                                                           desc.instance_id))
-                                  .collect();
-                promise.resolve_native(promise_cx, &d);
+            BluetoothResponse::GetDescriptors(result) => {
+                match  result {
+                    Ok(descriptors_vec) => {
+                        let d: Vec<Root<BluetoothRemoteGATTDescriptor>> =
+                            descriptors_vec.into_iter()
+                                           .map(|desc|
+                                                BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                                                   &self,
+                                                                                   DOMString::from(desc.uuid),
+                                                                                   desc.instance_id))
+                                          .collect();
+                        promise.resolve_native(promise_cx, &d);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
             BluetoothResponse::ReadValue(result) => {
-                let value = ByteString::new(result);
-                *self.value.borrow_mut() = Some(value.clone());
-                promise.resolve_native(promise_cx, &value);
+                match result {
+                    Ok(result) => {
+                        let value = ByteString::new(result);
+                        *self.value.borrow_mut() = Some(value.clone());
+                        promise.resolve_native(promise_cx, &value);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
             BluetoothResponse::WriteValue(result) => {
-                promise.resolve_native(promise_cx, &result);
+                match result {
+                    Ok(result) => promise.resolve_native(promise_cx, &result),
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::Error(error) => {
-                promise.reject_error(promise_cx, Error::from(error));
-            },
-            _ => {
-                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
-            }
+            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

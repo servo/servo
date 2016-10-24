@@ -85,20 +85,19 @@ pub enum BluetoothRequest {
 
 #[derive(Deserialize, Serialize)]
 pub enum BluetoothResponse {
-    RequestDevice(BluetoothDeviceMsg),
-    GATTServerConnect(bool),
+    RequestDevice(BluetoothResult<BluetoothDeviceMsg>),
+    GATTServerConnect(BluetoothResult<bool>),
     //GATTServerDisconnect(bool),
-    GetPrimaryService(BluetoothServiceMsg),
-    GetPrimaryServices(BluetoothServicesMsg),
-    GetIncludedService(BluetoothServiceMsg),
-    GetIncludedServices(BluetoothServicesMsg),
-    GetCharacteristic(BluetoothCharacteristicMsg),
-    GetCharacteristics(BluetoothCharacteristicsMsg),
-    GetDescriptor(BluetoothDescriptorMsg),
-    GetDescriptors(BluetoothDescriptorsMsg),
-    ReadValue(Vec<u8>),
-    WriteValue(()),
-    Error(BluetoothError),
+    GetPrimaryService(BluetoothResult<BluetoothServiceMsg>),
+    GetPrimaryServices(BluetoothResult<BluetoothServicesMsg>),
+    GetIncludedService(BluetoothResult<BluetoothServiceMsg>),
+    GetIncludedServices(BluetoothResult<BluetoothServicesMsg>),
+    GetCharacteristic(BluetoothResult<BluetoothCharacteristicMsg>),
+    GetCharacteristics(BluetoothResult<BluetoothCharacteristicsMsg>),
+    GetDescriptor(BluetoothResult<BluetoothDescriptorMsg>),
+    GetDescriptors(BluetoothResult<BluetoothDescriptorsMsg>),
+    ReadValue(BluetoothResult<Vec<u8>>),
+    WriteValue(BluetoothResult<()>),
 }
 
 pub trait BluetoothResponseListener {

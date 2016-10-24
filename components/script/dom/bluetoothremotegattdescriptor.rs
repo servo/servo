@@ -135,19 +135,22 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
             BluetoothResponse::ReadValue(result) => {
-                let value = ByteString::new(result);
-                *self.value.borrow_mut() = Some(value.clone());
-                promise.resolve_native(promise_cx, &value);
+                match result {
+                    Ok(result) => {
+                        let value = ByteString::new(result);
+                        *self.value.borrow_mut() = Some(value.clone());
+                        promise.resolve_native(promise_cx, &value);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
             BluetoothResponse::WriteValue(result) => {
-                promise.resolve_native(promise_cx, &result);
+                match result {
+                    Ok(result) => promise.resolve_native(promise_cx, &result),
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::Error(error) => {
-                promise.reject_error(promise_cx, Error::from(error));
-            },
-            _ => {
-                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
-            }
+            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
     }
 }

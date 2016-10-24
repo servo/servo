@@ -325,24 +325,23 @@ impl BluetoothMethods for Bluetooth {
 impl AsyncBluetoothListener for Bluetooth {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
-            BluetoothResponse::RequestDevice(device) => {
-                // Step 12-13.
-                let ad_data = BluetoothAdvertisingData::new(self.global().r(),
-                                                            device.appearance,
-                                                            device.tx_power,
-                                                            device.rssi);
-                let dev = BluetoothDevice::new(self.global().r(),
-                                               DOMString::from(device.id),
-                                               device.name.map(DOMString::from),
-                                               &ad_data);
-                promise.resolve_native(promise_cx, &dev);
+            BluetoothResponse::RequestDevice(result) => {
+                match result {
+                    Ok(device) => {
+                        let ad_data = BluetoothAdvertisingData::new(self.global().r(),
+                                                                    device.appearance,
+                                                                    device.tx_power,
+                                                                    device.rssi);
+                        let dev = BluetoothDevice::new(self.global().r(),
+                                                       DOMString::from(device.id),
+                                                       device.name.map(DOMString::from),
+                                                       &ad_data);
+                        promise.resolve_native(promise_cx, &dev);
+                    },
+                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+                }
             },
-            BluetoothResponse::Error(error) => {
-                promise.reject_error(promise_cx, Error::from(error));
-            },
-            _ => {
-                promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned()));
-            }
+            _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
     }
 }
