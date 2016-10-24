@@ -625,7 +625,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "fontsan"
 version = "0.3.2"
-source = "git+https://github.com/servo/fontsan#5519a0599d7f80f0f4781e562a37878b45f72e04"
+source = "git+https://github.com/servo/fontsan#ab68da1723827d6302653ccb76c1d215d36b7d4c"
 dependencies = [
  "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
