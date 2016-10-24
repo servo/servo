@@ -163,17 +163,17 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             return Err(TexImageValidationError::NegativeDimension);
         }
 
-        // GL_INVALID_VALUE is generated if width or height is greater than
-        // GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
-        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
-        if self.width as u32 > max_size || self.height as u32 > max_size {
-            self.context.webgl_error(InvalidValue);
-            return Err(TexImageValidationError::TextureTooBig);
-        }
-
         let width = self.width as u32;
         let height = self.height as u32;
         let level = self.level as u32;
+
+        // GL_INVALID_VALUE is generated if width or height is greater than
+        // GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
+        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+        if width > max_size >> level || height > max_size >> level {
+            self.context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::TextureTooBig);
+        }
 
         // GL_INVALID_VALUE is generated if level is greater than zero and the
         // texture is not power of two.
