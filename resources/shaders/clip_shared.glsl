@@ -1,3 +1,4 @@
+#line 1
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,7 +8,7 @@ flat varying vec4 vClipRadius;
 
 #ifdef WR_VERTEX_SHADER
 void write_clip(Clip clip) {
-    vClipRect = vec4(clip.rect.xy, clip.rect.xy + clip.rect.zw);
+    vClipRect = vec4(clip.rect.rect.xy, clip.rect.rect.xy + clip.rect.rect.zw);
     vClipRadius = vec4(clip.top_left.outer_inner_radius.x,
                        clip.top_right.outer_inner_radius.x,
                        clip.bottom_right.outer_inner_radius.x,

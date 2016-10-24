@@ -4,8 +4,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 void main(void) {
-    BoxShadow bs = fetch_boxshadow(gl_InstanceID);
-    VertexInfo vi = write_vertex(bs.info);
+    Primitive prim = load_primitive(gl_InstanceID);
+    BoxShadow bs = fetch_boxshadow(prim.prim_index);
+    vec4 segment_rect = fetch_instance_geometry(prim.user_data.x + prim.user_data.y);
+
+    VertexInfo vi = write_vertex(segment_rect,
+                                 prim.local_clip_rect,
+                                 prim.layer,
+                                 prim.tile);
 
     vPos = vi.local_clamped_pos;
     vColor = bs.color;

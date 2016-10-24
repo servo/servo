@@ -981,12 +981,10 @@ impl LayoutThread {
 
             // TODO(gw) For now only create a root scrolling layer!
             let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
-            let root_scroll_layer_id = frame_builder.next_scroll_layer_id();
             let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
                 &mut self.webrender_api,
                 pipeline_id,
                 epoch,
-                Some(root_scroll_layer_id),
                 &mut frame_builder);
             let root_background_color = get_root_flow_background_color(layout_root);
             let root_background_color =
