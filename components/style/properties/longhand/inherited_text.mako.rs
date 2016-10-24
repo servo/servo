@@ -741,6 +741,7 @@ ${helpers.single_keyword("text-align-last",
     use computed_values::writing_mode::T as writing_mode;
     use cssparser::ToCss;
     use std::fmt;
+    use unicode_segmentation::UnicodeSegmentation;
     use values::LocalToCss;
     use values::NoViewportPercentage;
 
@@ -889,7 +890,9 @@ ${helpers.single_keyword("text-align-last",
                 },
                 SpecifiedValue::None => computed_value::T::None,
                 SpecifiedValue::String(ref s) => {
-                    let string = s.chars().next().as_ref().map(ToString::to_string).unwrap_or_default();
+                    // Passing `true` to iterate over extended grapheme clusters, following
+                    // recommendation at http://www.unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries
+                    let string = s.graphemes(true).next().unwrap_or("").to_string();
                     computed_value::T::String(string)
                 }
             }

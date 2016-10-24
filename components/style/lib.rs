@@ -87,6 +87,8 @@ extern crate smallvec;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
+#[allow(unused_extern_crates)]
+extern crate unicode_segmentation;
 extern crate url;
 extern crate util;
 

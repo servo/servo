@@ -53,6 +53,7 @@ smallvec = "0.1"
 string_cache = {version = "0.2.26", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}
 time = "0.1"
+unicode-segmentation = "0.1.2"
 url = "1.2"
 util = {path = "../util"}
 plugins = {path = "../plugins", optional = true}
