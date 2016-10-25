@@ -64,7 +64,7 @@ impl TableRowGroupFlow {
     pub fn from_fragment(fragment: Fragment) -> TableRowGroupFlow {
         let writing_mode = fragment.style().writing_mode;
         TableRowGroupFlow {
-            block_flow: BlockFlow::from_fragment(fragment, None),
+            block_flow: BlockFlow::from_fragment(fragment),
             column_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             spacing: border_spacing::T {

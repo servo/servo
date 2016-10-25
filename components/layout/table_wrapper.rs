@@ -57,8 +57,13 @@ pub struct TableWrapperFlow {
 }
 
 impl TableWrapperFlow {
-    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> TableWrapperFlow {
-        let mut block_flow = BlockFlow::from_fragment(fragment, float_kind);
+    pub fn from_fragment(fragment: Fragment) -> TableWrapperFlow {
+        TableWrapperFlow::from_fragment_and_float_kind(fragment, None)
+    }
+
+    pub fn from_fragment_and_float_kind(fragment: Fragment, float_kind: Option<FloatKind>)
+                                        -> TableWrapperFlow {
+        let mut block_flow = BlockFlow::from_fragment_and_float_kind(fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::T::fixed {
             TableLayout::Fixed

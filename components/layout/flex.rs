@@ -382,7 +382,7 @@ impl FlexFlow {
         }
 
         FlexFlow {
-            block_flow: BlockFlow::from_fragment(fragment, flotation),
+            block_flow: BlockFlow::from_fragment_and_float_kind(fragment, flotation),
             main_mode: main_mode,
             available_main_size: AxisSize::Infinite,
             available_cross_size: AxisSize::Infinite,
