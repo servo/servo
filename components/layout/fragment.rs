@@ -1176,10 +1176,11 @@ impl Fragment {
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
             }
-        }
 
-        // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-        let surrounding_inline_size = self.surrounding_intrinsic_inline_size();
+            if self.style.get_position().box_sizing == box_sizing::T::border_box {
+                specified -= border_padding
+            }
+        }
 
         IntrinsicISizesContribution {
             content_intrinsic_sizes: IntrinsicISizes {
