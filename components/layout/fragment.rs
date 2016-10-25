@@ -1091,11 +1091,11 @@ impl Fragment {
         }
     }
 
-    /// Returns the portion of the intrinsic inline-size that consists of borders, padding, and/or
-    /// margins.
+    /// Returns the portion of the intrinsic inline-size that consists of borders/padding and
+    /// margins, respectively.
     ///
     /// FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-    pub fn surrounding_intrinsic_inline_size(&self) -> Au {
+    pub fn surrounding_intrinsic_inline_size(&self) -> (Au, Au) {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
 
@@ -1127,16 +1127,19 @@ impl Fragment {
             Au(0)
         };
 
-        margin + padding + border
+        (border + padding, margin)
     }
 
     /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text
     /// or replaced elements.
-    fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
+    pub fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let mut specified = Au(0);
 
+        // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
+        let (border_padding, margin) = self.surrounding_intrinsic_inline_size();
+
+        let mut specified = Au(0);
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             specified = MaybeAuto::from_style(style.content_inline_size(),
                                               Au(0)).specified_or_zero();
@@ -1154,7 +1157,7 @@ impl Fragment {
                 minimum_inline_size: specified,
                 preferred_inline_size: specified,
             },
-            surrounding_size: surrounding_inline_size,
+            surrounding_size: border_padding + margin,
         }
     }
 
