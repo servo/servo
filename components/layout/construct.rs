@@ -620,8 +620,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
             let mut style = node.style(self.style_context());
             if node_is_input_or_text_area {
-                style = self.style_context().stylist.
-                    precomputed_values_for_pseudo(&PseudoElement::ServoInputText, Some(&style)).unwrap();
+                style = self.style_context()
+                            .stylist
+                            .style_for_anonymous_box(&PseudoElement::ServoInputText, &style)
             }
 
             self.create_fragments_for_node_text_content(&mut initial_fragments, node, &style)
