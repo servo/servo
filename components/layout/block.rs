@@ -1457,7 +1457,8 @@ impl BlockFlow {
             display::T::table_caption |
             display::T::table_row_group |
             display::T::table |
-            display::T::inline_block => {
+            display::T::inline_block |
+            display::T::flex => {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
