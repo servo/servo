@@ -233,7 +233,13 @@ COMPILATION_TARGETS = {
     # Generation of the ffi bindings.
     "bindings": {
         "target_dir": "../gecko_bindings",
-        "raw_lines": [],
+        "blacklist_types": [
+            "nsACString_internal",
+        ],
+        "raw_lines": [
+            "pub use nsstring::nsACString;",
+            "type nsACString_internal = nsACString;",
+        ],
         "flags": [
             "--ignore-methods",
         ],
