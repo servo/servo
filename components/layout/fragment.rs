@@ -1233,7 +1233,8 @@ impl Fragment {
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableColumn(_) => {
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 self.margin.inline_start = Au(0);
                 self.margin.inline_end = Au(0);
                 return
