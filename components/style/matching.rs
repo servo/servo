@@ -13,7 +13,7 @@ use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{NodeStyles, PseudoStyles};
 use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
-use properties::{ComputedValues, cascade};
+use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
@@ -489,6 +489,8 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
 
 // Callers need to pass several boolean flags to cascade_node_pseudo_element.
 // We encapsulate them in this struct to avoid mixing them up.
+//
+// FIXME(pcwalton): Unify with `CascadeFlags`, perhaps?
 struct CascadeBooleans {
     shareable: bool,
     cacheable: bool,
@@ -523,6 +525,11 @@ trait PrivateMatchMethods: TNode {
         cacheable = cacheable && !has_style_attribute;
 
         let mut cascade_info = CascadeInfo::new();
+        let mut cascade_flags = CascadeFlags::empty();
+        if booleans.shareable {
+            cascade_flags.insert(SHAREABLE)
+        }
+
         let (this_style, is_cacheable) = match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
@@ -533,20 +540,20 @@ trait PrivateMatchMethods: TNode {
 
                 cascade(shared_context.viewport_size,
                         applicable_declarations,
-                        booleans.shareable,
                         Some(&***parent_style),
                         cached_computed_values,
                         Some(&mut cascade_info),
-                        shared_context.error_reporter.clone())
+                        shared_context.error_reporter.clone(),
+                        cascade_flags)
             }
             None => {
                 cascade(shared_context.viewport_size,
                         applicable_declarations,
-                        booleans.shareable,
                         None,
                         None,
                         Some(&mut cascade_info),
-                        shared_context.error_reporter.clone())
+                        shared_context.error_reporter.clone(),
+                        cascade_flags)
             }
         };
         cascade_info.finish(self);

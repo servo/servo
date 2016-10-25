@@ -9,7 +9,7 @@ use context::SharedStyleContext;
 use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
-use properties::{self, ComputedValues, Importance};
+use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
@@ -397,11 +397,11 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             };
             let (computed, _) = properties::cascade(context.viewport_size,
                                                     &[declaration_block],
-                                                    false,
                                                     Some(previous_style),
                                                     None,
                                                     None,
-                                                    context.error_reporter.clone());
+                                                    context.error_reporter.clone(),
+                                                    CascadeFlags::empty());
             computed
         }
     }
