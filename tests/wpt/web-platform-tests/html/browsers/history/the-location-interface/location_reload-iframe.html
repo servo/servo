@@ -1,4 +1,4 @@
 <script>
   parent._ping(window.location.href)
-  location.reload();
+  if (parent._pingCount < 5) { location.reload(); }
 </script>
