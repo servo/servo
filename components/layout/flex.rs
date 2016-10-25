@@ -7,7 +7,7 @@
 #![deny(unsafe_code)]
 
 use app_units::{Au, MAX_AU};
-use block::BlockFlow;
+use block::{BlockFlow, MarginsMayCollapseFlag};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use euclid::Point2D;
@@ -644,7 +644,7 @@ impl FlexFlow {
     }
 
     // TODO(zentner): This function should actually flex elements!
-    fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn block_mode_assign_block_size(&mut self) {
         let mut cur_b = if !self.main_reverse {
             self.block_flow.fragment.border_padding.block_start
         } else {
@@ -660,7 +660,6 @@ impl FlexFlow {
                 base.position.start.b = cur_b;
             }
         }
-        self.block_flow.assign_block_size(layout_context)
     }
 
     fn inline_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
@@ -917,7 +916,10 @@ impl Flow for FlexFlow {
     }
 
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size(layout_context);
+        self.block_flow
+            .assign_block_size_block_base(layout_context,
+                                          None,
+                                          MarginsMayCollapseFlag::MarginsMayNotCollapse);
         match self.main_mode {
             Direction::Inline => self.inline_mode_assign_block_size(layout_context),
             Direction::Block => self.block_mode_assign_block_size(),
