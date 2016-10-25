@@ -124,10 +124,9 @@ impl TableFlow {
                     }
                 }
 
-                total_inline_sizes.minimum_inline_size = total_inline_sizes.minimum_inline_size +
+                total_inline_sizes.minimum_inline_size +=
                     parent_inline_sizes[column_index].minimum_length;
-                total_inline_sizes.preferred_inline_size =
-                    total_inline_sizes.preferred_inline_size +
+                total_inline_sizes.preferred_inline_size +=
                     parent_inline_sizes[column_index].preferred;
 
                 column_index += 1
@@ -380,7 +379,8 @@ impl Flow for TableFlow {
             TableLayout::Fixed => {
                 // In fixed table layout, we distribute extra space among the unspecified columns
                 // if there are any, or among all the columns if all are specified.
-                // See: https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns (infobox)
+                // See: https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns
+                // (infobox)
                 self.column_computed_inline_sizes.clear();
                 if num_unspecified_inline_sizes != 0 {
                     let extra_column_inline_size = content_inline_size - total_column_inline_size;
