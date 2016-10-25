@@ -350,61 +350,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         Fragment::new(node, specific_fragment_info, self.layout_context)
     }
 
-    /// Generates anonymous table objects per CSS 2.1 § 17.2.1.
-    fn generate_anonymous_table_flows_if_necessary(&mut self,
-                                                   flow: &mut FlowRef,
-                                                   child: &mut FlowRef,
-                                                   child_node: &ConcreteThreadSafeLayoutNode) {
-        if !flow.is_block_flow() {
-            return
-        }
-
-        let style_context = self.style_context();
-        if child.is_table_cell() {
-            let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table_row);
-            let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
-                                                                PseudoElementType::Normal,
-                                                                style,
-                                                                child_node.selected_style(style_context),
-                                                                child_node.restyle_damage(),
-                                                                SpecificFragmentInfo::TableRow);
-            let mut new_child: FlowRef = Arc::new(TableRowFlow::from_fragment(fragment));
-            new_child.add_new_child(child.clone());
-            child.finish();
-            *child = new_child
-        }
-        if child.is_table_row() || child.is_table_rowgroup() {
-            let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
-            let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
-                                                                PseudoElementType::Normal,
-                                                                style,
-                                                                child_node.selected_style(style_context),
-                                                                child_node.restyle_damage(),
-                                                                SpecificFragmentInfo::Table);
-            let mut new_child: FlowRef = Arc::new(TableFlow::from_fragment(fragment));
-            new_child.add_new_child(child.clone());
-            child.finish();
-            *child = new_child
-        }
-        if child.is_table() {
-            let mut style = child_node.style(style_context);
-            properties::modify_style_for_anonymous_table_object(&mut style, display::T::table);
-            let fragment =
-                Fragment::from_opaque_node_and_style(child_node.opaque(),
-                                                     PseudoElementType::Normal,
-                                                     style,
-                                                     child_node.selected_style(style_context),
-                                                     child_node.restyle_damage(),
-                                                     SpecificFragmentInfo::TableWrapper);
-            let mut new_child: FlowRef = Arc::new(TableWrapperFlow::from_fragment(fragment, None));
-            new_child.add_new_child(child.clone());
-            child.finish();
-            *child = new_child
-        }
-    }
-
     /// Creates an inline flow from a set of inline fragments, then adds it as a child of the given
     /// flow or pushes it onto the given flow list.
     ///
@@ -1069,35 +1014,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {}
             }
         }
-    }
-
-    /// Generates an anonymous table flow according to CSS 2.1 § 17.2.1, step 2.
-    /// If necessary, generate recursively another anonymous table flow.
-    fn generate_anonymous_missing_child(&mut self,
-                                        child_flows: Vec<FlowRef>,
-                                        flow: &mut FlowRef,
-                                        node: &ConcreteThreadSafeLayoutNode) {
-        let mut anonymous_flow = flow.generate_missing_child_flow(node, self.layout_context);
-        let mut consecutive_siblings = vec!();
-        for kid_flow in child_flows {
-            if anonymous_flow.need_anonymous_flow(&*kid_flow) {
-                consecutive_siblings.push(kid_flow);
-                continue;
-            }
-            if !consecutive_siblings.is_empty() {
-                self.generate_anonymous_missing_child(consecutive_siblings,
-                                                      &mut anonymous_flow,
-                                                      node);
-                consecutive_siblings = vec!();
-            }
-            anonymous_flow.add_new_child(kid_flow);
-        }
-        if !consecutive_siblings.is_empty() {
-            self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
-        }
-        // The flow is done.
-        anonymous_flow.finish();
-        flow.add_new_child(anonymous_flow);
     }
 
     /// Builds a flow for a node with `column-count` or `column-width` non-`auto`.
