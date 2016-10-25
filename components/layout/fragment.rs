@@ -1075,7 +1075,12 @@ impl Fragment {
             SpecificFragmentInfo::Svg(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
+            SpecificFragmentInfo::Table => {
+                INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+            }
+            SpecificFragmentInfo::TableCell => {
                 let base_quantities = INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
                     INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
