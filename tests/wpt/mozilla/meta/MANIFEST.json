@@ -1424,6 +1424,18 @@
             "url": "/_mozilla/css/dirty_viewport.html"
           }
         ],
+        "css/display_table_cell_intrinsic_width_a.html": [
+          {
+            "path": "css/display_table_cell_intrinsic_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/display_table_cell_intrinsic_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/display_table_cell_intrinsic_width_a.html"
+          }
+        ],
         "css/empty_cells_a.html": [
           {
             "path": "css/empty_cells_a.html",
@@ -5968,18 +5980,6 @@
               ]
             ],
             "url": "/_mozilla/css/white-space-mixed-002.htm"
-          }
-        ],
-        "css/white-space-normal-001.htm": [
-          {
-            "path": "css/white-space-normal-001.htm",
-            "references": [
-              [
-                "/_mozilla/css/white-space-normal-001-ref.htm",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/white-space-normal-001.htm"
           }
         ],
         "css/white-space-pre-line.htm": [
@@ -15260,6 +15260,18 @@
           "url": "/_mozilla/css/dirty_viewport.html"
         }
       ],
+      "css/display_table_cell_intrinsic_width_a.html": [
+        {
+          "path": "css/display_table_cell_intrinsic_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/display_table_cell_intrinsic_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/display_table_cell_intrinsic_width_a.html"
+        }
+      ],
       "css/empty_cells_a.html": [
         {
           "path": "css/empty_cells_a.html",
@@ -19816,18 +19828,6 @@
             ]
           ],
           "url": "/_mozilla/css/white-space-mixed-002.htm"
-        }
-      ],
-      "css/white-space-normal-001.htm": [
-        {
-          "path": "css/white-space-normal-001.htm",
-          "references": [
-            [
-              "/_mozilla/css/white-space-normal-001-ref.htm",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/white-space-normal-001.htm"
         }
       ],
       "css/white-space-pre-line.htm": [
