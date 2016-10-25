@@ -825,6 +825,14 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.type_id()
     }
 
+    fn style_for_text_node(&self) -> Arc<ComputedValues> {
+        debug_assert!(self.is_text_node());
+        let parent = self.node.parent_node().unwrap();
+        let parent_data = parent.get_style_data().unwrap().borrow();
+        let parent_style = &parent_data.current_styles().primary;
+        ComputedValues::style_for_child_text_node(parent_style)
+    }
+
     fn debug_id(self) -> usize {
         self.node.debug_id()
     }
