@@ -171,3 +171,18 @@ svg > * {
 *|*::-servo-input-text {
     margin: 0;
 }
+
+*|*::-servo-anonymous-table {
+    display: table;
+    position: static;
+}
+
+*|*::-servo-anonymous-table-cell {
+    display: table-cell;
+    position: static;
+}
+
+*|*::-servo-anonymous-table-row {
+    display: table-row;
+    position: static;
+}

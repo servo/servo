@@ -21,6 +21,9 @@ pub enum PseudoElement {
     Selection,
     DetailsSummary,
     DetailsContent,
+    ServoAnonymousTable,
+    ServoAnonymousTableCell,
+    ServoAnonymousTableRow,
     ServoInputText,
 }
 
@@ -33,6 +36,9 @@ impl ToCss for PseudoElement {
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
+            ServoAnonymousTable => "::-servo-anonymous-table",
+            ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
+            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoInputText => "::-servo-input-text",
         })
     }
@@ -57,6 +63,9 @@ impl PseudoElement {
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoInputText => PseudoElementCascadeType::Precomputed,
         }
     }
@@ -204,6 +213,24 @@ impl SelectorImpl for ServoSelectorImpl {
                 }
                 DetailsContent
             },
+            "-servo-anonymous-table" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTable
+            },
+            "-servo-anonymous-table-cell" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTableCell
+            },
+            "-servo-anonymous-table-row" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTableRow
+            },
             "-servo-input-text" => {
                 if !context.in_user_agent_stylesheet {
                     return Err(())
@@ -231,6 +258,9 @@ impl ServoSelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
+        fun(PseudoElement::ServoAnonymousTable);
+        fun(PseudoElement::ServoAnonymousTableCell);
+        fun(PseudoElement::ServoAnonymousTableRow);
         fun(PseudoElement::ServoInputText);
     }
 
