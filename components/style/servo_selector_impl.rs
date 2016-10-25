@@ -13,6 +13,7 @@ use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::fmt;
 use string_cache::{Atom, Namespace};
 
+/// NB: If you add to this list, be sure to update `each_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PseudoElement {
@@ -22,6 +23,12 @@ pub enum PseudoElement {
     DetailsSummary,
     DetailsContent,
     ServoInputText,
+    ServoTableWrapper,
+    ServoAnonymousTableWrapper,
+    ServoAnonymousTable,
+    ServoAnonymousTableRow,
+    ServoAnonymousTableCell,
+    ServoAnonymousBlock,
 }
 
 impl ToCss for PseudoElement {
@@ -34,6 +41,12 @@ impl ToCss for PseudoElement {
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
             ServoInputText => "::-servo-input-text",
+            ServoTableWrapper => "::-servo-table-wrapper",
+            ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
+            ServoAnonymousTable => "::-servo-anonymous-table",
+            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
+            ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
+            ServoAnonymousBlock => "::-servo-anonymous-block",
         })
     }
 }
@@ -57,7 +70,13 @@ impl PseudoElement {
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
-            PseudoElement::ServoInputText => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoInputText |
+            PseudoElement::ServoTableWrapper |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousBlock => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -210,6 +229,42 @@ impl SelectorImpl for ServoSelectorImpl {
                 }
                 ServoInputText
             },
+            "-servo-table-wrapper" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoTableWrapper
+            },
+            "-servo-anonymous-table-wrapper" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTableWrapper
+            },
+            "-servo-anonymous-table" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTable
+            },
+            "-servo-anonymous-table-row" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTableRow
+            },
+            "-servo-anonymous-table-cell" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousTableCell
+            },
+            "-servo-anonymous-block" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoAnonymousBlock
+            },
             _ => return Err(())
         };
 
@@ -232,6 +287,12 @@ impl ServoSelectorImpl {
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
         fun(PseudoElement::ServoInputText);
+        fun(PseudoElement::ServoTableWrapper);
+        fun(PseudoElement::ServoAnonymousTableWrapper);
+        fun(PseudoElement::ServoAnonymousTable);
+        fun(PseudoElement::ServoAnonymousTableRow);
+        fun(PseudoElement::ServoAnonymousTableCell);
+        fun(PseudoElement::ServoAnonymousBlock);
     }
 
     #[inline]

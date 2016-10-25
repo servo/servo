@@ -271,6 +271,32 @@ impl Stylist {
         }
     }
 
+    /// Returns the style for an anonymous box of the given type.
+    pub fn style_for_anonymous_box(&self,
+                                   pseudo: &PseudoElement,
+                                   parent_style: &Arc<ComputedValues>)
+                                   -> Arc<ComputedValues> {
+        // For most (but not all) pseudo-elements, we inherit all values from the parent.
+        let inherit_all = match *pseudo {
+            PseudoElement::ServoInputText => false,
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoTableWrapper => true,
+            PseudoElement::Before |
+            PseudoElement::After |
+            PseudoElement::Selection |
+            PseudoElement::DetailsSummary |
+            PseudoElement::DetailsContent => {
+                unreachable!("That pseudo doesn't represent an anonymous box!")
+            }
+        };
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), inherit_all)
+            .expect("style_for_anonymous_box(): No precomputed values for that pseudo!")
+    }
+
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
