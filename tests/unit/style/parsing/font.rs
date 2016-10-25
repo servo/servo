@@ -19,33 +19,53 @@ fn font_feature_settings_should_parse_properly() {
     assert_eq!(normal, normal_computed);
 
     let on = parse_longhand!(font_feature_settings, "\"abcd\" on");
-    let on_computed = computed_value::T::Computed(vec![
+    let on_computed = computed_value::T::Tag(vec![
         FeatureTagValue { tag: String::from("abcd"), value: 1 }
     ]);
     assert_eq!(on, on_computed);
 
     let off = parse_longhand!(font_feature_settings, "\"abcd\" off");
-    let off_computed = computed_value::T::Computed(vec![
+    let off_computed = computed_value::T::Tag(vec![
         FeatureTagValue { tag: String::from("abcd"), value: 0 }
     ]);
     assert_eq!(off, off_computed);
 
-    let empty = parse_longhand!(font_feature_settings, "\"abcd\"");
-    let empty_computed = computed_value::T::Computed(vec![
+    let no_value = parse_longhand!(font_feature_settings, "\"abcd\"");
+    let no_value_computed = computed_value::T::Tag(vec![
         FeatureTagValue { tag: String::from("abcd"), value: 1 }
     ]);
-    assert_eq!(empty, empty_computed);
+    assert_eq!(no_value, no_value_computed);
 
     let pos_integer = parse_longhand!(font_feature_settings, "\"abcd\" 100");
-    let pos_integer_computed = computed_value::T::Computed(vec![
+    let pos_integer_computed = computed_value::T::Tag(vec![
         FeatureTagValue { tag: String::from("abcd"), value: 100 }
     ]);
     assert_eq!(pos_integer, pos_integer_computed);
 
     let multiple = parse_longhand!(font_feature_settings, "\"abcd\" off, \"efgh\"");
-    let multiple_computed = computed_value::T::Computed(vec![
+    let multiple_computed = computed_value::T::Tag(vec![
         FeatureTagValue { tag: String::from("abcd"), value: 0 },
         FeatureTagValue { tag: String::from("efgh"), value: 1 }
     ]);
     assert_eq!(multiple, multiple_computed);
+}
+
+#[test]
+fn font_feature_settings_should_throw_on_bad_input() {
+    use style::properties::longhands::font_feature_settings;
+
+    let url = Url::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+
+    let mut empty = Parser::new("");
+    assert!(font_feature_settings::parse(&context, &mut empty).is_err());
+
+    let mut negative = Parser::new("\"abcd\" -1");
+    assert!(font_feature_settings::parse(&context, &mut negative).is_err());
+
+    let mut short_tag = Parser::new("\"abc\"");
+    assert!(font_feature_settings::parse(&context, &mut short_tag).is_err());
+
+    let mut illegal_tag = Parser::new("\"abcó\"");
+    assert!(font_feature_settings::parse(&context, &mut illegal_tag).is_err());
 }
