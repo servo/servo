@@ -809,26 +809,32 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-${helpers.keyword_list("animation-direction",
-                       "normal reverse alternate alternate-reverse",
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=False)}
+${helpers.single_keyword("animation-direction",
+                         "normal reverse alternate alternate-reverse",
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         requires_single=True,
+                         allowed_in_keyframe_block=False)}
 
 // animation-play-state is the exception to the rule for allowed_in_keyframe_block:
 // https://drafts.csswg.org/css-animations/#keyframes
-${helpers.keyword_list("animation-play-state",
-                       "running paused",
-                       need_clone=True,
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=True)}
+${helpers.single_keyword("animation-play-state",
+                         "running paused",
+                         need_clone=True,
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         requires_single=True,
+                         allowed_in_keyframe_block=True)}
 
-${helpers.keyword_list("animation-fill-mode",
-                       "none forwards backwards both",
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=False)}
+${helpers.single_keyword("animation-fill-mode",
+                         "none forwards backwards both",
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         requires_single=True,
+                         allowed_in_keyframe_block=False)}
 
 <%helpers:longhand name="animation-delay"
                    need_index="True"
