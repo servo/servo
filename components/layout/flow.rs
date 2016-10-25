@@ -665,6 +665,9 @@ bitflags! {
 
         /// Whether this flow contains any text and/or replaced fragments.
         const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000,
+
+        /// Whether margins are prohibited from collapsing with this flow.
+        const MARGINS_CANNOT_COLLAPSE = 0b0010_0000_0000_0000_0000_0000,
     }
 }
 
