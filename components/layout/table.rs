@@ -63,7 +63,7 @@ pub struct TableFlow {
 
 impl TableFlow {
     pub fn from_fragment(fragment: Fragment) -> TableFlow {
-        let mut block_flow = BlockFlow::from_fragment(fragment, None);
+        let mut block_flow = BlockFlow::from_fragment(fragment);
         let table_layout =
             if block_flow.fragment().style().get_table().table_layout == table_layout::T::fixed {
                 TableLayout::Fixed
