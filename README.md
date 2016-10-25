@@ -29,13 +29,13 @@ Please select your operating system:
 #### On OS X (homebrew)
 
 ``` sh
-brew install automake pkg-config python cmake
+brew install automake pkg-config python cmake yasm
 pip install virtualenv
 ```
 #### On OS X (MacPorts)
 
 ``` sh
-sudo port install python27 py27-virtualenv cmake
+sudo port install python27 py27-virtualenv cmake yasm
 ```
 #### On OS X >= 10.11 (El Capitan), you also have to install OpenSSL
 
