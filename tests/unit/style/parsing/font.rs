@@ -70,10 +70,9 @@ fn font_feature_settings_should_throw_on_bad_input() {
 #[test]
 fn font_feature_settings_to_css() {
     assert_roundtrip_with_context!(font_feature_settings::parse, "normal");
-    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\"", "\"abcd\" 1");
-    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" on", "\"abcd\" 1");
-    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" off", "\"abcd\" 0");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\"");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" on", "\"abcd\"");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" off");
     assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" 4");
-    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\", \"efgh\"",
-                                                                 "\"abcd\" 1, \"efgh\" 1");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\", \"efgh\"");
 }

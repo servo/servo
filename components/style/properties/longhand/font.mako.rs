@@ -411,7 +411,11 @@ ${helpers.single_keyword("font-variant-position",
 
         impl ToCss for FeatureTagValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                let s = format!("\"{}\" {}", self.tag, self.value);
+                let s = match self.value {
+                    1 => format!("\"{}\"", self.tag),
+                    0 => format!("\"{}\" off", self.tag),
+                    x => format!("\"{}\" {}", self.tag, x)
+                };
                 dest.write_str(&s)
             }
         }
