@@ -41,7 +41,7 @@ pub struct MulticolColumnFlow {
 impl MulticolFlow {
     pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> MulticolFlow {
         MulticolFlow {
-            block_flow: BlockFlow::from_fragment(fragment, float_kind),
+            block_flow: BlockFlow::from_fragment_and_float_kind(fragment, float_kind),
             column_pitch: Au(0),
         }
     }
@@ -50,7 +50,7 @@ impl MulticolFlow {
 impl MulticolColumnFlow {
     pub fn from_fragment(fragment: Fragment) -> MulticolColumnFlow {
         MulticolColumnFlow {
-            block_flow: BlockFlow::from_fragment(fragment, None),
+            block_flow: BlockFlow::from_fragment(fragment),
         }
     }
 }

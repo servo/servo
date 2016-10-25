@@ -768,8 +768,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return self.build_flow_for_multicol(node, float_kind)
         }
 
-        let flow: FlowRef = Arc::new(
-            BlockFlow::from_fragment(self.build_fragment_for_block(node), float_kind));
+        let fragment = self.build_fragment_for_block(node);
+        let flow: FlowRef =
+            Arc::new(BlockFlow::from_fragment_and_float_kind(fragment, float_kind));
         self.build_flow_for_block_like(flow, node)
     }
 
@@ -1165,7 +1166,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                     -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::TableWrapper, self.layout_context);
         let mut wrapper_flow: FlowRef = Arc::new(
-            TableWrapperFlow::from_fragment(fragment, FloatKind::from_property(float_value)));
+            TableWrapperFlow::from_fragment_and_float_kind(fragment, FloatKind::from_property(float_value)));
 
         let table_fragment = Fragment::new(node, SpecificFragmentInfo::Table, self.layout_context);
         let table_flow = Arc::new(TableFlow::from_fragment(table_fragment));
