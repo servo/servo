@@ -397,8 +397,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let scanned_fragments =
             TextRunScanner::new().scan_for_runs(&mut self.layout_context.font_context(),
                                                 fragments.fragments);
-        let mut inline_flow_ref: FlowRef = Arc::new(
-            InlineFlow::from_fragments(scanned_fragments, node.style(self.style_context()).writing_mode));
+        let mut inline_flow_ref: FlowRef =
+            Arc::new(InlineFlow::from_fragments(scanned_fragments,
+                                                node.style(self.style_context()).writing_mode));
 
         // Add all the inline-block fragments as children of the inline flow.
         for inline_block_flow in &inline_block_flows {
@@ -1019,9 +1020,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     /// Builds a flow for a node with `column-count` or `column-width` non-`auto`.
     /// This yields a `MulticolFlow` with a single `MulticolColumnFlow` underneath it.
-    fn build_flow_for_multicol(&mut self, node: &ConcreteThreadSafeLayoutNode,
-                                    float_kind: Option<FloatKind>)
-                                    -> ConstructionResult {
+    fn build_flow_for_multicol(&mut self,
+                               node: &ConcreteThreadSafeLayoutNode,
+                               float_kind: Option<FloatKind>)
+                               -> ConstructionResult {
         let fragment = Fragment::new(node, SpecificFragmentInfo::Multicol, self.layout_context);
         let mut flow: FlowRef = Arc::new(MulticolFlow::from_fragment(fragment, float_kind));
 
@@ -1110,6 +1112,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // The flow is done.
         legalizer.finish(&mut wrapper_flow);
         wrapper_flow.finish();
+
         let contains_positioned_fragments = wrapper_flow.contains_positioned_fragments();
         if contains_positioned_fragments {
             // This is the containing block for all the absolute descendants.
@@ -1177,7 +1180,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_list_item(&mut self, node: &ConcreteThreadSafeLayoutNode, flotation: float::T)
+    fn build_flow_for_list_item(&mut self,
+                                node: &ConcreteThreadSafeLayoutNode,
+                                flotation: float::T)
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
@@ -1280,7 +1285,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     }
 
     /// Builds a flow for a node with 'display: flex'.
-    fn build_flow_for_flex(&mut self, node: &ConcreteThreadSafeLayoutNode, float_kind: Option<FloatKind>)
+    fn build_flow_for_flex(&mut self,
+                           node: &ConcreteThreadSafeLayoutNode,
+                           float_kind: Option<FloatKind>)
                            -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
         let flow = Arc::new(FlexFlow::from_fragment(fragment, float_kind));
