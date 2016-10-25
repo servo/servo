@@ -107,12 +107,7 @@ impl DomParallelInfo {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum LayoutNodeType {
-    Comment,
-    Document,
-    DocumentFragment,
-    DocumentType,
     Element(LayoutElementType),
-    ProcessingInstruction,
     Text,
 }
 
