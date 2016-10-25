@@ -477,6 +477,10 @@ impl Flow for TableWrapperFlow {
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
         self.block_flow.print_extra_flow_children(print_tree);
     }
+
+    fn positioning(&self) -> position::T {
+        self.block_flow.positioning()
+    }
 }
 
 impl fmt::Debug for TableWrapperFlow {
