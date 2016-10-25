@@ -171,3 +171,47 @@ svg > * {
 *|*::-servo-input-text {
     margin: 0;
 }
+
+*|*::-servo-table-wrapper {
+    display: table;
+    border: none;
+}
+
+*|*::-servo-anonymous-table-wrapper {
+    position: static;
+    margin: 0;
+    counter-increment: none;
+}
+
+*|*::-servo-anonymous-table {
+    display: table;
+    position: static;
+    border: none;
+    padding: 0;
+    counter-increment: none;
+}
+
+*|*::-servo-anonymous-table-row {
+    display: table-row;
+    position: static;
+    border: none;
+    counter-increment: none;
+}
+
+*|*::-servo-anonymous-table-cell {
+    display: table-cell;
+    position: static;
+    border: none;
+    counter-increment: none;
+}
+
+*|*::-servo-anonymous-block {
+    display: block;
+    position: static;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    height: auto;
+}
+
