@@ -76,6 +76,7 @@ impl TableWrapperFlow {
             table_layout: table_layout
         }
     }
+
     fn border_padding_and_spacing(&mut self) -> (Au, Au) {
         let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
         for kid in self.block_flow.base.child_iter_mut() {
@@ -366,9 +367,12 @@ impl Flow for TableWrapperFlow {
                                       containing_block_inline_size,
                                       &intermediate_column_inline_sizes);
 
-        if let TableLayout::Auto = self.table_layout {
-            self.calculate_table_column_sizes_for_automatic_layout(
-                &mut intermediate_column_inline_sizes)
+        match self.table_layout {
+            TableLayout::Auto => {
+                self.calculate_table_column_sizes_for_automatic_layout(
+                    &mut intermediate_column_inline_sizes)
+            }
+            TableLayout::Fixed => {}
         }
 
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i;
@@ -885,7 +889,9 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
                                     parent_flow_inline_size: Au,
                                     shared_context: &SharedStyleContext)
                                     -> Au {
-        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, shared_context)
+        AbsoluteNonReplaced.containing_block_inline_size(block,
+                                                         parent_flow_inline_size,
+                                                         shared_context)
     }
 
     fn solve_inline_size_constraints(&self,
