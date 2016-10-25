@@ -1585,12 +1585,12 @@ impl BlockFlow {
     /// used for calculating shrink-to-fit width. Assumes that intrinsic sizes have already been
     /// computed for this flow.
     fn content_intrinsic_inline_sizes(&self) -> IntrinsicISizes {
-        let surrounding_inline_size = self.fragment.surrounding_intrinsic_inline_size();
+        let (border_padding, margin) = self.fragment.surrounding_intrinsic_inline_size();
         IntrinsicISizes {
             minimum_inline_size: self.base.intrinsic_inline_sizes.minimum_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
             preferred_inline_size: self.base.intrinsic_inline_sizes.preferred_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
         }
     }
 
