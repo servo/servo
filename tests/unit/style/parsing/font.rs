@@ -5,15 +5,14 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
+use style::properties::longhands::font_feature_settings;
+use style::properties::longhands::font_feature_settings::computed_value;
+use style::properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
 use style::stylesheets::Origin;
 use url::Url;
 
 #[test]
 fn font_feature_settings_should_parse_properly() {
-    use style::properties::longhands::font_feature_settings;
-    use style::properties::longhands::font_feature_settings::computed_value;
-    use style::properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
-
     let normal = parse_longhand!(font_feature_settings, "normal");
     let normal_computed = computed_value::T::Normal;
     assert_eq!(normal, normal_computed);
@@ -52,8 +51,6 @@ fn font_feature_settings_should_parse_properly() {
 
 #[test]
 fn font_feature_settings_should_throw_on_bad_input() {
-    use style::properties::longhands::font_feature_settings;
-
     let url = Url::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
 
@@ -68,4 +65,15 @@ fn font_feature_settings_should_throw_on_bad_input() {
 
     let mut illegal_tag = Parser::new("\"abcó\"");
     assert!(font_feature_settings::parse(&context, &mut illegal_tag).is_err());
+}
+
+#[test]
+fn font_feature_settings_to_css() {
+    assert_roundtrip_with_context!(font_feature_settings::parse, "normal");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\"", "\"abcd\" 1");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" on", "\"abcd\" 1");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" off", "\"abcd\" 0");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" 4");
+    assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\", \"efgh\"",
+                                                                 "\"abcd\" 1, \"efgh\" 1");
 }
