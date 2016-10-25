@@ -74,10 +74,16 @@ macro_rules! handle_potential_webgl_error {
 //
 // and similar text occurs for other object types.
 macro_rules! handle_object_deletion {
-    ($binding:expr, $object:ident) => {
+    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
         if let Some(bound_object) = $binding.get() {
             if bound_object.id() == $object.id() {
                 $binding.set(None);
+            }
+
+            if let Some(command) = $unbind_command {
+                $self_.ipc_renderer
+                    .send(CanvasMsg::WebGL(command))
+                    .unwrap();
             }
         }
     };
@@ -1251,8 +1257,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
-            handle_object_deletion!(self.bound_buffer_array, buffer);
-            handle_object_deletion!(self.bound_buffer_element_array, buffer);
+            handle_object_deletion!(self, self.bound_buffer_array, buffer,
+                                    Some(WebGLCommand::BindBuffer(constants::ARRAY_BUFFER, None)));
+            handle_object_deletion!(self, self.bound_buffer_element_array, buffer,
+                                    Some(WebGLCommand::BindBuffer(constants::ELEMENT_ARRAY_BUFFER, None)));
             buffer.delete()
         }
     }
@@ -1260,7 +1268,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
-            handle_object_deletion!(self.bound_framebuffer, framebuffer);
+            handle_object_deletion!(self, self.bound_framebuffer, framebuffer,
+                                    Some(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER,
+                                                                       WebGLFramebufferBindingRequest::Default)));
             framebuffer.delete()
         }
     }
@@ -1268,7 +1278,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
-            handle_object_deletion!(self.bound_renderbuffer, renderbuffer);
+            handle_object_deletion!(self, self.bound_renderbuffer, renderbuffer,
+                                    Some(WebGLCommand::BindRenderbuffer(constants::RENDERBUFFER, None)));
             renderbuffer.delete()
         }
     }
@@ -1276,8 +1287,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
-            handle_object_deletion!(self.bound_texture_2d, texture);
-            handle_object_deletion!(self.bound_texture_cube_map, texture);
+            handle_object_deletion!(self, self.bound_texture_2d, texture,
+                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_2D, None)));
+            handle_object_deletion!(self, self.bound_texture_cube_map, texture,
+                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_CUBE_MAP, None)));
             texture.delete()
         }
     }
@@ -1285,7 +1298,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            handle_object_deletion!(self.current_program, program);
+            // FIXME: We should call glUseProgram(0), but
+            // WebGLCommand::UseProgram() doesn't take an Option
+            // currently.  This is also a problem for useProgram(null)
+            handle_object_deletion!(self, self.current_program, program, None);
             program.delete()
         }
     }
