@@ -19,8 +19,9 @@ use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PersistentLayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
-use flow::{self, AbsoluteDescendants, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
-use flow::{CAN_BE_FRAGMENTED, MutableFlowUtils, MutableOwnedFlowUtils};
+use flow::{self, AbsoluteDescendants, Flow, FlowClass, ImmutableFlowUtils};
+use flow::{CAN_BE_FRAGMENTED, IS_ABSOLUTELY_POSITIONED, MARGINS_CANNOT_COLLAPSE};
+use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
@@ -48,6 +49,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
 use style::properties::{self, ServoComputedValues};
+use style::selector_matching::Stylist;
 use style::servo_selector_impl::PseudoElement;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -409,12 +411,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     /// `#[inline(always)]` because this is performance critical and LLVM will not inline it
     /// otherwise.
     #[inline(always)]
-    fn flush_inline_fragments_to_flow_or_list(&mut self,
-                                              fragment_accumulator: InlineFragmentsAccumulator,
-                                              flow: &mut FlowRef,
-                                              flow_list: &mut Vec<FlowRef>,
-                                              absolute_descendants: &mut AbsoluteDescendants,
-                                              node: &ConcreteThreadSafeLayoutNode) {
+    fn flush_inline_fragments_to_flow(&mut self,
+                                      fragment_accumulator: InlineFragmentsAccumulator,
+                                      flow: &mut FlowRef,
+                                      absolute_descendants: &mut AbsoluteDescendants,
+                                      legalizer: &mut Legalizer,
+                                      node: &ConcreteThreadSafeLayoutNode) {
         let mut fragments = fragment_accumulator.to_intermediate_inline_fragments();
         if fragments.is_empty() {
             return
@@ -482,33 +484,26 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         inline_flow_ref.finish();
-
-        if flow.need_anonymous_flow(&*inline_flow_ref) {
-            flow_list.push(inline_flow_ref)
-        } else {
-            flow.add_new_child(inline_flow_ref)
-        }
+        legalizer.add_child(&self.style_context().stylist, flow, inline_flow_ref)
     }
 
     fn build_block_flow_using_construction_result_of_child(
             &mut self,
             flow: &mut FlowRef,
-            consecutive_siblings: &mut Vec<FlowRef>,
             node: &ConcreteThreadSafeLayoutNode,
             kid: ConcreteThreadSafeLayoutNode,
             inline_fragment_accumulator: &mut InlineFragmentsAccumulator,
-            abs_descendants: &mut AbsoluteDescendants) {
+            abs_descendants: &mut AbsoluteDescendants,
+            legalizer: &mut Legalizer) {
         match kid.swap_out_construction_result() {
             ConstructionResult::None => {}
-            ConstructionResult::Flow(mut kid_flow, kid_abs_descendants) => {
+            ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
                 // TableWrapperFlow.
                 if flow.is_table() && kid_flow.is_table_caption() {
-                    self.set_flow_construction_result(&kid,
-                                                      ConstructionResult::Flow(kid_flow,
-                                                                               AbsoluteDescendants::new()))
-                } else if flow.need_anonymous_flow(&*kid_flow) {
-                    consecutive_siblings.push(kid_flow)
+                    let construction_result =
+                        ConstructionResult::Flow(kid_flow, AbsoluteDescendants::new());
+                    self.set_flow_construction_result(&kid, construction_result)
                 } else {
                     if !flow::base(&*kid_flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                         // Flush any inline fragments that we were gathering up. This allows us to
@@ -516,20 +511,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         let old_inline_fragment_accumulator =
                             mem::replace(inline_fragment_accumulator,
                                          InlineFragmentsAccumulator::new());
-                        self.flush_inline_fragments_to_flow_or_list(
-                            old_inline_fragment_accumulator,
-                            flow,
-                            consecutive_siblings,
-                            abs_descendants,
-                            node);
+                        self.flush_inline_fragments_to_flow(old_inline_fragment_accumulator,
+                                                            flow,
+                                                            abs_descendants,
+                                                            legalizer,
+                                                            node);
                     }
-
-                    if !consecutive_siblings.is_empty() {
-                        let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
-                        self.generate_anonymous_missing_child(consecutive_siblings, flow, node);
-                    }
-                    self.generate_anonymous_table_flows_if_necessary(flow, &mut kid_flow, &kid);
-                    flow.add_new_child(kid_flow);
+                    legalizer.add_child(&self.style_context().stylist, flow, kid_flow)
                 }
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
@@ -554,20 +542,16 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     let old_inline_fragment_accumulator =
                         mem::replace(inline_fragment_accumulator,
                                      InlineFragmentsAccumulator::new());
-                    self.flush_inline_fragments_to_flow_or_list(
-                            old_inline_fragment_accumulator,
-                            flow,
-                            consecutive_siblings,
-                            &mut inline_fragment_accumulator.fragments.absolute_descendants,
-                            node);
+                    let absolute_descendants =
+                        &mut inline_fragment_accumulator.fragments.absolute_descendants;
+                    self.flush_inline_fragments_to_flow(old_inline_fragment_accumulator,
+                                                        flow,
+                                                        absolute_descendants,
+                                                        legalizer,
+                                                        node);
 
-                    // Push the flow generated by the {ib} split onto our list of
-                    // flows.
-                    if flow.need_anonymous_flow(&*kid_flow) {
-                        consecutive_siblings.push(kid_flow)
-                    } else {
-                        flow.add_new_child(kid_flow)
-                    }
+                    // Push the flow generated by the {ib} split onto our list of flows.
+                    legalizer.add_child(&self.style_context().stylist, flow, kid_flow)
                 }
 
                 // Add the fragments to the list we're maintaining.
@@ -611,12 +595,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             -> ConstructionResult {
         // Gather up fragments for the inline flows we might need to create.
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
-        let mut consecutive_siblings = vec!();
 
         inline_fragment_accumulator.fragments.push_all(initial_fragments);
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
+        let mut legalizer = Legalizer::new();
         if !node.is_replaced_content() {
             for kid in node.children() {
                 if kid.get_pseudo_element_type() != PseudoElementType::Normal {
@@ -625,26 +609,24 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
                 self.build_block_flow_using_construction_result_of_child(
                     &mut flow,
-                    &mut consecutive_siblings,
                     node,
                     kid,
                     &mut inline_fragment_accumulator,
-                    &mut abs_descendants);
+                    &mut abs_descendants,
+                    &mut legalizer);
             }
         }
 
         // Perform a final flush of any inline fragments that we were gathering up to handle {ib}
         // splits, after stripping ignorable whitespace.
-        self.flush_inline_fragments_to_flow_or_list(inline_fragment_accumulator,
-                                                    &mut flow,
-                                                    &mut consecutive_siblings,
-                                                    &mut abs_descendants,
-                                                    node);
-        if !consecutive_siblings.is_empty() {
-            self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
-        }
+        self.flush_inline_fragments_to_flow(inline_fragment_accumulator,
+                                            &mut flow,
+                                            &mut abs_descendants,
+                                            &mut legalizer,
+                                            node);
 
         // The flow is done.
+        legalizer.finish(&mut flow);
         flow.finish();
 
         // Set up the absolute descendants.
@@ -1162,11 +1144,26 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with
     /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
-    fn build_flow_for_table_wrapper(&mut self, node: &ConcreteThreadSafeLayoutNode, float_value: float::T)
-                                    -> ConstructionResult {
-        let fragment = Fragment::new(node, SpecificFragmentInfo::TableWrapper, self.layout_context);
-        let mut wrapper_flow: FlowRef = Arc::new(
-            TableWrapperFlow::from_fragment_and_float_kind(fragment, FloatKind::from_property(float_value)));
+    fn build_flow_for_table(&mut self, node: &ConcreteThreadSafeLayoutNode, float_value: float::T)
+                            -> ConstructionResult {
+        let mut legalizer = Legalizer::new();
+
+        let table_style = node.style(self.style_context());
+        let wrapper_style = self.style_context()
+                                .stylist
+                                .style_for_anonymous_box(&PseudoElement::ServoTableWrapper,
+                                                         &table_style);
+        let wrapper_fragment =
+            Fragment::from_opaque_node_and_style(node.opaque(),
+                                                 PseudoElementType::Normal,
+                                                 wrapper_style,
+                                                 node.selected_style(self.style_context()),
+                                                 node.restyle_damage(),
+                                                 SpecificFragmentInfo::TableWrapper);
+        let wrapper_float_kind = FloatKind::from_property(float_value);
+        let mut wrapper_flow: FlowRef =
+            Arc::new(TableWrapperFlow::from_fragment_and_float_kind(wrapper_fragment,
+                                                                    wrapper_float_kind));
 
         let table_fragment = Fragment::new(node, SpecificFragmentInfo::Table, self.layout_context);
         let table_flow = Arc::new(TableFlow::from_fragment(table_fragment));
@@ -1184,7 +1181,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                              caption_side::T::top);
 
         if let ConstructionResult::Flow(table_flow, table_abs_descendants) = construction_result {
-            wrapper_flow.add_new_child(table_flow);
+            legalizer.add_child(&self.style_context().stylist, &mut wrapper_flow, table_flow);
             abs_descendants.push_descendants(table_abs_descendants);
         }
 
@@ -1194,6 +1191,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                              caption_side::T::bottom);
 
         // The flow is done.
+        legalizer.finish(&mut wrapper_flow);
         wrapper_flow.finish();
         let contains_positioned_fragments = wrapper_flow.contains_positioned_fragments();
         if contains_positioned_fragments {
@@ -1570,7 +1568,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
             // Table items contribute table flow construction results.
             (display::T::table, float_value, _) => {
-                let construction_result = self.build_flow_for_table_wrapper(node, float_value);
+                let construction_result = self.build_flow_for_table(node, float_value);
                 self.set_flow_construction_result(node, construction_result)
             }
 
@@ -1924,3 +1922,199 @@ impl ComputedValueUtils for ServoComputedValues {
            border.border_left_width != Au(0)
     }
 }
+
+/// Maintains a stack of anonymous boxes needed to ensure that the flow tree is *legal*. The tree
+/// is legal if it follows the rules in CSS 2.1 § 17.2.1.
+///
+/// As an example, the legalizer makes sure that table row flows contain only table cells. If the
+/// flow constructor attempts to place, say, a block flow directly underneath the table row, the
+/// legalizer generates an anonymous table cell in between to hold the block.
+///
+/// Generally, the flow constructor should use `Legalizer::add_child()` instead of calling
+/// `Flow::add_new_child()` directly. This ensures that the flow tree remains legal at all times
+/// and centralizes the anonymous flow generation logic in one place.
+struct Legalizer {
+    /// A stack of anonymous flows that have yet to be finalized (i.e. that still could acquire new
+    /// children).
+    stack: Vec<FlowRef>,
+}
+
+impl Legalizer {
+    /// Creates a new legalizer.
+    fn new() -> Legalizer {
+        Legalizer {
+            stack: vec![],
+        }
+    }
+
+    /// Makes the `child` flow a new child of `parent`. Anonymous flows are automatically inserted
+    /// to keep the tree legal.
+    fn add_child(&mut self, stylist: &Stylist, parent: &mut FlowRef, mut child: FlowRef) {
+        while !self.stack.is_empty() {
+            if self.try_to_add_child(stylist, parent, &mut child) {
+                return
+            }
+            self.flush_top_of_stack(parent)
+        }
+
+        while !self.try_to_add_child(stylist, parent, &mut child) {
+            self.push_next_anonymous_flow(stylist, parent)
+        }
+    }
+
+    /// Flushes all flows we've been gathering up.
+    fn finish(mut self, parent: &mut FlowRef) {
+        while !self.stack.is_empty() {
+            self.flush_top_of_stack(parent)
+        }
+    }
+
+    /// Attempts to make `child` a child of `parent`. On success, this returns true. If this would
+    /// make the tree illegal, this method does nothing and returns false.
+    ///
+    /// This method attempts to create anonymous blocks in between `parent` and `child` if and only
+    /// if those blocks will only ever have `child` as their sole child. At present, this is only
+    /// true for anonymous block children of flex flows.
+    fn try_to_add_child(&mut self, stylist: &Stylist, parent: &mut FlowRef, child: &mut FlowRef)
+                        -> bool {
+        let mut parent = self.stack.last_mut().unwrap_or(parent);
+        let (parent_class, child_class) = (parent.class(), child.class());
+        match (parent_class, child_class) {
+            (FlowClass::TableWrapper, FlowClass::Table) |
+            (FlowClass::Table, FlowClass::TableColGroup) |
+            (FlowClass::Table, FlowClass::TableRowGroup) |
+            (FlowClass::Table, FlowClass::TableRow) |
+            (FlowClass::Table, FlowClass::TableCaption) |
+            (FlowClass::TableRowGroup, FlowClass::TableRow) |
+            (FlowClass::TableRow, FlowClass::TableCell) => {
+                parent.add_new_child((*child).clone());
+                true
+            }
+
+            (FlowClass::TableWrapper, _) |
+            (FlowClass::Table, _) |
+            (FlowClass::TableRowGroup, _) |
+            (FlowClass::TableRow, _) |
+            (_, FlowClass::Table) |
+            (_, FlowClass::TableColGroup) |
+            (_, FlowClass::TableRowGroup) |
+            (_, FlowClass::TableRow) |
+            (_, FlowClass::TableCaption) |
+            (_, FlowClass::TableCell) => {
+                false
+            }
+
+            (FlowClass::Flex, FlowClass::Inline) => {
+                flow::mut_base(flow_ref::deref_mut(child)).flags.insert(MARGINS_CANNOT_COLLAPSE);
+                let mut block_wrapper =
+                    Legalizer::create_anonymous_flow(stylist,
+                                                     parent,
+                                                     &[PseudoElement::ServoAnonymousBlock],
+                                                     SpecificFragmentInfo::Generic,
+                                                     BlockFlow::from_fragment);
+                flow::mut_base(flow_ref::deref_mut(&mut
+                                                   block_wrapper)).flags
+                                                                  .insert(MARGINS_CANNOT_COLLAPSE);
+                block_wrapper.add_new_child((*child).clone());
+                block_wrapper.finish();
+                parent.add_new_child(block_wrapper);
+                true
+            }
+
+            (FlowClass::Flex, _) => {
+                flow::mut_base(flow_ref::deref_mut(child)).flags.insert(MARGINS_CANNOT_COLLAPSE);
+                parent.add_new_child((*child).clone());
+                true
+            }
+
+            _ => {
+                parent.add_new_child((*child).clone());
+                true
+            }
+        }
+    }
+
+    /// Finalizes the flow on the top of the stack.
+    fn flush_top_of_stack(&mut self, parent: &mut FlowRef) {
+        let mut child = self.stack.pop().expect("flush_top_of_stack(): stack empty");
+        child.finish();
+        self.stack.last_mut().unwrap_or(parent).add_new_child(child)
+    }
+
+    /// Adds the anonymous flow that would be necessary to make an illegal child of `parent` legal
+    /// to the stack.
+    fn push_next_anonymous_flow(&mut self, stylist: &Stylist, parent: &FlowRef) {
+        let parent_class = self.stack.last().unwrap_or(parent).class();
+        match parent_class {
+            FlowClass::TableRow => {
+                self.push_new_anonymous_flow(stylist,
+                                             parent,
+                                             &[PseudoElement::ServoAnonymousTableCell],
+                                             SpecificFragmentInfo::TableCell,
+                                             TableCellFlow::from_fragment)
+            }
+            FlowClass::Table | FlowClass::TableRowGroup => {
+                self.push_new_anonymous_flow(stylist,
+                                             parent,
+                                             &[PseudoElement::ServoAnonymousTableRow],
+                                             SpecificFragmentInfo::TableRow,
+                                             TableRowFlow::from_fragment)
+            }
+            FlowClass::TableWrapper => {
+                self.push_new_anonymous_flow(stylist,
+                                             parent,
+                                             &[PseudoElement::ServoAnonymousTable],
+                                             SpecificFragmentInfo::Table,
+                                             TableFlow::from_fragment)
+            }
+            _ => {
+                self.push_new_anonymous_flow(stylist,
+                                             parent,
+                                             &[PseudoElement::ServoTableWrapper,
+                                               PseudoElement::ServoAnonymousTableWrapper],
+                                             SpecificFragmentInfo::TableWrapper,
+                                             TableWrapperFlow::from_fragment)
+            }
+        }
+    }
+
+    /// Creates an anonymous flow and pushes it onto the stack.
+    fn push_new_anonymous_flow<F>(&mut self,
+                                  stylist: &Stylist,
+                                  reference: &FlowRef,
+                                  pseudos: &[PseudoElement],
+                                  specific_fragment_info: SpecificFragmentInfo,
+                                  constructor: extern "Rust" fn(Fragment) -> F)
+                                  where F: Flow {
+        let new_flow = Legalizer::create_anonymous_flow(stylist,
+                                                        reference,
+                                                        pseudos,
+                                                        specific_fragment_info,
+                                                        constructor);
+        self.stack.push(new_flow)
+    }
+
+    /// Creates a new anonymous flow. The new flow is identical to `reference` except with all
+    /// styles applying to every pseudo-element in `pseudos` applied.
+    ///
+    /// This method invokes the supplied constructor function on the given specific fragment info
+    /// in order to actually generate the flow.
+    fn create_anonymous_flow<F>(stylist: &Stylist,
+                                reference: &FlowRef,
+                                pseudos: &[PseudoElement],
+                                specific_fragment_info: SpecificFragmentInfo,
+                                constructor: extern "Rust" fn(Fragment) -> F)
+                                -> FlowRef
+                                where F: Flow {
+        let reference_block = reference.as_block();
+        let mut new_style = reference_block.fragment.style.clone();
+        for pseudo in pseudos {
+            new_style = stylist.style_for_anonymous_box(pseudo, &new_style)
+        }
+        let fragment = reference_block.fragment
+                                      .create_similar_anonymous_fragment(new_style,
+                                                                         specific_fragment_info);
+        Arc::new(constructor(fragment))
+    }
+}
+

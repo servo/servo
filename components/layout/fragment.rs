@@ -949,6 +949,30 @@ impl Fragment {
         }
     }
 
+    /// Creates an anonymous fragment just like this one but with the given style and fragment
+    /// type. For the new anonymous fragment, layout-related values (border box, etc.) are reset to
+    /// initial values.
+    pub fn create_similar_anonymous_fragment(&self,
+                                             style: Arc<ServoComputedValues>,
+                                             specific: SpecificFragmentInfo)
+                                             -> Fragment {
+        let writing_mode = style.writing_mode;
+        Fragment {
+            node: self.node,
+            style: style,
+            selected_style: self.selected_style.clone(),
+            restyle_damage: self.restyle_damage,
+            border_box: LogicalRect::zero(writing_mode),
+            border_padding: LogicalMargin::zero(writing_mode),
+            margin: LogicalMargin::zero(writing_mode),
+            specific: specific,
+            inline_context: None,
+            pseudo: self.pseudo,
+            debug_id: DebugId::new(),
+            stacking_context_id: StackingContextId::new(0),
+        }
+    }
+
     /// Transforms this fragment into another fragment of the given type, with the given size,
     /// preserving all the other data.
     pub fn transform(&self, size: LogicalSize<Au>, info: SpecificFragmentInfo)
