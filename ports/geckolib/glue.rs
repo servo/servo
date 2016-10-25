@@ -37,7 +37,7 @@ use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
 use style::properties::{cascade, parse_one_declaration};
 use style::selector_impl::PseudoElementCascadeType;
@@ -143,11 +143,11 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
     // FIXME (bug 1303229): Use the actual viewport size here
     let (computed, _) = cascade(Size2D::new(Au(0), Au(0)),
                                 &[declaration_block],
-                                false,
                                 Some(previous_style),
                                 None,
                                 None,
-                                Box::new(StdoutErrorReporter));
+                                Box::new(StdoutErrorReporter),
+                                CascadeFlags::empty());
     Arc::new(computed).into_strong()
 }
 
@@ -282,7 +282,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
-    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
+    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
 

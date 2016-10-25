@@ -265,9 +265,10 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
                                 .current_styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
-                                context.stylist
-                                       .precomputed_values_for_pseudo(&style_pseudo,
-                                                                      Some(&data.current_styles().primary));
+                                context.stylist.precomputed_values_for_pseudo(
+                                    &style_pseudo,
+                                    Some(&data.current_styles().primary),
+                                    false);
                             data.current_pseudos_mut()
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
