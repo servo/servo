@@ -51,7 +51,7 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, requires_single=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if product == "gecko" or not gecko_only:
             use cssparser::ToCss;
@@ -75,6 +75,10 @@
             }
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
+                % if requires_single:
+                pub use super::single_value::computed_value::T as SingleComputedValue;
+                pub use super::single_value::computed_value::T as ${to_camel_case(name)};
+                % endif
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
@@ -123,6 +127,7 @@
                     Ok(())
                 }
             }
+
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty:
                     computed_value::T(vec![])
@@ -130,6 +135,7 @@
                     computed_value::T(vec![single_value::get_initial_value()])
                 % endif
             }
+
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -145,6 +151,19 @@
                     }).map(SpecifiedValue)
                 % endif
             }
+
+            % if requires_single:
+            pub use self::single_value::computed_value::T as SingleSpecifiedValue;
+            pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+                SingleSpecifiedValue::parse(input)
+            }
+
+            #[inline]
+            pub fn get_initial_single_value() -> SingleSpecifiedValue {
+                single_value::get_initial_value()
+            }
+            % endif
+
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
 
