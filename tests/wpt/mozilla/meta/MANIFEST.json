@@ -2432,6 +2432,18 @@
             "url": "/_mozilla/css/inline_absolute_hypothetical_line_metrics_a.html"
           }
         ],
+        "css/inline_absolute_hypothetical_margin_a.html": [
+          {
+            "path": "css/inline_absolute_hypothetical_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_absolute_hypothetical_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_absolute_hypothetical_margin_a.html"
+          }
+        ],
         "css/inline_absolute_hypothetical_metrics_a.html": [
           {
             "path": "css/inline_absolute_hypothetical_metrics_a.html",
@@ -16266,6 +16278,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_absolute_hypothetical_line_metrics_a.html"
+        }
+      ],
+      "css/inline_absolute_hypothetical_margin_a.html": [
+        {
+          "path": "css/inline_absolute_hypothetical_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_absolute_hypothetical_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_absolute_hypothetical_margin_a.html"
         }
       ],
       "css/inline_absolute_hypothetical_metrics_a.html": [
