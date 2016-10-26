@@ -268,7 +268,8 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_computed_values: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
-        -> Option<&'a <<Self::ConcreteNode as TNode>::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
+        -> Option<&'a <<Self::ConcreteNode as TNode>::ConcreteRestyleDamage as TRestyleDamage>
+                      ::PreExistingComputedValues>;
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint<C: DomTraversalContext<Self::ConcreteNode>>(&self, hint: RestyleHint) {
