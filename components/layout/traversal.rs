@@ -99,8 +99,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
             //
             // The bloom filter stuff is all going to be rewritten, so we just hackily duplicate
             // the bloom filter manipulation from recalc_style_at to maintain invariants.
-            let parent = node.parent_node();
-            debug_assert!(parent.unwrap().is_element());
+            let parent = node.parent_node().unwrap().as_element();
             let bf = take_thread_local_bloom_filter(parent, self.root, self.context.shared_context());
             put_thread_local_bloom_filter(bf, &node.to_unsafe(), self.context.shared_context());
 

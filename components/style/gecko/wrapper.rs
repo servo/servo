@@ -160,7 +160,6 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
-    type ConcreteRestyleDamage = GeckoRestyleDamage;
     type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
@@ -399,6 +398,7 @@ lazy_static! {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
+    type ConcreteRestyleDamage = GeckoRestyleDamage;
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
