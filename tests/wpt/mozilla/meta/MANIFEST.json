@@ -1916,6 +1916,18 @@
             "url": "/_mozilla/css/iframe/bg_color.html"
           }
         ],
+        "css/iframe/frameborder_a.html": [
+          {
+            "path": "css/iframe/frameborder_a.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/frameborder_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/frameborder_a.html"
+          }
+        ],
         "css/iframe/hide_after_load.html": [
           {
             "path": "css/iframe/hide_after_load.html",
@@ -15750,6 +15762,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/bg_color.html"
+        }
+      ],
+      "css/iframe/frameborder_a.html": [
+        {
+          "path": "css/iframe/frameborder_a.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/frameborder_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/frameborder_a.html"
         }
       ],
       "css/iframe/hide_after_load.html": [

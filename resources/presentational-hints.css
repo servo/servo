@@ -133,7 +133,7 @@ hr[color], hr[noshade] { border-style: solid; }
 
 
 
-iframe[frameborder=0], iframe[frameborder=no i] { border: none; }
+iframe[frameborder="0"], iframe[frameborder=no i] { border: none; }
 
 applet[align=left i], embed[align=left i], iframe[align=left i], img[type=image i][align=left i], object[align=left i] {
   float: left;
