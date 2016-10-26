@@ -1625,17 +1625,6 @@ fn static_assert() {
 </%self:impl_trait>
 
 
-<%self:impl_trait style_struct_name="InheritedBox"
-                  skip_longhands="image-rendering">
-
-    <% render_keyword = Keyword("image-rendering",
-                                "auto optimizequality optimizespeed crispedges") %>
-
-    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False)}
-
-</%self:impl_trait>
-
-
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing">
 
