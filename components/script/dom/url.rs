@@ -17,10 +17,8 @@ use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
-use std::borrow::ToOwned;
 use std::default::Default;
-use url::{Host, Url};
-use url::quirks::domain_to_unicode;
+use url::Url;
 use uuid::Uuid;
 
 // https://url.spec.whatwg.org/#url
@@ -94,23 +92,6 @@ impl URL {
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
         Ok(result)
-    }
-
-    // https://url.spec.whatwg.org/#dom-url-domaintoasciidomain
-    pub fn DomainToASCII(_: &GlobalScope, origin: USVString) -> USVString {
-        // Step 1.
-        let ascii_domain = Host::parse(&origin.0);
-        if let Ok(Host::Domain(string)) = ascii_domain {
-            // Step 3.
-            USVString(string.to_owned())
-        } else {
-            // Step 2.
-            USVString("".to_owned())
-        }
-    }
-
-    pub fn DomainToUnicode(_: &GlobalScope, origin: USVString) -> USVString {
-        USVString(domain_to_unicode(&origin.0))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL
