@@ -34,6 +34,8 @@
 
 #define MAX_STOPS_PER_ANGLE_GRADIENT 8
 
+uniform sampler2DArray sCache;
+
 #ifdef WR_VERTEX_SHADER
 
 #define VECS_PER_LAYER             13
@@ -121,7 +123,7 @@ Layer fetch_layer(int index) {
 
 struct Tile {
     vec4 screen_origin_task_origin;
-    vec4 size;
+    vec4 size_target_index;
 };
 
 Tile fetch_tile(int index) {
@@ -130,7 +132,7 @@ Tile fetch_tile(int index) {
     ivec2 uv = get_fetch_uv(index, VECS_PER_TILE);
 
     tile.screen_origin_task_origin = texelFetchOffset(sRenderTasks, uv, 0, ivec2(0, 0));
-    tile.size = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
+    tile.size_target_index = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
 
     return tile;
 }
@@ -257,7 +259,6 @@ PrimitiveInstance fetch_instance(int index) {
 
     return pi;
 }
-
 struct Primitive {
     Layer layer;
     Tile tile;
@@ -298,9 +299,26 @@ ClipRect fetch_clip_rect(int index) {
     ivec2 uv = get_fetch_uv_2(index);
 
     rect.rect = texelFetchOffset(sData32, uv, 0, ivec2(0, 0));
-    rect.dummy = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
+    //rect.dummy = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
+    rect.dummy = vec4(0.0, 0.0, 0.0, 0.0);
 
     return rect;
+}
+
+struct ImageMaskInfo {
+    vec4 uv_rect;
+    vec4 local_rect;
+};
+
+ImageMaskInfo fetch_mask_info(int index) {
+    ImageMaskInfo info;
+
+    ivec2 uv = get_fetch_uv_2(index);
+
+    info.uv_rect = texelFetchOffset(sData32, uv, 0, ivec2(0, 0));
+    info.local_rect = texelFetchOffset(sData32, uv, 0, ivec2(1, 0));
+
+    return info;
 }
 
 struct ClipCorner {
@@ -319,22 +337,24 @@ ClipCorner fetch_clip_corner(int index) {
     return corner;
 }
 
-struct Clip {
+struct ClipInfo {
     ClipRect rect;
     ClipCorner top_left;
     ClipCorner top_right;
     ClipCorner bottom_left;
     ClipCorner bottom_right;
+    ImageMaskInfo mask_info;
 };
 
-Clip fetch_clip(int index) {
-    Clip clip;
+ClipInfo fetch_clip(int index) {
+    ClipInfo clip;
 
     clip.rect = fetch_clip_rect(index + 0);
     clip.top_left = fetch_clip_corner(index + 1);
     clip.top_right = fetch_clip_corner(index + 2);
     clip.bottom_left = fetch_clip_corner(index + 3);
     clip.bottom_right = fetch_clip_corner(index + 4);
+    clip.mask_info = fetch_mask_info(index+5);
 
     return clip;
 }
@@ -407,7 +427,7 @@ VertexInfo write_vertex(vec4 instance_rect,
 
     vec2 clamped_pos = clamp(device_pos,
                              vec2(tile.screen_origin_task_origin.xy),
-                             vec2(tile.screen_origin_task_origin.xy + tile.size.xy));
+                             vec2(tile.screen_origin_task_origin.xy + tile.size_target_index.xy));
 
     vec4 local_clamped_pos = layer.inv_transform * vec4(clamped_pos / uDevicePixelRatio, world_pos.z, 1);
     local_clamped_pos.xyz /= local_clamped_pos.w;
@@ -461,11 +481,11 @@ TransformVertexInfo write_transform_vertex(vec4 instance_rect,
 
     vec2 min_pos_clamped = clamp(min_pos * uDevicePixelRatio,
                                  vec2(tile.screen_origin_task_origin.xy),
-                                 vec2(tile.screen_origin_task_origin.xy + tile.size.xy));
+                                 vec2(tile.screen_origin_task_origin.xy + tile.size_target_index.xy));
 
     vec2 max_pos_clamped = clamp(max_pos * uDevicePixelRatio,
                                  vec2(tile.screen_origin_task_origin.xy),
-                                 vec2(tile.screen_origin_task_origin.xy + tile.size.xy));
+                                 vec2(tile.screen_origin_task_origin.xy + tile.size_target_index.xy));
 
     vec2 clamped_pos = mix(min_pos_clamped,
                            max_pos_clamped,
@@ -578,7 +598,7 @@ Composite fetch_composite(int index) {
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {
+float distance_from_rect(vec2 p, vec2 origin, vec2 size) {
     vec2 clamped = clamp(p, origin, origin + size);
     return distance(clamped, p);
 }
@@ -587,10 +607,10 @@ vec2 init_transform_fs(vec3 local_pos, vec4 local_rect, out float fragment_alpha
     fragment_alpha = 1.0;
     vec2 pos = local_pos.xy / local_pos.z;
 
-    float squared_distance = squared_distance_from_rect(pos, local_rect.xy, local_rect.zw);
-    if (squared_distance != 0.0) {
+    float border_distance = distance_from_rect(pos, local_rect.xy, local_rect.zw);
+    if (border_distance != 0.0) {
         float delta = length(fwidth(local_pos.xy));
-        fragment_alpha = smoothstep(1.0, 0.0, squared_distance / delta * 2.0);
+        fragment_alpha = 1.0 - smoothstep(0.0, 1.0, border_distance / delta * 2.0);
     }
 
     return pos;

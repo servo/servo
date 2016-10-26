@@ -160,6 +160,7 @@ impl ToClipRegion for ClippingRegion {
                                            complex_clipping_region.radii.to_border_radius(),
                                         )
                                    }).collect(),
+                                   None,
                                    &mut frame_builder.auxiliary_lists_builder)
     }
 }

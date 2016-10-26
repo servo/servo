@@ -13,12 +13,13 @@ void main(void) {
                        src.screen_origin_task_origin.xy;
 
     vec2 local_pos = mix(dest_origin,
-                         dest_origin + src.size.xy,
+                         dest_origin + src.size_target_index.xy,
                          aPosition.xy);
 
-    vec2 st0 = vec2(src.screen_origin_task_origin.zw) / 2048.0;
-    vec2 st1 = vec2(src.screen_origin_task_origin.zw + src.size.xy) / 2048.0;
-    vUv = mix(st0, st1, aPosition.xy);
+    vec2 texture_size = vec2(textureSize(sCache, 0));
+    vec2 st0 = src.screen_origin_task_origin.zw / texture_size;
+    vec2 st1 = (src.screen_origin_task_origin.zw + src.size_target_index.xy) / texture_size;
+    vUv = vec3(mix(st0, st1, aPosition.xy), src.size_target_index.z);
 
     vOp = blend.src_id_target_id_op_amount.z;
     vAmount = blend.src_id_target_id_op_amount.w / 65535.0;
