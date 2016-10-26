@@ -544,6 +544,11 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_dimension_setter!(SetHeight, "height");
 
+    // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
+    make_getter!(FrameBorder, "frameborder");
+    // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:attr-iframe-frameborder
+    make_setter!(SetFrameBorder, "frameborder");
+
     // check-tidy: no specs after this line
     fn SetMozprivatebrowsing(&self, value: bool) {
         let element = self.upcast::<Element>();
