@@ -411,8 +411,9 @@ impl FlexFlow {
         let mut margin_count = 0;
 
         let items = &mut self.items[start..];
+        let mut children = self.block_flow.base.children.random_access_mut();
         for mut item in items {
-            let kid = &mut self.block_flow.base.children[item.index];
+            let kid = children.get(item.index);
             item.init_sizes(kid, container_size, self.main_mode);
             let outer_main_size = item.outer_main_size(kid, self.main_mode);
             if total_line_size + outer_main_size > container_size && end != start && self.is_wrappable {
@@ -504,8 +505,10 @@ impl FlexFlow {
             AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
             AxisSize::Infinite => content_inline_size
         };
+
+        let mut children = self.block_flow.base.children.random_access_mut();
         for kid in &mut self.items {
-            let kid_base = flow::mut_base(&mut self.block_flow.base.children[kid.index]);
+            let kid_base = flow::mut_base(children.get(kid.index));
             kid_base.block_container_explicit_block_size = container_block_size;
             if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
                 // The inline-start margin edge of the child flow is at our inline-start content
@@ -598,8 +601,9 @@ impl FlexFlow {
                 _ => {}
             }
 
+            let mut children = self.block_flow.base.children.random_access_mut();
             for item in items.iter_mut() {
-                let mut block = self.block_flow.base.children[item.index].as_mut_block();
+                let mut block = children.get(item.index).as_mut_block();
 
                 block.base.block_container_writing_mode = container_mode;
                 block.base.block_container_inline_size = inline_size;
@@ -650,8 +654,10 @@ impl FlexFlow {
         } else {
             self.block_flow.fragment.border_box.size.block
         };
+
+        let mut children = self.block_flow.base.children.random_access_mut();
         for item in &mut self.items {
-            let mut base = flow::mut_base(&mut self.block_flow.base.children[item.index]);
+            let mut base = flow::mut_base(children.get(item.index));
             if !self.main_reverse {
                 base.position.start.b = cur_b;
                 cur_b = cur_b + base.position.size.block;
@@ -672,14 +678,17 @@ impl FlexFlow {
         let mut total_cross_size = Au(0);
         let mut line_interval = Au(0);
 
-        for line in self.lines.iter_mut() {
-            for item in &self.items[line.range.clone()] {
-                let fragment = &self.block_flow.base.children[item.index].as_block().fragment;
-                line.cross_size = max(line.cross_size,
-                                      fragment.border_box.size.block +
-                                      fragment.margin.block_start_end());
+        {
+            let mut children = self.block_flow.base.children.random_access_mut();
+            for line in self.lines.iter_mut() {
+                for item in &self.items[line.range.clone()] {
+                    let fragment = &children.get(item.index).as_block().fragment;
+                    line.cross_size = max(line.cross_size,
+                                          fragment.border_box.size.block +
+                                          fragment.margin.block_start_end());
+                }
+                total_cross_size += line.cross_size;
             }
-            total_cross_size += line.cross_size;
         }
 
         let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
@@ -726,9 +735,10 @@ impl FlexFlow {
             }
         }
 
+        let mut children = self.block_flow.base.children.random_access_mut();
         for line in &self.lines {
             for item in self.items[line.range.clone()].iter_mut() {
-                let block = self.block_flow.base.children[item.index].as_mut_block();
+                let block = children.get(item.index).as_mut_block();
                 let auto_margin_count = item.auto_margin_count(block, Direction::Block);
                 let margin = block.fragment.style().logical_margin();
 
