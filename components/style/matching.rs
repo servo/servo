@@ -739,7 +739,7 @@ pub trait ElementMatchMethods : TElement {
                     // can decide more easily if it knows that it's a child of
                     // replaced content, or similar stuff!
                     let damage =
-                        match node.existing_style_for_restyle_damage(data.previous_styles().map(|x| &x.primary), None) {
+                        match self.existing_style_for_restyle_damage(data.previous_styles().map(|x| &x.primary), None) {
                             Some(ref source) => {
                                 <<Self as TElement>::ConcreteNode as TNode>
                                 ::ConcreteRestyleDamage::compute(source, &shared_style)
@@ -847,7 +847,7 @@ pub trait MatchMethods : TNode {
                               pseudo: Option<&PseudoElement>)
                               -> Self::ConcreteRestyleDamage
     {
-        match self.existing_style_for_restyle_damage(old_style, pseudo) {
+        match self.as_element().unwrap().existing_style_for_restyle_damage(old_style, pseudo) {
             Some(ref source) => {
                 Self::ConcreteRestyleDamage::compute(source,
                                                      new_style)
@@ -955,7 +955,7 @@ pub trait MatchMethods : TNode {
         data.finish_styling(new_styles);
         // Drop the mutable borrow early, since Servo's set_restyle_damage also borrows.
         mem::drop(data);
-        self.set_restyle_damage(damage);
+        self.as_element().unwrap().set_restyle_damage(damage);
 
         restyle_result
     }
