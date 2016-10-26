@@ -23,7 +23,7 @@ interface HTMLIFrameElement : HTMLElement {
 partial interface HTMLIFrameElement {
   //         attribute DOMString align;
   //         attribute DOMString scrolling;
-  //         attribute DOMString frameBorder;
+           attribute DOMString frameBorder;
   //         attribute DOMString longDesc;
 
   //[TreatNullAs=EmptyString] attribute DOMString marginHeight;
