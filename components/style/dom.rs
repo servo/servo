@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use data::NodeData;
+use data::{NodeStyles, NodeData};
 use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -19,6 +19,8 @@ use std::fmt::Debug;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
+use traversal::DomTraversalContext;
+use util::opts;
 
 pub use style_traits::UnsafeNode;
 
@@ -41,6 +43,19 @@ impl OpaqueNode {
     pub fn id(&self) -> usize {
         self.0
     }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum StylingMode {
+    /// The node has never been styled before, and needs a full style computation.
+    Initial,
+    /// The node has been styled before, but needs some amount of recomputation.
+    Restyle,
+    /// The node does not need any style processing, but one or more of its
+    /// descendants do.
+    Traverse,
+    /// No nodes in this subtree require style processing.
+    Stop,
 }
 
 pub trait TRestyleDamage : Debug + PartialEq + BitOr<Output=Self> + Copy {
@@ -117,9 +132,11 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     fn as_document(&self) -> Option<Self::ConcreteDocument>;
 
-    fn is_dirty(&self) -> bool;
-
-    unsafe fn set_dirty(&self);
+    /// The concept of a dirty bit doesn't exist in our new restyle algorithm.
+    /// Instead, we associate restyle and change hints with nodes. However, we
+    /// continue to allow the dirty bit to trigger unconditional restyles while
+    /// we transition both Servo and Stylo to the new architecture.
+    fn deprecated_dirty_bit_is_set(&self) -> bool;
 
     fn has_dirty_descendants(&self) -> bool;
 
@@ -140,6 +157,51 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     /// Atomically notes that a child has been processed during bottom-up
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
+
+    /// Returns true if this node has a styled layout frame that owns the style.
+    fn frame_has_style(&self) -> bool { false }
+
+    /// Returns the styles from the layout frame that owns them, if any.
+    ///
+    /// FIXME(bholley): Once we start dropping NodeData from nodes when
+    /// creating frames, we'll want to teach this method to actually get
+    /// style data from the frame.
+    fn get_styles_from_frame(&self) -> Option<NodeStyles> { None }
+
+    /// Returns the styling mode for this node. This is only valid to call before
+    /// and during restyling, before finish_styling is invoked.
+    ///
+    /// See the comments around StylingMode.
+    fn styling_mode(&self) -> StylingMode {
+        use self::StylingMode::*;
+
+        // Non-incremental layout impersonates Initial.
+        if opts::get().nonincremental_layout {
+            return Initial;
+        }
+
+        // Compute the default result if this node doesn't require processing.
+        let mode_for_descendants = if self.has_dirty_descendants() {
+            Traverse
+        } else {
+            Stop
+        };
+
+        match self.borrow_data() {
+            // No node data, no style on the frame.
+            None if !self.frame_has_style() => Initial,
+            // No node data, style on the frame.
+            None => mode_for_descendants,
+            Some(d) => {
+                if d.restyle_data.is_some() || self.deprecated_dirty_bit_is_set() {
+                    Restyle
+                } else {
+                    debug_assert!(!self.frame_has_style()); // display:none etc
+                    mode_for_descendants
+                }
+            },
+        }
+    }
 
     /// Sets up the appropriate data structures to style a node, returing a
     /// mutable handle to the node data upon which further style calculations
@@ -212,7 +274,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
     /// Properly marks nodes as dirty in response to restyle hints.
-    fn note_restyle_hint(&self, hint: RestyleHint) {
+    fn note_restyle_hint<C: DomTraversalContext<Self::ConcreteNode>>(&self, hint: RestyleHint) {
         // Bail early if there's no restyling to do.
         if hint.is_empty() {
             return;
@@ -230,13 +292,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
         // Process hints.
         if hint.contains(RESTYLE_SELF) {
-            unsafe { node.set_dirty(); }
+            unsafe { C::ensure_node_data(&node).borrow_mut().ensure_restyle_data(); }
         // XXX(emilio): For now, dirty implies dirty descendants if found.
         } else if hint.contains(RESTYLE_DESCENDANTS) {
             unsafe { node.set_dirty_descendants(); }
             let mut current = node.first_child();
             while let Some(node) = current {
-                unsafe { node.set_dirty(); }
+                unsafe { C::ensure_node_data(&node).borrow_mut().ensure_restyle_data(); }
                 current = node.next_sibling();
             }
         }
@@ -245,7 +307,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
             let mut next = ::selectors::Element::next_sibling_element(self);
             while let Some(sib) = next {
                 let sib_node = sib.as_node();
-                unsafe { sib_node.set_dirty() };
+                unsafe { C::ensure_node_data(&sib_node).borrow_mut().ensure_restyle_data() };
                 next = ::selectors::Element::next_sibling_element(&sib);
             }
         }

@@ -11,7 +11,7 @@ use std::mem::transmute;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{NodeInfo, TElement, TNode};
+use style::dom::{NodeInfo, StylingMode, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData};
 use style::gecko::selector_impl::{GeckoSelectorImpl, PseudoElement};
@@ -106,8 +106,11 @@ fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowed) {
         timer: Timer::new(),
     };
 
-    // We ensure this is true before calling Servo_RestyleSubtree()
-    debug_assert!(node.is_dirty() || node.has_dirty_descendants());
+    if node.styling_mode() == StylingMode::Stop {
+        error!("Unnecessary call to restyle_subtree");
+        return;
+    }
+
     if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
         sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
     } else {

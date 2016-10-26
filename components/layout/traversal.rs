@@ -13,8 +13,10 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
+use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use style::dom::TNode;
+use style::data::NodeData;
+use style::dom::{TNode, TRestyleDamage};
 use style::selector_impl::ServoSelectorImpl;
 use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
@@ -75,11 +77,16 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         // done by the HTML parser.
         node.initialize_data();
 
-        recalc_style_at(&self.context, self.root, node)
+        recalc_style_at::<_, _, Self>(&self.context, self.root, node)
     }
 
     fn process_postorder(&self, node: N) {
         construct_flows_at(&self.context, self.root, node);
+    }
+
+    fn ensure_node_data(node: &N) -> &AtomicRefCell<NodeData> {
+        node.initialize_data();
+        node.get_style_data().unwrap()
     }
 
     fn local_context(&self) -> &LocalStyleContext {
@@ -103,7 +110,8 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
 
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
-        if nonincremental_layout || node.is_dirty() || node.has_dirty_descendants() {
+        if nonincremental_layout || node.has_dirty_descendants() ||
+           node.restyle_damage() != N::ConcreteRestyleDamage::empty() {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
