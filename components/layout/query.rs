@@ -631,14 +631,14 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     where N: LayoutNode,
           C: StyleContext<'a>
 {
-    use style::traversal::ensure_node_styled;
+    use style::traversal::ensure_element_styled;
 
     // This node might have display: none, or it's style might be not up to
     // date, so we might need to do style recalc.
     //
     // FIXME(emilio): Is a bit shame we have to do this instead of in style.
     ensure_node_data_initialized(&requested_node);
-    ensure_node_styled(requested_node, style_context);
+    ensure_element_styled(requested_node.as_element().unwrap(), style_context);
 
     let layout_node = requested_node.to_threadsafe();
     let layout_node = match *pseudo {

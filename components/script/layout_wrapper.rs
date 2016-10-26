@@ -133,7 +133,6 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
-    type ConcreteRestyleDamage = RestyleDamage;
     type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
@@ -470,6 +469,7 @@ impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type ConcreteDocument = ServoLayoutDocument<'le>;
+    type ConcreteRestyleDamage = RestyleDamage;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())

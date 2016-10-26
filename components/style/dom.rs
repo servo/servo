@@ -106,7 +106,6 @@ impl<T, I> Iterator for LayoutIterator<T> where T: Iterator<Item=I>, I: NodeInfo
 pub trait TNode : Sized + Copy + Clone + NodeInfo {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
-    type ConcreteRestyleDamage: TRestyleDamage;
     type ConcreteChildrenIterator: Iterator<Item = Self>;
 
     fn to_unsafe(&self) -> UnsafeNode;
@@ -249,6 +248,7 @@ pub trait PresentationalHintsSynthetizer {
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
+    type ConcreteRestyleDamage: TRestyleDamage;
 
     fn as_node(&self) -> Self::ConcreteNode;
 
@@ -260,7 +260,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
     /// Set the restyle damage field.
-    fn set_restyle_damage(self, damage: <Self::ConcreteNode as TNode>::ConcreteRestyleDamage);
+    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);
 
     /// XXX: It's a bit unfortunate we need to pass the current computed values
     /// as an argument here, but otherwise Servo would crash due to double
@@ -268,8 +268,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_computed_values: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
-        -> Option<&'a <<Self::ConcreteNode as TNode>::ConcreteRestyleDamage as TRestyleDamage>
-                      ::PreExistingComputedValues>;
+        -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage> ::PreExistingComputedValues>;
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint<C: DomTraversalContext<Self::ConcreteNode>>(&self, hint: RestyleHint) {
