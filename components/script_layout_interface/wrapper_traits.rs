@@ -323,6 +323,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     /// element style is precomputed, not from general layout itself.
     #[inline]
     fn resolved_style(&self) -> Arc<ServoComputedValues> {
+        // FIXME(bholley): This should move to Element and lose the text node check.
         if self.is_text_node() {
             return self.style_for_text_node();
         }
@@ -338,6 +339,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     #[inline]
     fn selected_style(&self, _context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+        // FIXME(bholley): This should move to Element and lose the text node check.
         if self.is_text_node() {
             return self.style_for_text_node();
         }

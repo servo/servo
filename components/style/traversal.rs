@@ -7,7 +7,7 @@
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::NodeData;
-use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
+use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -62,11 +62,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
-                                     root: OpaqueNode,
-                                     context: &SharedStyleContext)
-                                     -> Box<BloomFilter>
-                                     where N: TNode {
+pub fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
+                                         root: OpaqueNode,
+                                         context: &SharedStyleContext)
+                                         -> Box<BloomFilter>
+                                         where N: TNode {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -98,8 +98,8 @@ fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
     })
 }
 
-fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
-                                 context: &SharedStyleContext) {
+pub fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
+                                     context: &SharedStyleContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -284,13 +284,15 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
+pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                                     root: OpaqueNode,
-                                    node: N) -> RestyleResult
-    where N: TNode,
+                                    element: E) -> RestyleResult
+    where E: TElement,
           C: StyleContext<'a>,
-          D: DomTraversalContext<N>
+          D: DomTraversalContext<E::ConcreteNode>
 {
+    let node = element.as_node();
+
     // Get the parent node.
     let parent_opt = match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),

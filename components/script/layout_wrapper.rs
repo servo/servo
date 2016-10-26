@@ -763,6 +763,9 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn is_text_node(&self) -> bool {
+        // It's unlikely that text nodes will ever be used to implement a
+        // pseudo-element, but the type system doesn't really enforce that,
+        // so we check to be safe.
         self.pseudo == PseudoElementType::Normal && self.node.is_text_node()
     }
 
@@ -802,11 +805,18 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn style_for_text_node(&self) -> Arc<ComputedValues> {
+        // Text nodes get a copy of the parent style. Inheriting all non-
+        // inherited properties into the text node is odd from a CSS
+        // perspective, but makes fragment construction easier (by making
+        // properties like vertical-align on fragments have values that
+        // match the parent element). This is an implementation detail of
+        // Servo layout that is not central to how fragment construction
+        // works, but would be difficult to change. (Text node style is
+        // also not visible to script.)
         debug_assert!(self.is_text_node());
         let parent = self.node.parent_node().unwrap();
         let parent_data = parent.get_style_data().unwrap().borrow();
-        let parent_style = &parent_data.current_styles().primary;
-        ComputedValues::style_for_child_text_node(parent_style)
+        parent_data.current_styles().primary.clone()
     }
 
     fn debug_id(self) -> usize {
