@@ -66,7 +66,4 @@ void main(void) {
             vColor = vec4(1.0, 0.0, 1.0, 1.0);
             break;
     }
-
-    ClipInfo clip = fetch_clip(prim.clip_index);
-    write_clip(clip);
 }

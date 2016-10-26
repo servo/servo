@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-uniform sampler2D sCache;
-
 float gauss(float x, float sigma) {
     if (sigma == 0.0)
         return 1.0;

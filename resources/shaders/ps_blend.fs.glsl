@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-uniform sampler2D sCache;
-
 vec3 rgbToHsv(vec3 c) {
     float value = max(max(c.r, c.g), c.b);
 
