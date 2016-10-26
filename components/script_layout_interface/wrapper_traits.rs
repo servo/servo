@@ -353,7 +353,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     fn restyle_damage(self) -> RestyleDamage;
 
-    fn set_restyle_damage(self, damage: RestyleDamage);
+    fn clear_restyle_damage(self);
 
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.

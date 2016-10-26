@@ -215,12 +215,6 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     /// Immutable borrows the NodeData.
     fn borrow_data(&self) -> Option<AtomicRef<NodeData>>;
 
-    /// Get the description of how to account for recent style changes.
-    fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
-
-    /// Set the restyle damage field.
-    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);
-
     fn parent_node(&self) -> Option<Self>;
 
     fn first_child(&self) -> Option<Self>;
@@ -230,14 +224,6 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     fn prev_sibling(&self) -> Option<Self>;
 
     fn next_sibling(&self) -> Option<Self>;
-
-    /// XXX: It's a bit unfortunate we need to pass the current computed values
-    /// as an argument here, but otherwise Servo would crash due to double
-    /// borrows to return it.
-    fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_computed_values: Option<&'a Arc<ComputedValues>>,
-                                             pseudo: Option<&PseudoElement>)
-        -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 }
 
 pub trait TDocument : Sized + Copy + Clone {
@@ -272,6 +258,17 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
+
+    /// Set the restyle damage field.
+    fn set_restyle_damage(self, damage: <Self::ConcreteNode as TNode>::ConcreteRestyleDamage);
+
+    /// XXX: It's a bit unfortunate we need to pass the current computed values
+    /// as an argument here, but otherwise Servo would crash due to double
+    /// borrows to return it.
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_computed_values: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
+        -> Option<&'a <<Self::ConcreteNode as TNode>::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint<C: DomTraversalContext<Self::ConcreteNode>>(&self, hint: RestyleHint) {

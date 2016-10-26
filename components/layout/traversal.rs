@@ -16,7 +16,7 @@ use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::data::NodeData;
-use style::dom::{TNode, TRestyleDamage};
+use style::dom::TNode;
 use style::selector_impl::ServoSelectorImpl;
 use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
@@ -111,7 +111,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.has_dirty_descendants() ||
-           node.restyle_damage() != N::ConcreteRestyleDamage::empty() {
+           tnode.restyle_damage() != RestyleDamage::empty() {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
@@ -121,9 +121,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
             }
         }
 
-        // Reset the layout damage in this node. It's been propagated to the
-        // flow by the flow constructor.
-        tnode.set_restyle_damage(RestyleDamage::empty());
+        tnode.clear_restyle_damage();
     }
 
     unsafe { node.clear_dirty_bits(); }

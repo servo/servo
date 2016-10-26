@@ -236,39 +236,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         debug_assert!(self.is_text_node());
         let mut data = self.get_partial_layout_data().unwrap().borrow_mut();
         data.style_data.style_text_node(style);
-        if self.has_changed() {
-            data.restyle_damage = RestyleDamage::rebuild_and_reflow();
-        } else {
-            // FIXME(bholley): This is necessary to make it correct to use restyle
-            // damage in construct_flows_at to determine whether to reconstruct
-            // text nodes. Without it, we fail cascade-import-dynamic-002.htm.
-            //
-            // Long-term, We should teach layout how to correctly propagate
-            // style changes from elements to child text nodes so that we don't
-            // need to do this explicitly here. This will likely all be rolled
-            // into a patch where we stop styling text nodes from the style
-            // system and instead generate the styles on the fly during frame
-            // construction / repair.
-            let parent = self.parent_node().unwrap();
-            let parent_data = parent.get_partial_layout_data().unwrap().borrow();
-            data.restyle_damage = parent_data.restyle_damage;
-        }
     }
 
     fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
         self.get_style_data().map(|d| d.borrow())
-    }
-
-    fn restyle_damage(self) -> RestyleDamage {
-        self.get_partial_layout_data().unwrap().borrow().restyle_damage
-    }
-
-    fn set_restyle_damage(self, damage: RestyleDamage) {
-        let mut damage = damage;
-        if self.has_changed() {
-            damage = RestyleDamage::rebuild_and_reflow();
-        }
-        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -299,14 +270,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
-    }
-
-    #[inline]
-    fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>,
-                                             _pseudo_element: Option<&PseudoElement>)
-                                             -> Option<&'a Arc<ComputedValues>> {
-        current_cv
     }
 }
 
@@ -530,6 +493,19 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     #[inline]
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
+    }
+
+    fn set_restyle_damage(self, damage: RestyleDamage) {
+        let node = self.as_node();
+        node.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
+    }
+
+    #[inline]
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             _pseudo_element: Option<&PseudoElement>)
+                                             -> Option<&'a Arc<ComputedValues>> {
+        current_cv
     }
 }
 
@@ -885,11 +861,22 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        self.node.restyle_damage()
+        if self.node.has_changed() {
+            RestyleDamage::rebuild_and_reflow()
+        } else if self.is_text_node() {
+            let parent = self.node.parent_node().unwrap();
+            let parent_data = parent.get_partial_layout_data().unwrap().borrow();
+            parent_data.restyle_damage
+        } else {
+            self.node.get_partial_layout_data().unwrap().borrow().restyle_damage
+        }
     }
 
-    fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.node.set_restyle_damage(damage)
+    fn clear_restyle_damage(self) {
+        if self.is_element() {
+            let mut data = self.node.get_partial_layout_data().unwrap().borrow_mut();
+            data.restyle_damage = RestyleDamage::empty();
+        }
     }
 
     fn can_be_fragmented(&self) -> bool {

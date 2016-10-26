@@ -7,7 +7,7 @@
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::NodeData;
-use dom::{OpaqueNode, StylingMode, TNode, UnsafeNode};
+use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -370,7 +370,7 @@ pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
                     STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
                 }
                 style_sharing_candidate_cache.touch(index);
-                node.set_restyle_damage(damage);
+                node.as_element().unwrap().set_restyle_damage(damage);
             }
         }
     }
