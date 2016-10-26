@@ -490,21 +490,29 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "CSSColor": impl_color,
     }
 
-    def predefined_type_method(longhand):
+    def longhand_method(longhand):
         args = dict(ident=longhand.ident, gecko_ffi_name=longhand.gecko_ffi_name,
                     need_clone=longhand.need_clone)
-        method = predefined_types[longhand.predefined_type]
 
-        # additional type-specific arguments
-        if longhand.predefined_type in ["CSSColor"]:
-            args.update(complex_color=longhand.complex_color)
+        # get the method and pass additional keyword or type-specific arguments
+        if longhand.keyword:
+            method = impl_keyword
+            args.update(keyword=longhand.keyword)
+            if "font" in longhand.ident:
+                args.update(cast_type=longhand.cast_type)
+        else:
+            method = predefined_types[longhand.predefined_type]
+            if longhand.predefined_type in ["CSSColor"]:
+                args.update(complex_color=longhand.complex_color)
 
         method(**args)
 
-    keyword_longhands = [x for x in longhands if x.keyword and x.name not in force_stub]
-    predefined_longhands = [x for x in longhands
-                            if x.predefined_type in predefined_types and x.name not in force_stub]
-    stub_longhands = [x for x in longhands if x not in keyword_longhands + predefined_longhands]
+    picked_longhands, stub_longhands = [], []
+    for x in longhands:
+        if (x.keyword or x.predefined_type in predefined_types) and x.name not in force_stub:
+            picked_longhands.append(x)
+        else:
+            stub_longhands.append(x)
 
     # If one of the longhands is not handled
     # by either:
@@ -518,6 +526,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # If you hit this error, please add `product="servo"` to the longhand.
     # In case the longhand is used in a shorthand, add it to the force_stub
     # list above.
+
     for stub in stub_longhands:
        if stub.name not in force_stub:
            raise Exception("Don't know what to do with longhand %s in style struct %s"
@@ -533,10 +542,8 @@ impl ${style_struct.gecko_struct_name} {
      * Auto-Generated Methods.
      */
     <%
-    for longhand in keyword_longhands:
-        impl_keyword(longhand.ident, longhand.gecko_ffi_name, longhand.keyword, longhand.need_clone)
-    for longhand in predefined_longhands:
-        predefined_type_method(longhand)
+    for longhand in picked_longhands:
+        longhand_method(longhand)
     %>
 
     /*
@@ -758,7 +765,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-kerning font-stretch font-style font-size font-weight"
+    skip_longhands="font-family font-size font-weight"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -791,9 +798,6 @@ fn static_assert() {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
     }
 
-    <%call expr="impl_keyword('font_style', 'mFont.style',
-        data.longhands_by_name['font-style'].keyword, need_clone=False)"></%call>
-
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
     // actual computed size, and the other of which (mFont.size) is the 'display
     // size' which takes font zooming into account. We don't handle font zooming yet.
@@ -808,19 +812,6 @@ fn static_assert() {
     pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
     }
-
-    <% kerning_keyword = Keyword("font-kerning", "auto normal none",
-                                 gecko_constant_prefix='NS_FONT_KERNING') %>
-
-    ${impl_keyword('font_kerning', 'mFont.kerning', kerning_keyword, need_clone=False)}
-
-    <% stretch_keyword = Keyword("font-stretch",
-                                 "normal ultra-condensed extra-condensed condensed " +
-                                 "semi-condensed semi-expanded expanded " +
-                                 "extra-expanded ultra-expanded",
-                                 gecko_constant_prefix='NS_FONT_STRETCH') %>
-
-    ${impl_keyword('font_stretch', 'mFont.stretch', stretch_keyword, need_clone=False, cast_type='i16')}
 
     pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
@@ -1630,17 +1621,6 @@ fn static_assert() {
         self.gecko.mBorderSpacingCol = other.gecko.mBorderSpacingCol;
         self.gecko.mBorderSpacingRow = other.gecko.mBorderSpacingRow;
     }
-
-</%self:impl_trait>
-
-
-<%self:impl_trait style_struct_name="InheritedBox"
-                  skip_longhands="image-rendering">
-
-    <% render_keyword = Keyword("image-rendering",
-                                "auto optimizequality optimizespeed crispedges") %>
-
-    ${impl_keyword('image_rendering', 'mImageRendering', render_keyword, need_clone=False)}
 
 </%self:impl_trait>
 

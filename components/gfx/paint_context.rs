@@ -223,7 +223,7 @@ impl<'a> PaintContext<'a> {
         // Something like Scale2x would be ideal.
         let draw_surface_filter = match image_rendering {
             image_rendering::T::auto => Filter::Linear,
-            image_rendering::T::crispedges | image_rendering::T::pixelated => Filter::Point,
+            image_rendering::T::crisp_edges | image_rendering::T::pixelated => Filter::Point,
         };
 
         let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);

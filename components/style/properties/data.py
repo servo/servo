@@ -18,7 +18,7 @@ def to_camel_case(ident):
 
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
-                 gecko_enum_prefix=None,
+                 gecko_enum_prefix=None, custom_consts=None,
                  extra_gecko_values=None, extra_servo_values=None):
         self.name = name
         self.values = values.split()
@@ -29,6 +29,7 @@ class Keyword(object):
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
+        self.consts_map = {} if custom_consts is None else custom_consts
 
     def gecko_values(self):
         return self.values + self.extra_gecko_values
@@ -45,12 +46,15 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
+        moz_stripped = value.replace("-moz-", '')
+        parts = moz_stripped.split('-')
         if self.gecko_enum_prefix:
-            parts = value.replace("-moz-", "").split("-")
             parts = [p.title() for p in parts]
             return self.gecko_enum_prefix + "::" + "".join(parts)
         else:
-            return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+            mapped = self.consts_map.get(value)
+            suffix = mapped if mapped else moz_stripped.replace("-", "_")
+            return self.gecko_constant_prefix + "_" + suffix.upper()
 
     def needs_cast(self):
         return self.gecko_enum_prefix is None
@@ -63,7 +67,7 @@ class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
-                 allowed_in_keyframe_block=True, complex_color=False):
+                 allowed_in_keyframe_block=True, complex_color=False, cast_type='u8'):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -78,6 +82,7 @@ class Longhand(object):
         self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
         self.complex_color = complex_color
+        self.cast_type = cast_type
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
