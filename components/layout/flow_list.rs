@@ -5,7 +5,6 @@
 use flow::Flow;
 use flow_ref::{self, FlowRef};
 use std::collections::{LinkedList, linked_list};
-use std::ops::{Index, IndexMut};
 
 /// This needs to be reworked now that we have dynamically-sized types in Rust.
 /// Until then, it's just a wrapper around LinkedList.
@@ -79,6 +78,20 @@ impl FlowList {
         }
     }
 
+    /// Provides a caching random-access iterator that yields mutable references. This is
+    /// guaranteed to perform no more than O(n) pointer chases.
+    ///
+    /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
+    /// to do so! See the comment above in `FlowList`.
+    #[inline]
+    pub fn random_access_mut(&mut self) -> FlowListRandomAccessMut {
+        let length = self.flows.len();
+        FlowListRandomAccessMut {
+            iterator: self.flows.iter_mut(),
+            cache: Vec::with_capacity(length),
+        }
+    }
+
     /// O(1)
     #[inline]
     pub fn is_empty(&self) -> bool {
@@ -99,21 +112,6 @@ impl FlowList {
     }
 }
 
-impl Index<usize> for FlowList {
-    /// FIXME(pcwalton): O(n)!
-    type Output = Flow;
-    fn index(&self, index: usize) -> &Flow {
-        &**self.flows.iter().nth(index).unwrap()
-    }
-}
-
-impl IndexMut<usize> for FlowList {
-    /// FIXME(pcwalton): O(n)!
-    fn index_mut(&mut self, index: usize) -> &mut Flow {
-        self.iter_mut().nth(index).unwrap()
-    }
-}
-
 impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
     fn next_back(&mut self) -> Option<&'a mut Flow> {
         self.it.next_back().map(flow_ref::deref_mut)
@@ -130,5 +128,24 @@ impl<'a> Iterator for MutFlowListIterator<'a> {
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
+    }
+}
+
+/// A caching random-access iterator that yields mutable references. This is guaranteed to perform
+/// no more than O(n) pointer chases.
+pub struct FlowListRandomAccessMut<'a> {
+    iterator: linked_list::IterMut<'a, FlowRef>,
+    cache: Vec<FlowRef>,
+}
+
+impl<'a> FlowListRandomAccessMut<'a> {
+    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut Flow {
+        while index >= self.cache.len() {
+            match self.iterator.next() {
+                None => panic!("Flow index out of range!"),
+                Some(next_flow) => self.cache.push((*next_flow).clone()),
+            }
+        }
+        flow_ref::deref_mut(&mut self.cache[index])
     }
 }
