@@ -25,7 +25,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
-use dom::bindings::refcounted::Trusted;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
@@ -75,6 +75,7 @@ use dom::pagetransitionevent::PageTransitionEvent;
 use dom::popstateevent::PopStateEvent;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
+use dom::promise::Promise;
 use dom::range::Range;
 use dom::servoparser::ServoParser;
 use dom::storageevent::StorageEvent;
@@ -92,7 +93,7 @@ use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime, HandleValue};
 use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
@@ -132,6 +133,7 @@ use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
 use util::prefs::PREFS;
+use util::thread::spawn_named;
 
 pub enum TouchEventResult {
     Processed(bool),
@@ -265,6 +267,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// Entry node for fullscreen.
+    fullscreen_element: MutNullableHeap<JS<Element>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1845,6 +1849,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            fullscreen_element: MutNullableHeap::new(None),
         }
     }
 
@@ -2013,6 +2018,132 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::ElementStateChanged);
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    #[allow(unrooted_must_root)]
+    pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
+        // Step 1
+        let promise = Promise::new(self.global().r());
+        let mut error = false;
+
+        // Step 4
+        // check namespace
+        let namespace = pending.namespace().clone();
+        if let Some(dom_str) = Node::namespace_to_string(namespace) {
+            match dom_str.as_ref() {
+                "http://www.w3.org/1999/xhtml" => (),
+                "http://www.w3.org/2000/svg" => {
+                    if pending.local_name().as_ref() != "svg" {
+                        error = true;
+                    }
+                },
+                "http://www.w3.org/1998/Math/MathML" => {
+                    if pending.local_name().as_ref() != "math" {
+                        error = true;
+                    }
+                },
+                _ => {
+                    error = true;
+                }
+            }
+        } else {
+            error = true;
+        }
+        // fullscreen element ready check
+        if !pending.is_connected() {
+            error = true;
+        }
+        // TODO allowfullscreen
+        match self.browsing_context() {
+            None => { error = true; },
+            Some(_) => (),
+        }
+        // TODO fullscreen is supported
+        // TODO This algorithm is allowed to request fullscreen.
+
+        // Step 5
+        let trusted_doc = Trusted::new(self);
+        let trusted_pending = Trusted::new(pending);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        spawn_named("perform async operation during enter fullscreen".to_owned(), move || {
+            Document::perform_async_enter_fullscreen(trusted_doc, trusted_pending, error, trusted_promise)
+        });
+        promise
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    fn perform_async_enter_fullscreen(document: Trusted<Document>,
+                                      pending: Trusted<Element>,
+                                      error: bool,
+                                      promise: TrustedPromise) {
+        let global = document.root().global();
+        // Step 7.1
+        if error {
+            document.root().upcast::<EventTarget>().fire_simple_event("fullscreenerror");
+            promise.root().reject_error(global.get_cx(), Error::Type(String::from("fullscreen is not connected")));
+            return
+        }
+
+        // Step 6
+        let event = ConstellationMsg::SetFullscreenState(true);
+        document.root().window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+
+        // TODO Step 7.2-4
+        // Step 7.5
+        pending.root().set_fullscren_state(true);
+        document.root().fullscreen_element.set(Some(&pending.root()));
+        document.root().window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::ElementStateChanged);
+
+        // Step 7.6
+        document.root().upcast::<EventTarget>().fire_simple_event("fullscreenchange");
+        // Step 7.7
+        promise.root().resolve(global.get_cx(), HandleValue::undefined());
+    }
+
+    // https://fullscreen.spec.whatwg.org/#exit-fullscreen
+    #[allow(unrooted_must_root)]
+    pub fn exit_fullscreen(&self) -> Rc<Promise> {
+        let global = self.global();
+        // Step 1
+        let promise = Promise::new(global.r());
+        // Step 2
+        if self.fullscreen_element.get().is_none() {
+            promise.reject_error(global.get_cx(), Error::Type(String::from("fullscreen is null")));
+            return promise
+        }
+        // TODO Step 3-6
+        let element = self.fullscreen_element.get().unwrap();
+        // Step 7
+        let trusted_doc = Trusted::new(self);
+        let trusted_element = Trusted::new(element.r());
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        spawn_named("perform async operation during exit fullscreen".to_owned(), move || {
+            Document::perform_async_exit_fullscreen(trusted_doc, trusted_element, trusted_promise)
+        });
+        promise
+    }
+
+    // https://fullscreen.spec.whatwg.org/#exit-fullscreen
+    fn perform_async_exit_fullscreen(document: Trusted<Document>,
+                                     element: Trusted<Element>,
+                                     promise: TrustedPromise) {
+        // Step 8
+        let event = ConstellationMsg::SetFullscreenState(false);
+        document.root().window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
+
+        // Step 9.6
+        element.root().set_fullscren_state(false);
+
+        document.root().window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::ElementStateChanged);
+        // Step 9.8
+        document.root().upcast::<EventTarget>().fire_simple_event("fullscreenchange");
+        // Step 9.10
+        promise.root().resolve(document.root().global().r().get_cx(), HandleValue::undefined());
     }
 }
 
@@ -2991,6 +3122,49 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
     document_and_element_event_handlers!();
+
+    // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
+    event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
+
+    // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenchange
+    event_handler!(fullscreenchange, GetOnfullscreenchange, SetOnfullscreenchange);
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenenabled
+    fn FullscreenEnabled(&self) -> bool {
+        match self.browsing_context() {
+            None => false,
+            Some(_) => true,
+        }
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreen
+    fn Fullscreen(&self) -> bool {
+        self.fullscreen_element.get().is_some()
+    }
+
+    // https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement
+    fn GetFullscreenElement(&self) -> Option<Root<Element>> {
+        match self.fullscreen_element.get() {
+            Some(element) => {
+                // Step 1
+                if element.is_connected() {
+                    // TODO Step 2
+                    // Step 3
+                    Some(element)
+                } else {
+                    None
+                }
+            },
+            // Step 4
+            None => None,
+        }
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
+    fn ExitFullscreen(&self) -> Rc<Promise> {
+        self.exit_fullscreen()
+    }
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {

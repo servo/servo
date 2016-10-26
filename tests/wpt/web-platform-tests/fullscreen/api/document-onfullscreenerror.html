@@ -6,8 +6,12 @@
 <script>
 async_test(function(t)
 {
-    assert_equals(document.onfullscreenerror, null, "initial onfullscreenerror");
-    document.onfullscreenerror = t.step_func_done();
-    document.createElement("a").requestFullscreen();
+    var e = document.createElement('span');
+    var sync = true;
+    document.addEventListener('fullscreenerror', function() {
+        assert_false(sync);
+    });
+    e.requestFullscreen();
+    sync = false;
 });
 </script>
