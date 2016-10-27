@@ -19,7 +19,7 @@ use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
 use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::ResolvedStyleResponse;
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
@@ -36,7 +36,7 @@ use style::selector_impl::PseudoElement;
 use style::selector_matching::Stylist;
 use style::values::LocalToCss;
 use style_traits::cursor::Cursor;
-use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
+use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
 
 /// Mutable data belonging to the LayoutThread.
 ///
@@ -640,27 +640,27 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     ensure_node_data_initialized(&requested_node);
     ensure_element_styled(requested_node.as_element().unwrap(), style_context);
 
-    let layout_node = requested_node.to_threadsafe();
-    let layout_node = match *pseudo {
-        Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
-        Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+    let layout_el = requested_node.to_threadsafe().as_element().unwrap();
+    let layout_el = match *pseudo {
+        Some(PseudoElement::Before) => layout_el.get_before_pseudo(),
+        Some(PseudoElement::After) => layout_el.get_after_pseudo(),
         Some(PseudoElement::DetailsSummary) |
         Some(PseudoElement::DetailsContent) |
         Some(PseudoElement::Selection) => None,
-        _ => Some(layout_node)
+        _ => Some(layout_el)
     };
 
-    let layout_node = match layout_node {
+    let layout_el = match layout_el {
         None => {
             // The pseudo doesn't exist, return nothing.  Chrome seems to query
             // the element itself in this case, Firefox uses the resolved value.
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
             return None;
         }
-        Some(layout_node) => layout_node
+        Some(layout_el) => layout_el
     };
 
-    let style = &*layout_node.resolved_style();
+    let style = &*layout_el.resolved_style();
 
     let positioned = match style.get_box().position {
         position::computed_value::T::relative |
@@ -678,11 +678,11 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     let applies = true;
 
     fn used_value_for_position_property<N: LayoutNode>(
-            layout_node: N::ConcreteThreadSafeLayoutNode,
+            layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
             layout_root: &mut Flow,
             requested_node: N,
             property: &Atom) -> Option<String> {
-        let maybe_data = layout_node.borrow_layout_data();
+        let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>
@@ -744,12 +744,12 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
         atom!("left")
         if applies && positioned && style.get_box().display !=
                 display::computed_value::T::none => {
-            used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            used_value_for_position_property(layout_el, layout_root, requested_node, property)
         }
         atom!("width") | atom!("height")
         if applies && style.get_box().display !=
                 display::computed_value::T::none => {
-            used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            used_value_for_position_property(layout_el, layout_root, requested_node, property)
         }
         // FIXME: implement used value computation for line-height
         ref property => {
@@ -781,7 +781,7 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
 
 pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOverflowResponse {
     let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.resolved_style();
+    let style = &*layout_node.as_element().unwrap().resolved_style();
     let style_box = style.get_box();
 
     NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
@@ -790,7 +790,7 @@ pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOv
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
         -> MarginStyleResponse {
     let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.resolved_style();
+    let style = &*layout_node.as_element().unwrap().resolved_style();
     let margin = style.get_margin();
 
     MarginStyleResponse {
