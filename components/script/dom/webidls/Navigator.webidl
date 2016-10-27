@@ -7,7 +7,6 @@ interface Navigator {
   // objects implementing this interface also implement the interfaces given below
 };
 Navigator implements NavigatorID;
-Navigator implements NavigatorBluetooth;
 Navigator implements NavigatorLanguage;
 //Navigator implements NavigatorOnLine;
 //Navigator implements NavigatorContentUtils;
@@ -27,9 +26,9 @@ interface NavigatorID {
   readonly attribute DOMString userAgent;
 };
 
-[NoInterfaceObject]
-interface NavigatorBluetooth {
-    readonly attribute Bluetooth bluetooth;
+// https://webbluetoothcg.github.io/web-bluetooth/#navigator-extensions
+partial interface Navigator {
+  readonly attribute Bluetooth bluetooth;
 };
 
 // https://w3c.github.io/ServiceWorker/#navigator-service-worker
