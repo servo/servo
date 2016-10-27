@@ -55,8 +55,8 @@ use sequential;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position, text_align};
+use style::computed_values::{_servo_overflow_target, border_collapse, box_sizing, display, float};
+use style::computed_values::{overflow_x, overflow_y, position, text_align};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
@@ -1691,6 +1691,16 @@ impl BlockFlow {
     }
 
     pub fn has_scrolling_overflow(&self) -> bool {
+        // If this fragment's overflow region targets the viewport, the overflow applies to the
+        // viewport rather than the fragment.
+        //
+        // FIXME(pcwalton): Right now, the display list builder doesn't actually apply this
+        // overflow to the viewport.
+        if self.fragment.style.get_box()._servo_overflow_target ==
+                _servo_overflow_target::T::viewport {
+            return false
+        }
+
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y.0) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
