@@ -40,6 +40,7 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 use url::Url;
 
+use dom::bindings::js::RootedReference;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
@@ -326,8 +327,13 @@ impl Request {
         }
 
         // Step 29
-        // When r.Headers()'s header list is emptied,
-        // r.Headers that was filled in Step 28 becomes empty.
+        // We cannot empty `r.Headers().header_list` because
+        // we would undo the Step 27 above.  One alternative is to set
+        // `headers_copy` as a deep copy of `r.Headers()`. However,
+        // `r.Headers()` is a `Root<T>`, and therefore it is difficult
+        // to obtain a mutable reference to `r.Headers()`. Without the
+        // mutable reference, we cannot mutate `r.Headers()` to be the
+        // deep copied headers in Step 27.
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
@@ -346,19 +352,18 @@ impl Request {
         }
 
         // Step 31
-        if let Some(HeadersInit::Headers(_)) = init.headers {
-            try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
-        };
-
-        // This is equivalent to the specification's concept of
-        // "associated headers list". If an init headers is not given,
-        // but an input with headers is given, set request's
-        // headers as the input's Headers.
-        if let None = init.headers {
-            if let RequestInfo::Request(ref input_request) = input {
-                try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
-            }
-        };
+        match init.headers {
+            None => {
+                // This is equivalent to the specification's concept of
+                // "associated headers list". If an init headers is not given,
+                // but an input with headers is given, set request's
+                // headers as the input's Headers.
+                if let RequestInfo::Request(ref input_request) = input {
+                    try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
+                }
+            },
+            Some(_) => try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))),
+        }
 
         // Step 32
         let mut input_body = if let RequestInfo::Request(ref input_request) = input {
