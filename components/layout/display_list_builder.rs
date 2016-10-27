@@ -57,6 +57,7 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use url::Url;
+use util::geometry;
 use util::opts;
 
 static THREAD_TINT_COLORS: [Color; 8] = [
@@ -1367,7 +1368,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           .relative_containing_block_mode,
                                                CoordinateSystem::Parent);
         let overflow = if scrolls_overflow_area {
-            Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
+            base_flow.overflow
+                     .scroll
+                     .intersection(&Rect::new(Point2D::zero(), geometry::max_rect().size))
+                     .unwrap_or(Rect::zero())
         } else {
             // First, compute the offset of our border box (including relative positioning)
             // from our flow origin, since that is what `BaseFlow::overflow` is relative to.

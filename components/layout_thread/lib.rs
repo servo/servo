@@ -928,18 +928,21 @@ impl LayoutThread {
 
                         debug!("Done building display list.");
 
-                        let root_size = {
+                        let root_bounds = {
                             let root_flow = flow::base(layout_root);
                             if rw_data.stylist.viewport_constraints().is_some() {
-                                root_flow.position.size.to_physical(root_flow.writing_mode)
+                                root_flow.position.to_physical(root_flow.writing_mode,
+                                                               Size2D::zero())
                             } else {
-                                root_flow.overflow.scroll.size
+                                root_flow.overflow.scroll
                             }
                         };
 
-                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                        root_stacking_context.bounds = origin;
-                        root_stacking_context.overflow = origin;
+                        let root_bounds =
+                            root_bounds.intersection(&Rect::new(Point2D::zero(), max_rect().size))
+                                       .unwrap_or(Rect::zero());
+                        root_stacking_context.bounds = root_bounds;
+                        root_stacking_context.overflow = root_bounds;
 
                         rw_data.display_list =
                             Some(Arc::new(DisplayList::new(root_stacking_context,
