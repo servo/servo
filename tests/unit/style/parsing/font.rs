@@ -76,3 +76,17 @@ fn font_feature_settings_to_css() {
     assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\" 4");
     assert_roundtrip_with_context!(font_feature_settings::parse, "\"abcd\", \"efgh\"");
 }
+
+#[test]
+fn font_language_override_should_parse_properly() {
+    use style::properties::longhands::font_language_override::{self, SpecifiedValue};
+
+    let normal = parse_longhand!(font_language_override, "normal");
+    assert_eq!(normal, SpecifiedValue::Normal);
+
+    let turkic = parse_longhand!(font_language_override, "\"TRK\"");
+    assert_eq!(turkic, SpecifiedValue::Override("TRK".to_string()));
+
+    let danish = parse_longhand!(font_language_override, "\"DAN\"");
+    assert_eq!(danish, SpecifiedValue::Override("DAN".to_string()));
+}
