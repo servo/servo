@@ -6,7 +6,6 @@
 #![cfg_attr(feature = "servo", feature(nonzero))]
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(proc_macro))]
-#![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", feature(structural_match))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
