@@ -13,4 +13,12 @@ test(function() {
   });
 }, "Setting URL's href attribute and base URLs");
 
+test(function() {
+  assert_equals(URL.domainToASCII, undefined);
+}, "URL.domainToASCII should be undefined");
+
+test(function() {
+  assert_equals(URL.domainToUnicode, undefined);
+}, "URL.domainToUnicode should be undefined");
+
 done();

@@ -41,7 +41,7 @@ float alpha_for_solid_border(float distance_from_ref,
   // Apply a more gradual fade out to transparent.
   // distance_from_border -= 0.5;
 
-  return smoothstep(1.0, 0.0, distance_from_border);
+  return 1.0 - smoothstep(0.0, 1.0, distance_from_border);
 }
 
 float alpha_for_solid_border_corner(vec2 local_pos,
@@ -97,7 +97,7 @@ vec4 draw_dotted_edge(vec2 local_pos, vec4 piece_rect, float pixels_per_fragment
   // Move the distance back into pixels.
   distance_from_circle_edge /= pixels_per_fragment;
 
-  float alpha = smoothstep(1.0, 0.0, min(1.0, max(0.0, distance_from_circle_edge)));
+  float alpha = 1.0 - smoothstep(0.0, 1.0, min(1.0, max(0.0, distance_from_circle_edge)));
   return vHorizontalColor * vec4(1.0, 1.0, 1.0, alpha);
 }
 

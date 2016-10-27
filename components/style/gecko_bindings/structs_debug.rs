@@ -10035,9 +10035,6 @@ fn bindgen_test_layout_nsStyleVisibility() {
     assert_eq!(::std::mem::size_of::<nsStyleVisibility>() , 7usize);
     assert_eq!(::std::mem::align_of::<nsStyleVisibility>() , 1usize);
 }
-pub type RawGeckoNode = nsINode;
-pub type RawGeckoElement = Element;
-pub type RawGeckoDocument = nsIDocument;
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct Position {

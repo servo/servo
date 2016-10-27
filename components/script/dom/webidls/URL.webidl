@@ -5,9 +5,6 @@
 // https://url.spec.whatwg.org/#url
 [Constructor(USVString url, optional USVString base), Exposed=(Window,Worker)]
 interface URL {
-  static USVString domainToASCII(USVString domain);
-  static USVString domainToUnicode(USVString domain);
-
   [SetterThrows]
   /*stringifier*/ attribute USVString href;
   readonly attribute USVString origin;

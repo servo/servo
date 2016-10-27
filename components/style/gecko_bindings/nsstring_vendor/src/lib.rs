@@ -144,6 +144,7 @@ use std::ptr;
 use std::mem;
 use std::fmt;
 use std::cmp;
+use std::str;
 use std::u32;
 
 //////////////////////////////////
@@ -568,6 +569,10 @@ impl nsACString {
         unsafe {
             Gecko_AppendUTF16toCString(self as *mut _, other as *const _);
         }
+    }
+
+    pub unsafe fn as_str_unchecked(&self) -> &str {
+        str::from_utf8_unchecked(self)
     }
 }
 

@@ -40,73 +40,15 @@ ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
                          animatable=False)}
 
-<%helpers:longhand name="image-rendering" animatable="False">
-    pub mod computed_value {
-        use cssparser::ToCss;
-        use std::fmt;
-
-        #[allow(non_camel_case_types)]
-        #[derive(Copy, Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub enum T {
-            auto,
-            crispedges,
-            % if product == "gecko":
-                optimizequality,
-                optimizespeed,
-            % else:
-                pixelated,  // firefox doesn't support it (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
-            % endif
-        }
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    T::auto => dest.write_str("auto"),
-                    T::crispedges => dest.write_str("crisp-edges"),
-                    % if product == "gecko":
-                        T::optimizequality => dest.write_str("optimizeQuality"),
-                        T::optimizespeed => dest.write_str("optimizeSpeed"),
-                    % else:
-                        T::pixelated => dest.write_str("pixelated"),
-                    % endif
-                }
-            }
-        }
-    }
-
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
-
-    pub type SpecifiedValue = computed_value::T;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::auto
-    }
-
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for
-        // `auto`.
-        match_ignore_ascii_case! {
-            try!(input.expect_ident()),
-            "auto" => Ok(computed_value::T::auto),
-            "crisp-edges" => Ok(computed_value::T::crispedges),
-            % if product == "gecko":
-                "optimizequality" => Ok(computed_value::T::optimizequality),
-                "optimizespeed" => Ok(computed_value::T::optimizespeed),
-            % else:
-                "optimizequality" => Ok(computed_value::T::auto),
-                "optimizespeed" => Ok(computed_value::T::auto),
-                "pixelated" => Ok(computed_value::T::pixelated),
-            % endif
-            _ => Err(())
-        }
-    }
-
-    use values::computed::ComputedValueAsSpecified;
-    impl ComputedValueAsSpecified for SpecifiedValue { }
-</%helpers:longhand>
+<% image_rendering_custom_consts = { "crisp-edges": "CRISPEDGES" } %>
+// According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for `auto`
+// And, firefox doesn't support `pixelated` yet (https://bugzilla.mozilla.org/show_bug.cgi?id=856337)
+${helpers.single_keyword("image-rendering",
+                         "auto crisp-edges",
+                         extra_gecko_values="optimizespeed optimizequality",
+                         extra_servo_values="pixelated",
+                         custom_consts=image_rendering_custom_consts,
+                         animatable=False)}
 
 // Used in the bottom-up flow construction traversal to avoid constructing flows for
 // descendants of nodes with `display: none`.

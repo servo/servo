@@ -37715,7 +37715,9 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "url/url-domainToUnicode.html"
+    ],
     "deleted_reftests": {},
     "items": {
       "reftest": {

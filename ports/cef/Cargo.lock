@@ -1258,7 +1258,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#34c3e075138bb7eff2ed8b5924ccb9067dcd017e"
+source = "git+https://github.com/servo/mozjs#f7917c480e3378441ee54c0554f6a3af9fb57464"
 dependencies = [
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2519,7 +2519,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.7.0"
-source = "git+https://github.com/servo/webrender#a3adb113f95b682ae3176c4000bdcaad1e7cb940"
+source = "git+https://github.com/servo/webrender#4440d1daa3d6e9630d4b164f7bae644b9dc4cb8a"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2544,7 +2544,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.7.0"
-source = "git+https://github.com/servo/webrender#a3adb113f95b682ae3176c4000bdcaad1e7cb940"
+source = "git+https://github.com/servo/webrender#4440d1daa3d6e9630d4b164f7bae644b9dc4cb8a"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
