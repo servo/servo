@@ -37,6 +37,7 @@ extern crate profile_traits;
 extern crate script;
 extern crate script_layout_interface;
 extern crate script_traits;
+extern crate selectors;
 extern crate serde_json;
 extern crate style;
 extern crate url;
@@ -94,6 +95,7 @@ use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowR
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
+use selectors::Element;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -1109,11 +1111,11 @@ impl LayoutThread {
                         // NB: The dirty bit is propagated down the tree.
                         unsafe { node.set_dirty(); }
 
-                        let mut current = node.parent_node();
-                        while let Some(node) = current {
-                            if node.has_dirty_descendants() { break; }
-                            unsafe { node.set_dirty_descendants(); }
-                            current = node.parent_node();
+                        let mut current = node.parent_node().and_then(|n| n.as_element());
+                        while let Some(el) = current {
+                            if el.has_dirty_descendants() { break; }
+                            unsafe { el.set_dirty_descendants(); }
+                            current = el.parent_element();
                         }
 
                         next = iter.next_skipping_children();
@@ -1155,7 +1157,8 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
-        if node.is_dirty() || node.has_dirty_descendants() {
+        let el = node.as_element();
+        if el.is_some() && (el.unwrap().deprecated_dirty_bit_is_set() || el.unwrap().has_dirty_descendants()) {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1485,7 +1488,7 @@ impl LayoutThread {
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
         let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = *data.ptr;
-        let non_opaque: NonOpaqueStyleAndLayoutData = ptr as *mut _;
+        let non_opaque: *mut NonOpaqueStyleAndLayoutData = ptr as *mut _;
         let _ = Box::from_raw(non_opaque);
     }
 
