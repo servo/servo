@@ -3,10 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
+
 	<string>run-servo</string>
+	
 	<key>CFBundleGetInfoString</key>
+	
 	<string>Servo</string>
+	
 	<key>CFBundleIconFile</key>
+	
 	<string>servo.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.servo.Servo</string>
