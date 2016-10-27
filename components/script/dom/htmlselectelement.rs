@@ -84,10 +84,17 @@ impl HTMLSelectElement {
                            HTMLSelectElementBinding::Wrap)
     }
 
+    // https://html.spec.whatwg.org/multipage/#concept-select-option-list
+    fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
+        ListOfOptions {
+            curr: self.upcast::<Node>().children().next(),
+            in_group: false,
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
     pub fn reset(&self) {
-        let node = self.upcast::<Node>();
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             opt.set_selectedness(opt.DefaultSelected());
             opt.set_dirtiness(false);
         }
@@ -103,8 +110,7 @@ impl HTMLSelectElement {
         let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
         let mut last_selected: Option<Root<HTMLOptionElement>> = None;
 
-        let node = self.upcast::<Node>();
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             if opt.Selected() {
                 opt.set_selectedness(false);
                 last_selected = Some(Root::from_ref(&opt));
@@ -127,11 +133,10 @@ impl HTMLSelectElement {
     }
 
     pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
-        let node = self.upcast::<Node>();
         if self.Name().is_empty() {
             return;
         }
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             let element = opt.upcast::<Element>();
             if opt.Selected() && element.enabled_state() {
                 data_set.push(FormDatum {
@@ -146,9 +151,8 @@ impl HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#concept-select-pick
     pub fn pick_option(&self, picked: &HTMLOptionElement) {
         if !self.Multiple() {
-            let node = self.upcast::<Node>();
             let picked = picked.upcast();
-            for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            for opt in self.list_of_options() {
                 if opt.upcast::<HTMLElement>() != picked {
                     opt.set_selectedness(false);
                 }
@@ -271,9 +275,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
     fn Value(&self) -> DOMString {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
+        self.list_of_options()
             .filter(|opt_elem| opt_elem.Selected())
             .map(|opt_elem| opt_elem.Value())
             .next()
@@ -282,9 +284,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
     fn SetValue(&self, value: DOMString) {
-        let mut opt_iter = self.upcast::<Node>()
-                               .traverse_preorder()
-                               .filter_map(Root::downcast::<HTMLOptionElement>);
+        let mut opt_iter = self.list_of_options();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
             if opt.Value() == value {
@@ -302,9 +302,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
     fn SelectedIndex(&self) -> i32 {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
+        self.list_of_options()
             .enumerate()
             .filter(|&(_, ref opt_elem)| opt_elem.Selected())
             .map(|(i, _)| i as i32)
@@ -314,9 +312,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
     fn SetSelectedIndex(&self, index: i32) {
-        let mut opt_iter = self.upcast::<Node>()
-                               .traverse_preorder()
-                               .filter_map(Root::downcast::<HTMLOptionElement>);
+        let mut opt_iter = self.list_of_options();
         for opt in opt_iter.by_ref().take(index as usize) {
             opt.set_selectedness(false);
         }
@@ -385,3 +381,67 @@ impl VirtualMethods for HTMLSelectElement {
 impl FormControl for HTMLSelectElement {}
 
 impl Validatable for HTMLSelectElement {}
+
+struct ListOfOptions {
+    curr: Option<Root<Node>>,
+    in_group: bool,
+}
+
+impl Iterator for ListOfOptions {
+    type Item = Root<HTMLOptionElement>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (ret, curr, in_group) = find_next_option(&self.curr, self.in_group);
+        self.curr = curr;
+        self.in_group = in_group;
+        ret
+    }
+}
+
+fn find_next_option(curr: &Option<Root<Node>>, in_group: bool) -> (Option<Root<HTMLOptionElement>>, Option<Root<Node>>, bool) {
+    let curr: &Node = match *curr {
+        Some(ref node) => node,
+        None => return (None, None, false),
+    };
+    // Handle children of an <optgroup>
+    if in_group {
+        if let Some(option) = next_option_sibling(&curr) {
+            return (Some(option.clone()), Some(Root::upcast(option)), true);
+        }
+        let parent = curr.GetParentNode().unwrap();
+        let curr = parent.following_siblings().next();
+        return find_next_option(&curr, false);
+    }
+    // Handle children of a <select>
+    for sibling in curr.inclusively_following_siblings() {
+        if let Some(option) = Root::downcast::<HTMLOptionElement>(sibling.clone()) {
+            return (Some(option), sibling.following_siblings().next(), false);
+        }
+        if !sibling.is::<HTMLOptGroupElement>() {
+            continue;
+        }
+        // Retrieve first child of <optgroup>
+        let child = match sibling.children().next() {
+            Some(node) => node,
+            None => continue,
+        };
+        // Retrieve <option> child of <optgroup>
+        let option = match next_option_sibling(&child) {
+            Some(node) => node,
+            None => continue,
+        };
+        let (in_group, curr) = match option.upcast::<Node>().following_siblings().next() {
+            Some(node) => (true, Some(node)),
+            None => (false, sibling.following_siblings().next()),
+        };
+        return (Some(option), curr, in_group);
+    }
+    (None, None, false)
+}
+
+// Iterates over the node's siblings (inclusively) and finds the next <option> node
+fn next_option_sibling(node: &Node) -> Option<Root<HTMLOptionElement>> {
+    node.inclusively_following_siblings()
+        .filter_map(Root::downcast::<HTMLOptionElement>)
+        .next()
+}
