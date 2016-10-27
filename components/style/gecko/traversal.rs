@@ -5,7 +5,7 @@
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::NodeData;
-use dom::OpaqueNode;
+use dom::{NodeInfo, OpaqueNode, TNode};
 use gecko::context::StandaloneStyleContext;
 use gecko::wrapper::GeckoNode;
 use std::mem;
@@ -31,7 +31,14 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     }
 
     fn process_preorder(&self, node: GeckoNode<'ln>) -> RestyleResult {
-        recalc_style_at::<_, _, Self>(&self.context, self.root, node)
+        if node.is_text_node() {
+            // Text nodes don't have children, so save the traversal algorithm
+            // the trouble of iterating the children.
+            RestyleResult::Stop
+        } else {
+            let el = node.as_element().unwrap();
+            recalc_style_at::<_, _, Self>(&self.context, self.root, el)
+        }
     }
 
     fn process_postorder(&self, _: GeckoNode<'ln>) {

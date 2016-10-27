@@ -1472,13 +1472,6 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(LayoutNodeType::Text) =>
                 (display::T::inline, float::T::none, position::T::static_),
-            Some(LayoutNodeType::Comment) |
-            Some(LayoutNodeType::ProcessingInstruction) |
-            Some(LayoutNodeType::DocumentType) |
-            Some(LayoutNodeType::DocumentFragment) |
-            Some(LayoutNodeType::Document) => {
-                (display::T::none, float::T::none, position::T::static_)
-            }
         };
 
         debug!("building flow for node: {:?} {:?} {:?} {:?}", display, float, positioning, node.type_id());
@@ -1615,12 +1608,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
                                              where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
-            Some(LayoutNodeType::Comment) |
-            Some(LayoutNodeType::ProcessingInstruction) |
             Some(LayoutNodeType::Text) |
-            Some(LayoutNodeType::DocumentType) |
-            Some(LayoutNodeType::DocumentFragment) |
-            Some(LayoutNodeType::Document) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) |
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) |

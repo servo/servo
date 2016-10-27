@@ -160,7 +160,6 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
-    type ConcreteRestyleDamage = GeckoRestyleDamage;
     type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
@@ -273,19 +272,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         self.get_node_data().map(|x| x.borrow())
     }
 
-    fn restyle_damage(self) -> Self::ConcreteRestyleDamage {
-        // Not called from style, only for layout.
-        unimplemented!();
-    }
-
-    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage) {
-        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
-        // drive the post-traversal. This will go away soon.
-        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
-
-        unsafe { Gecko_StoreStyleDifference(self.0, damage.0) }
-    }
-
     fn parent_node(&self) -> Option<GeckoNode<'ln>> {
         unsafe { self.0.mParent.as_ref().map(GeckoNode) }
     }
@@ -304,23 +290,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
         unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
-    }
-
-    fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>,
-                                             pseudo: Option<&PseudoElement>)
-                                             -> Option<&'a nsStyleContext> {
-        if current_cv.is_none() {
-            // Don't bother in doing an ffi call to get null back.
-            return None;
-        }
-
-        unsafe {
-            let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
-                                 .unwrap_or(ptr::null_mut());
-            let context_ptr = Gecko_GetStyleContext(self.0, atom_ptr);
-            context_ptr.as_ref()
-        }
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -429,6 +398,7 @@ lazy_static! {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
+    type ConcreteRestyleDamage = GeckoRestyleDamage;
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
@@ -462,6 +432,31 @@ impl<'le> TElement for GeckoElement<'le> {
                                        attr.as_ptr(),
                                        val.as_ptr(),
                                        /* ignoreCase = */ false)
+        }
+    }
+
+    fn set_restyle_damage(self, damage: GeckoRestyleDamage) {
+        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
+        // drive the post-traversal. This will go away soon.
+        unsafe { self.as_node().set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
+
+        unsafe { Gecko_StoreStyleDifference(self.as_node().0, damage.0) }
+    }
+
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
+                                             -> Option<&'a nsStyleContext> {
+        if current_cv.is_none() {
+            // Don't bother in doing an ffi call to get null back.
+            return None;
+        }
+
+        unsafe {
+            let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
+                                 .unwrap_or(ptr::null_mut());
+            let context_ptr = Gecko_GetStyleContext(self.as_node().0, atom_ptr);
+            context_ptr.as_ref()
         }
     }
 }

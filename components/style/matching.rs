@@ -12,12 +12,12 @@ use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{NodeStyles, PseudoStyles};
-use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
-use selectors::{Element, MatchAttr};
+use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
 use sink::ForgetfulSink;
@@ -497,7 +497,7 @@ struct CascadeBooleans {
     animate: bool,
 }
 
-trait PrivateMatchMethods: TNode {
+trait PrivateMatchMethods: TElement {
     /// Actually cascades style for a node or a pseudo-element of a node.
     ///
     /// Note that animations only apply to nodes or ::before or ::after
@@ -521,7 +521,7 @@ trait PrivateMatchMethods: TNode {
         // and the cache would not be effective anyway.
         // This also works around the test failures at
         // https://github.com/servo/servo/pull/13459#issuecomment-250717584
-        let has_style_attribute = self.as_element().map_or(false, |e| e.style_attribute().is_some());
+        let has_style_attribute = self.style_attribute().is_some();
         cacheable = cacheable && !has_style_attribute;
 
         let mut cascade_info = CascadeInfo::new();
@@ -556,7 +556,7 @@ trait PrivateMatchMethods: TNode {
                         cascade_flags)
             }
         };
-        cascade_info.finish(self);
+        cascade_info.finish(&self.as_node());
 
         cacheable = cacheable && is_cacheable;
 
@@ -564,7 +564,7 @@ trait PrivateMatchMethods: TNode {
 
         if booleans.animate {
             let new_animations_sender = &context.local_context().new_animations_sender;
-            let this_opaque = self.opaque();
+            let this_opaque = self.as_node().opaque();
             // Trigger any present animations if necessary.
             let mut animations_started = animation::maybe_start_animations(
                 &shared_context,
@@ -579,7 +579,7 @@ trait PrivateMatchMethods: TNode {
                     animation::start_transitions_if_applicable(
                         new_animations_sender,
                         this_opaque,
-                        self.to_unsafe(),
+                        self.as_node().to_unsafe(),
                         &**style,
                         &mut this_style,
                         &shared_context.timer);
@@ -601,7 +601,7 @@ trait PrivateMatchMethods: TNode {
                                      context: &SharedStyleContext,
                                      style: &mut Arc<ComputedValues>) -> bool {
         // Finish any expired transitions.
-        let this_opaque = self.opaque();
+        let this_opaque = self.as_node().opaque();
         let had_animations_to_expire =
             animation::complete_expired_transitions(this_opaque, style, context);
 
@@ -636,18 +636,11 @@ trait PrivateMatchMethods: TNode {
 
         had_animations_to_expire || had_running_animations
     }
-}
 
-impl<N: TNode> PrivateMatchMethods for N {}
-
-trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Self::ConcreteNode,
                                               shared_context: &SharedStyleContext,
                                               candidate: &mut StyleSharingCandidate)
                                               -> Result<Arc<ComputedValues>, CacheMiss> {
-        debug_assert!(parent_node.is_element());
-
         let candidate_element = unsafe {
             Self::ConcreteNode::from_unsafe(&candidate.node).as_element().unwrap()
         };
@@ -657,9 +650,9 @@ trait PrivateElementMatchMethods: TElement {
     }
 }
 
-impl<E: TElement> PrivateElementMatchMethods for E {}
+impl<E: TElement> PrivateMatchMethods for E {}
 
-pub trait ElementMatchMethods : TElement {
+pub trait MatchMethods : TElement {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
@@ -703,9 +696,8 @@ pub trait ElementMatchMethods : TElement {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      shared_context: &SharedStyleContext,
-                                      parent: Option<Self::ConcreteNode>)
-                                      -> StyleSharingResult<<Self::ConcreteNode as TNode>::ConcreteRestyleDamage> {
+                                      shared_context: &SharedStyleContext)
+                                      -> StyleSharingResult<Self::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
         }
@@ -718,16 +710,9 @@ pub trait ElementMatchMethods : TElement {
             return StyleSharingResult::CannotShare
         }
 
-        let parent = match parent {
-            Some(parent) if parent.is_element() => parent,
-            _ => return StyleSharingResult::CannotShare,
-        };
-
         let mut should_clear_cache = false;
         for (i, &mut (ref mut candidate, ())) in style_sharing_candidate_cache.iter_mut().enumerate() {
-            let sharing_result = self.share_style_with_candidate_if_possible(parent,
-                                                                             shared_context,
-                                                                             candidate);
+            let sharing_result = self.share_style_with_candidate_if_possible(shared_context, candidate);
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
@@ -739,14 +724,12 @@ pub trait ElementMatchMethods : TElement {
                     // can decide more easily if it knows that it's a child of
                     // replaced content, or similar stuff!
                     let damage =
-                        match node.existing_style_for_restyle_damage(data.previous_styles().map(|x| &x.primary), None) {
+                        match self.existing_style_for_restyle_damage(data.previous_styles().map(|x| &x.primary), None) {
                             Some(ref source) => {
-                                <<Self as TElement>::ConcreteNode as TNode>
-                                ::ConcreteRestyleDamage::compute(source, &shared_style)
+                                Self::ConcreteRestyleDamage::compute(source, &shared_style)
                             }
                             None => {
-                                <<Self as TElement>::ConcreteNode as TNode>
-                                ::ConcreteRestyleDamage::rebuild_and_reflow()
+                                Self::ConcreteRestyleDamage::rebuild_and_reflow()
                             }
                         };
 
@@ -788,11 +771,7 @@ pub trait ElementMatchMethods : TElement {
 
         StyleSharingResult::CannotShare
     }
-}
 
-impl<E: TElement> ElementMatchMethods for E {}
-
-pub trait MatchMethods : TNode {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
@@ -816,29 +795,23 @@ pub trait MatchMethods : TNode {
     /// Therefore, each node must have its matching selectors inserted _after_
     /// its own selector matching and _before_ its children start.
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
-        // Only elements are interesting.
-        if let Some(element) = self.as_element() {
-            bf.insert(&*element.get_local_name());
-            bf.insert(&*element.get_namespace());
-            element.get_id().map(|id| bf.insert(&id));
+        bf.insert(&*self.get_local_name());
+        bf.insert(&*self.get_namespace());
+        self.get_id().map(|id| bf.insert(&id));
 
-            // TODO: case-sensitivity depends on the document type and quirks mode
-            element.each_class(|class| bf.insert(class));
-        }
+        // TODO: case-sensitivity depends on the document type and quirks mode
+        self.each_class(|class| bf.insert(class));
     }
 
     /// After all the children are done css selector matching, this must be
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
-        // Only elements are interesting.
-        if let Some(element) = self.as_element() {
-            bf.remove(&*element.get_local_name());
-            bf.remove(&*element.get_namespace());
-            element.get_id().map(|id| bf.remove(&id));
+        bf.remove(&*self.get_local_name());
+        bf.remove(&*self.get_namespace());
+        self.get_id().map(|id| bf.remove(&id));
 
-            // TODO: case-sensitivity depends on the document type and quirks mode
-            element.each_class(|class| bf.remove(class));
-        }
+        // TODO: case-sensitivity depends on the document type and quirks mode
+        self.each_class(|class| bf.remove(class));
     }
 
     fn compute_restyle_damage(&self,
@@ -890,23 +863,12 @@ pub trait MatchMethods : TNode {
         where Ctx: StyleContext<'a>
     {
         // Get our parent's style.
-        let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
+        let parent_as_node = parent.map(|x| x.as_node());
+        let parent_data = parent_as_node.as_ref().map(|x| x.borrow_data().unwrap());
         let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary);
 
-        // In the case we're styling a text node, we don't need to compute the
-        // restyle damage, since it's a subset of the restyle damage of the
-        // parent.
-        //
-        // In Gecko, we're done, we don't need anything else from text nodes.
-        //
-        // In Servo, this is also true, since text nodes generate UnscannedText
-        // fragments, which aren't repairable by incremental layout.
-        if self.is_text_node() {
-            self.style_text_node(ComputedValues::style_for_child_text_node(parent_style.clone().unwrap()));
-            return RestyleResult::Continue;
-        }
-
-        let mut data = self.begin_styling();
+        let node = self.as_node();
+        let mut data = node.begin_styling();
         let mut new_styles;
 
         let mut applicable_declarations_cache =
@@ -944,8 +906,8 @@ pub trait MatchMethods : TNode {
                                                         context, applicable_declarations,
                                                         &mut applicable_declarations_cache);
 
-            self.set_can_be_fragmented(parent.map_or(false, |p| {
-                p.can_be_fragmented() ||
+            self.as_node().set_can_be_fragmented(parent.map_or(false, |p| {
+                p.as_node().can_be_fragmented() ||
                 parent_style.unwrap().is_multicol()
             }));
 
@@ -1006,7 +968,7 @@ pub trait MatchMethods : TNode {
         let no_damage = Self::ConcreteRestyleDamage::empty();
 
         debug_assert!(new_pseudos.is_empty());
-        <Self::ConcreteElement as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        <Self as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let applicable_declarations_for_this_pseudo =
                 applicable_declarations.per_pseudo.get(&pseudo).unwrap();
 
@@ -1018,8 +980,7 @@ pub trait MatchMethods : TNode {
 
             if has_declarations {
                 // We have declarations, so we need to cascade. Compute parameters.
-                let animate = <Self::ConcreteElement as MatchAttr>::Impl
-                                ::pseudo_is_before_or_after(&pseudo);
+                let animate = <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
                 let cacheable = if animate && old_pseudo_style.is_some() {
                     // Update animations before the cascade. This may modify
                     // the value of old_pseudo_style.
@@ -1064,4 +1025,4 @@ pub trait MatchMethods : TNode {
     }
 }
 
-impl<N: TNode> MatchMethods for N {}
+impl<E: TElement> MatchMethods for E {}

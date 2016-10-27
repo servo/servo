@@ -165,6 +165,16 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     /// `type_id` does.
     fn type_id_without_excluding_pseudo_elements(&self) -> LayoutNodeType;
 
+    /// Returns the style for a text node. This is computed on the fly from the
+    /// parent style to avoid traversing text nodes in the style system.
+    ///
+    /// Note that this does require accessing the parent, which this interface
+    /// technically forbids. But accessing the parent is only unsafe insofar as
+    /// it can be used to reach siblings and cousins. A simple immutable borrow
+    /// of the parent data is fine, since the bottom-up traversal will not process
+    /// the parent until all the children have been processed.
+    fn style_for_text_node(&self) -> Arc<ServoComputedValues>;
+
     #[inline]
     fn is_element_or_elements_pseudo(&self) -> bool {
         match self.type_id_without_excluding_pseudo_elements() {
@@ -187,7 +197,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.get_style_data()
+        if self.is_element() &&
+           self.get_style_data()
                .unwrap()
                .borrow()
                .current_styles().pseudos
@@ -200,7 +211,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.get_style_data()
+        if self.is_element() &&
+           self.get_style_data()
                .unwrap()
                .borrow()
                .current_styles().pseudos
@@ -248,8 +260,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
-                self.get_style_data().unwrap().borrow()
-                    .current_styles().primary.clone()
+                match self.type_id().unwrap() {
+                    LayoutNodeType::Text => self.style_for_text_node(),
+                    LayoutNodeType::Element(_) => self.get_style_data().unwrap().borrow()
+                                                      .current_styles().primary.clone(),
+                }
             },
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
@@ -308,6 +323,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     /// element style is precomputed, not from general layout itself.
     #[inline]
     fn resolved_style(&self) -> Arc<ServoComputedValues> {
+        // FIXME(bholley): This should move to Element and lose the text node check.
+        if self.is_text_node() {
+            return self.style_for_text_node();
+        }
+
         let data = self.get_style_data().unwrap().borrow();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
@@ -319,6 +339,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     #[inline]
     fn selected_style(&self, _context: &SharedStyleContext) -> Arc<ServoComputedValues> {
+        // FIXME(bholley): This should move to Element and lose the text node check.
+        if self.is_text_node() {
+            return self.style_for_text_node();
+        }
+
         let data = self.get_style_data().unwrap().borrow();
         data.current_styles().pseudos
             .get(&PseudoElement::Selection)
@@ -330,7 +355,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
 
     fn restyle_damage(self) -> RestyleDamage;
 
-    fn set_restyle_damage(self, damage: RestyleDamage);
+    fn clear_restyle_damage(self);
 
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.

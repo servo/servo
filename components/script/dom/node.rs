@@ -2654,20 +2654,11 @@ impl Into<LayoutNodeType> for NodeTypeId {
     #[inline(always)]
     fn into(self) -> LayoutNodeType {
         match self {
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) =>
-                LayoutNodeType::Comment,
-            NodeTypeId::Document(..) =>
-                LayoutNodeType::Document,
-            NodeTypeId::DocumentFragment =>
-                LayoutNodeType::DocumentFragment,
-            NodeTypeId::DocumentType =>
-                LayoutNodeType::DocumentType,
             NodeTypeId::Element(e) =>
                 LayoutNodeType::Element(e.into()),
-            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) =>
-                LayoutNodeType::ProcessingInstruction,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
                 LayoutNodeType::Text,
+            x => unreachable!("Layout should not traverse nodes of type {:?}", x),
         }
     }
 }

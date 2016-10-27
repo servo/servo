@@ -7,8 +7,8 @@
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::NodeData;
-use dom::{OpaqueNode, StylingMode, TNode, UnsafeNode};
-use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
+use matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
@@ -62,13 +62,13 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
-                                     root: OpaqueNode,
-                                     context: &SharedStyleContext)
-                                     -> Box<BloomFilter>
-                                     where N: TNode {
+pub fn take_thread_local_bloom_filter<E>(parent_element: Option<E>,
+                                         root: OpaqueNode,
+                                         context: &SharedStyleContext)
+                                         -> Box<BloomFilter>
+                                         where E: TElement {
     STYLE_BLOOM.with(|style_bloom| {
-        match (parent_node, style_bloom.borrow_mut().take()) {
+        match (parent_element, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
             (None,     _  ) => {
                 debug!("[{}] No parent, but new bloom filter!", tid());
@@ -82,7 +82,7 @@ fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
             }
             // Found cached bloom filter.
             (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
-                if old_node == parent.to_unsafe() &&
+                if old_node == parent.as_node().to_unsafe() &&
                     old_generation == context.generation {
                     // Hey, the cached parent is our parent! We can reuse the bloom filter.
                     debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
@@ -98,8 +98,8 @@ fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
     })
 }
 
-fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
-                                 context: &SharedStyleContext) {
+pub fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
+                                     context: &SharedStyleContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -108,17 +108,17 @@ fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
 }
 
 /// "Ancestors" in this context is inclusive of ourselves.
-fn insert_ancestors_into_bloom_filter<N>(bf: &mut Box<BloomFilter>,
-                                         mut n: N,
+fn insert_ancestors_into_bloom_filter<E>(bf: &mut Box<BloomFilter>,
+                                         mut el: E,
                                          root: OpaqueNode)
-                                         where N: TNode {
+                                         where E: TElement {
     debug!("[{}] Inserting ancestors.", tid());
     let mut ancestors = 0;
     loop {
         ancestors += 1;
 
-        n.insert_into_bloom_filter(&mut **bf);
-        n = match n.layout_parent_node(root) {
+        el.insert_into_bloom_filter(&mut **bf);
+        el = match el.as_node().layout_parent_node(root).and_then(|x| x.as_element()) {
             None => break,
             Some(p) => p,
         };
@@ -149,7 +149,7 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
         }
         Some(parent) => {
             // Otherwise, put it back, but remove this node.
-            node.remove_from_bloom_filter(&mut *bf);
+            node.as_element().map(|x| x.remove_from_bloom_filter(&mut *bf));
             let unsafe_parent = parent.to_unsafe();
             put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
         },
@@ -213,20 +213,20 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
-pub fn ensure_node_styled<'a, N, C>(node: N,
-                                    context: &'a C)
-    where N: TNode,
+pub fn ensure_element_styled<'a, E, C>(element: E,
+                                       context: &'a C)
+    where E: TElement,
           C: StyleContext<'a>
 {
     let mut display_none = false;
-    ensure_node_styled_internal(node, context, &mut display_none);
+    ensure_element_styled_internal(element, context, &mut display_none);
 }
 
 #[allow(unsafe_code)]
-fn ensure_node_styled_internal<'a, N, C>(node: N,
-                                         context: &'a C,
-                                         parents_had_display_none: &mut bool)
-    where N: TNode,
+fn ensure_element_styled_internal<'a, E, C>(element: E,
+                                            context: &'a C,
+                                            parents_had_display_none: &mut bool)
+    where E: TElement,
           C: StyleContext<'a>
 {
     use properties::longhands::display::computed_value as display;
@@ -238,13 +238,9 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     // This means potentially a bit of wasted work (usually not much). We could
     // add a flag at the node at which point we stopped the traversal to know
     // where should we stop, but let's not add that complication unless needed.
-    let parent = match node.parent_node() {
-        Some(parent) if parent.is_element() => Some(parent),
-        _ => None,
-    };
-
+    let parent = element.parent_element();
     if let Some(parent) = parent {
-        ensure_node_styled_internal(parent, context, parents_had_display_none);
+        ensure_element_styled_internal(parent, context, parents_had_display_none);
     }
 
     // Common case: our style is already resolved and none of our ancestors had
@@ -252,6 +248,7 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     //
     // We only need to mark whether we have display none, and forget about it,
     // our style is up to date.
+    let node = element.as_node();
     if let Some(data) = node.borrow_data() {
         if let Some(style) = data.get_current_styles().map(|x| &x.primary) {
             if !*parents_had_display_none {
@@ -268,55 +265,42 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     // probably not necessary since we're likely to be matching only a few
     // nodes, at best.
     let mut applicable_declarations = ApplicableDeclarations::new();
-    if let Some(element) = node.as_element() {
-        let stylist = &context.shared_context().stylist;
+    let stylist = &context.shared_context().stylist;
 
-        element.match_element(&**stylist,
-                              None,
-                              &mut applicable_declarations);
-    }
+    element.match_element(&**stylist,
+                          None,
+                          &mut applicable_declarations);
 
     unsafe {
-        node.cascade_node(context, parent, &applicable_declarations);
+        element.cascade_node(context, parent, &applicable_declarations);
     }
 }
 
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
+pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                                     root: OpaqueNode,
-                                    node: N) -> RestyleResult
-    where N: TNode,
+                                    element: E) -> RestyleResult
+    where E: TElement,
           C: StyleContext<'a>,
-          D: DomTraversalContext<N>
+          D: DomTraversalContext<E::ConcreteNode>
 {
-    // Get the parent node.
-    let parent_opt = match node.parent_node() {
-        Some(parent) if parent.is_element() => Some(parent),
-        _ => None,
-    };
-
     // Get the style bloom filter.
-    let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
+    let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
 
     let mut restyle_result = RestyleResult::Continue;
-    let mode = node.styling_mode();
+    let mode = element.as_node().styling_mode();
     debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
     if mode != StylingMode::Traverse {
         // Check to see whether we can share a style with someone.
         let style_sharing_candidate_cache =
             &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
 
-        let sharing_result = match node.as_element() {
-            Some(element) => {
-                unsafe {
-                    element.share_style_if_possible(style_sharing_candidate_cache,
-                                                    context.shared_context(),
-                                                    parent_opt.clone())
-                }
-            },
-            None => StyleSharingResult::CannotShare,
+        let sharing_result = if element.parent_element().is_none() {
+            StyleSharingResult::CannotShare
+        } else {
+            unsafe { element.share_style_if_possible(style_sharing_candidate_cache, context.shared_context()) }
         };
 
         // Otherwise, match and cascade selectors.
@@ -325,38 +309,32 @@ pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
                 let mut applicable_declarations = ApplicableDeclarations::new();
 
                 let relations;
-                let shareable_element = match node.as_element() {
-                    Some(element) => {
-                        if opts::get().style_sharing_stats {
-                            STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
-                        }
+                let shareable_element = {
+                    if opts::get().style_sharing_stats {
+                        STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+                    }
 
-                        // Perform the CSS selector matching.
-                        let stylist = &context.shared_context().stylist;
+                    // Perform the CSS selector matching.
+                    let stylist = &context.shared_context().stylist;
 
-                        relations = element.match_element(&**stylist,
-                                                          Some(&*bf),
-                                                          &mut applicable_declarations);
+                    relations = element.match_element(&**stylist,
+                                                      Some(&*bf),
+                                                      &mut applicable_declarations);
 
-                        debug!("Result of selector matching: {:?}", relations);
+                    debug!("Result of selector matching: {:?}", relations);
 
-                        if relations_are_shareable(&relations) {
-                            Some(element)
-                        } else {
-                            None
-                        }
-                    },
-                    None => {
-                        relations = StyleRelations::empty();
+                    if relations_are_shareable(&relations) {
+                        Some(element)
+                    } else {
                         None
-                    },
+                    }
                 };
 
                 // Perform the CSS cascade.
                 unsafe {
-                    restyle_result = node.cascade_node(context,
-                                                       parent_opt,
-                                                       &applicable_declarations);
+                    restyle_result = element.cascade_node(context,
+                                                          element.parent_element(),
+                                                          &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -370,7 +348,7 @@ pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
                     STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
                 }
                 style_sharing_candidate_cache.touch(index);
-                node.set_restyle_damage(damage);
+                element.set_restyle_damage(damage);
             }
         }
     }
@@ -379,7 +357,7 @@ pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
     // processing. The eventual algorithm we're designing does this in a more granular
     // fashion.
     if mode == StylingMode::Restyle && restyle_result == RestyleResult::Continue {
-        for kid in node.children() {
+        for kid in element.as_node().children() {
             let mut data = D::ensure_node_data(&kid).borrow_mut();
             if kid.is_text_node() {
                 data.ensure_restyle_data();
@@ -392,12 +370,12 @@ pub fn recalc_style_at<'a, N, C, D>(context: &'a C,
         }
     }
 
-    let unsafe_layout_node = node.to_unsafe();
+    let unsafe_layout_node = element.as_node().to_unsafe();
 
     // Before running the children, we need to insert our nodes into the bloom
     // filter.
     debug!("[{}] + {:X}", tid(), unsafe_layout_node.0);
-    node.insert_into_bloom_filter(&mut *bf);
+    element.insert_into_bloom_filter(&mut *bf);
 
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());

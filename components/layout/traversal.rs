@@ -16,10 +16,12 @@ use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::data::NodeData;
-use style::dom::{TNode, TRestyleDamage};
+use style::dom::TNode;
 use style::selector_impl::ServoSelectorImpl;
-use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
+use style::traversal::{DomTraversalContext, put_thread_local_bloom_filter};
+use style::traversal::{recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
+use style::traversal::take_thread_local_bloom_filter;
 use util::opts;
 use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 
@@ -77,7 +79,35 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         // done by the HTML parser.
         node.initialize_data();
 
-        recalc_style_at::<_, _, Self>(&self.context, self.root, node)
+        if node.is_text_node() {
+            // FIXME(bholley): Stop doing this silly work to maintain broken bloom filter
+            // invariants.
+            //
+            // Longer version: The bloom filter is entirely busted for parallel traversal. Because
+            // parallel traversal is breadth-first, each sibling rejects the bloom filter set up
+            // by the previous sibling (which is valid for children, not siblings) and recreates
+            // it. Similarly, the fixup performed in the bottom-up traversal is useless, because
+            // threads perform flow construction up the parent chain until they find a parent with
+            // other unprocessed children, at which point they bail to the work queue and find a
+            // different node.
+            //
+            // Nevertheless, the remove_from_bloom_filter call at the end of flow construction
+            // asserts that the bloom filter is valid for the current node. This breaks when we
+            // stop calling recalc_style_at for text nodes, because the recursive chain of
+            // construct_flows_at calls is no longer necessarily rooted in a call that sets up the
+            // thread-local bloom filter for the leaf node.
+            //
+            // The bloom filter stuff is all going to be rewritten, so we just hackily duplicate
+            // the bloom filter manipulation from recalc_style_at to maintain invariants.
+            let parent = node.parent_node().unwrap().as_element();
+            let bf = take_thread_local_bloom_filter(parent, self.root, self.context.shared_context());
+            put_thread_local_bloom_filter(bf, &node.to_unsafe(), self.context.shared_context());
+
+            RestyleResult::Stop
+        } else {
+            let el = node.as_element().unwrap();
+            recalc_style_at::<_, _, Self>(&self.context, self.root, el)
+        }
     }
 
     fn process_postorder(&self, node: N) {
@@ -111,7 +141,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
         if nonincremental_layout || node.has_dirty_descendants() ||
-           node.restyle_damage() != N::ConcreteRestyleDamage::empty() {
+           tnode.restyle_damage() != RestyleDamage::empty() {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
@@ -121,9 +151,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
             }
         }
 
-        // Reset the layout damage in this node. It's been propagated to the
-        // flow by the flow constructor.
-        tnode.set_restyle_damage(RestyleDamage::empty());
+        tnode.clear_restyle_damage();
     }
 
     unsafe { node.clear_dirty_bits(); }
