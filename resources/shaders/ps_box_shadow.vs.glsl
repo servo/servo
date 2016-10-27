@@ -13,11 +13,19 @@ void main(void) {
                                  prim.layer,
                                  prim.tile);
 
-    vPos = vi.local_clamped_pos;
+    RenderTaskData child_task = fetch_render_task(prim.user_data.z);
+    vUv.z = child_task.data1.x;
+
+    // Constant offsets to inset from bilinear filtering border.
+    vec2 patch_origin = child_task.data0.xy + vec2(1.0);
+    vec2 patch_size_device_pixels = child_task.data0.zw - vec2(2.0);
+    vec2 patch_size = patch_size_device_pixels / uDevicePixelRatio;
+
+    vUv.xy = (vi.local_clamped_pos - prim.local_rect.xy) / patch_size;
+    vMirrorPoint = 0.5 * prim.local_rect.zw / patch_size;
+
+    vec2 texture_size = vec2(textureSize(sCache, 0));
+    vCacheUvRectCoords = vec4(patch_origin, patch_origin + patch_size_device_pixels) / texture_size.xyxy;
+
     vColor = bs.color;
-    vBorderRadii = bs.border_radii_blur_radius_inverted.xy;
-    vBlurRadius = bs.border_radii_blur_radius_inverted.z;
-    vBoxShadowRect = vec4(bs.bs_rect.xy, bs.bs_rect.xy + bs.bs_rect.zw);
-    vSrcRect = vec4(bs.src_rect.xy, bs.src_rect.xy + bs.src_rect.zw);
-    vInverted = bs.border_radii_blur_radius_inverted.w;
 }
