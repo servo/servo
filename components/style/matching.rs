@@ -441,8 +441,7 @@ impl StyleSharingCandidateCache {
             return;
         }
 
-        let node = element.as_node();
-        let data = node.borrow_data().unwrap();
+        let data = element.borrow_data().unwrap();
         let style = &data.current_styles().primary;
 
         let box_style = style.get_box();
@@ -460,7 +459,7 @@ impl StyleSharingCandidateCache {
                element.as_node().to_unsafe(), parent.as_node().to_unsafe());
 
         self.cache.insert(StyleSharingCandidate {
-            node: node.to_unsafe(),
+            node: element.as_node().to_unsafe(),
             style: style.clone(),
             common_style_affecting_attributes: None,
             class_attributes: None,
@@ -716,8 +715,7 @@ pub trait MatchMethods : TElement {
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
-                    let node = self.as_node();
-                    let mut data = node.begin_styling();
+                    let mut data = self.begin_styling();
 
                     // TODO: add the display: none optimisation here too! Even
                     // better, factor it out/make it a bit more generic so Gecko
@@ -863,12 +861,10 @@ pub trait MatchMethods : TElement {
         where Ctx: StyleContext<'a>
     {
         // Get our parent's style.
-        let parent_as_node = parent.map(|x| x.as_node());
-        let parent_data = parent_as_node.as_ref().map(|x| x.borrow_data().unwrap());
+        let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
         let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary);
 
-        let node = self.as_node();
-        let mut data = node.begin_styling();
+        let mut data = self.begin_styling();
         let mut new_styles;
 
         let mut applicable_declarations_cache =

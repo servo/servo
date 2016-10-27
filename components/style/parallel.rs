@@ -8,7 +8,7 @@
 
 #![allow(unsafe_code)]
 
-use dom::{OpaqueNode, StylingMode, TNode, UnsafeNode};
+use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
 use traversal::{RestyleResult, DomTraversalContext};
@@ -47,7 +47,7 @@ pub fn traverse_dom<N, C>(root: N,
     where N: TNode,
           C: DomTraversalContext<N>
 {
-    debug_assert!(root.styling_mode() != StylingMode::Stop);
+    debug_assert!(root.as_element().unwrap().styling_mode() != StylingMode::Stop);
     if opts::get().style_sharing_stats {
         STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
@@ -84,7 +84,7 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         // Perform the appropriate traversal.
         let mut children_to_process = 0isize;
         if let RestyleResult::Continue = context.process_preorder(node) {
-            C::traverse_children(node, |kid| {
+            C::traverse_children(node.as_element().unwrap(), |kid| {
                 children_to_process += 1;
                 discovered_child_nodes.push(kid.to_unsafe())
             });
@@ -93,11 +93,13 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         // Reset the count of children if we need to do a bottom-up traversal
         // after the top up.
         if context.needs_postorder_traversal() {
-            node.store_children_to_process(children_to_process);
-
-            // If there were no more children, start walking back up.
             if children_to_process == 0 {
+                // If there were no more children, start walking back up.
                 bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+            } else {
+                // Otherwise record the number of children to process when the
+                // time comes.
+                node.as_element().unwrap().store_children_to_process(children_to_process);
             }
         }
     }
@@ -139,7 +141,7 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
         // Perform the appropriate operation.
         context.process_postorder(node);
 
-        let parent = match node.layout_parent_node(root) {
+        let parent = match node.layout_parent_element(root) {
             None => break,
             Some(parent) => parent,
         };
@@ -151,6 +153,6 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
         }
 
         // We were the last child of our parent. Construct flows for our parent.
-        node = parent;
+        node = parent.as_node();
     }
 }
