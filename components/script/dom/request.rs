@@ -40,7 +40,6 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 use url::Url;
 
-use dom::bindings::js::RootedReference;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
