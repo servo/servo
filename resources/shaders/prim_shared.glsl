@@ -39,7 +39,7 @@ uniform sampler2DArray sCache;
 #ifdef WR_VERTEX_SHADER
 
 #define VECS_PER_LAYER             13
-#define VECS_PER_TILE               2
+#define VECS_PER_RENDER_TASK        2
 #define VECS_PER_PRIM_GEOM          2
 
 #define GRADIENT_HORIZONTAL     0
@@ -121,18 +121,33 @@ Layer fetch_layer(int index) {
     return layer;
 }
 
+struct RenderTaskData {
+    vec4 data0;
+    vec4 data1;
+};
+
+RenderTaskData fetch_render_task(int index) {
+    RenderTaskData task;
+
+    ivec2 uv = get_fetch_uv(index, VECS_PER_RENDER_TASK);
+
+    task.data0 = texelFetchOffset(sRenderTasks, uv, 0, ivec2(0, 0));
+    task.data1 = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
+
+    return task;
+}
+
 struct Tile {
     vec4 screen_origin_task_origin;
     vec4 size_target_index;
 };
 
 Tile fetch_tile(int index) {
+    RenderTaskData task = fetch_render_task(index);
+
     Tile tile;
-
-    ivec2 uv = get_fetch_uv(index, VECS_PER_TILE);
-
-    tile.screen_origin_task_origin = texelFetchOffset(sRenderTasks, uv, 0, ivec2(0, 0));
-    tile.size_target_index = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
+    tile.screen_origin_task_origin = task.data0;
+    tile.size_target_index = task.data1;
 
     return tile;
 }
@@ -259,6 +274,27 @@ PrimitiveInstance fetch_instance(int index) {
 
     return pi;
 }
+
+struct CachePrimitiveInstance {
+    int global_prim_index;
+    int specific_prim_index;
+    int render_task_index;
+};
+
+CachePrimitiveInstance fetch_cache_instance(int index) {
+    CachePrimitiveInstance cpi;
+
+    int offset = index * 1;
+
+    ivec4 data0 = int_data[offset + 0];
+
+    cpi.global_prim_index = data0.x;
+    cpi.specific_prim_index = data0.y;
+    cpi.render_task_index = data0.z;
+
+    return cpi;
+}
+
 struct Primitive {
     Layer layer;
     Tile tile;
@@ -553,7 +589,7 @@ struct BoxShadow {
     vec4 src_rect;
     vec4 bs_rect;
     vec4 color;
-    vec4 border_radii_blur_radius_inverted;
+    vec4 border_radius_edge_size_blur_radius_inverted;
 };
 
 BoxShadow fetch_boxshadow(int index) {
@@ -564,7 +600,7 @@ BoxShadow fetch_boxshadow(int index) {
     bs.src_rect = texelFetchOffset(sData64, uv, 0, ivec2(0, 0));
     bs.bs_rect = texelFetchOffset(sData64, uv, 0, ivec2(1, 0));
     bs.color = texelFetchOffset(sData64, uv, 0, ivec2(2, 0));
-    bs.border_radii_blur_radius_inverted = texelFetchOffset(sData64, uv, 0, ivec2(3, 0));
+    bs.border_radius_edge_size_blur_radius_inverted = texelFetchOffset(sData64, uv, 0, ivec2(3, 0));
 
     return bs;
 }
