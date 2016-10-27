@@ -361,22 +361,19 @@ ${helpers.single_keyword("font-variant",
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        weight: bool,
-        style: bool,
+        pub weight: bool,
+        pub style: bool,
     }
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.weight {
-                try!(dest.write_str("weight"));
-            }
-            else if self.style {
-                if self.weight {
-                    try!(dest.write_str(" "));
-                }
+            if self.weight && self.style {
+                try!(dest.write_str("weight style"));
+            } else if self.style {
                 try!(dest.write_str("style"));
-            }
-            else {
+            } else if self.weight {
+                try!(dest.write_str("weight"));
+            } else {
                 try!(dest.write_str("none"));
             }
             Ok(())
