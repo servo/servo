@@ -885,7 +885,7 @@ pub struct TableColumnFragmentInfo {
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> TableColumnFragmentInfo {
-        let element = node.as_element();
+        let element = node.as_element().unwrap();
         let span = element.get_attr(&ns!(), &atom!("span"))
                           .and_then(|string| string.parse().ok())
                           .unwrap_or(0);
@@ -908,7 +908,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style(style_context),
+            selected_style: node.selected_style(),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
