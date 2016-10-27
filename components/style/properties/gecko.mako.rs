@@ -832,9 +832,17 @@ fn static_assert() {
         use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
 
         self.gecko.mFont.synthesis = 0;
+<<<<<<< HEAD
         if v.weight {
             self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_WEIGHT as u8;
         }
+=======
+
+        if v.weight {
+            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_WEIGHT as u8;
+        }
+        
+>>>>>>> 84b7e5fb0cba83b189a753597802653a5a29e431
         if v.style {
             self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_STYLE as u8;
         }

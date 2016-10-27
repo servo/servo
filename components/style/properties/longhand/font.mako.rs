@@ -368,6 +368,7 @@ ${helpers.single_keyword("font-variant",
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.weight && self.style {
+<<<<<<< HEAD
                 dest.write_str("weight style")
             } else if self.style {
                 dest.write_str("style")
@@ -376,6 +377,17 @@ ${helpers.single_keyword("font-variant",
             } else {
                 dest.write_str("none")
             }
+=======
+                try!(dest.write_str("weight style"));
+            } else if self.style {
+                try!(dest.write_str("style"));
+            } else if self.weight {
+                try!(dest.write_str("weight"));
+            } else {
+                try!(dest.write_str("none"));
+            }
+            Ok(())
+>>>>>>> 84b7e5fb0cba83b189a753597802653a5a29e431
         }
     }
 
