@@ -39689,6 +39689,12 @@
             "timeout": "long",
             "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
           }
+        ],
+        "html/semantics/forms/the-select-element/select-value.html": [
+          {
+            "path": "html/semantics/forms/the-select-element/select-value.html",
+            "url": "/html/semantics/forms/the-select-element/select-value.html"
+          }
         ]
       }
     },
