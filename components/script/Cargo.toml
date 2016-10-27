@@ -52,8 +52,8 @@ num-traits = "0.1.32"
 offscreen_gl_context = "0.4"
 open = "1.1.1"
 parking_lot = "0.3"
-phf = "0.7.17"
-phf_macros = "0.7.17"
+phf = "0.7.18"
+phf_macros = "0.7.18"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"

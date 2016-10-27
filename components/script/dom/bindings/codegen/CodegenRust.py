@@ -2437,7 +2437,7 @@ def CreateBindingJSObject(descriptor, parent=None):
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         create += """
-let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as usize];
+let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(cx, handler,
                          private.handle(),
@@ -6014,7 +6014,7 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric("proxy_handlers[Proxies::%s as usize] = Bindings::%s::DefineProxyHandler();"
+            CGGeneric("PROXY_HANDLERS[Proxies::%s as usize] = Bindings::%s::DefineProxyHandler();"
                       % (desc.name, '::'.join([desc.name + 'Binding'] * 2)))
             for desc in self.descriptors
         ], "\n")
@@ -6025,7 +6025,7 @@ class CGRegisterProxyHandlers(CGThing):
         descriptors = config.getDescriptors(proxy=True)
         length = len(descriptors)
         self.root = CGList([
-            CGGeneric("pub static mut proxy_handlers: [*const libc::c_void; %d] = [0 as *const libc::c_void; %d];"
+            CGGeneric("pub static mut PROXY_HANDLERS: [*const libc::c_void; %d] = [0 as *const libc::c_void; %d];"
                       % (length, length)),
             CGRegisterProxyHandlersMethod(descriptors),
         ], "\n")

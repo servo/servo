@@ -46,7 +46,7 @@ use util::resource_files;
 #[cfg(target_os = "windows")]
 use winapi;
 
-static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
+static mut G_NESTED_EVENT_LOOP_LISTENER: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 bitflags! {
     flags KeyModifiers: u8 {
@@ -303,7 +303,7 @@ impl Window {
 
     fn nested_window_resize(width: u32, height: u32) {
         unsafe {
-            match g_nested_event_loop_listener {
+            match G_NESTED_EVENT_LOOP_LISTENER {
                 None => {}
                 Some(listener) => {
                     (*listener).handle_event_from_nested_event_loop(
@@ -604,11 +604,11 @@ impl Window {
     pub unsafe fn set_nested_event_loop_listener(
             &self,
             listener: *mut (NestedEventLoopListener + 'static)) {
-        g_nested_event_loop_listener = Some(listener)
+        G_NESTED_EVENT_LOOP_LISTENER = Some(listener)
     }
 
     pub unsafe fn remove_nested_event_loop_listener(&self) {
-        g_nested_event_loop_listener = None
+        G_NESTED_EVENT_LOOP_LISTENER = None
     }
 
     fn glutin_key_to_script_key(key: glutin::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
