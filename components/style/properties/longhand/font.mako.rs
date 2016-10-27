@@ -368,3 +368,110 @@ ${helpers.single_keyword("font-variant-position",
                          gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
                          animatable=False)}
 
+<%helpers:longhand name="font-feature-settings" products="none" animatable="False">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use cssparser::Parser;
+        use std::fmt;
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            Normal,
+            Tag(Vec<FeatureTagValue>)
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct FeatureTagValue {
+            pub tag: String,
+            pub value: i32
+        }
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::Normal => dest.write_str("normal"),
+                    T::Tag(ref ftvs) => {
+                        let mut iter = ftvs.iter();
+                        // handle head element
+                        try!(iter.next().unwrap().to_css(dest));
+                        // handle tail, precede each with a delimiter
+                        for ftv in iter {
+                            try!(dest.write_str(", "));
+                            try!(ftv.to_css(dest));
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        impl ToCss for FeatureTagValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match self.value {
+                    1 => write!(dest, "\"{}\"", self.tag),
+                    0 => write!(dest, "\"{}\" off", self.tag),
+                    x => write!(dest, "\"{}\" {}", self.tag, x)
+                }
+            }
+        }
+
+        impl FeatureTagValue {
+            /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
+            /// <string> [ on | off | <integer> ]
+            pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
+                let tag = try!(input.expect_string());
+
+                // allowed strings of length 4 containing chars: <U+20, U+7E>
+                if tag.len() != 4 ||
+                   tag.chars().any(|c| c < ' ' || c > '~')
+                {
+                    return Err(())
+                }
+
+                if let Ok(value) = input.try(|input| input.expect_integer()) {
+                    // handle integer, throw if it is negative
+                    if value >= 0 {
+                        Ok(FeatureTagValue { tag: tag.into_owned(), value: value })
+                    } else {
+                        Err(())
+                    }
+                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("on")) {
+                    // on is an alias for '1'
+                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 1 })
+                } else if let Ok(_) = input.try(|input| input.expect_ident_matching("off")) {
+                    // off is an alias for '0'
+                    Ok(FeatureTagValue { tag: tag.into_owned(), value: 0 })
+                } else {
+                    // empty value is an alias for '1'
+                    Ok(FeatureTagValue { tag:tag.into_owned(), value: 1 })
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    /// normal | <feature-tag-value>#
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            Ok(computed_value::T::Normal)
+        } else {
+            input.parse_comma_separated(computed_value::FeatureTagValue::parse)
+                 .map(computed_value::T::Tag)
+        }
+    }
+</%helpers:longhand>
