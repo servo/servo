@@ -20,7 +20,8 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::node::Node;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
-use html5ever::tokenizer::Tokenizer as HtmlTokenizer;
+use html5ever::tokenizer::Tokenizer as H5ETokenizer;
+use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever::tree_builder::Tracer as HtmlTracer;
 use html5ever::tree_builder::TreeBuilder as HtmlTreeBuilder;
 use hyper::header::ContentType;
@@ -136,10 +137,6 @@ impl ServoParser {
         self.tokenizer.borrow_mut().set_plaintext_state()
     }
 
-    pub fn end_tokenizer(&self) {
-        self.tokenizer.borrow_mut().end()
-    }
-
     pub fn suspend(&self) {
         assert!(!self.suspended.get());
         self.suspended.set(true);
@@ -220,14 +217,48 @@ impl ServoParser {
 #[derive(HeapSizeOf)]
 #[must_root]
 enum Tokenizer {
-    HTML(
-        #[ignore_heap_size_of = "Defined in html5ever"]
-        HtmlTokenizer<HtmlTreeBuilder<JS<Node>, Sink>>
-    ),
+    HTML(HtmlTokenizer),
     XML(
         #[ignore_heap_size_of = "Defined in xml5ever"]
         XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>>
     ),
+}
+
+#[derive(HeapSizeOf)]
+#[must_root]
+struct HtmlTokenizer {
+    #[ignore_heap_size_of = "Defined in html5ever"]
+    inner: H5ETokenizer<HtmlTreeBuilder<JS<Node>, Sink>>,
+    #[ignore_heap_size_of = "Defined in html5ever"]
+    input_buffer: BufferQueue,
+}
+
+impl HtmlTokenizer {
+    #[allow(unrooted_must_root)]
+    fn new(inner: H5ETokenizer<HtmlTreeBuilder<JS<Node>, Sink>>) -> Self {
+        HtmlTokenizer {
+            inner: inner,
+            input_buffer: BufferQueue::new(),
+        }
+    }
+
+    fn feed(&mut self, input: String) {
+        self.input_buffer.push_back(input.into());
+        self.run();
+    }
+
+    fn run(&mut self) {
+        self.inner.feed(&mut self.input_buffer);
+    }
+
+    fn end(&mut self) {
+        assert!(self.input_buffer.is_empty());
+        self.inner.end();
+    }
+
+    fn set_plaintext_state(&mut self) {
+        self.inner.set_plaintext_state();
+    }
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -240,7 +271,7 @@ struct Sink {
 impl Tokenizer {
     fn feed(&mut self, input: String) {
         match *self {
-            Tokenizer::HTML(ref mut tokenizer) => tokenizer.feed(input.into()),
+            Tokenizer::HTML(ref mut tokenizer) => tokenizer.feed(input),
             Tokenizer::XML(ref mut tokenizer) => tokenizer.feed(input.into()),
         }
     }
@@ -288,7 +319,7 @@ impl JSTraceable for Tokenizer {
                         node.trace(self.0);
                     }
                 }
-                let tree_builder = tokenizer.sink();
+                let tree_builder = tokenizer.inner.sink();
                 tree_builder.trace_handles(&tracer);
                 tree_builder.sink().trace(trc);
             },
