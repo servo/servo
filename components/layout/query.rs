@@ -612,11 +612,11 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 fn ensure_node_data_initialized<N: LayoutNode>(node: &N) {
     let mut cur = Some(node.clone());
     while let Some(current) = cur {
-        if current.borrow_layout_data().is_some() {
+        if current.has_layout_data() {
             break;
         }
 
-        current.initialize_data();
+        current.ensure_layout_data();
         cur = current.parent_node();
     }
 }
@@ -682,7 +682,15 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
             layout_root: &mut Flow,
             requested_node: N,
             property: &Atom) -> Option<String> {
-        let maybe_data = layout_el.borrow_layout_data();
+        // FIXME(bholley): I'm not entirely sure if the nullability is necessary
+        // here now that we always lazily create layout data, but I'm preserving
+        // the existing behavior to be safe.
+        let maybe_data = if layout_el.has_layout_data() {
+            Some(layout_el.borrow_layout_data())
+        } else {
+            None
+        };
+
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>

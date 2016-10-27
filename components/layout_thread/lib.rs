@@ -106,7 +106,7 @@ use style::animation::Animation;
 use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::{filter, mix_blend_mode};
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{NodeInfo, TDocument, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
@@ -817,10 +817,10 @@ impl LayoutThread {
     }
 
     fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
-        let mut data = match node.mutate_layout_data() {
-            Some(x) => x,
-            None => return None,
-        };
+        if !node.has_layout_data() {
+            return None;
+        }
+        let mut data = node.mutate_layout_data();
         let result = data.flow_construction_result.swap_out();
 
         let mut flow = match result {
@@ -1111,8 +1111,8 @@ impl LayoutThread {
 
                         let mut current = node.parent_node();
                         while let Some(node) = current {
-                            if node.has_dirty_descendants() { break; }
-                            unsafe { node.set_dirty_descendants(); }
+                            if node.is_element() && node.as_element().unwrap().has_dirty_descendants() { break; }
+                            unsafe { node.as_element().unwrap().set_dirty_descendants(); }
                             current = node.parent_node();
                         }
 
@@ -1155,7 +1155,8 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
-        if node.is_dirty() || node.has_dirty_descendants() {
+        let el = node.as_element();
+        if el.is_some() && (el.unwrap().deprecated_dirty_bit_is_set() || el.unwrap().has_dirty_descendants()) {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),

@@ -19,7 +19,7 @@ use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::NodeData;
-use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
+use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
@@ -73,6 +73,7 @@ impl<T> PseudoElementType<T> {
 /// Trait to abstract access to layout data across various data structures.
 pub trait GetLayoutData {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -87,10 +88,6 @@ pub trait LayoutNode: GetLayoutData + TNode {
     fn has_changed(&self) -> bool;
 
     unsafe fn clear_dirty_bits(&self);
-
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
-
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {
         LayoutIterator(ReverseChildrenIterator {
@@ -277,6 +274,10 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + GetLayoutData + NodeInfo + Partia
 pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_first_child(&self) -> Option<Self>;
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
+}
+
+pub trait LayoutElement: Clone + Copy + Sized + Debug + GetLayoutData + TElement {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +

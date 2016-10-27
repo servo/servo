@@ -1333,7 +1333,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut set_has_newly_constructed_flow_flag = false;
         let result = {
             let mut style = node.style(self.style_context());
-            let mut data = node.mutate_layout_data().unwrap();
+            let mut data = node.mutate_layout_data();
             let damage = data.base.restyle_damage;
 
             match *node.construction_result_mut(&mut *data) {
@@ -1635,7 +1635,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
             }
         }
 
-        let mut layout_data = self.mutate_layout_data().unwrap();
+        let mut layout_data = self.mutate_layout_data();
         let dst = self.construction_result_mut(&mut *layout_data);
 
         *dst = result;
@@ -1643,7 +1643,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
 
     #[inline(always)]
     fn swap_out_construction_result(self) -> ConstructionResult {
-        let mut layout_data = self.mutate_layout_data().unwrap();
+        let mut layout_data = self.mutate_layout_data();
         self.construction_result_mut(&mut *layout_data).swap_out()
     }
 }

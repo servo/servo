@@ -46,7 +46,6 @@ extern crate range;
 extern crate rustc_serialize;
 extern crate script_layout_interface;
 extern crate script_traits;
-extern crate selectors;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
