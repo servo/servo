@@ -10,7 +10,8 @@ use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parking_lot::{RwLock, RwLockReadGuard};
-use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues, Importance};
+use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, Importance};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
@@ -252,23 +253,61 @@ impl Stylist {
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
+    ///
+    /// If `inherit_all` is true, then all properties are inherited from the parent; otherwise,
+    /// non-inherited properties are reset to their initial values. The flow constructor uses this
+    /// flag when constructing anonymous flows.
     pub fn precomputed_values_for_pseudo(&self,
                                          pseudo: &PseudoElement,
-                                         parent: Option<&Arc<ComputedValues>>)
+                                         parent: Option<&Arc<ComputedValues>>,
+                                         inherit_all: bool)
                                          -> Option<Arc<ComputedValues>> {
         debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
+            let mut flags = CascadeFlags::empty();
+            if inherit_all {
+                flags.insert(INHERIT_ALL)
+            }
+
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
-                                    &declarations, false,
+                                    &declarations,
                                     parent.map(|p| &**p),
                                     None,
                                     None,
-                                    Box::new(StdoutErrorReporter));
+                                    Box::new(StdoutErrorReporter),
+                                    flags);
             Some(Arc::new(computed))
         } else {
             parent.map(|p| p.clone())
         }
+    }
+
+    /// Returns the style for an anonymous box of the given type.
+    #[cfg(feature = "servo")]
+    pub fn style_for_anonymous_box(&self,
+                                   pseudo: &PseudoElement,
+                                   parent_style: &Arc<ComputedValues>)
+                                   -> Arc<ComputedValues> {
+        // For most (but not all) pseudo-elements, we inherit all values from the parent.
+        let inherit_all = match *pseudo {
+            PseudoElement::ServoInputText => false,
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoTableWrapper => true,
+            PseudoElement::Before |
+            PseudoElement::After |
+            PseudoElement::Selection |
+            PseudoElement::DetailsSummary |
+            PseudoElement::DetailsContent => {
+                unreachable!("That pseudo doesn't represent an anonymous box!")
+            }
+        };
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), inherit_all)
+            .expect("style_for_anonymous_box(): No precomputed values for that pseudo!")
     }
 
     pub fn lazily_compute_pseudo_element_style<E>(&self,
@@ -298,10 +337,12 @@ impl Stylist {
 
         let (computed, _) =
             properties::cascade(self.device.au_viewport_size(),
-                                &declarations, false,
-                                Some(&**parent), None, None,
-                                Box::new(StdoutErrorReporter));
-
+                                &declarations,
+                                Some(&**parent),
+                                None,
+                                None,
+                                Box::new(StdoutErrorReporter),
+                                CascadeFlags::empty());
 
         Some(Arc::new(computed))
     }

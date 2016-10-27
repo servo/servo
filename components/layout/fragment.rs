@@ -949,6 +949,30 @@ impl Fragment {
         }
     }
 
+    /// Creates an anonymous fragment just like this one but with the given style and fragment
+    /// type. For the new anonymous fragment, layout-related values (border box, etc.) are reset to
+    /// initial values.
+    pub fn create_similar_anonymous_fragment(&self,
+                                             style: Arc<ServoComputedValues>,
+                                             specific: SpecificFragmentInfo)
+                                             -> Fragment {
+        let writing_mode = style.writing_mode;
+        Fragment {
+            node: self.node,
+            style: style,
+            selected_style: self.selected_style.clone(),
+            restyle_damage: self.restyle_damage,
+            border_box: LogicalRect::zero(writing_mode),
+            border_padding: LogicalMargin::zero(writing_mode),
+            margin: LogicalMargin::zero(writing_mode),
+            specific: specific,
+            inline_context: None,
+            pseudo: self.pseudo,
+            debug_id: DebugId::new(),
+            stacking_context_id: StackingContextId::new(0),
+        }
+    }
+
     /// Transforms this fragment into another fragment of the given type, with the given size,
     /// preserving all the other data.
     pub fn transform(&self, size: LogicalSize<Au>, info: SpecificFragmentInfo)
@@ -1051,7 +1075,12 @@ impl Fragment {
             SpecificFragmentInfo::Svg(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
+            SpecificFragmentInfo::Table => {
+                INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
+            }
+            SpecificFragmentInfo::TableCell => {
                 let base_quantities = INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
                     INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
                 if self.style.get_inheritedtable().border_collapse ==
@@ -1091,11 +1120,11 @@ impl Fragment {
         }
     }
 
-    /// Returns the portion of the intrinsic inline-size that consists of borders, padding, and/or
-    /// margins.
+    /// Returns the portion of the intrinsic inline-size that consists of borders/padding and
+    /// margins, respectively.
     ///
     /// FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-    pub fn surrounding_intrinsic_inline_size(&self) -> Au {
+    pub fn surrounding_intrinsic_inline_size(&self) -> (Au, Au) {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
 
@@ -1127,16 +1156,19 @@ impl Fragment {
             Au(0)
         };
 
-        margin + padding + border
+        (border + padding, margin)
     }
 
     /// Uses the style only to estimate the intrinsic inline-sizes. These may be modified for text
     /// or replaced elements.
-    fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
+    pub fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let mut specified = Au(0);
 
+        // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
+        let (border_padding, margin) = self.surrounding_intrinsic_inline_size();
+
+        let mut specified = Au(0);
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             specified = MaybeAuto::from_style(style.content_inline_size(),
                                               Au(0)).specified_or_zero();
@@ -1144,17 +1176,18 @@ impl Fragment {
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
             }
-        }
 
-        // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
-        let surrounding_inline_size = self.surrounding_intrinsic_inline_size();
+            if self.style.get_position().box_sizing == box_sizing::T::border_box {
+                specified -= border_padding
+            }
+        }
 
         IntrinsicISizesContribution {
             content_intrinsic_sizes: IntrinsicISizes {
                 minimum_inline_size: specified,
                 preferred_inline_size: specified,
             },
-            surrounding_size: surrounding_inline_size,
+            surrounding_size: border_padding + margin,
         }
     }
 

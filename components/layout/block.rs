@@ -36,7 +36,7 @@ use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
-use flow::{FragmentationContext, PreorderFlowTraversal};
+use flow::{FragmentationContext, MARGINS_CANNOT_COLLAPSE, PreorderFlowTraversal};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
@@ -533,7 +533,12 @@ impl Encodable for BlockFlowFlags {
 }
 
 impl BlockFlow {
-    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> BlockFlow {
+    pub fn from_fragment(fragment: Fragment) -> BlockFlow {
+        BlockFlow::from_fragment_and_float_kind(fragment, None)
+    }
+
+    pub fn from_fragment_and_float_kind(fragment: Fragment, float_kind: Option<FloatKind>)
+                                        -> BlockFlow {
         let writing_mode = fragment.style().writing_mode;
         BlockFlow {
             base: BaseFlow::new(Some(fragment.style()), writing_mode, match float_kind {
@@ -1452,7 +1457,8 @@ impl BlockFlow {
             display::T::table_caption |
             display::T::table_row_group |
             display::T::table |
-            display::T::inline_block => {
+            display::T::inline_block |
+            display::T::flex => {
                 FormattingContextType::Other
             }
             _ if style.get_box().overflow_x != overflow_x::T::visible ||
@@ -1579,12 +1585,12 @@ impl BlockFlow {
     /// used for calculating shrink-to-fit width. Assumes that intrinsic sizes have already been
     /// computed for this flow.
     fn content_intrinsic_inline_sizes(&self) -> IntrinsicISizes {
-        let surrounding_inline_size = self.fragment.surrounding_intrinsic_inline_size();
+        let (border_padding, margin) = self.fragment.surrounding_intrinsic_inline_size();
         IntrinsicISizes {
             minimum_inline_size: self.base.intrinsic_inline_sizes.minimum_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
             preferred_inline_size: self.base.intrinsic_inline_sizes.preferred_inline_size -
-                                    surrounding_inline_size,
+                                    border_padding - margin,
         }
     }
 
@@ -1906,7 +1912,9 @@ impl Flow for BlockFlow {
                 self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
             }
             None
-        } else if self.is_root() || self.formatting_context_type() != FormattingContextType::None {
+        } else if self.is_root() ||
+                self.formatting_context_type() != FormattingContextType::None ||
+                self.base.flags.contains(MARGINS_CANNOT_COLLAPSE) {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow {:?}",
                    flow::base(self).debug_id());

@@ -6,9 +6,15 @@ use flow::Flow;
 use flow_ref::{self, FlowRef};
 use std::collections::{LinkedList, linked_list};
 
-// This needs to be reworked now that we have dynamically-sized types in Rust.
-// Until then, it's just a wrapper around LinkedList.
-
+/// This needs to be reworked now that we have dynamically-sized types in Rust.
+/// Until then, it's just a wrapper around LinkedList.
+///
+/// SECURITY-NOTE(pcwalton): It is very important that `FlowRef` values not leak directly to
+/// layout. Layout code must only interact with `&Flow` or `&mut Flow` values. Otherwise, layout
+/// could stash `FlowRef` values in random places unknown to the system and thereby cause data
+/// races. Those data races can lead to memory safety problems, potentially including arbitrary
+/// remote code execution! In general, do not add new methods to this file (e.g. new ways of
+/// iterating over flows) unless you are *very* sure of what you are doing.
 pub struct FlowList {
     flows: LinkedList<FlowRef>,
 }
@@ -52,13 +58,19 @@ impl FlowList {
         }
     }
 
-    /// Provide a forward iterator
+    /// Provide a forward iterator.
+    ///
+    /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
+    /// to do so! See the comment above in `FlowList`.
     #[inline]
     pub fn iter<'a>(&'a self) -> impl DoubleEndedIterator<Item = &'a Flow> {
         self.flows.iter().map(|flow| &**flow)
     }
 
     /// Provide a forward iterator with mutable references
+    ///
+    /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
+    /// to do so! See the comment above in `FlowList`.
     #[inline]
     pub fn iter_mut(&mut self) -> MutFlowListIterator {
         MutFlowListIterator {
@@ -66,11 +78,18 @@ impl FlowList {
         }
     }
 
-    /// Provide a forward iterator with FlowRef items
+    /// Provides a caching random-access iterator that yields mutable references. This is
+    /// guaranteed to perform no more than O(n) pointer chases.
+    ///
+    /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
+    /// to do so! See the comment above in `FlowList`.
     #[inline]
-    pub fn iter_flow_ref_mut<'a>(&'a mut self)
-                                 -> impl DoubleEndedIterator<Item = &'a mut FlowRef> {
-        self.flows.iter_mut()
+    pub fn random_access_mut(&mut self) -> FlowListRandomAccessMut {
+        let length = self.flows.len();
+        FlowListRandomAccessMut {
+            iterator: self.flows.iter_mut(),
+            cache: Vec::with_capacity(length),
+        }
     }
 
     /// O(1)
@@ -109,5 +128,24 @@ impl<'a> Iterator for MutFlowListIterator<'a> {
     #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
+    }
+}
+
+/// A caching random-access iterator that yields mutable references. This is guaranteed to perform
+/// no more than O(n) pointer chases.
+pub struct FlowListRandomAccessMut<'a> {
+    iterator: linked_list::IterMut<'a, FlowRef>,
+    cache: Vec<FlowRef>,
+}
+
+impl<'a> FlowListRandomAccessMut<'a> {
+    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut Flow {
+        while index >= self.cache.len() {
+            match self.iterator.next() {
+                None => panic!("Flow index out of range!"),
+                Some(next_flow) => self.cache.push((*next_flow).clone()),
+            }
+        }
+        flow_ref::deref_mut(&mut self.cache[index])
     }
 }

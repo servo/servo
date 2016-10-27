@@ -63,7 +63,7 @@ pub struct TableFlow {
 
 impl TableFlow {
     pub fn from_fragment(fragment: Fragment) -> TableFlow {
-        let mut block_flow = BlockFlow::from_fragment(fragment, None);
+        let mut block_flow = BlockFlow::from_fragment(fragment);
         let table_layout =
             if block_flow.fragment().style().get_table().table_layout == table_layout::T::fixed {
                 TableLayout::Fixed
@@ -85,9 +85,13 @@ impl TableFlow {
     /// sizes.
     fn update_automatic_column_inline_sizes(
             parent_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
-            child_cell_inline_sizes: &[CellIntrinsicInlineSize])
+            child_cell_inline_sizes: &[CellIntrinsicInlineSize],
+            surrounding_size: Au)
             -> IntrinsicISizes {
-        let mut total_inline_sizes = IntrinsicISizes::new();
+        let mut total_inline_sizes = IntrinsicISizes {
+            minimum_inline_size: surrounding_size,
+            preferred_inline_size: surrounding_size,
+        };
         let mut column_index = 0;
         for child_cell_inline_size in child_cell_inline_sizes {
             for _ in 0..child_cell_inline_size.column_span {
@@ -120,10 +124,9 @@ impl TableFlow {
                     }
                 }
 
-                total_inline_sizes.minimum_inline_size = total_inline_sizes.minimum_inline_size +
+                total_inline_sizes.minimum_inline_size +=
                     parent_inline_sizes[column_index].minimum_length;
-                total_inline_sizes.preferred_inline_size =
-                    total_inline_sizes.preferred_inline_size +
+                total_inline_sizes.preferred_inline_size +=
                     parent_inline_sizes[column_index].preferred;
 
                 column_index += 1
@@ -139,7 +142,8 @@ impl TableFlow {
                                           column_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
                                           computation: &mut IntrinsicISizesContribution,
                                           first_row: bool,
-                                          table_layout: TableLayout) {
+                                          table_layout: TableLayout,
+                                          surrounding_inline_size: Au) {
         // Read column inline-sizes from the table-row, and assign inline-size=0 for the columns
         // not defined in the column group.
         //
@@ -158,7 +162,8 @@ impl TableFlow {
             TableLayout::Auto => {
                 computation.union_block(&TableFlow::update_automatic_column_inline_sizes(
                     column_inline_sizes,
-                    &row.cell_intrinsic_inline_sizes))
+                    &row.cell_intrinsic_inline_sizes,
+                    surrounding_inline_size))
             }
         }
     }
@@ -227,9 +232,6 @@ impl Flow for TableFlow {
         let _scope = layout_debug_scope!("table::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
 
-        // Don't use `compute_intrinsic_inline_sizes` here because that will count padding as
-        // part of the table, which we don't want to do—it belongs to the table wrapper instead.
-
         // Get column inline sizes from colgroups
         for kid in self.block_flow.base.child_iter_mut().filter(|kid| kid.is_table_colgroup()) {
             for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
@@ -277,15 +279,18 @@ impl Flow for TableFlow {
                     &*self.block_flow.fragment.style,
                     CollapsedBorderProvenance::FromTable));
         let mut first_row = true;
+        let (border_padding, _) = self.block_flow.fragment.surrounding_intrinsic_inline_size();
 
         {
             let mut iterator = TableRowIterator::new(&mut self.block_flow.base).peekable();
             while let Some(row) = iterator.next() {
-                TableFlow::update_column_inline_sizes_for_row(row,
+                TableFlow::update_column_inline_sizes_for_row(
+                        row,
                         &mut self.column_intrinsic_inline_sizes,
                         &mut computation,
                         first_row,
-                        self.table_layout);
+                        self.table_layout,
+                        border_padding);
                 if collapsing_borders {
                     let next_index_and_sibling = iterator.peek();
                     let next_collapsed_borders_in_block_direction =
@@ -316,9 +321,16 @@ impl Flow for TableFlow {
             };
         }
 
-
-        computation.surrounding_size = computation.surrounding_size +
-                                       self.total_horizontal_spacing();
+        let total_horizontal_spacing = self.total_horizontal_spacing();
+        let mut style_specified_intrinsic_inline_size =
+            self.block_flow
+                .fragment
+                .style_specified_intrinsic_inline_size()
+                .finish();
+        style_specified_intrinsic_inline_size.minimum_inline_size -= total_horizontal_spacing;
+        style_specified_intrinsic_inline_size.preferred_inline_size -= total_horizontal_spacing;
+        computation.union_block(&style_specified_intrinsic_inline_size);
+        computation.surrounding_size += total_horizontal_spacing;
 
         self.block_flow.base.intrinsic_inline_sizes = computation.finish()
     }
@@ -359,15 +371,16 @@ impl Flow for TableFlow {
         let inline_end_content_edge = self.block_flow.fragment.border_padding.inline_end;
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let spacing_per_cell = self.spacing();
-        let spacing = self.total_horizontal_spacing();
-        let content_inline_size =
-            self.block_flow.fragment.border_box.size.inline - padding_and_borders - spacing;
+        let total_horizontal_spacing = self.total_horizontal_spacing();
+        let content_inline_size = self.block_flow.fragment.border_box.size.inline -
+            padding_and_borders - total_horizontal_spacing;
 
         match self.table_layout {
             TableLayout::Fixed => {
                 // In fixed table layout, we distribute extra space among the unspecified columns
                 // if there are any, or among all the columns if all are specified.
-                // See: https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns (infobox)
+                // See: https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns
+                // (infobox)
                 self.column_computed_inline_sizes.clear();
                 if num_unspecified_inline_sizes != 0 {
                     let extra_column_inline_size = content_inline_size - total_column_inline_size;

@@ -29,7 +29,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, table_layout};
+use style::computed_values::{border_collapse, position, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize};
 use style::properties::ServoComputedValues;
@@ -57,8 +57,13 @@ pub struct TableWrapperFlow {
 }
 
 impl TableWrapperFlow {
-    pub fn from_fragment(fragment: Fragment, float_kind: Option<FloatKind>) -> TableWrapperFlow {
-        let mut block_flow = BlockFlow::from_fragment(fragment, float_kind);
+    pub fn from_fragment(fragment: Fragment) -> TableWrapperFlow {
+        TableWrapperFlow::from_fragment_and_float_kind(fragment, None)
+    }
+
+    pub fn from_fragment_and_float_kind(fragment: Fragment, float_kind: Option<FloatKind>)
+                                        -> TableWrapperFlow {
+        let mut block_flow = BlockFlow::from_fragment_and_float_kind(fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::T::fixed {
             TableLayout::Fixed
@@ -71,6 +76,7 @@ impl TableWrapperFlow {
             table_layout: table_layout
         }
     }
+
     fn border_padding_and_spacing(&mut self) -> (Au, Au) {
         let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
         for kid in self.block_flow.base.child_iter_mut() {
@@ -85,17 +91,15 @@ impl TableWrapperFlow {
         (table_border_padding, spacing)
     }
 
-    /// Calculates table column sizes for automatic layout per INTRINSIC § 4.3.
-    fn calculate_table_column_sizes_for_automatic_layout(
-            &mut self,
-            intermediate_column_inline_sizes: &mut [IntermediateColumnInlineSize]) {
-        // Find the padding and border of our first child, which is the table itself.
-        //
-        // This is a little weird because we're computing border/padding/margins for our child,
-        // when normally the child computes it itself. But it has to be this way because the
-        // padding will affect where we place the child. This is an odd artifact of the way that
-        // tables are separated into table flows and table wrapper flows.
-        let available_inline_size = self.block_flow.fragment.border_box.size.inline;
+    // Instructs our first child, which is the table itself, to compute its border and padding.
+    //
+    // This is a little weird because we're computing border/padding/margins for our child,
+    // when normally the child computes it itself. But it has to be this way because the
+    // padding will affect where we place the child. This is an odd artifact of the way that
+    // tables are separated into table flows and table wrapper flows.
+    fn compute_border_and_padding_of_table(&mut self) {
+        let available_inline_size = self.block_flow.base.block_container_inline_size;
+        let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         for kid in self.block_flow.base.child_iter_mut() {
             if !kid.is_table() {
                 continue
@@ -103,38 +107,19 @@ impl TableWrapperFlow {
 
             let kid_table = kid.as_mut_table();
             let kid_block_flow = &mut kid_table.block_flow;
-            kid_block_flow.fragment
-                          .compute_border_and_padding(available_inline_size,
-                                                      self.block_flow
-                                                          .fragment
-                                                          .style
-                                                          .get_inheritedtable()
-                                                          .border_collapse);
+            kid_block_flow.fragment.compute_border_and_padding(available_inline_size,
+                                                               border_collapse);
             kid_block_flow.fragment.compute_block_direction_margins(available_inline_size);
             kid_block_flow.fragment.compute_inline_direction_margins(available_inline_size);
-            break
+            return
         }
+    }
 
-        let (table_border_padding, spacing) = self.border_padding_and_spacing();
-
-        // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
-        // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
-        // just use the shrink-to-fit inline size.
-        let mut available_inline_size =
-            match self.block_flow.fragment.style().content_inline_size() {
-                LengthOrPercentageOrAuto::Auto => {
-                    self.block_flow.get_shrink_to_fit_inline_size(available_inline_size)
-                }
-                // FIXME(mttr): This fixes #4421 without breaking our current reftests, but I'm
-                // not completely sure this is "correct".
-                //
-                // That said, `available_inline_size` is, as far as I can tell, equal to the
-                // table's computed width property (W) and is used from this point forward in a way
-                // that seems to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption
-                // widths influence the final table width as follows: …"
-                _ => available_inline_size,
-            };
-        available_inline_size = available_inline_size - spacing;
+    /// Calculates table column sizes for automatic layout per INTRINSIC § 4.3.
+    fn calculate_table_column_sizes_for_automatic_layout(
+            &mut self,
+            intermediate_column_inline_sizes: &mut [IntermediateColumnInlineSize]) {
+        let available_inline_size = self.available_inline_size();
 
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
@@ -182,8 +167,35 @@ impl TableWrapperFlow {
             total_used_inline_size = available_inline_size
         }
 
+        self.set_inline_size(total_used_inline_size)
+    }
 
+    fn available_inline_size(&mut self) -> Au {
+        let available_inline_size = self.block_flow.fragment.border_box.size.inline;
+        let (table_border_padding, spacing) = self.border_padding_and_spacing();
 
+        // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
+        // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
+        // just use the shrink-to-fit inline size.
+        let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
+            LengthOrPercentageOrAuto::Auto => {
+                self.block_flow.get_shrink_to_fit_inline_size(available_inline_size) -
+                    table_border_padding
+            }
+            // FIXME(mttr): This fixes #4421 without breaking our current reftests, but I'm not
+            // completely sure this is "correct".
+            //
+            // That said, `available_inline_size` is, as far as I can tell, equal to the table's
+            // computed width property (W) and is used from this point forward in a way that seems
+            // to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption widths influence the
+            // final table width as follows: …"
+            _ => available_inline_size,
+        };
+        available_inline_size - spacing
+    }
+
+    fn set_inline_size(&mut self, total_used_inline_size: Au) {
+        let (table_border_padding, spacing) = self.border_padding_and_spacing();
         self.block_flow.fragment.border_box.size.inline = total_used_inline_size +
             table_border_padding + spacing;
         self.block_flow.base.position.size.inline = total_used_inline_size +
@@ -229,6 +241,7 @@ impl TableWrapperFlow {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
                 border_collapse: border_collapse,
+                table_border_padding: border_padding,
             };
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
@@ -249,6 +262,7 @@ impl TableWrapperFlow {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
                 border_collapse: border_collapse,
+                table_border_padding: border_padding,
             };
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
@@ -268,6 +282,7 @@ impl TableWrapperFlow {
             minimum_width_of_all_columns: minimum_width_of_all_columns,
             preferred_width_of_all_columns: preferred_width_of_all_columns,
             border_collapse: border_collapse,
+            table_border_padding: border_padding,
         };
         let input =
             inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
@@ -344,13 +359,20 @@ impl Flow for TableWrapperFlow {
                 containing_block_inline_size;
         }
 
+        // This has to be done before computing our inline size because `compute_used_inline_size`
+        // internally consults the border and padding of the table.
+        self.compute_border_and_padding_of_table();
+
         self.compute_used_inline_size(shared_context,
                                       containing_block_inline_size,
                                       &intermediate_column_inline_sizes);
 
-        if let TableLayout::Auto = self.table_layout {
-            self.calculate_table_column_sizes_for_automatic_layout(
-                &mut intermediate_column_inline_sizes)
+        match self.table_layout {
+            TableLayout::Auto => {
+                self.calculate_table_column_sizes_for_automatic_layout(
+                    &mut intermediate_column_inline_sizes)
+            }
+            TableLayout::Fixed => {}
         }
 
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i;
@@ -471,6 +493,10 @@ impl Flow for TableWrapperFlow {
 
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
         self.block_flow.print_extra_flow_children(print_tree);
+    }
+
+    fn positioning(&self) -> position::T {
+        self.block_flow.positioning()
     }
 }
 
@@ -734,10 +760,15 @@ struct IntermediateColumnInlineSize {
     percentage: f32,
 }
 
+/// Returns the computed inline size of the table wrapper represented by `block`.
+///
+/// `table_border_padding` is the sum of the sizes of all border and padding in the inline
+/// direction of the table contained within this table wrapper.
 fn initial_computed_inline_size(block: &mut BlockFlow,
                                 containing_block_inline_size: Au,
                                 minimum_width_of_all_columns: Au,
-                                preferred_width_of_all_columns: Au)
+                                preferred_width_of_all_columns: Au,
+                                table_border_padding: Au)
                                 -> MaybeAuto {
     let inline_size_from_style = MaybeAuto::from_style(block.fragment.style.content_inline_size(),
                                                        containing_block_inline_size);
@@ -746,7 +777,8 @@ fn initial_computed_inline_size(block: &mut BlockFlow,
             MaybeAuto::Specified(min(containing_block_inline_size, preferred_width_of_all_columns))
         }
         MaybeAuto::Specified(inline_size_from_style) => {
-            MaybeAuto::Specified(max(inline_size_from_style, minimum_width_of_all_columns))
+            MaybeAuto::Specified(max(inline_size_from_style - table_border_padding,
+                                     minimum_width_of_all_columns))
         }
     }
 }
@@ -755,6 +787,7 @@ struct Table {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
     border_collapse: border_collapse::T,
+    table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for Table {
@@ -769,13 +802,12 @@ impl ISizeAndMarginsComputer for Table {
                                     shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         let containing_block_inline_size =
-            self.containing_block_inline_size(block,
-                                              parent_flow_inline_size,
-                                              shared_context);
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
-                                     self.preferred_width_of_all_columns)
+                                     self.preferred_width_of_all_columns,
+                                     self.table_border_padding)
     }
 
     fn solve_inline_size_constraints(&self,
@@ -790,6 +822,7 @@ struct FloatedTable {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
     border_collapse: border_collapse::T,
+    table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for FloatedTable {
@@ -810,7 +843,8 @@ impl ISizeAndMarginsComputer for FloatedTable {
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
-                                     self.preferred_width_of_all_columns)
+                                     self.preferred_width_of_all_columns,
+                                     self.table_border_padding)
     }
 
     fn solve_inline_size_constraints(&self,
@@ -825,6 +859,7 @@ struct AbsoluteTable {
     minimum_width_of_all_columns: Au,
     preferred_width_of_all_columns: Au,
     border_collapse: border_collapse::T,
+    table_border_padding: Au,
 }
 
 impl ISizeAndMarginsComputer for AbsoluteTable {
@@ -845,7 +880,8 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
-                                     self.preferred_width_of_all_columns)
+                                     self.preferred_width_of_all_columns,
+                                     self.table_border_padding)
     }
 
     fn containing_block_inline_size(&self,
@@ -853,7 +889,9 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
                                     parent_flow_inline_size: Au,
                                     shared_context: &SharedStyleContext)
                                     -> Au {
-        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, shared_context)
+        AbsoluteNonReplaced.containing_block_inline_size(block,
+                                                         parent_flow_inline_size,
+                                                         shared_context)
     }
 
     fn solve_inline_size_constraints(&self,
