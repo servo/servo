@@ -74,10 +74,16 @@ macro_rules! handle_potential_webgl_error {
 //
 // and similar text occurs for other object types.
 macro_rules! handle_object_deletion {
-    ($binding:expr, $object:ident) => {
+    ($self_:expr, $binding:expr, $object:ident, $unbind_command:expr) => {
         if let Some(bound_object) = $binding.get() {
             if bound_object.id() == $object.id() {
                 $binding.set(None);
+            }
+
+            if let Some(command) = $unbind_command {
+                $self_.ipc_renderer
+                    .send(CanvasMsg::WebGL(command))
+                    .unwrap();
             }
         }
     };
@@ -804,13 +810,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        self.bound_framebuffer.set(framebuffer);
         if let Some(framebuffer) = framebuffer {
-            framebuffer.bind(target)
+            if framebuffer.is_deleted() {
+                // From the WebGL spec:
+                //
+                //     "An attempt to bind a deleted framebuffer will
+                //      generate an INVALID_OPERATION error, and the
+                //      current binding will remain untouched."
+                return self.webgl_error(InvalidOperation);
+            } else {
+                framebuffer.bind(target);
+                self.bound_framebuffer.set(Some(framebuffer));
+            }
         } else {
             // Bind the default framebuffer
             let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
             self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
+            self.bound_framebuffer.set(framebuffer);
         }
     }
 
@@ -1241,8 +1257,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
-            handle_object_deletion!(self.bound_buffer_array, buffer);
-            handle_object_deletion!(self.bound_buffer_element_array, buffer);
+            handle_object_deletion!(self, self.bound_buffer_array, buffer,
+                                    Some(WebGLCommand::BindBuffer(constants::ARRAY_BUFFER, None)));
+            handle_object_deletion!(self, self.bound_buffer_element_array, buffer,
+                                    Some(WebGLCommand::BindBuffer(constants::ELEMENT_ARRAY_BUFFER, None)));
             buffer.delete()
         }
     }
@@ -1250,7 +1268,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
-            handle_object_deletion!(self.bound_framebuffer, framebuffer);
+            handle_object_deletion!(self, self.bound_framebuffer, framebuffer,
+                                    Some(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER,
+                                                                       WebGLFramebufferBindingRequest::Default)));
             framebuffer.delete()
         }
     }
@@ -1258,7 +1278,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
-            handle_object_deletion!(self.bound_renderbuffer, renderbuffer);
+            handle_object_deletion!(self, self.bound_renderbuffer, renderbuffer,
+                                    Some(WebGLCommand::BindRenderbuffer(constants::RENDERBUFFER, None)));
+            // From the GLES 2.0.25 spec, page 113:
+            //
+            //     "If a renderbuffer object is deleted while its
+            //     image is attached to the currently bound
+            //     framebuffer, then it is as if
+            //     FramebufferRenderbuffer had been called, with a
+            //     renderbuffer of 0, for each attachment point to
+            //     which this image was attached in the currently
+            //     bound framebuffer."
+            //
+            if let Some(fb) = self.bound_framebuffer.get() {
+                fb.detach_renderbuffer(renderbuffer);
+            }
+
             renderbuffer.delete()
         }
     }
@@ -1266,8 +1301,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
-            handle_object_deletion!(self.bound_texture_2d, texture);
-            handle_object_deletion!(self.bound_texture_cube_map, texture);
+            handle_object_deletion!(self, self.bound_texture_2d, texture,
+                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_2D, None)));
+            handle_object_deletion!(self, self.bound_texture_cube_map, texture,
+                                    Some(WebGLCommand::BindTexture(constants::TEXTURE_CUBE_MAP, None)));
+
+            // From the GLES 2.0.25 spec, page 113:
+            //
+            //     "If a texture object is deleted while its image is
+            //      attached to the currently bound framebuffer, then
+            //      it is as if FramebufferTexture2D had been called,
+            //      with a texture of 0, for each attachment point to
+            //      which this image was attached in the currently
+            //      bound framebuffer."
+            if let Some(fb) = self.bound_framebuffer.get() {
+                fb.detach_texture(texture);
+            }
             texture.delete()
         }
     }
@@ -1275,7 +1324,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            handle_object_deletion!(self.current_program, program);
+            // FIXME: We should call glUseProgram(0), but
+            // WebGLCommand::UseProgram() doesn't take an Option
+            // currently.  This is also a problem for useProgram(null)
+            handle_object_deletion!(self, self.current_program, program, None);
             program.delete()
         }
     }
@@ -2525,6 +2577,82 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
         self.tex_parameter(target, name, TexParameterValue::Int(value))
+    }
+
+    fn CheckFramebufferStatus(&self, target: u32) -> u32 {
+        // From the GLES 2.0.25 spec, 4.4 ("Framebuffer Objects"):
+        //
+        //    "If target is not FRAMEBUFFER, INVALID_ENUM is
+        //     generated. If CheckFramebufferStatus generates an
+        //     error, 0 is returned."
+        if target != constants::FRAMEBUFFER {
+            self.webgl_error(InvalidEnum);
+            return 0;
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => return fb.check_status(),
+            None => return constants::FRAMEBUFFER_COMPLETE,
+        }
+    }
+
+    fn RenderbufferStorage(&self, target: u32, internal_format: u32,
+                           width: i32, height: i32) {
+        // From the GLES 2.0.25 spec:
+        //
+        //    "target must be RENDERBUFFER."
+        if target != constants::RENDERBUFFER {
+            return self.webgl_error(InvalidOperation)
+        }
+
+        // From the GLES 2.0.25 spec:
+        //
+        //     "If either width or height is greater than the value of
+        //      MAX_RENDERBUFFER_SIZE , the error INVALID_VALUE is
+        //      generated."
+        //
+        // and we have to throw out negative-size values as well just
+        // like for TexImage.
+        //
+        // FIXME: Handle max_renderbuffer_size, which doesn't seem to
+        // be in limits.
+        if width < 0 || height < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        match self.bound_renderbuffer.get() {
+            Some(rb) => handle_potential_webgl_error!(self, rb.storage(internal_format, width, height)),
+            None => self.webgl_error(InvalidOperation),
+        };
+
+        // FIXME: We need to clear the renderbuffer before it can be
+        // accessed.  See https://github.com/servo/servo/issues/13710
+    }
+
+    fn FramebufferRenderbuffer(&self, target: u32, attachment: u32,
+                               renderbuffertarget: u32,
+                               rb: Option<&WebGLRenderbuffer>) {
+        if target != constants::FRAMEBUFFER || renderbuffertarget != constants::RENDERBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => handle_potential_webgl_error!(self, fb.renderbuffer(attachment, rb)),
+            None => self.webgl_error(InvalidOperation),
+        };
+    }
+
+    fn FramebufferTexture2D(&self, target: u32, attachment: u32,
+                            textarget: u32, texture: Option<&WebGLTexture>,
+                            level: i32) {
+        if target != constants::FRAMEBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => handle_potential_webgl_error!(self, fb.texture2d(attachment, textarget, texture, level)),
+            None => self.webgl_error(InvalidOperation),
+        };
     }
 }
 

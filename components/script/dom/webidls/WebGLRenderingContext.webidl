@@ -501,7 +501,7 @@ interface WebGLRenderingContextBase
     [Throws]
     void bufferSubData(GLenum target, GLintptr offset, object? data);
 
-    //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
+    [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
     void clearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
     void clearDepth(GLclampf depth);
@@ -566,11 +566,11 @@ interface WebGLRenderingContextBase
     void enableVertexAttribArray(GLuint index);
     void finish();
     void flush();
-    //void framebufferRenderbuffer(GLenum target, GLenum attachment,
-    //                             GLenum renderbuffertarget,
-    //                             WebGLRenderbuffer? renderbuffer);
-    //void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
-    //                          WebGLTexture? texture, GLint level);
+    void framebufferRenderbuffer(GLenum target, GLenum attachment,
+                                 GLenum renderbuffertarget,
+                                 WebGLRenderbuffer? renderbuffer);
+    void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
+                              WebGLTexture? texture, GLint level);
     void frontFace(GLenum mode);
 
     void generateMipmap(GLenum target);
@@ -626,8 +626,8 @@ interface WebGLRenderingContextBase
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type, object? pixels);
 
-    //void renderbufferStorage(GLenum target, GLenum internalformat,
-    //                         GLsizei width, GLsizei height);
+    void renderbufferStorage(GLenum target, GLenum internalformat,
+                             GLsizei width, GLsizei height);
     void sampleCoverage(GLclampf value, GLboolean invert);
     void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
 
