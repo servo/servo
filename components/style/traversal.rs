@@ -21,16 +21,6 @@ use util::opts;
 /// detected by ticking a generation number every layout.
 pub type Generation = u32;
 
-/// This enum tells us about whether we can stop restyling or not after styling
-/// an element.
-///
-/// So far this only happens where a display: none node is found.
-#[derive(Clone, Copy, PartialEq)]
-pub enum RestyleResult {
-    Continue,
-    Stop,
-}
-
 /// Style sharing candidate cache stats. These are only used when
 /// `-Z style-sharing-stats` is given.
 pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
@@ -175,7 +165,7 @@ pub trait DomTraversalContext<N: TNode> {
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N) -> RestyleResult;
+    fn process_preorder(&self, node: N);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
@@ -307,7 +297,7 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                                     root: OpaqueNode,
-                                    element: E) -> RestyleResult
+                                    element: E)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
@@ -315,7 +305,6 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     // Get the style bloom filter.
     let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
 
-    let mut restyle_result = RestyleResult::Continue;
     let mode = element.styling_mode();
     debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
     if mode != StylingMode::Traverse {
@@ -361,9 +350,8 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    restyle_result = element.cascade_node(context, data,
-                                                          element.parent_element(),
-                                                          &applicable_declarations);
+                    element.cascade_node(context, data, element.parent_element(),
+                                         &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -376,8 +364,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                                                                      relations);
                 }
             }
-            StyleSharingResult::StyleWasShared(index, damage, cached_restyle_result) => {
-                restyle_result = cached_restyle_result;
+            StyleSharingResult::StyleWasShared(index, damage) => {
                 if opts::get().style_sharing_stats {
                     STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
                 }
@@ -394,7 +381,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     // If we restyled this node, conservatively mark all our children as needing
     // processing. The eventual algorithm we're designing does this in a more granular
     // fashion.
-    if mode == StylingMode::Restyle && restyle_result == RestyleResult::Continue {
+    if mode == StylingMode::Restyle && !element.is_display_none() {
         for kid in element.as_node().children() {
             if let Some(kid) = kid.as_element() {
                 unsafe { let _ = D::prepare_for_styling(&kid); }
@@ -411,6 +398,4 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
-
-    restyle_result
 }

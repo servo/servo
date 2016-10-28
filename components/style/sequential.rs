@@ -5,7 +5,7 @@
 //! Implements sequential traversal over the DOM tree.
 
 use dom::{StylingMode, TElement, TNode};
-use traversal::{RestyleResult, DomTraversalContext};
+use traversal::DomTraversalContext;
 
 pub fn traverse_dom<N, C>(root: N,
                           shared: &C::SharedContext)
@@ -16,9 +16,9 @@ pub fn traverse_dom<N, C>(root: N,
         where N: TNode,
               C: DomTraversalContext<N>
     {
-        if let RestyleResult::Continue = context.process_preorder(node) {
-            C::traverse_children(node.as_element().unwrap(),
-                                 |kid| doit::<N, C>(context, kid));
+        context.process_preorder(node);
+        if let Some(el) = node.as_element() {
+            C::traverse_children(el, |kid| doit::<N, C>(context, kid));
         }
 
         if context.needs_postorder_traversal() {

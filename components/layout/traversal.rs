@@ -19,7 +19,6 @@ use style::data::ElementData;
 use style::dom::{StylingMode, TElement, TNode};
 use style::traversal::{DomTraversalContext, put_thread_local_bloom_filter};
 use style::traversal::{recalc_style_at, remove_from_bloom_filter};
-use style::traversal::RestyleResult;
 use style::traversal::take_thread_local_bloom_filter;
 use util::opts;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
@@ -73,7 +72,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    fn process_preorder(&self, node: N) -> RestyleResult {
+    fn process_preorder(&self, node: N) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         node.initialize_data();
@@ -101,11 +100,9 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
             let parent = node.parent_node().unwrap().as_element();
             let bf = take_thread_local_bloom_filter(parent, self.root, self.context.shared_context());
             put_thread_local_bloom_filter(bf, &node.to_unsafe(), self.context.shared_context());
-
-            RestyleResult::Stop
         } else {
             let el = node.as_element().unwrap();
-            recalc_style_at::<_, _, Self>(&self.context, self.root, el)
+            recalc_style_at::<_, _, Self>(&self.context, self.root, el);
         }
     }
 
@@ -114,8 +111,13 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     }
 
     fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool {
+        // If the parent is display:none, we don't need to do anything.
+        if parent.is_display_none() {
+            return false;
+        }
+
         // If this node has been marked as damaged in some way, we need to
-        // traverse it unconditionally for layout.
+        // traverse it for layout.
         if child.has_changed() {
             return true;
         }

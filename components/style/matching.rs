@@ -30,7 +30,6 @@ use std::ops::Deref;
 use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
-use traversal::RestyleResult;
 use util::opts;
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
@@ -482,7 +481,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     /// LRU cache that was hit and the damage that was done, and the restyle
     /// result the original result of the candidate's styling, that is, whether
     /// it should stop the traversal or not.
-    StyleWasShared(usize, ConcreteRestyleDamage, RestyleResult),
+    StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
 // Callers need to pass several boolean flags to cascade_node_pseudo_element.
@@ -730,15 +729,9 @@ pub trait MatchMethods : TElement {
                             }
                         };
 
-                    let restyle_result = if shared_style.get_box().clone_display() == display::T::none {
-                        RestyleResult::Stop
-                    } else {
-                        RestyleResult::Continue
-                    };
-
                     data.finish_styling(ElementStyles::new(shared_style));
 
-                    return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
+                    return StyleSharingResult::StyleWasShared(i, damage)
                 }
                 Err(miss) => {
                     debug!("Cache miss: {:?}", miss);
@@ -857,7 +850,6 @@ pub trait MatchMethods : TElement {
                                     mut data: AtomicRefMut<ElementData>,
                                     parent: Option<Self>,
                                     applicable_declarations: &ApplicableDeclarations)
-                                    -> RestyleResult
         where Ctx: StyleContext<'a>
     {
         // Get our parent's style.
@@ -869,7 +861,7 @@ pub trait MatchMethods : TElement {
         let mut applicable_declarations_cache =
             context.local_context().applicable_declarations_cache.borrow_mut();
 
-        let (damage, restyle_result) = {
+        let damage = {
             // Update animations before the cascade. This may modify the value of the old primary
             // style.
             let cacheable = data.previous_styles_mut().map_or(true,
@@ -893,7 +885,7 @@ pub trait MatchMethods : TElement {
                                                      animate: true,
                                                  }));
 
-            let (damage, restyle_result) =
+            let damage =
                 self.compute_damage_and_cascade_pseudos(old_primary,
                                                         old_pseudos,
                                                         &new_styles.primary,
@@ -906,15 +898,13 @@ pub trait MatchMethods : TElement {
                 parent_style.unwrap().is_multicol()
             }));
 
-            (damage, restyle_result)
+            damage
         };
 
         data.finish_styling(new_styles);
         // Drop the mutable borrow early, since Servo's set_restyle_damage also borrows.
         mem::drop(data);
         self.set_restyle_damage(damage);
-
-        restyle_result
     }
 
     fn compute_damage_and_cascade_pseudos<'a, Ctx>(&self,
@@ -925,7 +915,7 @@ pub trait MatchMethods : TElement {
                                                    context: &Ctx,
                                                    applicable_declarations: &ApplicableDeclarations,
                                                    mut applicable_declarations_cache: &mut ApplicableDeclarationsCache)
-                                                   -> (Self::ConcreteRestyleDamage, RestyleResult)
+                                                   -> Self::ConcreteRestyleDamage
         where Ctx: StyleContext<'a>
     {
         // Here we optimise the case of the style changing but both the
@@ -950,13 +940,17 @@ pub trait MatchMethods : TElement {
             debug!("Short-circuiting traversal: {:?} {:?} {:?}",
                    this_display, old_display, damage);
 
-            return (damage, RestyleResult::Stop);
+            return damage
         }
 
-        // Otherwise, we just compute the damage normally, and sum up the damage
-        // related to pseudo-elements.
+        // Compute the damage and sum up the damage related to pseudo-elements.
         let mut damage =
             self.compute_restyle_damage(old_primary, new_primary, None);
+
+        // If the new style is display:none, we don't need pseudo-elements styles.
+        if new_primary.get_box().clone_display() == display::T::none {
+            return damage;
+        }
 
         let rebuild_and_reflow =
             Self::ConcreteRestyleDamage::rebuild_and_reflow();
@@ -1016,7 +1010,7 @@ pub trait MatchMethods : TElement {
             }
         });
 
-        (damage, RestyleResult::Continue)
+        damage
     }
 }
 

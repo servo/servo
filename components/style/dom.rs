@@ -11,6 +11,7 @@ use data::{ElementStyles, ElementData};
 use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
+use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement};
 use selector_matching::ApplicableDeclarationBlock;
@@ -213,6 +214,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
+    /// Returns true if this element's current style is display:none. Only valid
+    /// to call after styling.
+    fn is_display_none(&self) -> bool {
+        self.borrow_data().unwrap()
+            .current_styles().primary
+            .get_box().clone_display() == display::T::none
+    }
 
     /// Returns true if this node has a styled layout frame that owns the style.
     fn frame_has_style(&self) -> bool { false }
