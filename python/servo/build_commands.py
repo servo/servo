@@ -250,34 +250,32 @@ class MachCommands(CommandBase):
             # path munging if you do not want to install a standalone NDK. See:
             # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4?q=android.m4&redirect_type=direct#139-161
             os_type = platform.system().lower()
-            cpu_type = platform.machine().lower()
-            if os_type == "linux":
-                if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-                    host = "linux-x86"
-                elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-                    host = "linux-x86_64"
-                else:
-                    host = "linux-unknown"
-            elif os_type == "darwin":
-                if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-                    host = "darwin-x86"
-                elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-                    host = "darwin-x86_64"
-                else:
-                    host = "darwin-unknown"
-            else:
+            if os_type not in ["linux", "darwin"]:
                 raise Exception("Android cross builds are only supported on Linux and macOS.")
-            env['PATH'] = path.join(env['ANDROID_NDK'], "toolchains", "arm-linux-androideabi-4.9",
-                                    "prebuilt", host, "bin") + ':' + env['PATH']
+            cpu_type = platform.machine().lower()
+            host_suffix = "unknown"
+            if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+                host_suffix = "x86"
+            elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
+                host_suffix = "x86_64"
+            host = os_type + "-" + host_suffix
+            env['PATH'] = path.join(
+                env['ANDROID_NDK'], "toolchains", "arm-linux-androideabi-4.9", "prebuilt", host, "bin"
+            ) + ':' + env['PATH']
             env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms", "android-18", "arch-arm")
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
-            env['CFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT'], "-I" + support_include])
-            cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++", "libcxx",
-                                    "include")
-            cxxabi_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++abi", "libcxxabi",
-                                    "include")
-            env['CXXFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT'], "-I" + support_include,
-                                        "-I" + cxx_include, "-I" + cxxabi_include])
+            cxx_include = path.join(
+                env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++", "libcxx", "include")
+            cxxabi_include = path.join(
+                env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++abi", "libcxxabi", "include")
+            env['CFLAGS'] = ' '.join([
+                "--sysroot", env['ANDROID_SYSROOT'],
+                "-I" + support_include])
+            env['CXXFLAGS'] = ' '.join([
+                "--sysroot", env['ANDROID_SYSROOT'],
+                "-I" + support_include,
+                "-I" + cxx_include,
+                "-I" + cxxabi_include])
 
         cargo_binary = "cargo" + BIN_SUFFIX
 
