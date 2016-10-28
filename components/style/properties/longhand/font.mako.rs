@@ -538,3 +538,49 @@ ${helpers.single_keyword("font-variant-position",
         }
     }
 </%helpers:longhand>
+
+// https://www.w3.org/TR/css-fonts-3/#propdef-font-language-override
+<%helpers:longhand name="font-language-override" products="none" animatable="False">
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::Normal => dest.write_str("normal"),
+                    T::Override(ref lang) => write!(dest, "\"{}\"", lang),
+                }
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            Normal,
+            Override(String),
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Normal
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            Ok(SpecifiedValue::Normal)
+        } else {
+            input.expect_string().map(|cow| {
+                SpecifiedValue::Override(cow.into_owned())
+            })
+        }
+    }
+</%helpers:longhand>
