@@ -23,7 +23,7 @@ use style::traversal::{recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
 use style::traversal::take_thread_local_bloom_filter;
 use util::opts;
-use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
+use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,

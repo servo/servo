@@ -62,7 +62,7 @@ use text::TextRunScanner;
 use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::opts;
-use wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
+use wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -221,7 +221,7 @@ impl InlineFragmentsAccumulator {
                 address: node.opaque(),
                 pseudo: node.get_pseudo_element_type().strip(),
                 style: node.style(style_context),
-                selected_style: node.selected_style(style_context),
+                selected_style: node.selected_style(),
                 flags: InlineFragmentNodeFlags::empty(),
             }),
             bidi_control_chars: None,
@@ -514,11 +514,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
                 properties::modify_style_for_replaced_content(&mut whitespace_style);
                 properties::modify_style_for_text(&mut whitespace_style);
-                let style_context = self.style_context();
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
                                                                     whitespace_style,
-                                                                    node.selected_style(style_context),
+                                                                    node.selected_style(),
                                                                     whitespace_damage,
                                                                     fragment_info);
                 inline_fragment_accumulator.fragments.fragments.push_back(fragment);
@@ -650,7 +649,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             _ => properties::modify_style_for_text(&mut style)
         }
 
-        let selected_style = node.selected_style(self.style_context());
+        let selected_style = node.selected_style();
 
         match text_content {
             TextContent::Text(string) => {
@@ -811,7 +810,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         Fragment::from_opaque_node_and_style(whitespace_node,
                                                              whitespace_pseudo,
                                                              whitespace_style,
-                                                             node.selected_style(self.style_context()),
+                                                             node.selected_style(),
                                                              whitespace_damage,
                                                              fragment_info);
                     fragment_accumulator.fragments.fragments.push_back(fragment)
@@ -834,7 +833,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                                 node.get_pseudo_element_type().strip(),
                                                                 modified_style,
-                                                                node.selected_style(self.style_context()),
+                                                                node.selected_style(),
                                                                 node.restyle_damage(),
                                                                 info);
             fragment_accumulator.fragments.fragments.push_back(fragment)
@@ -921,7 +920,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             _ => unreachable!()
         };
 
-        let style_context = self.style_context();
         let mut modified_style = node.style(self.style_context());
         properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
@@ -929,7 +927,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             node.get_pseudo_element_type().strip(),
                                                             modified_style,
-                                                            node.selected_style(style_context),
+                                                            node.selected_style(),
                                                             node.restyle_damage(),
                                                             fragment_info);
 
@@ -964,7 +962,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             PseudoElementType::Normal,
                                                             style,
-                                                            node.selected_style(style_context),
+                                                            node.selected_style(),
                                                             node.restyle_damage(),
                                                             fragment_info);
 
@@ -1076,7 +1074,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             Fragment::from_opaque_node_and_style(node.opaque(),
                                                  PseudoElementType::Normal,
                                                  wrapper_style,
-                                                 node.selected_style(self.style_context()),
+                                                 node.selected_style(),
                                                  node.restyle_damage(),
                                                  SpecificFragmentInfo::TableWrapper);
         let wrapper_float_kind = FloatKind::from_property(float_value);
@@ -1661,7 +1659,7 @@ trait ObjectElement {
 
 impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
     fn has_object_data(&self) -> bool {
-        let elem = self.as_element();
+        let elem = self.as_element().unwrap();
         let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
         match type_and_data {
             (None, Some(uri)) => is_image_data(uri),
@@ -1670,7 +1668,7 @@ impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
     }
 
     fn object_data(&self) -> Option<Url> {
-        let elem = self.as_element();
+        let elem = self.as_element().unwrap();
         let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
         match type_and_data {
             (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
