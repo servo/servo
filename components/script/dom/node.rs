@@ -771,6 +771,10 @@ impl Node {
         self.owner_doc().is_html_document()
     }
 
+    pub fn is_in_doc_with_browsing_context(&self) -> bool {
+        self.is_in_doc() && self.owner_doc().browsing_context().is_some()
+    }
+
     pub fn children(&self) -> NodeSiblingIterator {
         NodeSiblingIterator {
             current: self.GetFirstChild(),
