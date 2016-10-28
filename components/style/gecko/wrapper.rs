@@ -6,7 +6,7 @@
 
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::NodeData;
+use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -332,15 +332,15 @@ impl<'le> GeckoElement<'le> {
                                                .get(pseudo).map(|c| c.clone()))
     }
 
-    fn get_node_data(&self) -> Option<&AtomicRefCell<NodeData>> {
+    fn get_node_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe { self.raw_node().mServoData.get().as_ref() }
     }
 
-    pub fn ensure_data(&self) -> &AtomicRefCell<NodeData> {
+    pub fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
         match self.get_node_data() {
             Some(x) => x,
             None => {
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(NodeData::new())));
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new())));
                 self.raw_node().mServoData.set(ptr);
                 unsafe { &* ptr }
             },
@@ -444,13 +444,13 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
+    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
         let mut data = self.ensure_data().borrow_mut();
         data.gather_previous_styles(|| self.get_styles_from_frame());
         data
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
         self.get_node_data().map(|x| x.borrow())
     }
 }

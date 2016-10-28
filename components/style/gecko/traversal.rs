@@ -4,7 +4,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::NodeData;
+use data::ElementData;
 use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode};
 use gecko::context::StandaloneStyleContext;
 use gecko::wrapper::{GeckoElement, GeckoNode};
@@ -55,7 +55,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         }
     }
 
-    fn ensure_element_data<'a>(element: &'a GeckoElement<'ln>) -> &'a AtomicRefCell<NodeData> {
+    fn ensure_element_data<'a>(element: &'a GeckoElement<'ln>) -> &'a AtomicRefCell<ElementData> {
         element.ensure_data()
     }
 

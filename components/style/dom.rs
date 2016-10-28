@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use data::{NodeStyles, NodeData};
+use data::{ElementStyles, ElementData};
 use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -219,10 +219,10 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Returns the styles from the layout frame that owns them, if any.
     ///
-    /// FIXME(bholley): Once we start dropping NodeData from nodes when
+    /// FIXME(bholley): Once we start dropping ElementData from nodes when
     /// creating frames, we'll want to teach this method to actually get
     /// style data from the frame.
-    fn get_styles_from_frame(&self) -> Option<NodeStyles> { None }
+    fn get_styles_from_frame(&self) -> Option<ElementStyles> { None }
 
     /// Returns the styling mode for this node. This is only valid to call before
     /// and during restyling, before finish_styling is invoked.
@@ -262,10 +262,10 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Sets up the appropriate data structures to style a node, returing a
     /// mutable handle to the node data upon which further style calculations
     /// can be performed.
-    fn begin_styling(&self) -> AtomicRefMut<NodeData>;
+    fn begin_styling(&self) -> AtomicRefMut<ElementData>;
 
-    /// Immutable borrows the NodeData.
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>>;
+    /// Immutable borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>>;
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint<C: DomTraversalContext<Self::ConcreteNode>>(&self, hint: RestyleHint) {

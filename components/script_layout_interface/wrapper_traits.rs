@@ -18,7 +18,7 @@ use string_cache::{Atom, Namespace};
 use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::NodeData;
+use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
@@ -274,7 +274,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait LayoutElement: Clone + Copy + Sized + Debug + GetLayoutData + TElement {
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
@@ -296,7 +296,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str>;
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>>;
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 
     #[inline]
     fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>>;

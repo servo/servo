@@ -15,7 +15,7 @@ use script_layout_interface::wrapper_traits::{LayoutElement, LayoutNode, ThreadS
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use style::data::NodeData;
+use style::data::ElementData;
 use style::dom::{StylingMode, TElement, TNode};
 use style::traversal::{DomTraversalContext, put_thread_local_bloom_filter};
 use style::traversal::{recalc_style_at, remove_from_bloom_filter};
@@ -131,7 +131,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<NodeData> {
+    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {
         element.as_node().initialize_data();
         element.get_style_data().unwrap()
     }
