@@ -215,6 +215,12 @@ pub trait DomTraversalContext<N: TNode> {
         prepare_for_styling(*element, Self::ensure_element_data(element))
     }
 
+    /// Clears the ElementData attached to this element, if any.
+    ///
+    /// This is only safe to call in top-down traversal before processing the
+    /// children of |element|.
+    unsafe fn clear_element_data(element: &N::ConcreteElement);
+
     fn local_context(&self) -> &LocalStyleContext;
 }
 
@@ -378,10 +384,26 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
         }
     }
 
-    // If we restyled this node, conservatively mark all our children as needing
-    // processing. The eventual algorithm we're designing does this in a more granular
-    // fashion.
-    if mode == StylingMode::Restyle && !element.is_display_none() {
+    if element.is_display_none() {
+        // If this element is display:none, throw away all style data in the subtree.
+        fn clear_descendant_data<E: TElement, D: DomTraversalContext<E::ConcreteNode>>(el: E) {
+            for kid in el.as_node().children() {
+                if let Some(kid) = kid.as_element() {
+                    // We maintain an invariant that, if an element has data, all its ancestors
+                    // have data as well. By consequence, any element without data has no
+                    // descendants with data.
+                    if kid.get_data().is_some() {
+                        unsafe { D::clear_element_data(&kid) };
+                        clear_descendant_data::<_, D>(kid);
+                    }
+                }
+            }
+        };
+        clear_descendant_data::<_, D>(element);
+    } else if mode == StylingMode::Restyle {
+        // If we restyled this node, conservatively mark all our children as needing
+        // processing. The eventual algorithm we're designing does this in a more granular
+        // fashion.
         for kid in element.as_node().children() {
             if let Some(kid) = kid.as_element() {
                 unsafe { let _ = D::prepare_for_styling(&kid); }

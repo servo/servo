@@ -42,6 +42,12 @@ use style::traversal::prepare_for_styling;
 
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
+pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
+    let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = *data.ptr;
+    let non_opaque: *mut NonOpaqueStyleAndLayoutData = ptr as *mut _;
+    let _ = Box::from_raw(non_opaque);
+}
+
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
     /// than only the style::data::ElementData.
@@ -79,6 +85,7 @@ impl<T: GetLayoutData> GetRawData for T {
 
 pub trait LayoutNodeHelpers {
     fn initialize_data(&self);
+    fn clear_data(&self);
 }
 
 impl<T: LayoutNode> LayoutNodeHelpers for T {
@@ -94,6 +101,12 @@ impl<T: LayoutNode> LayoutNodeHelpers for T {
                 let _ = prepare_for_styling(el, el.get_data().unwrap());
             }
         };
+    }
+
+    fn clear_data(&self) {
+        if self.get_raw_data().is_some() {
+            unsafe { drop_style_and_layout_data(self.take_style_and_layout_data()) };
+        }
     }
 }
 

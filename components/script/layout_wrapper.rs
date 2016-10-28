@@ -256,6 +256,10 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.get_jsmanaged().init_style_and_layout_data(data);
     }
 
+    unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
+        self.get_jsmanaged().take_style_and_layout_data()
+    }
+
     fn has_changed(&self) -> bool {
         unsafe { self.node.get_flag(HAS_CHANGED) }
     }

@@ -85,6 +85,7 @@ pub trait LayoutNode: GetLayoutData + TNode {
     fn type_id(&self) -> LayoutNodeType;
 
     unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
+    unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
 
     fn has_changed(&self) -> bool;
 
