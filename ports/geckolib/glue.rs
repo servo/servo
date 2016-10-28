@@ -260,9 +260,9 @@ pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
     if node.is_text_node() {
         error!("Don't call Servo_ComputedValue_Get() for text nodes");
         let parent = node.parent_node().unwrap().as_element().unwrap();
-        let parent_cv = parent.borrow_data().map_or(Arc::new(ComputedValues::initial_values().clone()),
-                                                    |x| x.get_current_styles().unwrap()
-                                                         .primary.clone());
+        let parent_cv = parent.borrow_data().map_or_else(|| Arc::new(ComputedValues::initial_values().clone()),
+                                                         |x| x.get_current_styles().unwrap()
+                                                              .primary.clone());
         return ComputedValues::inherit_from(&parent_cv).into_strong();
     }
 

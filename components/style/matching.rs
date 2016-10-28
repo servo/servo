@@ -11,7 +11,7 @@ use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
-use data::{NodeStyles, PseudoStyles};
+use data::{ElementStyles, PseudoStyles};
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
@@ -737,7 +737,7 @@ pub trait MatchMethods : TElement {
                         RestyleResult::Continue
                     };
 
-                    data.finish_styling(NodeStyles::new(shared_style));
+                    data.finish_styling(ElementStyles::new(shared_style));
 
                     return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
                 }
@@ -882,7 +882,7 @@ pub trait MatchMethods : TElement {
             };
 
 
-            new_styles = NodeStyles::new(
+            new_styles = ElementStyles::new(
                 self.cascade_node_pseudo_element(context,
                                                  parent_style.clone(),
                                                  old_primary,

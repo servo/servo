@@ -60,7 +60,7 @@ use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::NodeData;
+use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
@@ -506,24 +506,24 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         old_value - 1
     }
 
-    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
+    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
         let mut data = self.mutate_data().unwrap();
         data.gather_previous_styles(|| None);
         data
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
         self.get_style_data().map(|d| d.borrow())
     }
 
 }
 
 impl<'le> LayoutElement for ServoLayoutElement<'le> {
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
                 let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
-                let psd: &AtomicRefCell<NodeData> = transmute(ppld);
+                let psd: &AtomicRefCell<ElementData> = transmute(ppld);
                 psd
             })
         }
@@ -551,15 +551,13 @@ impl<'le> ServoLayoutElement<'le> {
         }
     }
 
-    fn mutate_data(&self) -> Option<AtomicRefMut<NodeData>> {
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
         self.get_style_data().map(|d| d.borrow_mut())
     }
 
     fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| {
-                &**d.ptr
-            })
+            self.get_style_and_layout_data().map(|d| &**d.ptr)
         }
     }
 }
@@ -1090,7 +1088,7 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.element.get_attr(namespace, name)
     }
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         self.element.get_style_data()
     }
 }

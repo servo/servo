@@ -42,7 +42,7 @@ pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
-    /// than only the style::data::NodeData.
+    /// than only the style::data::ElementData.
     fn borrow_layout_data(&self) -> Option<AtomicRef<PersistentLayoutData>>;
     fn mutate_layout_data(&self) -> Option<AtomicRefMut<PersistentLayoutData>>;
     fn flow_debug_id(self) -> usize;

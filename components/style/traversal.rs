@@ -6,7 +6,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::NodeData;
+use data::ElementData;
 use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
@@ -197,10 +197,10 @@ pub trait DomTraversalContext<N: TNode> {
         }
     }
 
-    /// Ensures the existence of the NodeData, and returns it. This can't live
+    /// Ensures the existence of the ElementData, and returns it. This can't live
     /// on TNode because of the trait-based separation between Servo's script
     /// and layout crates.
-    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<NodeData>;
+    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData>;
 
     fn local_context(&self) -> &LocalStyleContext;
 }
