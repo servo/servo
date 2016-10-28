@@ -15,8 +15,8 @@ export ANDROID_SYSROOT="${ANDROID_NDK}/platforms/android-18/${_ANDROID_ARCH}"
 export _ANDROID_EABI=arm-linux-androideabi-4.9
 ANDROID_TOOLCHAIN=""
 for host in "linux-x86_64" "linux-x86" "darwin-x86_64" "darwin-x86"; do
-  if [[ -d "${ANDROID_NDK}/toolchains/${_ANDROID_EABI}/prebuilt/$host/bin" ]]; then
-    ANDROID_TOOLCHAIN="${ANDROID_NDK}/toolchains/${_ANDROID_EABI}/prebuilt/$host/bin"
+  if [[ -d "${ANDROID_NDK}/toolchains/${_ANDROID_EABI}/prebuilt/${host}/bin" ]]; then
+    ANDROID_TOOLCHAIN="${ANDROID_NDK}/toolchains/${_ANDROID_EABI}/prebuilt/${host}/bin"
     break
   fi
 done
