@@ -830,14 +830,11 @@ def check_dep_license_errors(filenames, progress=True):
 
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
     if only_changed_files:
-        # only check the files that have been changed since the last merge
+        # only check tracked files that have been changed since the last merge
         args = ["git", "log", "-n1", "--author=bors-servo", "--format=%H"]
         last_merge = subprocess.check_output(args).strip()
         args = ["git", "diff", "--name-only", last_merge, directory]
         file_list = subprocess.check_output(args)
-        # also check untracked files
-        args = ["git", "ls-files", "--others", "--exclude-standard", directory]
-        file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
             f = os.path.join(*f.split("/")) if sys.platform == "win32" else f
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in exclude_dirs):
