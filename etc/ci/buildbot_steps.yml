@@ -54,18 +54,6 @@ linux-dev:
   - bash ./etc/ci/manifest_changed.sh
   - bash ./etc/ci/check_no_unwrap.sh
 
-linux-dev-yaml:
-  - ./mach test-tidy --no-progress --all
-  - ./mach test-tidy --no-progress --self-test
-  - ./mach build --dev
-  - ./mach test-compiletest
-  - ./mach test-unit
-  - ./mach build-cef
-  - ./mach build-geckolib
-  - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
-  - bash ./etc/ci/check_no_unwrap.sh
-
 linux-rel-wpt:
   - ./mach build --release
   - ./mach test-wpt-failure
