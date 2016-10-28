@@ -610,10 +610,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
-
-        if !self.frames.contains_key(&frame_id) {
-            self.new_frame(frame_id, pipeline_id);
-        }
     }
 
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
