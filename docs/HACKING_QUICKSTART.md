@@ -75,7 +75,7 @@ For more exhaustive documentation:
 
 ## Cargo and Crates
 
-A Rust library is called a crate. Servo uses plenty of crates. These crates are dependencies. They are listed in files called `Cargo.toml`. Servo is split in components and ports (see `components` and `ports` directories). Each has its own dependencies, and each has its own `Cargo.toml` file.
+A Rust library is called a crate. Servo uses plenty of crates. These crates are dependencies. They are listed in files called `Cargo.toml`. Servo is split into components and ports (see `components` and `ports` directories). Each has its own dependencies, and each has its own `Cargo.toml` file.
 
 `Cargo.toml` files list the dependencies. You can edit this file.
 
@@ -129,7 +129,7 @@ For more details about overriding dependencies, see [Cargo's documentation](http
 
 ### Logging:
 
-Before starting the debugger right away, you might want get some information about what's happening, how, and when. Luckily, Servo comes with plenty of logs that will help us. Type these 2 commands:
+Before starting the debugger right away, you might want to get some information about what's happening, how, and when. Luckily, Servo comes with plenty of logs that will help us. Type these 2 commands:
 
 ``` shell
 ./mach run -d -- --help
