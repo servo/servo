@@ -10,10 +10,21 @@ set -o pipefail
 
 TP5N_SOURCE="https://people.mozilla.org/~jmaher/taloszips/zips/tp5n.zip"
 TP5N_PATH="page_load_test/tp5n.zip"
-if [[ ! -f "${TP5N_PATH}" ]]; then
-    wget "${TP5N_SOURCE}" -O "${TP5N_PATH}"
+
+if [[ ! -f "$(dirname "${TP5N_PATH}")/tp5n/tp5n.manifest" ]]; then
+    if [[ ! -f "${TP5N_PATH}" ]]; then
+        echo "Downloading the test cases..."
+        wget "${TP5N_SOURCE}" -O "${TP5N_PATH}"
+        echo "done"
+    else
+        echo "Found existing test cases, skipping download."
+    fi
+    echo -n "Unzipping the test cases..."
+    unzip -q -o "${TP5N_PATH}" -d "$(dirname "${TP5N_PATH}")"
+    echo "done"
+else
+    echo "Found existing test cases, skipping download and unzip."
 fi
-unzip -o "${TP5N_PATH}" -d "$(dirname "${TP5N_PATH}")"
 
 virtualenv venv --python="$(which python3)"
 PS1="" source venv/bin/activate
