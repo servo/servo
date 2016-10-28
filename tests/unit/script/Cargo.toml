@@ -10,6 +10,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
+euclid = "0.10.2"
 msg = {path = "../../../components/msg"}
 plugins = {path = "../../../components/plugins"}
 script = {path = "../../../components/script"}
