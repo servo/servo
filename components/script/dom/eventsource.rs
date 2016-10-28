@@ -37,6 +37,7 @@ use std::time::Duration;
 use string_cache::Atom;
 use task_source::TaskSource;
 use url::Url;
+use util::thread::spawn_named;
 
 header! { (LastEventId, "Last-Event-ID") => [String] }
 
@@ -112,38 +113,42 @@ impl EventSourceContext {
 
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
     fn reestablish_the_connection(&self) {
-        let event_source = self.event_source.root();
-        let (sender, receiver) = channel();
-        // Step 1
-        let runnable = box ReestablishConnectionRunnable {
-            event_source: self.event_source.clone(),
-            done_chan: sender
-        };
-        if self.gen_id != self.event_source.root().generation_id.get() {
+        let event_source = self.event_source.clone();
+        let gen_id = self.gen_id;
+        let event_type = self.event_type.clone();
+        let data = self.data.clone();
+        let last_event_id = self.last_event_id.clone();
+        let reconnection_time = event_source.root().reconnection_time.get();
+        let networking_task_source = event_source.root().global().networking_task_source();
+        let wrapper = event_source.root().global().get_runnable_wrapper();
+        if gen_id != self.event_source.root().generation_id.get() {
             return;
         }
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
-        // Step 2
-        thread::sleep(Duration::from_millis(event_source.reconnection_time.get()));
-        // TODO Step 3: Optionally wait some more
-        // Step 4
-        if self.gen_id != self.event_source.root().generation_id.get() {
-            return;
-        }
-        let _ = receiver.recv();
-        // Step 5
-        let runnable = box RefetchRequestRunnable {
-            event_source: self.event_source.clone(),
-            gen_id: self.gen_id,
 
-            event_type: self.event_type.clone(),
-            data: self.data.clone(),
-            last_event_id: self.last_event_id.clone(),
-        };
-        if self.gen_id != self.event_source.root().generation_id.get() {
-            return;
-        }
-        let _ = event_source.global().networking_task_source().queue(runnable, &*event_source.global());
+        spawn_named("Reestablish EventSource Connection Thread".to_owned(), move || {
+            let (sender, receiver) = channel();
+            // Step 1
+            let runnable = box ReestablishConnectionRunnable {
+                event_source: event_source.clone(),
+                done_chan: sender
+            };
+            let _ = networking_task_source.queue_with_wrapper(runnable, &wrapper);
+            // Step 2
+            thread::sleep(Duration::from_millis(reconnection_time));
+            // TODO Step 3: Optionally wait some more
+            // Step 4
+            let _ = receiver.recv();
+            // Step 5
+            let runnable = box RefetchRequestRunnable {
+                event_source: event_source,
+                gen_id: gen_id,
+
+                event_type: event_type,
+                data: data,
+                last_event_id: last_event_id,
+            };
+            let _ = networking_task_source.queue_with_wrapper(runnable, &wrapper);
+        });
     }
 
     fn parse_bytes_in_buffer(&mut self) {
@@ -325,6 +330,7 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
         self.parse_bytes_in_buffer();
+        self.reestablish_the_connection();
     }
 }
 
