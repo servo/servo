@@ -19,6 +19,7 @@ use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
 use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
+use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
 use gecko_bindings::bindings::Gecko_CopyMozBindingFrom;
 use gecko_bindings::bindings::Gecko_CreateGradient;
@@ -27,9 +28,12 @@ use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
 use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
 use gecko_bindings::bindings::Gecko_SetGradientImageValue;
+use gecko_bindings::bindings::Gecko_SetListStyleImage;
+use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
 use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
+use gecko_bindings::bindings::Gecko_SetUrlImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::structs;
@@ -471,8 +475,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # These are part of shorthands so we must include them in stylo builds,
     # but we haven't implemented the stylo glue for the longhand
     # so we generate a stub
-    force_stub += ["list-style-image", # box
-                   "flex-basis", # position
+    force_stub += ["flex-basis", # position
 
                    # transition
                    "transition-duration", "transition-timing-function",
@@ -1212,8 +1215,10 @@ fn static_assert() {
         }
     }
 
+    #[allow(unused_variables)]
     pub fn set_${shorthand}_image(&mut self,
-                                  images: longhands::${shorthand}_image::computed_value::T) {
+                                  images: longhands::${shorthand}_image::computed_value::T,
+                                  cacheable: &mut bool) {
         use gecko_bindings::structs::nsStyleImage;
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SHAPE_CIRCULAR};
@@ -1401,13 +1406,20 @@ fn static_assert() {
                         Image::Gradient(gradient) => {
                             set_gradient(gradient, &mut geckoimage.mImage)
                         },
-                        Image::Url(..) => {
-                            // let utf8_bytes = url.as_bytes();
-                            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
-                            //                        utf8_bytes.as_ptr() as *const _,
-                            //                        utf8_bytes.len());
-                            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
-                                   background-image: url() not yet implemented");
+                        Image::Url(ref url, ref extra_data) => {
+                            unsafe {
+                                Gecko_SetUrlImageValue(&mut geckoimage.mImage,
+                                                       url.as_str().as_ptr(),
+                                                       url.as_str().len() as u32,
+                                                       extra_data.base.get(),
+                                                       extra_data.referrer.get(),
+                                                       extra_data.principal.get());
+                            }
+                            // We unfortunately must make any url() value uncacheable, since
+                            // the applicable declarations cache is not per document, but
+                            // global, and the imgRequestProxy objects we store in the style
+                            // structs don't like to be tracked by more than one document.
+                            *cacheable = false;
                         }
                     }
                 }
@@ -1477,10 +1489,42 @@ fn static_assert() {
     </%self:simple_image_array_property>
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="List" skip_longhands="list-style-type quotes" skip_additionals="*">
+<%self:impl_trait style_struct_name="List"
+                  skip_longhands="list-style-image list-style-type quotes"
+                  skip_additionals="*">
+
+    pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
+        use values::computed::UrlOrNone;
+        match image {
+            UrlOrNone::None => {
+                unsafe {
+                    Gecko_SetListStyleImageNone(&mut self.gecko);
+                }
+            }
+            UrlOrNone::Url(ref url, ref extra_data) => {
+                unsafe {
+                    Gecko_SetListStyleImage(&mut self.gecko,
+                                            url.as_str().as_ptr(),
+                                            url.as_str().len() as u32,
+                                            extra_data.base.get(),
+                                            extra_data.referrer.get(),
+                                            extra_data.principal.get());
+                }
+                // We don't need to record this struct as uncacheable, like when setting
+                // background-image to a url() value, since only properties in reset structs
+                // are re-used from the applicable declaration cache, and the List struct
+                // is an inherited struct.
+            }
+        }
+    }
+
+    pub fn copy_list_style_image_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
+    }
 
     ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
                            data.longhands_by_name["list-style-type"].keyword)}
+
     pub fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
             Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);

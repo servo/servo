@@ -146,7 +146,8 @@ ${helpers.single_keyword("mask-composite",
                          products="gecko",
                          animatable=False)}
 
-<%helpers:vector_longhand name="mask-image" products="gecko" animatable="False">
+<%helpers:vector_longhand name="mask-image" products="gecko" animatable="False"
+                          has_uncacheable_values="${product == 'gecko'}">
     use cssparser::ToCss;
     use std::fmt;
     use url::Url;

@@ -224,8 +224,13 @@
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
+                                % if property.has_uncacheable_values:
+                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                      .set_${property.ident}(computed, cacheable);
+                                % else:
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .set_${property.ident}(computed);
+                                % endif
                             }
                             DeclaredValue::WithVariables { .. } => unreachable!(),
                             DeclaredValue::Initial => {

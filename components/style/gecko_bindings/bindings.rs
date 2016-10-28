@@ -114,6 +114,9 @@ unsafe impl Sync for nsStyleImageLayers_Layer {}
 use gecko_bindings::structs::nsStyleImageLayers_LayerType;
 unsafe impl Send for nsStyleImageLayers_LayerType {}
 unsafe impl Sync for nsStyleImageLayers_LayerType {}
+use gecko_bindings::structs::nsStyleImageRequest;
+unsafe impl Send for nsStyleImageRequest {}
+unsafe impl Sync for nsStyleImageRequest {}
 use gecko_bindings::structs::nsStyleList;
 unsafe impl Send for nsStyleList {}
 unsafe impl Sync for nsStyleList {}
@@ -172,32 +175,6 @@ use gecko_bindings::structs::nsStyleXUL;
 unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
 
-pub type RawGeckoNode = nsINode;
-pub type RawGeckoElement = Element;
-pub type RawGeckoDocument = nsIDocument;
-extern "C" {
-    pub fn Servo_StyleSheet_AddRef(ptr: RawServoStyleSheetBorrowed);
-}
-extern "C" {
-    pub fn Servo_StyleSheet_Release(ptr: RawServoStyleSheetBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed);
-}
-extern "C" {
-    pub fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed);
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_AddRef(ptr:
-                                             RawServoDeclarationBlockBorrowed);
-}
-extern "C" {
-    pub fn Servo_DeclarationBlock_Release(ptr:
-                                              RawServoDeclarationBlockBorrowed);
-}
-extern "C" {
-    pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
-}
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
                                       aCapacity: usize, aElementSize: usize);
@@ -205,6 +182,25 @@ extern "C" {
 extern "C" {
     pub fn Gecko_ClearPODTArray(aArray: *mut ::std::os::raw::c_void,
                                 aElementSize: usize, aElementAlign: usize);
+}
+pub type RawGeckoNode = nsINode;
+pub type RawGeckoElement = Element;
+pub type RawGeckoDocument = nsIDocument;
+pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
+extern "C" {
+    pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
+                                                    *mut ThreadSafePrincipalHolder);
+}
+extern "C" {
+    pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
+                                                     *mut ThreadSafePrincipalHolder);
+}
+pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
+extern "C" {
+    pub fn Gecko_AddRefURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
+}
+extern "C" {
+    pub fn Gecko_ReleaseURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
 }
 extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
@@ -452,6 +448,13 @@ extern "C" {
                                        gradient: *mut nsStyleGradient);
 }
 extern "C" {
+    pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
+                                  url_bytes: *const u8, url_length: u32,
+                                  base_uri: *mut ThreadSafeURIHolder,
+                                  referrer: *mut ThreadSafeURIHolder,
+                                  principal: *mut ThreadSafePrincipalHolder);
+}
+extern "C" {
     pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
                                     other: *const nsStyleImage);
 }
@@ -460,21 +463,20 @@ extern "C" {
                                 legacy_syntax: bool, stops: u32)
      -> *mut nsStyleGradient;
 }
-pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 extern "C" {
-    pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
-                                                    *mut ThreadSafePrincipalHolder);
+    pub fn Gecko_SetListStyleImageNone(style_struct: *mut nsStyleList);
 }
 extern "C" {
-    pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
-                                                     *mut ThreadSafePrincipalHolder);
+    pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
+                                   string_bytes: *const u8,
+                                   string_length: u32,
+                                   base_uri: *mut ThreadSafeURIHolder,
+                                   referrer: *mut ThreadSafeURIHolder,
+                                   principal: *mut ThreadSafePrincipalHolder);
 }
-pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
-    pub fn Gecko_AddRefURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
-}
-extern "C" {
-    pub fn Gecko_ReleaseURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
+    pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
+                                        src: *const nsStyleList);
 }
 extern "C" {
     pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
@@ -850,11 +852,20 @@ extern "C" {
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
+    pub fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
      -> bool;
 }
 extern "C" {
     pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
+}
+extern "C" {
+    pub fn Servo_StyleSet_Drop(set: RawServoStyleSetOwned);
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
@@ -898,6 +909,14 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_AddRef(declarations:
+                                             RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_Release(declarations:
+                                              RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                          b: RawServoDeclarationBlockBorrowed)
      -> bool;
@@ -938,6 +957,14 @@ extern "C" {
     pub fn Servo_ComputedValues_Inherit(parent_style:
                                             ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_ComputedValues_AddRef(computed_values:
+                                           ServoComputedValuesBorrowed);
+}
+extern "C" {
+    pub fn Servo_ComputedValues_Release(computed_values:
+                                            ServoComputedValuesBorrowed);
 }
 extern "C" {
     pub fn Servo_Initialize();
