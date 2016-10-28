@@ -88,14 +88,6 @@ extern crate util;
 extern crate webrender_traits;
 extern crate xi_unicode;
 
-pub use paint_context::PaintContext;
-
-// Misc.
-mod filters;
-
-// Private painting modules
-mod paint_context;
-
 #[deny(unsafe_code)]
 pub mod display_list;
 
