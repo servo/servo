@@ -300,7 +300,7 @@ class PackageCommands(CommandBase):
             print("Copying files")
             dir_to_resources = path.join(dir_to_temp, 'resources')
             shutil.copytree(path.join(self.get_top_dir(), 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'build'))
+            shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
             shutil.copy(binary_path, dir_to_temp)
 
             print("Writing runservo.sh")
@@ -309,7 +309,7 @@ class PackageCommands(CommandBase):
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
+                          path.join('./browserhtml', 'out', 'index.html')]
 
             runservo = os.open(dir_to_temp + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
