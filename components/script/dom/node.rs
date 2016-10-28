@@ -771,6 +771,20 @@ impl Node {
         self.owner_doc().is_html_document()
     }
 
+    // https://dom.spec.whatwg.org/#in-a-document-tree
+    pub fn is_in_a_document_tree(&self) -> bool {
+        self.inclusive_ancestors().last()
+            .and_then(Root::downcast::<Document>)
+            .is_some()
+    }
+
+    pub fn is_in_a_document_tree_with_a_browsing_context(&self) -> bool {
+        self.inclusive_ancestors().last()
+            .and_then(Root::downcast::<Document>)
+            .map(|doc| doc.browsing_context().is_some())
+            .unwrap_or(false)
+    }
+
     pub fn children(&self) -> NodeSiblingIterator {
         NodeSiblingIterator {
             current: self.GetFirstChild(),
