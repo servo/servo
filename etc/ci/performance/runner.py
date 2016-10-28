@@ -43,6 +43,7 @@ def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     return ["../../../target/release/servo", url,
             "--userscripts", ua_script_path,
+            "--headless",
             "-x", "-o", "output.png"]
 
 
