@@ -344,6 +344,69 @@ ${helpers.single_keyword("font-variant",
     }
 </%helpers:longhand>
 
+<%helpers:longhand products="gecko" name="font-synthesis" animatable="False">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        pub weight: bool,
+        pub style: bool,
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.weight && self.style {
+                dest.write_str("weight style")
+            } else if self.style {
+                dest.write_str("style")
+            } else if self.weight {
+                dest.write_str("weight")
+            } else {
+                dest.write_str("none")
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        SpecifiedValue { weight: true, style: true }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut result = SpecifiedValue { weight: false, style: false };
+        match_ignore_ascii_case! {try!(input.expect_ident()),
+            "none" => Ok(result),
+            "weight" => {
+                result.weight = true;
+                if input.try(|input| input.expect_ident_matching("style")).is_ok() {
+                    result.style = true;
+                }
+                Ok(result)
+            },
+            "style" => {
+                result.style = true;
+                if input.try(|input| input.expect_ident_matching("weight")).is_ok() {
+                    result.weight = true;
+                }
+                Ok(result)
+            },
+            _ => Err(())
+        }
+    }
+</%helpers:longhand>
+
 // FIXME: This prop should be animatable
 ${helpers.single_keyword("font-stretch",
                          "normal ultra-condensed extra-condensed condensed \
