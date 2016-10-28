@@ -9,8 +9,6 @@ use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
-use selectors::bloom::BloomHash;
-use selectors::parser::FromCowStr;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
@@ -180,20 +178,6 @@ impl Atom {
     }
 }
 
-impl BloomHash for Atom {
-    #[inline]
-    fn bloom_hash(&self) -> u32 {
-        self.get_hash()
-    }
-}
-
-impl BloomHash for WeakAtom {
-    #[inline]
-    fn bloom_hash(&self) -> u32 {
-        self.get_hash()
-    }
-}
-
 impl Hash for Atom {
     fn hash<H>(&self, state: &mut H) where H: Hasher {
         state.write_u32(self.get_hash());
@@ -266,13 +250,6 @@ impl<'a> From<&'a str> for Atom {
 impl<'a> From<Cow<'a, str>> for Atom {
     #[inline]
     fn from(string: Cow<'a, str>) -> Atom {
-        Atom::from(&*string)
-    }
-}
-
-impl FromCowStr for Atom {
-    #[inline]
-    fn from_cow_str(string: Cow<str>) -> Atom {
         Atom::from(&*string)
     }
 }
