@@ -11,8 +11,8 @@
 use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
-use traversal::{RestyleResult, DomTraversalContext};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
+use traversal::DomTraversalContext;
 use util::opts;
 use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
@@ -83,8 +83,9 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
 
         // Perform the appropriate traversal.
         let mut children_to_process = 0isize;
-        if let RestyleResult::Continue = context.process_preorder(node) {
-            C::traverse_children(node.as_element().unwrap(), |kid| {
+        context.process_preorder(node);
+        if let Some(el) = node.as_element() {
+            C::traverse_children(el, |kid| {
                 children_to_process += 1;
                 discovered_child_nodes.push(kid.to_unsafe())
             });
