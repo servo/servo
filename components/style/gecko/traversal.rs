@@ -58,6 +58,10 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         element.ensure_data()
     }
 
+    unsafe fn clear_element_data<'a>(element: &'a GeckoElement<'ln>) {
+        element.clear_data()
+    }
+
     fn local_context(&self) -> &LocalStyleContext {
         self.context.local_context()
     }

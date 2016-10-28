@@ -28,6 +28,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
     root: OpaqueNode,
 }
 
+#[allow(unsafe_code)]
 impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     where N: LayoutNode + TNode,
           N::ConcreteElement: LayoutElement
@@ -133,10 +134,13 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    #[allow(unsafe_code)]
     unsafe fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {
         element.as_node().initialize_data();
         element.get_data().unwrap()
+    }
+
+    unsafe fn clear_element_data(element: &N::ConcreteElement) {
+        element.as_node().clear_data();
     }
 
     fn local_context(&self) -> &LocalStyleContext {
