@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::eventsource::EventSourceTimeoutCallback;
 use dom::globalscope::GlobalScope;
 use dom::testbinding::TestBindingCallback;
 use dom::xmlhttprequest::XHRTimeoutCallback;
@@ -67,6 +68,7 @@ struct OneshotTimer {
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
+    EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
     TestBindingCallback(TestBindingCallback),
 }
@@ -75,6 +77,7 @@ impl OneshotTimerCallback {
     fn invoke<T: Reflectable>(self, this: &T, js_timers: &JsTimers) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
+            OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
         }
