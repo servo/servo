@@ -765,7 +765,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-weight"
+    skip_longhands="font-family font-size font-weight font-synthesis"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -827,6 +827,22 @@ fn static_assert() {
 
     // This is used for PartialEq, which we don't implement for gecko style structs.
     pub fn compute_font_hash(&mut self) {}
+
+    pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
+        use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
+
+        self.gecko.mFont.synthesis = 0;
+        if v.weight {
+            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_WEIGHT as u8;
+        }
+        if v.style {
+            self.gecko.mFont.synthesis |= NS_FONT_SYNTHESIS_STYLE as u8;
+        }
+    }
+
+    pub fn copy_font_synthesis_from(&mut self, other: &Self) {
+        self.gecko.mFont.synthesis = other.gecko.mFont.synthesis;
+    }
 
 </%self:impl_trait>
 
