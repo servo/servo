@@ -14,3 +14,4 @@ msg = {path = "../../../components/msg"}
 plugins = {path = "../../../components/plugins"}
 script = {path = "../../../components/script"}
 url = {version = "1.2", features = ["heap_size"]}
+euclid = "0.10.2"
