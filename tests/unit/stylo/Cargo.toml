@@ -21,7 +21,7 @@ libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
 parking_lot = "0.3"
-selectors = "0.13"
+selectors = "0.14"
 url = "1.2"
 style_traits = {path = "../../../components/style_traits"}
 geckoservo = {path = "../../../ports/geckolib"}

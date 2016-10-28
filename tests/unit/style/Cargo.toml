@@ -16,7 +16,7 @@ euclid = "0.10.1"
 owning_ref = "0.2.2"
 parking_lot = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.13"
+selectors = "0.14"
 string_cache = {version = "0.2.26", features = ["heap_size"]}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}

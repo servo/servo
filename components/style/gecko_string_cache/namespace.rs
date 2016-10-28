@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gecko_bindings::structs::nsIAtom;
-use selectors::bloom::BloomHash;
 use std::borrow::Borrow;
 use std::fmt;
 use std::ops::Deref;
@@ -16,6 +15,8 @@ macro_rules! ns {
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
 pub struct Namespace(pub Atom);
+
+#[derive(Hash)]
 pub struct WeakNamespace(WeakAtom);
 
 impl Deref for Namespace {
@@ -62,19 +63,5 @@ impl PartialEq for WeakNamespace {
         let weak: *const WeakNamespace = self;
         let other: *const WeakNamespace = other;
         weak == other
-    }
-}
-
-impl BloomHash for Namespace {
-    #[inline]
-    fn bloom_hash(&self) -> u32 {
-        self.0.get_hash()
-    }
-}
-
-impl BloomHash for WeakNamespace {
-    #[inline]
-    fn bloom_hash(&self) -> u32 {
-        self.0.get_hash()
     }
 }

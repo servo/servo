@@ -15,9 +15,8 @@ doctest = false
 [features]
 gecko = ["nsstring_vendor"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_plugin",
-         "style_traits/servo", "app_units/plugins",
+         "style_traits/servo", "app_units/plugins", "string_cache",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "selectors/unstable", "string_cache",
          "url/heap_size", "plugins", "parking_lot/nightly"]
 testing = []
 
@@ -46,7 +45,7 @@ parking_lot = "0.3.3"
 quickersort = "2.0.0"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.13"
+selectors = "0.14"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
 smallvec = "0.1"
