@@ -9,16 +9,19 @@
 
 from __future__ import absolute_import, print_function
 
-import sys
+import os
 import re
 import subprocess
+import sys
 
 symbol_regex = re.compile(b"D  \*UND\*\t(.*) (.*)$")
 allowed_symbols = frozenset([b'unshare', b'malloc_usable_size'])
 actual_symbols = set()
 
 objdump_output = subprocess.check_output([
-    'arm-linux-androideabi-objdump',
+    os.path.join(
+        os.environ['ANDROID_NDK'], 'toolchains', 'arm-linux-androideabi-4.9',
+        'prebuilt', 'linux-x86_64', 'bin', 'arm-linux-androideabi-objdump'),
     '-T',
     'target/arm-linux-androideabi/debug/libservo.so']
 ).split(b'\n')
