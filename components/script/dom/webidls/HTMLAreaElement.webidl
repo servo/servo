@@ -19,4 +19,5 @@ interface HTMLAreaElement : HTMLElement {
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
   //         attribute boolean noHref;
+             attribute DOMString coords;
 };
