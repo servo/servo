@@ -36,6 +36,7 @@ use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::validitystate::ValidityStatus;
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -465,6 +466,15 @@ impl HTMLFormElement {
     /// https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints
     fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
         let node = self.upcast::<Node>();
+        for child in node.traverse_preorder() {
+            match child.downcast::<Element>() {
+                Some(el) if !el.disabled_state() => (match el.as_maybe_validatable() {
+                    Some(ele) => (if ele.is_instance_validatable() {}),
+                    None => {}
+                }),
+                _ => continue,
+            }
+        }
         // FIXME(#3553): This is an incorrect way of getting controls owned by the
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3

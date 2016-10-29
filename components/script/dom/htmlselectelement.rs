@@ -29,6 +29,7 @@ use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
+use dom::validitystate::ValidityStatus;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::attr::AttrValue;
@@ -384,4 +385,11 @@ impl VirtualMethods for HTMLSelectElement {
 
 impl FormControl for HTMLSelectElement {}
 
-impl Validatable for HTMLSelectElement {}
+impl Validatable for HTMLSelectElement {
+    fn as_element_validatable(&self) -> &Element {
+        self.upcast()
+    }
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}

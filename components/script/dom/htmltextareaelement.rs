@@ -24,6 +24,7 @@ use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityStatus;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -406,4 +407,12 @@ impl VirtualMethods for HTMLTextAreaElement {
 
 impl FormControl for HTMLTextAreaElement {}
 
-impl Validatable for HTMLTextAreaElement {}
+
+impl Validatable for HTMLTextAreaElement {
+    fn as_element_validatable(&self) -> &Element {
+        self.upcast()
+    }
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}

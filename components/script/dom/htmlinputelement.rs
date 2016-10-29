@@ -31,6 +31,7 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityStatus;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
@@ -1143,7 +1144,25 @@ impl VirtualMethods for HTMLInputElement {
 
 impl FormControl for HTMLInputElement {}
 
-impl Validatable for HTMLInputElement {}
+impl Validatable for HTMLInputElement {
+    fn as_element_validatable(&self) -> &Element {
+        self.upcast()
+    }
+    fn is_instance_validatable(&self) -> bool {
+        match self.input_type.get() {
+            InputType::InputSubmit => {},
+            InputType::InputText => {},
+            InputType::InputReset => {},
+            InputType::InputButton => {},
+            InputType::InputFile => {},
+            InputType::InputImage => {},
+            InputType::InputCheckbox => {},
+            InputType::InputRadio => {},
+            InputType::InputPassword => {},
+        }
+        true
+    }
+}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {

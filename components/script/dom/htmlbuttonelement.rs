@@ -22,6 +22,7 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
+use dom::validitystate::ValidityStatus;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -238,7 +239,15 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
-impl Validatable for HTMLButtonElement {}
+impl Validatable for HTMLButtonElement {
+    fn as_element_validatable(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}
 
 impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {
