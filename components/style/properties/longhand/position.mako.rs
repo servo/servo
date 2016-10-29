@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<%! from data import to_rust_ident %>
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <% data.new_style_struct("Position", inherited=False) %>
@@ -181,3 +182,29 @@ ${helpers.single_keyword("box-sizing",
 // https://drafts.csswg.org/css-images-3/
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                          products="gecko", animatable=False)}
+
+<% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
+
+% for longhand in grid_longhands:
+<%helpers:longhand name="${longhand}" animatable="False" products="gecko">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::specified::grid::GridLine;
+
+    pub mod computed_value {
+        pub use values::specified::grid::GridLine as T;
+    }
+
+    pub type SpecifiedValue = GridLine;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Default::default()
+    }
+
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        GridLine::parse(input)
+    }
+</%helpers:longhand>
+% endfor
