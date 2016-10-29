@@ -22,7 +22,7 @@ COMPILATION_TARGETS = {
     # Flags common for all the targets.
     COMMON_BUILD_KEY: {
         "flags": [
-            "--no-unstable-rust", "--no-type-renaming",
+            "--no-unstable-rust",
         ],
         "clang_flags": [
             "-x", "c++", "-std=c++14",
