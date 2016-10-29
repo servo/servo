@@ -2324,11 +2324,6 @@ impl Fragment {
             self_: &Fragment,
             layout_context: &LayoutContext,
         ) -> InlineMetrics {
-            // Fragments with no glyphs don't contribute any inline metrics.
-            // TODO: Filter out these fragments during flow construction?
-            if info.insertion_point.is_none() && info.content_size.inline == Au(0) {
-                return InlineMetrics::new(Au(0), Au(0), Au(0));
-            }
             // See CSS 2.1 § 10.8.1.
             let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
                 text::font_metrics_for_style(font_context, self_.style.clone_font())
