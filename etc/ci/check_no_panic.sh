@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Make sure listed files do not contain "unwrap"
+# Make sure listed files do not use unwrap() or panic!()
 
 set -o errexit
 set -o nounset
@@ -13,7 +13,6 @@ set -o pipefail
 # cd into repo root to make sure paths work in any case
 cd "$(git rev-parse --show-toplevel)"
 
-# files that should not contain "unwrap"
 FILES=("components/compositing/compositor.rs"
        "components/constellation/constellation.rs"
        "components/constellation/pipeline.rs"
