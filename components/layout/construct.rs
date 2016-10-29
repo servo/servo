@@ -945,10 +945,32 @@ where
 
         let mut abs_descendants = AbsoluteDescendants::new();
 
+        let node_style = node.style(self.style_context());
+
+        // For querying and for rendering the border and background of an inline element, it must
+        // begin and end with a text fragment. Since it may not have text nodes at the beginning
+        // and end, we cap it on both ends with empty text fragments to be sure.
+        let cap_fragment = {
+            let info = SpecificFragmentInfo::UnscannedText(Box::new(
+                UnscannedTextFragmentInfo::new("".into(), None),
+            ));
+            Fragment::from_opaque_node_and_style(
+                node.opaque(),
+                node.get_pseudo_element_type(),
+                node_style.clone(),
+                node.selected_style(),
+                node.restyle_damage(),
+                info,
+            )
+        };
+        // Push back the starting cap.
+        fragment_accumulator
+            .fragments
+            .fragments
+            .push_back(cap_fragment.clone());
+
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
-        let mut is_empty = true;
         for kid in node.children() {
-            is_empty = false;
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
@@ -1035,22 +1057,11 @@ where
             }
         }
 
-        let node_style = node.style(self.style_context());
-        if is_empty && has_padding_or_border(&node_style) {
-            // An empty inline box needs at least one fragment to draw its background and borders.
-            let info = SpecificFragmentInfo::UnscannedText(Box::new(
-                UnscannedTextFragmentInfo::new(Box::<str>::from(""), None),
-            ));
-            let fragment = Fragment::from_opaque_node_and_style(
-                node.opaque(),
-                node.get_pseudo_element_type(),
-                node_style.clone(),
-                node.selected_style(),
-                node.restyle_damage(),
-                info,
-            );
-            fragment_accumulator.fragments.fragments.push_back(fragment)
-        }
+        // Push back the ending cap.
+        fragment_accumulator
+            .fragments
+            .fragments
+            .push_back(cap_fragment);
 
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 ||
@@ -2192,21 +2203,6 @@ where
         restyle_damage,
         info,
     )
-}
-
-/// Returns true if this node has non-zero padding or border.
-fn has_padding_or_border(values: &ComputedValues) -> bool {
-    let padding = values.get_padding();
-    let border = values.get_border();
-
-    !padding.padding_top.is_definitely_zero() ||
-        !padding.padding_right.is_definitely_zero() ||
-        !padding.padding_bottom.is_definitely_zero() ||
-        !padding.padding_left.is_definitely_zero() ||
-        border.border_top_width.px() != 0. ||
-        border.border_right_width.px() != 0. ||
-        border.border_bottom_width.px() != 0. ||
-        border.border_left_width.px() != 0.
 }
 
 /// Maintains a stack of anonymous boxes needed to ensure that the flow tree is *legal*. The tree
