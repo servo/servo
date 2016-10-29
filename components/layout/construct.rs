@@ -766,10 +766,27 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         let mut abs_descendants = AbsoluteDescendants::new();
 
+        let node_style = node.style(self.style_context());
+
+        // For querying and for rendering the border and background of an inline element, it must
+        // begin and end with a text fragment. Since it may not have text nodes at the beginning
+        // and end, we cap it on both ends with empty text fragments to be sure.
+        let cap_fragment = {
+            let info = SpecificFragmentInfo::UnscannedText(
+                Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
+            );
+            Fragment::from_opaque_node_and_style(node.opaque(),
+                                                 node.get_pseudo_element_type().strip(),
+                                                 node_style.clone(),
+                                                 node.selected_style(),
+                                                 node.restyle_damage(),
+                                                 info)
+        };
+        // Push back the starting cap.
+        fragment_accumulator.fragments.fragments.push_back(cap_fragment.clone());
+
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
-        let mut is_empty = true;
         for kid in node.children() {
-            is_empty = false;
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
@@ -840,20 +857,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
         }
 
-        let node_style = node.style(self.style_context());
-        if is_empty && node_style.has_padding_or_border() {
-            // An empty inline box needs at least one fragment to draw its background and borders.
-            let info = SpecificFragmentInfo::UnscannedText(
-                Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
-            );
-            let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                                node.get_pseudo_element_type().strip(),
-                                                                node_style.clone(),
-                                                                node.selected_style(),
-                                                                node.restyle_damage(),
-                                                                info);
-            fragment_accumulator.fragments.fragments.push_back(fragment)
-        }
+        // Push back the ending cap.
+        fragment_accumulator.fragments.fragments.push_back(cap_fragment);
 
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || !fragment_accumulator.fragments.is_empty()
