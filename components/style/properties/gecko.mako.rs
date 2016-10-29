@@ -5,7 +5,7 @@
 // `data` comes from components/style/properties.mako.rs; see build.rs for more details.
 
 <%!
-    from data import to_rust_ident
+    from data import to_rust_ident, to_camel_case
     from data import Keyword
 %>
 
@@ -608,8 +608,15 @@ class Corner(object):
         self.x_index = 2 * index
         self.y_index = 2 * index + 1
 
+class GridLine(object):
+    def __init__(self, name):
+        self.ident = "grid-" + name.lower()
+        self.name = self.ident.replace('-', '_')
+        self.gecko = "m" + to_camel_case(self.ident)
+
 SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
 CORNERS = [Corner("TOP_LEFT", 0), Corner("TOP_RIGHT", 1), Corner("BOTTOM_RIGHT", 2), Corner("BOTTOM_LEFT", 3)]
+GRID_LINES = map(GridLine, ["row-start", "row-end", "column-start", "column-end"])
 %>
 
 #[allow(dead_code)]
@@ -686,7 +693,7 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
-<% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
+<% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands} z-index box-sizing">
 
@@ -737,6 +744,24 @@ fn static_assert() {
         }
     }
     ${impl_simple_copy('box_sizing', 'mBoxSizing')}
+
+    % for value in GRID_LINES:
+    pub fn set_${value.name}(&mut self, v: longhands::${value.name}::computed_value::T) {
+        use nsstring::nsCString;
+
+        self.gecko.${value.gecko}.mHasSpan = v.is_span;
+        self.gecko.${value.gecko}.mInteger = v.integer.unwrap_or(0);
+
+        let ident = v.ident.unwrap_or(String::new());
+        self.gecko.${value.gecko}.mLineName.assign_utf8(&nsCString::from(&*ident));
+    }
+
+    pub fn copy_${value.name}_from(&mut self, other: &Self) {
+        self.gecko.${value.gecko}.mHasSpan = other.gecko.${value.gecko}.mHasSpan;
+        self.gecko.${value.gecko}.mInteger = other.gecko.${value.gecko}.mInteger;
+        self.gecko.${value.gecko}.mLineName.assign(&other.gecko.${value.gecko}.mLineName);
+    }
+    % endfor
 
 </%self:impl_trait>
 
