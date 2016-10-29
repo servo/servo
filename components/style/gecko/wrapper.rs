@@ -6,7 +6,7 @@
 
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::NodeData;
+use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
@@ -63,51 +63,6 @@ impl<'ln> GeckoNode<'ln> {
     fn node_info(&self) -> &structs::NodeInfo {
         debug_assert!(!self.0.mNodeInfo.mRawPtr.is_null());
         unsafe { &*self.0.mNodeInfo.mRawPtr }
-    }
-
-    fn flags(&self) -> u32 {
-        (self.0)._base._base_1.mFlags
-    }
-
-    // FIXME: We can implement this without OOL calls, but we can't easily given
-    // GeckoNode is a raw reference.
-    //
-    // We can use a Cell<T>, but that's a bit of a pain.
-    fn set_flags(&self, flags: u32) {
-        unsafe { Gecko_SetNodeFlags(self.0, flags) }
-    }
-
-    pub fn clear_data(&self) {
-        let ptr = self.0.mServoData.get();
-        if !ptr.is_null() {
-            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
-            self.0.mServoData.set(ptr::null_mut());
-
-            // Perform a mutable borrow of the data in debug builds. This
-            // serves as an assertion that there are no outstanding borrows
-            // when we destroy the data.
-            debug_assert!({ let _ = data.borrow_mut(); true });
-        }
-    }
-
-    pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().and_then(|data| data.current_styles().pseudos
-                                               .get(pseudo).map(|c| c.clone()))
-    }
-
-    fn get_node_data(&self) -> Option<&AtomicRefCell<NodeData>> {
-        unsafe { self.0.mServoData.get().as_ref() }
-    }
-
-    pub fn ensure_data(&self) -> &AtomicRefCell<NodeData> {
-        match self.get_node_data() {
-            Some(x) => x,
-            None => {
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(NodeData::new())));
-                self.0.mServoData.set(ptr);
-                unsafe { &* ptr }
-            },
-        }
     }
 }
 
@@ -192,11 +147,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
         OpaqueNode(ptr)
     }
 
-    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<GeckoNode<'ln>> {
+    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<GeckoElement<'ln>> {
         if self.opaque() == reflow_root {
             None
         } else {
-            self.parent_node()
+            self.parent_node().and_then(|x| x.as_element())
         }
     }
 
@@ -216,23 +171,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn deprecated_dirty_bit_is_set(&self) -> bool {
-        self.flags() & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
-    }
-
-    fn has_dirty_descendants(&self) -> bool {
-        // Return true unconditionally if we're not yet styled. This is a hack
-        // and should go away soon.
-        if self.get_node_data().is_none() {
-            return true;
-        }
-        self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
-    }
-
-    unsafe fn set_dirty_descendants(&self) {
-        self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
-    }
-
     fn can_be_fragmented(&self) -> bool {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
@@ -242,34 +180,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_can_be_fragmented(&self, _value: bool) {
         // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
         // Maybe this isn’t useful for Gecko?
-    }
-
-    fn store_children_to_process(&self, _: isize) {
-        // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
-    }
-
-    fn did_process_child(&self) -> isize {
-        panic!("Atomic child count not implemented in Gecko");
-    }
-
-    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
-        let mut data = self.ensure_data().borrow_mut();
-        data.gather_previous_styles(|| self.get_styles_from_frame());
-        data
-    }
-
-    fn style_text_node(&self, style: Arc<ComputedValues>) {
-        debug_assert!(self.is_text_node());
-
-        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
-        // drive the post-traversal. This will go away soon.
-        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32); }
-
-        self.ensure_data().borrow_mut().style_text_node(style);
-    }
-
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
-        self.get_node_data().map(|x| x.borrow())
     }
 
     fn parent_node(&self) -> Option<GeckoNode<'ln>> {
@@ -387,6 +297,55 @@ impl<'le> GeckoElement<'le> {
         let extra_data = ParserContextExtraData::default();
         parse_style_attribute(value, &base_url, Box::new(StdoutErrorReporter), extra_data)
     }
+
+    fn flags(&self) -> u32 {
+        self.raw_node()._base._base_1.mFlags
+    }
+
+    fn raw_node(&self) -> &RawGeckoNode {
+        &(self.0)._base._base._base
+    }
+
+    // FIXME: We can implement this without OOL calls, but we can't easily given
+    // GeckoNode is a raw reference.
+    //
+    // We can use a Cell<T>, but that's a bit of a pain.
+    fn set_flags(&self, flags: u32) {
+        unsafe { Gecko_SetNodeFlags(self.as_node().0, flags) }
+    }
+
+    pub fn clear_data(&self) {
+        let ptr = self.raw_node().mServoData.get();
+        if !ptr.is_null() {
+            let data = unsafe { Box::from_raw(self.raw_node().mServoData.get()) };
+            self.raw_node().mServoData.set(ptr::null_mut());
+
+            // Perform a mutable borrow of the data in debug builds. This
+            // serves as an assertion that there are no outstanding borrows
+            // when we destroy the data.
+            debug_assert!({ let _ = data.borrow_mut(); true });
+        }
+    }
+
+    pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
+        self.borrow_data().and_then(|data| data.current_styles().pseudos
+                                               .get(pseudo).map(|c| c.clone()))
+    }
+
+    fn get_node_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+        unsafe { self.raw_node().mServoData.get().as_ref() }
+    }
+
+    pub fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
+        match self.get_node_data() {
+            Some(x) => x,
+            None => {
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new())));
+                self.raw_node().mServoData.set(ptr);
+                unsafe { &* ptr }
+            },
+        }
+    }
 }
 
 lazy_static! {
@@ -438,7 +397,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn set_restyle_damage(self, damage: GeckoRestyleDamage) {
         // FIXME(bholley): Gecko currently relies on the dirty bit being set to
         // drive the post-traversal. This will go away soon.
-        unsafe { self.as_node().set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
+        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
 
         unsafe { Gecko_StoreStyleDifference(self.as_node().0, damage.0) }
     }
@@ -458,6 +417,41 @@ impl<'le> TElement for GeckoElement<'le> {
             let context_ptr = Gecko_GetStyleContext(self.as_node().0, atom_ptr);
             context_ptr.as_ref()
         }
+    }
+
+    fn deprecated_dirty_bit_is_set(&self) -> bool {
+        self.flags() & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        // Return true unconditionally if we're not yet styled. This is a hack
+        // and should go away soon.
+        if self.get_node_data().is_none() {
+            return true;
+        }
+        self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
+    }
+
+    unsafe fn set_dirty_descendants(&self) {
+        self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+    }
+
+    fn store_children_to_process(&self, _: isize) {
+        // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
+    }
+
+    fn did_process_child(&self) -> isize {
+        panic!("Atomic child count not implemented in Gecko");
+    }
+
+    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
+        let mut data = self.ensure_data().borrow_mut();
+        data.gather_previous_styles(|| self.get_styles_from_frame());
+        data
+    }
+
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_node_data().map(|x| x.borrow())
     }
 }
 

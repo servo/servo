@@ -67,7 +67,7 @@ COMPILATION_TARGETS = {
         },
         "raw_lines": [
             "use atomic_refcell::AtomicRefCell;",
-            "use data::NodeData;",
+            "use data::ElementData;",
             "pub use nsstring::nsStringRepr as nsString;"
         ],
         "blacklist_types": ["nsString"],
@@ -226,7 +226,7 @@ COMPILATION_TARGETS = {
             }, {
                 "generic": False,
                 "gecko": "ServoNodeData",
-                "servo": "AtomicRefCell<NodeData>",
+                "servo": "AtomicRefCell<ElementData>",
             }
         ],
     },

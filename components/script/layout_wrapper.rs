@@ -46,7 +46,7 @@ use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::restyle_damage::RestyleDamage;
-use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
+use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutElement, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -60,7 +60,7 @@ use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::data::NodeData;
+use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
@@ -105,10 +105,6 @@ impl<'ln> ServoLayoutNode<'ln> {
             node: *node,
             chain: self.chain,
         }
-    }
-
-    pub fn mutate_data(&self) -> Option<AtomicRefMut<NodeData>> {
-        self.get_style_data().map(|d| d.borrow_mut())
     }
 
     fn script_type_id(&self) -> NodeTypeId {
@@ -165,11 +161,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         unsafe { self.get_jsmanaged().opaque() }
     }
 
-    fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
+    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<ServoLayoutElement<'ln>> {
         if self.opaque() == reflow_root {
             None
         } else {
-            self.parent_node()
+            self.parent_node().and_then(|x| x.as_element())
         }
     }
 
@@ -183,18 +179,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
         self.node.downcast().map(ServoLayoutDocument::from_layout_js)
-    }
-
-    fn deprecated_dirty_bit_is_set(&self) -> bool {
-        unsafe { self.node.get_flag(IS_DIRTY) }
-    }
-
-    fn has_dirty_descendants(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
-    }
-
-    unsafe fn set_dirty_descendants(&self) {
-        self.node.set_flag(HAS_DIRTY_DESCENDANTS, true)
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -211,34 +195,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     unsafe fn set_can_be_fragmented(&self, value: bool) {
         self.node.set_flag(CAN_BE_FRAGMENTED, value)
-    }
-
-    fn store_children_to_process(&self, n: isize) {
-        let data = self.get_partial_layout_data().unwrap().borrow();
-        data.parallel.children_to_process.store(n, Ordering::Relaxed);
-    }
-
-    fn did_process_child(&self) -> isize {
-        let data = self.get_partial_layout_data().unwrap().borrow();
-        let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
-        debug_assert!(old_value >= 1);
-        old_value - 1
-    }
-
-    fn begin_styling(&self) -> AtomicRefMut<NodeData> {
-        let mut data = self.mutate_data().unwrap();
-        data.gather_previous_styles(|| None);
-        data
-    }
-
-    fn style_text_node(&self, style: Arc<ComputedValues>) {
-        debug_assert!(self.is_text_node());
-        let mut data = self.get_partial_layout_data().unwrap().borrow_mut();
-        data.style_data.style_text_node(style);
-    }
-
-    fn borrow_data(&self) -> Option<AtomicRef<NodeData>> {
-        self.get_style_data().map(|d| d.borrow())
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -305,16 +261,12 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.node.set_flag(IS_DIRTY, false);
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
     }
+}
 
-    // NB: This duplicates the get_style_data on ThreadSafeLayoutElement, but
-    // will go away soon.
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
+impl<'ln> GetLayoutData for ServoLayoutNode<'ln> {
+    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         unsafe {
-            self.get_jsmanaged().get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
-                let psd: &AtomicRefCell<NodeData> = transmute(ppld);
-                psd
-            })
+            self.get_jsmanaged().get_style_and_layout_data()
         }
     }
 
@@ -325,17 +277,13 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
     }
 }
 
-impl<'ln> GetLayoutData for ServoLayoutNode<'ln> {
-    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
-        unsafe {
-            self.get_jsmanaged().get_style_and_layout_data()
-        }
-    }
-}
-
 impl<'le> GetLayoutData for ServoLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.as_node().get_style_and_layout_data()
+    }
+
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        self.as_node().init_style_and_layout_data(data)
     }
 }
 
@@ -343,11 +291,19 @@ impl<'ln> GetLayoutData for ServoThreadSafeLayoutNode<'ln> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
+
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        self.node.init_style_and_layout_data(data)
+    }
 }
 
 impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.element.as_node().get_style_and_layout_data()
+    }
+
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        self.element.as_node().init_style_and_layout_data(data)
     }
 }
 
@@ -358,14 +314,6 @@ impl<'ln> ServoLayoutNode<'ln> {
 
     pub unsafe fn set_dirty(&self) {
         self.node.set_flag(IS_DIRTY, true)
-    }
-
-    fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
-        unsafe {
-            self.get_jsmanaged().get_style_and_layout_data().map(|d| {
-                &**d.ptr
-            })
-        }
     }
 
     fn dump_indent(self, indent: u32) {
@@ -400,12 +348,17 @@ impl<'ln> ServoLayoutNode<'ln> {
     fn debug_str(self) -> String {
         format!("{:?}: changed={} dirty={} dirty_descendants={}",
                 self.script_type_id(), self.has_changed(),
-                self.deprecated_dirty_bit_is_set(),
-                self.has_dirty_descendants())
+                self.as_element().map_or(false, |el| el.deprecated_dirty_bit_is_set()),
+                self.as_element().map_or(false, |el| el.has_dirty_descendants()))
     }
 
     fn debug_style_str(self) -> String {
-        if let Some(data) = self.borrow_data() {
+        let maybe_element = self.as_element();
+        let maybe_data = match maybe_element {
+            Some(ref el) => el.borrow_data(),
+            None => None,
+        };
+        if let Some(data) = maybe_data {
             format!("{:?}: {:?}", self.script_type_id(), &*data)
         } else {
             format!("{:?}: style_data=None", self.script_type_id())
@@ -518,8 +471,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        let node = self.as_node();
-        node.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
+        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
     }
 
     #[inline]
@@ -528,6 +480,53 @@ impl<'le> TElement for ServoLayoutElement<'le> {
                                              _pseudo_element: Option<&PseudoElement>)
                                              -> Option<&'a Arc<ComputedValues>> {
         current_cv
+    }
+
+    fn deprecated_dirty_bit_is_set(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(IS_DIRTY) }
+    }
+
+    fn has_dirty_descendants(&self) -> bool {
+        unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
+    }
+
+    unsafe fn set_dirty_descendants(&self) {
+        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, true)
+    }
+
+    fn store_children_to_process(&self, n: isize) {
+        let data = self.get_partial_layout_data().unwrap().borrow();
+        data.parallel.children_to_process.store(n, Ordering::Relaxed);
+    }
+
+    fn did_process_child(&self) -> isize {
+        let data = self.get_partial_layout_data().unwrap().borrow();
+        let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
+        debug_assert!(old_value >= 1);
+        old_value - 1
+    }
+
+    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
+        let mut data = self.mutate_data().unwrap();
+        data.gather_previous_styles(|| None);
+        data
+    }
+
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_style_data().map(|d| d.borrow())
+    }
+
+}
+
+impl<'le> LayoutElement for ServoLayoutElement<'le> {
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+        unsafe {
+            self.get_style_and_layout_data().map(|d| {
+                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
+                let psd: &AtomicRefCell<ElementData> = transmute(ppld);
+                psd
+            })
+        }
     }
 }
 
@@ -549,6 +548,16 @@ impl<'le> ServoLayoutElement<'le> {
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
+        }
+    }
+
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_style_data().map(|d| d.borrow_mut())
+    }
+
+    fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
+        unsafe {
+            self.get_style_and_layout_data().map(|d| &**d.ptr)
         }
     }
 }
@@ -826,7 +835,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         // works, but would be difficult to change. (Text node style is
         // also not visible to script.)
         debug_assert!(self.is_text_node());
-        let parent = self.node.parent_node().unwrap();
+        let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_style_data().unwrap().borrow();
         parent_data.current_styles().primary.clone()
     }
@@ -875,17 +884,19 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         if self.node.has_changed() {
             RestyleDamage::rebuild_and_reflow()
         } else if self.is_text_node() {
-            let parent = self.node.parent_node().unwrap();
+            let parent = self.node.parent_node().unwrap().as_element().unwrap();
             let parent_data = parent.get_partial_layout_data().unwrap().borrow();
             parent_data.restyle_damage
         } else {
-            self.node.get_partial_layout_data().unwrap().borrow().restyle_damage
+            let el = self.as_element().unwrap().element;
+            let damage = el.get_partial_layout_data().unwrap().borrow().restyle_damage.clone();
+            damage
         }
     }
 
     fn clear_restyle_damage(self) {
-        if self.is_element() {
-            let mut data = self.node.get_partial_layout_data().unwrap().borrow_mut();
+        if let Some(el) = self.as_element() {
+            let mut data = el.element.get_partial_layout_data().unwrap().borrow_mut();
             data.restyle_damage = RestyleDamage::empty();
         }
     }
@@ -1077,14 +1088,8 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.element.get_attr(namespace, name)
     }
 
-    fn get_style_data(&self) -> Option<&AtomicRefCell<NodeData>> {
-        unsafe {
-            self.element.as_node().get_style_and_layout_data().map(|d| {
-                let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
-                let psd: &AtomicRefCell<NodeData> = transmute(ppld);
-                psd
-            })
-        }
+    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+        self.element.get_style_data()
     }
 }
 

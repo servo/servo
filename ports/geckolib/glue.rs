@@ -73,9 +73,7 @@ pub extern "C" fn Servo_Shutdown() -> () {
     unsafe { ComputedValues::shutdown(); }
 }
 
-fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowed) {
-    debug_assert!(node.is_element() || node.is_text_node());
-
+fn restyle_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed) {
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
     //
@@ -106,16 +104,16 @@ fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowed) {
         timer: Timer::new(),
     };
 
-    if node.styling_mode() == StylingMode::Stop {
+    if element.styling_mode() == StylingMode::Stop {
         error!("Unnecessary call to restyle_subtree");
         return;
     }
 
     if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
-        sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
+        sequential::traverse_dom::<_, RecalcStyleOnly>(element.as_node(), &shared_style_context);
     } else {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
-                                                             per_doc_data.work_queue.as_mut().unwrap());
+        parallel::traverse_dom::<_, RecalcStyleOnly>(element.as_node(), &shared_style_context,
+                                                     per_doc_data.work_queue.as_mut().unwrap());
     }
 }
 
@@ -123,7 +121,9 @@ fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowed) {
 pub extern "C" fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                        raw_data: RawServoStyleSetBorrowed) -> () {
     let node = GeckoNode(node);
-    restyle_subtree(node, raw_data);
+    if let Some(element) = node.as_element() {
+        restyle_subtree(element, raw_data);
+    }
 }
 
 #[no_mangle]
@@ -158,8 +158,9 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
-    let node = GeckoNode(node);
-    node.clear_data();
+    if let Some(element) = GeckoNode(node).as_element() {
+        element.clear_data();
+    }
 }
 
 #[no_mangle]
@@ -253,7 +254,20 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong {
     let node = GeckoNode(node);
-    let data = node.borrow_data();
+
+    // Gecko erroneously calls this function from ServoRestyleManager::RecreateStyleContexts.
+    // We plan to fix that, but just support it for now until that code gets rewritten.
+    if node.is_text_node() {
+        error!("Don't call Servo_ComputedValue_Get() for text nodes");
+        let parent = node.parent_node().unwrap().as_element().unwrap();
+        let parent_cv = parent.borrow_data().map_or_else(|| Arc::new(ComputedValues::initial_values().clone()),
+                                                         |x| x.get_current_styles().unwrap()
+                                                              .primary.clone());
+        return ComputedValues::inherit_from(&parent_cv).into_strong();
+    }
+
+    let element = node.as_element().unwrap();
+    let data = element.borrow_data();
     let arc_cv = match data.as_ref().and_then(|x| x.get_current_styles()) {
         Some(styles) => styles.primary.clone(),
         None => {
@@ -315,8 +329,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
-            let node = element.as_node();
-            let maybe_computed = node.get_pseudo_style(&pseudo);
+            let maybe_computed = element.get_pseudo_style(&pseudo);
             maybe_computed.map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
         PseudoElementCascadeType::Lazy => {

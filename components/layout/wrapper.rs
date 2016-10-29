@@ -33,16 +33,16 @@
 use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PersistentLayoutData};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::wrapper_traits::{GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::computed_values::content::{self, ContentItem};
 
-pub type NonOpaqueStyleAndLayoutData = *mut AtomicRefCell<PersistentLayoutData>;
+pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
-    /// than only the style::data::NodeData.
+    /// than only the style::data::ElementData.
     fn borrow_layout_data(&self) -> Option<AtomicRef<PersistentLayoutData>>;
     fn mutate_layout_data(&self) -> Option<AtomicRefMut<PersistentLayoutData>>;
     fn flow_debug_id(self) -> usize;
@@ -50,21 +50,11 @@ pub trait LayoutNodeLayoutData {
 
 impl<T: GetLayoutData> LayoutNodeLayoutData for T {
     fn borrow_layout_data(&self) -> Option<AtomicRef<PersistentLayoutData>> {
-        unsafe {
-            self.get_style_and_layout_data().map(|opaque| {
-                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
-                (*container).borrow()
-            })
-        }
+        self.get_raw_data().map(|d| d.borrow())
     }
 
     fn mutate_layout_data(&self) -> Option<AtomicRefMut<PersistentLayoutData>> {
-        unsafe {
-            self.get_style_and_layout_data().map(|opaque| {
-                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
-                (*container).borrow_mut()
-            })
-        }
+        self.get_raw_data().map(|d| d.borrow_mut())
     }
 
     fn flow_debug_id(self) -> usize {
@@ -73,19 +63,27 @@ impl<T: GetLayoutData> LayoutNodeLayoutData for T {
 }
 
 pub trait LayoutNodeHelpers {
-    fn initialize_data(self);
+    fn initialize_data(&self);
+    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData>;
 }
 
-impl<T: LayoutNode> LayoutNodeHelpers for T {
-    fn initialize_data(self) {
-        if self.borrow_layout_data().is_none() {
-            let ptr: NonOpaqueStyleAndLayoutData =
+impl<T: GetLayoutData> LayoutNodeHelpers for T {
+    fn initialize_data(&self) {
+        if self.get_raw_data().is_none() {
+            let ptr: *mut NonOpaqueStyleAndLayoutData =
                 Box::into_raw(box AtomicRefCell::new(PersistentLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: unsafe { NonZero::new(ptr as *mut AtomicRefCell<PartialPersistentLayoutData>) }
             };
             self.init_style_and_layout_data(opaque);
-        }
+        };
+    }
+
+    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData> {
+        self.get_style_and_layout_data().map(|opaque| {
+            let container = *opaque.ptr as *mut NonOpaqueStyleAndLayoutData;
+            unsafe { &*container }
+        })
     }
 }
 

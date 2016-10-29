@@ -6,8 +6,8 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::NodeData;
-use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
+use data::ElementData;
+use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -118,7 +118,7 @@ fn insert_ancestors_into_bloom_filter<E>(bf: &mut Box<BloomFilter>,
         ancestors += 1;
 
         el.insert_into_bloom_filter(&mut **bf);
-        el = match el.as_node().layout_parent_node(root).and_then(|x| x.as_element()) {
+        el = match el.as_node().layout_parent_element(root) {
             None => break,
             Some(p) => p,
         };
@@ -142,7 +142,7 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
     assert_eq!(old_node, unsafe_layout_node);
     assert_eq!(old_generation, context.shared_context().generation);
 
-    match node.layout_parent_node(root) {
+    match node.layout_parent_element(root) {
         None => {
             debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
             // If this is the reflow root, eat the thread-local bloom filter.
@@ -150,7 +150,7 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
         Some(parent) => {
             // Otherwise, put it back, but remove this node.
             node.as_element().map(|x| x.remove_from_bloom_filter(&mut *bf));
-            let unsafe_parent = parent.to_unsafe();
+            let unsafe_parent = parent.as_node().to_unsafe();
             put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
         },
     };
@@ -175,16 +175,19 @@ pub trait DomTraversalContext<N: TNode> {
     /// If it's false, then process_postorder has no effect at all.
     fn needs_postorder_traversal(&self) -> bool { true }
 
+    /// Returns true if traversal should visit the given child.
+    fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool;
+
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
-    fn traverse_children<F: FnMut(N)>(parent: N, mut f: F)
+    fn traverse_children<F: FnMut(N)>(parent: N::ConcreteElement, mut f: F)
     {
         // If we enqueue any children for traversal, we need to set the dirty
         // descendants bit. Avoid doing it more than once.
         let mut marked_dirty_descendants = false;
 
-        for kid in parent.children() {
-            if kid.styling_mode() != StylingMode::Stop {
+        for kid in parent.as_node().children() {
+            if Self::should_traverse_child(parent, kid) {
                 if !marked_dirty_descendants {
                     unsafe { parent.set_dirty_descendants(); }
                     marked_dirty_descendants = true;
@@ -194,10 +197,10 @@ pub trait DomTraversalContext<N: TNode> {
         }
     }
 
-    /// Ensures the existence of the NodeData, and returns it. This can't live
+    /// Ensures the existence of the ElementData, and returns it. This can't live
     /// on TNode because of the trait-based separation between Servo's script
     /// and layout crates.
-    fn ensure_node_data(node: &N) -> &AtomicRefCell<NodeData>;
+    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData>;
 
     fn local_context(&self) -> &LocalStyleContext;
 }
@@ -248,8 +251,7 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
     //
     // We only need to mark whether we have display none, and forget about it,
     // our style is up to date.
-    let node = element.as_node();
-    if let Some(data) = node.borrow_data() {
+    if let Some(data) = element.borrow_data() {
         if let Some(style) = data.get_current_styles().map(|x| &x.primary) {
             if !*parents_had_display_none {
                 *parents_had_display_none = style.get_box().clone_display() == display::T::none;
@@ -290,7 +292,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
 
     let mut restyle_result = RestyleResult::Continue;
-    let mode = element.as_node().styling_mode();
+    let mode = element.styling_mode();
     debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
     if mode != StylingMode::Traverse {
         // Check to see whether we can share a style with someone.
@@ -358,10 +360,8 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     // fashion.
     if mode == StylingMode::Restyle && restyle_result == RestyleResult::Continue {
         for kid in element.as_node().children() {
-            let mut data = D::ensure_node_data(&kid).borrow_mut();
-            if kid.is_text_node() {
-                data.ensure_restyle_data();
-            } else {
+            if let Some(kid) = kid.as_element() {
+                let mut data = D::ensure_element_data(&kid).borrow_mut();
                 data.gather_previous_styles(|| kid.get_styles_from_frame());
                 if data.previous_styles().is_some() {
                     data.ensure_restyle_data();

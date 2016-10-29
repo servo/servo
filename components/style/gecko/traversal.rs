@@ -4,10 +4,10 @@
 
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::NodeData;
-use dom::{NodeInfo, OpaqueNode, TNode};
+use data::ElementData;
+use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode};
 use gecko::context::StandaloneStyleContext;
-use gecko::wrapper::GeckoNode;
+use gecko::wrapper::{GeckoElement, GeckoNode};
 use std::mem;
 use traversal::{DomTraversalContext, recalc_style_at};
 use traversal::RestyleResult;
@@ -48,8 +48,15 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal(&self) -> bool { false }
 
-    fn ensure_node_data<'a>(node: &'a GeckoNode<'ln>) -> &'a AtomicRefCell<NodeData> {
-        node.ensure_data()
+    fn should_traverse_child(_parent: GeckoElement<'ln>, child: GeckoNode<'ln>) -> bool {
+        match child.as_element() {
+            Some(el) => el.styling_mode() != StylingMode::Stop,
+            None => false, // Gecko restyle doesn't need to traverse text nodes.
+        }
+    }
+
+    fn ensure_element_data<'a>(element: &'a GeckoElement<'ln>) -> &'a AtomicRefCell<ElementData> {
+        element.ensure_data()
     }
 
     fn local_context(&self) -> &LocalStyleContext {

@@ -11,13 +11,12 @@ use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{LayoutElement, LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use style::data::NodeData;
-use style::dom::TNode;
-use style::selector_impl::ServoSelectorImpl;
+use style::data::ElementData;
+use style::dom::{StylingMode, TElement, TNode};
 use style::traversal::{DomTraversalContext, put_thread_local_bloom_filter};
 use style::traversal::{recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
@@ -32,7 +31,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
 
 impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     where N: LayoutNode + TNode,
-          N::ConcreteElement: ::selectors::Element<Impl=ServoSelectorImpl>
+          N::ConcreteElement: LayoutElement
 
 {
     type SharedContext = SharedLayoutContext;
@@ -114,9 +113,27 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         construct_flows_at(&self.context, self.root, node);
     }
 
-    fn ensure_node_data(node: &N) -> &AtomicRefCell<NodeData> {
-        node.initialize_data();
-        node.get_style_data().unwrap()
+    fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool {
+        // If this node has been marked as damaged in some way, we need to
+        // traverse it unconditionally for layout.
+        if child.has_changed() {
+            return true;
+        }
+
+        match child.as_element() {
+            Some(el) => el.styling_mode() != StylingMode::Stop,
+            // Aside from the has_changed case above, we want to traverse non-element children
+            // in two additional cases:
+            // (1) They child doesn't yet have layout data (preorder traversal initializes it).
+            // (2) The parent element has restyle damage (so the text flow also needs fixup).
+            None => child.get_raw_data().is_none() ||
+                    parent.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
+        }
+    }
+
+    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {
+        element.as_node().initialize_data();
+        element.get_style_data().unwrap()
     }
 
     fn local_context(&self) -> &LocalStyleContext {
@@ -140,8 +157,8 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
 
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
-        if nonincremental_layout || node.has_dirty_descendants() ||
-           tnode.restyle_damage() != RestyleDamage::empty() {
+        if nonincremental_layout || tnode.restyle_damage() != RestyleDamage::empty() ||
+           node.as_element().map_or(false, |el| el.has_dirty_descendants()) {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);

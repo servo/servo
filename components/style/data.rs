@@ -35,7 +35,7 @@ impl DerefMut for PseudoStyles {
 /// The styles associated with a node, including the styles for any
 /// pseudo-elements.
 #[derive(Clone, Debug)]
-pub struct NodeStyles {
+pub struct ElementStyles {
     /// The results of CSS styling for this node.
     pub primary: Arc<ComputedValues>,
 
@@ -43,9 +43,9 @@ pub struct NodeStyles {
     pub pseudos: PseudoStyles,
 }
 
-impl NodeStyles {
+impl ElementStyles {
     pub fn new(primary: Arc<ComputedValues>) -> Self {
-        NodeStyles {
+        ElementStyles {
             primary: primary,
             pseudos: PseudoStyles::empty(),
         }
@@ -53,7 +53,7 @@ impl NodeStyles {
 }
 
 #[derive(Debug)]
-enum NodeDataStyles {
+enum ElementDataStyles {
     /// The field has not been initialized.
     Uninitialized,
 
@@ -64,19 +64,19 @@ enum NodeDataStyles {
     /// immutable, but for now we need to mutate it a bit before styling to
     /// handle animations.
     ///
-    /// Note that since NodeStyles contains an Arc, the null pointer
+    /// Note that since ElementStyles contains an Arc, the null pointer
     /// optimization prevents the Option<> here from consuming an extra word.
-    Previous(Option<NodeStyles>),
+    Previous(Option<ElementStyles>),
 
     /// The field holds the current, up-to-date style.
     ///
     /// This is the output of the styling algorithm.
-    Current(NodeStyles),
+    Current(ElementStyles),
 }
 
-impl NodeDataStyles {
+impl ElementDataStyles {
     fn is_previous(&self) -> bool {
-        use self::NodeDataStyles::*;
+        use self::ElementDataStyles::*;
         match *self {
             Previous(_) => true,
             _ => false,
@@ -113,34 +113,34 @@ impl RestyleData {
 /// In both cases, it is wrapped inside an AtomicRefCell to ensure thread
 /// safety.
 #[derive(Debug)]
-pub struct NodeData {
-    styles: NodeDataStyles,
+pub struct ElementData {
+    styles: ElementDataStyles,
     pub restyle_data: Option<RestyleData>,
 }
 
-impl NodeData {
+impl ElementData {
     pub fn new() -> Self {
-        NodeData {
-            styles: NodeDataStyles::Uninitialized,
+        ElementData {
+            styles: ElementDataStyles::Uninitialized,
             restyle_data: None,
         }
     }
 
     pub fn has_current_styles(&self) -> bool {
         match self.styles {
-            NodeDataStyles::Current(_) => true,
+            ElementDataStyles::Current(_) => true,
             _ => false,
         }
     }
 
-    pub fn get_current_styles(&self) -> Option<&NodeStyles> {
+    pub fn get_current_styles(&self) -> Option<&ElementStyles> {
         match self.styles {
-            NodeDataStyles::Current(ref s) => Some(s),
+            ElementDataStyles::Current(ref s) => Some(s),
             _ => None,
         }
     }
 
-    pub fn current_styles(&self) -> &NodeStyles {
+    pub fn current_styles(&self) -> &ElementStyles {
         self.get_current_styles().expect("Calling current_styles before or during styling")
     }
 
@@ -149,29 +149,29 @@ impl NodeData {
     #[cfg(not(feature = "gecko"))]
     pub fn current_pseudos_mut(&mut self) -> &mut PseudoStyles {
         match self.styles {
-            NodeDataStyles::Current(ref mut s) => &mut s.pseudos,
+            ElementDataStyles::Current(ref mut s) => &mut s.pseudos,
             _ => panic!("Calling current_pseudos_mut before or during styling"),
         }
     }
 
-    pub fn previous_styles(&self) -> Option<&NodeStyles> {
+    pub fn previous_styles(&self) -> Option<&ElementStyles> {
         match self.styles {
-            NodeDataStyles::Previous(ref s) => s.as_ref(),
+            ElementDataStyles::Previous(ref s) => s.as_ref(),
             _ => panic!("Calling previous_styles without having gathered it"),
         }
     }
 
-    pub fn previous_styles_mut(&mut self) -> Option<&mut NodeStyles> {
+    pub fn previous_styles_mut(&mut self) -> Option<&mut ElementStyles> {
         match self.styles {
-            NodeDataStyles::Previous(ref mut s) => s.as_mut(),
+            ElementDataStyles::Previous(ref mut s) => s.as_mut(),
             _ => panic!("Calling previous_styles without having gathered it"),
         }
     }
 
     pub fn gather_previous_styles<F>(&mut self, f: F)
-        where F: FnOnce() -> Option<NodeStyles>
+        where F: FnOnce() -> Option<ElementStyles>
     {
-        use self::NodeDataStyles::*;
+        use self::ElementDataStyles::*;
         self.styles = match mem::replace(&mut self.styles, Uninitialized) {
             Uninitialized => Previous(f()),
             Current(x) => Previous(Some(x)),
@@ -186,13 +186,13 @@ impl NodeData {
     }
 
     pub fn style_text_node(&mut self, style: Arc<ComputedValues>) {
-        self.styles = NodeDataStyles::Current(NodeStyles::new(style));
+        self.styles = ElementDataStyles::Current(ElementStyles::new(style));
         self.restyle_data = None;
     }
 
-    pub fn finish_styling(&mut self, styles: NodeStyles) {
+    pub fn finish_styling(&mut self, styles: ElementStyles) {
         debug_assert!(self.styles.is_previous());
-        self.styles = NodeDataStyles::Current(styles);
+        self.styles = ElementDataStyles::Current(styles);
         self.restyle_data = None;
     }
 }
