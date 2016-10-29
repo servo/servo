@@ -251,3 +251,6 @@
         }
     }
 </%helpers:longhand>
+
+${helpers.single_keyword("column-fill", "auto balance",
+                         products="gecko", animatable=False)}
