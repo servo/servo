@@ -28,7 +28,7 @@ use dom::htmloptionscollection::HTMLOptionsCollection;
 use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
-use dom::validitystate::ValidityState;
+use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::attr::AttrValue;
@@ -384,4 +384,13 @@ impl VirtualMethods for HTMLSelectElement {
 
 impl FormControl for HTMLSelectElement {}
 
-impl Validatable for HTMLSelectElement {}
+impl Validatable for HTMLSelectElement {
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+    fn validate(&self, validate_flags: ValidationFlags) -> bool {
+        if validate_flags.is_empty() {}
+        // Need more flag check for different validation types later
+        true
+    }
+}
