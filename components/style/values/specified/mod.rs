@@ -25,6 +25,7 @@ pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword,
 pub use self::image::{SizeKeyword, VerticalDirection};
 
 pub mod basic_shape;
+pub mod grid;
 pub mod image;
 pub mod position;
 
