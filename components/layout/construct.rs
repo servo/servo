@@ -2091,12 +2091,12 @@ impl FlowRef {
 
 /// Strips ignorable whitespace from the start of a list of fragments.
 pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
-    if this.is_empty() {
-        return; // Fast path.
-    }
+    let mut retained_leading_fragments = LinkedList::new();
 
-    let mut leading_fragments_consisting_of_solely_bidi_control_characters = LinkedList::new();
-    while !this.is_empty() {
+    // We want to avoid burninating all the fragments even if they're empty. They might be needed
+    // for rendering borders and backgrounds or, if not that, possibly queries.
+    // LinkedList stores its length, so this check is O(1).
+    while this.len() > 1 {
         match this
             .front_mut()
             .as_mut()
@@ -2105,31 +2105,27 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
         {
             WhitespaceStrippingResult::RetainFragment => break,
             WhitespaceStrippingResult::FragmentContainedOnlyBidiControlCharacters => {
-                leading_fragments_consisting_of_solely_bidi_control_characters
-                    .push_back(this.pop_front().unwrap())
+                retained_leading_fragments.push_back(this.pop_front().unwrap())
             },
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_front().unwrap();
-                if let Some(ref mut remaining_fragment) = this.front_mut() {
+                let remaining_fragment = this.front_mut().unwrap();
+                if remaining_fragment.can_fully_meld_with_prev_inline_fragment(&removed_fragment) {
                     remaining_fragment.meld_with_prev_inline_fragment(&removed_fragment);
+                } else {
+                    retained_leading_fragments.push_back(removed_fragment);
                 }
             },
         }
     }
-    prepend_from(
-        this,
-        &mut leading_fragments_consisting_of_solely_bidi_control_characters,
-    );
+    prepend_from(this, &mut retained_leading_fragments);
 }
 
 /// Strips ignorable whitespace from the end of a list of fragments.
 pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
-    if this.is_empty() {
-        return;
-    }
+    let mut retained_trailing_fragments = LinkedList::new();
 
-    let mut trailing_fragments_consisting_of_solely_bidi_control_characters = LinkedList::new();
-    while !this.is_empty() {
+    while this.len() > 1 {
         match this
             .back_mut()
             .as_mut()
@@ -2138,18 +2134,20 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
         {
             WhitespaceStrippingResult::RetainFragment => break,
             WhitespaceStrippingResult::FragmentContainedOnlyBidiControlCharacters => {
-                trailing_fragments_consisting_of_solely_bidi_control_characters
-                    .push_front(this.pop_back().unwrap())
+                retained_trailing_fragments.push_front(this.pop_back().unwrap())
             },
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_back().unwrap();
-                if let Some(ref mut remaining_fragment) = this.back_mut() {
+                let remaining_fragment = this.back_mut().unwrap();
+                if remaining_fragment.can_fully_meld_with_next_inline_fragment(&removed_fragment) {
                     remaining_fragment.meld_with_next_inline_fragment(&removed_fragment);
+                } else {
+                    retained_trailing_fragments.push_front(removed_fragment);
                 }
             },
         }
     }
-    this.append(&mut trailing_fragments_consisting_of_solely_bidi_control_characters);
+    this.append(&mut retained_trailing_fragments);
 }
 
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
