@@ -57,7 +57,7 @@ use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollPolicy, StackingContextId, color};
+use gfx_traits::{Epoch, FragmentType, ScrollPolicy, ScrollRootId, StackingContextId, color};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -1285,14 +1285,13 @@ impl LayoutThread {
         let mut layout_scroll_states = HashMap::new();
         for new_scroll_state in &new_scroll_states {
             let offset = new_scroll_state.scroll_offset;
-            layout_scroll_states.insert(new_scroll_state.stacking_context_id, offset);
+            layout_scroll_states.insert(new_scroll_state.scroll_root_id, offset);
 
-            if new_scroll_state.stacking_context_id == StackingContextId::root() {
+            if new_scroll_state.scroll_root_id == ScrollRootId::root() {
                 script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
-            } else if !new_scroll_state.stacking_context_id.is_special() &&
-                    new_scroll_state.stacking_context_id.fragment_type() ==
-                        FragmentType::FragmentBody {
-                let id = new_scroll_state.stacking_context_id.id();
+            } else if !new_scroll_state.scroll_root_id.is_special() &&
+                    new_scroll_state.scroll_root_id.fragment_type() == FragmentType::FragmentBody {
+                let id = new_scroll_state.scroll_root_id.id();
                 script_scroll_states.push((UntrustedNodeAddress::from_id(id), offset))
             }
         }

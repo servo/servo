@@ -162,6 +162,58 @@ impl StackingContextId {
     }
 }
 
+/// A unique ID for every scrolling root.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+pub struct ScrollRootId(
+    /// The identifier for this StackingContext, derived from the Flow's memory address
+    /// and fragment type.  As a space optimization, these are combined into a single word.
+    pub usize
+);
+
+impl ScrollRootId {
+    /// Returns a new stacking context ID for a special stacking context.
+    fn next_special_id() -> usize {
+        // We shift this left by 2 to make room for the fragment type ID.
+        ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+            SPECIAL_STACKING_CONTEXT_ID_MASK
+    }
+
+    #[inline]
+    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> ScrollRootId {
+        debug_assert_eq!(id & (fragment_type as usize), 0);
+        if fragment_type == FragmentType::FragmentBody {
+            ScrollRootId(id)
+        } else {
+            ScrollRootId(ScrollRootId::next_special_id() | (fragment_type as usize))
+        }
+    }
+
+    /// Returns the stacking context ID for the outer document/layout root.
+    #[inline]
+    pub fn root() -> ScrollRootId {
+        ScrollRootId(0)
+    }
+
+    /// Returns true if this is a special stacking context.
+    ///
+    /// A special stacking context is a stacking context that is one of (a) the outer stacking
+    /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+    #[inline]
+    pub fn is_special(&self) -> bool {
+        (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
+    }
+
+    #[inline]
+    pub fn id(&self) -> usize {
+        self.0 & !3
+    }
+
+    #[inline]
+    pub fn fragment_type(&self) -> FragmentType {
+        FragmentType::from_usize(self.0 & 3)
+    }
+}
+
 /// The type of fragment that a stacking context represents.
 ///
 /// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
