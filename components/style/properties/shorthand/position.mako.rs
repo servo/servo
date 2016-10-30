@@ -122,6 +122,57 @@
     }
 </%helpers:shorthand>
 
+// https://drafts.csswg.org/css-grid/#propdef-grid-area
+<%helpers:shorthand name="grid-area" products="gecko"
+                    sub_properties="grid-row-start grid-column-start grid-row-end grid-column-end">
+    use values::specified::grid::GridLine;
+
+    pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let mut row_start = GridLine::default();
+        let mut column_start = GridLine::default();
+        let mut row_end = GridLine::default();
+        let mut column_end = GridLine::default();
+
+        if let Ok(line) = input.try(GridLine::parse) {
+            row_start = line;
+        }
+
+        if input.try(|i| i.expect_delim('/')).is_ok() {
+            column_start = try!(GridLine::parse(input));
+        } else if row_start.ident.is_some() && row_start.integer.is_none() && !row_start.is_span {
+            column_start = row_start.clone();
+        }
+
+        if input.try(|i| i.expect_delim('/')).is_ok() {
+            row_end = try!(GridLine::parse(input));
+        } else if row_start.ident.is_some() && row_start.integer.is_none() && !row_start.is_span {
+            row_end = row_start.clone();
+        }
+
+        if input.try(|i| i.expect_delim('/')).is_ok() {
+            column_end = try!(GridLine::parse(input));
+        } else if column_start.ident.is_some() && column_start.integer.is_none() && !column_start.is_span {
+            column_end = column_start.clone();
+        }
+
+        Ok(Longhands {
+            grid_row_start: Some(row_start),
+            grid_column_start: Some(column_start),
+            grid_row_end: Some(row_end),
+            grid_column_end: Some(column_end),
+        })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.grid_row_start.to_css(dest));
+            try!(self.grid_column_start.to_css(dest));
+            try!(self.grid_row_end.to_css(dest));
+            self.grid_column_end.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
+
 // https://drafts.csswg.org/css-grid/#propdef-grid-row
 % for prop in ["grid-row", "grid-column"]:
 <%helpers:shorthand name="${prop}" products="gecko" sub_properties="${prop}-start ${prop}-end">
