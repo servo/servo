@@ -483,16 +483,13 @@ where
     ) {
         let mut fragments = fragment_accumulator
             .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(self.style_context());
-        if fragments.is_empty() {
-            return;
-        };
-
-        strip_ignorable_whitespace_from_start(&mut fragments.fragments);
-        strip_ignorable_whitespace_from_end(&mut fragments.fragments);
         if fragments.fragments.is_empty() {
             absolute_descendants.push_descendants(fragments.absolute_descendants);
             return;
         }
+
+        strip_ignorable_whitespace_from_start(&mut fragments.fragments);
+        strip_ignorable_whitespace_from_end(&mut fragments.fragments);
 
         // Build a list of all the inline-block fragments before fragments is moved.
         let mut inline_block_flows = vec![];
