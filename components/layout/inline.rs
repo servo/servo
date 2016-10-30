@@ -434,7 +434,7 @@ impl LineBreaker {
         // more lines in the same inline formatting context. If it isn't, this check is
         // unnecessary.
         if self.pending_line.range.each_index().any(|index| {
-            self.new_fragments[index.to_usize()].is_non_phantom()
+            !self.new_fragments[index.to_usize()].is_phantom()
         }) {
             self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
         }
@@ -1293,7 +1293,7 @@ impl InlineFlow {
     fn last_line_containing_real_fragments(&self) -> Option<&Line> {
         for line in self.lines.iter().rev() {
             if line.range.each_index().any(|index| {
-                self.fragments.fragments[index.to_usize()].is_non_phantom()
+                !self.fragments.fragments[index.to_usize()].is_phantom()
             }) {
                 return Some(line)
             }
