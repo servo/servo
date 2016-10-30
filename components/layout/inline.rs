@@ -426,7 +426,15 @@ impl LineBreaker {
         debug!("LineBreaker: flushing line {}: {:?}", self.lines.len(), self.pending_line);
         self.strip_trailing_whitespace_from_pending_line_if_necessary();
         self.lines.push(self.pending_line.clone());
-        self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
+        // The line shouldn't affect the flow if it has nothing in it per CSS § 9.4.2.
+        // I'm not sure if it's actually possible for a phantom line box to be followed by any
+        // more lines in the same inline formatting context. If it isn't, this check is
+        // unnecessary.
+        if self.pending_line.range.each_index().any(|index| {
+            self.new_fragments[index.to_usize()].is_non_phantom()
+        }) {
+            self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
+        }
         self.reset_line();
     }
 
@@ -1274,11 +1282,11 @@ impl InlineFlow {
         })
     }
 
-    // Returns the last line that doesn't consist entirely of hypothetical boxes.
+    // Returns the last line treated as existing by CSS § 9.4.2, or None if there is no such line.
     fn last_line_containing_real_fragments(&self) -> Option<&Line> {
         for line in self.lines.iter().rev() {
-            if (line.range.begin().get()..line.range.end().get()).any(|index| {
-                !self.fragments.fragments[index as usize].is_hypothetical()
+            if line.range.each_index().any(|index| {
+                self.fragments.fragments[index.to_usize()].is_non_phantom()
             }) {
                 return Some(line)
             }
