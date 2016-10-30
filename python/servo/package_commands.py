@@ -156,7 +156,7 @@ class PackageCommands(CommandBase):
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
 
             print("Creating Servo.app")
-            dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
+            dir_to_dmg = '/'.join(dir_to_build) + '/dmg'
             dir_to_app = dir_to_dmg + '/Servo.app'
             dir_to_resources = dir_to_app + '/Contents/Resources/'
             if path.exists(dir_to_dmg):
@@ -312,7 +312,7 @@ class PackageCommands(CommandBase):
             os.close(runservo)
 
             print("Creating tarball")
-            tar_path = path.join(self.get_target_dir(), 'servo-tech-demo.tar.gz')
+            tar_path = path.join(path.dirname(binary_path), 'servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
