@@ -1620,7 +1620,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
     fn construction_result_mut(self, data: &mut PersistentLayoutData) -> &mut ConstructionResult {
         match self.get_pseudo_element_type() {
             PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
-            PseudoElementType::After (_) => &mut data.after_flow_construction_result,
+            PseudoElementType::After(_) => &mut data.after_flow_construction_result,
             PseudoElementType::DetailsSummary(_) => &mut data.details_summary_flow_construction_result,
             PseudoElementType::DetailsContent(_) => &mut data.details_content_flow_construction_result,
             PseudoElementType::Normal    => &mut data.flow_construction_result,

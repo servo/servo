@@ -94,7 +94,7 @@ declare_viewport_descriptor! {
 }
 
 trait FromMeta: Sized {
-    fn from_meta (value: &str) -> Option<Self>;
+    fn from_meta(value: &str) -> Option<Self>;
 }
 
 // ViewportLength is a length | percentage | auto | extend-to-zoom

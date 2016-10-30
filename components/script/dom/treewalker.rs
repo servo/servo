@@ -215,7 +215,7 @@ impl TreeWalkerMethods for TreeWalker {
                 }
                 match node.GetFirstChild() {
                     None => break,
-                    Some (child) => {
+                    Some(child) => {
                         // "1. Set node to its first child."
                         node = child;
                         // "2. Filter node and set result to the return value."
