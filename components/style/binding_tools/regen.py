@@ -86,6 +86,7 @@ COMPILATION_TARGETS = {
             "AudioContext",
             "CapturingContentInfo",
             "DefaultDelete",
+            "DOMIntersectionObserverEntry",
             "Element",
             "FontFamilyList",
             "FontFamilyListRefCnt",

@@ -60,12 +60,12 @@ ${helpers.single_keyword("pointer-events", "auto none", animatable=False)}
 
 ${helpers.single_keyword("-moz-user-input", "none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
-                         gecko_constant_prefix="NS_STYLE_USER_INPUT",
+                         gecko_enum_prefix="StyleUserInput",
                          animatable=False)}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
-                         gecko_constant_prefix="NS_STYLE_USER_MODIFY",
+                         gecko_enum_prefix="StyleUserModify",
                          animatable=False)}
 
 ${helpers.single_keyword("-moz-user-focus",
