@@ -1760,7 +1760,7 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
 
     // We want to avoid burninating all the fragments even if they're empty. They might be needed
     // for rendering borders and backgrounds or, if not that, possibly queries.
-    while this.len() > 1 {
+    while this.len() > 1 { // LinkedList stores its length, so this is O(1).
         match this.front_mut().as_mut().unwrap().strip_leading_whitespace_if_necessary() {
             WhitespaceStrippingResult::RetainFragment => break,
             WhitespaceStrippingResult::FragmentContainedOnlyBidiControlCharacters => {
