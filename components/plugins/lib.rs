@@ -13,7 +13,8 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[derive(JSTraceable)]`, and `#[must_root]`.
 //!                       Use this for structs that correspond to a DOM type
 
-#![feature(plugin_registrar, quote, plugin, box_syntax, rustc_private, slice_patterns)]
+
+#![feature(box_syntax, plugin, plugin_registrar, quote, rustc_private, slice_patterns)]
 
 #![deny(unsafe_code)]
 
