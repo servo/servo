@@ -3306,6 +3306,27 @@ impl Fragment {
             Perspective::None => None,
         }
     }
+
+    /// Returns true if a line box containing only this fragment would be treated as nonexistent
+    /// by CSS 2.1 § 9.4.2. (https://www.w3.org/TR/CSS21/visuren.html#phantom-line-box)
+    pub fn is_phantom(&self) -> bool {
+        self.is_hypothetical() ||
+            (match self.specific {
+                SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
+                    scanned_text_fragment_info.range.is_empty() &&
+                        !(scanned_text_fragment_info
+                            .requires_line_break_afterward_if_wrapping_on_newlines() &&
+                            self.white_space().preserve_newlines())
+                },
+                SpecificFragmentInfo::UnscannedText(_) => {
+                    panic!("Text in a line box should be scanned before checking if it's phantom");
+                },
+                _ => false,
+            } && self.border_padding.inline_start == Au(0) &&
+                self.border_padding.inline_end == Au(0) &&
+                self.margin.inline_start == Au(0) &&
+                self.margin.inline_end == Au(0))
+    }
 }
 
 impl fmt::Debug for Fragment {
