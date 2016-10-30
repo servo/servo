@@ -124,6 +124,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space after (', errors.next()[2])
         self.assertEqual('extra space after (', errors.next()[2])
         self.assertEqual('extra space after (', errors.next()[2])
+        self.assertEqual('extra space after test_fun', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):
