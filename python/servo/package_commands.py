@@ -158,7 +158,7 @@ class PackageCommands(CommandBase):
             now = datetime.utcnow()
 
             print("Creating Servo.app")
-            dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
+            dir_to_dmg = '/'.join(dir_to_build) + '/dmg'
             dir_to_app = dir_to_dmg + '/Servo.app'
             dir_to_resources = dir_to_app + '/Contents/Resources/'
             if path.exists(dir_to_dmg):
@@ -318,7 +318,7 @@ class PackageCommands(CommandBase):
             print("Creating tarball")
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
-            tar_path = path.join(self.get_target_dir(), time + '-servo-tech-demo.tar.gz')
+            tar_path = path.join(path.dirname(binary_path), time + '-servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
