@@ -10,7 +10,7 @@ void main(void) {
     TransformVertexInfo vi = write_transform_vertex(glyph.info);
     vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
-    vec2 f = (vi.local_pos.xy - glyph.info.local_rect.xy) / glyph.info.local_rect.zw;
+    vec2 f = (vi.local_pos.xy / vi.local_pos.z - glyph.info.local_rect.xy) / glyph.info.local_rect.zw;
 #else
     VertexInfo vi = write_vertex(glyph.info);
     vec2 f = (vi.local_clamped_pos - vi.local_rect.p0) / (vi.local_rect.p1 - vi.local_rect.p0);

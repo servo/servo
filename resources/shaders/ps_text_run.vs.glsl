@@ -16,7 +16,7 @@ void main(void) {
                                                     prim.tile);
     vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
-    vec2 f = (vi.local_pos.xy - prim.local_rect.xy) / prim.local_rect.zw;
+    vec2 f = (vi.local_pos.xy / vi.local_pos.z - local_rect.xy) / local_rect.zw;
 #else
     VertexInfo vi = write_vertex(local_rect,
                                  prim.local_clip_rect,
