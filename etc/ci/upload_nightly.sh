@@ -26,6 +26,7 @@ upload() {
     s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
 }
 
+
 main() {
     if (( "${#}" != 1 )); then
         usage >&2
