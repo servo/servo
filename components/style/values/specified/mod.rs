@@ -1304,6 +1304,75 @@ pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
     })
 }
 
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum BorderWidth {
+    Thin,
+    Medium,
+    Thick,
+    Width(Length),
+}
+
+impl BorderWidth {
+    pub fn from_length(length: Length) -> Self {
+        BorderWidth::Width(length)
+    }
+
+    pub fn parse(input: &mut Parser) -> Result<BorderWidth, ()> {
+        match input.try(Length::parse_non_negative) {
+            Ok(length) => Ok(BorderWidth::Width(length)),
+            Err(_) => match_ignore_ascii_case! { try!(input.expect_ident()),
+               "thin" => Ok(BorderWidth::Thin),
+               "medium" => Ok(BorderWidth::Medium),
+               "thick" => Ok(BorderWidth::Thick),
+               _ => Err(())
+            }
+        }
+    }
+}
+
+impl ToCss for BorderWidth {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            BorderWidth::Thin => dest.write_str("thin"),
+            BorderWidth::Medium => dest.write_str("medium"),
+            BorderWidth::Thick => dest.write_str("thick"),
+            BorderWidth::Width(length) => length.to_css(dest)
+        }
+    }
+}
+
+impl HasViewportPercentage for BorderWidth {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            BorderWidth::Thin | BorderWidth::Medium | BorderWidth::Thick => false,
+            BorderWidth::Width(length) => length.has_viewport_percentage()
+         }
+    }
+}
+
+impl ToComputedValue for BorderWidth {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        // We choose the pixel length of the keyword values the same as both spec and gecko.
+        // Spec: https://drafts.csswg.org/css-backgrounds-3/#line-width
+        // Gecko: https://bugzilla.mozilla.org/show_bug.cgi?id=1312155#c0
+        match *self {
+            BorderWidth::Thin => Length::from_px(1.).to_computed_value(context),
+            BorderWidth::Medium => Length::from_px(3.).to_computed_value(context),
+            BorderWidth::Thick => Length::from_px(5.).to_computed_value(context),
+            BorderWidth::Width(length) => length.to_computed_value(context)
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        BorderWidth::Width(ToComputedValue::from_computed_value(computed))
+    }
+}
+
 // The integer values here correspond to the border conflict resolution rules in CSS 2.1 §
 // 17.6.2.1. Higher values override lower values.
 define_numbered_css_keyword_enum! { BorderStyle:

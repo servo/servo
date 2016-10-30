@@ -16,22 +16,19 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let _unused = context;
-        let (top, right, bottom, left) = try!(parse_four_sides(input, specified::parse_border_width));
+        let (top, right, bottom, left) = try!(parse_four_sides(input, specified::BorderWidth::parse));
         Ok(Longhands {
             % for side in ["top", "right", "bottom", "left"]:
-                ${to_rust_ident('border-%s-width' % side)}:
-                    Some(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue(${side})),
+                ${to_rust_ident('border-%s-width' % side)}: Some(${side}),
             % endfor
         })
     }
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // extract tuple container values so that the different border widths
-            // can be compared via partial eq
             % for side in ["top", "right", "bottom", "left"]:
                 let ${side} = match self.border_${side}_width {
-                    &DeclaredValue::Value(ref value) => DeclaredValue::Value(value.0),
+                    &DeclaredValue::Value(ref value) => DeclaredValue::Value(*value),
                     &DeclaredValue::WithVariables {
                         css: ref a, first_token_type: ref b, base_url: ref c, from_shorthand: ref d
                     } => DeclaredValue::WithVariables {
@@ -52,7 +49,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 pub fn parse_border(context: &ParserContext, input: &mut Parser)
                  -> Result<(Option<specified::CSSColor>,
                             Option<specified::BorderStyle>,
-                            Option<specified::Length>), ()> {
+                            Option<specified::BorderWidth>), ()> {
     use values::specified;
     let _unused = context;
     let mut color = None;
@@ -75,7 +72,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }
         if width.is_none() {
-            if let Ok(value) = input.try(specified::parse_border_width) {
+            if let Ok(value) = input.try(specified::BorderWidth::parse) {
                 width = Some(value);
                 any = true;
                 continue
@@ -97,8 +94,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         Ok(Longhands {
             border_${side}_color: color,
             border_${side}_style: style,
-            border_${side}_width:
-                width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
+            border_${side}_width: width
         })
     }
 
@@ -128,8 +124,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             % for side in ["top", "right", "bottom", "left"]:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
-                border_${side}_width:
-                    width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
+                border_${side}_width: width,
             % endfor
         })
     }

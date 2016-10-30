@@ -27,27 +27,14 @@
         use cssparser::ToCss;
         use std::fmt;
         use values::HasViewportPercentage;
+        use values::specified::BorderWidth;
 
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
+        pub type SpecifiedValue = BorderWidth;
 
         #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser)
-                               -> Result<SpecifiedValue, ()> {
-            specified::parse_border_width(input).map(SpecifiedValue)
-        }
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct SpecifiedValue(pub specified::Length);
-
-        impl HasViewportPercentage for SpecifiedValue {
-            fn has_viewport_percentage(&self) -> bool {
-                let &SpecifiedValue(length) = self;
-                length.has_viewport_percentage()
-            }
+                     -> Result<SpecifiedValue, ()> {
+            BorderWidth::parse(input)
         }
 
         pub mod computed_value {
@@ -56,20 +43,6 @@
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(3)  // medium
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                self.0.to_computed_value(context)
-            }
-
-            #[inline]
-            fn from_computed_value(computed: &computed_value::T) -> Self {
-                SpecifiedValue(ToComputedValue::from_computed_value(computed))
-            }
         }
     </%helpers:longhand>
 % endfor
