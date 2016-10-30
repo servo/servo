@@ -243,20 +243,6 @@ pub const NS_CORNER_BOTTOM_RIGHT_X: ::std::os::raw::c_uint = 4;
 pub const NS_CORNER_BOTTOM_RIGHT_Y: ::std::os::raw::c_uint = 5;
 pub const NS_CORNER_BOTTOM_LEFT_X: ::std::os::raw::c_uint = 6;
 pub const NS_CORNER_BOTTOM_LEFT_Y: ::std::os::raw::c_uint = 7;
-pub const NS_STYLE_USER_INPUT_NONE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_USER_INPUT_ENABLED: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_USER_INPUT_DISABLED: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_USER_INPUT_AUTO: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_USER_MODIFY_READ_ONLY: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_USER_MODIFY_READ_WRITE: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_USER_MODIFY_WRITE_ONLY: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_WINDOW_DRAGGING_DEFAULT: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_WINDOW_DRAGGING_DRAG: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_WINDOW_DRAGGING_NO_DRAG: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_ORIENT_INLINE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_ORIENT_BLOCK: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_ORIENT_HORIZONTAL: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_ORIENT_VERTICAL: ::std::os::raw::c_uint = 3;
 pub const NS_RADIUS_FARTHEST_SIDE: ::std::os::raw::c_uint = 0;
 pub const NS_RADIUS_CLOSEST_SIDE: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_STACK_SIZING_IGNORE: ::std::os::raw::c_uint = 0;
@@ -1219,10 +1205,8 @@ pub enum nsresult {
     NS_IMAGELIB_ERROR_NO_DECODER = 2152988678,
     NS_IMAGELIB_ERROR_NOT_FINISHED = 2152988679,
     NS_IMAGELIB_ERROR_NO_ENCODER = 2152988681,
-    NS_ERROR_EDITOR_NO_SELECTION = 2153119745,
-    NS_ERROR_EDITOR_NO_TEXTNODE = 2153119746,
-    NS_FOUND_TARGET = 2153119747,
-    NS_EDITOR_ELEMENT_NOT_FOUND = 5636097,
+    NS_SUCCESS_EDITOR_ELEMENT_NOT_FOUND = 5636097,
+    NS_SUCCESS_EDITOR_FOUND_TARGET = 5636098,
     NS_ERROR_XPC_NOT_ENOUGH_ARGS = 2153185281,
     NS_ERROR_XPC_NEED_OUT_OBJECT = 2153185282,
     NS_ERROR_XPC_CANT_SET_OUT_VAL = 2153185283,
@@ -1283,6 +1267,8 @@ pub enum nsresult {
     NS_ERROR_SRI_CORRUPT = 2153382088,
     NS_ERROR_SRI_DISABLED = 2153382089,
     NS_ERROR_SRI_NOT_ELIGIBLE = 2153382090,
+    NS_ERROR_SRI_UNEXPECTED_HASH_TYPE = 2153382091,
+    NS_ERROR_SRI_IMPORT = 2153382092,
     NS_ERROR_CMS_VERIFY_NOT_SIGNED = 2153382912,
     NS_ERROR_CMS_VERIFY_NO_CONTENT_INFO = 2153382913,
     NS_ERROR_CMS_VERIFY_BAD_DIGEST = 2153382914,
@@ -1530,15 +1516,15 @@ impl Clone for JSObject {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct Value {
-    pub data: Value__bindgen_ty_1,
+    pub data: Value_layout,
 }
 pub type Value_PayloadType = u64;
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct Value__bindgen_ty_1 {
+pub struct Value_layout {
     pub asBits: __BindgenUnionField<u64>,
-    pub debugView: __BindgenUnionField<Value__bindgen_ty_1_1>,
-    pub s: __BindgenUnionField<Value__bindgen_ty_1_2>,
+    pub debugView: __BindgenUnionField<Value_layout__bindgen_ty_1>,
+    pub s: __BindgenUnionField<Value_layout__bindgen_ty_2>,
     pub asDouble: __BindgenUnionField<f64>,
     pub asPtr: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub asWord: __BindgenUnionField<usize>,
@@ -1547,18 +1533,18 @@ pub struct Value__bindgen_ty_1 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct Value__bindgen_ty_1_1 {
+pub struct Value_layout__bindgen_ty_1 {
     pub _bitfield_1: u64,
 }
 #[test]
-fn bindgen_test_layout_Value__bindgen_ty_1_1() {
-    assert_eq!(::std::mem::size_of::<Value__bindgen_ty_1_1>() , 8usize);
-    assert_eq!(::std::mem::align_of::<Value__bindgen_ty_1_1>() , 8usize);
+fn bindgen_test_layout_Value_layout__bindgen_ty_1() {
+    assert_eq!(::std::mem::size_of::<Value_layout__bindgen_ty_1>() , 8usize);
+    assert_eq!(::std::mem::align_of::<Value_layout__bindgen_ty_1>() , 8usize);
 }
-impl Clone for Value__bindgen_ty_1_1 {
+impl Clone for Value_layout__bindgen_ty_1 {
     fn clone(&self) -> Self { *self }
 }
-impl Value__bindgen_ty_1_1 {
+impl Value_layout__bindgen_ty_1 {
     #[inline]
     pub fn payload47(&self) -> u64 {
         unsafe {
@@ -1591,39 +1577,41 @@ impl Value__bindgen_ty_1_1 {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct Value__bindgen_ty_1_2 {
-    pub payload: Value__bindgen_ty_1_2_1,
+pub struct Value_layout__bindgen_ty_2 {
+    pub payload: Value_layout__bindgen_ty_2_1,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct Value__bindgen_ty_1_2_1 {
+pub struct Value_layout__bindgen_ty_2_1 {
     pub i32: __BindgenUnionField<i32>,
     pub u32: __BindgenUnionField<u32>,
     pub why: __BindgenUnionField<JSWhyMagic>,
     pub bindgen_union_field: u32,
 }
 #[test]
-fn bindgen_test_layout_Value__bindgen_ty_1_2_1() {
-    assert_eq!(::std::mem::size_of::<Value__bindgen_ty_1_2_1>() , 4usize);
-    assert_eq!(::std::mem::align_of::<Value__bindgen_ty_1_2_1>() , 4usize);
+fn bindgen_test_layout_Value_layout__bindgen_ty_2_1() {
+    assert_eq!(::std::mem::size_of::<Value_layout__bindgen_ty_2_1>() ,
+               4usize);
+    assert_eq!(::std::mem::align_of::<Value_layout__bindgen_ty_2_1>() ,
+               4usize);
 }
-impl Clone for Value__bindgen_ty_1_2_1 {
+impl Clone for Value_layout__bindgen_ty_2_1 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_Value__bindgen_ty_1_2() {
-    assert_eq!(::std::mem::size_of::<Value__bindgen_ty_1_2>() , 4usize);
-    assert_eq!(::std::mem::align_of::<Value__bindgen_ty_1_2>() , 4usize);
+fn bindgen_test_layout_Value_layout__bindgen_ty_2() {
+    assert_eq!(::std::mem::size_of::<Value_layout__bindgen_ty_2>() , 4usize);
+    assert_eq!(::std::mem::align_of::<Value_layout__bindgen_ty_2>() , 4usize);
 }
-impl Clone for Value__bindgen_ty_1_2 {
+impl Clone for Value_layout__bindgen_ty_2 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_Value__bindgen_ty_1() {
-    assert_eq!(::std::mem::size_of::<Value__bindgen_ty_1>() , 8usize);
-    assert_eq!(::std::mem::align_of::<Value__bindgen_ty_1>() , 8usize);
+fn bindgen_test_layout_Value_layout() {
+    assert_eq!(::std::mem::size_of::<Value_layout>() , 8usize);
+    assert_eq!(::std::mem::align_of::<Value_layout>() , 8usize);
 }
-impl Clone for Value__bindgen_ty_1 {
+impl Clone for Value_layout {
     fn clone(&self) -> Self { *self }
 }
 impl Clone for Value {
@@ -1652,10 +1640,12 @@ impl Clone for JSCompartment {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct atomic<_Tp> {
-    pub _M_i: _Tp,
+    pub _base: (),
+    pub _phantom_0: ::std::marker::PhantomData<_Tp>,
 }
+pub type atomic___base = [u8; 0usize];
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JSWhyMagic {
@@ -2630,6 +2620,38 @@ pub struct pair<_T1, _T2> {
 pub type pair_first_type<_T1> = _T1;
 pub type pair_second_type<_T2> = _T2;
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct input_iterator_tag {
+    pub _address: u8,
+}
+impl Clone for input_iterator_tag {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct forward_iterator_tag {
+    pub _address: u8,
+}
+impl Clone for forward_iterator_tag {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct bidirectional_iterator_tag {
+    pub _address: u8,
+}
+impl Clone for bidirectional_iterator_tag {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct random_access_iterator_tag {
+    pub _address: u8,
+}
+impl Clone for random_access_iterator_tag {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 pub struct SourceHook__bindgen_vtable {
 }
 /**
@@ -2695,7 +2717,7 @@ impl Clone for nsIURI {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsPIDOMWindowInner {
-    pub _base: [u64; 27usize],
+    pub _base: [u64; 28usize],
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2706,7 +2728,7 @@ pub struct nsPIDOMWindowInner_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsPIDOMWindowInner() {
-    assert_eq!(::std::mem::size_of::<nsPIDOMWindowInner>() , 216usize);
+    assert_eq!(::std::mem::size_of::<nsPIDOMWindowInner>() , 224usize);
     assert_eq!(::std::mem::align_of::<nsPIDOMWindowInner>() , 8usize);
 }
 #[repr(C)]
@@ -2805,6 +2827,7 @@ pub struct nsIDocument {
     pub mNotifiedPageForUseCounter: [u64; 2usize],
     pub mUserHasInteracted: bool,
     pub mPageUnloadingEventTimeStamp: TimeStamp,
+    pub mDocGroup: RefPtr<DocGroup>,
 }
 pub type nsIDocument_GlobalObject = GlobalObject;
 pub type nsIDocument_ReferrerPolicyEnum = ReferrerPolicy;
@@ -3034,7 +3057,7 @@ impl Clone for nsIDocument_FrameRequest {
 }
 #[test]
 fn bindgen_test_layout_nsIDocument() {
-    assert_eq!(::std::mem::size_of::<nsIDocument>() , 952usize);
+    assert_eq!(::std::mem::size_of::<nsIDocument>() , 960usize);
     assert_eq!(::std::mem::align_of::<nsIDocument>() , 8usize);
 }
 impl nsIDocument {
@@ -4084,6 +4107,7 @@ fn bindgen_test_layout_nsIRunnable() {
 impl Clone for nsIRunnable {
     fn clone(&self) -> Self { *self }
 }
+pub type TimeStampValue = u64;
 #[repr(C)]
 #[derive(Debug)]
 pub struct Runnable {
@@ -4097,6 +4121,7 @@ fn bindgen_test_layout_Runnable() {
     assert_eq!(::std::mem::size_of::<Runnable>() , 24usize);
     assert_eq!(::std::mem::align_of::<Runnable>() , 8usize);
 }
+pub type DOMHighResTimeStamp = f64;
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIDOMAttr {
@@ -4200,6 +4225,26 @@ fn bindgen_test_layout_nsIDOMNode() {
     assert_eq!(::std::mem::align_of::<nsIDOMNode>() , 8usize);
 }
 impl Clone for nsIDOMNode {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIDOMClientRect {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsIDOMClientRect_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+#[test]
+fn bindgen_test_layout_nsIDOMClientRect() {
+    assert_eq!(::std::mem::size_of::<nsIDOMClientRect>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIDOMClientRect>() , 8usize);
+}
+impl Clone for nsIDOMClientRect {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
@@ -5181,30 +5226,18 @@ extern "C" {
     #[link_name = "_ZN12PLDHashTable12kMaxCapacityE"]
     pub static PLDHashTable_kMaxCapacity: u32;
 }
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable12kMinCapacityE"]
-    pub static PLDHashTable_kMinCapacity: u32;
-}
+pub const PLDHashTable_kMinCapacity: u32 = 8;
 extern "C" {
     #[link_name = "_ZN12PLDHashTable17kMaxInitialLengthE"]
     pub static PLDHashTable_kMaxInitialLength: u32;
 }
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable21kDefaultInitialLengthE"]
-    pub static PLDHashTable_kDefaultInitialLength: u32;
-}
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable9kHashBitsE"]
-    pub static PLDHashTable_kHashBits: u32;
-}
+pub const PLDHashTable_kDefaultInitialLength: u32 = 4;
+pub const PLDHashTable_kHashBits: u32 = 32;
 extern "C" {
     #[link_name = "_ZN12PLDHashTable12kGoldenRatioE"]
     pub static PLDHashTable_kGoldenRatio: u32;
 }
-extern "C" {
-    #[link_name = "_ZN12PLDHashTable14kCollisionFlagE"]
-    pub static PLDHashTable_kCollisionFlag: PLDHashNumber;
-}
+pub const PLDHashTable_kCollisionFlag: PLDHashNumber = 1;
 #[test]
 fn bindgen_test_layout_PLDHashTable() {
     assert_eq!(::std::mem::size_of::<PLDHashTable>() , 40usize);
@@ -5396,6 +5429,14 @@ impl Clone for AudioContext {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DocGroup {
+    pub _address: u8,
+}
+impl Clone for DocGroup {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct Element {
     pub _base: FragmentOrElement,
@@ -5550,6 +5591,7 @@ pub struct FragmentOrElement_nsDOMSlots {
      * Web components custom element data.
      */
     pub mCustomElementData: RefPtr<CustomElementData>,
+    pub mRegisteredIntersectionObservers: nsTArray<FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -5575,10 +5617,29 @@ fn bindgen_test_layout_FragmentOrElement_nsDOMSlots__bindgen_ty_1() {
 impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
     fn clone(&self) -> Self { *self }
 }
+/**
+     * Registered Intersection Observers on the element.
+     */
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration {
+    pub observer: *mut DOMIntersectionObserver,
+    pub previousThreshold: i32,
+}
+#[test]
+fn bindgen_test_layout_FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration() {
+    assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>()
+               , 16usize);
+    assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>()
+               , 8usize);
+}
+impl Clone for FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration {
+    fn clone(&self) -> Self { *self }
+}
 #[test]
 fn bindgen_test_layout_FragmentOrElement_nsDOMSlots() {
     assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots>() ,
-               160usize);
+               168usize);
     assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots>() ,
                8usize);
 }
@@ -5629,6 +5690,14 @@ impl Clone for nsIWeakReference {
     fn clone(&self) -> Self { *self }
 }
 pub type nsWeakPtr = nsCOMPtr<nsIWeakReference>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __bit_const_reference<_Cp> {
+    pub __seg_: __bit_const_reference___storage_pointer<_Cp>,
+    pub __mask_: __bit_const_reference___storage_type<_Cp>,
+}
+pub type __bit_const_reference___storage_type<_Cp> = _Cp;
+pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIChannel {
@@ -6791,63 +6860,63 @@ pub struct DOMPointInit {
 impl Clone for DOMPointInit {
     fn clone(&self) -> Self { *self }
 }
-pub const NODE_HAS_LISTENERMANAGER: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_LISTENERMANAGER;
-pub const NODE_HAS_PROPERTIES: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_PROPERTIES;
-pub const NODE_IS_ANONYMOUS_ROOT: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_IS_ANONYMOUS_ROOT;
-pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-pub const NODE_FORCE_XBL_BINDINGS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_FORCE_XBL_BINDINGS;
-pub const NODE_MAY_BE_IN_BINDING_MNGR: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_MAY_BE_IN_BINDING_MNGR;
-pub const NODE_IS_EDITABLE: _bindgen_ty_61 = _bindgen_ty_61::NODE_IS_EDITABLE;
-pub const NODE_MAY_HAVE_CLASS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_MAY_HAVE_CLASS;
-pub const NODE_IS_IN_SHADOW_TREE: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_IS_IN_SHADOW_TREE;
-pub const NODE_HAS_EMPTY_SELECTOR: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_EMPTY_SELECTOR;
-pub const NODE_HAS_SLOW_SELECTOR: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_SLOW_SELECTOR;
-pub const NODE_HAS_EDGE_CHILD_SELECTOR: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_EDGE_CHILD_SELECTOR;
-pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-pub const NODE_ALL_SELECTOR_FLAGS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_ALL_SELECTOR_FLAGS;
-pub const NODE_NEEDS_FRAME: _bindgen_ty_61 = _bindgen_ty_61::NODE_NEEDS_FRAME;
-pub const NODE_DESCENDANTS_NEED_FRAMES: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_DESCENDANTS_NEED_FRAMES;
-pub const NODE_HAS_ACCESSKEY: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_ACCESSKEY;
-pub const NODE_HAS_DIRECTION_RTL: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_DIRECTION_RTL;
-pub const NODE_HAS_DIRECTION_LTR: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_HAS_DIRECTION_LTR;
-pub const NODE_ALL_DIRECTION_FLAGS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_ALL_DIRECTION_FLAGS;
-pub const NODE_CHROME_ONLY_ACCESS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_CHROME_ONLY_ACCESS;
-pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-pub const NODE_SHARED_RESTYLE_BIT_1: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_SHARED_RESTYLE_BIT_1;
-pub const NODE_SHARED_RESTYLE_BIT_2: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_SHARED_RESTYLE_BIT_2;
-pub const NODE_IS_DIRTY_FOR_SERVO: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_SHARED_RESTYLE_BIT_1;
-pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_SHARED_RESTYLE_BIT_2;
-pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: _bindgen_ty_61 =
-    _bindgen_ty_61::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+pub const NODE_HAS_LISTENERMANAGER: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_LISTENERMANAGER;
+pub const NODE_HAS_PROPERTIES: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_PROPERTIES;
+pub const NODE_IS_ANONYMOUS_ROOT: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_IS_ANONYMOUS_ROOT;
+pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+pub const NODE_FORCE_XBL_BINDINGS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_FORCE_XBL_BINDINGS;
+pub const NODE_MAY_BE_IN_BINDING_MNGR: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_MAY_BE_IN_BINDING_MNGR;
+pub const NODE_IS_EDITABLE: _bindgen_ty_22 = _bindgen_ty_22::NODE_IS_EDITABLE;
+pub const NODE_MAY_HAVE_CLASS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_MAY_HAVE_CLASS;
+pub const NODE_IS_IN_SHADOW_TREE: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_IS_IN_SHADOW_TREE;
+pub const NODE_HAS_EMPTY_SELECTOR: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_EMPTY_SELECTOR;
+pub const NODE_HAS_SLOW_SELECTOR: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_SLOW_SELECTOR;
+pub const NODE_HAS_EDGE_CHILD_SELECTOR: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_EDGE_CHILD_SELECTOR;
+pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+pub const NODE_ALL_SELECTOR_FLAGS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_ALL_SELECTOR_FLAGS;
+pub const NODE_NEEDS_FRAME: _bindgen_ty_22 = _bindgen_ty_22::NODE_NEEDS_FRAME;
+pub const NODE_DESCENDANTS_NEED_FRAMES: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_DESCENDANTS_NEED_FRAMES;
+pub const NODE_HAS_ACCESSKEY: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_ACCESSKEY;
+pub const NODE_HAS_DIRECTION_RTL: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_DIRECTION_RTL;
+pub const NODE_HAS_DIRECTION_LTR: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_HAS_DIRECTION_LTR;
+pub const NODE_ALL_DIRECTION_FLAGS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_ALL_DIRECTION_FLAGS;
+pub const NODE_CHROME_ONLY_ACCESS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_CHROME_ONLY_ACCESS;
+pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+pub const NODE_SHARED_RESTYLE_BIT_1: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_SHARED_RESTYLE_BIT_1;
+pub const NODE_SHARED_RESTYLE_BIT_2: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_SHARED_RESTYLE_BIT_2;
+pub const NODE_IS_DIRTY_FOR_SERVO: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_SHARED_RESTYLE_BIT_1;
+pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_SHARED_RESTYLE_BIT_2;
+pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: _bindgen_ty_22 =
+    _bindgen_ty_22::NODE_TYPE_SPECIFIC_BITS_OFFSET;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum _bindgen_ty_61 {
+pub enum _bindgen_ty_22 {
     NODE_HAS_LISTENERMANAGER = 4,
     NODE_HAS_PROPERTIES = 8,
     NODE_IS_ANONYMOUS_ROOT = 16,
@@ -6999,7 +7068,6 @@ impl Clone for PRCListStr {
     fn clone(&self) -> Self { *self }
 }
 pub type PRCList = PRCListStr;
-pub type TimeStampValue = u64;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct UnionMember<T> {
@@ -7230,6 +7298,56 @@ pub struct nsIAttribute_COMTypeInfo<T, U> {
 fn bindgen_test_layout_nsIAttribute() {
     assert_eq!(::std::mem::size_of::<nsIAttribute>() , 112usize);
     assert_eq!(::std::mem::align_of::<nsIAttribute>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct DOMIntersectionObserver {
+    pub _base: nsISupports,
+    pub _base_1: nsWrapperCache,
+    pub mRefCnt: nsCycleCollectingAutoRefCnt,
+    pub _mOwningThread: nsAutoOwningThread,
+    pub mOwner: nsCOMPtr<nsPIDOMWindowInner>,
+    pub mCallback: RefPtr<IntersectionCallback>,
+    pub mRoot: RefPtr<Element>,
+    pub mRootMargin: nsCSSRect,
+    pub mThresholds: nsTArray<f64>,
+    pub mObservationTargets: [u64; 5usize],
+    pub mQueuedEntries: nsTArray<RefPtr<DOMIntersectionObserverEntry>>,
+    pub mConnected: bool,
+}
+pub type DOMIntersectionObserver_HasThreadSafeRefCnt = FalseType;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DOMIntersectionObserver_cycleCollection {
+    pub _base: nsXPCOMCycleCollectionParticipant,
+}
+#[test]
+fn bindgen_test_layout_DOMIntersectionObserver_cycleCollection() {
+    assert_eq!(::std::mem::size_of::<DOMIntersectionObserver_cycleCollection>()
+               , 16usize);
+    assert_eq!(::std::mem::align_of::<DOMIntersectionObserver_cycleCollection>()
+               , 8usize);
+}
+impl Clone for DOMIntersectionObserver_cycleCollection {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DOMIntersectionObserver_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+extern "C" {
+    #[link_name =
+          "_ZN7mozilla3dom23DOMIntersectionObserver21_cycleCollectorGlobalE"]
+    pub static mut DOMIntersectionObserver__cycleCollectorGlobal:
+               DOMIntersectionObserver_cycleCollection;
+}
+#[test]
+fn bindgen_test_layout_DOMIntersectionObserver() {
+    assert_eq!(::std::mem::size_of::<DOMIntersectionObserver>() , 200usize);
+    assert_eq!(::std::mem::align_of::<DOMIntersectionObserver>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -8119,6 +8237,18 @@ pub enum StyleUserSelect {
 }
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StyleUserInput { None = 0, Enabled = 1, Disabled = 2, Auto = 3, }
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StyleUserModify { ReadOnly = 0, ReadWrite = 1, WriteOnly = 2, }
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StyleWindowDragging { Default = 0, Drag = 1, NoDrag = 2, }
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum StyleOrient { Inline = 0, Block = 1, Horizontal = 2, Vertical = 3, }
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum StyleDisplay {
     None = 0,
     Block = 1,
@@ -8182,21 +8312,21 @@ pub enum nsStyleUnit {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct _bindgen_ty_25 {
+pub struct _bindgen_ty_10 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mPointer: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub bindgen_union_field: u64,
 }
 #[test]
-fn bindgen_test_layout__bindgen_ty_25() {
-    assert_eq!(::std::mem::size_of::<_bindgen_ty_25>() , 8usize);
-    assert_eq!(::std::mem::align_of::<_bindgen_ty_25>() , 8usize);
+fn bindgen_test_layout__bindgen_ty_10() {
+    assert_eq!(::std::mem::size_of::<_bindgen_ty_10>() , 8usize);
+    assert_eq!(::std::mem::align_of::<_bindgen_ty_10>() , 8usize);
 }
-impl Clone for _bindgen_ty_25 {
+impl Clone for _bindgen_ty_10 {
     fn clone(&self) -> Self { *self }
 }
-pub type nsStyleUnion = _bindgen_ty_25;
+pub type nsStyleUnion = _bindgen_ty_10;
 /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -8346,7 +8476,7 @@ pub struct nsStyleDisplay {
     pub mOverflowY: u8,
     pub mOverflowClipBox: u8,
     pub mResize: u8,
-    pub mOrient: u8,
+    pub mOrient: StyleOrient,
     pub mIsolation: u8,
     pub mTopLayer: u8,
     pub mWillChangeBitField: u8,
@@ -8569,65 +8699,74 @@ fn bindgen_test_layout_nsInvalidateRequestList() {
     assert_eq!(::std::mem::size_of::<nsInvalidateRequestList>() , 8usize);
     assert_eq!(::std::mem::align_of::<nsInvalidateRequestList>() , 8usize);
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsCSSTokenSerializationType {
-    eCSSTokenSerialization_Nothing = 0,
-    eCSSTokenSerialization_Whitespace = 1,
-    eCSSTokenSerialization_AtKeyword_or_Hash = 2,
-    eCSSTokenSerialization_Number = 3,
-    eCSSTokenSerialization_Dimension = 4,
-    eCSSTokenSerialization_Percentage = 5,
-    eCSSTokenSerialization_URange = 6,
-    eCSSTokenSerialization_URL_or_BadURL = 7,
-    eCSSTokenSerialization_Function = 8,
-    eCSSTokenSerialization_Ident = 9,
-    eCSSTokenSerialization_CDC = 10,
-    eCSSTokenSerialization_DashMatch = 11,
-    eCSSTokenSerialization_ContainsMatch = 12,
-    eCSSTokenSerialization_Symbol_Hash = 13,
-    eCSSTokenSerialization_Symbol_At = 14,
-    eCSSTokenSerialization_Symbol_Dot_or_Plus = 15,
-    eCSSTokenSerialization_Symbol_Minus = 16,
-    eCSSTokenSerialization_Symbol_OpenParen = 17,
-    eCSSTokenSerialization_Symbol_Question = 18,
-    eCSSTokenSerialization_Symbol_Assorted = 19,
-    eCSSTokenSerialization_Symbol_Equals = 20,
-    eCSSTokenSerialization_Symbol_Bar = 21,
-    eCSSTokenSerialization_Symbol_Slash = 22,
-    eCSSTokenSerialization_Symbol_Asterisk = 23,
-    eCSSTokenSerialization_Other = 24,
+#[repr(C)]
+#[derive(Debug)]
+pub struct DOMRect {
+    pub _base: DOMRectReadOnly,
+    pub _base_1: nsIDOMClientRect,
+    pub mX: f64,
+    pub mY: f64,
+    pub mWidth: f64,
+    pub mHeight: f64,
+}
+#[test]
+fn bindgen_test_layout_DOMRect() {
+    assert_eq!(::std::mem::size_of::<DOMRect>() , 96usize);
+    assert_eq!(::std::mem::align_of::<DOMRect>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct CSSVariableValues {
-    /**
-   * Map of variable names to IDs.  Variable IDs are indexes into
-   * mVariables.
-   */
-    pub mVariableIDs: [u64; 5usize],
-    /**
-   * Array of variables, indexed by variable ID.
-   */
-    pub mVariables: nsTArray<CSSVariableValues_Variable>,
+pub struct DOMIntersectionObserverEntry {
+    pub _base: nsISupports,
+    pub _base_1: nsWrapperCache,
+    pub mRefCnt: nsCycleCollectingAutoRefCnt,
+    pub _mOwningThread: nsAutoOwningThread,
+    pub mOwner: nsCOMPtr<nsISupports>,
+    pub mTime: DOMHighResTimeStamp,
+    pub mRootBounds: RefPtr<DOMRect>,
+    pub mBoundingClientRect: RefPtr<DOMRect>,
+    pub mIntersectionRect: RefPtr<DOMRect>,
+    pub mTarget: RefPtr<Element>,
+    pub mIntersectionRatio: f64,
+}
+pub type DOMIntersectionObserverEntry_HasThreadSafeRefCnt = FalseType;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DOMIntersectionObserverEntry_cycleCollection {
+    pub _base: nsXPCOMCycleCollectionParticipant,
+}
+#[test]
+fn bindgen_test_layout_DOMIntersectionObserverEntry_cycleCollection() {
+    assert_eq!(::std::mem::size_of::<DOMIntersectionObserverEntry_cycleCollection>()
+               , 16usize);
+    assert_eq!(::std::mem::align_of::<DOMIntersectionObserverEntry_cycleCollection>()
+               , 8usize);
+}
+impl Clone for DOMIntersectionObserverEntry_cycleCollection {
+    fn clone(&self) -> Self { *self }
+}
+extern "C" {
+    #[link_name =
+          "_ZN7mozilla3dom28DOMIntersectionObserverEntry21_cycleCollectorGlobalE"]
+    pub static mut DOMIntersectionObserverEntry__cycleCollectorGlobal:
+               DOMIntersectionObserverEntry_cycleCollection;
+}
+#[test]
+fn bindgen_test_layout_DOMIntersectionObserverEntry() {
+    assert_eq!(::std::mem::size_of::<DOMIntersectionObserverEntry>() ,
+               104usize);
+    assert_eq!(::std::mem::align_of::<DOMIntersectionObserverEntry>() ,
+               8usize);
 }
 #[repr(C)]
 #[derive(Debug)]
-pub struct CSSVariableValues_Variable {
-    pub mVariableName: nsString,
-    pub mValue: nsString,
-    pub mFirstToken: nsCSSTokenSerializationType,
-    pub mLastToken: nsCSSTokenSerializationType,
+pub struct IntersectionCallback {
+    pub _base: CallbackFunction,
 }
 #[test]
-fn bindgen_test_layout_CSSVariableValues_Variable() {
-    assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() , 40usize);
-    assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() , 8usize);
-}
-#[test]
-fn bindgen_test_layout_CSSVariableValues() {
-    assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 48usize);
-    assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
+fn bindgen_test_layout_IntersectionCallback() {
+    assert_eq!(::std::mem::size_of::<IntersectionCallback>() , 56usize);
+    assert_eq!(::std::mem::align_of::<IntersectionCallback>() , 8usize);
 }
 /**
  * This struct represents a combined color from a numeric color and
@@ -8838,308 +8977,308 @@ pub enum nsCSSPropertyID {
     eCSSProperty_margin_top = 169,
     eCSSProperty_marker_end = 170,
     eCSSProperty_marker_mid = 171,
-    eCSSProperty_marker_offset = 172,
-    eCSSProperty_marker_start = 173,
-    eCSSProperty_mask_clip = 174,
-    eCSSProperty_mask_composite = 175,
-    eCSSProperty_mask_image = 176,
-    eCSSProperty_mask_mode = 177,
-    eCSSProperty_mask_origin = 178,
-    eCSSProperty_mask_position_x = 179,
-    eCSSProperty_mask_position_y = 180,
-    eCSSProperty_mask_repeat = 181,
-    eCSSProperty_mask_size = 182,
-    eCSSProperty_mask_type = 183,
-    eCSSProperty_math_display = 184,
-    eCSSProperty_math_variant = 185,
-    eCSSProperty_max_block_size = 186,
-    eCSSProperty_max_height = 187,
-    eCSSProperty_max_inline_size = 188,
-    eCSSProperty_max_width = 189,
-    eCSSProperty_min_block_size = 190,
-    eCSSProperty__moz_min_font_size_ratio = 191,
-    eCSSProperty_min_height = 192,
-    eCSSProperty_min_inline_size = 193,
-    eCSSProperty_min_width = 194,
-    eCSSProperty_mix_blend_mode = 195,
-    eCSSProperty_object_fit = 196,
-    eCSSProperty_object_position = 197,
-    eCSSProperty_offset_block_end = 198,
-    eCSSProperty_offset_block_start = 199,
-    eCSSProperty_offset_inline_end = 200,
-    eCSSProperty_offset_inline_start = 201,
-    eCSSProperty_opacity = 202,
-    eCSSProperty_order = 203,
-    eCSSProperty_orient = 204,
-    eCSSProperty_osx_font_smoothing = 205,
-    eCSSProperty_outline_color = 206,
-    eCSSProperty_outline_offset = 207,
-    eCSSProperty__moz_outline_radius_bottomLeft = 208,
-    eCSSProperty__moz_outline_radius_bottomRight = 209,
-    eCSSProperty__moz_outline_radius_topLeft = 210,
-    eCSSProperty__moz_outline_radius_topRight = 211,
-    eCSSProperty_outline_style = 212,
-    eCSSProperty_outline_width = 213,
-    eCSSProperty_overflow_clip_box = 214,
-    eCSSProperty_overflow_x = 215,
-    eCSSProperty_overflow_y = 216,
-    eCSSProperty_padding_block_end = 217,
-    eCSSProperty_padding_block_start = 218,
-    eCSSProperty_padding_bottom = 219,
-    eCSSProperty_padding_inline_end = 220,
-    eCSSProperty_padding_inline_start = 221,
-    eCSSProperty_padding_left = 222,
-    eCSSProperty_padding_right = 223,
-    eCSSProperty_padding_top = 224,
-    eCSSProperty_page_break_after = 225,
-    eCSSProperty_page_break_before = 226,
-    eCSSProperty_page_break_inside = 227,
-    eCSSProperty_paint_order = 228,
-    eCSSProperty_perspective = 229,
-    eCSSProperty_perspective_origin = 230,
-    eCSSProperty_pointer_events = 231,
-    eCSSProperty_position = 232,
-    eCSSProperty_quotes = 233,
-    eCSSProperty_resize = 234,
-    eCSSProperty_right = 235,
-    eCSSProperty_ruby_align = 236,
-    eCSSProperty_ruby_position = 237,
-    eCSSProperty_script_level = 238,
-    eCSSProperty_script_min_size = 239,
-    eCSSProperty_script_size_multiplier = 240,
-    eCSSProperty_scroll_behavior = 241,
-    eCSSProperty_scroll_snap_coordinate = 242,
-    eCSSProperty_scroll_snap_destination = 243,
-    eCSSProperty_scroll_snap_points_x = 244,
-    eCSSProperty_scroll_snap_points_y = 245,
-    eCSSProperty_scroll_snap_type_x = 246,
-    eCSSProperty_scroll_snap_type_y = 247,
-    eCSSProperty_shape_outside = 248,
-    eCSSProperty_shape_rendering = 249,
-    eCSSProperty__x_span = 250,
-    eCSSProperty_stack_sizing = 251,
-    eCSSProperty_stop_color = 252,
-    eCSSProperty_stop_opacity = 253,
-    eCSSProperty_stroke = 254,
-    eCSSProperty_stroke_dasharray = 255,
-    eCSSProperty_stroke_dashoffset = 256,
-    eCSSProperty_stroke_linecap = 257,
-    eCSSProperty_stroke_linejoin = 258,
-    eCSSProperty_stroke_miterlimit = 259,
-    eCSSProperty_stroke_opacity = 260,
-    eCSSProperty_stroke_width = 261,
-    eCSSProperty__x_system_font = 262,
-    eCSSProperty__moz_tab_size = 263,
-    eCSSProperty_table_layout = 264,
-    eCSSProperty_text_align = 265,
-    eCSSProperty_text_align_last = 266,
-    eCSSProperty_text_anchor = 267,
-    eCSSProperty_text_combine_upright = 268,
-    eCSSProperty_text_decoration_color = 269,
-    eCSSProperty_text_decoration_line = 270,
-    eCSSProperty_text_decoration_style = 271,
-    eCSSProperty_text_emphasis_color = 272,
-    eCSSProperty_text_emphasis_position = 273,
-    eCSSProperty_text_emphasis_style = 274,
-    eCSSProperty__webkit_text_fill_color = 275,
-    eCSSProperty_text_indent = 276,
-    eCSSProperty_text_orientation = 277,
-    eCSSProperty_text_overflow = 278,
-    eCSSProperty_text_rendering = 279,
-    eCSSProperty_text_shadow = 280,
-    eCSSProperty_text_size_adjust = 281,
-    eCSSProperty__webkit_text_stroke_color = 282,
-    eCSSProperty__webkit_text_stroke_width = 283,
-    eCSSProperty_text_transform = 284,
-    eCSSProperty__x_text_zoom = 285,
-    eCSSProperty_top = 286,
-    eCSSProperty__moz_top_layer = 287,
-    eCSSProperty_touch_action = 288,
-    eCSSProperty_transform = 289,
-    eCSSProperty_transform_box = 290,
-    eCSSProperty_transform_origin = 291,
-    eCSSProperty_transform_style = 292,
-    eCSSProperty_transition_delay = 293,
-    eCSSProperty_transition_duration = 294,
-    eCSSProperty_transition_property = 295,
-    eCSSProperty_transition_timing_function = 296,
-    eCSSProperty_unicode_bidi = 297,
-    eCSSProperty_user_focus = 298,
-    eCSSProperty_user_input = 299,
-    eCSSProperty_user_modify = 300,
-    eCSSProperty_user_select = 301,
-    eCSSProperty_vector_effect = 302,
-    eCSSProperty_vertical_align = 303,
-    eCSSProperty_visibility = 304,
-    eCSSProperty_white_space = 305,
-    eCSSProperty_width = 306,
-    eCSSProperty_will_change = 307,
-    eCSSProperty__moz_window_dragging = 308,
-    eCSSProperty__moz_window_shadow = 309,
-    eCSSProperty_word_break = 310,
-    eCSSProperty_word_spacing = 311,
-    eCSSProperty_overflow_wrap = 312,
-    eCSSProperty_writing_mode = 313,
-    eCSSProperty_z_index = 314,
-    eCSSProperty_COUNT_no_shorthands = 315,
-    eCSSProperty_animation = 316,
-    eCSSProperty_background = 317,
-    eCSSProperty_background_position = 318,
-    eCSSProperty_border = 319,
-    eCSSProperty_border_block_end = 320,
-    eCSSProperty_border_block_start = 321,
-    eCSSProperty_border_bottom = 322,
-    eCSSProperty_border_color = 323,
-    eCSSProperty_border_image = 324,
-    eCSSProperty_border_inline_end = 325,
-    eCSSProperty_border_inline_start = 326,
-    eCSSProperty_border_left = 327,
-    eCSSProperty_border_radius = 328,
-    eCSSProperty_border_right = 329,
-    eCSSProperty_border_style = 330,
-    eCSSProperty_border_top = 331,
-    eCSSProperty_border_width = 332,
-    eCSSProperty_column_rule = 333,
-    eCSSProperty_columns = 334,
-    eCSSProperty_flex = 335,
-    eCSSProperty_flex_flow = 336,
-    eCSSProperty_font = 337,
-    eCSSProperty_font_variant = 338,
-    eCSSProperty_grid = 339,
-    eCSSProperty_grid_area = 340,
-    eCSSProperty_grid_column = 341,
-    eCSSProperty_grid_gap = 342,
-    eCSSProperty_grid_row = 343,
-    eCSSProperty_grid_template = 344,
-    eCSSProperty_list_style = 345,
-    eCSSProperty_margin = 346,
-    eCSSProperty_marker = 347,
-    eCSSProperty_mask = 348,
-    eCSSProperty_mask_position = 349,
-    eCSSProperty_outline = 350,
-    eCSSProperty__moz_outline_radius = 351,
-    eCSSProperty_overflow = 352,
-    eCSSProperty_padding = 353,
-    eCSSProperty_scroll_snap_type = 354,
-    eCSSProperty_text_decoration = 355,
-    eCSSProperty_text_emphasis = 356,
-    eCSSProperty__webkit_text_stroke = 357,
-    eCSSProperty__moz_transform = 358,
-    eCSSProperty_transition = 359,
-    eCSSProperty_COUNT = 360,
-    eCSSPropertyAlias_MozTransformOrigin = 361,
-    eCSSPropertyAlias_MozPerspectiveOrigin = 362,
-    eCSSPropertyAlias_MozPerspective = 363,
-    eCSSPropertyAlias_MozTransformStyle = 364,
-    eCSSPropertyAlias_MozBackfaceVisibility = 365,
-    eCSSPropertyAlias_MozBorderImage = 366,
-    eCSSPropertyAlias_MozTransition = 367,
-    eCSSPropertyAlias_MozTransitionDelay = 368,
-    eCSSPropertyAlias_MozTransitionDuration = 369,
-    eCSSPropertyAlias_MozTransitionProperty = 370,
-    eCSSPropertyAlias_MozTransitionTimingFunction = 371,
-    eCSSPropertyAlias_MozAnimation = 372,
-    eCSSPropertyAlias_MozAnimationDelay = 373,
-    eCSSPropertyAlias_MozAnimationDirection = 374,
-    eCSSPropertyAlias_MozAnimationDuration = 375,
-    eCSSPropertyAlias_MozAnimationFillMode = 376,
-    eCSSPropertyAlias_MozAnimationIterationCount = 377,
-    eCSSPropertyAlias_MozAnimationName = 378,
-    eCSSPropertyAlias_MozAnimationPlayState = 379,
-    eCSSPropertyAlias_MozAnimationTimingFunction = 380,
-    eCSSPropertyAlias_MozBoxSizing = 381,
-    eCSSPropertyAlias_MozFontFeatureSettings = 382,
-    eCSSPropertyAlias_MozFontLanguageOverride = 383,
-    eCSSPropertyAlias_MozPaddingEnd = 384,
-    eCSSPropertyAlias_MozPaddingStart = 385,
-    eCSSPropertyAlias_MozMarginEnd = 386,
-    eCSSPropertyAlias_MozMarginStart = 387,
-    eCSSPropertyAlias_MozBorderEnd = 388,
-    eCSSPropertyAlias_MozBorderEndColor = 389,
-    eCSSPropertyAlias_MozBorderEndStyle = 390,
-    eCSSPropertyAlias_MozBorderEndWidth = 391,
-    eCSSPropertyAlias_MozBorderStart = 392,
-    eCSSPropertyAlias_MozBorderStartColor = 393,
-    eCSSPropertyAlias_MozBorderStartStyle = 394,
-    eCSSPropertyAlias_MozBorderStartWidth = 395,
-    eCSSPropertyAlias_MozHyphens = 396,
-    eCSSPropertyAlias_MozTextAlignLast = 397,
-    eCSSPropertyAlias_MozColumnCount = 398,
-    eCSSPropertyAlias_MozColumnFill = 399,
-    eCSSPropertyAlias_MozColumnGap = 400,
-    eCSSPropertyAlias_MozColumnRule = 401,
-    eCSSPropertyAlias_MozColumnRuleColor = 402,
-    eCSSPropertyAlias_MozColumnRuleStyle = 403,
-    eCSSPropertyAlias_MozColumnRuleWidth = 404,
-    eCSSPropertyAlias_MozColumnWidth = 405,
-    eCSSPropertyAlias_MozColumns = 406,
-    eCSSPropertyAlias_WebkitAnimation = 407,
-    eCSSPropertyAlias_WebkitAnimationDelay = 408,
-    eCSSPropertyAlias_WebkitAnimationDirection = 409,
-    eCSSPropertyAlias_WebkitAnimationDuration = 410,
-    eCSSPropertyAlias_WebkitAnimationFillMode = 411,
-    eCSSPropertyAlias_WebkitAnimationIterationCount = 412,
-    eCSSPropertyAlias_WebkitAnimationName = 413,
-    eCSSPropertyAlias_WebkitAnimationPlayState = 414,
-    eCSSPropertyAlias_WebkitAnimationTimingFunction = 415,
-    eCSSPropertyAlias_WebkitFilter = 416,
-    eCSSPropertyAlias_WebkitTextSizeAdjust = 417,
-    eCSSPropertyAlias_WebkitTransform = 418,
-    eCSSPropertyAlias_WebkitTransformOrigin = 419,
-    eCSSPropertyAlias_WebkitTransformStyle = 420,
-    eCSSPropertyAlias_WebkitBackfaceVisibility = 421,
-    eCSSPropertyAlias_WebkitPerspective = 422,
-    eCSSPropertyAlias_WebkitPerspectiveOrigin = 423,
-    eCSSPropertyAlias_WebkitTransition = 424,
-    eCSSPropertyAlias_WebkitTransitionDelay = 425,
-    eCSSPropertyAlias_WebkitTransitionDuration = 426,
-    eCSSPropertyAlias_WebkitTransitionProperty = 427,
-    eCSSPropertyAlias_WebkitTransitionTimingFunction = 428,
-    eCSSPropertyAlias_WebkitBorderRadius = 429,
-    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 430,
-    eCSSPropertyAlias_WebkitBorderTopRightRadius = 431,
-    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 432,
-    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 433,
-    eCSSPropertyAlias_WebkitBackgroundClip = 434,
-    eCSSPropertyAlias_WebkitBackgroundOrigin = 435,
-    eCSSPropertyAlias_WebkitBackgroundSize = 436,
-    eCSSPropertyAlias_WebkitBorderImage = 437,
-    eCSSPropertyAlias_WebkitBoxShadow = 438,
-    eCSSPropertyAlias_WebkitBoxSizing = 439,
-    eCSSPropertyAlias_WebkitBoxFlex = 440,
-    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 441,
-    eCSSPropertyAlias_WebkitBoxOrient = 442,
-    eCSSPropertyAlias_WebkitBoxDirection = 443,
-    eCSSPropertyAlias_WebkitBoxAlign = 444,
-    eCSSPropertyAlias_WebkitBoxPack = 445,
-    eCSSPropertyAlias_WebkitFlexDirection = 446,
-    eCSSPropertyAlias_WebkitFlexWrap = 447,
-    eCSSPropertyAlias_WebkitFlexFlow = 448,
-    eCSSPropertyAlias_WebkitOrder = 449,
-    eCSSPropertyAlias_WebkitFlex = 450,
-    eCSSPropertyAlias_WebkitFlexGrow = 451,
-    eCSSPropertyAlias_WebkitFlexShrink = 452,
-    eCSSPropertyAlias_WebkitFlexBasis = 453,
-    eCSSPropertyAlias_WebkitJustifyContent = 454,
-    eCSSPropertyAlias_WebkitAlignItems = 455,
-    eCSSPropertyAlias_WebkitAlignSelf = 456,
-    eCSSPropertyAlias_WebkitAlignContent = 457,
-    eCSSPropertyAlias_WebkitUserSelect = 458,
-    eCSSPropertyAlias_WebkitMask = 459,
-    eCSSPropertyAlias_WebkitMaskClip = 460,
-    eCSSPropertyAlias_WebkitMaskComposite = 461,
-    eCSSPropertyAlias_WebkitMaskImage = 462,
-    eCSSPropertyAlias_WebkitMaskOrigin = 463,
-    eCSSPropertyAlias_WebkitMaskPosition = 464,
-    eCSSPropertyAlias_WebkitMaskPositionX = 465,
-    eCSSPropertyAlias_WebkitMaskPositionY = 466,
-    eCSSPropertyAlias_WebkitMaskRepeat = 467,
-    eCSSPropertyAlias_WebkitMaskSize = 468,
-    eCSSProperty_COUNT_with_aliases = 469,
-    eCSSPropertyExtra_all_properties = 470,
-    eCSSPropertyExtra_x_none_value = 471,
-    eCSSPropertyExtra_x_auto_value = 472,
-    eCSSPropertyExtra_variable = 473,
+    eCSSProperty_marker_start = 172,
+    eCSSProperty_mask_clip = 173,
+    eCSSProperty_mask_composite = 174,
+    eCSSProperty_mask_image = 175,
+    eCSSProperty_mask_mode = 176,
+    eCSSProperty_mask_origin = 177,
+    eCSSProperty_mask_position_x = 178,
+    eCSSProperty_mask_position_y = 179,
+    eCSSProperty_mask_repeat = 180,
+    eCSSProperty_mask_size = 181,
+    eCSSProperty_mask_type = 182,
+    eCSSProperty_math_display = 183,
+    eCSSProperty_math_variant = 184,
+    eCSSProperty_max_block_size = 185,
+    eCSSProperty_max_height = 186,
+    eCSSProperty_max_inline_size = 187,
+    eCSSProperty_max_width = 188,
+    eCSSProperty_min_block_size = 189,
+    eCSSProperty__moz_min_font_size_ratio = 190,
+    eCSSProperty_min_height = 191,
+    eCSSProperty_min_inline_size = 192,
+    eCSSProperty_min_width = 193,
+    eCSSProperty_mix_blend_mode = 194,
+    eCSSProperty_object_fit = 195,
+    eCSSProperty_object_position = 196,
+    eCSSProperty_offset_block_end = 197,
+    eCSSProperty_offset_block_start = 198,
+    eCSSProperty_offset_inline_end = 199,
+    eCSSProperty_offset_inline_start = 200,
+    eCSSProperty_opacity = 201,
+    eCSSProperty_order = 202,
+    eCSSProperty_orient = 203,
+    eCSSProperty_osx_font_smoothing = 204,
+    eCSSProperty_outline_color = 205,
+    eCSSProperty_outline_offset = 206,
+    eCSSProperty__moz_outline_radius_bottomLeft = 207,
+    eCSSProperty__moz_outline_radius_bottomRight = 208,
+    eCSSProperty__moz_outline_radius_topLeft = 209,
+    eCSSProperty__moz_outline_radius_topRight = 210,
+    eCSSProperty_outline_style = 211,
+    eCSSProperty_outline_width = 212,
+    eCSSProperty_overflow_clip_box = 213,
+    eCSSProperty_overflow_x = 214,
+    eCSSProperty_overflow_y = 215,
+    eCSSProperty_padding_block_end = 216,
+    eCSSProperty_padding_block_start = 217,
+    eCSSProperty_padding_bottom = 218,
+    eCSSProperty_padding_inline_end = 219,
+    eCSSProperty_padding_inline_start = 220,
+    eCSSProperty_padding_left = 221,
+    eCSSProperty_padding_right = 222,
+    eCSSProperty_padding_top = 223,
+    eCSSProperty_page_break_after = 224,
+    eCSSProperty_page_break_before = 225,
+    eCSSProperty_page_break_inside = 226,
+    eCSSProperty_paint_order = 227,
+    eCSSProperty_perspective = 228,
+    eCSSProperty_perspective_origin = 229,
+    eCSSProperty_pointer_events = 230,
+    eCSSProperty_position = 231,
+    eCSSProperty_quotes = 232,
+    eCSSProperty_resize = 233,
+    eCSSProperty_right = 234,
+    eCSSProperty_ruby_align = 235,
+    eCSSProperty_ruby_position = 236,
+    eCSSProperty_script_level = 237,
+    eCSSProperty_script_min_size = 238,
+    eCSSProperty_script_size_multiplier = 239,
+    eCSSProperty_scroll_behavior = 240,
+    eCSSProperty_scroll_snap_coordinate = 241,
+    eCSSProperty_scroll_snap_destination = 242,
+    eCSSProperty_scroll_snap_points_x = 243,
+    eCSSProperty_scroll_snap_points_y = 244,
+    eCSSProperty_scroll_snap_type_x = 245,
+    eCSSProperty_scroll_snap_type_y = 246,
+    eCSSProperty_shape_outside = 247,
+    eCSSProperty_shape_rendering = 248,
+    eCSSProperty__x_span = 249,
+    eCSSProperty_stack_sizing = 250,
+    eCSSProperty_stop_color = 251,
+    eCSSProperty_stop_opacity = 252,
+    eCSSProperty_stroke = 253,
+    eCSSProperty_stroke_dasharray = 254,
+    eCSSProperty_stroke_dashoffset = 255,
+    eCSSProperty_stroke_linecap = 256,
+    eCSSProperty_stroke_linejoin = 257,
+    eCSSProperty_stroke_miterlimit = 258,
+    eCSSProperty_stroke_opacity = 259,
+    eCSSProperty_stroke_width = 260,
+    eCSSProperty__x_system_font = 261,
+    eCSSProperty__moz_tab_size = 262,
+    eCSSProperty_table_layout = 263,
+    eCSSProperty_text_align = 264,
+    eCSSProperty_text_align_last = 265,
+    eCSSProperty_text_anchor = 266,
+    eCSSProperty_text_combine_upright = 267,
+    eCSSProperty_text_decoration_color = 268,
+    eCSSProperty_text_decoration_line = 269,
+    eCSSProperty_text_decoration_style = 270,
+    eCSSProperty_text_emphasis_color = 271,
+    eCSSProperty_text_emphasis_position = 272,
+    eCSSProperty_text_emphasis_style = 273,
+    eCSSProperty__webkit_text_fill_color = 274,
+    eCSSProperty_text_indent = 275,
+    eCSSProperty_text_orientation = 276,
+    eCSSProperty_text_overflow = 277,
+    eCSSProperty_text_rendering = 278,
+    eCSSProperty_text_shadow = 279,
+    eCSSProperty_text_size_adjust = 280,
+    eCSSProperty__webkit_text_stroke_color = 281,
+    eCSSProperty__webkit_text_stroke_width = 282,
+    eCSSProperty_text_transform = 283,
+    eCSSProperty__x_text_zoom = 284,
+    eCSSProperty_top = 285,
+    eCSSProperty__moz_top_layer = 286,
+    eCSSProperty_touch_action = 287,
+    eCSSProperty_transform = 288,
+    eCSSProperty_transform_box = 289,
+    eCSSProperty_transform_origin = 290,
+    eCSSProperty_transform_style = 291,
+    eCSSProperty_transition_delay = 292,
+    eCSSProperty_transition_duration = 293,
+    eCSSProperty_transition_property = 294,
+    eCSSProperty_transition_timing_function = 295,
+    eCSSProperty_unicode_bidi = 296,
+    eCSSProperty_user_focus = 297,
+    eCSSProperty_user_input = 298,
+    eCSSProperty_user_modify = 299,
+    eCSSProperty_user_select = 300,
+    eCSSProperty_vector_effect = 301,
+    eCSSProperty_vertical_align = 302,
+    eCSSProperty_visibility = 303,
+    eCSSProperty_white_space = 304,
+    eCSSProperty_width = 305,
+    eCSSProperty_will_change = 306,
+    eCSSProperty__moz_window_dragging = 307,
+    eCSSProperty__moz_window_shadow = 308,
+    eCSSProperty_word_break = 309,
+    eCSSProperty_word_spacing = 310,
+    eCSSProperty_overflow_wrap = 311,
+    eCSSProperty_writing_mode = 312,
+    eCSSProperty_z_index = 313,
+    eCSSProperty_COUNT_no_shorthands = 314,
+    eCSSProperty_animation = 315,
+    eCSSProperty_background = 316,
+    eCSSProperty_background_position = 317,
+    eCSSProperty_border = 318,
+    eCSSProperty_border_block_end = 319,
+    eCSSProperty_border_block_start = 320,
+    eCSSProperty_border_bottom = 321,
+    eCSSProperty_border_color = 322,
+    eCSSProperty_border_image = 323,
+    eCSSProperty_border_inline_end = 324,
+    eCSSProperty_border_inline_start = 325,
+    eCSSProperty_border_left = 326,
+    eCSSProperty_border_radius = 327,
+    eCSSProperty_border_right = 328,
+    eCSSProperty_border_style = 329,
+    eCSSProperty_border_top = 330,
+    eCSSProperty_border_width = 331,
+    eCSSProperty_column_rule = 332,
+    eCSSProperty_columns = 333,
+    eCSSProperty_flex = 334,
+    eCSSProperty_flex_flow = 335,
+    eCSSProperty_font = 336,
+    eCSSProperty_font_variant = 337,
+    eCSSProperty_grid = 338,
+    eCSSProperty_grid_area = 339,
+    eCSSProperty_grid_column = 340,
+    eCSSProperty_grid_gap = 341,
+    eCSSProperty_grid_row = 342,
+    eCSSProperty_grid_template = 343,
+    eCSSProperty_list_style = 344,
+    eCSSProperty_margin = 345,
+    eCSSProperty_marker = 346,
+    eCSSProperty_mask = 347,
+    eCSSProperty_mask_position = 348,
+    eCSSProperty_outline = 349,
+    eCSSProperty__moz_outline_radius = 350,
+    eCSSProperty_overflow = 351,
+    eCSSProperty_padding = 352,
+    eCSSProperty_scroll_snap_type = 353,
+    eCSSProperty_text_decoration = 354,
+    eCSSProperty_text_emphasis = 355,
+    eCSSProperty__webkit_text_stroke = 356,
+    eCSSProperty__moz_transform = 357,
+    eCSSProperty_transition = 358,
+    eCSSProperty_COUNT = 359,
+    eCSSPropertyAlias_MozTransformOrigin = 360,
+    eCSSPropertyAlias_MozPerspectiveOrigin = 361,
+    eCSSPropertyAlias_MozPerspective = 362,
+    eCSSPropertyAlias_MozTransformStyle = 363,
+    eCSSPropertyAlias_MozBackfaceVisibility = 364,
+    eCSSPropertyAlias_MozBorderImage = 365,
+    eCSSPropertyAlias_MozTransition = 366,
+    eCSSPropertyAlias_MozTransitionDelay = 367,
+    eCSSPropertyAlias_MozTransitionDuration = 368,
+    eCSSPropertyAlias_MozTransitionProperty = 369,
+    eCSSPropertyAlias_MozTransitionTimingFunction = 370,
+    eCSSPropertyAlias_MozAnimation = 371,
+    eCSSPropertyAlias_MozAnimationDelay = 372,
+    eCSSPropertyAlias_MozAnimationDirection = 373,
+    eCSSPropertyAlias_MozAnimationDuration = 374,
+    eCSSPropertyAlias_MozAnimationFillMode = 375,
+    eCSSPropertyAlias_MozAnimationIterationCount = 376,
+    eCSSPropertyAlias_MozAnimationName = 377,
+    eCSSPropertyAlias_MozAnimationPlayState = 378,
+    eCSSPropertyAlias_MozAnimationTimingFunction = 379,
+    eCSSPropertyAlias_MozBoxSizing = 380,
+    eCSSPropertyAlias_MozFontFeatureSettings = 381,
+    eCSSPropertyAlias_MozFontLanguageOverride = 382,
+    eCSSPropertyAlias_MozPaddingEnd = 383,
+    eCSSPropertyAlias_MozPaddingStart = 384,
+    eCSSPropertyAlias_MozMarginEnd = 385,
+    eCSSPropertyAlias_MozMarginStart = 386,
+    eCSSPropertyAlias_MozBorderEnd = 387,
+    eCSSPropertyAlias_MozBorderEndColor = 388,
+    eCSSPropertyAlias_MozBorderEndStyle = 389,
+    eCSSPropertyAlias_MozBorderEndWidth = 390,
+    eCSSPropertyAlias_MozBorderStart = 391,
+    eCSSPropertyAlias_MozBorderStartColor = 392,
+    eCSSPropertyAlias_MozBorderStartStyle = 393,
+    eCSSPropertyAlias_MozBorderStartWidth = 394,
+    eCSSPropertyAlias_MozHyphens = 395,
+    eCSSPropertyAlias_MozTextAlignLast = 396,
+    eCSSPropertyAlias_MozColumnCount = 397,
+    eCSSPropertyAlias_MozColumnFill = 398,
+    eCSSPropertyAlias_MozColumnGap = 399,
+    eCSSPropertyAlias_MozColumnRule = 400,
+    eCSSPropertyAlias_MozColumnRuleColor = 401,
+    eCSSPropertyAlias_MozColumnRuleStyle = 402,
+    eCSSPropertyAlias_MozColumnRuleWidth = 403,
+    eCSSPropertyAlias_MozColumnWidth = 404,
+    eCSSPropertyAlias_MozColumns = 405,
+    eCSSPropertyAlias_WebkitAnimation = 406,
+    eCSSPropertyAlias_WebkitAnimationDelay = 407,
+    eCSSPropertyAlias_WebkitAnimationDirection = 408,
+    eCSSPropertyAlias_WebkitAnimationDuration = 409,
+    eCSSPropertyAlias_WebkitAnimationFillMode = 410,
+    eCSSPropertyAlias_WebkitAnimationIterationCount = 411,
+    eCSSPropertyAlias_WebkitAnimationName = 412,
+    eCSSPropertyAlias_WebkitAnimationPlayState = 413,
+    eCSSPropertyAlias_WebkitAnimationTimingFunction = 414,
+    eCSSPropertyAlias_WebkitFilter = 415,
+    eCSSPropertyAlias_WebkitTextSizeAdjust = 416,
+    eCSSPropertyAlias_WebkitTransform = 417,
+    eCSSPropertyAlias_WebkitTransformOrigin = 418,
+    eCSSPropertyAlias_WebkitTransformStyle = 419,
+    eCSSPropertyAlias_WebkitBackfaceVisibility = 420,
+    eCSSPropertyAlias_WebkitPerspective = 421,
+    eCSSPropertyAlias_WebkitPerspectiveOrigin = 422,
+    eCSSPropertyAlias_WebkitTransition = 423,
+    eCSSPropertyAlias_WebkitTransitionDelay = 424,
+    eCSSPropertyAlias_WebkitTransitionDuration = 425,
+    eCSSPropertyAlias_WebkitTransitionProperty = 426,
+    eCSSPropertyAlias_WebkitTransitionTimingFunction = 427,
+    eCSSPropertyAlias_WebkitBorderRadius = 428,
+    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 429,
+    eCSSPropertyAlias_WebkitBorderTopRightRadius = 430,
+    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 431,
+    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 432,
+    eCSSPropertyAlias_WebkitBackgroundClip = 433,
+    eCSSPropertyAlias_WebkitBackgroundOrigin = 434,
+    eCSSPropertyAlias_WebkitBackgroundSize = 435,
+    eCSSPropertyAlias_WebkitBorderImage = 436,
+    eCSSPropertyAlias_WebkitBoxShadow = 437,
+    eCSSPropertyAlias_WebkitBoxSizing = 438,
+    eCSSPropertyAlias_WebkitBoxFlex = 439,
+    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 440,
+    eCSSPropertyAlias_WebkitBoxOrient = 441,
+    eCSSPropertyAlias_WebkitBoxDirection = 442,
+    eCSSPropertyAlias_WebkitBoxAlign = 443,
+    eCSSPropertyAlias_WebkitBoxPack = 444,
+    eCSSPropertyAlias_WebkitFlexDirection = 445,
+    eCSSPropertyAlias_WebkitFlexWrap = 446,
+    eCSSPropertyAlias_WebkitFlexFlow = 447,
+    eCSSPropertyAlias_WebkitOrder = 448,
+    eCSSPropertyAlias_WebkitFlex = 449,
+    eCSSPropertyAlias_WebkitFlexGrow = 450,
+    eCSSPropertyAlias_WebkitFlexShrink = 451,
+    eCSSPropertyAlias_WebkitFlexBasis = 452,
+    eCSSPropertyAlias_WebkitJustifyContent = 453,
+    eCSSPropertyAlias_WebkitAlignItems = 454,
+    eCSSPropertyAlias_WebkitAlignSelf = 455,
+    eCSSPropertyAlias_WebkitAlignContent = 456,
+    eCSSPropertyAlias_WebkitUserSelect = 457,
+    eCSSPropertyAlias_WebkitMask = 458,
+    eCSSPropertyAlias_WebkitMaskClip = 459,
+    eCSSPropertyAlias_WebkitMaskComposite = 460,
+    eCSSPropertyAlias_WebkitMaskImage = 461,
+    eCSSPropertyAlias_WebkitMaskOrigin = 462,
+    eCSSPropertyAlias_WebkitMaskPosition = 463,
+    eCSSPropertyAlias_WebkitMaskPositionX = 464,
+    eCSSPropertyAlias_WebkitMaskPositionY = 465,
+    eCSSPropertyAlias_WebkitMaskRepeat = 466,
+    eCSSPropertyAlias_WebkitMaskSize = 467,
+    eCSSProperty_COUNT_with_aliases = 468,
+    eCSSPropertyExtra_all_properties = 469,
+    eCSSPropertyExtra_x_none_value = 470,
+    eCSSPropertyExtra_x_auto_value = 471,
+    eCSSPropertyExtra_variable = 472,
+    eCSSProperty_DOM = 473,
 }
 /**
  * Class to safely handle main-thread-only pointers off the main thread.
@@ -9793,6 +9932,66 @@ fn bindgen_test_layout_nsCSSValueGradientStop() {
     assert_eq!(::std::mem::size_of::<nsCSSValueGradientStop>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsCSSValueGradientStop>() , 8usize);
 }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum nsCSSTokenSerializationType {
+    eCSSTokenSerialization_Nothing = 0,
+    eCSSTokenSerialization_Whitespace = 1,
+    eCSSTokenSerialization_AtKeyword_or_Hash = 2,
+    eCSSTokenSerialization_Number = 3,
+    eCSSTokenSerialization_Dimension = 4,
+    eCSSTokenSerialization_Percentage = 5,
+    eCSSTokenSerialization_URange = 6,
+    eCSSTokenSerialization_URL_or_BadURL = 7,
+    eCSSTokenSerialization_Function = 8,
+    eCSSTokenSerialization_Ident = 9,
+    eCSSTokenSerialization_CDC = 10,
+    eCSSTokenSerialization_DashMatch = 11,
+    eCSSTokenSerialization_ContainsMatch = 12,
+    eCSSTokenSerialization_Symbol_Hash = 13,
+    eCSSTokenSerialization_Symbol_At = 14,
+    eCSSTokenSerialization_Symbol_Dot_or_Plus = 15,
+    eCSSTokenSerialization_Symbol_Minus = 16,
+    eCSSTokenSerialization_Symbol_OpenParen = 17,
+    eCSSTokenSerialization_Symbol_Question = 18,
+    eCSSTokenSerialization_Symbol_Assorted = 19,
+    eCSSTokenSerialization_Symbol_Equals = 20,
+    eCSSTokenSerialization_Symbol_Bar = 21,
+    eCSSTokenSerialization_Symbol_Slash = 22,
+    eCSSTokenSerialization_Symbol_Asterisk = 23,
+    eCSSTokenSerialization_Other = 24,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct CSSVariableValues {
+    /**
+   * Map of variable names to IDs.  Variable IDs are indexes into
+   * mVariables.
+   */
+    pub mVariableIDs: [u64; 5usize],
+    /**
+   * Array of variables, indexed by variable ID.
+   */
+    pub mVariables: nsTArray<CSSVariableValues_Variable>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct CSSVariableValues_Variable {
+    pub mVariableName: nsString,
+    pub mValue: nsString,
+    pub mFirstToken: nsCSSTokenSerializationType,
+    pub mLastToken: nsCSSTokenSerializationType,
+}
+#[test]
+fn bindgen_test_layout_CSSVariableValues_Variable() {
+    assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() , 40usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() , 8usize);
+}
+#[test]
+fn bindgen_test_layout_CSSVariableValues() {
+    assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 48usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
+}
 #[repr(C)]
 pub struct CounterStyle__bindgen_vtable {
 }
@@ -9958,12 +10157,18 @@ fn bindgen_test_layout_nsStyleGradient() {
  * RequestDiscard() are made to the imgRequestProxy and ImageTracker as
  * appropriate, according to the mode flags passed in to the constructor.
  *
- * The main thread constructor takes a pointer to the css::ImageValue that
- * is the specified url() value, while the off-main-thread constructor
- * creates a new css::ImageValue to represent the url() information passed
- * to the constructor.  This ImageValue is held on to for the comparisons done
- * in DefinitelyEquals(), so that we don't need to call into the non-OMT-safe
- * Equals() on the nsIURI objects returned from imgRequestProxy::GetURI().
+ * The main thread constructor takes a pointer to the already-created
+ * imgRequestProxy, and the css::ImageValue that was used while creating it.
+ * The ImageValue object is only used to grab the URL details to store
+ * into mBaseURI and mURIString.
+ *
+ * The off-main-thread constructor creates a new css::ImageValue to
+ * hold all the data required to resolve the imgRequestProxy later.  This
+ * constructor also stores the URL details into mbaseURI and mURIString.
+ * The ImageValue is held on to in mImageTracker until the Resolve call.
+ *
+ * We use mBaseURI and mURIString so that we can perform nsStyleImageRequest
+ * equality comparisons without needing an imgRequestProxy.
  */
 #[repr(C)]
 #[derive(Debug)]
@@ -9972,6 +10177,8 @@ pub struct nsStyleImageRequest {
     pub mRequestProxy: RefPtr<imgRequestProxy>,
     pub mImageValue: RefPtr<ImageValue>,
     pub mImageTracker: RefPtr<ImageTracker>,
+    pub mBaseURI: nsMainThreadPtrHandle<nsIURI>,
+    pub mURIString: RefPtr<nsStringBuffer>,
     pub mModeFlags: nsStyleImageRequest_Mode,
     pub mResolved: bool,
 }
@@ -9981,7 +10188,7 @@ pub enum nsStyleImageRequest_Mode { Track = 1, Lock = 2, Discard = 4, }
 pub type nsStyleImageRequest_HasThreadSafeRefCnt = TrueType;
 #[test]
 fn bindgen_test_layout_nsStyleImageRequest() {
-    assert_eq!(::std::mem::size_of::<nsStyleImageRequest>() , 40usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageRequest>() , 56usize);
     assert_eq!(::std::mem::align_of::<nsStyleImageRequest>() , 8usize);
 }
 #[repr(u32)]
@@ -10411,14 +10618,8 @@ pub struct nsStyleGridLine {
     pub mInteger: i32,
     pub mLineName: nsString,
 }
-extern "C" {
-    #[link_name = "_ZN15nsStyleGridLine8kMinLineE"]
-    pub static nsStyleGridLine_kMinLine: i32;
-}
-extern "C" {
-    #[link_name = "_ZN15nsStyleGridLine8kMaxLineE"]
-    pub static nsStyleGridLine_kMaxLine: i32;
-}
+pub const nsStyleGridLine_kMinLine: i32 = -10000;
+pub const nsStyleGridLine_kMaxLine: i32 = 10000;
 #[test]
 fn bindgen_test_layout_nsStyleGridLine() {
     assert_eq!(::std::mem::size_of::<nsStyleGridLine>() , 24usize);
@@ -10867,14 +11068,13 @@ fn bindgen_test_layout_nsStyleCounterData() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleContent {
-    pub mMarkerOffset: nsStyleCoord,
     pub mContents: nsTArray<nsStyleContentData>,
     pub mIncrements: nsTArray<nsStyleCounterData>,
     pub mResets: nsTArray<nsStyleCounterData>,
 }
 #[test]
 fn bindgen_test_layout_nsStyleContent() {
-    assert_eq!(::std::mem::size_of::<nsStyleContent>() , 40usize);
+    assert_eq!(::std::mem::size_of::<nsStyleContent>() , 24usize);
     assert_eq!(::std::mem::align_of::<nsStyleContent>() , 8usize);
 }
 #[repr(C)]
@@ -10883,7 +11083,7 @@ pub struct nsStyleUIReset {
     pub mUserSelect: StyleUserSelect,
     pub mForceBrokenImageIcon: u8,
     pub mIMEMode: u8,
-    pub mWindowDragging: u8,
+    pub mWindowDragging: StyleWindowDragging,
     pub mWindowShadow: u8,
 }
 #[test]
@@ -10907,8 +11107,8 @@ fn bindgen_test_layout_nsCursorImage() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleUserInterface {
-    pub mUserInput: u8,
-    pub mUserModify: u8,
+    pub mUserInput: StyleUserInput,
+    pub mUserModify: StyleUserModify,
     pub mUserFocus: StyleUserFocus,
     pub mPointerEvents: u8,
     pub mCursor: u8,
@@ -10947,10 +11147,7 @@ pub struct nsStyleColumn {
     pub mColumnRuleWidth: nscoord,
     pub mTwipsPerPixel: nscoord,
 }
-extern "C" {
-    #[link_name = "_ZN13nsStyleColumn15kMaxColumnCountE"]
-    pub static nsStyleColumn_kMaxColumnCount: u32;
-}
+pub const nsStyleColumn_kMaxColumnCount: u32 = 1000;
 #[test]
 fn bindgen_test_layout_nsStyleColumn() {
     assert_eq!(::std::mem::size_of::<nsStyleColumn>() , 64usize);
