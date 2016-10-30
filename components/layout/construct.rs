@@ -207,10 +207,6 @@ impl IntermediateInlineFragments {
         }
     }
 
-    fn is_empty(&self) -> bool {
-        self.fragments.is_empty() && self.absolute_descendants.is_empty()
-    }
-
     fn push_all(&mut self, mut other: IntermediateInlineFragments) {
         self.fragments.append(&mut other.fragments);
         self.absolute_descendants.push_descendants(other.absolute_descendants);
@@ -752,9 +748,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     }
 
     /// Concatenates the fragments of kids, adding in our own borders/padding/margins if necessary.
-    /// Returns the `InlineFragmentsConstructionResult`, if any. There will be no
-    /// `InlineFragmentsConstructionResult` if this node consisted entirely of ignorable
-    /// whitespace.
+    /// Returns an `InlineFragmentsConstructionResult` even if this node consisted entirely of
+    /// ignorable whitespace.
     fn build_fragments_for_nonreplaced_inline_content(&mut self, node: &ConcreteThreadSafeLayoutNode)
                                                       -> ConstructionResult {
         let mut opt_inline_block_splits: LinkedList<InlineBlockSplit> = LinkedList::new();
@@ -858,27 +853,22 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         fragment_accumulator.fragments.fragments.push_back(cap_fragment);
 
         // Finally, make a new construction result.
-        if opt_inline_block_splits.len() > 0 || !fragment_accumulator.fragments.is_empty()
-                || abs_descendants.len() > 0 {
-            fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
+        fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
 
-            // If the node is positioned, then it's the containing block for all absolutely-
-            // positioned descendants.
-            if node_style.get_box().position != position::T::static_ {
-                fragment_accumulator.fragments
-                                    .absolute_descendants
-                                    .mark_as_having_reached_containing_block();
-            }
-
-            let construction_item = ConstructionItem::InlineFragments(
-                    InlineFragmentsConstructionResult {
-                splits: opt_inline_block_splits,
-                fragments: fragment_accumulator.to_intermediate_inline_fragments(self.style_context()),
-            });
-            ConstructionResult::ConstructionItem(construction_item)
-        } else {
-            ConstructionResult::None
+        // If the node is positioned, then it's the containing block for all absolutely-
+        // positioned descendants.
+        if node_style.get_box().position != position::T::static_ {
+            fragment_accumulator.fragments
+                                .absolute_descendants
+                                .mark_as_having_reached_containing_block();
         }
+
+        let construction_item = ConstructionItem::InlineFragments(
+                InlineFragmentsConstructionResult {
+            splits: opt_inline_block_splits,
+            fragments: fragment_accumulator.to_intermediate_inline_fragments(self.style_context()),
+        });
+        ConstructionResult::ConstructionItem(construction_item)
     }
 
     /// Creates an `InlineFragmentsConstructionResult` for replaced content. Replaced content
