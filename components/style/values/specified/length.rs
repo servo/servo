@@ -713,6 +713,18 @@ impl ToCss for Percentage {
     }
 }
 
+impl Parse for Percentage {
+    #[inline]
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let context = AllowedNumericType::All;
+        match try!(input.next()) {
+            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                Ok(Percentage(value.unit_value)),
+            _ => Err(())
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentage {
