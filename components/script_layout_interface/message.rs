@@ -142,6 +142,6 @@ pub struct NewLayoutThreadInfo {
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
-    pub content_process_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: Option<IpcSender<()>>,
     pub layout_threads: usize,
 }
