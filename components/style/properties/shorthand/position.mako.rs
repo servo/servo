@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<%! from data import to_rust_ident %>
+
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 // https://drafts.csswg.org/css-flexbox/#flex-flow-property
@@ -119,3 +121,35 @@
         }
     }
 </%helpers:shorthand>
+
+% for prop in ["grid-row", "grid-column"]:
+<%helpers:shorthand name="${prop}" products="gecko" sub_properties="${prop}-start ${prop}-end">
+    use values::specified::grid::GridLine;
+
+    pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let mut start = Default::default();
+        let mut end = Default::default();
+
+        if let Ok(line) = input.try(GridLine::parse) {
+            start = line;
+        }
+
+        if let Ok(_) = input.try(|i| i.expect_delim('/')) {
+            end = try!(GridLine::parse(input));
+        }
+
+        Ok(Longhands {
+            ${to_rust_ident(prop)}_start: Some(start),
+            ${to_rust_ident(prop)}_end: Some(end),
+        })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.${to_rust_ident(prop)}_start.to_css(dest));
+            try!(write!(dest, " / "));
+            self.${to_rust_ident(prop)}_end.to_css(dest)
+        }
+    }
+</%helpers:shorthand>
+% endfor
