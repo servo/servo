@@ -522,7 +522,7 @@ impl Window {
                 let event = match window.wait_events().next() {
                     None => {
                         warn!("Window event stream closed.");
-                        return false;
+                        return true;
                     },
                     Some(event) => event,
                 };
@@ -550,7 +550,7 @@ impl Window {
                 let event = match window.wait_events().next() {
                     None => {
                         warn!("Window event stream closed.");
-                        return false;
+                        return true;
                     },
                     Some(event) => event,
                 };
