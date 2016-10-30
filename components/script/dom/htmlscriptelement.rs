@@ -28,16 +28,17 @@ use dom::virtualmethods::VirtualMethods;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CORSSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use url::Url;
 
@@ -67,7 +68,7 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
@@ -82,7 +83,7 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document,
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
         Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
                            document,
@@ -286,7 +287,7 @@ impl HTMLScriptElement {
 
         // Step 3.
         let element = self.upcast::<Element>();
-        let async = element.has_attribute(&atom!("async"));
+        let async = element.has_attribute(&local_name!("async"));
         // Note: confusingly, this is done if the element does *not* have an "async" attribute.
         if was_parser_inserted && !async {
             self.non_blocking.set(true);
@@ -294,7 +295,7 @@ impl HTMLScriptElement {
 
         // Step 4.
         let text = self.Text();
-        if text.is_empty() && !element.has_attribute(&atom!("src")) {
+        if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return NextParserState::Continue;
         }
 
@@ -331,8 +332,8 @@ impl HTMLScriptElement {
         // TODO(#4577): Step 11: CSP.
 
         // Step 12.
-        let for_attribute = element.get_attribute(&ns!(), &atom!("for"));
-        let event_attribute = element.get_attribute(&ns!(), &atom!("event"));
+        let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
+        let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
@@ -351,7 +352,7 @@ impl HTMLScriptElement {
         }
 
         // Step 13.
-        let encoding = element.get_attribute(&ns!(), &atom!("charset"))
+        let encoding = element.get_attribute(&ns!(), &local_name!("charset"))
                               .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
                               .unwrap_or_else(|| doc.encoding());
 
@@ -370,7 +371,7 @@ impl HTMLScriptElement {
         // TODO: Step 17: environment settings object.
 
         let base_url = doc.base_url();
-        let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
+        let is_external = match element.get_attribute(&ns!(), &local_name!("src")) {
             // Step 18.
             Some(ref src) => {
                 // Step 18.1.
@@ -402,7 +403,7 @@ impl HTMLScriptElement {
         };
 
         // Step 20.
-        let deferred = element.has_attribute(&atom!("defer"));
+        let deferred = element.has_attribute(&local_name!("defer"));
         // Step 20.a: classic, has src, has defer, was parser-inserted, is not async.
         if is_external &&
            deferred &&
@@ -555,7 +556,7 @@ impl HTMLScriptElement {
 
     pub fn is_javascript(&self) -> bool {
         let element = self.upcast::<Element>();
-        let type_attr = element.get_attribute(&ns!(), &atom!("type"));
+        let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
@@ -568,7 +569,7 @@ impl HTMLScriptElement {
             },
             None => {
                 debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(), &atom!("language"));
+                let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
                 let is_js = match language_attr.as_ref().map(|s| s.value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
@@ -615,7 +616,7 @@ impl VirtualMethods for HTMLScriptElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!("src") => {
+            local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
                     if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
                         self.prepare();
@@ -692,7 +693,7 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
         let element = self.upcast::<Element>();
-        let attr = element.get_attribute(&ns!(), &atom!("crossorigin"));
+        let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
 
         if let Some(mut val) = attr.map(|v| v.Value()) {
             val.make_ascii_lowercase();
@@ -708,9 +709,9 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
         let element = self.upcast::<Element>();
         match value {
-            Some(val) => element.set_string_attribute(&atom!("crossorigin"), val),
+            Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
             None => {
-                element.remove_attribute(&ns!(), &atom!("crossorigin"));
+                element.remove_attribute(&ns!(), &local_name!("crossorigin"));
             }
         }
     }

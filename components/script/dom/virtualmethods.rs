@@ -50,7 +50,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use dom::svgsvgelement::SVGSVGElement;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
@@ -71,7 +71,7 @@ pub trait VirtualMethods {
 
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
             _ => AttrValue::String(value.into()),

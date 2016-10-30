@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
@@ -25,7 +25,7 @@ pub struct HTMLTableCellElement {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(tag_name: Atom,
+    pub fn new_inherited(tag_name: LocalName,
                          prefix: Option<DOMString>,
                          document: &Document)
                          -> HTMLTableCellElement {
@@ -88,7 +88,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -97,7 +97,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_colspan(&self) -> Option<u32> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("colspan"))
+                .get_attr_for_layout(&ns!(), &local_name!("colspan"))
                 .map(AttrValue::as_uint)
         }
     }
@@ -105,7 +105,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -118,11 +118,11 @@ impl VirtualMethods for HTMLTableCellElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("colspan") => AttrValue::from_u32(value.into(), DEFAULT_COLSPAN),
-            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
-            atom!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("colspan") => AttrValue::from_u32(value.into(), DEFAULT_COLSPAN),
+            local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

@@ -20,7 +20,7 @@
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
-        use string_cache::Atom;
+        use Atom;
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -46,19 +46,25 @@
 
             #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
             pub fn from_atom(input: Atom) -> FontFamily {
-                let option = match_ignore_ascii_case! { &input,
-                    &atom!("serif") => Some(atom!("serif")),
-                    &atom!("sans-serif") => Some(atom!("sans-serif")),
-                    &atom!("cursive") => Some(atom!("cursive")),
-                    &atom!("fantasy") => Some(atom!("fantasy")),
-                    &atom!("monospace") => Some(atom!("monospace")),
-                    _ => None
-                };
-
-                match option {
-                    Some(family) => FontFamily::Generic(family),
-                    None => FontFamily::FamilyName(input)
+                match input {
+                    atom!("serif") |
+                    atom!("sans-serif") |
+                    atom!("cursive") |
+                    atom!("fantasy") |
+                    atom!("monospace") => {
+                        return FontFamily::Generic(input)
+                    }
+                    _ => {}
                 }
+                match_ignore_ascii_case! { input,
+                    "serif" => return FontFamily::Generic(atom!("serif")),
+                    "sans-serif" => return FontFamily::Generic(atom!("sans-serif")),
+                    "cursive" => return FontFamily::Generic(atom!("cursive")),
+                    "fantasy" => return FontFamily::Generic(atom!("fantasy")),
+                    "monospace" => return FontFamily::Generic(atom!("monospace")),
+                    _ => {}
+                }
+                FontFamily::FamilyName(input)
             }
         }
         impl ToCss for FontFamily {
@@ -101,12 +107,12 @@
         // FIXME(bholley): The fast thing to do here would be to look up the
         // string (as lowercase) in the static atoms table. We don't have an
         // API to do that yet though, so we do the simple thing for now.
-        match &first_ident[..] {
-            s if atom!("serif").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("serif"))),
-            s if atom!("sans-serif").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("sans-serif"))),
-            s if atom!("cursive").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("cursive"))),
-            s if atom!("fantasy").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("fantasy"))),
-            s if atom!("monospace").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("monospace"))),
+        match_ignore_ascii_case! { first_ident,
+            "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
+            "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
+            "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
+            "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
+            "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
             _ => {}
         }
 

@@ -23,8 +23,8 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use std::cell::Cell;
-use string_cache::Atom;
 use style::element_state::*;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
@@ -43,7 +43,7 @@ pub struct HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
@@ -55,7 +55,7 @@ impl HTMLButtonElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLButtonElement> {
         Node::reflect_node(box HTMLButtonElement::new_inherited(local_name, prefix, document),
@@ -180,7 +180,7 @@ impl VirtualMethods for HTMLButtonElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {}
@@ -195,7 +195,7 @@ impl VirtualMethods for HTMLButtonElement {
                     }
                 }
             },
-            &atom!("type") => {
+            &local_name!("type") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
                         let value = match &**attr.value() {

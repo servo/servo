@@ -32,6 +32,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use msg::constellation_msg::Key;
@@ -39,10 +40,10 @@ use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::Range;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
 use style::str::split_commas;
@@ -128,7 +129,7 @@ static DEFAULT_MAX_LENGTH: i32 = -1;
 static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
         let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
@@ -154,7 +155,7 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
         Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
@@ -164,7 +165,7 @@ impl HTMLInputElement {
 
     pub fn type_(&self) -> Atom {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &atom!("type"))
+            .get_attribute(&ns!(), &local_name!("type"))
             .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
     }
 
@@ -209,7 +210,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
             let value = (*elem.unsafe_get())
-                .get_attr_val_for_layout(&ns!(), &atom!("value"))
+                .get_attr_val_for_layout(&ns!(), &local_name!("value"))
                 .unwrap_or(default);
             String::from(value)
         }
@@ -371,13 +372,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
-                    .get_attribute(&ns!(), &atom!("value"))
+                    .get_attribute(&ns!(), &local_name!("value"))
                     .map_or(DOMString::from(""),
                             |a| DOMString::from(a.summarize().value))
             }
             ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                    .get_attribute(&ns!(), &atom!("value"))
+                    .get_attribute(&ns!(), &local_name!("value"))
                     .map_or(DOMString::from("on"),
                             |a| DOMString::from(a.summarize().value))
             }
@@ -407,7 +408,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
             ValueMode::Default |
             ValueMode::DefaultOn => {
-                self.upcast::<Element>().set_string_attribute(&atom!("value"), value);
+                self.upcast::<Element>().set_string_attribute(&local_name!("value"), value);
             }
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -734,7 +735,7 @@ impl HTMLInputElement {
     fn radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &atom!("name"))
+            .get_attribute(&ns!(), &local_name!("name"))
             .map(|name| name.value().as_atom().clone())
     }
 
@@ -867,7 +868,7 @@ impl VirtualMethods for HTMLInputElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         match attr.local_name() {
-            &atom!("disabled") => {
+            &local_name!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -886,7 +887,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
             },
-            &atom!("checked") if !self.checked_changed.get() => {
+            &local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -897,13 +898,13 @@ impl VirtualMethods for HTMLInputElement {
                 };
                 self.update_checked_state(checked_state, false);
             },
-            &atom!("size") => {
+            &local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             }
-            &atom!("type") => {
+            &local_name!("type") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -948,7 +949,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 2
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(self.upcast::<Element>()
-                                                  .get_attribute(&ns!(), &atom!("value"))
+                                                  .get_attribute(&ns!(), &local_name!("value"))
                                                   .map_or(DOMString::from(""),
                                                           |a| DOMString::from(a.summarize().value)))
                                     .expect("Failed to set input value on type change to ValueMode::Value.");
@@ -987,17 +988,17 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_placeholder_shown_state();
             },
-            &atom!("value") if !self.value_changed.get() => {
+            &local_name!("value") if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
                 self.update_placeholder_shown_state();
             },
-            &atom!("name") if self.input_type.get() == InputType::InputRadio => {
+            &local_name!("name") if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
-            &atom!("maxlength") => {
+            &local_name!("maxlength") => {
                 match *attr.value() {
                     AttrValue::Int(_, value) => {
                         if value < 0 {
@@ -1009,7 +1010,7 @@ impl VirtualMethods for HTMLInputElement {
                     _ => panic!("Expected an AttrValue::Int"),
                 }
             },
-            &atom!("minlength") => {
+            &local_name!("minlength") => {
                 match *attr.value() {
                     AttrValue::Int(_, value) => {
                         if value < 0 {
@@ -1021,7 +1022,7 @@ impl VirtualMethods for HTMLInputElement {
                     _ => panic!("Expected an AttrValue::Int"),
                 }
             },
-            &atom!("placeholder") => {
+            &local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
@@ -1032,7 +1033,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_placeholder_shown_state();
             },
-            &atom!("readonly") if self.input_type.get() == InputType::InputText => {
+            &local_name!("readonly") if self.input_type.get() == InputType::InputText => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -1047,14 +1048,14 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
-            &atom!("name") => AttrValue::from_atomic(value.into()),
-            &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
-            &atom!("type") => AttrValue::from_atomic(value.into()),
-            &atom!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
-            &atom!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
+            &local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
+            &local_name!("name") => AttrValue::from_atomic(value.into()),
+            &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
+            &local_name!("type") => AttrValue::from_atomic(value.into()),
+            &local_name!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
+            &local_name!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

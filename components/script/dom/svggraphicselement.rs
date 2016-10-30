@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::node::Node;
 use dom::svgelement::SVGElement;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::element_state::ElementState;
 
 #[dom_struct]
@@ -19,12 +19,12 @@ pub struct SVGGraphicsElement {
 }
 
 impl SVGGraphicsElement {
-    pub fn new_inherited(tag_name: Atom, prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<DOMString>,
                          document: &Document) -> SVGGraphicsElement {
         SVGGraphicsElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: Atom,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> SVGGraphicsElement {
         SVGGraphicsElement {
@@ -34,7 +34,7 @@ impl SVGGraphicsElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> Root<SVGGraphicsElement> {
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> Root<SVGGraphicsElement> {
         Node::reflect_node(box SVGGraphicsElement::new_inherited(local_name, prefix, document),
                            document,
                            SVGGraphicsElementBinding::Wrap)

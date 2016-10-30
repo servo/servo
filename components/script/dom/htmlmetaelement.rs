@@ -16,10 +16,10 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use parking_lot::RwLock;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, CSSRule, Origin};
@@ -33,7 +33,7 @@ pub struct HTMLMetaElement {
 }
 
 impl HTMLMetaElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
@@ -43,7 +43,7 @@ impl HTMLMetaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMetaElement> {
         Node::reflect_node(box HTMLMetaElement::new_inherited(local_name, prefix, document),
@@ -57,7 +57,7 @@ impl HTMLMetaElement {
 
     fn process_attributes(&self) {
         let element = self.upcast::<Element>();
-        if let Some(name) = element.get_attribute(&ns!(), &atom!("name")).r() {
+        if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
@@ -76,7 +76,7 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
@@ -97,7 +97,7 @@ impl HTMLMetaElement {
 
     fn process_referrer_attribute(&self) {
         let element = self.upcast::<Element>();
-        if let Some(name) = element.get_attribute(&ns!(), &atom!("name")).r() {
+        if let Some(name) = element.get_attribute(&ns!(), &local_name!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
@@ -146,9 +146,9 @@ impl VirtualMethods for HTMLMetaElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value.into()),
+            &local_name!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

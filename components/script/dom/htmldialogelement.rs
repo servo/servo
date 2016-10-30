@@ -13,7 +13,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLDialogElement {
@@ -22,7 +22,7 @@ pub struct HTMLDialogElement {
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
@@ -33,7 +33,7 @@ impl HTMLDialogElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDialogElement> {
         Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
@@ -67,7 +67,7 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         let win = window_from_node(self);
 
         // Step 1 & 2
-        if element.remove_attribute(&ns!(), &atom!("open")).is_none() {
+        if element.remove_attribute(&ns!(), &local_name!("open")).is_none() {
             return;
         }
 

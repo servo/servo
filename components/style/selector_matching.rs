@@ -4,6 +4,7 @@
 
 //! Selector matching.
 
+use {Atom, LocalName};
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
@@ -19,7 +20,7 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{MatchingReason, StyleRelations, matches_complex_selector};
-use selectors::parser::{Selector, SimpleSelector, LocalName, ComplexSelector};
+use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -29,7 +30,6 @@ use std::hash::BuildHasherDefault;
 use std::hash::Hash;
 use std::slice;
 use std::sync::Arc;
-use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, Origin, Stylesheet, UserAgentStylesheets};
 use viewport::{self, MaybeNew, ViewportRule};
@@ -661,10 +661,10 @@ pub struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     pub id_hash: FnvHashMap<Atom, Vec<Rule>>,
     pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
-    pub local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
     /// Same as local_name_hash, but keys are lower-cased.
     /// For HTML elements in HTML documents.
-    pub lower_local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub lower_local_name_hash: FnvHashMap<LocalName, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
     pub other_rules: Vec<Rule>,
     /// Whether this hash is empty.
@@ -856,7 +856,7 @@ impl SelectorMap {
             return;
         }
 
-        if let Some(LocalName { name, lower_name }) = SelectorMap::get_local_name(&rule) {
+        if let Some(LocalNameSelector { name, lower_name }) = SelectorMap::get_local_name(&rule) {
             find_push(&mut self.local_name_hash, name, rule.clone());
             find_push(&mut self.lower_local_name_hash, lower_name, rule);
             return;
@@ -892,10 +892,10 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    pub fn get_local_name(rule: &Rule) -> Option<LocalName<TheSelectorImpl>> {
+    pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<TheSelectorImpl>> {
         for ss in &rule.selector.compound_selector {
             if let SimpleSelector::LocalName(ref n) = *ss {
-                return Some(LocalName {
+                return Some(LocalNameSelector {
                     name: n.name.clone(),
                     lower_name: n.lower_name.clone(),
                 })

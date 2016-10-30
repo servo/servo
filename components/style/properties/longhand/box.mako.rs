@@ -648,9 +648,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
-        use string_cache::Atom;
+        use Atom;
 
-        pub use string_cache::Atom as SingleComputedValue;
+        pub use Atom as SingleComputedValue;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -676,7 +676,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub use self::computed_value::T as SpecifiedValue;
     impl NoViewportPercentage for SpecifiedValue {}
-    pub use string_cache::Atom as SingleSpecifiedValue;
+    pub use Atom as SingleSpecifiedValue;
 
     #[inline]
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {

@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gdi32;
+use servo_atoms::Atom;
 use std::ffi::OsString;
 use std::io::Error;
 use std::os::windows::ffi::OsStrExt;
 use std::ptr;
-use string_cache::Atom;
 use webrender_traits::NativeFontHandle;
 use winapi::{DWORD, LF_FACESIZE, LOGFONTW, OUT_TT_ONLY_PRECIS, WCHAR};
 

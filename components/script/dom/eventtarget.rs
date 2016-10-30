@@ -32,6 +32,7 @@ use heapsize::HeapSizeOf;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
+use servo_atoms::Atom;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -41,7 +42,6 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
-use string_cache::Atom;
 use url::Url;
 
 #[derive(PartialEq, Clone, JSTraceable)]

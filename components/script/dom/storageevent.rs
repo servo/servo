@@ -14,7 +14,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::storage::Storage;
 use dom::window::Window;
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct StorageEvent {

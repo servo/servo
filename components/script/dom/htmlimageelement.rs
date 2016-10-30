@@ -21,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -30,7 +31,6 @@ use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
 use std::i32;
 use std::sync::Arc;
-use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
 use url::Url;
@@ -195,7 +195,7 @@ impl HTMLImageElement {
             }
         }
     }
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
@@ -216,7 +216,7 @@ impl HTMLImageElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLImageElement> {
         Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
@@ -228,7 +228,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new(atom!("img"), None, &document);
+        let image = HTMLImageElement::new(local_name!("img"), None, &document);
         if let Some(w) = width {
             image.SetWidth(w);
         }
@@ -266,7 +266,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -277,7 +277,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("height"))
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -320,7 +320,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, value: u32) {
-        image_dimension_setter(self.upcast(), atom!("width"), value);
+        image_dimension_setter(self.upcast(), local_name!("width"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
@@ -332,7 +332,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, value: u32) {
-        image_dimension_setter(self.upcast(), atom!("height"), value);
+        image_dimension_setter(self.upcast(), local_name!("height"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
@@ -415,7 +415,7 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("src") => {
+            &local_name!("src") => {
                 self.update_image(mutation.new_value(attr).map(|value| {
                     // FIXME(ajeffrey): convert directly from AttrValue to DOMString
                     (DOMString::from(&**value), document_from_node(self).base_url())
@@ -425,17 +425,17 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value.into()),
-            &atom!("width") | &atom!("height") => AttrValue::from_dimension(value.into()),
-            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value.into(), 0),
+            &local_name!("name") => AttrValue::from_atomic(value.into()),
+            &local_name!("width") | &local_name!("height") => AttrValue::from_dimension(value.into()),
+            &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 }
 
-fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
+fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
     let value = if value > UNSIGNED_LONG_MAX {

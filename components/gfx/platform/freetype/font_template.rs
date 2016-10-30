@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use servo_atoms::Atom;
 use std::fs::File;
 use std::io::{Read, Error};
-use string_cache::Atom;
 use webrender_traits::NativeFontHandle;
 
 /// Platform specific font representation for Linux.

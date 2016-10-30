@@ -15,7 +15,7 @@ doctest = false
 [features]
 gecko = ["nsstring_vendor"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
-         "style_traits/servo", "app_units/plugins", "string_cache",
+         "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
          "url/heap_size", "plugins", "parking_lot/nightly"]
 testing = []
@@ -31,6 +31,7 @@ euclid = "0.10.1"
 fnv = "1.0"
 heapsize = "0.3.0"
 heapsize_derive = {version = "0.1", optional = true}
+html5ever-atoms = {version = "0.1", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 libc = "0.2"
@@ -48,8 +49,8 @@ rustc-serialize = "0.3"
 selectors = "0.14"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
+servo_atoms = {path = "../atoms", optional = true}
 smallvec = "0.1"
-string_cache = {version = "0.2.26", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}
 time = "0.1"
 unicode-segmentation = "0.1.2"

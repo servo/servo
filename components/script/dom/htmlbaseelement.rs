@@ -13,7 +13,7 @@ use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 use url::Url;
 
@@ -23,14 +23,14 @@ pub struct HTMLBaseElement {
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBaseElement> {
         Node::reflect_node(box HTMLBaseElement::new_inherited(local_name, prefix, document),
@@ -40,7 +40,7 @@ impl HTMLBaseElement {
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url
     pub fn frozen_base_url(&self) -> Url {
-        let href = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href"))
+        let href = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");
         let document = document_from_node(self);
@@ -56,7 +56,7 @@ impl HTMLBaseElement {
             return;
         }
 
-        if self.upcast::<Element>().has_attribute(&atom!("href")) {
+        if self.upcast::<Element>().has_attribute(&local_name!("href")) {
             let document = document_from_node(self);
             document.refresh_base_element();
         }
@@ -69,7 +69,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
         let document = document_from_node(self);
 
         // Step 1.
-        if !self.upcast::<Element>().has_attribute(&atom!("href")) {
+        if !self.upcast::<Element>().has_attribute(&local_name!("href")) {
             return DOMString::from(document.base_url().as_str());
         }
 
@@ -77,7 +77,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
         let fallback_base_url = document.fallback_base_url();
 
         // Step 3.
-        let url = self.upcast::<Element>().get_url_attribute(&atom!("href"));
+        let url = self.upcast::<Element>().get_url_attribute(&local_name!("href"));
 
         // Step 4.
         let url_record = fallback_base_url.join(&*url);
@@ -97,7 +97,7 @@ impl VirtualMethods for HTMLBaseElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if *attr.local_name() == atom!("href") {
+        if *attr.local_name() == local_name!("href") {
             document_from_node(self).refresh_base_element();
         }
     }

@@ -15,9 +15,9 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use script_thread::Runnable;
 use std::cell::Cell;
-use string_cache::Atom;
 use task_source::TaskSource;
 
 #[dom_struct]
@@ -27,7 +27,7 @@ pub struct HTMLDetailsElement {
 }
 
 impl HTMLDetailsElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDetailsElement {
         HTMLDetailsElement {
@@ -38,7 +38,7 @@ impl HTMLDetailsElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDetailsElement> {
         Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
@@ -67,7 +67,7 @@ impl VirtualMethods for HTMLDetailsElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        if attr.local_name() == &atom!("open") {
+        if attr.local_name() == &local_name!("open") {
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 

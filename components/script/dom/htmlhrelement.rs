@@ -12,7 +12,7 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 #[dom_struct]
@@ -21,14 +21,14 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
         HTMLHRElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHRElement> {
         Node::reflect_node(box HTMLHRElement::new_inherited(local_name, prefix, document),
@@ -67,7 +67,7 @@ impl HTMLHRLayoutHelpers for LayoutJS<HTMLHRElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("color"))
+                .get_attr_for_layout(&ns!(), &local_name!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -77,7 +77,7 @@ impl HTMLHRLayoutHelpers for LayoutJS<HTMLHRElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -91,11 +91,11 @@ impl VirtualMethods for HTMLHRElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("align") => AttrValue::from_dimension(value.into()),
-            &atom!("color") => AttrValue::from_legacy_color(value.into()),
-            &atom!("width") => AttrValue::from_dimension(value.into()),
+            &local_name!("align") => AttrValue::from_dimension(value.into()),
+            &local_name!("color") => AttrValue::from_legacy_color(value.into()),
+            &local_name!("width") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

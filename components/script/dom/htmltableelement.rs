@@ -22,8 +22,8 @@ use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use std::cell::Cell;
-use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 #[dom_struct]
@@ -49,7 +49,7 @@ impl CollectionFilter for TableRowFilter {
 }
 
 impl HTMLTableElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -60,7 +60,7 @@ impl HTMLTableElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableElement> {
         Node::reflect_node(box HTMLTableElement::new_inherited(local_name, prefix, document),
                            document,
@@ -73,7 +73,7 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
-    fn get_first_section_of_type(&self, atom: &Atom) -> Option<Root<HTMLTableSectionElement>> {
+    fn get_first_section_of_type(&self, atom: &LocalName) -> Option<Root<HTMLTableSectionElement>> {
         self.upcast::<Node>()
             .child_elements()
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == atom)
@@ -83,7 +83,7 @@ impl HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
     fn set_first_section_of_type<P>(&self,
-                                    atom: &Atom,
+                                    atom: &LocalName,
                                     section: Option<&HTMLTableSectionElement>,
                                     reference_predicate: P)
                                     -> ErrorResult
@@ -110,7 +110,7 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createthead
     // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
-    fn create_section_of_type(&self, atom: &Atom) -> Root<HTMLTableSectionElement> {
+    fn create_section_of_type(&self, atom: &LocalName) -> Root<HTMLTableSectionElement> {
         if let Some(section) = self.get_first_section_of_type(atom) {
             return section
         }
@@ -119,8 +119,8 @@ impl HTMLTableElement {
                                                    None,
                                                    &document_from_node(self));
         match atom {
-            &atom!("thead") => self.SetTHead(Some(&section)),
-            &atom!("tfoot") => self.SetTFoot(Some(&section)),
+            &local_name!("thead") => self.SetTHead(Some(&section)),
+            &local_name!("tfoot") => self.SetTFoot(Some(&section)),
             _ => unreachable!("unexpected section type")
         }.expect("unexpected section type");
 
@@ -129,7 +129,7 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
     // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
-    fn delete_first_section_of_type(&self, atom: &Atom) {
+    fn delete_first_section_of_type(&self, atom: &LocalName) {
         if let Some(thead) = self.get_first_section_of_type(atom) {
             thead.upcast::<Node>().remove_self();
         }
@@ -176,7 +176,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
         match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new(atom!("caption"),
+                let caption = HTMLTableCaptionElement::new(local_name!("caption"),
                                                            None,
                                                            &document_from_node(self));
                 self.SetCaption(Some(&caption));
@@ -195,41 +195,41 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     fn GetTHead(&self) -> Option<Root<HTMLTableSectionElement>> {
-        self.get_first_section_of_type(&atom!("thead"))
+        self.get_first_section_of_type(&local_name!("thead"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
     fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
-        self.set_first_section_of_type(&atom!("thead"), thead, |n| {
+        self.set_first_section_of_type(&local_name!("thead"), thead, |n| {
             !n.is::<HTMLTableCaptionElement>() && !n.is::<HTMLTableColElement>()
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createthead
     fn CreateTHead(&self) -> Root<HTMLTableSectionElement> {
-        self.create_section_of_type(&atom!("thead"))
+        self.create_section_of_type(&local_name!("thead"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
     fn DeleteTHead(&self) {
-        self.delete_first_section_of_type(&atom!("thead"))
+        self.delete_first_section_of_type(&local_name!("thead"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
     fn GetTFoot(&self) -> Option<Root<HTMLTableSectionElement>> {
-        self.get_first_section_of_type(&atom!("tfoot"))
+        self.get_first_section_of_type(&local_name!("tfoot"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
     fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
-        self.set_first_section_of_type(&atom!("tfoot"), tfoot, |n| {
+        self.set_first_section_of_type(&local_name!("tfoot"), tfoot, |n| {
             if n.is::<HTMLTableCaptionElement>() || n.is::<HTMLTableColElement>() {
                 return false;
             }
 
             if n.is::<HTMLTableSectionElement>() {
                 let name = n.local_name();
-                if name == &atom!("thead") || name == &atom!("tbody") {
+                if name == &local_name!("thead") || name == &local_name!("tbody") {
                     return false;
                 }
 
@@ -241,12 +241,12 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
     fn CreateTFoot(&self) -> Root<HTMLTableSectionElement> {
-        self.create_section_of_type(&atom!("tfoot"))
+        self.create_section_of_type(&local_name!("tfoot"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
     fn DeleteTFoot(&self) {
-        self.delete_first_section_of_type(&atom!("tfoot"))
+        self.delete_first_section_of_type(&local_name!("tfoot"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
@@ -256,7 +256,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
         impl CollectionFilter for TBodiesFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
                 elem.is::<HTMLTableSectionElement>() &&
-                    elem.local_name() == &atom!("tbody") &&
+                    elem.local_name() == &local_name!("tbody") &&
                     elem.upcast::<Node>().GetParentNode().r() == Some(root)
             }
         }
@@ -271,14 +271,14 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new(atom!("tbody"),
+        let tbody = HTMLTableSectionElement::new(local_name!("tbody"),
                                                  None,
                                                  &document_from_node(self));
         let node = self.upcast::<Node>();
         let last_tbody =
             node.rev_children()
                 .filter_map(Root::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody"));
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element =
             last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
@@ -296,7 +296,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             return Err(Error::IndexSize);
         }
 
-        let new_row = HTMLTableRowElement::new(atom!("tr"),
+        let new_row = HTMLTableRowElement::new(local_name!("tr"),
                                                None,
                                                &document_from_node(self));
         let node = self.upcast::<Node>();
@@ -305,7 +305,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             // append new row to last or new tbody in table
             if let Some(last_tbody) = node.rev_children()
                 .filter_map(Root::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody")) {
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")) {
                     last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
                                                .expect("InsertRow failed to append first row.");
                 } else {
@@ -383,7 +383,7 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -407,7 +407,7 @@ impl HTMLTableElementLayoutHelpers for LayoutJS<HTMLTableElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -423,13 +423,13 @@ impl VirtualMethods for HTMLTableElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!("border") => {
+            local_name!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
                     parse_unsigned_integer(value.chars()).unwrap_or(1)
                 }));
             }
-            atom!("cellspacing") => {
+            local_name!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
                     parse_unsigned_integer(value.chars()).ok()
                 }));
@@ -438,11 +438,11 @@ impl VirtualMethods for HTMLTableElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("border") => AttrValue::from_u32(value.into(), 1),
-            atom!("width") => AttrValue::from_nonzero_dimension(value.into()),
-            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            local_name!("border") => AttrValue::from_u32(value.into(), 1),
+            local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

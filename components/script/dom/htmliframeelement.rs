@@ -35,6 +35,7 @@ use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{NullValue, UndefinedValue};
@@ -43,8 +44,8 @@ use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_traits::{IFrameLoadInfo, LoadData, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use servo_atoms::Atom;
 use std::cell::Cell;
-use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use url::Url;
@@ -84,7 +85,7 @@ impl HTMLIFrameElement {
     /// step 1.
     fn get_url(&self) -> Url {
         let element = self.upcast::<Element>();
-        element.get_attribute(&ns!(), &atom!("src")).and_then(|src| {
+        element.get_attribute(&ns!(), &local_name!("src")).and_then(|src| {
             let url = src.value();
             if url.is_empty() {
                 None
@@ -178,7 +179,7 @@ impl HTMLIFrameElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
@@ -193,7 +194,7 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLIFrameElement> {
         Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
@@ -255,7 +256,7 @@ impl HTMLIFrameElement {
     pub fn privatebrowsing(&self) -> bool {
         if self.Mozbrowser() {
             let element = self.upcast::<Element>();
-            element.has_attribute(&Atom::from("mozprivatebrowsing"))
+            element.has_attribute(&LocalName::from("mozprivatebrowsing"))
         } else {
             false
         }
@@ -290,7 +291,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("width"))
+                .get_attr_for_layout(&ns!(), &local_name!("width"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -301,7 +302,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("height"))
+                .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_dimension)
                 .cloned()
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
@@ -425,17 +426,17 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> Er
 impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn Src(&self) -> DOMString {
-        self.upcast::<Element>().get_string_attribute(&atom!("src"))
+        self.upcast::<Element>().get_string_attribute(&local_name!("src"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn SetSrc(&self, src: DOMString) {
-        self.upcast::<Element>().set_url_attribute(&atom!("src"), src)
+        self.upcast::<Element>().set_url_attribute(&local_name!("src"), src)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> Root<DOMTokenList> {
-        self.sandbox.or_init(|| DOMTokenList::new(self.upcast::<Element>(), &atom!("sandbox")))
+        self.sandbox.or_init(|| DOMTokenList::new(self.upcast::<Element>(), &local_name!("sandbox")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
@@ -469,7 +470,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Mozbrowser(&self) -> bool {
         if window_from_node(self).is_mozbrowser() {
             let element = self.upcast::<Element>();
-            element.has_attribute(&atom!("mozbrowser"))
+            element.has_attribute(&local_name!("mozbrowser"))
         } else {
             false
         }
@@ -478,7 +479,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn SetMozbrowser(&self, value: bool) {
         let element = self.upcast::<Element>();
-        element.set_bool_attribute(&atom!("mozbrowser"), value);
+        element.set_bool_attribute(&local_name!("mozbrowser"), value);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
@@ -552,13 +553,13 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // check-tidy: no specs after this line
     fn SetMozprivatebrowsing(&self, value: bool) {
         let element = self.upcast::<Element>();
-        element.set_bool_attribute(&Atom::from("mozprivatebrowsing"), value);
+        element.set_bool_attribute(&LocalName::from("mozprivatebrowsing"), value);
     }
 
     fn Mozprivatebrowsing(&self) -> bool {
         if window_from_node(self).is_mozbrowser() {
             let element = self.upcast::<Element>();
-            element.has_attribute(&Atom::from("mozprivatebrowsing"))
+            element.has_attribute(&LocalName::from("mozprivatebrowsing"))
         } else {
             false
         }
@@ -573,7 +574,7 @@ impl VirtualMethods for HTMLIFrameElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("sandbox") => {
+            &local_name!("sandbox") => {
                 self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
                     let mut modes = ALLOW_NOTHING;
                     for token in value.as_tokens() {
@@ -590,7 +591,7 @@ impl VirtualMethods for HTMLIFrameElement {
                     modes
                 }));
             },
-            &atom!("src") => {
+            &local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
                     if self.upcast::<Node>().is_in_doc() {
                         self.process_the_iframe_attributes();
@@ -601,11 +602,11 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
-            &atom!("width") => AttrValue::from_dimension(value.into()),
-            &atom!("height") => AttrValue::from_dimension(value.into()),
+            &local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("width") => AttrValue::from_dimension(value.into()),
+            &local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

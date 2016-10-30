@@ -9,7 +9,7 @@ macro_rules! make_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_string_attribute(&atom!($htmlname))
+            element.get_string_attribute(&local_name!($htmlname))
         }
     );
 );
@@ -21,7 +21,7 @@ macro_rules! make_bool_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.has_attribute(&atom!($htmlname))
+            element.has_attribute(&local_name!($htmlname))
         }
     );
 );
@@ -40,7 +40,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&atom!($htmlname), value);
+            element.set_int_attribute(&local_name!($htmlname), value);
             Ok(())
         }
     );
@@ -54,7 +54,7 @@ macro_rules! make_int_setter(
             use dom::element::Element;
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&atom!($htmlname), value)
+            element.set_int_attribute(&local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -69,7 +69,7 @@ macro_rules! make_int_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_int_attribute(&atom!($htmlname), $default)
+            element.get_int_attribute(&local_name!($htmlname), $default)
         }
     );
 
@@ -85,7 +85,7 @@ macro_rules! make_uint_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_uint_attribute(&atom!($htmlname), $default)
+            element.get_uint_attribute(&local_name!($htmlname), $default)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -100,7 +100,7 @@ macro_rules! make_url_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.get_url_attribute(&atom!($htmlname))
+            element.get_url_attribute(&local_name!($htmlname))
         }
     );
 );
@@ -112,7 +112,7 @@ macro_rules! make_url_or_base_getter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            let url = element.get_url_attribute(&atom!($htmlname));
+            let url = element.get_url_attribute(&local_name!($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
                 DOMString::from(window.get_url().into_string())
@@ -131,7 +131,7 @@ macro_rules! make_string_or_document_url_getter(
             use dom::element::Element;
             use dom::node::document_from_node;
             let element = self.upcast::<Element>();
-            let val = element.get_string_attribute(&atom!($htmlname));
+            let val = element.get_string_attribute(&local_name!($htmlname));
 
             if val.is_empty() {
                 let doc = document_from_node(self);
@@ -151,7 +151,7 @@ macro_rules! make_enumerated_getter(
             use dom::element::Element;
             use std::ascii::AsciiExt;
             let element = self.upcast::<Element>();
-            let mut val = element.get_string_attribute(&atom!($htmlname));
+            let mut val = element.get_string_attribute(&local_name!($htmlname));
             val.make_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
@@ -171,7 +171,7 @@ macro_rules! make_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_string_attribute(&atom!($htmlname), value)
+            element.set_string_attribute(&local_name!($htmlname), value)
         }
     );
 );
@@ -183,7 +183,7 @@ macro_rules! make_bool_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&atom!($htmlname), value)
+            element.set_bool_attribute(&local_name!($htmlname), value)
         }
     );
 );
@@ -198,7 +198,7 @@ macro_rules! make_url_setter(
             let value = AttrValue::from_url(document_from_node(self).url(),
                                             value.into());
             let element = self.upcast::<Element>();
-            element.set_attribute(&atom!($htmlname), value);
+            element.set_attribute(&local_name!($htmlname), value);
         }
     );
 );
@@ -216,7 +216,7 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&atom!($htmlname), value)
+            element.set_uint_attribute(&local_name!($htmlname), value)
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -239,7 +239,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&atom!($htmlname), value);
+            element.set_uint_attribute(&local_name!($htmlname), value);
             Ok(())
         }
     );
@@ -255,7 +255,7 @@ macro_rules! make_atomic_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            element.set_atomic_attribute(&atom!($htmlname), value)
+            element.set_atomic_attribute(&local_name!($htmlname), value)
         }
     );
 );
@@ -269,7 +269,7 @@ macro_rules! make_legacy_color_setter(
             use style::attr::AttrValue;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
-            element.set_attribute(&atom!($htmlname), value)
+            element.set_attribute(&local_name!($htmlname), value)
         }
     );
 );
@@ -282,7 +282,7 @@ macro_rules! make_dimension_setter(
             use dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
-            element.set_attribute(&atom!($htmlname), value)
+            element.set_attribute(&local_name!($htmlname), value)
         }
     );
 );
@@ -295,7 +295,7 @@ macro_rules! make_nonzero_dimension_setter(
             use dom::element::Element;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&atom!($htmlname), value)
+            element.set_attribute(&local_name!($htmlname), value)
         }
     );
 );

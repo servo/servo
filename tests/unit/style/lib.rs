@@ -9,11 +9,12 @@
 extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
+#[macro_use] extern crate html5ever_atoms;
 extern crate owning_ref;
 extern crate parking_lot;
 extern crate rustc_serialize;
 extern crate selectors;
-#[macro_use(atom, ns)] extern crate string_cache;
+#[macro_use] extern crate servo_atoms;
 extern crate style;
 extern crate style_traits;
 extern crate url;

@@ -24,6 +24,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
+use html5ever_atoms::LocalName;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
@@ -41,7 +42,6 @@ use std::cell::Cell;
 use std::default::Default;
 use std::mem;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
@@ -63,7 +63,7 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -74,7 +74,7 @@ impl HTMLLinkElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
@@ -88,7 +88,7 @@ impl HTMLLinkElement {
     }
 }
 
-fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
+fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
     let elem = element.get_attribute(&ns!(), local_name);
     elem.map(|e| {
         let value = e.value();
@@ -139,26 +139,26 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        let rel = get_attr(self.upcast(), &atom!("rel"));
+        let rel = get_attr(self.upcast(), &local_name!("rel"));
         match attr.local_name() {
-            &atom!("href") => {
+            &local_name!("href") => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
-                    let sizes = get_attr(self.upcast(), &atom!("sizes"));
+                    let sizes = get_attr(self.upcast(), &local_name!("sizes"));
                     self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
                 }
             },
-            &atom!("sizes") => {
+            &local_name!("sizes") => {
                 if is_favicon(&rel) {
-                    if let Some(ref href) = get_attr(self.upcast(), &atom!("href")) {
+                    if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
                         self.handle_favicon_url(rel.as_ref().unwrap(), href, &Some(attr.value().to_string()));
                     }
                 }
             },
-            &atom!("media") => {
+            &local_name!("media") => {
                 if string_is_stylesheet(&rel) {
-                    if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href")) {
+                    if let Some(href) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href")) {
                         self.handle_stylesheet_url(&href.value());
                     }
                 }
@@ -167,9 +167,9 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -182,9 +182,9 @@ impl VirtualMethods for HTMLLinkElement {
         if tree_in_doc {
             let element = self.upcast();
 
-            let rel = get_attr(element, &atom!("rel"));
-            let href = get_attr(element, &atom!("href"));
-            let sizes = get_attr(self.upcast(), &atom!("sizes"));
+            let rel = get_attr(element, &local_name!("rel"));
+            let href = get_attr(element, &local_name!("href"));
+            let sizes = get_attr(self.upcast(), &local_name!("sizes"));
 
             match href {
                 Some(ref href) if string_is_stylesheet(&rel) => {
@@ -221,7 +221,7 @@ impl HTMLLinkElement {
 
         let element = self.upcast::<Element>();
 
-        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
+        let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let value = mq_attribute.r().map(|a| a.value());
         let mq_str = match value {
             Some(ref value) => &***value,
@@ -398,7 +398,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
     fn SetRel(&self, rel: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(&atom!("rel"), rel);
+        self.upcast::<Element>().set_tokenlist_attribute(&local_name!("rel"), rel);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
@@ -421,7 +421,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
-        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &atom!("rel")))
+        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset

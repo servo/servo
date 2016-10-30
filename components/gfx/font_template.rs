@@ -6,11 +6,11 @@ use font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
+use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
 use std::u32;
-use string_cache::Atom;
 use style::computed_values::{font_stretch, font_weight};
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs

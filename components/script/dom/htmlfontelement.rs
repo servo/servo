@@ -13,7 +13,8 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
+use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
 use style::values::specified;
@@ -25,14 +26,14 @@ pub struct HTMLFontElement {
 
 
 impl HTMLFontElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFontElement> {
         Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
@@ -61,7 +62,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let length = parse_length(&value);
-        element.set_attribute(&atom!("size"), AttrValue::Length(value.into(), length));
+        element.set_attribute(&local_name!("size"), AttrValue::Length(value.into(), length));
     }
 }
 
@@ -70,11 +71,11 @@ impl VirtualMethods for HTMLFontElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("face") => AttrValue::from_atomic(value.into()),
-            &atom!("color") => AttrValue::from_legacy_color(value.into()),
-            &atom!("size") => {
+            &local_name!("face") => AttrValue::from_atomic(value.into()),
+            &local_name!("color") => AttrValue::from_legacy_color(value.into()),
+            &local_name!("size") => {
                 let length = parse_length(&value);
                 AttrValue::Length(value.into(), length)
             },
@@ -94,7 +95,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("color"))
+                .get_attr_for_layout(&ns!(), &local_name!("color"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -104,7 +105,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_face(&self) -> Option<Atom> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("face"))
+                .get_attr_for_layout(&ns!(), &local_name!("face"))
                 .map(AttrValue::as_atom)
                 .cloned()
         }
@@ -114,7 +115,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
     fn get_size(&self) -> Option<specified::Length> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("size"))
+                .get_attr_for_layout(&ns!(), &local_name!("size"))
                 .and_then(AttrValue::as_length)
                 .cloned()
         }

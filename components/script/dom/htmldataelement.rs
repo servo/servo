@@ -9,7 +9,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLDataElement {
@@ -17,7 +17,7 @@ pub struct HTMLDataElement {
 }
 
 impl HTMLDataElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDataElement {
         HTMLDataElement {
@@ -26,7 +26,7 @@ impl HTMLDataElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDataElement> {
         Node::reflect_node(box HTMLDataElement::new_inherited(local_name, prefix, document),

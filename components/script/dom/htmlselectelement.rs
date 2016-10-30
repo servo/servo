@@ -30,7 +30,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 use style::element_state::*;
 
@@ -64,7 +64,7 @@ pub struct HTMLSelectElement {
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
@@ -76,7 +76,7 @@ impl HTMLSelectElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSelectElement> {
         Node::reflect_node(box HTMLSelectElement::new_inherited(local_name, prefix, document),
@@ -338,7 +338,7 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if attr.local_name() == &atom!("disabled") {
+        if attr.local_name() == &local_name!("disabled") {
             let el = self.upcast::<Element>();
             match mutation {
                 AttributeMutation::Set(_) => {
@@ -374,9 +374,9 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
+            local_name!("size") => AttrValue::from_u32(value.into(), DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

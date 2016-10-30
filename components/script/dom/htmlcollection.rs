@@ -13,9 +13,10 @@ use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
+use html5ever_atoms::{LocalName, QualName};
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
-use string_cache::{Atom, Namespace, QualName};
 use style::str::split_html_space_chars;
 
 pub trait CollectionFilter : JSTraceable {
@@ -115,22 +116,22 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
-        let tag_atom = Atom::from(&*tag);
+        let tag_atom = LocalName::from(&*tag);
         tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
+        let ascii_lower_tag = LocalName::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
         HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
     }
 
-    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
+    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: LocalName, ascii_lower_tag: LocalName)
                        -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameFilter {
-            tag: Atom,
-            ascii_lower_tag: Atom,
+            tag: LocalName,
+            ascii_lower_tag: LocalName,
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                if self.tag == atom!("*") {
+                if self.tag == local_name!("*") {
                     true
                 } else if elem.html_element_in_html_document() {
                     *elem.local_name() == self.ascii_lower_tag
@@ -148,7 +149,7 @@ impl HTMLCollection {
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
-        let local = Atom::from(tag);
+        let local = LocalName::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
         let qname = QualName::new(ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)
@@ -161,8 +162,8 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                    ((self.qname.ns == Namespace(atom!("*"))) || (self.qname.ns == *elem.namespace())) &&
-                    ((self.qname.local == atom!("*")) || (self.qname.local == *elem.local_name()))
+                    ((self.qname.ns == namespace_url!("*")) || (self.qname.ns == *elem.namespace())) &&
+                    ((self.qname.local == local_name!("*")) || (self.qname.local == *elem.local_name()))
             }
         }
         let filter = TagNameNSFilter {
@@ -313,8 +314,8 @@ impl HTMLCollectionMethods for HTMLCollection {
 
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_string_attribute(&atom!("id")) == key ||
-            (elem.namespace() == &ns!(html) && elem.get_string_attribute(&atom!("name")) == key)
+            elem.get_string_attribute(&local_name!("id")) == key ||
+            (elem.namespace() == &ns!(html) && elem.get_string_attribute(&local_name!("name")) == key)
         })
     }
 
@@ -336,12 +337,12 @@ impl HTMLCollectionMethods for HTMLCollection {
         // Step 2
         for elem in self.elements_iter() {
             // Step 2.1
-            let id_attr = elem.get_string_attribute(&atom!("id"));
+            let id_attr = elem.get_string_attribute(&local_name!("id"));
             if !id_attr.is_empty() && !result.contains(&id_attr) {
                 result.push(id_attr)
             }
             // Step 2.2
-            let name_attr = elem.get_string_attribute(&atom!("name"));
+            let name_attr = elem.get_string_attribute(&local_name!("name"));
             if !name_attr.is_empty() && !result.contains(&name_attr) && *elem.namespace() == ns!(html) {
                 result.push(name_attr)
             }

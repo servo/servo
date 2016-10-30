@@ -13,10 +13,11 @@ use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
+use html5ever_atoms::{Prefix, LocalName, Namespace};
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
-use string_cache::{Atom, Namespace};
 use style::attr::{AttrIdentifier, AttrValue};
 
 // https://dom.spec.whatwg.org/#interface-attr
@@ -31,11 +32,11 @@ pub struct Attr {
 }
 
 impl Attr {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      value: AttrValue,
-                     name: Atom,
+                     name: LocalName,
                      namespace: Namespace,
-                     prefix: Option<Atom>,
+                     prefix: Option<Prefix>,
                      owner: Option<&Element>)
                      -> Attr {
         Attr {
@@ -52,11 +53,11 @@ impl Attr {
     }
 
     pub fn new(window: &Window,
-               local_name: Atom,
+               local_name: LocalName,
                value: AttrValue,
-               name: Atom,
+               name: LocalName,
                namespace: Namespace,
-               prefix: Option<Atom>,
+               prefix: Option<Prefix>,
                owner: Option<&Element>)
                -> Root<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name,
@@ -70,7 +71,7 @@ impl Attr {
     }
 
     #[inline]
-    pub fn name(&self) -> &Atom {
+    pub fn name(&self) -> &LocalName {
         &self.identifier.name
     }
 
@@ -80,7 +81,7 @@ impl Attr {
     }
 
     #[inline]
-    pub fn prefix(&self) -> &Option<Atom> {
+    pub fn prefix(&self) -> &Option<Prefix> {
         &self.identifier.prefix
     }
 }
@@ -88,7 +89,7 @@ impl Attr {
 impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(&self) -> DOMString {
-        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        // FIXME(ajeffrey): convert directly from LocalName to DOMString
         DOMString::from(&**self.local_name())
     }
 
@@ -132,7 +133,7 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
-        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        // FIXME(ajeffrey): convert directly from LocalName to DOMString
         DOMString::from(&*self.identifier.name)
     }
 
@@ -143,16 +144,15 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
-        let Namespace(ref atom) = self.identifier.namespace;
-        match &**atom {
-            "" => None,
-            url => Some(DOMString::from(url)),
+        match self.identifier.namespace {
+            ns!() => None,
+            ref url => Some(DOMString::from(&**url)),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        // FIXME(ajeffrey): convert directly from Atom to DOMString
+        // FIXME(ajeffrey): convert directly from LocalName to DOMString
         self.prefix().as_ref().map(|p| DOMString::from(&**p))
     }
 
@@ -192,7 +192,7 @@ impl Attr {
         self.value.borrow()
     }
 
-    pub fn local_name(&self) -> &Atom {
+    pub fn local_name(&self) -> &LocalName {
         &self.identifier.local_name
     }
 
@@ -216,9 +216,8 @@ impl Attr {
     }
 
     pub fn summarize(&self) -> AttrInfo {
-        let Namespace(ref ns) = self.identifier.namespace;
         AttrInfo {
-            namespace: (**ns).to_owned(),
+            namespace: (*self.identifier.namespace).to_owned(),
             name: String::from(self.Name()),
             value: String::from(self.Value()),
         }
@@ -231,7 +230,7 @@ pub trait AttrHelpersForLayout {
     unsafe fn value_ref_forever(&self) -> &'static str;
     unsafe fn value_atom_forever(&self) -> Option<Atom>;
     unsafe fn value_tokens_forever(&self) -> Option<&'static [Atom]>;
-    unsafe fn local_name_atom_forever(&self) -> Atom;
+    unsafe fn local_name_atom_forever(&self) -> LocalName;
     unsafe fn value_for_layout(&self) -> &AttrValue;
 }
 
@@ -267,7 +266,7 @@ impl AttrHelpersForLayout for LayoutJS<Attr> {
     }
 
     #[inline]
-    unsafe fn local_name_atom_forever(&self) -> Atom {
+    unsafe fn local_name_atom_forever(&self) -> LocalName {
         (*self.unsafe_get()).identifier.local_name.clone()
     }
 

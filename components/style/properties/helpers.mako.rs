@@ -191,7 +191,7 @@
         use std::sync::Arc;
         use values::computed::{Context, ToComputedValue};
         use values::{computed, specified};
-        use string_cache::Atom;
+        use Atom;
         ${caller.body()}
         #[allow(unused_variables)]
         pub fn cascade_property(declaration: &PropertyDeclaration,

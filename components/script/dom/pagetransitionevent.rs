@@ -12,8 +12,8 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
+use servo_atoms::Atom;
 use std::cell::Cell;
-use string_cache::Atom;
 
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]

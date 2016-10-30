@@ -12,7 +12,7 @@ use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]

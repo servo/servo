@@ -25,6 +25,7 @@ use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use euclid::size::Size2D;
+use html5ever_atoms::LocalName;
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
@@ -34,7 +35,6 @@ use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
 use script_layout_interface::HTMLCanvasData;
 use std::iter::repeat;
-use string_cache::Atom;
 use style::attr::AttrValue;
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -56,7 +56,7 @@ pub struct HTMLCanvasElement {
 }
 
 impl HTMLCanvasElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLCanvasElement {
         HTMLCanvasElement {
@@ -66,7 +66,7 @@ impl HTMLCanvasElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLCanvasElement> {
         Node::reflect_node(box HTMLCanvasElement::new_inherited(local_name, prefix, document),
@@ -116,8 +116,8 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
                 }
             });
 
-            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("width"));
-            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("height"));
+            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
+            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
             HTMLCanvasData {
                 ipc_renderer: ipc_renderer,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
@@ -307,15 +307,15 @@ impl VirtualMethods for HTMLCanvasElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("width") | &atom!("height") => self.recreate_contexts(),
+            &local_name!("width") | &local_name!("height") => self.recreate_contexts(),
             _ => (),
         };
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
-            &atom!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
+            &local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            &local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

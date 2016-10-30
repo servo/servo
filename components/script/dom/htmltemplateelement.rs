@@ -14,7 +14,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
 use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLTemplateElement {
@@ -25,7 +25,7 @@ pub struct HTMLTemplateElement {
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
@@ -36,7 +36,7 @@ impl HTMLTemplateElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTemplateElement> {
         Node::reflect_node(box HTMLTemplateElement::new_inherited(local_name, prefix, document),

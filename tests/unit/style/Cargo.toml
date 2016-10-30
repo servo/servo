@@ -17,7 +17,8 @@ owning_ref = "0.2.2"
 parking_lot = "0.3"
 rustc-serialize = "0.3"
 selectors = "0.14"
-string_cache = {version = "0.2.26", features = ["heap_size"]}
+html5ever-atoms = "0.1"
+servo_atoms = {path = "../../../components/atoms"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
 url = {version = "1.2", features = ["heap_size"]}

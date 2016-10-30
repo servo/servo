@@ -22,8 +22,8 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use std::cell::Cell;
-use string_cache::Atom;
 use style::element_state::*;
 use style::str::{split_html_space_chars, str_join};
 
@@ -39,7 +39,7 @@ pub struct HTMLOptionElement {
 }
 
 impl HTMLOptionElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
@@ -52,7 +52,7 @@ impl HTMLOptionElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptionElement> {
         Node::reflect_node(box HTMLOptionElement::new_inherited(local_name, prefix, document),
@@ -82,7 +82,7 @@ impl HTMLOptionElement {
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
 fn collect_text(element: &Element, value: &mut String) {
-    let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &atom!("script");
+    let svg_script = *element.namespace() == ns!(svg) && element.local_name() == &local_name!("script");
     let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
         return;
@@ -133,7 +133,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     fn Value(&self) -> DOMString {
         let element = self.upcast::<Element>();
-        let attr = &atom!("value");
+        let attr = &local_name!("value");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
         } else {
@@ -147,7 +147,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(&self) -> DOMString {
         let element = self.upcast::<Element>();
-        let attr = &atom!("label");
+        let attr = &local_name!("label");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
         } else {
@@ -185,7 +185,7 @@ impl VirtualMethods for HTMLOptionElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -199,7 +199,7 @@ impl VirtualMethods for HTMLOptionElement {
                     }
                 }
             },
-            &atom!("selected") => {
+            &local_name!("selected") => {
                 match mutation {
                     AttributeMutation::Set(_) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness

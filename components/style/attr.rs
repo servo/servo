@@ -6,6 +6,7 @@
 //!
 //! [attr]: https://dom.spec.whatwg.org/#interface-attr
 
+use {Atom, Prefix, Namespace, LocalName};
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
@@ -15,7 +16,6 @@ use std::str::FromStr;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
 #[cfg(not(feature = "gecko"))] use str::str_join;
-use string_cache::{Atom, Namespace};
 use url::Url;
 use values::specified::Length;
 
@@ -548,8 +548,8 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct AttrIdentifier {
-    pub local_name: Atom,
-    pub name: Atom,
+    pub local_name: LocalName,
+    pub name: LocalName,
     pub namespace: Namespace,
-    pub prefix: Option<Atom>,
+    pub prefix: Option<Prefix>,
 }

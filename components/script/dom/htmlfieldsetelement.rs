@@ -17,7 +17,7 @@ use dom::htmllegendelement::HTMLLegendElement;
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::element_state::*;
 
 #[dom_struct]
@@ -26,7 +26,7 @@ pub struct HTMLFieldSetElement {
 }
 
 impl HTMLFieldSetElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
@@ -37,7 +37,7 @@ impl HTMLFieldSetElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFieldSetElement> {
         Node::reflect_node(box HTMLFieldSetElement::new_inherited(local_name, prefix, document),
@@ -88,7 +88,7 @@ impl VirtualMethods for HTMLFieldSetElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &local_name!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {

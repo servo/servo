@@ -14,7 +14,7 @@ use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]

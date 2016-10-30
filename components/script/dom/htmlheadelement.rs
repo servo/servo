@@ -14,7 +14,7 @@ use dom::htmlmetaelement::HTMLMetaElement;
 use dom::node::{Node, document_from_node};
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLHeadElement {
@@ -22,7 +22,7 @@ pub struct HTMLHeadElement {
 }
 
 impl HTMLHeadElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLHeadElement {
         HTMLHeadElement {
@@ -31,7 +31,7 @@ impl HTMLHeadElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHeadElement> {
         Node::reflect_node(box HTMLHeadElement::new_inherited(local_name, prefix, document),
@@ -51,11 +51,11 @@ impl HTMLHeadElement {
         let candidates = node.traverse_preorder()
                              .filter_map(Root::downcast::<Element>)
                              .filter(|elem| elem.is::<HTMLMetaElement>())
-                             .filter(|elem| elem.get_string_attribute(&atom!("name")) == "referrer")
-                             .filter(|elem| elem.get_attribute(&ns!(), &atom!("content")).is_some());
+                             .filter(|elem| elem.get_string_attribute(&local_name!("name")) == "referrer")
+                             .filter(|elem| elem.get_attribute(&ns!(), &local_name!("content")).is_some());
 
         for meta in candidates {
-            if let Some(content) = meta.get_attribute(&ns!(), &atom!("content")).r() {
+            if let Some(content) = meta.get_attribute(&ns!(), &local_name!("content")).r() {
                 let content = content.value();
                 let content_val = content.trim();
                 if !content_val.is_empty() {

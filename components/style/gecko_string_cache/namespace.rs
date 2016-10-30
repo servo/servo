@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gecko_bindings::structs::nsIAtom;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 use std::fmt;
 use std::ops::Deref;
 use string_cache::{Atom, WeakAtom};
@@ -28,6 +28,12 @@ impl Deref for Namespace {
         unsafe {
             &*(weak as *const WeakNamespace)
         }
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for Namespace {
+    fn from(s: Cow<'a, str>) -> Self {
+        Namespace(Atom::from(s))
     }
 }
 

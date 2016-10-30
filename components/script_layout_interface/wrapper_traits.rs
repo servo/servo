@@ -9,12 +9,12 @@ use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
 use gfx_traits::ByteIndex;
+use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use restyle_damage::RestyleDamage;
 use std::fmt::Debug;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
 use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
@@ -295,7 +295,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn type_id(&self) -> Option<LayoutNodeType>;
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str>;
+    fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str>;
 
     fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 
@@ -330,7 +330,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
-        if self.get_local_name() == &atom!("details") &&
+        if self.get_local_name() == &local_name!("details") &&
            self.get_namespace() == &ns!(html) {
             Some(self.with_pseudo(PseudoElementType::DetailsSummary(None)))
         } else {
@@ -340,9 +340,9 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
-        if self.get_local_name() == &atom!("details") &&
+        if self.get_local_name() == &local_name!("details") &&
            self.get_namespace() == &ns!(html) {
-            let display = if self.get_attr(&ns!(), &atom!("open")).is_some() {
+            let display = if self.get_attr(&ns!(), &local_name!("open")).is_some() {
                 None // Specified by the stylesheet
             } else {
                 Some(display::T::none)

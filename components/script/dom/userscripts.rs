@@ -45,7 +45,7 @@ pub fn load_script(head: &HTMLHeadElement) {
                 _ => continue
             };
             let new_script = doc.CreateElement(DOMString::from("script")).unwrap();
-            new_script.set_string_attribute(&atom!("src"), DOMString::from(name));
+            new_script.set_string_attribute(&local_name!("src"), DOMString::from(name));
             node.InsertBefore(new_script.upcast(), first_child.r()).unwrap();
         }
     }

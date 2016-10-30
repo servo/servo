@@ -406,7 +406,7 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = parser.document();
                 let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(atom!("img"), None, doc);
+                let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
                 doc_body.AppendChild(&Root::upcast::<Node>(img)).expect("Appending failed");
 

@@ -6,7 +6,7 @@
 
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::str::DOMString;
-use string_cache::{Atom, Namespace};
+use html5ever_atoms::{Prefix, LocalName, Namespace};
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
@@ -27,7 +27,7 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
 pub fn validate_and_extract(namespace: Option<DOMString>,
                             qualified_name: &str)
-                            -> Fallible<(Namespace, Option<Atom>, Atom)> {
+                            -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     // Step 1.
     let namespace = namespace_from_domstring(namespace);
 
@@ -75,7 +75,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>,
         },
         (ns, p) => {
             // Step 10.
-            Ok((ns, p.map(Atom::from), Atom::from(local_name)))
+            Ok((ns, p.map(Prefix::from), LocalName::from(local_name)))
         }
     }
 }
@@ -174,6 +174,6 @@ pub fn xml_name_type(name: &str) -> XMLName {
 pub fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
     match url {
         None => ns!(),
-        Some(s) => Namespace(Atom::from(s)),
+        Some(s) => Namespace::from(s),
     }
 }

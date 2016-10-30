@@ -14,9 +14,9 @@ use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use script_thread::Runnable;
+use servo_atoms::Atom;
 use std::cell::Cell;
 use std::default::Default;
-use string_cache::Atom;
 use time;
 
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]

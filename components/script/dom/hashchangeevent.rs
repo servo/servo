@@ -12,7 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::{DOMString, USVString};
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]

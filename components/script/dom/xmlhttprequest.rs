@@ -56,13 +56,13 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode
 use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::ScriptChan;
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 use std::str;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Position, Url};

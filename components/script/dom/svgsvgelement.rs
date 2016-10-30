@@ -12,8 +12,8 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::node::Node;
 use dom::svggraphicselement::SVGGraphicsElement;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use script_layout_interface::SVGSVGData;
-use string_cache::Atom;
 use style::attr::AttrValue;
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -25,7 +25,7 @@ pub struct SVGSVGElement {
 }
 
 impl SVGSVGElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> SVGSVGElement {
         SVGSVGElement {
@@ -35,7 +35,7 @@ impl SVGSVGElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<SVGSVGElement> {
         Node::reflect_node(box SVGSVGElement::new_inherited(local_name, prefix, document),
@@ -54,8 +54,8 @@ impl LayoutSVGSVGElementHelpers for LayoutJS<SVGSVGElement> {
         unsafe {
             let SVG = &*self.unsafe_get();
 
-            let width_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("width"));
-            let height_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("height"));
+            let width_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
+            let height_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
             SVGSVGData {
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
@@ -73,10 +73,10 @@ impl VirtualMethods for SVGSVGElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
-            &atom!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
+            &local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            &local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

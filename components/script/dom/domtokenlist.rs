@@ -11,18 +11,19 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
+use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,
-    local_name: Atom,
+    local_name: LocalName,
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: &Element, local_name: Atom) -> DOMTokenList {
+    pub fn new_inherited(element: &Element, local_name: LocalName) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
             element: JS::from_ref(element),
@@ -30,7 +31,7 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(element: &Element, local_name: &Atom) -> Root<DOMTokenList> {
+    pub fn new(element: &Element, local_name: &LocalName) -> Root<DOMTokenList> {
         let window = window_from_node(element);
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
                            &*window,

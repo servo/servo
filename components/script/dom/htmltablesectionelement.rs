@@ -16,7 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -25,7 +25,7 @@ pub struct HTMLTableSectionElement {
 }
 
 impl HTMLTableSectionElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -33,7 +33,7 @@ impl HTMLTableSectionElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableSectionElement> {
         Node::reflect_node(box HTMLTableSectionElement::new_inherited(local_name, prefix, document),
                            document,
@@ -62,7 +62,7 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(atom!("tr"), None, &node.owner_doc()))
+            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
@@ -84,7 +84,7 @@ impl HTMLTableSectionElementLayoutHelpers for LayoutJS<HTMLTableSectionElement> 
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -96,9 +96,9 @@ impl VirtualMethods for HTMLTableSectionElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

@@ -57,6 +57,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
+use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
@@ -75,7 +76,6 @@ use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
-use string_cache::{Atom, Namespace, QualName};
 use style::dom::OpaqueNode;
 use style::selector_impl::ServoSelectorImpl;
 use style::thread_state;
@@ -1752,7 +1752,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| Atom::from(&**p)),
+                    element.prefix().as_ref().map(|p| Prefix::from(&**p)),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
@@ -1818,21 +1818,21 @@ impl Node {
     pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!() => None,
-            // FIXME(ajeffrey): convert directly from &Atom to DOMString
-            Namespace(ref ns) => Some(DOMString::from(&**ns))
+            // FIXME(ajeffrey): convert directly from Namespace to DOMString
+            _ => Some(DOMString::from(&*namespace))
         }
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         fn attr_defines_namespace(attr: &Attr,
-                                  prefix: &Option<Atom>) -> bool {
+                                  defined_prefix: &Option<LocalName>) -> bool {
             *attr.namespace() == ns!(xmlns) &&
-                match (attr.prefix(), prefix) {
-                    (&Some(ref attr_prefix), &Some(ref prefix)) =>
-                        attr_prefix == &atom!("xmlns") &&
-                            attr.local_name() == prefix,
-                    (&None, &None) => *attr.local_name() == atom!("xmlns"),
+                match (attr.prefix(), defined_prefix) {
+                    (&Some(ref attr_prefix), &Some(ref defined_prefix)) =>
+                        attr_prefix == &namespace_prefix!("xmlns") &&
+                            attr.local_name() == defined_prefix,
+                    (&None, &None) => *attr.local_name() == local_name!("xmlns"),
                     _ => false
                 }
         }
@@ -1845,8 +1845,11 @@ impl Node {
                     return element.namespace().clone()
                 }
 
-                // FIXME(ajeffrey): directly convert DOMString to Atom
-                let prefix_atom = prefix.as_ref().map(|s| Atom::from(&**s));
+                // Even though this is conceptually a namespace prefix,
+                // in the `xmlns:foo="https://example.net/namespace" declaration
+                // it is a local name.
+                // FIXME(ajeffrey): directly convert DOMString to LocalName
+                let prefix_atom = prefix.as_ref().map(|s| LocalName::from(&**s));
 
                 // Step 2.
                 let attrs = element.attrs();
