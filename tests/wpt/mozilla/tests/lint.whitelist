@@ -1,0 +1,23 @@
+# File containing whiteslist for lint errors
+# Format is:
+# ERROR TYPE:file/name/pattern[:line number]
+# e.g.
+# TRAILING WHITESPACE:example/file.html:128
+# to allow trailing whitespace on example/file.html line 128
+
+# Please don't add anything here, unless it's necessary for the test.
+
+## File types that should never be checked ##
+
+*:*.gif
+*:*.jpeg
+*:*.jpg
+*:*.png
+
+## Legacy errors ##
+
+CONSOLE:*
+OPEN-NO-MODE:*
+PATH LENGTH:*
+PRINT STATEMENT:*
+TRAILING WHITESPACE:*
