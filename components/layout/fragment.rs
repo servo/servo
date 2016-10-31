@@ -1915,11 +1915,10 @@ impl Fragment {
 
             // FIXME (mbrubeck): Do we need to restore leading too?
             let range_end = info.range_end_including_stripped_whitespace;
-            if info.range.end() == range_end {
-                return
+            if info.range.end() != range_end {
+                info.range.extend_to(range_end);
+                info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
             }
-            info.range.extend_to(range_end);
-            info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
             self.border_box.size.inline = info.content_size.inline +
                 self.border_padding.inline_start_end();
         }
@@ -2867,6 +2866,10 @@ impl Fragment {
                 }
             }
         }
+        let border_padding_difference = next_fragment.border_padding.inline_end - self.border_padding.inline_end;
+        self.border_padding.inline_end = next_fragment.border_padding.inline_end;
+        self.border_box.size.inline += border_padding_difference;
+        self.margin.inline_end = next_fragment.margin.inline_end;
     }
 
     pub fn meld_with_prev_inline_fragment(&mut self, prev_fragment: &Fragment) {
@@ -2890,6 +2893,11 @@ impl Fragment {
                 }
             }
         }
+        let border_padding_difference = prev_fragment.border_padding.inline_start - self.border_padding.inline_start;
+        self.border_padding.inline_start = prev_fragment.border_padding.inline_start;
+        self.border_box.start.i -= border_padding_difference;
+        self.border_box.size.inline += border_padding_difference;
+        self.margin.inline_start = prev_fragment.margin.inline_start;
     }
 
     /// Returns true if any of the inline styles associated with this fragment have
