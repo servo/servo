@@ -332,7 +332,7 @@ impl WebGLTexture {
         self.image_info_at_face(face_index, level)
     }
 
-    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }

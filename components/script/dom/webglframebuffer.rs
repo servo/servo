@@ -111,10 +111,15 @@ impl WebGLFramebuffer {
     }
 
     fn update_status(&self) {
-        let has_c = self.color.borrow().is_some();
-        let has_z = self.depth.borrow().is_some();
-        let has_s = self.stencil.borrow().is_some();
-        let has_zs = self.depthstencil.borrow().is_some();
+        let c = self.color.borrow();
+        let z = self.depth.borrow();
+        let s = self.stencil.borrow();
+        let zs = self.depthstencil.borrow();
+        let has_c = c.is_some();
+        let has_z = z.is_some();
+        let has_s = s.is_some();
+        let has_zs = zs.is_some();
+        let attachments = [&*c, &*z, &*s, &*zs];
 
         // From the WebGL spec, 6.6 ("Framebuffer Object Attachments"):
         //
@@ -133,6 +138,32 @@ impl WebGLFramebuffer {
             (has_z && has_s) {
             self.status.set(constants::FRAMEBUFFER_UNSUPPORTED);
             return;
+        }
+
+        let mut fb_size = None;
+        for attachment in &attachments {
+            // Get the size of this attachment.
+            let size = match **attachment {
+                Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb)) => {
+                    att_rb.size()
+                }
+                Some(WebGLFramebufferAttachment::Texture { texture: ref att_tex, level } ) => {
+                    let info = att_tex.image_info_at_face(0, level as u32);
+                    Some((info.width() as i32, info.height() as i32))
+                }
+                None => None,
+            };
+
+            // Make sure that, if we've found any other attachment,
+            // that the size matches.
+            if size.is_some() {
+                if fb_size.is_some() && size != fb_size {
+                    self.status.set(constants::FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
+                    return;
+                } else {
+                    fb_size = size;
+                }
+            }
         }
 
         if has_c || has_z || has_zs || has_s {
