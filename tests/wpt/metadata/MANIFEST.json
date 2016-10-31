@@ -138,6 +138,82 @@
         "url": "/battery-status/battery-unplugging-manual.html"
       },
       {
+        "path": "fullscreen/api/document-exit-fullscreen-manual.html",
+        "url": "/fullscreen/api/document-exit-fullscreen-manual.html"
+      },
+      {
+        "path": "fullscreen/api/document-fullscreen-element-manual.html",
+        "url": "/fullscreen/api/document-fullscreen-element-manual.html"
+      },
+      {
+        "path": "fullscreen/api/document-onfullscreenchange-manual.html",
+        "url": "/fullscreen/api/document-onfullscreenchange-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-containing-iframe-manual.html",
+        "url": "/fullscreen/api/element-ready-check-containing-iframe-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-enabled-flag-not-set-manual.html",
+        "url": "/fullscreen/api/element-ready-check-enabled-flag-not-set-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-fullscreen-element-sibling-manual.html",
+        "url": "/fullscreen/api/element-ready-check-fullscreen-element-sibling-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-fullscreen-iframe-child-manual.html",
+        "url": "/fullscreen/api/element-ready-check-fullscreen-iframe-child-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-iframe-child-manual.html",
+        "url": "/fullscreen/api/element-ready-check-iframe-child-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-ready-check-not-in-document-manual.html",
+        "url": "/fullscreen/api/element-ready-check-not-in-document-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-request-fullscreen-manual.html",
+        "url": "/fullscreen/api/element-request-fullscreen-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-request-fullscreen-non-top-manual.html",
+        "url": "/fullscreen/api/element-request-fullscreen-non-top-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-request-fullscreen-svg-rect-manual.html",
+        "url": "/fullscreen/api/element-request-fullscreen-svg-rect-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-request-fullscreen-svg-svg-manual.html",
+        "url": "/fullscreen/api/element-request-fullscreen-svg-svg-manual.html"
+      },
+      {
+        "path": "fullscreen/api/element-request-fullscreen-top-manual.html",
+        "url": "/fullscreen/api/element-request-fullscreen-top-manual.html"
+      },
+      {
+        "path": "fullscreen/model/remove-child-manual.html",
+        "url": "/fullscreen/model/remove-child-manual.html"
+      },
+      {
+        "path": "fullscreen/model/remove-first-manual.html",
+        "url": "/fullscreen/model/remove-first-manual.html"
+      },
+      {
+        "path": "fullscreen/model/remove-last-manual.html",
+        "url": "/fullscreen/model/remove-last-manual.html"
+      },
+      {
+        "path": "fullscreen/model/remove-parent-manual.html",
+        "url": "/fullscreen/model/remove-parent-manual.html"
+      },
+      {
+        "path": "fullscreen/model/remove-single-manual.html",
+        "url": "/fullscreen/model/remove-single-manual.html"
+      },
+      {
         "path": "gamepad/events-manual.html",
         "url": "/gamepad/events-manual.html"
       },
@@ -294,6 +370,10 @@
         "url": "/html/browsers/history/the-history-interface/non-automated/traverse_the_history_unload_prompt_2-manual.html"
       },
       {
+        "path": "html/browsers/history/the-history-interface/non-automated/traverse_the_session_history_unload_prompt_1-manual.html",
+        "url": "/html/browsers/history/the-history-interface/non-automated/traverse_the_session_history_unload_prompt_1-manual.html"
+      },
+      {
         "path": "html/browsers/history/the-location-interface/non-automated/manual_click_assign_during_load-manual.html",
         "url": "/html/browsers/history/the-location-interface/non-automated/manual_click_assign_during_load-manual.html"
       },
@@ -414,8 +494,16 @@
         "url": "/html/browsers/the-window-object/the-windowproxy-object/test-window-proxy-toolbar-manual.html"
       },
       {
+        "path": "html/browsers/windows/noreferrer-cross-origin-close-manual.sub.html",
+        "url": "/html/browsers/windows/noreferrer-cross-origin-close-manual.sub.html"
+      },
+      {
         "path": "html/browsers/windows/noreferrer-cross-origin-manual.html",
         "url": "/html/browsers/windows/noreferrer-cross-origin-manual.html"
+      },
+      {
+        "path": "html/browsers/windows/targeting-multiple-cross-origin-manual.sub.html",
+        "url": "/html/browsers/windows/targeting-multiple-cross-origin-manual.sub.html"
       },
       {
         "path": "html/editing/dnd/datastore/015-manual.html",
@@ -834,6 +922,14 @@
         "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/get-navigatorlanguage-manual.html"
       },
       {
+        "path": "mathml/relations/html5-tree/href-manual.html",
+        "url": "/mathml/relations/html5-tree/href-manual.html"
+      },
+      {
+        "path": "mediacapture-streams/MediaStream-id-manual.https.html",
+        "url": "/mediacapture-streams/MediaStream-id-manual.https.html"
+      },
+      {
         "path": "notifications/body-basic-manual.html",
         "url": "/notifications/body-basic-manual.html"
       },
@@ -1082,6 +1178,10 @@
         "url": "/pointerevents/pointerevent_element_haspointercapture-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_element_haspointercapture_release_pending_capture-manual.html",
+        "url": "/pointerevents/pointerevent_element_haspointercapture_release_pending_capture-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_gotpointercapture_before_first_pointerevent-manual.html",
         "url": "/pointerevents/pointerevent_gotpointercapture_before_first_pointerevent-manual.html"
       },
@@ -1138,6 +1238,10 @@
         "url": "/pointerevents/pointerevent_pointermove_isprimary_same_as_pointerdown-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_pointermove_on_chorded_mouse_button-manual.html",
+        "url": "/pointerevents/pointerevent_pointermove_on_chorded_mouse_button-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_pointerout_after_pointercancel_touch-manual.html",
         "url": "/pointerevents/pointerevent_pointerout_after_pointercancel_touch-manual.html"
       },
@@ -1166,6 +1270,10 @@
         "url": "/pointerevents/pointerevent_releasepointercapture_onpointerup_mouse-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_releasepointercapture_release_right_after_capture-manual.html",
+        "url": "/pointerevents/pointerevent_releasepointercapture_release_right_after_capture-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_setpointercapture_disconnected-manual.html",
         "url": "/pointerevents/pointerevent_setpointercapture_disconnected-manual.html"
       },
@@ -1178,8 +1286,16 @@
         "url": "/pointerevents/pointerevent_setpointercapture_invalid_pointerid-manual.html"
       },
       {
+        "path": "pointerevents/pointerevent_setpointercapture_override_pending_capture_element-manual.html",
+        "url": "/pointerevents/pointerevent_setpointercapture_override_pending_capture_element-manual.html"
+      },
+      {
         "path": "pointerevents/pointerevent_setpointercapture_relatedtarget-manual.html",
         "url": "/pointerevents/pointerevent_setpointercapture_relatedtarget-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_setpointercapture_to_same_element_twice-manual.html",
+        "url": "/pointerevents/pointerevent_setpointercapture_to_same_element_twice-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_suppress_compat_events_on_click-manual.html",
@@ -1310,6 +1426,10 @@
         "url": "/pointerlock/pointerlock_remove_target-manual.html"
       },
       {
+        "path": "pointerlock/pointerlock_shadow-manual.html",
+        "url": "/pointerlock/pointerlock_shadow-manual.html"
+      },
+      {
         "path": "presentation-api/controlling-ua/PresentationConnection_onclosed-manual.html",
         "url": "/presentation-api/controlling-ua/PresentationConnection_onclosed-manual.html"
       },
@@ -1320,6 +1440,10 @@
       {
         "path": "presentation-api/controlling-ua/PresentationConnection_onterminated-manual.html",
         "url": "/presentation-api/controlling-ua/PresentationConnection_onterminated-manual.html"
+      },
+      {
+        "path": "presentation-api/controlling-ua/PresentationRequest_onconnectionavailable-manual.html",
+        "url": "/presentation-api/controlling-ua/PresentationRequest_onconnectionavailable-manual.html"
       },
       {
         "path": "presentation-api/controlling-ua/defaultRequest_success-manual.html",
@@ -1334,8 +1458,20 @@
         "url": "/presentation-api/controlling-ua/reconnectToPresentation_success-manual.html"
       },
       {
-        "path": "presentation-api/controlling-ua/startNewPresentation_error-manual.html",
-        "url": "/presentation-api/controlling-ua/startNewPresentation_error-manual.html"
+        "path": "presentation-api/controlling-ua/startNewPresentation_displaynotallowed-manual.html",
+        "url": "/presentation-api/controlling-ua/startNewPresentation_displaynotallowed-manual.html"
+      },
+      {
+        "path": "presentation-api/controlling-ua/startNewPresentation_displaynotfound-manual.html",
+        "url": "/presentation-api/controlling-ua/startNewPresentation_displaynotfound-manual.html"
+      },
+      {
+        "path": "presentation-api/controlling-ua/startNewPresentation_mixedcontent-manual.https.html",
+        "url": "/presentation-api/controlling-ua/startNewPresentation_mixedcontent-manual.https.html"
+      },
+      {
+        "path": "presentation-api/controlling-ua/startNewPresentation_mixedcontent_multiple-manual.https.html",
+        "url": "/presentation-api/controlling-ua/startNewPresentation_mixedcontent_multiple-manual.https.html"
       },
       {
         "path": "presentation-api/controlling-ua/startNewPresentation_sandboxing_error-manual.html",
@@ -1348,6 +1484,10 @@
       {
         "path": "presentation-api/controlling-ua/startNewPresentation_success-manual.html",
         "url": "/presentation-api/controlling-ua/startNewPresentation_success-manual.html"
+      },
+      {
+        "path": "presentation-api/controlling-ua/startNewPresentation_unsettledpromise-manual.html",
+        "url": "/presentation-api/controlling-ua/startNewPresentation_unsettledpromise-manual.html"
       },
       {
         "path": "quirks-mode/active-and-hover-manual.html",
@@ -3478,12 +3618,20 @@
         "url": "/uievents/keyboard/key-manual.js"
       },
       {
+        "path": "uievents/order-of-events/focus-events/focus-contained-manual.html",
+        "url": "/uievents/order-of-events/focus-events/focus-contained-manual.html"
+      },
+      {
         "path": "uievents/order-of-events/focus-events/focus-manual.html",
         "url": "/uievents/order-of-events/focus-events/focus-manual.html"
       },
       {
         "path": "uievents/order-of-events/focus-events/legacy-manual.html",
         "url": "/uievents/order-of-events/focus-events/legacy-manual.html"
+      },
+      {
+        "path": "uievents/order-of-events/mouse-events/click-cancel-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/click-cancel-manual.html"
       },
       {
         "path": "uievents/order-of-events/mouse-events/click-on-body-manual.html",
@@ -3498,8 +3646,20 @@
         "url": "/uievents/order-of-events/mouse-events/click-on-html-manual.html"
       },
       {
+        "path": "uievents/order-of-events/mouse-events/click-order-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/click-order-manual.html"
+      },
+      {
         "path": "uievents/order-of-events/mouse-events/mouseevents-mousemove-manual.htm",
         "url": "/uievents/order-of-events/mouse-events/mouseevents-mousemove-manual.htm"
+      },
+      {
+        "path": "uievents/order-of-events/mouse-events/mousemove-across-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/mousemove-across-manual.html"
+      },
+      {
+        "path": "uievents/order-of-events/mouse-events/mousemove-between-manual.html",
+        "url": "/uievents/order-of-events/mouse-events/mousemove-between-manual.html"
       },
       {
         "path": "uievents/order-of-events/mouse-events/mouseover-out-manual.html",
@@ -4014,6 +4174,26 @@
           ]
         ],
         "url": "/compat/webkit-text-fill-color-property-006.html"
+      },
+      {
+        "path": "content-security-policy/font-src/font-blacklisted.html",
+        "references": [
+          [
+            "/content-security-policy/font-src/font-blacklisted-ref.html",
+            "!="
+          ]
+        ],
+        "url": "/content-security-policy/font-src/font-blacklisted.html"
+      },
+      {
+        "path": "content-security-policy/font-src/font-whitelisted.html",
+        "references": [
+          [
+            "/content-security-policy/font-src/font-whitelisted-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/content-security-policy/font-src/font-whitelisted.html"
       },
       {
         "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
@@ -5536,6 +5716,26 @@
         "url": "/html/rendering/replaced-elements/images/space.html"
       },
       {
+        "path": "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html",
+        "references": [
+          [
+            "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html"
+      },
+      {
+        "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
+        "references": [
+          [
+            "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
+      },
+      {
         "path": "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html",
         "references": [
           [
@@ -5804,6 +6004,46 @@
           ]
         ],
         "url": "/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-003.html"
+      },
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1a.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1a.html"
+      },
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1b.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1b.html"
+      },
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1c.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1c.html"
+      },
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1d.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1d.html"
       },
       {
         "path": "html/semantics/grouping-content/the-ol-element/reversed-2.html",
@@ -6116,6 +6356,326 @@
         "url": "/http/basic-auth-cache-test.html"
       },
       {
+        "path": "mathml/presentation-markup/spaces/space-2.html",
+        "references": [
+          [
+            "/mathml/presentation-markup/spaces/space-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/presentation-markup/spaces/space-2.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/color-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/color-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/color-1.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/display-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/display-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/display-1.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/lengths-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/lengths-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/lengths-1.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/lengths-2.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/lengths-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/lengths-2.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-fraktur.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-fraktur-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-fraktur.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-italic.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-sans-serif.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-sans-serif-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-sans-serif.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-script.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-script-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-script.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-double-struck.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-double-struck-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-double-struck.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-fraktur.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-fraktur-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-fraktur.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-initial.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-initial-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-initial.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-italic.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-looped.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-looped-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-looped.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-monospace.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-monospace-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-monospace.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif-bold-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-bold-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif-bold-italic.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif-italic.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-script.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-script-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-script.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-stretched.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-stretched-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-stretched.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/mathvariant-tailed.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-tailed-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-tailed.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/visibility-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/visibility-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/visibility-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/class-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/class-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/class-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/color-attributes-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/color-attributes-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/color-attributes-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/dynamic-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/dynamic-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/dynamic-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/href-click-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/href-click-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/href-click-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/href-click-2.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/href-click-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/href-click-2.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/required-extensions-2.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/required-extensions-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/required-extensions-2.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/unique-identifier-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/unique-identifier-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/unique-identifier-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/unique-identifier-3.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/unique-identifier-3-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/unique-identifier-3.html"
+      },
+      {
+        "path": "mathml/relations/text-and-math/use-typo-metrics-1.html",
+        "references": [
+          [
+            "/mathml/relations/text-and-math/use-typo-metrics-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/text-and-math/use-typo-metrics-1.html"
+      },
+      {
         "path": "quirks-mode/historical/list-item-bullet-size.html",
         "references": [
           [
@@ -6184,6 +6744,86 @@
           ]
         ],
         "url": "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-a-element-attr-change.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-a-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-a-element-attr-change.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-feImage-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-feImage-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-feImage-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-filter-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-filter-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-filter-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-gradient-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-gradient-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-gradient-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-image-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-image-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-image-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-pattern-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-pattern-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-pattern-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-textPath-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-textPath-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-textPath-element.html"
+      },
+      {
+        "path": "svg/linking/reftests/href-use-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-use-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-use-element.html"
       },
       {
         "path": "webvtt/rendering/cues-with-video/processing-model/2_cues_overlapping_completely_move_up.html",
@@ -10264,6 +10904,10 @@
         "url": "/2dcontext/line-styles/2d.line.width.valid.html"
       },
       {
+        "path": "2dcontext/line-styles/setLineDash.html",
+        "url": "/2dcontext/line-styles/setLineDash.html"
+      },
+      {
         "path": "2dcontext/path-objects/2d.path.arc.angle.1.html",
         "url": "/2dcontext/path-objects/2d.path.arc.angle.1.html"
       },
@@ -10622,6 +11266,10 @@
       {
         "path": "2dcontext/path-objects/2d.path.lineTo.nextpoint.html",
         "url": "/2dcontext/path-objects/2d.path.lineTo.nextpoint.html"
+      },
+      {
+        "path": "2dcontext/path-objects/2d.path.lineTo.nonfinite.details.html",
+        "url": "/2dcontext/path-objects/2d.path.lineTo.nonfinite.details.html"
       },
       {
         "path": "2dcontext/path-objects/2d.path.lineTo.nonfinite.html",
@@ -11529,7 +12177,7 @@
       },
       {
         "path": "FileAPI/FileReaderSync.worker.js",
-        "url": "/FileAPI/FileReaderSync.worker"
+        "url": "/FileAPI/FileReaderSync.worker.html"
       },
       {
         "path": "FileAPI/blob/Blob-XHR-revoke.html",
@@ -11545,7 +12193,7 @@
       },
       {
         "path": "FileAPI/blob/Blob-in-worker.worker.js",
-        "url": "/FileAPI/blob/Blob-in-worker.worker"
+        "url": "/FileAPI/blob/Blob-in-worker.worker.html"
       },
       {
         "path": "FileAPI/blob/Blob-slice-overflow.html",
@@ -11561,7 +12209,7 @@
       },
       {
         "path": "FileAPI/file/Worker-read-file-constructor.worker.js",
-        "url": "/FileAPI/file/Worker-read-file-constructor.worker"
+        "url": "/FileAPI/file/Worker-read-file-constructor.worker.html"
       },
       {
         "path": "FileAPI/fileReader.html",
@@ -11581,7 +12229,7 @@
       },
       {
         "path": "FileAPI/idlharness.worker.js",
-        "url": "/FileAPI/idlharness.worker"
+        "url": "/FileAPI/idlharness.worker.html"
       },
       {
         "path": "FileAPI/reading-data-section/Determining-Encoding.html",
@@ -12124,6 +12772,18 @@
         "url": "/IndexedDB/idbindex-multientry.htm"
       },
       {
+        "path": "IndexedDB/idbindex-rename-abort.html",
+        "url": "/IndexedDB/idbindex-rename-abort.html"
+      },
+      {
+        "path": "IndexedDB/idbindex-rename-errors.html",
+        "url": "/IndexedDB/idbindex-rename-errors.html"
+      },
+      {
+        "path": "IndexedDB/idbindex-rename.html",
+        "url": "/IndexedDB/idbindex-rename.html"
+      },
+      {
         "path": "IndexedDB/idbindex_count.htm",
         "url": "/IndexedDB/idbindex_count.htm"
       },
@@ -12254,6 +12914,18 @@
       {
         "path": "IndexedDB/idbkeyrange_incorrect.htm",
         "url": "/IndexedDB/idbkeyrange_incorrect.htm"
+      },
+      {
+        "path": "IndexedDB/idbobjectstore-rename-abort.html",
+        "url": "/IndexedDB/idbobjectstore-rename-abort.html"
+      },
+      {
+        "path": "IndexedDB/idbobjectstore-rename-errors.html",
+        "url": "/IndexedDB/idbobjectstore-rename-errors.html"
+      },
+      {
+        "path": "IndexedDB/idbobjectstore-rename-store.html",
+        "url": "/IndexedDB/idbobjectstore-rename-store.html"
       },
       {
         "path": "IndexedDB/idbobjectstore_add.htm",
@@ -12581,7 +13253,7 @@
       },
       {
         "path": "IndexedDB/interfaces.worker.js",
-        "url": "/IndexedDB/interfaces.worker"
+        "url": "/IndexedDB/interfaces.worker.html"
       },
       {
         "path": "IndexedDB/key_invalid.htm",
@@ -12628,6 +13300,22 @@
         "url": "/IndexedDB/string-list-ordering.htm"
       },
       {
+        "path": "IndexedDB/transaction-abort-generator-revert.html",
+        "url": "/IndexedDB/transaction-abort-generator-revert.html"
+      },
+      {
+        "path": "IndexedDB/transaction-abort-index-metadata-revert.html",
+        "url": "/IndexedDB/transaction-abort-index-metadata-revert.html"
+      },
+      {
+        "path": "IndexedDB/transaction-abort-multiple-metadata-revert.html",
+        "url": "/IndexedDB/transaction-abort-multiple-metadata-revert.html"
+      },
+      {
+        "path": "IndexedDB/transaction-abort-object-store-metadata-revert.html",
+        "url": "/IndexedDB/transaction-abort-object-store-metadata-revert.html"
+      },
+      {
         "path": "IndexedDB/transaction-create_in_versionchange.htm",
         "url": "/IndexedDB/transaction-create_in_versionchange.htm"
       },
@@ -12661,131 +13349,131 @@
       },
       {
         "path": "WebCryptoAPI/derive_bits_keys/ecdh_bits.worker.js",
-        "url": "/WebCryptoAPI/derive_bits_keys/ecdh_bits.worker"
+        "url": "/WebCryptoAPI/derive_bits_keys/ecdh_bits.worker.html"
       },
       {
         "path": "WebCryptoAPI/derive_bits_keys/ecdh_keys.worker.js",
-        "url": "/WebCryptoAPI/derive_bits_keys/ecdh_keys.worker"
+        "url": "/WebCryptoAPI/derive_bits_keys/ecdh_keys.worker.html"
       },
       {
         "path": "WebCryptoAPI/derive_bits_keys/hkdf.worker.js",
-        "url": "/WebCryptoAPI/derive_bits_keys/hkdf.worker"
+        "url": "/WebCryptoAPI/derive_bits_keys/hkdf.worker.html"
       },
       {
         "path": "WebCryptoAPI/derive_bits_keys/pbkdf2.worker.js",
-        "url": "/WebCryptoAPI/derive_bits_keys/pbkdf2.worker"
+        "url": "/WebCryptoAPI/derive_bits_keys/pbkdf2.worker.html"
       },
       {
         "path": "WebCryptoAPI/digest/digest.worker.js",
-        "url": "/WebCryptoAPI/digest/digest.worker"
+        "url": "/WebCryptoAPI/digest/digest.worker.html"
       },
       {
         "path": "WebCryptoAPI/encrypt_decrypt/aes_cbc.worker.js",
-        "url": "/WebCryptoAPI/encrypt_decrypt/aes_cbc.worker"
+        "url": "/WebCryptoAPI/encrypt_decrypt/aes_cbc.worker.html"
       },
       {
         "path": "WebCryptoAPI/encrypt_decrypt/aes_ctr.worker.js",
-        "url": "/WebCryptoAPI/encrypt_decrypt/aes_ctr.worker"
+        "url": "/WebCryptoAPI/encrypt_decrypt/aes_ctr.worker.html"
       },
       {
         "path": "WebCryptoAPI/encrypt_decrypt/aes_gcm.worker.js",
-        "url": "/WebCryptoAPI/encrypt_decrypt/aes_gcm.worker"
+        "url": "/WebCryptoAPI/encrypt_decrypt/aes_gcm.worker.html"
       },
       {
         "path": "WebCryptoAPI/encrypt_decrypt/rsa.worker.js",
-        "url": "/WebCryptoAPI/encrypt_decrypt/rsa.worker"
+        "url": "/WebCryptoAPI/encrypt_decrypt/rsa.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures.worker"
+        "url": "/WebCryptoAPI/generateKey/failures.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_AES-CBC.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_AES-CBC.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_AES-CBC.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_AES-CTR.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_AES-CTR.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_AES-CTR.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_AES-GCM.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_AES-GCM.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_AES-GCM.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_AES-KW.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_AES-KW.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_AES-KW.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_ECDH.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_ECDH.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_ECDH.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_ECDSA.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_ECDSA.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_ECDSA.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_HMAC.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_HMAC.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_HMAC.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_RSA-OAEP.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_RSA-OAEP.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_RSA-OAEP.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_RSA-PSS.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_RSA-PSS.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_RSA-PSS.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/failures_RSASSA-PKCS1-v1_5.worker.js",
-        "url": "/WebCryptoAPI/generateKey/failures_RSASSA-PKCS1-v1_5.worker"
+        "url": "/WebCryptoAPI/generateKey/failures_RSASSA-PKCS1-v1_5.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes.worker"
+        "url": "/WebCryptoAPI/generateKey/successes.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_AES-CBC.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_AES-CBC.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_AES-CBC.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_AES-CTR.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_AES-CTR.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_AES-CTR.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_AES-GCM.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_AES-GCM.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_AES-GCM.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_AES-KW.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_AES-KW.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_AES-KW.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_ECDH.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_ECDH.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_ECDH.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_ECDSA.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_ECDSA.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_ECDSA.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_HMAC.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_HMAC.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_HMAC.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_RSA-OAEP.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_RSA-OAEP.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_RSA-OAEP.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_RSA-PSS.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_RSA-PSS.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_RSA-PSS.worker.html"
       },
       {
         "path": "WebCryptoAPI/generateKey/successes_RSASSA-PKCS1-v1_5.worker.js",
-        "url": "/WebCryptoAPI/generateKey/successes_RSASSA-PKCS1-v1_5.worker"
+        "url": "/WebCryptoAPI/generateKey/successes_RSASSA-PKCS1-v1_5.worker.html"
       },
       {
         "path": "WebCryptoAPI/getRandomValues.worker.js",
-        "url": "/WebCryptoAPI/getRandomValues.worker"
+        "url": "/WebCryptoAPI/getRandomValues.worker.html"
       },
       {
         "path": "WebCryptoAPI/idlharness.html",
@@ -12793,19 +13481,19 @@
       },
       {
         "path": "WebCryptoAPI/idlharness.worker.js",
-        "url": "/WebCryptoAPI/idlharness.worker"
+        "url": "/WebCryptoAPI/idlharness.worker.html"
       },
       {
         "path": "WebCryptoAPI/import_export/ec_importKey.worker.js",
-        "url": "/WebCryptoAPI/import_export/ec_importKey.worker"
+        "url": "/WebCryptoAPI/import_export/ec_importKey.worker.html"
       },
       {
         "path": "WebCryptoAPI/import_export/rsa_importKey.worker.js",
-        "url": "/WebCryptoAPI/import_export/rsa_importKey.worker"
+        "url": "/WebCryptoAPI/import_export/rsa_importKey.worker.html"
       },
       {
         "path": "WebCryptoAPI/import_export/symmetric_importKey.worker.js",
-        "url": "/WebCryptoAPI/import_export/symmetric_importKey.worker"
+        "url": "/WebCryptoAPI/import_export/symmetric_importKey.worker.html"
       },
       {
         "path": "WebCryptoAPI/import_export/test_ec_importKey.html",
@@ -12821,19 +13509,19 @@
       },
       {
         "path": "WebCryptoAPI/sign_verify/ecdsa.worker.js",
-        "url": "/WebCryptoAPI/sign_verify/ecdsa.worker"
+        "url": "/WebCryptoAPI/sign_verify/ecdsa.worker.html"
       },
       {
         "path": "WebCryptoAPI/sign_verify/hmac.worker.js",
-        "url": "/WebCryptoAPI/sign_verify/hmac.worker"
+        "url": "/WebCryptoAPI/sign_verify/hmac.worker.html"
       },
       {
         "path": "WebCryptoAPI/sign_verify/rsa_pkcs.worker.js",
-        "url": "/WebCryptoAPI/sign_verify/rsa_pkcs.worker"
+        "url": "/WebCryptoAPI/sign_verify/rsa_pkcs.worker.html"
       },
       {
         "path": "WebCryptoAPI/sign_verify/rsa_pss.worker.js",
-        "url": "/WebCryptoAPI/sign_verify/rsa_pss.worker"
+        "url": "/WebCryptoAPI/sign_verify/rsa_pss.worker.html"
       },
       {
         "path": "WebCryptoAPI/test_getRandomValues.html",
@@ -12841,7 +13529,11 @@
       },
       {
         "path": "WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey.worker.js",
-        "url": "/WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey.worker"
+        "url": "/WebCryptoAPI/wrapKey_unwrapKey/wrapKey_unwrapKey.worker.html"
+      },
+      {
+        "path": "WebIDL/current-realm.html",
+        "url": "/WebIDL/current-realm.html"
       },
       {
         "path": "WebIDL/ecmascript-binding/es-exceptions/DOMException-constants.html",
@@ -12857,7 +13549,7 @@
       },
       {
         "path": "WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker.js",
-        "url": "/WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker"
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker.html"
       },
       {
         "path": "WebIDL/ecmascript-binding/es-exceptions/exceptions.html",
@@ -12881,7 +13573,7 @@
       },
       {
         "path": "XMLHttpRequest/XMLHttpRequest-withCredentials.any.js",
-        "url": "/XMLHttpRequest/XMLHttpRequest-withCredentials.any.worker"
+        "url": "/XMLHttpRequest/XMLHttpRequest-withCredentials.any.worker.html"
       },
       {
         "path": "XMLHttpRequest/abort-after-receive.htm",
@@ -12909,7 +13601,7 @@
       },
       {
         "path": "XMLHttpRequest/abort-during-open.worker.js",
-        "url": "/XMLHttpRequest/abort-during-open.worker"
+        "url": "/XMLHttpRequest/abort-during-open.worker.html"
       },
       {
         "path": "XMLHttpRequest/abort-during-unsent.htm",
@@ -12996,8 +13688,8 @@
         "url": "/XMLHttpRequest/event-timeout.htm"
       },
       {
-        "path": "XMLHttpRequest/event-upload-progress-crossorigin.sub.htm",
-        "url": "/XMLHttpRequest/event-upload-progress-crossorigin.sub.htm"
+        "path": "XMLHttpRequest/event-upload-progress-crossorigin.htm",
+        "url": "/XMLHttpRequest/event-upload-progress-crossorigin.htm"
       },
       {
         "path": "XMLHttpRequest/event-upload-progress.htm",
@@ -13444,8 +14136,8 @@
         "url": "/XMLHttpRequest/send-no-response-event-order.htm"
       },
       {
-        "path": "XMLHttpRequest/send-non-same-origin.sub.htm",
-        "url": "/XMLHttpRequest/send-non-same-origin.sub.htm"
+        "path": "XMLHttpRequest/send-non-same-origin.htm",
+        "url": "/XMLHttpRequest/send-non-same-origin.htm"
       },
       {
         "path": "XMLHttpRequest/send-receive-utf16.htm",
@@ -13505,7 +14197,7 @@
       },
       {
         "path": "XMLHttpRequest/send-send.worker.js",
-        "url": "/XMLHttpRequest/send-send.worker"
+        "url": "/XMLHttpRequest/send-send.worker.html"
       },
       {
         "path": "XMLHttpRequest/send-sync-blocks-async.htm",
@@ -13541,7 +14233,7 @@
       },
       {
         "path": "XMLHttpRequest/send-usp.worker.js",
-        "url": "/XMLHttpRequest/send-usp.worker"
+        "url": "/XMLHttpRequest/send-usp.worker.html"
       },
       {
         "path": "XMLHttpRequest/setrequestheader-after-send.htm",
@@ -13678,6 +14370,18 @@
       {
         "path": "battery-status/battery-promise.html",
         "url": "/battery-status/battery-promise.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-currentColor.html",
+        "url": "/compat/webkit-text-fill-color-currentColor.html"
+      },
+      {
+        "path": "console/console-is-a-namespace.any.js",
+        "url": "/console/console-is-a-namespace.any.html"
+      },
+      {
+        "path": "console/console-is-a-namespace.any.js",
+        "url": "/console/console-is-a-namespace.any.worker.html"
       },
       {
         "path": "content-security-policy/blink-contrib-2/base-uri-allow.sub.html",
@@ -14320,6 +15024,22 @@
         "url": "/content-security-policy/script-src/script-src-1_4_2.html"
       },
       {
+        "path": "content-security-policy/securitypolicyviolation/blockeduri-eval.html",
+        "url": "/content-security-policy/securitypolicyviolation/blockeduri-eval.html"
+      },
+      {
+        "path": "content-security-policy/securitypolicyviolation/blockeduri-inline.html",
+        "url": "/content-security-policy/securitypolicyviolation/blockeduri-inline.html"
+      },
+      {
+        "path": "content-security-policy/securitypolicyviolation/idl.html",
+        "url": "/content-security-policy/securitypolicyviolation/idl.html"
+      },
+      {
+        "path": "content-security-policy/securitypolicyviolation/targeting.html",
+        "url": "/content-security-policy/securitypolicyviolation/targeting.html"
+      },
+      {
         "path": "content-security-policy/style-src/style-src-3_1.html",
         "url": "/content-security-policy/style-src/style-src-3_1.html"
       },
@@ -14350,6 +15070,10 @@
       {
         "path": "content-security-policy/svg/svg-policy-with-resource.html",
         "url": "/content-security-policy/svg/svg-policy-with-resource.html"
+      },
+      {
+        "path": "cookies/path/match.html",
+        "url": "/cookies/path/match.html"
       },
       {
         "path": "cookies/secure/set-from-dom.https.sub.html",
@@ -14468,16 +15192,136 @@
         "url": "/cssom-view/scrollingElement.html"
       },
       {
+        "path": "custom-elements/CustomElementRegistry.html",
+        "url": "/custom-elements/CustomElementRegistry.html"
+      },
+      {
+        "path": "custom-elements/Document-createElement.html",
+        "url": "/custom-elements/Document-createElement.html"
+      },
+      {
         "path": "custom-elements/HTMLElement-constructor.html",
         "url": "/custom-elements/HTMLElement-constructor.html"
+      },
+      {
+        "path": "custom-elements/adopted-callback.html",
+        "url": "/custom-elements/adopted-callback.html"
+      },
+      {
+        "path": "custom-elements/attribute-changed-callback.html",
+        "url": "/custom-elements/attribute-changed-callback.html"
+      },
+      {
+        "path": "custom-elements/connected-callbacks.html",
+        "url": "/custom-elements/connected-callbacks.html"
       },
       {
         "path": "custom-elements/custom-element-registry/define.html",
         "url": "/custom-elements/custom-element-registry/define.html"
       },
       {
+        "path": "custom-elements/disconnected-callbacks.html",
+        "url": "/custom-elements/disconnected-callbacks.html"
+      },
+      {
         "path": "custom-elements/htmlconstructor/newtarget.html",
         "url": "/custom-elements/htmlconstructor/newtarget.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-constructs-custom-element-in-document-write.html",
+        "url": "/custom-elements/parser/parser-constructs-custom-element-in-document-write.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-constructs-custom-element-synchronously.html",
+        "url": "/custom-elements/parser/parser-constructs-custom-element-synchronously.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-constructs-custom-elements.html",
+        "url": "/custom-elements/parser/parser-constructs-custom-elements.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-fallsback-to-unknown-element.html",
+        "url": "/custom-elements/parser/parser-fallsback-to-unknown-element.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-sets-attributes-and-children.html",
+        "url": "/custom-elements/parser/parser-sets-attributes-and-children.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-uses-constructed-element.html",
+        "url": "/custom-elements/parser/parser-uses-constructed-element.html"
+      },
+      {
+        "path": "custom-elements/parser/parser-uses-registry-of-owner-document.html",
+        "url": "/custom-elements/parser/parser-uses-registry-of-owner-document.html"
+      },
+      {
+        "path": "custom-elements/reaction-timing.html",
+        "url": "/custom-elements/reaction-timing.html"
+      },
+      {
+        "path": "custom-elements/reactions/Attr.html",
+        "url": "/custom-elements/reactions/Attr.html"
+      },
+      {
+        "path": "custom-elements/reactions/ChildNode.html",
+        "url": "/custom-elements/reactions/ChildNode.html"
+      },
+      {
+        "path": "custom-elements/reactions/DOMStringMap.html",
+        "url": "/custom-elements/reactions/DOMStringMap.html"
+      },
+      {
+        "path": "custom-elements/reactions/DOMTokenList.html",
+        "url": "/custom-elements/reactions/DOMTokenList.html"
+      },
+      {
+        "path": "custom-elements/reactions/Document.html",
+        "url": "/custom-elements/reactions/Document.html"
+      },
+      {
+        "path": "custom-elements/reactions/Element.html",
+        "url": "/custom-elements/reactions/Element.html"
+      },
+      {
+        "path": "custom-elements/reactions/ElementContentEditable.html",
+        "url": "/custom-elements/reactions/ElementContentEditable.html"
+      },
+      {
+        "path": "custom-elements/reactions/HTMLElement.html",
+        "url": "/custom-elements/reactions/HTMLElement.html"
+      },
+      {
+        "path": "custom-elements/reactions/NamedNodeMap.html",
+        "url": "/custom-elements/reactions/NamedNodeMap.html"
+      },
+      {
+        "path": "custom-elements/reactions/Node.html",
+        "url": "/custom-elements/reactions/Node.html"
+      },
+      {
+        "path": "custom-elements/reactions/ParentNode.html",
+        "url": "/custom-elements/reactions/ParentNode.html"
+      },
+      {
+        "path": "custom-elements/reactions/Range.html",
+        "url": "/custom-elements/reactions/Range.html"
+      },
+      {
+        "path": "custom-elements/reactions/Selection.html",
+        "url": "/custom-elements/reactions/Selection.html"
+      },
+      {
+        "path": "custom-elements/upgrading.html",
+        "url": "/custom-elements/upgrading.html"
+      },
+      {
+        "path": "custom-elements/upgrading/Node-cloneNode.html",
+        "url": "/custom-elements/upgrading/Node-cloneNode.html"
+      },
+      {
+        "path": "custom-elements/upgrading/upgrading-parser-created-element.html",
+        "url": "/custom-elements/upgrading/upgrading-parser-created-element.html"
       },
       {
         "path": "custom-elements/v0/concepts/custom-elements-type-naming.html",
@@ -14760,6 +15604,10 @@
         "url": "/dom/events/Event-dispatch-bubbles-true.html"
       },
       {
+        "path": "dom/events/Event-dispatch-click.html",
+        "url": "/dom/events/Event-dispatch-click.html"
+      },
+      {
         "path": "dom/events/Event-dispatch-detached-click.html",
         "url": "/dom/events/Event-dispatch-detached-click.html"
       },
@@ -14778,6 +15626,10 @@
       {
         "path": "dom/events/Event-dispatch-order.html",
         "url": "/dom/events/Event-dispatch-order.html"
+      },
+      {
+        "path": "dom/events/Event-dispatch-other-document.html",
+        "url": "/dom/events/Event-dispatch-other-document.html"
       },
       {
         "path": "dom/events/Event-dispatch-propagation-stopped.html",
@@ -15712,10 +16564,6 @@
         "url": "/domparsing/innerhtml-01.xhtml"
       },
       {
-        "path": "domparsing/innerhtml-02.html",
-        "url": "/domparsing/innerhtml-02.html"
-      },
-      {
         "path": "domparsing/innerhtml-03.xhtml",
         "url": "/domparsing/innerhtml-03.xhtml"
       },
@@ -15786,6 +16634,10 @@
       {
         "path": "editing/other/delete.html",
         "url": "/editing/other/delete.html"
+      },
+      {
+        "path": "editing/other/restoration.html",
+        "url": "/editing/other/restoration.html"
       },
       {
         "path": "editing/run/backcolor.html",
@@ -15988,92 +16840,12 @@
         "url": "/encoding/textencoder-utf16-surrogates.html"
       },
       {
-        "path": "encrypted-media/Google/encrypted-media-clear-key-invalid-license.html",
-        "url": "/encrypted-media/Google/encrypted-media-clear-key-invalid-license.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-clearkey-update-non-ascii-input.html",
-        "url": "/encrypted-media/Google/encrypted-media-clearkey-update-non-ascii-input.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-onencrypted.html",
-        "url": "/encrypted-media/Google/encrypted-media-onencrypted.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-playback-encrypted-and-clear-sources.html",
-        "url": "/encrypted-media/Google/encrypted-media-playback-encrypted-and-clear-sources.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-requestmediakeysystemaccess.html",
-        "url": "/encrypted-media/Google/encrypted-media-requestmediakeysystemaccess.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-reset-src-after-setmediakeys.html",
-        "url": "/encrypted-media/Google/encrypted-media-reset-src-after-setmediakeys.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-session-closed-event.html",
-        "url": "/encrypted-media/Google/encrypted-media-session-closed-event.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-again-after-playback.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-again-after-playback.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-again-after-resetting-src.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-again-after-resetting-src.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-at-same-time.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-at-same-time.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-multiple-times-with-different-mediakeys.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-multiple-times-with-different-mediakeys.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-multiple-times-with-the-same-mediakeys.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-multiple-times-with-the-same-mediakeys.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys-to-multiple-video-elements.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys-to-multiple-video-elements.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-setmediakeys.html",
-        "url": "/encrypted-media/Google/encrypted-media-setmediakeys.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-syntax.html",
-        "url": "/encrypted-media/Google/encrypted-media-syntax.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-unique-origin.html",
-        "url": "/encrypted-media/Google/encrypted-media-unique-origin.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-update-disallowed-input.html",
-        "url": "/encrypted-media/Google/encrypted-media-update-disallowed-input.html"
-      },
-      {
-        "path": "encrypted-media/Google/encrypted-media-waiting-for-a-key.html",
-        "url": "/encrypted-media/Google/encrypted-media-waiting-for-a-key.html"
-      },
-      {
-        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-sessions.html",
-        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-sessions.html"
-      },
-      {
-        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-updates.html",
-        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-keystatuses-multiple-updates.html"
-      },
-      {
-        "path": "encrypted-media/Google/migrated_to_root_disabled/encrypted-media-playback-multiple-sessions.html",
-        "url": "/encrypted-media/Google/migrated_to_root_disabled/encrypted-media-playback-multiple-sessions.html"
-      },
-      {
         "path": "encrypted-media/clearkey-check-initdata-type.html",
         "url": "/encrypted-media/clearkey-check-initdata-type.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-events-session-closed-event.html",
+        "url": "/encrypted-media/clearkey-events-session-closed-event.html"
       },
       {
         "path": "encrypted-media/clearkey-events.html",
@@ -16082,6 +16854,10 @@
       {
         "path": "encrypted-media/clearkey-generate-request-disallowed-input.html",
         "url": "/encrypted-media/clearkey-generate-request-disallowed-input.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-invalid-license.html",
+        "url": "/encrypted-media/clearkey-invalid-license.html"
       },
       {
         "path": "encrypted-media/clearkey-keystatuses-multiple-sessions.html",
@@ -16124,6 +16900,18 @@
         "url": "/encrypted-media/clearkey-mp4-playback-retrieve-persistent-usage-record.html"
       },
       {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-clear-encrypted.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-clear-encrypted.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-encrypted-clear-sources.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-encrypted-clear-sources.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-encrypted-clear.html",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-encrypted-clear.html"
+      },
+      {
         "path": "encrypted-media/clearkey-mp4-playback-temporary-events.html",
         "url": "/encrypted-media/clearkey-mp4-playback-temporary-events.html"
       },
@@ -16160,20 +16948,92 @@
         "url": "/encrypted-media/clearkey-mp4-playback-temporary.html"
       },
       {
+        "path": "encrypted-media/clearkey-mp4-reset-src-after-setmediakeys.html",
+        "url": "/encrypted-media/clearkey-mp4-reset-src-after-setmediakeys.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-again-after-playback.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-again-after-playback.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-again-after-resetting-src.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-again-after-resetting-src.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-at-same-time.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-at-same-time.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-multiple-times-with-different-mediakeys.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-multiple-times-with-different-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-multiple-times-with-the-same-mediakeys.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-multiple-times-with-the-same-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys-to-multiple-video-elements.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys-to-multiple-video-elements.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-setmediakeys.html",
+        "url": "/encrypted-media/clearkey-mp4-setmediakeys.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-syntax-mediakeys.html",
+        "url": "/encrypted-media/clearkey-mp4-syntax-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-syntax-mediakeysession.html",
+        "url": "/encrypted-media/clearkey-mp4-syntax-mediakeysession.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-syntax-mediakeysystemaccess.html",
+        "url": "/encrypted-media/clearkey-mp4-syntax-mediakeysystemaccess.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-unique-origin.html",
+        "url": "/encrypted-media/clearkey-mp4-unique-origin.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-update-disallowed-input.html",
+        "url": "/encrypted-media/clearkey-mp4-update-disallowed-input.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-waiting-for-a-key.html",
+        "url": "/encrypted-media/clearkey-mp4-waiting-for-a-key.html"
+      },
+      {
         "path": "encrypted-media/clearkey-not-callable-after-createsession.html",
         "url": "/encrypted-media/clearkey-not-callable-after-createsession.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-update-non-ascii-input.html",
+        "url": "/encrypted-media/clearkey-update-non-ascii-input.html"
       },
       {
         "path": "encrypted-media/drm-check-initdata-type.html",
         "url": "/encrypted-media/drm-check-initdata-type.html"
       },
       {
+        "path": "encrypted-media/drm-events-session-closed-event.html",
+        "url": "/encrypted-media/drm-events-session-closed-event.html"
+      },
+      {
         "path": "encrypted-media/drm-events.html",
         "url": "/encrypted-media/drm-events.html"
       },
       {
+        "path": "encrypted-media/drm-expiration.html",
+        "url": "/encrypted-media/drm-expiration.html"
+      },
+      {
         "path": "encrypted-media/drm-generate-request-disallowed-input.html",
         "url": "/encrypted-media/drm-generate-request-disallowed-input.html"
+      },
+      {
+        "path": "encrypted-media/drm-invalid-license.html",
+        "url": "/encrypted-media/drm-invalid-license.html"
       },
       {
         "path": "encrypted-media/drm-keystatuses-multiple-sessions.html",
@@ -16182,6 +17042,10 @@
       {
         "path": "encrypted-media/drm-keystatuses.html",
         "url": "/encrypted-media/drm-keystatuses.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-onencrypted.html",
+        "url": "/encrypted-media/drm-mp4-onencrypted.html"
       },
       {
         "path": "encrypted-media/drm-mp4-playback-destroy-persistent-license.html",
@@ -16202,6 +17066,18 @@
       {
         "path": "encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html",
         "url": "/encrypted-media/drm-mp4-playback-retrieve-persistent-usage-record.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-clear-encrypted.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-clear-encrypted.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-encrypted-clear-sources.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-encrypted-clear-sources.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-encrypted-clear.html",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-encrypted-clear.html"
       },
       {
         "path": "encrypted-media/drm-mp4-playback-temporary-multikey.html",
@@ -16240,8 +17116,64 @@
         "url": "/encrypted-media/drm-mp4-playback-temporary.html"
       },
       {
+        "path": "encrypted-media/drm-mp4-reset-src-after-setmediakeys.html",
+        "url": "/encrypted-media/drm-mp4-reset-src-after-setmediakeys.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-again-after-playback.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-again-after-playback.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-again-after-resetting-src.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-again-after-resetting-src.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-at-same-time.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-at-same-time.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-multiple-times-with-different-mediakeys.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-multiple-times-with-different-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-multiple-times-with-the-same-mediakeys.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-multiple-times-with-the-same-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys-to-multiple-video-elements.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys-to-multiple-video-elements.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-setmediakeys.html",
+        "url": "/encrypted-media/drm-mp4-setmediakeys.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-syntax-mediakeys.html",
+        "url": "/encrypted-media/drm-mp4-syntax-mediakeys.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-syntax-mediakeysession.html",
+        "url": "/encrypted-media/drm-mp4-syntax-mediakeysession.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-syntax-mediakeysystemaccess.html",
+        "url": "/encrypted-media/drm-mp4-syntax-mediakeysystemaccess.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-unique-origin.html",
+        "url": "/encrypted-media/drm-mp4-unique-origin.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-waiting-for-a-key.html",
+        "url": "/encrypted-media/drm-mp4-waiting-for-a-key.html"
+      },
+      {
         "path": "encrypted-media/drm-not-callable-after-createsession.html",
         "url": "/encrypted-media/drm-not-callable-after-createsession.html"
+      },
+      {
+        "path": "encrypted-media/drm-temporary-license-type.html",
+        "url": "/encrypted-media/drm-temporary-license-type.html"
       },
       {
         "path": "encrypted-media/idlharness.html",
@@ -16257,7 +17189,7 @@
       },
       {
         "path": "eventsource/dedicated-worker/eventsource-eventtarget.worker.js",
-        "url": "/eventsource/dedicated-worker/eventsource-eventtarget.worker"
+        "url": "/eventsource/dedicated-worker/eventsource-eventtarget.worker.html"
       },
       {
         "path": "eventsource/dedicated-worker/eventsource-onmesage.htm",
@@ -16480,6 +17412,18 @@
         "url": "/fetch/api/basic/accept-header.html"
       },
       {
+        "path": "fetch/api/basic/conditional-get.html",
+        "url": "/fetch/api/basic/conditional-get.html"
+      },
+      {
+        "path": "fetch/api/basic/error-after-response.html",
+        "url": "/fetch/api/basic/error-after-response.html"
+      },
+      {
+        "path": "fetch/api/basic/integrity-sharedworker.html",
+        "url": "/fetch/api/basic/integrity-sharedworker.html"
+      },
+      {
         "path": "fetch/api/basic/integrity-worker.html",
         "url": "/fetch/api/basic/integrity-worker.html"
       },
@@ -16538,6 +17482,14 @@
       {
         "path": "fetch/api/basic/request-referrer.html",
         "url": "/fetch/api/basic/request-referrer.html"
+      },
+      {
+        "path": "fetch/api/basic/request-upload-worker.html",
+        "url": "/fetch/api/basic/request-upload-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/request-upload.html",
+        "url": "/fetch/api/basic/request-upload.html"
       },
       {
         "path": "fetch/api/basic/response-url-worker.html",
@@ -16832,6 +17784,38 @@
         "url": "/fetch/api/redirect/redirect-to-dataurl.html"
       },
       {
+        "path": "fetch/api/request/multi-globals/url-parsing.html",
+        "url": "/fetch/api/request/multi-globals/url-parsing.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-default-conditional.html",
+        "url": "/fetch/api/request/request-cache-default-conditional.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-default.html",
+        "url": "/fetch/api/request/request-cache-default.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-force-cache.html",
+        "url": "/fetch/api/request/request-cache-force-cache.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-no-cache.html",
+        "url": "/fetch/api/request/request-cache-no-cache.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-no-store.html",
+        "url": "/fetch/api/request/request-cache-no-store.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-only-if-cached.html",
+        "url": "/fetch/api/request/request-cache-only-if-cached.html"
+      },
+      {
+        "path": "fetch/api/request/request-cache-reload.html",
+        "url": "/fetch/api/request/request-cache-reload.html"
+      },
+      {
         "path": "fetch/api/request/request-clone.sub.html",
         "url": "/fetch/api/request/request-clone.sub.html"
       },
@@ -16874,6 +17858,10 @@
       {
         "path": "fetch/api/request/request-structure.html",
         "url": "/fetch/api/request/request-structure.html"
+      },
+      {
+        "path": "fetch/api/response/multi-globals/url-parsing.html",
+        "url": "/fetch/api/response/multi-globals/url-parsing.html"
       },
       {
         "path": "fetch/api/response/response-cancel-stream.html",
@@ -17021,7 +18009,7 @@
       },
       {
         "path": "hr-time/basic.worker.js",
-        "url": "/hr-time/basic.worker"
+        "url": "/hr-time/basic.worker.html"
       },
       {
         "path": "hr-time/idlharness.html",
@@ -17480,10 +18468,6 @@
         "url": "/html/browsers/history/the-history-interface/joint_session_history/002.html"
       },
       {
-        "path": "html/browsers/history/the-history-interface/non-automated/traverse_the_session_history_unload_prompt_1.html",
-        "url": "/html/browsers/history/the-history-interface/non-automated/traverse_the_session_history_unload_prompt_1.html"
-      },
-      {
         "path": "html/browsers/history/the-history-interface/traverse_the_history_1.html",
         "url": "/html/browsers/history/the-history-interface/traverse_the_history_1.html"
       },
@@ -17538,6 +18522,10 @@
       {
         "path": "html/browsers/history/the-location-interface/document_location.html",
         "url": "/html/browsers/history/the-location-interface/document_location.html"
+      },
+      {
+        "path": "html/browsers/history/the-location-interface/location-prototype-setting.html",
+        "url": "/html/browsers/history/the-location-interface/location-prototype-setting.html"
       },
       {
         "path": "html/browsers/history/the-location-interface/location-stringifier.html",
@@ -17624,8 +18612,8 @@
         "url": "/html/browsers/history/the-location-interface/scripted_form_submit_assign_during_load.html"
       },
       {
-        "path": "html/browsers/history/the-location-interface/security_location_0.sub.htm",
-        "url": "/html/browsers/history/the-location-interface/security_location_0.sub.htm"
+        "path": "html/browsers/history/the-location-interface/security_location_0.htm",
+        "url": "/html/browsers/history/the-location-interface/security_location_0.htm"
       },
       {
         "path": "html/browsers/offline/application-cache-api/api_status_idle.html",
@@ -17678,6 +18666,22 @@
       {
         "path": "html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html",
         "url": "/html/browsers/origin/relaxing-the-same-origin-restriction/document_domain.html"
+      },
+      {
+        "path": "html/browsers/sandboxing/sandbox-allow-same-origin.html",
+        "url": "/html/browsers/sandboxing/sandbox-allow-same-origin.html"
+      },
+      {
+        "path": "html/browsers/sandboxing/sandbox-allow-scripts.html",
+        "url": "/html/browsers/sandboxing/sandbox-allow-scripts.html"
+      },
+      {
+        "path": "html/browsers/sandboxing/sandbox-disallow-same-origin.html",
+        "url": "/html/browsers/sandboxing/sandbox-disallow-same-origin.html"
+      },
+      {
+        "path": "html/browsers/sandboxing/sandbox-disallow-scripts.html",
+        "url": "/html/browsers/sandboxing/sandbox-disallow-scripts.html"
       },
       {
         "path": "html/browsers/the-window-object/Document-defaultView.html",
@@ -17744,8 +18748,8 @@
         "url": "/html/browsers/the-window-object/named-access-on-the-window-object/window-null-names.html"
       },
       {
-        "path": "html/browsers/the-window-object/security-window/window-security.sub.html",
-        "url": "/html/browsers/the-window-object/security-window/window-security.sub.html"
+        "path": "html/browsers/the-window-object/security-window/window-security.html",
+        "url": "/html/browsers/the-window-object/security-window/window-security.html"
       },
       {
         "path": "html/browsers/the-window-object/window-aliases.html",
@@ -17804,8 +18808,8 @@
         "url": "/html/browsers/windows/browsing-context-names/browsing-context-default-name.html"
       },
       {
-        "path": "html/browsers/windows/nested-browsing-contexts/frameElement.sub.html",
-        "url": "/html/browsers/windows/nested-browsing-contexts/frameElement.sub.html"
+        "path": "html/browsers/windows/nested-browsing-contexts/frameElement.html",
+        "url": "/html/browsers/windows/nested-browsing-contexts/frameElement.html"
       },
       {
         "path": "html/browsers/windows/nested-browsing-contexts/window-top-001.html",
@@ -17820,16 +18824,16 @@
         "url": "/html/browsers/windows/noreferrer.html"
       },
       {
-        "path": "html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.sub.html",
-        "url": "/html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.sub.html"
+        "path": "html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.html",
+        "url": "/html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
         "url": "/html/dom/documents/dom-tree-accessors/Document.body.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html",
-        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html"
+        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.html",
+        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/Document.getElementsByClassName-null-undef.html",
@@ -18596,6 +19600,10 @@
         "url": "/html/editing/focus/sequential-focus-navigation-and-the-tabindex-attribute/focus-tabindex-default-value.html"
       },
       {
+        "path": "html/infrastructure/common-dom-interfaces/collections/historical.html",
+        "url": "/html/infrastructure/common-dom-interfaces/collections/historical.html"
+      },
+      {
         "path": "html/infrastructure/common-dom-interfaces/collections/htmlallcollection.html",
         "url": "/html/infrastructure/common-dom-interfaces/collections/htmlallcollection.html"
       },
@@ -18704,8 +19712,8 @@
         "url": "/html/semantics/document-metadata/the-base-element/base_href_invalid.html"
       },
       {
-        "path": "html/semantics/document-metadata/the-base-element/base_href_specified.sub.html",
-        "url": "/html/semantics/document-metadata/the-base-element/base_href_specified.sub.html"
+        "path": "html/semantics/document-metadata/the-base-element/base_href_specified.html",
+        "url": "/html/semantics/document-metadata/the-base-element/base_href_specified.html"
       },
       {
         "path": "html/semantics/document-metadata/the-base-element/base_href_unspecified.html",
@@ -19988,6 +20996,10 @@
         "url": "/html/semantics/embedded-content/the-embed-element/embed-in-object-fallback.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-embed-element/historical.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/historical.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-iframe-element/change_parentage.html",
         "url": "/html/semantics/embedded-content/the-iframe-element/change_parentage.html"
       },
@@ -20004,6 +21016,10 @@
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe-allowfullscreen.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe-append-to-child-document.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe-append-to-child-document.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe-load-event.html",
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe-load-event.html"
       },
@@ -20016,12 +21032,28 @@
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_allow_script.html"
       },
       {
-        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping.html",
-        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping.html"
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-1.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-1.html"
       },
       {
-        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping.html",
-        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping.html"
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-2.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-2.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-3.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_escaping-3.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-1.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-1.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-2.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-2.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-3.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe_sandbox_popups_nonescaping-3.html"
       },
       {
         "path": "html/semantics/embedded-content/the-iframe-element/move_iframe_in_dom_01.html",
@@ -20054,6 +21086,10 @@
       {
         "path": "html/semantics/embedded-content/the-img-element/current-pixel-density/error.html",
         "url": "/html/semantics/embedded-content/the-img-element/current-pixel-density/error.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-img-element/data-url.html",
+        "url": "/html/semantics/embedded-content/the-img-element/data-url.html"
       },
       {
         "path": "html/semantics/embedded-content/the-img-element/environment-changes/viewport-change.html",
@@ -20096,6 +21132,14 @@
         "url": "/html/semantics/embedded-content/the-img-element/update-the-source-set.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/usemap-casing.html",
+        "url": "/html/semantics/embedded-content/the-img-element/usemap-casing.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-object-element/historical.html",
+        "url": "/html/semantics/embedded-content/the-object-element/historical.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-object-element/object-attributes.html",
         "url": "/html/semantics/embedded-content/the-object-element/object-attributes.html"
       },
@@ -20110,6 +21154,10 @@
       {
         "path": "html/semantics/embedded-content/the-object-element/object-handler.html",
         "url": "/html/semantics/embedded-content/the-object-element/object-handler.html"
+      },
+      {
+        "path": "html/semantics/embedded-content/the-object-element/usemap-casing.html",
+        "url": "/html/semantics/embedded-content/the-object-element/usemap-casing.html"
       },
       {
         "path": "html/semantics/embedded-content/the-video-element/video-tabindex.html",
@@ -20270,6 +21318,10 @@
       {
         "path": "html/semantics/forms/the-fieldset-element/disabled-002.xhtml",
         "url": "/html/semantics/forms/the-fieldset-element/disabled-002.xhtml"
+      },
+      {
+        "path": "html/semantics/forms/the-form-element/form-action-url.html",
+        "url": "/html/semantics/forms/the-form-element/form-action-url.html"
       },
       {
         "path": "html/semantics/forms/the-form-element/form-autocomplete.html",
@@ -20504,6 +21556,10 @@
         "url": "/html/semantics/forms/the-progress-element/progress.html"
       },
       {
+        "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
+        "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
+      },
+      {
         "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-namedItem.html",
         "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-namedItem.html"
       },
@@ -20522,6 +21578,10 @@
       {
         "path": "html/semantics/forms/the-select-element/select-remove.html",
         "url": "/html/semantics/forms/the-select-element/select-remove.html"
+      },
+      {
+        "path": "html/semantics/forms/the-select-element/selected-index.html",
+        "url": "/html/semantics/forms/the-select-element/selected-index.html"
       },
       {
         "path": "html/semantics/forms/the-textarea-element/cloning-steps.html",
@@ -20664,6 +21724,10 @@
         "url": "/html/semantics/scripting-1/the-script-element/async_011.htm"
       },
       {
+        "path": "html/semantics/scripting-1/the-script-element/data-url.html",
+        "url": "/html/semantics/scripting-1/the-script-element/data-url.html"
+      },
+      {
         "path": "html/semantics/scripting-1/the-script-element/fetch-src/alpha/base.html",
         "url": "/html/semantics/scripting-1/the-script-element/fetch-src/alpha/base.html"
       },
@@ -20738,6 +21802,18 @@
       {
         "path": "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html",
         "url": "/html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-onerror-insertion-point-1.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-onerror-insertion-point-1.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-onerror-insertion-point-2.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-onerror-insertion-point-2.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-onload-insertion-point.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-onload-insertion-point.html"
       },
       {
         "path": "html/semantics/scripting-1/the-script-element/script-onload-string.html",
@@ -21272,8 +22348,16 @@
         "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-once.html"
       },
       {
+        "path": "html/webappapis/scripting/events/messageevent-constructor.html",
+        "url": "/html/webappapis/scripting/events/messageevent-constructor.html"
+      },
+      {
         "path": "html/webappapis/scripting/events/onerroreventhandler.html",
         "url": "/html/webappapis/scripting/events/onerroreventhandler.html"
+      },
+      {
+        "path": "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html",
+        "url": "/html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html"
       },
       {
         "path": "html/webappapis/scripting/processing-model-2/addEventListener.html",
@@ -21409,7 +22493,7 @@
       },
       {
         "path": "html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker.js",
-        "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker"
+        "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker.html"
       },
       {
         "path": "html/webappapis/system-state-and-capabilities/the-navigator-object/content.html",
@@ -21550,6 +22634,102 @@
       {
         "path": "js/builtins/WeakMap.prototype-properties.html",
         "url": "/js/builtins/WeakMap.prototype-properties.html"
+      },
+      {
+        "path": "mathml/presentation-markup/fractions/frac-1.html",
+        "url": "/mathml/presentation-markup/fractions/frac-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/fractions/frac-parameters-1.html",
+        "url": "/mathml/presentation-markup/fractions/frac-parameters-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/fractions/frac-parameters-2.html",
+        "url": "/mathml/presentation-markup/fractions/frac-parameters-2.html"
+      },
+      {
+        "path": "mathml/presentation-markup/operators/mo-axis-height-1.html",
+        "url": "/mathml/presentation-markup/operators/mo-axis-height-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/radicals/root-parameters-1.html",
+        "url": "/mathml/presentation-markup/radicals/root-parameters-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-1.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-2.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-2.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-3.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-3.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-4.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-4.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-5.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-5.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/subsup-parameters-1.html",
+        "url": "/mathml/presentation-markup/scripts/subsup-parameters-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/underover-1.html",
+        "url": "/mathml/presentation-markup/scripts/underover-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/underover-parameters-1.html",
+        "url": "/mathml/presentation-markup/scripts/underover-parameters-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/underover-parameters-2.html",
+        "url": "/mathml/presentation-markup/scripts/underover-parameters-2.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/underover-parameters-3.html",
+        "url": "/mathml/presentation-markup/scripts/underover-parameters-3.html"
+      },
+      {
+        "path": "mathml/presentation-markup/scripts/underover-parameters-4.html",
+        "url": "/mathml/presentation-markup/scripts/underover-parameters-4.html"
+      },
+      {
+        "path": "mathml/presentation-markup/spaces/space-1.html",
+        "url": "/mathml/presentation-markup/spaces/space-1.html"
+      },
+      {
+        "path": "mathml/presentation-markup/tables/table-axis-height.html",
+        "url": "/mathml/presentation-markup/tables/table-axis-height.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/displaystyle-1.html",
+        "url": "/mathml/relations/css-styling/displaystyle-1.html"
+      },
+      {
+        "path": "mathml/relations/css-styling/lengths-3.html",
+        "url": "/mathml/relations/css-styling/lengths-3.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/class-2.html",
+        "url": "/mathml/relations/html5-tree/class-2.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/display-1.html",
+        "url": "/mathml/relations/html5-tree/display-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/required-extensions-1.html",
+        "url": "/mathml/relations/html5-tree/required-extensions-1.html"
+      },
+      {
+        "path": "mathml/relations/html5-tree/unique-identifier-2.html",
+        "url": "/mathml/relations/html5-tree/unique-identifier-2.html"
       },
       {
         "path": "media-source/SourceBuffer-abort-removed.html",
@@ -21776,6 +22956,10 @@
         "url": "/media-source/mediasource-trackdefaultlist.html"
       },
       {
+        "path": "mediacapture-record/BlobEvent-constructor.html",
+        "url": "/mediacapture-record/BlobEvent-constructor.html"
+      },
+      {
         "path": "mediacapture-streams/GUM-api.https.html",
         "url": "/mediacapture-streams/GUM-api.https.html"
       },
@@ -21834,10 +23018,6 @@
       {
         "path": "mediacapture-streams/MediaStream-gettrackid.https.html",
         "url": "/mediacapture-streams/MediaStream-gettrackid.https.html"
-      },
-      {
-        "path": "mediacapture-streams/MediaStream-id-manual.https.html",
-        "url": "/mediacapture-streams/MediaStream-id-manual.https.html"
       },
       {
         "path": "mediacapture-streams/MediaStream-idl.https.html",
@@ -23924,6 +25104,10 @@
         "url": "/payment-request/payment-request-in-iframe.html"
       },
       {
+        "path": "performance-timeline/case-sensitivity.html",
+        "url": "/performance-timeline/case-sensitivity.html"
+      },
+      {
         "path": "performance-timeline/idlharness.html",
         "url": "/performance-timeline/idlharness.html"
       },
@@ -23954,10 +25138,6 @@
       {
         "path": "pointerevents/pointerevent_constructor.html",
         "url": "/pointerevents/pointerevent_constructor.html"
-      },
-      {
-        "path": "pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html",
-        "url": "/pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html"
       },
       {
         "path": "pointerevents/pointerevent_touch-action-illegal.html",
@@ -24018,14 +25198,6 @@
       {
         "path": "presentation-api/controlling-ua/startNewPresentation_error.html",
         "url": "/presentation-api/controlling-ua/startNewPresentation_error.html"
-      },
-      {
-        "path": "presentation-api/controlling-ua/startNewPresentation_mixedcontent-manual.https.html",
-        "url": "/presentation-api/controlling-ua/startNewPresentation_mixedcontent-manual.https.html"
-      },
-      {
-        "path": "presentation-api/controlling-ua/startNewPresentation_mixedcontent_multiple-manual.https.html",
-        "url": "/presentation-api/controlling-ua/startNewPresentation_mixedcontent_multiple-manual.https.html"
       },
       {
         "path": "presentation-api/receiving-ua/idlharness.html",
@@ -29508,6 +30680,10 @@
         "url": "/selectors/attribute-selectors/attribute-case/syntax.html"
       },
       {
+        "path": "selectors/child-indexed-pseudo-class.html",
+        "url": "/selectors/child-indexed-pseudo-class.html"
+      },
+      {
         "path": "service-workers/cache-storage/serviceworker/credentials.html",
         "url": "/service-workers/cache-storage/serviceworker/credentials.html"
       },
@@ -30272,6 +31448,22 @@
         "url": "/svg/interfaces.html"
       },
       {
+        "path": "svg/linking/scripted/href-animate-element.html",
+        "url": "/svg/linking/scripted/href-animate-element.html"
+      },
+      {
+        "path": "svg/linking/scripted/href-mpath-element.html",
+        "url": "/svg/linking/scripted/href-mpath-element.html"
+      },
+      {
+        "path": "svg/linking/scripted/href-script-element-markup.html",
+        "url": "/svg/linking/scripted/href-script-element-markup.html"
+      },
+      {
+        "path": "svg/linking/scripted/href-script-element.html",
+        "url": "/svg/linking/scripted/href-script-element.html"
+      },
+      {
         "path": "touch-events/create-touch-touchlist.html",
         "url": "/touch-events/create-touch-touchlist.html"
       },
@@ -30357,7 +31549,7 @@
       },
       {
         "path": "url/historical.worker.js",
-        "url": "/url/historical.worker"
+        "url": "/url/historical.worker.html"
       },
       {
         "path": "url/interfaces.html",
@@ -30366,10 +31558,6 @@
       {
         "path": "url/url-constructor.html",
         "url": "/url/url-constructor.html"
-      },
-      {
-        "path": "url/url-domainToUnicode.html",
-        "url": "/url/url-domainToUnicode.html"
       },
       {
         "path": "url/url-setters.html",
@@ -30508,6 +31696,10 @@
         "url": "/web-animations/interfaces/Animation/constructor.html"
       },
       {
+        "path": "web-animations/interfaces/Animation/effect.html",
+        "url": "/web-animations/interfaces/Animation/effect.html"
+      },
+      {
         "path": "web-animations/interfaces/Animation/finish.html",
         "url": "/web-animations/interfaces/Animation/finish.html"
       },
@@ -30624,6 +31816,10 @@
         "url": "/web-animations/interfaces/KeyframeEffect/getComputedTiming.html"
       },
       {
+        "path": "web-animations/interfaces/KeyframeEffect/iterationComposite.html",
+        "url": "/web-animations/interfaces/KeyframeEffect/iterationComposite.html"
+      },
+      {
         "path": "web-animations/interfaces/KeyframeEffect/processing-a-keyframes-argument.html",
         "url": "/web-animations/interfaces/KeyframeEffect/processing-a-keyframes-argument.html"
       },
@@ -30634,6 +31830,10 @@
       {
         "path": "web-animations/interfaces/KeyframeEffect/setTarget.html",
         "url": "/web-animations/interfaces/KeyframeEffect/setTarget.html"
+      },
+      {
+        "path": "web-animations/interfaces/KeyframeEffect/spacing.html",
+        "url": "/web-animations/interfaces/KeyframeEffect/spacing.html"
       },
       {
         "path": "web-animations/interfaces/KeyframeEffectReadOnly/spacing.html",
@@ -30662,6 +31862,10 @@
       {
         "path": "web-animations/timing-model/animations/set-the-animation-start-time.html",
         "url": "/web-animations/timing-model/animations/set-the-animation-start-time.html"
+      },
+      {
+        "path": "web-animations/timing-model/animations/set-the-target-effect-of-an-animation.html",
+        "url": "/web-animations/timing-model/animations/set-the-target-effect-of-an-animation.html"
       },
       {
         "path": "web-animations/timing-model/animations/set-the-timeline-of-an-animation.html",
@@ -30726,6 +31930,10 @@
       {
         "path": "webaudio/the-audio-api/the-waveshapernode-interface/curve-tests.html",
         "url": "/webaudio/the-audio-api/the-waveshapernode-interface/curve-tests.html"
+      },
+      {
+        "path": "webauthn/interfaces.https.html",
+        "url": "/webauthn/interfaces.https.html"
       },
       {
         "path": "webdriver/interface.html",
@@ -33828,6 +35036,10 @@
         "url": "/webrtc/promises-call.html"
       },
       {
+        "path": "webrtc/rtcpeerconnection/rtcpeerconnection-constructor.html",
+        "url": "/webrtc/rtcpeerconnection/rtcpeerconnection-constructor.html"
+      },
+      {
         "path": "webrtc/rtcpeerconnection/rtcpeerconnection-idl.html",
         "url": "/webrtc/rtcpeerconnection/rtcpeerconnection-idl.html"
       },
@@ -34149,7 +35361,7 @@
       },
       {
         "path": "websockets/Send-data.worker.js",
-        "url": "/websockets/Send-data.worker"
+        "url": "/websockets/Send-data.worker.html"
       },
       {
         "path": "websockets/Send-null.htm",
@@ -34960,6 +36172,10 @@
         "url": "/websockets/interfaces/WebSocket/url/resolve.html?wss"
       },
       {
+        "path": "websockets/multi-globals/message-received.html",
+        "url": "/websockets/multi-globals/message-received.html"
+      },
+      {
         "path": "websockets/opening-handshake/001.html",
         "url": "/websockets/opening-handshake/001.html"
       },
@@ -34969,7 +36185,7 @@
       },
       {
         "path": "websockets/opening-handshake/003-sets-origin.worker.js",
-        "url": "/websockets/opening-handshake/003-sets-origin.worker"
+        "url": "/websockets/opening-handshake/003-sets-origin.worker.html"
       },
       {
         "path": "websockets/opening-handshake/003.html",
@@ -35324,6 +36540,10 @@
         "url": "/workers/Worker_ErrorEvent_bubbles_cancelable.htm"
       },
       {
+        "path": "workers/Worker_ErrorEvent_error.htm",
+        "url": "/workers/Worker_ErrorEvent_error.htm"
+      },
+      {
         "path": "workers/Worker_ErrorEvent_filename.htm",
         "url": "/workers/Worker_ErrorEvent_filename.htm"
       },
@@ -35461,7 +36681,7 @@
       },
       {
         "path": "workers/constructors/Worker/DedicatedWorkerGlobalScope-members.worker.js",
-        "url": "/workers/constructors/Worker/DedicatedWorkerGlobalScope-members.worker"
+        "url": "/workers/constructors/Worker/DedicatedWorkerGlobalScope-members.worker.html"
       },
       {
         "path": "workers/constructors/Worker/ctor-1.html",
@@ -35477,7 +36697,7 @@
       },
       {
         "path": "workers/constructors/Worker/expected-self-properties.worker.js",
-        "url": "/workers/constructors/Worker/expected-self-properties.worker"
+        "url": "/workers/constructors/Worker/expected-self-properties.worker.html"
       },
       {
         "path": "workers/constructors/Worker/no-arguments-ctor.html",
@@ -35497,7 +36717,7 @@
       },
       {
         "path": "workers/constructors/Worker/unexpected-self-properties.worker.js",
-        "url": "/workers/constructors/Worker/unexpected-self-properties.worker"
+        "url": "/workers/constructors/Worker/unexpected-self-properties.worker.html"
       },
       {
         "path": "workers/constructors/Worker/unresolvable-url.html",
@@ -35508,16 +36728,24 @@
         "url": "/workers/constructors/Worker/use-base-url.html"
       },
       {
+        "path": "workers/data-url-shared.html",
+        "url": "/workers/data-url-shared.html"
+      },
+      {
+        "path": "workers/data-url.html",
+        "url": "/workers/data-url.html"
+      },
+      {
         "path": "workers/interfaces.worker.js",
-        "url": "/workers/interfaces.worker"
+        "url": "/workers/interfaces.worker.html"
       },
       {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/EventTarget.worker.js",
-        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/EventTarget.worker"
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/EventTarget.worker.html"
       },
       {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/onmessage.worker.js",
-        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.worker"
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.worker.html"
       },
       {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/event-ports-dedicated.html",
@@ -35533,7 +36761,7 @@
       },
       {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.worker.js",
-        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.worker"
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.worker.html"
       },
       {
         "path": "workers/interfaces/DedicatedWorkerGlobalScope/postMessage/second-argument-null-in-array.html",
@@ -35645,11 +36873,11 @@
       },
       {
         "path": "workers/interfaces/WorkerUtils/importScripts/001.worker.js",
-        "url": "/workers/interfaces/WorkerUtils/importScripts/001.worker"
+        "url": "/workers/interfaces/WorkerUtils/importScripts/001.worker.html"
       },
       {
         "path": "workers/interfaces/WorkerUtils/importScripts/002.worker.js",
-        "url": "/workers/interfaces/WorkerUtils/importScripts/002.worker"
+        "url": "/workers/interfaces/WorkerUtils/importScripts/002.worker.html"
       },
       {
         "path": "workers/interfaces/WorkerUtils/importScripts/003.html",
@@ -35720,12 +36948,8 @@
         "url": "/workers/interfaces/WorkerUtils/navigator/language.html"
       },
       {
-        "path": "workers/interfaces/WorkerUtils/navigator/window-only.worker.js",
-        "url": "/workers/interfaces/WorkerUtils/navigator/window-only.worker"
-      },
-      {
         "path": "workers/nested_worker.worker.js",
-        "url": "/workers/nested_worker.worker"
+        "url": "/workers/nested_worker.worker.html"
       },
       {
         "path": "workers/postMessage_DataCloneErr.htm",
@@ -35769,15 +36993,15 @@
       },
       {
         "path": "workers/semantics/encodings/004.worker.js",
-        "url": "/workers/semantics/encodings/004.worker"
+        "url": "/workers/semantics/encodings/004.worker.html"
       },
       {
         "path": "workers/semantics/interface-objects/001.worker.js",
-        "url": "/workers/semantics/interface-objects/001.worker"
+        "url": "/workers/semantics/interface-objects/001.worker.html"
       },
       {
         "path": "workers/semantics/interface-objects/002.worker.js",
-        "url": "/workers/semantics/interface-objects/002.worker"
+        "url": "/workers/semantics/interface-objects/002.worker.html"
       },
       {
         "path": "workers/semantics/interface-objects/003.html",
@@ -35886,6 +37110,11 @@
       {
         "path": "workers/semantics/xhr/006.html",
         "url": "/workers/semantics/xhr/006.html"
+      },
+      {
+        "path": "IndexedDB/idbcursor-continuePrimaryKey-exception-order.htm",
+        "timeout": "long",
+        "url": "/IndexedDB/idbcursor-continuePrimaryKey-exception-order.htm"
       },
       {
         "path": "IndexedDB/idbdatabase_createObjectStore10-1000ends.htm",
@@ -36313,9 +37542,54 @@
         "url": "/dom/ranges/Range-isPointInRange.html"
       },
       {
-        "path": "dom/ranges/Range-mutations.html",
+        "path": "dom/ranges/Range-mutations-appendChild.html",
         "timeout": "long",
-        "url": "/dom/ranges/Range-mutations.html"
+        "url": "/dom/ranges/Range-mutations-appendChild.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-appendData.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-appendData.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-dataChange.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-dataChange.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-deleteData.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-deleteData.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-insertBefore.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-insertBefore.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-insertData.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-insertData.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-removeChild.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-removeChild.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-replaceChild.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-replaceChild.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-replaceData.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-replaceData.html"
+      },
+      {
+        "path": "dom/ranges/Range-mutations-splitText.html",
+        "timeout": "long",
+        "url": "/dom/ranges/Range-mutations-splitText.html"
       },
       {
         "path": "dom/ranges/Range-selectNode.html",
@@ -36368,9 +37642,24 @@
         "url": "/encoding/single-byte-decoder.html"
       },
       {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential-readyState.html",
+        "timeout": "long",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential-readyState.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential.html",
+        "timeout": "long",
+        "url": "/encrypted-media/clearkey-mp4-playback-temporary-multikey-sequential.html"
+      },
+      {
         "path": "encrypted-media/clearkey-mp4-playback-temporary-two-videos.html",
         "timeout": "long",
         "url": "/encrypted-media/clearkey-mp4-playback-temporary-two-videos.html"
+      },
+      {
+        "path": "encrypted-media/clearkey-mp4-requestmediakeysystemaccess.html",
+        "timeout": "long",
+        "url": "/encrypted-media/clearkey-mp4-requestmediakeysystemaccess.html"
       },
       {
         "path": "encrypted-media/drm-mp4-playback-persistent-usage-record.html",
@@ -36393,6 +37682,26 @@
         "url": "/encrypted-media/drm-mp4-playback-temporary-events.html"
       },
       {
+        "path": "encrypted-media/drm-mp4-playback-temporary-expired.html",
+        "timeout": "long",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-expired.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-multikey-sequential-readyState.html",
+        "timeout": "long",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-multikey-sequential-readyState.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-playback-temporary-multikey-sequential.html",
+        "timeout": "long",
+        "url": "/encrypted-media/drm-mp4-playback-temporary-multikey-sequential.html"
+      },
+      {
+        "path": "encrypted-media/drm-mp4-requestmediakeysystemaccess.html",
+        "timeout": "long",
+        "url": "/encrypted-media/drm-mp4-requestmediakeysystemaccess.html"
+      },
+      {
         "path": "eventsource/dedicated-worker/eventsource-constructor-non-same-origin.htm",
         "timeout": "long",
         "url": "/eventsource/dedicated-worker/eventsource-constructor-non-same-origin.htm"
@@ -36406,11 +37715,6 @@
         "path": "eventsource/shared-worker/eventsource-constructor-non-same-origin.htm",
         "timeout": "long",
         "url": "/eventsource/shared-worker/eventsource-constructor-non-same-origin.htm"
-      },
-      {
-        "path": "fetch/api/request/request-cache.html",
-        "timeout": "long",
-        "url": "/fetch/api/request/request-cache.html"
       },
       {
         "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html",
@@ -37715,96 +39019,10 @@
     ]
   },
   "local_changes": {
-    "deleted": [
-      "url/url-domainToUnicode.html"
-    ],
+    "deleted": [],
     "deleted_reftests": {},
-    "items": {
-      "reftest": {
-        "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html": [
-          {
-            "path": "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html",
-            "references": [
-              [
-                "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href-ref.html",
-                "=="
-              ]
-            ],
-            "url": "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html"
-          }
-        ],
-        "html/semantics/document-metadata/the-link-element/stylesheet-media.html": [
-          {
-            "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
-            "references": [
-              [
-                "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
-                "=="
-              ]
-            ],
-            "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
-          }
-        ]
-      },
-      "testharness": {
-        "cookies/path/match.html": [
-          {
-            "path": "cookies/path/match.html",
-            "url": "/cookies/path/match.html"
-          }
-        ],
-        "html/semantics/forms/the-form-element/form-action-url.html": [
-          {
-            "path": "html/semantics/forms/the-form-element/form-action-url.html",
-            "url": "/html/semantics/forms/the-form-element/form-action-url.html"
-          }
-        ],
-        "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html": [
-          {
-            "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
-            "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
-          }
-        ],
-        "html/semantics/forms/the-select-element/selected-index.html": [
-          {
-            "path": "html/semantics/forms/the-select-element/selected-index.html",
-            "url": "/html/semantics/forms/the-select-element/selected-index.html"
-          }
-        ],
-        "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html": [
-          {
-            "path": "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html",
-            "url": "/html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html"
-          }
-        ]
-      }
-    },
-    "reftest_nodes": {
-      "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html": [
-        {
-          "path": "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html",
-          "references": [
-            [
-              "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html"
-        }
-      ],
-      "html/semantics/document-metadata/the-link-element/stylesheet-media.html": [
-        {
-          "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
-          "references": [
-            [
-              "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
-              "=="
-            ]
-          ],
-          "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
-        }
-      ]
-    }
+    "items": {},
+    "reftest_nodes": {}
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
@@ -38357,6 +39575,30 @@
           ]
         ],
         "url": "/compat/webkit-text-fill-color-property-006.html"
+      }
+    ],
+    "content-security-policy/font-src/font-blacklisted.html": [
+      {
+        "path": "content-security-policy/font-src/font-blacklisted.html",
+        "references": [
+          [
+            "/content-security-policy/font-src/font-blacklisted-ref.html",
+            "!="
+          ]
+        ],
+        "url": "/content-security-policy/font-src/font-blacklisted.html"
+      }
+    ],
+    "content-security-policy/font-src/font-whitelisted.html": [
+      {
+        "path": "content-security-policy/font-src/font-whitelisted.html",
+        "references": [
+          [
+            "/content-security-policy/font-src/font-whitelisted-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/content-security-policy/font-src/font-whitelisted.html"
       }
     ],
     "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
@@ -40207,6 +41449,30 @@
         "url": "/html/rendering/replaced-elements/images/space.html"
       }
     ],
+    "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html": [
+      {
+        "path": "html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html",
+        "references": [
+          [
+            "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/document-metadata/the-link-element/stylesheet-empty-href.html"
+      }
+    ],
+    "html/semantics/document-metadata/the-link-element/stylesheet-media.html": [
+      {
+        "path": "html/semantics/document-metadata/the-link-element/stylesheet-media.html",
+        "references": [
+          [
+            "/html/semantics/document-metadata/the-link-element/stylesheet-media-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/document-metadata/the-link-element/stylesheet-media.html"
+      }
+    ],
     "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html": [
       {
         "path": "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html",
@@ -40529,6 +41795,54 @@
           ]
         ],
         "url": "/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-003.html"
+      }
+    ],
+    "html/semantics/grouping-content/the-ol-element/reversed-1a.html": [
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1a.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1a.html"
+      }
+    ],
+    "html/semantics/grouping-content/the-ol-element/reversed-1b.html": [
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1b.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1b.html"
+      }
+    ],
+    "html/semantics/grouping-content/the-ol-element/reversed-1c.html": [
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1c.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1c.html"
+      }
+    ],
+    "html/semantics/grouping-content/the-ol-element/reversed-1d.html": [
+      {
+        "path": "html/semantics/grouping-content/the-ol-element/reversed-1d.html",
+        "references": [
+          [
+            "/html/semantics/grouping-content/the-ol-element/reversed-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/semantics/grouping-content/the-ol-element/reversed-1d.html"
       }
     ],
     "html/semantics/grouping-content/the-ol-element/reversed-2.html": [
@@ -40903,6 +42217,402 @@
         "url": "/http/basic-auth-cache-test.html"
       }
     ],
+    "mathml/presentation-markup/spaces/space-2.html": [
+      {
+        "path": "mathml/presentation-markup/spaces/space-2.html",
+        "references": [
+          [
+            "/mathml/presentation-markup/spaces/space-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/presentation-markup/spaces/space-2.html"
+      }
+    ],
+    "mathml/relations/css-styling/color-1.html": [
+      {
+        "path": "mathml/relations/css-styling/color-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/color-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/color-1.html"
+      }
+    ],
+    "mathml/relations/css-styling/display-1.html": [
+      {
+        "path": "mathml/relations/css-styling/display-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/display-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/display-1.html"
+      }
+    ],
+    "mathml/relations/css-styling/lengths-1-ref.html": [
+      {
+        "path": "mathml/relations/css-styling/lengths-1-ref.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/lengths-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/lengths-1-ref.html"
+      }
+    ],
+    "mathml/relations/css-styling/lengths-1.html": [
+      {
+        "path": "mathml/relations/css-styling/lengths-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/lengths-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/lengths-1.html"
+      }
+    ],
+    "mathml/relations/css-styling/lengths-2.html": [
+      {
+        "path": "mathml/relations/css-styling/lengths-2.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/lengths-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/lengths-2.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-bold-fraktur.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-fraktur.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-fraktur-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-fraktur.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-bold-italic.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-italic.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-bold-sans-serif.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-sans-serif.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-sans-serif-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-sans-serif.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-bold-script.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold-script.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-script-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold-script.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-bold.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-bold.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-bold-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-bold.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-double-struck.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-double-struck.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-double-struck-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-double-struck.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-fraktur.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-fraktur.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-fraktur-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-fraktur.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-initial.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-initial.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-initial-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-initial.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-italic.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-italic.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-looped.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-looped.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-looped-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-looped.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-monospace.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-monospace.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-monospace-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-monospace.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-sans-serif-bold-italic.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif-bold-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-bold-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif-bold-italic.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-sans-serif-italic.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif-italic.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-italic-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif-italic.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-sans-serif.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-sans-serif.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-sans-serif-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-sans-serif.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-script.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-script.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-script-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-script.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-stretched.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-stretched.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-stretched-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-stretched.html"
+      }
+    ],
+    "mathml/relations/css-styling/mathvariant-tailed.html": [
+      {
+        "path": "mathml/relations/css-styling/mathvariant-tailed.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/mathvariant-tailed-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/mathvariant-tailed.html"
+      }
+    ],
+    "mathml/relations/css-styling/visibility-1.html": [
+      {
+        "path": "mathml/relations/css-styling/visibility-1.html",
+        "references": [
+          [
+            "/mathml/relations/css-styling/visibility-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/css-styling/visibility-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/class-1.html": [
+      {
+        "path": "mathml/relations/html5-tree/class-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/class-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/class-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/color-attributes-1.html": [
+      {
+        "path": "mathml/relations/html5-tree/color-attributes-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/color-attributes-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/color-attributes-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/dynamic-1.html": [
+      {
+        "path": "mathml/relations/html5-tree/dynamic-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/dynamic-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/dynamic-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/href-click-1.html": [
+      {
+        "path": "mathml/relations/html5-tree/href-click-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/href-click-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/href-click-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/href-click-2.html": [
+      {
+        "path": "mathml/relations/html5-tree/href-click-2.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/href-click-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/href-click-2.html"
+      }
+    ],
+    "mathml/relations/html5-tree/required-extensions-2.html": [
+      {
+        "path": "mathml/relations/html5-tree/required-extensions-2.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/required-extensions-2-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/required-extensions-2.html"
+      }
+    ],
+    "mathml/relations/html5-tree/unique-identifier-1.html": [
+      {
+        "path": "mathml/relations/html5-tree/unique-identifier-1.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/unique-identifier-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/unique-identifier-1.html"
+      }
+    ],
+    "mathml/relations/html5-tree/unique-identifier-3.html": [
+      {
+        "path": "mathml/relations/html5-tree/unique-identifier-3.html",
+        "references": [
+          [
+            "/mathml/relations/html5-tree/unique-identifier-3-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/html5-tree/unique-identifier-3.html"
+      }
+    ],
+    "mathml/relations/text-and-math/use-typo-metrics-1.html": [
+      {
+        "path": "mathml/relations/text-and-math/use-typo-metrics-1.html",
+        "references": [
+          [
+            "/mathml/relations/text-and-math/use-typo-metrics-1-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/mathml/relations/text-and-math/use-typo-metrics-1.html"
+      }
+    ],
     "quirks-mode/historical/list-item-bullet-size.html": [
       {
         "path": "quirks-mode/historical/list-item-bullet-size.html",
@@ -40985,6 +42695,102 @@
           ]
         ],
         "url": "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html"
+      }
+    ],
+    "svg/linking/reftests/href-a-element-attr-change.html": [
+      {
+        "path": "svg/linking/reftests/href-a-element-attr-change.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-a-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-a-element-attr-change.html"
+      }
+    ],
+    "svg/linking/reftests/href-feImage-element.html": [
+      {
+        "path": "svg/linking/reftests/href-feImage-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-feImage-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-feImage-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-filter-element.html": [
+      {
+        "path": "svg/linking/reftests/href-filter-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-filter-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-filter-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-gradient-element.html": [
+      {
+        "path": "svg/linking/reftests/href-gradient-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-gradient-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-gradient-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-image-element.html": [
+      {
+        "path": "svg/linking/reftests/href-image-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-image-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-image-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-pattern-element.html": [
+      {
+        "path": "svg/linking/reftests/href-pattern-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-pattern-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-pattern-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-textPath-element.html": [
+      {
+        "path": "svg/linking/reftests/href-textPath-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-textPath-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-textPath-element.html"
+      }
+    ],
+    "svg/linking/reftests/href-use-element.html": [
+      {
+        "path": "svg/linking/reftests/href-use-element.html",
+        "references": [
+          [
+            "/svg/linking/reftests/href-use-element-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/svg/linking/reftests/href-use-element.html"
       }
     ],
     "webvtt/rendering/cues-with-video/processing-model/2_cues_overlapping_completely_move_up.html": [
@@ -43640,7 +45446,7 @@
       }
     ]
   },
-  "rev": "3b3585e368841b77caea8576fa56cef91c3fbdf0",
+  "rev": "116a0bc2410cb540ced8cba7c0211e4eae34ad00",
   "url_base": "/",
   "version": 3
 }

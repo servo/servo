@@ -21,9 +21,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 """build_svg_tests.py.
-    
+
 This script builds a set of SVG-in-HTML test files for the Nu Html Checker
-based on the SVG 1.1 Second Edition Test Suite 
+based on the SVG 1.1 Second Edition Test Suite
 http://www.w3.org/Graphics/SVG/Test/20110816/archives/W3C_SVG_11_TestSuite.tar.gz
 
 """
@@ -38,7 +38,7 @@ import urllib2
 
 valid_svg_files = dict([
     # these entries manually added after cross checking behaviour with spec
-    
+
     # VNU warns about text not in Unicode Normalization Form C, but it's not an error
     ('struct-cond-02-t-manual.svg', 'Source text is not in Unicode Normalization Form C'),
     # FiLl, fill and FILL are all valid in case-insensitive HTML (but SVG DTD is case-sensitive)
@@ -46,22 +46,17 @@ valid_svg_files = dict([
 ])
 
 # some files in the SVG 1.1 test suite don't validate against the SVG 1.1 DTD
-# and some files are marked as version='SVG 1.2'. 
+# and some files are marked as version='SVG 1.2'.
 # this is used to toggle between -isvalid.html and -novalid.html output
-    
+
 invalid_svg_files = dict([
     # 'DTD Invalid' entries are produced by calling validate_svg_dtd (see below)
-    ('animate-dom-01-f-manual.svg', 'DTD Invalid'),
-    ('animate-dom-02-f-manual.svg', 'DTD Invalid'),
     ('animate-elem-24-t-manual.svg', 'DTD Invalid'),
     ('animate-elem-77-t-manual.svg', 'DTD Invalid'),
     ('animate-pservers-grad-01-b-manual.svg', 'DTD Invalid'),
-    ('animate-script-elem-01-b-manual.svg', 'DTD Invalid'),
-    ('animate-struct-dom-01-b-manual.svg', 'DTD Invalid'),
     ('conform-viewers-03-f-manual.svg', 'DTD Invalid'),
     ('coords-dom-01-f-manual.svg', 'DTD Invalid'),
     ('coords-dom-02-f-manual.svg', 'DTD Invalid'),
-    ('coords-dom-03-f-manual.svg', 'DTD Invalid'),
     ('extend-namespace-01-f-manual.svg', 'DTD Invalid'),
     ('filters-color-02-b-manual.svg', 'DTD Invalid'),
     ('filters-conv-02-f-manual.svg', 'DTD Invalid'),
@@ -69,66 +64,36 @@ invalid_svg_files = dict([
     ('filters-conv-05-f-manual.svg', 'DTD Invalid'),
     ('filters-light-05-f-manual.svg', 'DTD Invalid'),
     ('fonts-glyph-04-t-manual.svg', 'DTD Invalid'),
-    ('interact-events-02-b-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-01-b-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-03-b-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-05-b-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-07-t-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-08-f-manual.svg', 'DTD Invalid'),
-    ('interact-pevents-09-f-manual.svg', 'DTD Invalid'),
-    ('interact-pointer-01-t-manual.svg', 'DTD Invalid'),
     ('interact-pointer-02-t-manual.svg', 'DTD Invalid'),
-    ('interact-pointer-03-t-manual.svg', 'DTD Invalid'),
     ('linking-a-09-b-manual.svg', 'DTD Invalid'),
     ('linking-a-10-f-manual.svg', 'DTD Invalid'),
     ('masking-filter-01-f-manual.svg', 'DTD Invalid'),
     ('masking-intro-01-f-manual.svg', 'DTD Invalid'),
-    ('masking-path-09-b-manual.svg', 'DTD Invalid'),
     ('painting-marker-04-f-manual.svg', 'DTD Invalid'),
     ('paths-data-18-f-manual.svg', 'DTD Invalid'),
     ('paths-data-20-f-manual.svg', 'DTD Invalid'),
-    ('paths-dom-01-f-manual.svg', 'DTD Invalid'),
-    ('paths-dom-02-f-manual.svg', 'DTD Invalid'),
     ('pservers-grad-23-f-manual.svg', 'DTD Invalid'),
     ('render-elems-03-t-manual.svg', 'DTD Invalid'),
     ('shapes-rect-03-t-manual.svg', 'DTD Invalid'),
     ('struct-cond-02-t-manual.svg', 'DTD Invalid'),
-    ('struct-dom-07-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-08-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-11-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-13-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-14-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-15-f-manual.svg', 'DTD Invalid'),
     ('struct-dom-17-f-manual.svg', 'DTD Invalid'),
     ('struct-dom-19-f-manual.svg', 'DTD Invalid'),
-    ('struct-dom-20-f-manual.svg', 'DTD Invalid'),
     ('struct-frag-05-t-manual.svg', 'DTD Invalid'),
     ('struct-image-12-b-manual.svg', 'DTD Invalid'),
     ('struct-use-11-f-manual.svg', 'DTD Invalid'),
     ('struct-use-12-f-manual.svg', 'DTD Invalid'),
-    ('struct-use-13-f-manual.svg', 'DTD Invalid'),
     ('styling-css-10-f-manual.svg', 'DTD Invalid'),
     ('styling-pres-02-f-manual.svg', 'DTD Invalid'),
     ('svgdom-over-01-f-manual.svg', 'DTD Invalid'),
-    ('text-dom-02-f-manual.svg', 'DTD Invalid'),
     ('text-dom-03-f-manual.svg', 'DTD Invalid'),
-    ('text-dom-05-f-manual.svg', 'DTD Invalid'),
     ('text-fonts-03-t-manual.svg', 'DTD Invalid'),
     ('text-fonts-05-f-manual.svg', 'DTD Invalid'),
     ('text-tref-02-b-manual.svg', 'DTD Invalid'),
-    ('text-tselect-02-f-manual.svg', 'DTD Invalid'),
-    ('text-tselect-03-f-manual.svg', 'DTD Invalid'),
-    ('types-dom-02-f-manual.svg', 'DTD Invalid'),
-    ('types-dom-03-b-manual.svg', 'DTD Invalid'),
     ('types-dom-04-b-manual.svg', 'DTD Invalid'),
-    ('types-dom-05-b-manual.svg', 'DTD Invalid'),
-    ('types-dom-07-f-manual.svg', 'DTD Invalid'),
-    ('types-dom-08-f-manual.svg', 'DTD Invalid'),
-        
+
     # these entries manually added after cross checking behaviour with spec
     # note there are some confusing differences between w:iri-ref (used in HTML for img/@src)
     # and xsd:anyURI (used in SVG for image/@xlink:href)
-    ('animate-elem-40-t-manual.svg', 'Spaces in data: URI - not allowed by URL Standard or RFC 2397.'),
     ('conform-viewers-02-f-manual.svg', 'Newlines in data: URI - not allowed by URL Standard or RFC 2397.'),
     ('coords-transformattr-01-f-manual.svg', 'Numeric character reference expanded to carriage return - not allowed in HTML5 - see 8.1.4'),
     ('fonts-overview-201-t-manual.svg', 'Unsupported SVG version specified - specifies SVG 1.2'),
@@ -140,59 +105,30 @@ invalid_svg_files = dict([
 # TODO Github Issue #216 MathML and SVG uses xsd:anyURI, HTML URLs use URL Standard
 # TODO Github Issue #217 NU has script/@type optional for HTML, but not SVG-in-HTML
 
-def build_html_testfiles(svgdirectory,htmldirectory):   
+def build_html_testfiles(svgdirectory,htmldirectory):
     """Builds HTML test files from SVG test suite folder."""
 
     logging.debug('build_html_testfiles: IN')
-    
+
     testfiles = []
-    
+
     for filename in os.listdir(svgdirectory):
         #logging.debug(filename)
-        if filename.endswith(".svg"): 
+        if filename.endswith(".svg"):
             htmlpathname = build_html_test_file(filename, svgdirectory, htmldirectory)
             if htmlpathname:
                 testfiles.append(htmlpathname)
         pass
     pass
 
-    indexpathname = "index-isvalid.html"    
-    build_html_index_file(indexpathname, testfiles)
 
-
-def build_html_index_file(indexpathname, testfiles):   
-    """Builds HTML test index."""
-
-    htmlfile = open(indexpathname, "w")
-
-    htmlfile.write("<!DOCTYPE html>\n")
-    htmlfile.write("<html lang='en'>\n")
-
-    htmlfile.write("<head>\n")
-    htmlfile.write(" <title>SVG in HTML Test Index</title>\n")
-    htmlfile.write(" <meta charset='utf-8'>\n")
-    htmlfile.write("</head>\n")
-
-    htmlfile.write("<body>\n")
-    htmlfile.write("<h1>SVG in HTML Test Index</h1>\n")
-
-    for filename in testfiles:
-        if filename.find("-isvalid") > 0:
-            htmlfile.write(" <p><a href='%s'>%s</a></p>\n" % (filename, filename))
-    
-    htmlfile.write("</body>\n")
-
-    htmlfile.write("</html>\n")
-    htmlfile.close()
-    
-    
-def build_html_test_file(filename, svgdirectory, htmldirectory):   
+def build_html_test_file(filename, svgdirectory, htmldirectory):
     """Builds HTML test file by wrapping input SVG in boilerplate HTML."""
 
     svgpathname = svgdirectory + "/" + filename
 
     # valid_svg_file overrides invalid_svg_files (may invalid in case-sensitive XML but valid in case-insensitive HTML)
-    if invalid_svg_files.has_key(filename) and not valid_svg_files.has_key(filename): 
+    if invalid_svg_files.has_key(filename) and not valid_svg_files.has_key(filename):
         htmlpathname = htmldirectory + "/" + filename.replace( "-manual.svg", "-novalid.html")
     else:
         htmlpathname = htmldirectory + "/" + filename.replace( "-manual.svg", "-isvalid.html")
@@ -201,7 +137,7 @@ def build_html_test_file(filename, svgdirectory, htmldirectory):
     logging.debug(htmlpathname)
 
     # read SVG data
-    svgfile = open(svgpathname, "r")
+    svgfile = open(svgpathname, "rU")
     svg = svgfile.read()
     svgfile.close()
 
@@ -210,11 +146,11 @@ def build_html_test_file(filename, svgdirectory, htmldirectory):
     svgbefore = svg.split("<d:SVGTestCase")[0];
     svgafter = svg.split("</d:SVGTestCase>")[1];
     svg = svgbefore + svgafter
-    
+
     # ignore files with SVG DOCTYPE and !ENTITY declarations (unsupported in HTML)
     if svg.find( "<!DOCTYPE" ) != -1:
         return
-    
+
     # uncomment these 2 lines to generate 'DTD Invalid' entries for invalid_svg_files dict above
     # very slow operation - only needs done if the SVG test suite ever changes
     # when uncommented expect to see AttributeError: 'NoneType' object has no attribute 'find'
@@ -233,30 +169,30 @@ def build_html_test_file(filename, svgdirectory, htmldirectory):
 
     htmlfile.write("<body>\n")
     htmlfile.write(" <h1>Source SVG: %s</h1>\n" % os.path.basename(svgpathname) )
-    
+
     # insert SVG without any XML processing to avoid unexpected transformations on
     # encoding and entity refs, but remove <d:SVGTestCase> from file (not valid in HTML)
     htmlfile.write(svgbefore)
     htmlfile.write(svgafter)
-    
+
     htmlfile.write("</body>\n")
 
     htmlfile.write("</html>\n")
     htmlfile.close()
-    
+
     return htmlpathname
 
 def create_dir_if_missing(directory):
     """Create the given directory if it doesn't exist"""
-    
+
     d = os.path.dirname(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
-        
-        
+
+
 def validate_svg_dtd(filename,svg):
     """Prints legacy DTD markup validation status to stdout in a format suitable for pasting into invalid_svg_files dict above."""
-    
+
     # setup multipart/form-data POST body
     body = ''
     body = body + '--AaB03x\r\n'
@@ -271,17 +207,17 @@ def validate_svg_dtd(filename,svg):
     body = body + '\r\n'
     body = body + '--AaB03x--\r\n'
 
-    # send request to W3 DTD validator for SVG 1.1 validation    
-    headers = { "Content-type" : "multipart/form-data; boundary=AaB03x", "Content-length" : len(body) }        
+    # send request to W3 DTD validator for SVG 1.1 validation
+    headers = { "Content-type" : "multipart/form-data; boundary=AaB03x", "Content-length" : len(body) }
     request = urllib2.Request("http://validator.w3.org/check?charset=utf-8&doctype=SVG+1.1&output=json", data=body, headers=headers)
     response = urllib2.urlopen(request, timeout=60)
-    
+
     status = response.info().getheader('X-W3C-Validator-Status')
     logging.debug(status)
-    
+
     if status == "Valid":
         return True
-        
+
     print "    ('%s', 'DTD %s')," % (filename, status)
     return False
 
@@ -290,15 +226,16 @@ def main():
 
     #logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     logging.debug('main: IN')
-    
-    svgdirectory = "../../svg/import"
-    htmldirectory = "../html-svg"
+
+    ccdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    svgdirectory = os.path.join(os.path.dirname(ccdir), "svg", "import")
+    htmldirectory = os.path.join(ccdir, "html-svg")
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],"",["svgdir=","outdir="])
     except getopt.GetoptError:
         print 'build-svg-tests.py --svgdir <indir> --outdir <outdir>'
-        sys.exit(2)   
+        sys.exit(2)
 
     for opt, arg in opts:
         print opt, arg
@@ -306,10 +243,10 @@ def main():
             svgdirectory = arg
         elif opt in ("-o", "--outdir"):
             htmldirectory = arg
-    
-           
+
+
     create_dir_if_missing(htmldirectory)
     build_html_testfiles(svgdirectory, htmldirectory)
-    
-    
+
+
 main()

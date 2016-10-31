@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+var t1 = async_test("Error handler outside the worker should not see the error value");
+var t2 = async_test("Error handlers inside a worker should see the error value");
+
+test(function() {
+  var worker = new Worker("support/ErrorEvent-error.js");
+  worker.onerror = t1.step_func_done(function(e) {
+    assert_true(/hello/.test(e.message));
+    assert_equals(e.error, null);
+  });
+
+  var messages = 0;
+  worker.onmessage = t2.step_func(function(e) {
+    ++messages;
+    var data = e.data;
+    assert_true(data.source == "onerror" ||
+                data.source == "event listener");
+    assert_equals(data.value, "hello");
+    if (messages == 2) {
+      t2.done();
+    }
+  });
+});
+</script>

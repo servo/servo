@@ -5,7 +5,6 @@ from __future__ import print_function
 import argparse
 import json
 import os
-import signal
 import socket
 import sys
 import threading
@@ -41,7 +40,7 @@ class WorkersHandler(object):
         return self.handler(request, response)
 
     def handle_request(self, request, response):
-        worker_path = replace_end(request.url_parts.path, ".worker", ".worker.js")
+        worker_path = replace_end(request.url_parts.path, ".worker.html", ".worker.js")
         return """<!doctype html>
 <meta charset=utf-8>
 <script src="/resources/testharness.js"></script>
@@ -118,7 +117,7 @@ class RoutesBuilder(object):
                           ("*", "/serve.py", handlers.ErrorHandler(404))]
 
         self.static = [
-            ("GET", "*.worker", WorkersHandler()),
+            ("GET", "*.worker.html", WorkersHandler()),
             ("GET", "*.any.html", AnyHtmlHandler()),
             ("GET", "*.any.worker.js", AnyWorkerHandler()),
         ]

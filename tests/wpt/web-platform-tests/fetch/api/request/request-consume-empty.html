@@ -98,6 +98,10 @@
     checkRequestWithEmptyBody("text", "", false);
     checkRequestWithEmptyBody("blob", new Blob([], { "type" : "text/plain" }), true);
     checkRequestWithEmptyBody("text", "", true);
+    checkRequestWithEmptyBody("URLSearchParams", new URLSearchParams(""), true);
+    // FIXME: This test assumes that the empty string be returned but it is not clear whether that is right. See https://github.com/w3c/web-platform-tests/pull/3950.
+    checkRequestWithEmptyBody("FormData", new FormData(), true);
+    checkRequestWithEmptyBody("ArrayBuffer", new ArrayBuffer(), true);
     </script>
   </body>
 </html>

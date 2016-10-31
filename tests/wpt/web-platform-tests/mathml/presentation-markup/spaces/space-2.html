@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>space</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS2.SSS6">
+<link rel="match" href="space-2-ref.html"/>
+<meta name="assert" content="Verify mspace visual rendering for different values of height, depth and width">
+</head>
+<body>
+  <p>Test passes if you see a green square and no red.</p>
+  <div style="position: relative;">
+    <!-- Some green and red mspaces to draw a square -->
+    <div style="position: absolute; top: 0px; left: 0px;
+                width: 200px; height: 200px;">
+      <math style="position: absolute; top: 0px; left: 0px">
+        <mspace width="50px" height="100px" depth="100px" mathbackground="green"/>
+        <mspace width="50px" height="100px" depth="100px" mathbackground="green"/>
+        <mspace width="25px" depth="100px" mathbackground="green"/>
+        <mspace width="25px" depth="100px" mathbackground="green"/>
+        <mspace width="25px" height="100px" mathbackground="green"/>
+        <mspace width="25px" height="100px" mathbackground="green"/>
+      </math>
+      <math style="position: absolute; top: 0px; left: 0px">
+        <mspace width="100px" height="20px" depth="20px" mathbackground="red"/>
+        <mspace width="50px" height="100px" mathbackground="red"/>
+        <mspace width="50px" depth="100px" mathbackground="red"/>
+      </math>
+    </div>
+    <!-- These green divs should cover the red mspace elements -->
+    <div style="position: absolute; top: 0px; left: 0px;
+                width: 200px; height: 200px;">
+      <div style="position: absolute; top: 80px; left: 0px;
+                  width: 100px; height: 40px; background: green"></div>
+      <div style="position: absolute; top: 0px; left: 100px;
+                  width: 50px; height: 100px; background: green"></div>
+      <div style="position: absolute; top: 100px; left: 150px;
+                  width: 50px; height: 100px; background: green"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -12,6 +12,7 @@
     <link rel="help" href="https://xhr.spec.whatwg.org/#switch-done" data-tested-assertations="following::ol[1]/li[3] following::ol[1]/li[4] following::ol[1]/li[5] following::ol[1]/li[6] following::ol[1]/li[7]" />
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
     <title>XMLHttpRequest: The send() method: event order when synchronous flag is unset</title>
 </head>
 
@@ -24,38 +25,12 @@
         test.step(function()
         {
             var xhr = new XMLHttpRequest();
-            var expect =  ["loadstart", "upload.loadstart", "upload.progress", "upload.load", "upload.loadend", "progress", 4, "load", "loadend"];
-            var actual = [];
+            prepare_xhr_for_event_order_test(xhr);
 
-            xhr.onreadystatechange = function()
-            {
-                test.step(function()
-                {
-                    if (xhr.readyState == 4)
-                    {
-                        actual.push(xhr.readyState);
-                    }
-                });
-            };
-
-            xhr.onloadstart        = function(e){ actual.push(e.type); };
-            xhr.onload             = function(e){ actual.push(e.type); };
-            xhr.onloadend          = function(e){ actual.push(e.type); VerifyResult()};
-            xhr.onprogress         = function(e){ actual.push(e.type);};
-
-            xhr.upload.onloadstart = function(e){ actual.push("upload." + e.type); };
-            xhr.upload.onload      = function(e){ actual.push("upload." + e.type); };
-            xhr.upload.onloadend   = function(e){ actual.push("upload." + e.type);};
-            xhr.upload.onprogress  = function(e){ actual.push("upload." + e.type);};
-
-            function VerifyResult()
-            {
-                test.step(function()
-                {
-                    assert_array_equals(actual, expect);
-                    test.done();
-                });
-            };
+            xhr.addEventListener("loadend", test.step_func(function() {
+                assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,12,true)", "upload.progress(12,12,true)", "upload.load(12,12,true)", "upload.loadend(12,12,true)", 2, 3, "progress(12,12,true)", 4, "load(12,12,true)", "loadend(12,12,true)"]);
+                test.done();
+            }));
 
             xhr.open("POST", "./resources/content.py", true);
             xhr.send("Test Message");

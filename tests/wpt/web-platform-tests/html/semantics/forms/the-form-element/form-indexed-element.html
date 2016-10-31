@@ -18,5 +18,28 @@ test(function() {
   assert_equals(form[1], document.getElementById("r2"));
   assert_equals(form[2], undefined);
   assert_equals(form[-1], undefined);
-  }, "form.elements should be accessed correctly by index")
+}, "form.elements should be accessed correctly by index")
+
+test(function(){
+  var form = document.getElementById("form");
+  var old_item = form[0];
+  var old_desc = Object.getOwnPropertyDescriptor(form, 0);
+  assert_equals(old_desc.value, old_item);
+  assert_true(old_desc.enumerable);
+  assert_true(old_desc.configurable);
+  assert_false(old_desc.writable);
+
+  Object.prototype[0] = 5;
+  this.add_cleanup(function () { delete Object.prototype[0]; });
+  assert_equals(form[0], old_item);
+
+  delete form[0];
+  assert_equals(form[0], old_item);
+
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    delete form[0];
+  });
+  assert_equals(form[0], old_item);
+}, 'Trying to delete an indexed property name should never work');
 </script>

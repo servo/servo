@@ -2,15 +2,19 @@
 <meta charset="utf-8">
 <title>Presentation API, start new presentation tests for Controlling User Agent (success - manual test)</title>
 <link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
 <link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<p>Click the button below and select the available casting device, to start the manual test.</p>
-<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
+<p>Click the button below and select the available presentation display, to start the manual test.</p>
+<button id="presentBtn">Start Presentation Test</button>
 
 
 <script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
     // ----------
     // DOM Object
     // ----------
@@ -31,27 +35,21 @@
             return request.start()
                     .then(function (connection) {
 
-                        // assert case for the promise_test
-                        assert_equals(connection.state, "connected", "The presentation has an connected state.");
+                        // Check the initial state of a presentation connection
+                        assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
 
                         // Check, if the connection ID is set
-                        test(function () {
-                            assert_true(!!connection.id);
-                        }, 'The connection ID is set.');
+                        assert_true(!!connection.id, 'The connection ID is set.');
 
                         // Check the type of the connection.id
-                        test(function () {
-                            assert_true(typeof connection.id === 'string');
-                        }, 'The connection ID is a string.');
+                        assert_true(typeof connection.id === 'string', 'The connection ID is a string.');
 
                         // Check the instance of the connection
-                        test(function () {
-                            assert_true(connection instanceof PresentationConnection);
-                        }, 'The connection is an instance of PresentationConnection.');
+                        assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
                     });
-
         }, "The presentation was started successfully.");
-    }
+    };
+    presentBtn.onclick = startPresentation;
     // -------------------------------------------
     // Start New Presentation Test (success) - end
     // -------------------------------------------

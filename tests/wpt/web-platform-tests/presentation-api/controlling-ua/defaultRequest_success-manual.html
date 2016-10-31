@@ -2,12 +2,13 @@
 <meta charset="utf-8">
 <title>Presentation API, testing to start a new presentation with an default request setup. (success - manual)</title>
 <link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
 <link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<p>Click the button below and select the available casting device, to start the manual test.</p>
-<button onclick="startPresentation()">Start Presentation Test</button>
+<p>Click the button or the menu item for presentation on your browser (for example, "Cast"), to start the manual test.</p>
+<p>If your browser does not support <code>defaultRequest</code>, please click this button: <button id="notsupported">Not Supported</button>
 
 <script>
     // disable the timeout function for the tests
@@ -22,29 +23,23 @@
 
     navigator.presentation.defaultRequest = new PresentationRequest(validPresURL);
 
-    var startPresentation = function () {
-        promise_test(function () {
-            return navigator.presentation.defaultRequest.start();
-        }, "The presentation was started successfully.");
-    }
     // ------------------------------
     // Start New Presentation with
     // 'default request' Test - BEGIN
     // ------------------------------
-    navigator.presentation.defaultRequest.onconnectionavailable = function (evt) {
-        var connection = evt.connection;
+    async_test(function(t) {
+        navigator.presentation.defaultRequest.onconnectionavailable = t.step_func_done(function (evt) {
+            var connection = evt.connection;
 
-        test(function () {
-
-            assert_equals(connection.state, "connected", "The presentation has an connected state.");
-            assert_true(!!connection.id, "The connection ID is set.");
-            assert_true(typeof connection.id === 'string', "The connection ID is a string.");
-            assert_true(connection instanceof PresentationConnection, "The connection is an instance of PresentationConnection.");
-
-        }, "The presentation was started successfully.");
-
-        done();
-    };
+            assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
+            assert_true(!connection.id, 'The connection ID is set.');
+            assert_true(typeof connection.id === 'string', 'The connection ID is a string.');
+            assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+        });
+        document.getElementById('notsupported').onclick = t.step_func_done(function() {
+            assert_unreached('This browser does not support defaultRequest.');
+        });
+    }, '[Optional] The presentation was started successfully.');
     // ----------------------------
     // Start New Presentation with
     // 'default request' Test - END

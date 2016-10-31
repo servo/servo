@@ -10,27 +10,11 @@
 <script>
 'use strict';
 
+// --------------------------------------------------------------------
 //
-// NOTE TO THE POOR PERSON WHO HAS TO MERGE THIS WITH THE TEST OF THE SAME
-// NAME FROM BLINK
+// TESTS FOR UPDATING THE HOLD TIME
 //
-// There is a pull request from Blink at:
-//
-//   https://github.com/w3c/web-platform-tests/pull/3328
-//
-// which this file will surely conflict with.
-//
-// However, those tests cover a different part of the same algorithm. They
-// are mostly concerned with testing events and promises rather than the
-// timing part of the algorithm.
-//
-// The tests below cover the first part of the algorithm. So, please keep both
-// sets of tests and delete this comment. Preferably put the tests in this
-// file first.
-//
-// Thank you!
-//
-
+// --------------------------------------------------------------------
 
 // CASE 1: playback rate > 0 and current time >= target effect end
 // (Also the start time is resolved and there is pending task)
@@ -43,9 +27,9 @@ promise_test(function(t) {
   // otherwise we don't have a resolved start time. We test the case
   // where the start time is unresolved in a subsequent test.
   return anim.ready.then(function() {
-    // Seek to 1ms before the target end and wait a frame (> 16ms)
+    // Seek to 1ms before the target end and then wait 1ms
     anim.currentTime = 100 * MS_PER_SEC - 1;
-    return waitForAnimationFrames(1);
+    return waitForAnimationFramesWithDelay(1);
   }).then(function() {
     assert_equals(anim.currentTime, 100 * MS_PER_SEC,
                   'Hold time is set to target end clamping current time');
@@ -96,9 +80,9 @@ promise_test(function(t) {
   anim.playbackRate = -1;
   anim.play(); // Make sure animation is not initially finished
   return anim.ready.then(function() {
-    // Seek to 1ms before 0 end and wait a frame (> 16ms)
+    // Seek to 1ms before 0 and then wait 1ms
     anim.currentTime = 1;
-    return waitForAnimationFrames(1);
+    return waitForAnimationFramesWithDelay(1);
   }).then(function() {
     assert_equals(anim.currentTime, 0 * MS_PER_SEC,
                   'Hold time is set to zero clamping current time');
@@ -326,6 +310,101 @@ test(function(t) {
                 'The animation start time should not be updated');
 }, 'Updating the finished state when start time is unresolved and'
    + ' did seek = true');
+
+// --------------------------------------------------------------------
+//
+// TESTS FOR RUNNING FINISH NOTIFICATION STEPS
+//
+// --------------------------------------------------------------------
+
+function waitForFinishEventAndPromise(animation) {
+  var eventPromise = new Promise(function(resolve) {
+    animation.onfinish = function() { resolve(); }
+  });
+  return Promise.all([eventPromise, animation.finished]);
+}
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  animation.onfinish =
+    t.unreached_func('Seeking to finish should not fire finish event');
+  animation.finished.then(
+    t.unreached_func('Seeking to finish should not resolve finished promise'));
+  animation.currentTime = 1;
+  animation.currentTime = 0;
+  animation.pause();
+  return waitForAnimationFrames(3);
+}, 'Finish notification steps don\'t run when the animation seeks to finish'
+   + ' and then seeks back again');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  return animation.ready.then(function() {
+    return waitForFinishEventAndPromise(animation);
+  });
+}, 'Finish notification steps run when the animation completes normally');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  return animation.ready.then(function() {
+    animation.currentTime = 10;
+    return waitForFinishEventAndPromise(animation);
+  });
+}, 'Finish notification steps run when the animation seeks past finish');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  return animation.ready.then(function() {
+    // Register for notifications now since once we seek away from being
+    // finished the 'finished' promise will be replaced.
+    var finishNotificationSteps = waitForFinishEventAndPromise(animation);
+    animation.finish();
+    animation.currentTime = 0;
+    animation.pause();
+    return finishNotificationSteps;
+  });
+}, 'Finish notification steps run when the animation completes with .finish(),'
+   + ' even if we then seek away');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  var initialFinishedPromise = animation.finished;
+
+  return animation.finished.then(function(target) {
+    animation.currentTime = 0;
+    assert_not_equals(initialFinishedPromise, animation.finished);
+  });
+}, 'Animation finished promise is replaced after seeking back to start');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  var initialFinishedPromise = animation.finished;
+
+  return animation.finished.then(function(target) {
+    animation.play();
+    assert_not_equals(initialFinishedPromise, animation.finished);
+  });
+}, 'Animation finished promise is replaced after replaying from start');
+
+async_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  animation.onfinish = function(event) {
+    animation.currentTime = 0;
+    animation.onfinish = function(event) {
+      t.done();
+    };
+  };
+}, 'Animation finish event is fired again after seeking back to start');
+
+async_test(function(t) {
+  var animation = createDiv(t).animate(null, 1);
+  animation.onfinish = function(event) {
+    animation.play();
+    animation.onfinish = function(event) {
+      t.done();
+    };
+  };
+}, 'Animation finish event is fired again after replaying from start');
 
 </script>
 </body>

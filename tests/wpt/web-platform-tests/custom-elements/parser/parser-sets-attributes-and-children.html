@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Custom Elements: Changes to the HTML parser</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="HTML parser must set the attributes and append the children on a custom element">
+<link rel="help" href="https://html.spec.whatwg.org/#create-an-element-for-the-token">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+var numberOfAttributesInConstructor;
+var numberOfChildNodesInConstructor;
+
+class MyCustomElement extends HTMLElement {
+    constructor(...args) {
+        super(...args);
+        numberOfAttributesInConstructor = this.attributes.length;
+        numberOfChildNodesInConstructor = this.childNodes.length;
+    }
+};
+customElements.define('my-custom-element', MyCustomElement);
+
+</script>
+<my-custom-element id="custom-element-id" class="class1 class2">hello <b>world</b></my-custom-element>
+<script>
+
+var customElement = document.querySelector('my-custom-element');
+
+test(function () {
+    assert_equals(customElement.getAttribute('id'), 'custom-element-id', 'HTML parser must preserve the id attribute');
+    assert_equals(customElement.id, 'custom-element-id', 'HTML parser must preserve the semantics of reflect for the id attribute');
+    assert_equals(customElement.getAttribute('class'), 'class1 class2', 'HTML parser must preserve the class attribute');
+    assert_equals(customElement.classList.length, 2, 'HTML parser must initialize classList on custom elements');
+    assert_equals(customElement.classList[0], 'class1', 'HTML parser must initialize classList on custom elements');
+    assert_equals(customElement.classList[1], 'class2', 'HTML parser must initialize classList on custom elements');
+}, 'HTML parser must set the attributes');
+
+test(function () {
+    assert_equals(customElement.childNodes.length, 2, 'HTML parser must append child nodes');
+    assert_true(customElement.firstChild instanceof Text, 'HTML parser must append Text node child to a custom element');
+    assert_equals(customElement.firstChild.data, 'hello ', 'HTML parser must append Text node child to a custom element');
+    assert_true(customElement.lastChild instanceof HTMLElement, 'HTML parser must append a builtin element child to a custom element');
+    assert_true(customElement.lastChild.firstChild instanceof Text, 'HTML parser must preserve grandchild nodes of a custom element');
+    assert_equals(customElement.lastChild.firstChild.data, 'world', 'HTML parser must preserve grandchild nodes of a custom element');
+}, 'HTML parser must append child nodes');
+
+test(function () {
+    assert_equals(numberOfAttributesInConstructor, 0, 'HTML parser must not set attributes on a custom element before invoking the constructor');
+    assert_equals(numberOfChildNodesInConstructor, 0, 'HTML parser must not append child nodes to a custom element before invoking the constructor');
+}, 'HTML parser must set the attributes or append children before calling constructor');
+
+</script>
+</body>
+</html>

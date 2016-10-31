@@ -111,6 +111,10 @@ function handleEventSource(event) {
   ));
 }
 
+function handleIntegrity(event) {
+  event.respondWith(new Response(event.request.integrity));
+}
+
 self.addEventListener('fetch', function(event) {
     var url = event.request.url;
     var handlers = [
@@ -129,6 +133,7 @@ self.addEventListener('fetch', function(event) {
       { pattern: '?fragment-check', fn: handleFragmentCheck },
       { pattern: '?cache', fn: handleCache },
       { pattern: '?eventsource', fn: handleEventSource },
+      { pattern: '?integrity', fn: handleIntegrity },
     ];
 
     var handler = null;

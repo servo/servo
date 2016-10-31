@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Element ready check for containing iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe allowfullscreen></iframe>
+<iframe allowfullscreen></iframe>
+<script>
+async_test(function(t)
+{
+    var iframes = document.getElementsByTagName("iframe");
+    trusted_request(iframes[0].contentDocument.body, document.body);
+    iframes[0].contentDocument.onfullscreenchange = t.step_func(function()
+    {
+        trusted_request(iframes[1].contentDocument.body, iframes[0].contentDocument.body);
+        iframes[1].contentDocument.onfullscreenchange = t.unreached_func("fullscreenchange event");
+        iframes[1].contentDocument.onfullscreenerror = t.step_func_done();
+    });
+});
+</script>

@@ -18,7 +18,7 @@
         client.open("POST", "resources/delay.py?ms=1000")
         client.addEventListener("loadend", function(e) {
           test.step(function() {
-            assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,9999,true)", 4, "upload.progress(0,0,false)", "upload.abort(0,0,false)", "upload.loadend(0,0,false)", "progress(0,0,false)", "abort(0,0,false)", "loadend(0,0,false)"]);
+            assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,9999,true)", 4, "upload.abort(0,0,false)", "upload.loadend(0,0,false)", "abort(0,0,false)", "loadend(0,0,false)"]);
             test.done()
           })
         });

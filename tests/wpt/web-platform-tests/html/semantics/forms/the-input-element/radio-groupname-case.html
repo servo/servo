@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>radio group name compatibility caseless</title>
+<title>radio group name case-sensitive</title>
 <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
-<link rel="help" href="http://people.mozilla.org/~jdaggett/tests/radiobuttonnamecase.html">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#radio-button-group">
+<!-- See also: https://github.com/whatwg/html/issues/1666 -->
+
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+
 <div id="log"></div>
+
 <input id=r1 type="radio" name="sImPlE">
 <input id=r2 type="radio" name="simple">
 <input id=r3 type="radio" name="SIMPLE">
@@ -43,33 +48,36 @@
 <input id=r30 type="radio" name="T&eacute;&#x01F1;&#x2075;アパートFi">
 <input id=r31 type="radio" name="t&Eacute;dz5&#x3300;Fi">
 <input id=r32 type="radio" name="t&Eacute;dz5&#x30A2;&#x30CF;&#x309A;&#x30FC;&#x30C8;Fi">
-<input id=r33 type="radio" name="t&Eacute;dz5&#x30A2;&#x30D1;&#x30FC;&#x30C8;Fi">
 <input id=r34 type="radio" name="T&Eacute;DZ⁵アパートFi">
 <input id=r35 type="radio" name="T&Eacute;DZ5アパートﬁ">
 
 <input id=r36 type="radio" name="ΣΣ">
 <input id=r37 type="radio" name="σς">
+
 <script>
-  var groups = [["r1" ,"r2", "r3"],
-                ["r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13", "r14"],
-                ["r15", "r16", "r17", "r18"],
-                ["r19", "r20", "r21", "r22", "r23"],
-                ["r24", "r25", "r26", "r27"],
-                ["r28", "r29", "r30", "r31", "r32", "r33", "r34", "r35"],
-                ["r36", "r37"]],
-      groupName = ["sImPlE", "paSSfield-killroyß", "глупый", "åωk", "blah1", "tÉdz5アパートFi", "ΣΣ"];
-  groups.forEach(function(group, index) {
-    test(function(){
-      group.forEach(function(radioId) {
-        assert_false(document.getElementById(radioId).checked);
-      });
-      for (var i = 0; i < group.length; i++) {
-        document.getElementById(group[i]).checked = true;
-        assert_true(document.getElementById(group[i]).checked);
-        for (var j = 0; j < group.length; j++) {
-          if (j != i) assert_false(document.getElementById(group[j]).checked);
-        }
-      }
-    }, "radio button group name = " + groupName[index]);
-  });
+"use strict";
+const notGroups = {
+  "sImPlE": ["r1" ,"r2", "r3"],
+  "paSSfield-killroyß": ["r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "r13", "r14"],
+  "глупый": ["r15", "r16", "r17", "r18"],
+  "åωk": ["r19", "r20", "r21", "r22", "r23"],
+  "blah1": ["r24", "r25", "r26", "r27"],
+  "tÉdz5アパートFi": ["r28", "r29", "r30", "r31", "r32", "r34", "r35"],
+  "ΣΣ": ["r36", "r37"]
+};
+
+for (let notGroupLabel of Object.keys(notGroups)) {
+  test(() => {
+    const ids = notGroups[notGroupLabel];
+    const radios = ids.map(id => document.getElementById(id));
+
+    for (let radio of radios) {
+      radio.checked = true;
+    }
+
+    for (let radio of radios) {
+      assert_true(radio.checked, `${radio.name} must be checked`);
+    }
+  }, `Among names like ${notGroupLabel}, everything must be checkable at the same time`);
+}
 </script>

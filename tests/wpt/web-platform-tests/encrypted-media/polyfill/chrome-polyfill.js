@@ -1,5 +1,6 @@
 (function(){
-    if(navigator.userAgent.toLowerCase().indexOf('chrome') > -1){
+    if( navigator.userAgent.toLowerCase().indexOf('edge') === -1
+            && navigator.userAgent.toLowerCase().indexOf('chrome') > -1){
 
         if ( ( /chrome\/([0-9]*)\./.exec( navigator.userAgent.toLowerCase() )[1] | 0 ) < 54 ) {
 

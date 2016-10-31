@@ -4,7 +4,8 @@
     <meta charset='utf-8'>
     <title>HTML Test: dropzone_attribute_data_item_kind_string</title>
     <link rel='author' title='Intel' href='http://www.intel.com'>
-    <link rel='help' href='http://www.w3.org/html/editing/dnd/the-datatransfer-interface/'>
+    <link rel='author' title='Domenic Denicola' href='mailto:d@domenic.com'>
+    <link rel='help' href='https://html.spec.whatwg.org/multipage/#the-datatransfer-interface'>
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
     <style>
@@ -37,6 +38,27 @@
         test(function() {
           assert_equals(event.dataTransfer.effectAllowed, 'uninitialized');
         }, 'effectAllowed should be "uninitialized"');
+
+        test(function() {
+          assert_equals(event.dataTransfer.types.constructor, Array, 'should be an array');
+          assert_true(Object.isFrozen(event.dataTransfer.types), 'should be frozen');
+        }, 'types should be a frozen array');
+
+        test(function() {
+          assert_false('contains' in event.dataTransfer.types);
+          assert_false('item' in event.dataTransfer.types);
+        }, 'types should not have any of the historical methods');
+
+        test(function() {
+          assert_equals(event.dataTransfer.types, event.dataTransfer.types);
+        }, 'types should return the same object from multiple reads (assuming no changes)');
+
+        test(function() {
+          var before = event.dataTransfer.types;
+          event.dataTransfer.clearData();
+          assert_not_equals(event.dataTransfer.types, before);
+        }, 'types should return a different object after changes');
+
         done();
       });
     </script>

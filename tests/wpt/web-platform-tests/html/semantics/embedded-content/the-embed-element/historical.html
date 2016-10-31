@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Historical embed element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<embed id=embed>
+<script>
+test(function() {
+  var elm = document.getElementById('embed');
+  assert_equals(typeof elm, 'object', 'typeof');
+  assert_throws(new TypeError(), function() {
+    elm();
+  });
+}, 'embed legacycaller should not be supported');
+</script>

@@ -27,6 +27,10 @@
       request.start()
         .then(function(connection) {
           assert_true(connection instanceof PresentationConnection);
+          connection.onconnected = t.step_func(function(evt) {
+            assert_equals(evt.state, "connected");
+            connection.terminate();
+          });
           connection.onterminate = t.step_func_done(function(evt) {
             assert_equals(evt.type, "terminate");
             assert_equals(connection.state, "terminated");
@@ -34,7 +38,6 @@
           connection.onclose = t.step_func_done(function(evt) {
               assert_unreached("Wrong, the onclose shouldn't be triggered!");
           });
-          connection.terminate();
       })
       .catch(function(ex) {
         assert_unreached(ex.name + ":" + ex.message);

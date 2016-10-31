@@ -17,9 +17,8 @@
       client.abort();
     }}
     client.open('POST', 'resources/content.py')
-    assert_throws("InvalidStateError", function(){
-      client.send(objAbortsOnStringification)
-    })
+    client.send(objAbortsOnStringification)
+    assert_equals(client.readyState, 1)
     test1.done()
   });
 

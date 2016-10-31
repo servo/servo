@@ -42,7 +42,6 @@
       var meters = [
         {value: 0, expectedValue: 0, expectedMin: 0, expectedMax: 1.0, expectedLow: 0, expectedHigh: 1.0, expectedOptimum: 0.5, testname: "Default values"},
         {value: 3, expectedValue: 3, min: -10.1, expectedMin: -10.1, max: 10.1, expectedMax: 10.1, low: -9.1, expectedLow: -9.1, high: 9.1, expectedHigh: 9.1, optimum: 3, expectedOptimum: 3, testname: "Setting values to min, max, low, high and optimum"},
-        {value: "foobar", expectedValue: 0, min: "foobar", expectedMin: 0, max: "foobar", expectedMax: 1.0, low: "foobar", expectedLow: 0, high: "foobar", expectedHigh: 1.0, optimum: "foobar", expectedOptimum: 0.5, testname: "Invalid floating-point number values"},
         {value: 0, expectedValue: 0, min: 0, expectedMin: 0, max: -1.0, expectedMax: 0, expectedLow: 0, expectedHigh: 0, expectedOptimum: 0, testname: "max < min"},
         {value: 0, expectedValue: 10, min: 10, expectedMin: 10, max: 20, expectedMax: 20, expectedLow: 10, expectedHigh: 20, expectedOptimum: 15, testname: "value < min"},
         {value: 30, expectedValue: 20, min: 10, expectedMin: 10, max: 20, expectedMax: 20, expectedLow: 10, expectedHigh: 20, expectedOptimum: 15, testname: "value > max"},
@@ -71,6 +70,15 @@
           assert_equals(meter.optimum, m.expectedOptimum, "optimum value");
         }, m.testname);
       }
+      test(function() {
+          var meter = document.createElement("meter");
+          assert_throws(new TypeError(), function() { meter.value = "foobar"; }, "value attribute");
+          assert_throws(new TypeError(), function() { meter.min = "foobar"; }, "min attribute");
+          assert_throws(new TypeError(), function() { meter.max = "foobar"; }, "max attribute");
+          assert_throws(new TypeError(), function() { meter.low = "foobar"; }, "low attribute");
+          assert_throws(new TypeError(), function() { meter.high = "foobar"; }, "high attribute");
+          assert_throws(new TypeError(), function() { meter.optimum = "foobar"; }, "optimum attribute");
+      }, "Invalid floating-point number values");
 
     </script>
     <script type="text/javascript">

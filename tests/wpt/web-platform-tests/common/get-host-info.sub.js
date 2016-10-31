@@ -23,3 +23,13 @@ function get_host_info() {
     HTTPS_REMOTE_ORIGIN_WITH_CREDS: 'https://foo:bar@' + REMOTE_HOST + ':' + HTTPS_PORT,
   };
 }
+
+function get_port(loc) {
+  // When a default port is used, location.port returns the empty string.
+  // To compare with wptserve `ports` substitution we need a port...
+  // loc can be Location/<a>/<area>/URL, but assumes http/https only.
+  if (loc.port) {
+    return loc.port;
+  }
+  return loc.protocol === 'https:' ? '443' : '80';
+}

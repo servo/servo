@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Historical object element features should not be supported</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<object id=object></object>
+<script>
+test(function() {
+  var elm = document.getElementById('object');
+  assert_equals(typeof elm, 'object', 'typeof');
+  assert_throws(new TypeError(), function() {
+    elm();
+  });
+}, 'object legacycaller should not be supported');
+</script>

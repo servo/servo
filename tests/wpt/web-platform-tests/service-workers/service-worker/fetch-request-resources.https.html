@@ -8,54 +8,82 @@
 var url_count = 0;
 var expected_results = {};
 
-function image_test(frame, url, cross_origin, expexted_mode,
+function image_test(frame, url, cross_origin, expected_mode,
                     expected_credentials) {
   var actual_url = url + (++url_count);
   expected_results[actual_url] = {
       cross_origin: cross_origin,
-      mode: expexted_mode,
+      mode: expected_mode,
       credentials: expected_credentials,
+      integrity: '',
       message: 'Image load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
   return frame.contentWindow.load_image(actual_url, cross_origin);
 }
 
-function script_test(frame, url, cross_origin, expexted_mode,
+function script_test(frame, url, cross_origin, expected_mode,
                      expected_credentials) {
   var actual_url = url + (++url_count);
   expected_results[actual_url] = {
       cross_origin: cross_origin,
-      mode: expexted_mode,
+      mode: expected_mode,
       credentials: expected_credentials,
+      integrity: '',
       message: 'Script load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
   return frame.contentWindow.load_script(actual_url, cross_origin);
 }
 
-function css_test(frame, url, cross_origin, expexted_mode,
+function css_test(frame, url, cross_origin, expected_mode,
                   expected_credentials) {
   var actual_url = url + (++url_count);
   expected_results[actual_url] = {
       cross_origin: cross_origin,
-      mode: expexted_mode,
+      mode: expected_mode,
       credentials: expected_credentials,
+      integrity: '',
       message: 'CSS load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
   return frame.contentWindow.load_css(actual_url, cross_origin);
 }
 
-function font_face_test(frame, url, expexted_mode, expected_credentials) {
+function font_face_test(frame, url, expected_mode, expected_credentials) {
   var actual_url = url + (++url_count);
   expected_results[actual_url] = {
       url: actual_url,
-      mode: expexted_mode,
+      mode: expected_mode,
       credentials: expected_credentials,
+      integrity: '',
       message: 'FontFace load (url:' + actual_url + ')'
     };
   return frame.contentWindow.load_font(actual_url);
+}
+
+function script_integrity_test(frame, url, integrity, expected_integrity) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'no-cors',
+      credentials: 'include',
+      integrity: expected_integrity,
+      message: 'Script load (url:' + actual_url + ')'
+    };
+  return frame.contentWindow.load_script_with_integrity(actual_url, integrity);
+}
+
+function css_integrity_test(frame, url, integrity, expected_integrity) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'no-cors',
+      credentials: 'include',
+      integrity: expected_integrity,
+      message: 'CSS load (url:' + actual_url + ')'
+    };
+  return frame.contentWindow.load_css_with_integrity(actual_url, integrity);
 }
 
 async_test(function(t) {
@@ -94,6 +122,10 @@ async_test(function(t) {
                     result.credentials, expected.credentials,
                     'credentials of ' + expected.message +  ' must be ' +
                     expected.credentials + '.');
+                assert_equals(
+                    result.integrity, expected.integrity,
+                    'integrity of ' + expected.message +  ' must be ' +
+                    expected.integrity + '.');
                 --url_count;
                 delete expected_results[result.url];
                 if (url_count == 0) {
@@ -134,6 +166,23 @@ async_test(function(t) {
         font_face_test(f, LOCAL_URL, 'cors', 'same-origin');
         font_face_test(f, REMOTE_URL, 'cors', 'same-origin');
 
+        script_integrity_test(f, LOCAL_URL, '     ', '     ');
+        script_integrity_test(f, LOCAL_URL,
+                              'This is not a valid integrity because it has no dashes',
+                              'This is not a valid integrity because it has no dashes');
+        script_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
+        script_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
+        script_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
+        script_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
+
+        css_integrity_test(f, LOCAL_URL, '     ', '     ');
+        css_integrity_test(f, LOCAL_URL,
+                           'This is not a valid integrity because it has no dashes',
+                           'This is not a valid integrity because it has no dashes');
+        css_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
+        css_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
+        css_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
+        css_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
       })
       .catch(unreached_rejection(t));
   }, 'Verify FetchEvent for resources.');

@@ -35,6 +35,8 @@
                     test_pointerEvent.step(function () {
                         assert_equals(target0.hasPointerCapture(e.pointerId), false,
                                       "after target1.setPointerCapture, target0.hasPointerCapture should be false");
+                        assert_equals(target1.hasPointerCapture(e.pointerId), true,
+                                      "after target1.setPointerCapture, target1.hasPointerCapture should be true");
                     });
                     target0.setPointerCapture(e.pointerId);
                     set_capture_to_target0 = true;
@@ -49,6 +51,8 @@
                     test_pointerEvent.step(function () {
                         assert_equals(target0.hasPointerCapture(e.pointerId), false,
                                       "after target0.releasePointerCapture, target0.hasPointerCapture should be false");
+                        assert_equals(target1.hasPointerCapture(e.pointerId), false,
+                                      "after target0.releasePointerCapture, target1.hasPointerCapture should be false");
                     });
                     target0.setPointerCapture(e.pointerId);
                     set_capture_to_target0 = true;
@@ -89,6 +93,13 @@
                         assert_equals(target0.hasPointerCapture(e.pointerId), false,
                                       "pointerup target0.hasPointerCapture should be false");
                     });
+                });
+
+                on_event(target1, "pointerup", function (e) {
+                    test_pointerEvent.step(function () {
+                        assert_equals(target1.hasPointerCapture(e.pointerId), false,
+                                      "pointerup target1.hasPointerCapture should be false");
+                    });
                     test_pointerEvent.done();
                 });
             }
@@ -99,14 +110,15 @@
         <h4>
             Test Description: This test checks if Element.hasPointerCapture returns value correctly
             <ol>
-                <li> Press black rectangle and do not release.
-                <li> Move your pointer to yellow rectangle.
-                <li> Release the pointer with no other move after that.
+                <li> Press black rectangle and do not release
+                <li> Move your pointer to purple rectangle
+                <li> Release the pointer
+                <li> Click purple rectangle
             </ol>
         </h4>
         <p>
-        <div id="target0" style="background:black"></div>
-        <div id="target1" style="background:yellow"></div>
+        <div id="target0" touch-action:none></div>
+        <div id="target1" touch-action:none></div>
         <div id="complete-notice">
             <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
         </div>
