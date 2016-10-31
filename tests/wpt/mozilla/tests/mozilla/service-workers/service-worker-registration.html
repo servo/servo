@@ -14,39 +14,39 @@ test(function (){
   assert_true('serviceWorker' in navigator);
 }, "Test: Asserts ServiceWorkerContainer in Navigator");
 
-test(function() {
-  var sw_reg = register_sw('sw.js');
-  assert_class_string(sw_reg, "ServiceWorkerRegistration");
-  assert_class_string(sw_reg.active, "ServiceWorker");
-  assert_class_string(navigator.serviceWorker.controller, "ServiceWorker");
+promise_test(function() {
+  return register_sw('sw.js').then(function(sw_reg) {
+    assert_class_string(sw_reg, "ServiceWorkerRegistration");
+    assert_class_string(sw_reg.active, "ServiceWorker");
+    assert_class_string(navigator.serviceWorker.controller, "ServiceWorker");
+  });
 }, "Test: Asserts Active Service Worker and its Registration");
 
-test(function() {
-  var sw_reg = register_sw('resources/sw.js', './');
-  assert_equals(sw_reg.scope, location.href.replace("service-worker-registration.html", ""));
+promise_test(function() {
+  return register_sw('resources/sw.js', './').then(function(sw_reg) {
+    assert_equals(sw_reg.scope, location.href.replace("service-worker-registration.html", ""));
+  });
 }, "Test: Service Worker Registration property scope Url when no scope");
 
-test(function() {
-  var sw_reg = register_sw('resources/sw.js', '/some/nested/cache/directory');
-  var expected_scope_url = location.protocol + '//' + location.host + '/some/nested/cache/directory';
-  assert_equals(sw_reg.scope, expected_scope_url);
+promise_test(function() {
+  return register_sw('resources/sw.js', '/some/nested/cache/directory').then(function(sw_reg) {
+    var expected_scope_url = location.protocol + '//' + location.host + '/some/nested/cache/directory';
+    assert_equals(sw_reg.scope, expected_scope_url);
+  });
 }, "Test: Service Worker Registration property scope when provided a scope");
 
-test(function () {
-  assert_throws(new TypeError(),
-              function() { var sw_reg = register_sw('./in%5Csome%5fdir/sw.js'); },
-              "Invalid URL Path");
+promise_test(function (p) {
+  promise_rejects(p, new TypeError(), register_sw('./in%5Csome%5fdir/sw.js'));
 }, "Test: Throws Error when Invalid Url Path");
 
-test(function () {
-  assert_throws(new TypeError(),
-              function() { var sw_reg = register_sw('sw.js', './mal%5fformed/sco%5Cpe/'); },
-              "Invalid URL Path");
+promise_test(function (p) {
+  return promise_rejects(p, new TypeError(), register_sw('sw.js', './mal%5fformed/sco%5Cpe/'));
 }, "Test: Throws Error when Invalid Scope");
 
-test(function() {
-  var sw_reg = register_sw('resources/sw.js');
-  assert_equals(sw_reg.active.scriptURL, location.href.replace("service-worker-registration.html", "resources/sw.js"));
+promise_test(function() {
+  return register_sw('resources/sw.js').then(function(sw_reg) {
+    assert_equals(sw_reg.active.scriptURL, location.href.replace("service-worker-registration.html", "resources/sw.js"));
+  });
 }, "Test: Active Service Worker ScriptURL property");
 
 </script>
