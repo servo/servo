@@ -39,7 +39,7 @@ use profile_traits::time;
 use rand::{Rng, SeedableRng, StdRng, random};
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
-use script_traits::{DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentState, LayoutControlMsg, LoadData, IFrameLoadType};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
@@ -555,6 +555,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
+                    replacement_script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData,
                     is_private: bool) {
         if self.shutting_down { return; }
@@ -591,6 +592,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             window_size: initial_window_size,
             script_chan: script_channel,
+            replacement_script_chan: replacement_script_channel,
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
@@ -823,9 +825,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_pipeline_exited(pipeline_id);
             }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
-                debug!("constellation got iframe URL load message {:?} {:?} {:?}",
+                debug!("constellation got iframe URL load message {:?} {:?}",
                        load_info.parent_pipeline_id,
-                       load_info.old_pipeline_id,
                        load_info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
@@ -1134,8 +1135,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(frame_id) = frame_id {
                 let new_pipeline_id = PipelineId::new();
                 let load_data = LoadData::new(failure_url, None, None);
-                self.new_pipeline(new_pipeline_id, frame_id, parent_info, Some(pipeline_id),
-                                  window_size, None, load_data, false);
+                self.new_pipeline(new_pipeline_id,
+                                  frame_id,
+                                  parent_info,
+                                  Some(pipeline_id),
+                                  window_size,
+                                  None,
+                                  None,
+                                  load_data,
+                                  false);
 
                 self.pending_frames.push(FrameChange {
                     frame_id: frame_id,
@@ -1166,7 +1174,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         let root_frame_id = self.root_frame_id;
-        self.new_pipeline(root_pipeline_id, root_frame_id, None, None, Some(window_size), None,
+        self.new_pipeline(root_pipeline_id, root_frame_id, None, None, Some(window_size), None, None,
                           LoadData::new(url.clone(), None, None), false);
         self.handle_load_start_msg(root_pipeline_id);
         self.pending_frames.push(FrameChange {
@@ -1234,25 +1242,54 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfo) {
-        let (load_data, script_chan, window_size, is_private) = {
-            let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+        let IFrameLoadInfo {
+            load_type,
+            parent_pipeline_id,
+            new_pipeline_id,
+            frame_type,
+            replace,
+            frame_id,
+            ..
+        } = load_info;
 
-            let source_pipeline =  match self.pipelines.get(&load_info.parent_pipeline_id) {
-                Some(source_pipeline) => source_pipeline,
-                None => return warn!("Script loaded url in closed iframe {}.", load_info.parent_pipeline_id),
+        // Compare the pipeline's url to the new url. If the origin is the same,
+        // then reuse the script thread in creating the new pipeline
+        let (script_chan, replacement_script_chan, window_size, old_pipeline_id, load_data, is_private) = {
+            let (old_pipeline, sandbox, load_data, source_script_chan, replacement_script_chan) =
+                match load_type {
+                    IFrameLoadType::Async(async_load) => {
+                        let old_pipeline = async_load.old_pipeline_id
+                            .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+
+                        // If no url is specified, reload.
+                        let load_data = async_load.load_data.unwrap_or_else(|| {
+                            let url = match old_pipeline {
+                                Some(old_pipeline) => old_pipeline.url.clone(),
+                                None => Url::parse("about:blank").expect("infallible"),
+                            };
+                            LoadData::new(url, None, None)
+                        });
+
+                        (old_pipeline,
+                         async_load.sandbox,
+                         load_data,
+                         None,
+                         None)
+                    },
+
+                    IFrameLoadType::Sync((sync_script_chan, script_chan)) => {
+                        (None,
+                         IFrameSandboxState::IFrameUnsandboxed,
+                         LoadData::new(Url::parse("about:blank").expect("infallible"), None, None),
+                         Some(sync_script_chan.to::<ConstellationControlMsg>()),
+                         Some(script_chan.to::<ConstellationControlMsg>()))
+                    }
             };
 
-            // If no url is specified, reload.
-            let load_data = load_info.load_data.unwrap_or_else(|| {
-                let url = match old_pipeline {
-                    Some(old_pipeline) => old_pipeline.url.clone(),
-                    None => Url::parse("about:blank").expect("infallible"),
-                };
-
-                // TODO - loaddata here should have referrer info (not None, None)
-                LoadData::new(url, None, None)
-            });
+            let source_pipeline =  match self.pipelines.get(&parent_pipeline_id) {
+                Some(source_pipeline) => source_pipeline,
+                None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
+            };
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
@@ -1262,20 +1299,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             // FIXME(#10968): this should probably match the origin check in
             //                HTMLIFrameElement::contentDocument.
-            let same_script = source_url.host() == load_data.url.host() &&
-                              source_url.port() == load_data.url.port() &&
-                              load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed &&
-                              source_pipeline.is_private == is_private;
+            let same_script = (source_url.host() == load_data.url.host() &&
+                               source_url.port() == load_data.url.port() &&
+                               sandbox == IFrameSandboxState::IFrameUnsandboxed &&
+                               source_pipeline.is_private == is_private) ||
+                              load_data.url.as_str() == "about:blank";
 
             // Reuse the script thread if the URL is same-origin
-            let script_chan = if same_script {
+            let (script_chan, replacement_script_chan) = if same_script {
                 debug!("Constellation: loading same-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, load_data.url);
-                Some(source_pipeline.script_chan.clone())
+                (source_script_chan.or_else(|| Some(source_pipeline.script_chan.clone())),
+                 replacement_script_chan)
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
                         parent url {:?}, iframe url {:?}", source_url, load_data.url);
-                None
+                (None, None)
             };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
@@ -1284,26 +1323,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 old_pipeline.freeze();
             }
 
-            (load_data, script_chan, window_size, is_private)
+            (script_chan, replacement_script_chan, window_size, old_pipeline.map(|p| p.id), load_data, is_private)
         };
 
 
         // Create the new pipeline, attached to the parent and push to pending frames
-        self.new_pipeline(load_info.new_pipeline_id,
-                          load_info.frame_id,
-                          Some((load_info.parent_pipeline_id, load_info.frame_type)),
-                          load_info.old_pipeline_id,
+        self.new_pipeline(new_pipeline_id,
+                          frame_id,
+                          Some((parent_pipeline_id, frame_type)),
+                          old_pipeline_id,
                           window_size,
                           script_chan,
+                          replacement_script_chan,
                           load_data,
                           is_private);
 
         self.pending_frames.push(FrameChange {
-            frame_id: load_info.frame_id,
-            old_pipeline_id: load_info.old_pipeline_id,
-            new_pipeline_id: load_info.new_pipeline_id,
+            frame_id: frame_id,
+            old_pipeline_id: old_pipeline_id,
+            new_pipeline_id: new_pipeline_id,
             document_ready: false,
-            replace: load_info.replace,
+            replace: replace,
         });
     }
 
@@ -1436,7 +1476,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
                 let root_frame_id = self.root_frame_id;
-                self.new_pipeline(new_pipeline_id, root_frame_id, None, None, window_size, None, load_data, false);
+                self.new_pipeline(new_pipeline_id, root_frame_id, None, None, window_size, None, None, load_data, false);
                 self.pending_frames.push(FrameChange {
                     frame_id: root_frame_id,
                     old_pipeline_id: Some(source_id),

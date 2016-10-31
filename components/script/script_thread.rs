@@ -476,7 +476,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             let new_load = InProgressLoad::new(id, parent_info, layout_chan, window_size,
                                                load_data.url.clone());
-            script_thread.start_page_load(new_load, load_data);
+            script_thread.start_page_load(new_load, load_data, None);
 
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
@@ -493,6 +493,21 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn window_for_pipeline(pipeline: PipelineId) -> Root<Window> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let page = script_thread.find_child_context(pipeline).unwrap();
+            page.active_window()
+        })
+    }
+
+    pub fn get_constellation_sender() -> IpcSender<ConstellationControlMsg> {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.control_chan.clone()
+        })
+    }
+
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
                                   -> Option<Root<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
@@ -534,6 +549,17 @@ impl ScriptThread {
                 let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
                     ScriptThreadEventCategory::DomEvent,
                     box task));
+            }
+        });
+    }
+
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
+                    script_thread.handle_new_layout(new_layout_info);
+                })
             }
         });
     }
@@ -1145,6 +1171,7 @@ impl ScriptThread {
             layout_to_constellation_chan,
             content_process_shutdown_chan,
             layout_threads,
+            is_sync,
         } = new_layout_info;
 
         let layout_pair = channel();
@@ -1178,7 +1205,12 @@ impl ScriptThread {
         let new_load = InProgressLoad::new(new_pipeline_id, Some((parent_pipeline_id, frame_type)),
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
-        self.start_page_load(new_load, load_data);
+        let script_pair = if is_sync {
+            Some(parent_window.new_script_pair())
+        } else {
+            None
+        };
+        self.start_page_load(new_load, load_data, script_pair);
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
@@ -2103,14 +2135,24 @@ impl ScriptThread {
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
+    fn start_page_load(&self,
+                       incomplete: InProgressLoad,
+                       mut load_data: LoadData,
+                       script_pair: Option<(Box<ScriptChan + Send>, Box<ScriptPort + Send>)>) {
         let id = incomplete.pipeline_id.clone();
 
         let context = Arc::new(Mutex::new(ParserContext::new(id, load_data.url.clone())));
+
+        let (script_chan, script_port) = if let Some((chan, port)) = script_pair {
+            (Some(chan), Some(port))
+        } else {
+            (None, None)
+        };
+
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: self.chan.clone(),
+            script_chan: script_chan.unwrap_or_else(|| self.chan.clone()),
             wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
@@ -2139,6 +2181,12 @@ impl ScriptThread {
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
+
+        if let Some(script_port) = script_port {
+            while let Ok(event) = script_port.recv() {
+                self.handle_msg_from_script(MainThreadScriptMsg::Common(event));
+            }
+        }
     }
 
     fn handle_parsing_complete(&self, id: PipelineId) {

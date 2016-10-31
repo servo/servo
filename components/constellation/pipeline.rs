@@ -117,6 +117,10 @@ pub struct InitialPipelineState {
     /// A channel to the script thread, if applicable. If this is `Some`,
     /// then `parent_info` must also be `Some`.
     pub script_chan: Option<IpcSender<ConstellationControlMsg>>,
+    /// A channel to the script thread that should be used for all messages
+    /// following an initial AttachLayout, if any. This mechanism is only used
+    /// to support synchronous creation of about:blank frames.
+    pub replacement_script_chan: Option<IpcSender<ConstellationControlMsg>>,
     /// Information about the page to load.
     pub load_data: LoadData,
     /// The ID of the pipeline namespace for this script thread.
@@ -158,12 +162,13 @@ impl Pipeline {
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+                    is_sync: state.replacement_script_chan.is_some(),
                 };
 
                 if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None)
+                (state.replacement_script_chan.unwrap_or(script_chan), None)
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");

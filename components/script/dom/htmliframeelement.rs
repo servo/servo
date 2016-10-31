@@ -20,6 +20,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
@@ -41,12 +42,15 @@ use js::jsval::{NullValue, UndefinedValue};
 use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_traits::{IFrameLoadInfo, LoadData, MozBrowserEvent, ScriptMsg as ConstellationMsg};
+use script_thread::{ScriptThread, Runnable};
+use script_traits::{ConstellationControlMsg, AsyncIFrameLoad, IFrameLoadInfo, LoadData};
+use script_traits::{IFrameLoadType, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
+use task_source::TaskSource;
 use url::Url;
 use util::prefs::PREFS;
 use util::servo_version;
@@ -64,6 +68,12 @@ bitflags! {
     }
 }
 
+#[derive(PartialEq)]
+enum ProcessingMode {
+    FirstTime,
+    NotFirstTime,
+}
+
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
@@ -73,6 +83,7 @@ pub struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
+    nested_browsing_context: MutNullableHeap<JS<BrowsingContext>>,
 }
 
 impl HTMLIFrameElement {
@@ -127,22 +138,55 @@ impl HTMLIFrameElement {
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
+        let is_about_blank = load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank");
+        let (sync_sender, sync_receiver) = if is_about_blank {
+            let (tx, rx) = ipc::channel().unwrap();
+            (Some(tx), Some(rx))
+        } else {
+            (None, None)
+        };
+
+        let iframe_load = if let Some(sender) = sync_sender {
+            // Instruct the constellation that it should return to using this thread's
+            // event loop as usual after sending the initial frame creation message
+            // to a separate, synchronous event loop.
+            let constellation_chan = ScriptThread::get_constellation_sender();
+            IFrameLoadType::Sync((sender.to_opaque(), constellation_chan.to_opaque()))
+        } else {
+            IFrameLoadType::Async(AsyncIFrameLoad {
+                load_data: load_data,
+                sandbox: sandboxed,
+                old_pipeline_id: old_pipeline_id,
+            })
+        };
+
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
-            load_data: load_data,
             parent_pipeline_id: global_scope.pipeline_id(),
             frame_id: self.frame_id,
-            old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
-            sandbox: sandboxed,
             is_private: private_iframe,
             frame_type: frame_type,
             replace: replace,
+            load_type: iframe_load,
         };
         global_scope
               .constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
               .unwrap();
+
+        // If this is a synchronous frame creation, we must block until we receive the
+        // notification from the constellation that the new frame is ready and the
+        // network load can begin.
+        if let Some(receiver) = sync_receiver {
+            let msg = receiver.recv().unwrap();
+            let new_layout_info = match msg {
+                ConstellationControlMsg::AttachLayout(new_layout_info) => new_layout_info,
+                _ => panic!("Expected AttachLayout"),
+            };
+            // Synchronously perform the network load associated with this frame.
+            ScriptThread::process_attach_layout(new_layout_info);
+        }
 
         if PREFS.is_mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -150,8 +194,21 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn process_the_iframe_attributes(&self) {
+    /// https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes
+    fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+        // TODO: srcdoc
+
+        if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&atom!("src")) {
+            let window = window_from_node(self);
+            let event_loop = window.dom_manipulation_task_source();
+            let _ = event_loop.queue(box IframeLoadEventSteps::new(self),
+                                     window.upcast());
+            return;
+        }
+
         let url = self.get_url();
+
+        // TODO: check ancestor browsing contexts for same URL
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(
@@ -167,6 +224,19 @@ impl HTMLIFrameElement {
             let custom_event = build_mozbrowser_custom_event(&window, event);
             custom_event.upcast::<Event>().fire(self.upcast());
         }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+    fn create_nested_browsing_context(&self) {
+        assert!(self.nested_browsing_context.get().is_none());
+        // Synchronously create a new context and navigate it to about:blank.
+        let url = Url::parse("about:blank").unwrap();
+        // TODO - loaddata here should have referrer info (not None, None)
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)), false);
+        // Fetch the newly created context via its window.
+        let window = ScriptThread::window_for_pipeline(self.pipeline_id.get().unwrap());
+        let nested_context = window.browsing_context();
+        self.nested_browsing_context.set(Some(&nested_context));
     }
 
     pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
@@ -189,6 +259,7 @@ impl HTMLIFrameElement {
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
             visibility: Cell::new(true),
+            nested_browsing_context: Default::default(),
         }
     }
 
@@ -591,10 +662,8 @@ impl VirtualMethods for HTMLIFrameElement {
                 }));
             },
             &atom!("src") => {
-                if let AttributeMutation::Set(_) = mutation {
-                    if self.upcast::<Node>().is_in_doc() {
-                        self.process_the_iframe_attributes();
-                    }
+                if self.upcast::<Node>().is_in_doc() {
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
             },
             _ => {},
@@ -616,7 +685,8 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         if tree_in_doc {
-            self.process_the_iframe_attributes();
+            self.create_nested_browsing_context();
+            self.process_the_iframe_attributes(ProcessingMode::FirstTime);
         }
     }
 
@@ -625,6 +695,8 @@ impl VirtualMethods for HTMLIFrameElement {
 
         let mut blocker = self.load_blocker.borrow_mut();
         LoadBlocker::terminate(&mut blocker);
+
+        self.nested_browsing_context.set(None);
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
@@ -662,5 +734,24 @@ impl VirtualMethods for HTMLIFrameElement {
             // confused.
             self.pipeline_id.set(None);
         }
+    }
+}
+
+struct IframeLoadEventSteps {
+    frame_element: Trusted<HTMLIFrameElement>,
+}
+
+impl IframeLoadEventSteps {
+    fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
+        IframeLoadEventSteps {
+            frame_element: Trusted::new(frame_element),
+        }
+    }
+}
+
+impl Runnable for IframeLoadEventSteps {
+    fn handler(self: Box<IframeLoadEventSteps>) {
+        let this = self.frame_element.root();
+        this.iframe_load_event_steps(this.pipeline_id().unwrap());
     }
 }
