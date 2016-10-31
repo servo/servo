@@ -126,7 +126,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn dump(self) {
-        unimplemented!()
+        if self.is_text_node() {
+            println!("Text ({:?})", &self.0 as *const _);
+        } else {
+            let el = self.as_element().unwrap();
+            println!("Element {} ({:?})", el.get_local_name(), &el.0 as *const _);
+        }
     }
 
     fn dump_style(self) {
