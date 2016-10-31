@@ -2092,17 +2092,24 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_front().unwrap();
                 if let Some(ref mut remaining_fragment) = this.front_mut() {
-                    if remaining_fragment.can_fully_meld_with_prev_inline_fragment(&removed_fragment) {
+                    if remaining_fragment
+                        .can_fully_meld_with_prev_inline_fragment(&removed_fragment)
+                    {
                         remaining_fragment.meld_with_prev_inline_fragment(&removed_fragment);
                     } else {
                         // This fragment may be needed on its own for styling or queries.
                         retained_leading_fragments.push_back(removed_fragment);
                     }
-                } else if removed_fragment.inline_context.as_ref().map_or(false, |context| {
-                    context.nodes.iter().any(|node| {
-                        node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
+                } else if removed_fragment
+                    .inline_context
+                    .as_ref()
+                    .map_or(false, |context| {
+                        context.nodes.iter().any(|node| {
+                            node.flags
+                                .contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
+                        })
                     })
-                }) {
+                {
                     // This fragment isn't useful for anything, not even queries.
                     //
                     // If we keep fragments like this, they'll cause {ib} splits between every pair
@@ -2134,16 +2141,23 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_back().unwrap();
                 if let Some(ref mut remaining_fragment) = this.back_mut() {
-                    if remaining_fragment.can_fully_meld_with_next_inline_fragment(&removed_fragment) {
+                    if remaining_fragment
+                        .can_fully_meld_with_next_inline_fragment(&removed_fragment)
+                    {
                         remaining_fragment.meld_with_next_inline_fragment(&removed_fragment);
                     } else {
                         retained_trailing_fragments.push_front(removed_fragment);
                     }
-                } else if removed_fragment.inline_context.as_ref().map_or(false, |context| {
-                    context.nodes.iter().any(|node| {
-                        node.flags.contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
+                } else if removed_fragment
+                    .inline_context
+                    .as_ref()
+                    .map_or(false, |context| {
+                        context.nodes.iter().any(|node| {
+                            node.flags
+                                .contains(InlineFragmentNodeFlags::LAST_FRAGMENT_OF_ELEMENT)
+                        })
                     })
-                }) {
+                {
                     retained_trailing_fragments.push_front(removed_fragment);
                 }
             },

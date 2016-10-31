@@ -2064,11 +2064,10 @@ impl Fragment {
 
             // FIXME (mbrubeck): Do we need to restore leading too?
             let range_end = info.range_end_including_stripped_whitespace;
-            if info.range.end() == range_end {
-                return;
+            if info.range.end() != range_end {
+                info.range.extend_to(range_end);
+                info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
             }
-            info.range.extend_to(range_end);
-            info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
             self.border_box.size.inline =
                 info.content_size.inline + self.border_padding.inline_start_end();
         }
