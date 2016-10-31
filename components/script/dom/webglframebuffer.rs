@@ -21,7 +21,7 @@ use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFrameb
 #[derive(JSTraceable, Clone, HeapSizeOf)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(JS<WebGLRenderbuffer>),
-    Texture(JS<WebGLTexture>),
+    Texture { texture: JS<WebGLTexture>, level: i32 },
 }
 
 impl HeapGCValue for WebGLFramebufferAttachment {}
@@ -190,7 +190,10 @@ impl WebGLFramebuffer {
             // Note, from the GLES 2.0.25 spec, page 113:
             //      "If texture is zero, then textarget and level are ignored."
             Some(texture) => {
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture(JS::from_ref(texture)));
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
+                    texture: JS::from_ref(texture),
+                    level: level }
+                );
 
                 // From the GLES 2.0.25 spec, page 113:
                 //
@@ -282,7 +285,7 @@ impl WebGLFramebuffer {
         for attachment in &attachments {
             let matched = {
                 match *attachment.borrow() {
-                    Some(WebGLFramebufferAttachment::Texture(ref att_texture))
+                    Some(WebGLFramebufferAttachment::Texture { texture: ref att_texture, .. })
                         if texture.id() == att_texture.id() => true,
                     _ => false,
                 }
