@@ -228,11 +228,6 @@ impl FontContext {
         self.layout_font_group_cache.insert(layout_font_group_cache_key, font_group.clone());
         font_group
     }
-
-    /// Returns a reference to the font cache thread.
-    pub fn font_cache_thread(&self) -> FontCacheThread {
-        self.font_cache_thread.clone()
-    }
 }
 
 impl HeapSizeOf for FontContext {
