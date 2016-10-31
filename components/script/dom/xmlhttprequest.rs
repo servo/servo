@@ -525,7 +525,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 7
         self.upload_complete.set(match extracted {
             None => true,
-            Some (ref e) if e.0.is_empty() => true,
+            Some(ref e) if e.0.is_empty() => true,
             _ => false
         });
         // Step 8

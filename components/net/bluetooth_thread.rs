@@ -162,7 +162,7 @@ pub struct BluetoothManager {
 }
 
 impl BluetoothManager {
-    pub fn new (receiver: IpcReceiver<BluetoothMethodMsg>, adapter: Option<BluetoothAdapter>) -> BluetoothManager {
+    pub fn new(receiver: IpcReceiver<BluetoothMethodMsg>, adapter: Option<BluetoothAdapter>) -> BluetoothManager {
         BluetoothManager {
             receiver: receiver,
             adapter: adapter,

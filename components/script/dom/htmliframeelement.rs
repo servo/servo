@@ -416,8 +416,8 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> Er
 
         Ok(())
     } else {
-        debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
-            level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+        debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
+            "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
         Err(Error::NotSupported)
     }
 }
@@ -499,8 +499,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             }
             Ok(())
         } else {
-            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
-                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
+                "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
             Err(Error::NotSupported)
         }
     }
@@ -511,8 +511,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             self.set_visible(visible);
             Ok(())
         } else {
-            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
-                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
+                "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
             Err(Error::NotSupported)
         }
     }
@@ -522,8 +522,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         if self.Mozbrowser() {
             Ok(self.visibility.get())
         } else {
-            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
-                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            debug!(concat!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top",
+                "level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)"));
             Err(Error::NotSupported)
         }
     }

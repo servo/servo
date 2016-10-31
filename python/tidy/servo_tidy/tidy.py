@@ -442,6 +442,13 @@ def check_rust(file_name, lines):
         regex_rules = [
             (r",[^\s]", "missing space after ,",
                 lambda match, line: '$' not in line and not is_attribute),
+            (r"([A-Za-z0-9_]+) (\()", "extra space after {0}",
+                lambda match, line: not (
+                    is_attribute or
+                    re.match(r"\bmacro_rules!\s+", line[:match.start()]) or
+                    re.search(r"[^']'[A-Za-z0-9_]+ \($", line[:match.end()]) or
+                    match.group(1) in ['const', 'fn', 'for', 'if', 'in',
+                                       'let', 'match', 'mut', 'return'])),
             (r"[A-Za-z0-9\"]=", "missing space before =",
                 lambda match, line: is_attribute),
             (r"=[A-Za-z0-9\"]", "missing space after =",

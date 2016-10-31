@@ -52,7 +52,9 @@ impl test {
     type Text_Fun3 = fn( i32) -> i32;
 
     fn test_fun3<Text_Fun3>( y: Text_Fun3) {
-        test_fun( 1);
+        let (x, y) = (1, 2) // Should not trigger
+        test_fun( x);
+        test_fun (y);
     }
 
     // Should not be triggered
