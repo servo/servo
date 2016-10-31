@@ -22,7 +22,7 @@ use style::traversal::{recalc_style_at, remove_from_bloom_filter};
 use style::traversal::RestyleResult;
 use style::traversal::take_thread_local_bloom_filter;
 use util::opts;
-use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
+use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,
@@ -131,9 +131,10 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {
+    #[allow(unsafe_code)]
+    unsafe fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {
         element.as_node().initialize_data();
-        element.get_style_data().unwrap()
+        element.get_data().unwrap()
     }
 
     fn local_context(&self) -> &LocalStyleContext {

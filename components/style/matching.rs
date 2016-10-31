@@ -8,10 +8,11 @@
 
 use animation;
 use arc_ptr_eq;
+use atomic_refcell::AtomicRefMut;
 use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
-use data::{ElementStyles, PseudoStyles};
+use data::{ElementData, ElementStyles, PseudoStyles};
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
@@ -423,6 +424,7 @@ impl StyleSharingCandidateCache {
 
     pub fn insert_if_possible<E: TElement>(&mut self,
                                            element: &E,
+                                           style: &Arc<ComputedValues>,
                                            relations: StyleRelations) {
         use traversal::relations_are_shareable;
 
@@ -440,9 +442,6 @@ impl StyleSharingCandidateCache {
             debug!("Failing to insert to the cache: {:?}", relations);
             return;
         }
-
-        let data = element.borrow_data().unwrap();
-        let style = &data.current_styles().primary;
 
         let box_style = style.get_box();
         if box_style.transition_property_count() > 0 {
@@ -695,7 +694,8 @@ pub trait MatchMethods : TElement {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
-                                      shared_context: &SharedStyleContext)
+                                      shared_context: &SharedStyleContext,
+                                      data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult<Self::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
@@ -715,7 +715,6 @@ pub trait MatchMethods : TElement {
             match sharing_result {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
-                    let mut data = self.begin_styling();
 
                     // TODO: add the display: none optimisation here too! Even
                     // better, factor it out/make it a bit more generic so Gecko
@@ -855,6 +854,7 @@ pub trait MatchMethods : TElement {
 
     unsafe fn cascade_node<'a, Ctx>(&self,
                                     context: &Ctx,
+                                    mut data: AtomicRefMut<ElementData>,
                                     parent: Option<Self>,
                                     applicable_declarations: &ApplicableDeclarations)
                                     -> RestyleResult
@@ -864,7 +864,6 @@ pub trait MatchMethods : TElement {
         let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
         let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary);
 
-        let mut data = self.begin_styling();
         let mut new_styles;
 
         let mut applicable_declarations_cache =

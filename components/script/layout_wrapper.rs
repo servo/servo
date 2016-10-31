@@ -56,7 +56,7 @@ use std::mem::transmute;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use string_cache::{Atom, Namespace};
-use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use style::atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
@@ -252,6 +252,10 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.script_type_id().into()
     }
 
+    unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        self.get_jsmanaged().init_style_and_layout_data(data);
+    }
+
     fn has_changed(&self) -> bool {
         unsafe { self.node.get_flag(HAS_CHANGED) }
     }
@@ -269,21 +273,11 @@ impl<'ln> GetLayoutData for ServoLayoutNode<'ln> {
             self.get_jsmanaged().get_style_and_layout_data()
         }
     }
-
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        unsafe {
-            self.get_jsmanaged().init_style_and_layout_data(data);
-        }
-    }
 }
 
 impl<'le> GetLayoutData for ServoLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.as_node().get_style_and_layout_data()
-    }
-
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        self.as_node().init_style_and_layout_data(data)
     }
 }
 
@@ -291,19 +285,11 @@ impl<'ln> GetLayoutData for ServoThreadSafeLayoutNode<'ln> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
     }
-
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        self.node.init_style_and_layout_data(data)
-    }
 }
 
 impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.element.as_node().get_style_and_layout_data()
-    }
-
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        self.element.as_node().init_style_and_layout_data(data)
     }
 }
 
@@ -506,20 +492,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         old_value - 1
     }
 
-    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
-        let mut data = self.mutate_data().unwrap();
-        data.gather_previous_styles(|| None);
-        data
-    }
-
     fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_style_data().map(|d| d.borrow())
+        self.get_data().map(|d| d.borrow())
     }
 
-}
-
-impl<'le> LayoutElement for ServoLayoutElement<'le> {
-    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
             self.get_style_and_layout_data().map(|d| {
                 let ppld: &AtomicRefCell<PartialPersistentLayoutData> = &**d.ptr;
@@ -549,10 +526,6 @@ impl<'le> ServoLayoutElement<'le> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
         }
-    }
-
-    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
-        self.get_style_data().map(|d| d.borrow_mut())
     }
 
     fn get_partial_layout_data(&self) -> Option<&AtomicRefCell<PartialPersistentLayoutData>> {
@@ -836,7 +809,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         // also not visible to script.)
         debug_assert!(self.is_text_node());
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
-        let parent_data = parent.get_style_data().unwrap().borrow();
+        let parent_data = parent.get_data().unwrap().borrow();
         parent_data.current_styles().primary.clone()
     }
 
@@ -1089,9 +1062,11 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        self.element.get_style_data()
+        self.element.get_data()
     }
 }
+
+impl<'le> LayoutElement for ServoLayoutElement<'le> {}
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
 /// pseudo-elements.
