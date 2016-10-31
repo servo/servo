@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use azure::scaled_font::ScaledFont;
 use fnv::FnvHasher;
 use font::{Font, FontGroup, FontHandleMethods};
 use font_cache_thread::FontCacheThread;
@@ -20,7 +19,6 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use style::properties::style_structs;
 use webrender_traits;
@@ -36,15 +34,6 @@ struct LayoutFontCacheEntry {
 #[derive(Debug)]
 struct FallbackFontCacheEntry {
     font: Rc<RefCell<Font>>,
-}
-
-/// A cached azure font (per paint thread) that
-/// can be shared by multiple text runs.
-#[derive(Debug)]
-struct PaintFontCacheEntry {
-    pt_size: Au,
-    identifier: Atom,
-    font: Rc<RefCell<ScaledFont>>,
 }
 
 /// An epoch for the font context cache. The cache is flushed if the current epoch does not match
@@ -64,10 +53,6 @@ pub struct FontContext {
     layout_font_cache: Vec<LayoutFontCacheEntry>,
     fallback_font_cache: Vec<FallbackFontCacheEntry>,
 
-    /// Strong reference as the paint FontContext is (for now) recycled
-    /// per frame. TODO: Make this weak when incremental redraw is done.
-    paint_font_cache: Vec<PaintFontCacheEntry>,
-
     layout_font_group_cache:
         HashMap<LayoutFontGroupCacheKey, Rc<FontGroup>, BuildHasherDefault<FnvHasher>>,
 
@@ -82,7 +67,6 @@ impl FontContext {
             font_cache_thread: font_cache_thread,
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
-            paint_font_cache: vec!(),
             layout_font_group_cache: HashMap::with_hasher(Default::default()),
             epoch: 0,
         }
@@ -118,7 +102,6 @@ impl FontContext {
 
         self.layout_font_cache.clear();
         self.fallback_font_cache.clear();
-        self.paint_font_cache.clear();
         self.layout_font_group_cache.clear();
         self.epoch = current_epoch
     }
