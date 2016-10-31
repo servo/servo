@@ -110,7 +110,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.9.0"
-source = "git+https://github.com/servo/rust-azure#4a2ca5018c97d356a2d2959a074ca98e1f6adba8"
+source = "git+https://github.com/servo/rust-azure#4890bf0b438cbeff4cd269441f4db19a413024ca"
 dependencies = [
  "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -225,7 +225,6 @@ dependencies = [
  "azure 0.9.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_traits 0.0.1",
  "gleam 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -243,7 +242,6 @@ dependencies = [
  "azure 0.9.0 (git+https://github.com/servo/rust-azure)",
  "cssparser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gfx_traits 0.0.1",
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",

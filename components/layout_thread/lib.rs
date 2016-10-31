@@ -45,7 +45,7 @@ extern crate util;
 extern crate webrender_traits;
 
 use app_units::Au;
-use azure::azure::AzColor;
+use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -57,7 +57,7 @@ use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollPolicy, ScrollRootId, StackingContextId, color};
+use gfx_traits::{Epoch, FragmentType, ScrollPolicy, ScrollRootId, StackingContextId};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -1519,18 +1519,18 @@ impl LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
+fn get_root_flow_background_color(flow: &mut Flow) -> Color {
     if !flow.is_block_like() {
-        return color::transparent()
+        return Color::transparent()
     }
 
     let block_flow = flow.as_mut_block();
     let kid = match block_flow.base.children.iter_mut().next() {
-        None => return color::transparent(),
+        None => return Color::transparent(),
         Some(kid) => kid,
     };
     if !kid.is_block_like() {
-        return color::transparent()
+        return Color::transparent()
     }
 
     let kid_block_flow = kid.as_block();

@@ -11,7 +11,6 @@ extern crate azure;
 extern crate canvas_traits;
 extern crate core;
 extern crate euclid;
-extern crate gfx_traits;
 extern crate gleam;
 extern crate ipc_channel;
 #[macro_use]
