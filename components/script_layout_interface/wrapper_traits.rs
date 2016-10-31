@@ -73,7 +73,6 @@ impl<T> PseudoElementType<T> {
 /// Trait to abstract access to layout data across various data structures.
 pub trait GetLayoutData {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
-    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -84,6 +83,8 @@ pub trait LayoutNode: GetLayoutData + TNode {
 
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
+
+    unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
 
     fn has_changed(&self) -> bool;
 
@@ -274,7 +275,6 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait LayoutElement: Clone + Copy + Sized + Debug + GetLayoutData + TElement {
-    fn get_style_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +

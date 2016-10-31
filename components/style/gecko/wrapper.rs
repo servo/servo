@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -337,12 +337,8 @@ impl<'le> GeckoElement<'le> {
                                                .get(pseudo).map(|c| c.clone()))
     }
 
-    fn get_node_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        unsafe { self.raw_node().mServoData.get().as_ref() }
-    }
-
     pub fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
-        match self.get_node_data() {
+        match self.get_data() {
             Some(x) => x,
             None => {
                 let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new())));
@@ -431,7 +427,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_dirty_descendants(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
-        if self.get_node_data().is_none() {
+        if self.get_data().is_none() {
             return true;
         }
         self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
@@ -449,15 +445,14 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    fn begin_styling(&self) -> AtomicRefMut<ElementData> {
-        let mut data = self.ensure_data().borrow_mut();
-        data.gather_previous_styles(|| self.get_styles_from_frame());
-        data
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_data().map(|x| x.borrow())
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_node_data().map(|x| x.borrow())
+    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+        unsafe { self.raw_node().mServoData.get().as_ref() }
     }
+
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {

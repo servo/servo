@@ -33,10 +33,12 @@
 use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PersistentLayoutData};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::computed_values::content::{self, ContentItem};
+use style::dom::TElement;
+use style::traversal::prepare_for_styling;
 
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
@@ -62,12 +64,24 @@ impl<T: GetLayoutData> LayoutNodeLayoutData for T {
     }
 }
 
-pub trait LayoutNodeHelpers {
-    fn initialize_data(&self);
+pub trait GetRawData {
     fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData>;
 }
 
-impl<T: GetLayoutData> LayoutNodeHelpers for T {
+impl<T: GetLayoutData> GetRawData for T {
+    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData> {
+        self.get_style_and_layout_data().map(|opaque| {
+            let container = *opaque.ptr as *mut NonOpaqueStyleAndLayoutData;
+            unsafe { &*container }
+        })
+    }
+}
+
+pub trait LayoutNodeHelpers {
+    fn initialize_data(&self);
+}
+
+impl<T: LayoutNode> LayoutNodeHelpers for T {
     fn initialize_data(&self) {
         if self.get_raw_data().is_none() {
             let ptr: *mut NonOpaqueStyleAndLayoutData =
@@ -75,15 +89,11 @@ impl<T: GetLayoutData> LayoutNodeHelpers for T {
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: unsafe { NonZero::new(ptr as *mut AtomicRefCell<PartialPersistentLayoutData>) }
             };
-            self.init_style_and_layout_data(opaque);
+            unsafe { self.init_style_and_layout_data(opaque) };
+            if let Some(el) = self.as_element() {
+                let _ = prepare_for_styling(el, el.get_data().unwrap());
+            }
         };
-    }
-
-    fn get_raw_data(&self) -> Option<&NonOpaqueStyleAndLayoutData> {
-        self.get_style_and_layout_data().map(|opaque| {
-            let container = *opaque.ptr as *mut NonOpaqueStyleAndLayoutData;
-            unsafe { &*container }
-        })
     }
 }
 

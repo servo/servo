@@ -4,7 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
@@ -12,6 +12,7 @@ use matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
+use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use tid::tid;
 use util::opts;
@@ -156,6 +157,18 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
     };
 }
 
+pub fn prepare_for_styling<E: TElement>(element: E,
+                                        data: &AtomicRefCell<ElementData>)
+                                        -> AtomicRefMut<ElementData> {
+    let mut d = data.borrow_mut();
+    d.gather_previous_styles(|| element.get_styles_from_frame());
+    if d.previous_styles().is_some() {
+        d.ensure_restyle_data();
+    }
+
+    d
+}
+
 pub trait DomTraversalContext<N: TNode> {
     type SharedContext: Sync + 'static;
 
@@ -200,7 +213,17 @@ pub trait DomTraversalContext<N: TNode> {
     /// Ensures the existence of the ElementData, and returns it. This can't live
     /// on TNode because of the trait-based separation between Servo's script
     /// and layout crates.
-    fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData>;
+    ///
+    /// This is only safe to call in top-down traversal before processing the
+    /// children of |element|.
+    unsafe fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData>;
+
+    /// Sets up the appropriate data structures to style or restyle a node,
+    /// returing a mutable handle to the node data upon which further style
+    /// calculations can be performed.
+    unsafe fn prepare_for_styling(element: &N::ConcreteElement) -> AtomicRefMut<ElementData> {
+        prepare_for_styling(*element, Self::ensure_element_data(element))
+    }
 
     fn local_context(&self) -> &LocalStyleContext;
 }
@@ -267,6 +290,7 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
     // probably not necessary since we're likely to be matching only a few
     // nodes, at best.
     let mut applicable_declarations = ApplicableDeclarations::new();
+    let data = prepare_for_styling(element, element.get_data().unwrap());
     let stylist = &context.shared_context().stylist;
 
     element.match_element(&**stylist,
@@ -274,7 +298,7 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
                           &mut applicable_declarations);
 
     unsafe {
-        element.cascade_node(context, parent, &applicable_declarations);
+        element.cascade_node(context, data, parent, &applicable_declarations);
     }
 }
 
@@ -295,6 +319,8 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     let mode = element.styling_mode();
     debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
     if mode != StylingMode::Traverse {
+        let mut data = unsafe { D::prepare_for_styling(&element) };
+
         // Check to see whether we can share a style with someone.
         let style_sharing_candidate_cache =
             &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
@@ -302,7 +328,8 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
         let sharing_result = if element.parent_element().is_none() {
             StyleSharingResult::CannotShare
         } else {
-            unsafe { element.share_style_if_possible(style_sharing_candidate_cache, context.shared_context()) }
+            unsafe { element.share_style_if_possible(style_sharing_candidate_cache,
+                                                     context.shared_context(), &mut data) }
         };
 
         // Otherwise, match and cascade selectors.
@@ -334,14 +361,19 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    restyle_result = element.cascade_node(context,
+                    restyle_result = element.cascade_node(context, data,
                                                           element.parent_element(),
                                                           &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
                 if let Some(element) = shareable_element {
-                    style_sharing_candidate_cache.insert_if_possible(&element, relations);
+                    style_sharing_candidate_cache.insert_if_possible(&element,
+                                                                     &element.borrow_data()
+                                                                             .unwrap()
+                                                                             .current_styles()
+                                                                             .primary,
+                                                                     relations);
                 }
             }
             StyleSharingResult::StyleWasShared(index, damage, cached_restyle_result) => {
@@ -350,6 +382,10 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                     STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
                 }
                 style_sharing_candidate_cache.touch(index);
+
+                // Drop the mutable borrow early, since Servo's set_restyle_damage also borrows.
+                mem::drop(data);
+
                 element.set_restyle_damage(damage);
             }
         }
@@ -361,11 +397,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     if mode == StylingMode::Restyle && restyle_result == RestyleResult::Continue {
         for kid in element.as_node().children() {
             if let Some(kid) = kid.as_element() {
-                let mut data = D::ensure_element_data(&kid).borrow_mut();
-                data.gather_previous_styles(|| kid.get_styles_from_frame());
-                if data.previous_styles().is_some() {
-                    data.ensure_restyle_data();
-                }
+                unsafe { let _ = D::prepare_for_styling(&kid); }
             }
         }
     }

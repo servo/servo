@@ -27,10 +27,10 @@ impl<T> AtomicRefCell<T> {
         AtomicRefCell(RwLock::new(value))
     }
     pub fn borrow(&self) -> AtomicRef<T> {
-        self.0.try_read().unwrap()
+        self.0.try_read().expect("already mutably borrowed")
     }
     pub fn borrow_mut(&self) -> AtomicRefMut<T> {
-        self.0.try_write().unwrap()
+        self.0.try_write().expect("already borrowed")
     }
 }
 
