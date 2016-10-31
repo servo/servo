@@ -1019,7 +1019,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_shutdown(&mut self) {
         // At this point, there are no active pipelines,
         // so we can safely block on other threads, without worrying about deadlock.
-        // Channels to recieve signals when threads are done exiting.
+        // Channels to receive signals when threads are done exiting.
         let (core_sender, core_receiver) = ipc::channel().expect("Failed to create IPC channel!");
         let (storage_sender, storage_receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
