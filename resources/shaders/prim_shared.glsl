@@ -439,6 +439,10 @@ vec4 get_layer_pos(vec2 pos, Layer layer) {
     return untransform(pos, n, a, layer.inv_transform);
 }
 
+vec2 clamp_rect(vec2 point, vec4 rect) {
+    return clamp(point, rect.xy, rect.xy + rect.zw);
+}
+
 struct Rect {
     vec2 p0;
     vec2 p1;
@@ -463,9 +467,7 @@ VertexInfo write_vertex(vec4 instance_rect,
     vec2 cp1 = floor(0.5 + (local_clip_rect.xy + local_clip_rect.zw) * uDevicePixelRatio) / uDevicePixelRatio;
     local_pos = clamp(local_pos, cp0, cp1);
 
-    local_pos = clamp(local_pos,
-                      layer.local_clip_rect.xy,
-                      layer.local_clip_rect.xy + layer.local_clip_rect.zw);
+    local_pos = clamp_rect(local_pos, layer.local_clip_rect);
 
     vec4 world_pos = layer.transform * vec4(local_pos, 0, 1);
     world_pos.xyz /= world_pos.w;
@@ -495,15 +497,16 @@ struct TransformVertexInfo {
 };
 
 TransformVertexInfo write_transform_vertex(vec4 instance_rect,
-                                           vec4 local_clip_rect, //unused
+                                           vec4 local_clip_rect,
                                            Layer layer,
                                            Tile tile) {
-    vec2 lp0 = clamp(instance_rect.xy,
-                     layer.local_clip_rect.xy,
-                     layer.local_clip_rect.xy + layer.local_clip_rect.zw);
-    vec2 lp1 = clamp(instance_rect.xy + instance_rect.zw,
-                     layer.local_clip_rect.xy,
-                     layer.local_clip_rect.xy + layer.local_clip_rect.zw);
+    vec2 lp0_base = instance_rect.xy;
+    vec2 lp1_base = instance_rect.xy + instance_rect.zw;
+
+    vec2 lp0 = clamp_rect(clamp_rect(lp0_base, local_clip_rect),
+                          layer.local_clip_rect);
+    vec2 lp1 = clamp_rect(clamp_rect(lp1_base, local_clip_rect),
+                          layer.local_clip_rect);
 
     vec4 clipped_local_rect = vec4(lp0, lp1 - lp0);
 
