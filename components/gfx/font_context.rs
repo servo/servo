@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use azure::azure_hl::BackendType;
-#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
-use azure::scaled_font::FontInfo;
 use azure::scaled_font::ScaledFont;
 use fnv::FnvHasher;
 use font::{Font, FontGroup, FontHandleMethods};
@@ -27,18 +24,6 @@ use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use style::properties::style_structs;
 use webrender_traits;
-
-#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
-fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    ScaledFont::new(BackendType::Skia, FontInfo::FontData(&template.bytes),
-                    pt_size.to_f32_px())
-}
-
-#[cfg(target_os = "macos")]
-fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    let cgfont = template.ctfont(pt_size.to_f64_px()).as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(BackendType::Skia, &cgfont, pt_size.to_f32_px())
-}
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
 
@@ -259,28 +244,6 @@ impl FontContext {
         let font_group = Rc::new(FontGroup::new(fonts));
         self.layout_font_group_cache.insert(layout_font_group_cache_key, font_group.clone());
         font_group
-    }
-
-    /// Create a paint font for use with azure. May return a cached
-    /// reference if already used by this font context.
-    pub fn paint_font_from_template(&mut self,
-                                        template: &Arc<FontTemplateData>,
-                                        pt_size: Au)
-                                        -> Rc<RefCell<ScaledFont>> {
-        for cached_font in &self.paint_font_cache {
-            if cached_font.pt_size == pt_size &&
-               cached_font.identifier == template.identifier {
-                return cached_font.font.clone();
-            }
-        }
-
-        let paint_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
-        self.paint_font_cache.push(PaintFontCacheEntry {
-            font: paint_font.clone(),
-            pt_size: pt_size,
-            identifier: template.identifier.clone(),
-        });
-        paint_font
     }
 
     /// Returns a reference to the font cache thread.
