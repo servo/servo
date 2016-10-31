@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
+use dom::bindings::codegen::UnionTypes::StringOrObject;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -22,9 +23,15 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use hyper::mime::{Attr, Mime};
+use js::jsapi::Heap;
+use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSContext;
+use js::jsval::{self, JSVal};
+use js::typedarray::Uint8Array;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_thread::RunnableWrapper;
 use std::cell::Cell;
+use std::ptr;
 use std::sync::Arc;
 use string_cache::Atom;
 use task_source::TaskSource;
@@ -35,6 +42,7 @@ use util::thread::spawn_named;
 pub enum FileReaderFunction {
     ReadAsText,
     ReadAsDataUrl,
+    ReadAsArrayBuffer,
 }
 
 pub type TrustedFileReader = Trusted<FileReader>;
@@ -68,12 +76,18 @@ pub enum FileReaderReadyState {
     Done = FileReaderConstants::DONE,
 }
 
+#[derive(HeapSizeOf, JSTraceable)]
+pub enum FileReaderResult {
+    ArrayBuffer(Heap<JSVal>),
+    String(DOMString),
+}
+
 #[dom_struct]
 pub struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableHeap<JS<DOMException>>,
-    result: DOMRefCell<Option<DOMString>>,
+    result: DOMRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -159,6 +173,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
+    #[allow(unsafe_code)]
     pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId,
                             data: ReadMetaData, blob_contents: Arc<Vec<u8>>) {
         let fr = filereader.root();
@@ -176,14 +191,16 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         // Step 8.2
 
-        let output = match data.function {
+        match data.function {
             FileReaderFunction::ReadAsDataUrl =>
-                FileReader::perform_readasdataurl(data, &blob_contents),
+                FileReader::perform_readasdataurl(&fr.result, data, &blob_contents),
             FileReaderFunction::ReadAsText =>
-                FileReader::perform_readastext(data, &blob_contents),
+                FileReader::perform_readastext(&fr.result, data, &blob_contents),
+            FileReaderFunction::ReadAsArrayBuffer => {
+                let _ac = JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                FileReader::perform_readasarraybuffer(&fr.result, fr.global().get_cx(), data, &blob_contents)
+            },
         };
-
-        *fr.result.borrow_mut() = Some(output);
 
         // Step 8.3
         fr.dispatch_progress_event(atom!("load"), 0, None);
@@ -198,8 +215,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(data: ReadMetaData, blob_bytes: &[u8])
-        -> DOMString {
+    fn perform_readastext(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
 
@@ -225,12 +241,11 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        DOMString::from(output)
+        *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(output)));
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(data: ReadMetaData, bytes: &[u8])
-        -> DOMString {
+    fn perform_readasdataurl(result: &DOMRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
         let config = Config {
             char_set: CharacterSet::UrlSafe,
             newline: Newline::LF,
@@ -245,7 +260,23 @@ impl FileReader {
             format!("data:{};base64,{}", data.blobtype, base64)
         };
 
-        DOMString::from(output)
+        *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(output)));
+    }
+
+    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    #[allow(unsafe_code)]
+    fn perform_readasarraybuffer(result: &DOMRefCell<Option<FileReaderResult>>,
+        cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
+        unsafe {
+            rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+            assert!(Uint8Array::create(cx, bytes.len() as u32, Some(bytes), array_buffer.handle_mut()).is_ok());
+
+            *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
+
+            if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
+                heap.set(jsval::ObjectValue(&*array_buffer.get()));
+            };
+        }
     }
 }
 
@@ -268,7 +299,11 @@ impl FileReaderMethods for FileReader {
     // https://w3c.github.io/FileAPI/#dfn-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
-    //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    fn ReadAsArrayBuffer(&self, blob: &Blob) -> ErrorResult {
+        self.read(FileReaderFunction::ReadAsArrayBuffer, blob, None)
+    }
+
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
     fn ReadAsDataURL(&self, blob: &Blob) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsDataUrl, blob, None)
@@ -302,9 +337,18 @@ impl FileReaderMethods for FileReader {
         self.error.get()
     }
 
+    #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#dfn-result
-    fn GetResult(&self) -> Option<DOMString> {
-        self.result.borrow().clone()
+    fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
+        self.result.borrow().as_ref().map(|r| match *r {
+            FileReaderResult::String(ref string) =>
+                StringOrObject::String(string.clone()),
+            FileReaderResult::ArrayBuffer(ref arr_buffer) => {
+                unsafe {
+                    StringOrObject::Object((*arr_buffer.ptr.get()).to_object())
+                }
+            }
+        })
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readyState
