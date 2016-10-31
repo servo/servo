@@ -2866,10 +2866,6 @@ impl Fragment {
                 }
             }
         }
-        let border_padding_difference = next_fragment.border_padding.inline_end - self.border_padding.inline_end;
-        self.border_padding.inline_end = next_fragment.border_padding.inline_end;
-        self.border_box.size.inline += border_padding_difference;
-        self.margin.inline_end = next_fragment.margin.inline_end;
     }
 
     pub fn meld_with_prev_inline_fragment(&mut self, prev_fragment: &Fragment) {
@@ -2893,11 +2889,6 @@ impl Fragment {
                 }
             }
         }
-        let border_padding_difference = prev_fragment.border_padding.inline_start - self.border_padding.inline_start;
-        self.border_padding.inline_start = prev_fragment.border_padding.inline_start;
-        self.border_box.start.i -= border_padding_difference;
-        self.border_box.size.inline += border_padding_difference;
-        self.margin.inline_start = prev_fragment.margin.inline_start;
     }
 
     /// Returns true if any of the inline styles associated with this fragment have
