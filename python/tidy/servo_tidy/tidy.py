@@ -608,13 +608,27 @@ def check_for_possible_duplicate_json_keys(key_value_pairs):
 
         seen_keys.add(key)
 
+    for i in range(i, len(key_value_pairs)):
+
+        
+def check_json_ordered(key_value_pairs):
+    for i in range (0, len(key_value_pairs)-1):
+        if(key_value_pairs[i][0]>key_value_pairs[i+1][0]:
+            raise KeyError(key_value_pairs[i+1][0])
+
+
+def check_json_requirements(key_value_pairs):
+    check_for_possible_duplicate_json_keys(key_value_pairs)
+    check_for_alphabetical_sorted_json_keys(key_value_pairs)
+
+
 
 def check_json(filename, contents):
     if not filename.endswith(".json"):
         raise StopIteration
 
     try:
-        json.loads(contents, object_pairs_hook=check_for_possible_duplicate_json_keys)
+        json.loads(contents, object_pairs_hook=check_json_requirements)
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
