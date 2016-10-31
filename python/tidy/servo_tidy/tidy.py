@@ -782,8 +782,8 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_wpt_files(only_changed_files, progress):
-    wpt_dir = os.path.join(".", "tests", "wpt" + os.sep)
+def get_wpt_files(suite, only_changed_files, progress):
+    wpt_dir = os.path.join(".", "tests", "wpt", suite, "")
     file_iter = get_file_list(os.path.join(wpt_dir), only_changed_files)
     (has_element, file_iter) = is_iter_empty(file_iter)
     if not has_element:
@@ -796,12 +796,13 @@ def get_wpt_files(only_changed_files, progress):
             yield f[len(wpt_dir):]
 
 
-def check_wpt_lint_errors(files):
+def check_wpt_lint_errors(suite, files):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
     if os.path.isdir(wpt_working_dir):
         site.addsitedir(wpt_working_dir)
         from tools.lint import lint
-        returncode = lint.lint(wpt_working_dir, files, output_json=False)
+        file_dir = os.path.abspath(os.path.join(".", "tests", "wpt", suite))
+        returncode = lint.lint(file_dir, files, output_json=False)
         if returncode:
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
@@ -865,9 +866,12 @@ def scan(only_changed_files=False, progress=True):
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
+    wpt_lint_errors = [
+        check_wpt_lint_errors(suite, get_wpt_files(suite, only_changed_files, progress))
+        for suite in ["web-platform-tests", os.path.join("mozilla", "tests")]
+    ]
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, wpt_lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, *wpt_lint_errors)
 
     error = None
     for error in errors:

@@ -42,7 +42,7 @@ def all_git_paths(repo_root):
 
 def check_path_length(repo_root, path):
     if len(path) + 1 > 150:
-        return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), None)]
+        return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), path, None)]
     return []
 
 
