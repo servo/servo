@@ -28,7 +28,7 @@ use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGL
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
-use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId, color};
+use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
@@ -963,7 +963,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
+            color: SideOffsets2D::new_all_same(Color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
         }));
@@ -983,7 +983,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::Line(box LineDisplayItem {
             base: base,
-            color: color::rgb(0, 200, 0),
+            color: Color::rgb(0, 200, 0),
             style: border_style::T::dashed,
         }));
     }
@@ -1001,7 +1001,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
+            color: SideOffsets2D::new_all_same(Color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
         }));
@@ -2106,7 +2106,7 @@ pub trait ToGfxColor {
 
 impl ToGfxColor for RGBA {
     fn to_gfx_color(&self) -> Color {
-        color::rgba(self.red, self.green, self.blue, self.alpha)
+        Color::rgba(self.red, self.green, self.blue, self.alpha)
     }
 }
 

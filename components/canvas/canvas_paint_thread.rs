@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure::{AzColor, AzFloat};
+use azure::azure::AzFloat;
 use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
 use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
-use azure::azure_hl::{ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
+use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use canvas_traits::*;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use gfx_traits::color;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::ipc::IpcSharedMemory;
 use num_traits::ToPrimitive;
@@ -73,7 +72,7 @@ struct CanvasPaintState<'a> {
     shadow_offset_x: f64,
     shadow_offset_y: f64,
     shadow_blur: f64,
-    shadow_color: AzColor,
+    shadow_color: Color,
 }
 
 impl<'a> CanvasPaintState<'a> {
@@ -86,14 +85,14 @@ impl<'a> CanvasPaintState<'a> {
 
         CanvasPaintState {
             draw_options: DrawOptions::new(1.0, CompositionOp::Over, antialias),
-            fill_style: Pattern::Color(ColorPattern::new(color::black())),
-            stroke_style: Pattern::Color(ColorPattern::new(color::black())),
+            fill_style: Pattern::Color(ColorPattern::new(Color::black())),
+            stroke_style: Pattern::Color(ColorPattern::new(Color::black())),
             stroke_opts: StrokeOptions::new(1.0, JoinStyle::MiterOrBevel, CapStyle::Butt, 10.0, &[]),
             transform: Matrix2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: color::transparent(),
+            shadow_color: Color::transparent(),
         }
     }
 }
@@ -665,7 +664,7 @@ impl<'a> CanvasPaintThread<'a> {
         self.state.shadow_blur = value;
     }
 
-    fn set_shadow_color(&mut self, value: AzColor) {
+    fn set_shadow_color(&mut self, value: Color) {
         self.state.shadow_color = value;
     }
 

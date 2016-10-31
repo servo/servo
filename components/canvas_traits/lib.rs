@@ -16,7 +16,6 @@ extern crate azure;
 extern crate core;
 extern crate cssparser;
 extern crate euclid;
-extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
 extern crate serde;
@@ -24,9 +23,9 @@ extern crate serde;
 extern crate serde_derive;
 extern crate webrender_traits;
 
-use azure::azure::{AzColor, AzFloat};
+use azure::azure::AzFloat;
 use azure::azure_hl::{CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{ColorPattern, DrawTarget, Pattern};
+use azure::azure_hl::{Color, ColorPattern, DrawTarget, Pattern};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
 use azure::azure_hl::{SurfaceFormat, SurfacePattern};
 use cssparser::RGBA;
@@ -34,7 +33,6 @@ use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use gfx_traits::color;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use std::default::Default;
 use std::str::FromStr;
@@ -205,16 +203,13 @@ impl FillOrStrokeStyle {
     pub fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
         match *self {
             FillOrStrokeStyle::Color(ref color) => {
-                Some(Pattern::Color(ColorPattern::new(color::new(color.red,
-                                                                 color.green,
-                                                                 color.blue,
-                                                                 color.alpha))))
+                Some(Pattern::Color(ColorPattern::new(color.to_azcolor())))
             },
             FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
                     GradientStop {
                         offset: s.offset as AzFloat,
-                        color: color::new(s.color.red, s.color.green, s.color.blue, s.color.alpha)
+                        color: s.color.to_azcolor()
                     }
                 }).collect();
 
@@ -228,7 +223,7 @@ impl FillOrStrokeStyle {
                 let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
                     GradientStop {
                         offset: s.offset as AzFloat,
-                        color: color::new(s.color.red, s.color.green, s.color.blue, s.color.alpha)
+                        color: s.color.to_azcolor()
                     }
                 }).collect();
 
@@ -532,12 +527,12 @@ impl CompositionOrBlending {
 }
 
 pub trait ToAzColor {
-    fn to_azcolor(&self) -> AzColor;
+    fn to_azcolor(&self) -> Color;
 }
 
 impl ToAzColor for RGBA {
-    fn to_azcolor(&self) -> AzColor {
-        color::rgba(self.red as AzFloat,
+    fn to_azcolor(&self) -> Color {
+        Color::rgba(self.red as AzFloat,
                     self.green as AzFloat,
                     self.blue as AzFloat,
                     self.alpha as AzFloat)
