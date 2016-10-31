@@ -641,6 +641,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         future
     }
 
+    fn joint_session_future_is_empty(&self, frame_id_root: FrameId) -> bool {
+        self.full_frame_tree_iter(frame_id_root)
+            .all(|frame| frame.next.is_empty())
+    }
+
     fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut past = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
@@ -653,6 +658,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         past.sort();
         past
+    }
+
+    fn joint_session_past_is_empty(&self, frame_id_root: FrameId) -> bool {
+        self.full_frame_tree_iter(frame_id_root)
+            .all(|frame| frame.prev.is_empty())
     }
 
     // Create a new frame and update the internal bookkeeping.
@@ -1375,6 +1385,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn load_url(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) -> Option<PipelineId> {
+        debug!("Loading {} in pipeline {}.", load_data.url, source_id);
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated
         // the new load. The framing element must be notified about the
@@ -1446,8 +1457,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_load_start_msg(&mut self, pipeline_id: PipelineId) {
         let frame_id = self.get_top_level_frame_for_pipeline(Some(pipeline_id));
-        let forward = !self.joint_session_future(frame_id).is_empty();
-        let back = !self.joint_session_past(frame_id).is_empty();
+        let forward = !self.joint_session_future_is_empty(frame_id);
+        let back = !self.joint_session_past_is_empty(frame_id);
         self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
     }
 
@@ -1464,8 +1475,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.webdriver.load_channel = None;
         }
         let frame_id = self.get_top_level_frame_for_pipeline(Some(pipeline_id));
-        let forward = !self.joint_session_future(frame_id).is_empty();
-        let back = !self.joint_session_past(frame_id).is_empty();
+        let forward = !self.joint_session_future_is_empty(frame_id);
+        let back = !self.joint_session_past_is_empty(frame_id);
         let root = self.root_frame_id == frame_id;
         self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
         self.handle_subframe_loaded(pipeline_id);
@@ -1788,12 +1799,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let prev_pipeline_id = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let prev = frame.current.pipeline_id;
+
                 // Check that this frame contains the pipeline passed in, so that this does not
                 // change Frame's state before realizing `next_pipeline_id` is invalid.
-                let mut contains_pipeline = false;
-
                 if frame.next.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
-                    contains_pipeline = true;
                     frame.prev.push(frame.current.clone());
                     while let Some(entry) = frame.next.pop() {
                         if entry.pipeline_id == next_pipeline_id {
@@ -1803,11 +1812,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             frame.prev.push(entry);
                         }
                     }
-                }
-
-                if !contains_pipeline &&
-                   frame.prev.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
-                    contains_pipeline = true;
+                } else if frame.prev.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
                     frame.next.push(frame.current.clone());
                     while let Some(entry) = frame.prev.pop() {
                         if entry.pipeline_id == next_pipeline_id {
@@ -1817,9 +1822,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             frame.next.push(entry);
                         }
                     }
-                }
-
-                if !contains_pipeline {
+                } else if prev != next_pipeline_id {
                     return warn!("Tried to traverse frame {:?} to pipeline {:?} it does not contain.",
                         frame_id, next_pipeline_id);
                 }
@@ -1893,6 +1896,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
+        debug!("Setting frame {} to be pipeline {}.", frame_change.frame_id, frame_change.new_pipeline_id);
+
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
