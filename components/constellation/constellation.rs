@@ -981,6 +981,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("Unable to forward DOMMessage for postMessage call");
                 }
             }
+            FromScriptMsg::SetFullscreenState(state) => {
+                self.compositor_proxy.send(ToCompositorMsg::SetFullscreenState(state));
+            }
         }
     }
 

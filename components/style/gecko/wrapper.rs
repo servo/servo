@@ -597,6 +597,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Indeterminate => {
                 self.get_state().contains(pseudo_class.state_flag())
             },
