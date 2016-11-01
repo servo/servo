@@ -92,6 +92,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          products="gecko",
                          animatable=False)}
 
+// https://drafts.csswg.org/css-backgrounds-3/#border-image-source
 <%helpers:longhand name="border-image-source" products="none" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
@@ -105,39 +106,33 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         use values::computed;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
-            Image(computed::Image),
-            None,
-        }
+        pub struct T(pub Option<computed::Image>);
     }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Image(Image),
-        None,
-    }
+    pub struct SpecifiedValue(pub Option<Image>);
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::T::Image(ref image) => image.to_css(dest),
-                computed_value::T::None => dest.write_str("none"),
+            match self.0 {
+                Some(ref image) => image.to_css(dest),
+                None => dest.write_str("none"),
             }
         }
     }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Image(ref image) => image.to_css(dest),
-                SpecifiedValue::None => dest.write_str("none"),
+            match self.0 {
+                Some(ref image) => image.to_css(dest),
+                None => dest.write_str("none"),
             }
         }
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::None
+        computed_value::T(None)
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -145,28 +140,27 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Image(ref image) =>
-                    computed_value::T::Image(image.to_computed_value(context)),
-                SpecifiedValue::None => computed_value::T::None,
+            match self.0 {
+                Some(ref image) => computed_value::T(Some(image.to_computed_value(context))),
+                None => computed_value::T(None),
             }
         }
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T::Image(ref image) =>
-                    SpecifiedValue::Image(ToComputedValue::from_computed_value(image)),
-                computed_value::T::None => SpecifiedValue::None,
+            match computed.0 {
+                Some(ref image) =>
+                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
+                None => SpecifiedValue(None),
             }
         }
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(SpecifiedValue::None);
+            return Ok(SpecifiedValue(None));
         }
 
-        Ok(SpecifiedValue::Image(try!(Image::parse(context, input))))
+        Ok(SpecifiedValue(Some(try!(Image::parse(context, input)))))
     }
 </%helpers:longhand>
 
@@ -211,20 +205,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let length = self.0.len();
-
             try!(self.0[0].to_css(dest));
-            if length > 1 {
+            for value in self.0.iter().skip(1) {
                 try!(dest.write_str(" "));
-                try!(self.0[1].to_css(dest));
-                if length > 2 {
-                    try!(dest.write_str(" "));
-                    try!(self.0[2].to_css(dest));
-                    if length > 3 {
-                        try!(dest.write_str(" "));
-                        try!(self.0[3].to_css(dest));
-                    }
-                }
+                try!(value.to_css(dest));
             }
             Ok(())
         }
@@ -320,8 +304,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    impl LengthOrNumber {
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<LengthOrNumber, ()> {
+    impl Parse for LengthOrNumber {
+        fn parse(input: &mut Parser) -> Result<LengthOrNumber, ()> {
             let length = input.try(|input| Length::parse(input));
             if let Ok(len) = length {
                 return Ok(LengthOrNumber::Length(len));
@@ -332,10 +316,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| LengthOrNumber::parse(context, input));
+            let value = input.try(|input| LengthOrNumber::parse(input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,
@@ -350,6 +334,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
+// https://drafts.csswg.org/css-backgrounds-3/#border-image-repeat
 <%helpers:longhand name="border-image-repeat" products="none" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
@@ -359,20 +344,20 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use super::SingleSpecifiedValue;
+        use super::RepeatKeyword;
         use values::computed;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub SingleSpecifiedValue, pub SingleSpecifiedValue);
+        pub struct T(pub RepeatKeyword, pub RepeatKeyword);
     }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub SingleSpecifiedValue,
-                              pub Option<SingleSpecifiedValue>);
+    pub struct SpecifiedValue(pub RepeatKeyword,
+                              pub Option<RepeatKeyword>);
 
-    define_css_keyword_enum!(SingleSpecifiedValue:
+    define_css_keyword_enum!(RepeatKeyword:
                              "stretch" => Stretch,
                              "repeat" => Repeat,
                              "round" => Round,
@@ -399,7 +384,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(SingleSpecifiedValue::Stretch, SingleSpecifiedValue::Stretch)
+        computed_value::T(RepeatKeyword::Stretch, RepeatKeyword::Stretch)
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -416,13 +401,14 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let first = try!(SingleSpecifiedValue::parse(input));
-        let second = input.try(SingleSpecifiedValue::parse).ok();
+        let first = try!(RepeatKeyword::parse(input));
+        let second = input.try(RepeatKeyword::parse).ok();
 
         Ok(SpecifiedValue(first, second))
     }
 </%helpers:longhand>
 
+// https://drafts.csswg.org/css-backgrounds-3/#border-image-width
 <%helpers:longhand name="border-image-width" products="none" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
@@ -477,20 +463,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let length = self.0.len();
-
             try!(self.0[0].to_css(dest));
-            if length > 1 {
+            for value in self.0.iter().skip(1) {
                 try!(dest.write_str(" "));
-                try!(self.0[1].to_css(dest));
-                if length > 2 {
-                    try!(dest.write_str(" "));
-                    try!(self.0[2].to_css(dest));
-                    if length > 3 {
-                        try!(dest.write_str(" "));
-                        try!(self.0[3].to_css(dest));
-                    }
-                }
+                try!(value.to_css(dest));
             }
             Ok(())
         }
@@ -529,8 +505,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::SingleComputedValue {
             match *self {
-                SingleSpecifiedValue::LengthOrPercentage(len) =>
-                    computed_value::SingleComputedValue::LengthOrPercentage(len.to_computed_value(context)),
+                SingleSpecifiedValue::LengthOrPercentage(len) => {
+                    computed_value::SingleComputedValue::LengthOrPercentage(
+                        len.to_computed_value(context))
+                },
                 SingleSpecifiedValue::Number(number) =>
                     computed_value::SingleComputedValue::Number(number.to_computed_value(context)),
                 SingleSpecifiedValue::Auto => computed_value::SingleComputedValue::Auto,
@@ -539,8 +517,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[inline]
         fn from_computed_value(computed: &computed_value::SingleComputedValue) -> Self {
             match *computed {
-                computed_value::SingleComputedValue::LengthOrPercentage(len) =>
-                    SingleSpecifiedValue::LengthOrPercentage(ToComputedValue::from_computed_value(&len)),
+                computed_value::SingleComputedValue::LengthOrPercentage(len) => {
+                    SingleSpecifiedValue::LengthOrPercentage(
+                        ToComputedValue::from_computed_value(&len))
+                },
                 computed_value::SingleComputedValue::Number(number) =>
                     SingleSpecifiedValue::Number(ToComputedValue::from_computed_value(&number)),
                 computed_value::SingleComputedValue::Auto => SingleSpecifiedValue::Auto,
@@ -591,14 +571,13 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    impl SingleSpecifiedValue {
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+    impl Parse for SingleSpecifiedValue {
+        fn parse(input: &mut Parser) -> Result<Self, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SingleSpecifiedValue::Auto);
             }
 
-            let length = input.try(|input| LengthOrPercentage::parse(input));
-            if let Ok(len) = length {
+            if let Ok(len) = input.try(|input| LengthOrPercentage::parse(input)) {
                 return Ok(SingleSpecifiedValue::LengthOrPercentage(len));
             }
 
@@ -607,10 +586,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| SingleSpecifiedValue::parse(context, input));
+            let value = input.try(|input| SingleSpecifiedValue::parse(input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,
@@ -625,6 +604,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
+// https://drafts.csswg.org/css-backgrounds-3/#border-image-slice
 <%helpers:longhand name="border-image-slice" products="none" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
@@ -640,13 +620,13 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
-            pub corners: Vec<SingleComputedValue>,
+            pub corners: Vec<PercentageOrNumber>,
             pub fill: bool,
         }
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum SingleComputedValue {
+        pub enum PercentageOrNumber {
             Percentage(Percentage),
             Number(Number),
         }
@@ -655,7 +635,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        pub corners: Vec<SingleSpecifiedValue>,
+        pub corners: Vec<PercentageOrNumber>,
         pub fill: bool,
     }
 
@@ -677,20 +657,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let length = self.corners.len();
-
             try!(self.corners[0].to_css(dest));
-            if length > 1 {
+            for value in self.corners.iter().skip(1) {
                 try!(dest.write_str(" "));
-                try!(self.corners[1].to_css(dest));
-                if length > 2 {
-                    try!(dest.write_str(" "));
-                    try!(self.corners[2].to_css(dest));
-                    if length > 3 {
-                        try!(dest.write_str(" "));
-                        try!(self.corners[3].to_css(dest));
-                    }
-                }
+                try!(value.to_css(dest));
             }
 
             if self.fill {
@@ -702,47 +672,47 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SingleSpecifiedValue {
+    pub enum PercentageOrNumber {
         Percentage(Percentage),
         Number(Number),
     }
 
-    impl ToCss for computed_value::SingleComputedValue {
+    impl ToCss for computed_value::PercentageOrNumber {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                computed_value::SingleComputedValue::Percentage(percentage) => percentage.to_css(dest),
-                computed_value::SingleComputedValue::Number(number) => number.to_css(dest),
+                computed_value::PercentageOrNumber::Percentage(percentage) => percentage.to_css(dest),
+                computed_value::PercentageOrNumber::Number(number) => number.to_css(dest),
             }
         }
     }
-    impl ToCss for SingleSpecifiedValue {
+    impl ToCss for PercentageOrNumber {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SingleSpecifiedValue::Percentage(percentage) => percentage.to_css(dest),
-                SingleSpecifiedValue::Number(number) => number.to_css(dest),
+                PercentageOrNumber::Percentage(percentage) => percentage.to_css(dest),
+                PercentageOrNumber::Number(number) => number.to_css(dest),
             }
         }
     }
 
-    impl ToComputedValue for SingleSpecifiedValue {
-        type ComputedValue = computed_value::SingleComputedValue;
+    impl ToComputedValue for PercentageOrNumber {
+        type ComputedValue = computed_value::PercentageOrNumber;
 
         #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::SingleComputedValue {
+        fn to_computed_value(&self, context: &Context) -> computed_value::PercentageOrNumber {
             match *self {
-                SingleSpecifiedValue::Percentage(percentage) =>
-                    computed_value::SingleComputedValue::Percentage(percentage),
-                SingleSpecifiedValue::Number(number) =>
-                    computed_value::SingleComputedValue::Number(number.to_computed_value(context)),
+                PercentageOrNumber::Percentage(percentage) =>
+                    computed_value::PercentageOrNumber::Percentage(percentage),
+                PercentageOrNumber::Number(number) =>
+                    computed_value::PercentageOrNumber::Number(number.to_computed_value(context)),
             }
         }
         #[inline]
-        fn from_computed_value(computed: &computed_value::SingleComputedValue) -> Self {
+        fn from_computed_value(computed: &computed_value::PercentageOrNumber) -> Self {
             match *computed {
-                computed_value::SingleComputedValue::Percentage(percentage) =>
-                    SingleSpecifiedValue::Percentage(percentage),
-                computed_value::SingleComputedValue::Number(number) =>
-                    SingleSpecifiedValue::Number(ToComputedValue::from_computed_value(&number)),
+                computed_value::PercentageOrNumber::Percentage(percentage) =>
+                    PercentageOrNumber::Percentage(percentage),
+                computed_value::PercentageOrNumber::Number(number) =>
+                    PercentageOrNumber::Number(ToComputedValue::from_computed_value(&number)),
             }
         }
     }
@@ -750,10 +720,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T {
-            corners: vec![computed_value::SingleComputedValue::Percentage(Percentage(1.0)),
-                          computed_value::SingleComputedValue::Percentage(Percentage(1.0)),
-                          computed_value::SingleComputedValue::Percentage(Percentage(1.0)),
-                          computed_value::SingleComputedValue::Percentage(Percentage(1.0))],
+            corners: vec![computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
+                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
+                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
+                          computed_value::PercentageOrNumber::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
@@ -800,23 +770,23 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    impl SingleSpecifiedValue {
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+    impl Parse for PercentageOrNumber {
+        fn parse(input: &mut Parser) -> Result<Self, ()> {
             if let Ok(per) = input.try(|input| Percentage::parse(input)) {
-                return Ok(SingleSpecifiedValue::Percentage(per));
+                return Ok(PercentageOrNumber::Percentage(per));
             }
 
             let num = try!(Number::parse_non_negative(input));
-            Ok(SingleSpecifiedValue::Number(num))
+            Ok(PercentageOrNumber::Number(num))
         }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
 
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| SingleSpecifiedValue::parse(context, input));
+            let value = input.try(|input| PercentageOrNumber::parse(input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,
