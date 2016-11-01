@@ -2380,12 +2380,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         // If this is a mozbrowser iframe, then send the event with new url
-        if let Some((ancestor_id, mozbrowser_iframe_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
+        if let Some((ancestor_id, mozbrowser_frame_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
             if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
-                let can_go_forward = !self.joint_session_future(mozbrowser_iframe_id).is_empty();
-                let can_go_back = !self.joint_session_past(mozbrowser_iframe_id).is_empty();
+                let can_go_forward = !self.joint_session_future(mozbrowser_frame_id).is_empty();
+                let can_go_back = !self.joint_session_past(mozbrowser_frame_id).is_empty();
                 let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
-                ancestor.trigger_mozbrowser_event(Some(mozbrowser_iframe_id), event);
+                ancestor.trigger_mozbrowser_event(Some(mozbrowser_frame_id), event);
             }
         }
     }
