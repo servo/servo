@@ -127,6 +127,14 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space after test_fun', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+        feature_errors = tidy.collect_errors_for_files(iterFile('lib.rs'), [], [tidy.check_rust], print_text=False)
+
+        self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
+        self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
+        self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
+        self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
+        self.assertNoMoreErrors(feature_errors)
+
     def test_spec_link(self):
         tidy.SPEC_BASE_PATH = base_path
         errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec], print_text=False)

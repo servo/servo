@@ -385,11 +385,14 @@ def check_rust(file_name, lines):
     import_block = False
     whitespace = False
 
+    is_lib_rs_file = file_name.endswith("lib.rs")
+
     prev_use = None
     prev_open_brace = False
     current_indent = 0
     prev_crate = {}
     prev_mod = {}
+    prev_feature_name = ""
 
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
@@ -516,6 +519,28 @@ def check_rust(file_name, lines):
                       + decl_expected.format(prev_crate[indent])
                       + decl_found.format(crate_name))
             prev_crate[indent] = crate_name
+
+        # check alphabetical order of feature attributes in lib.rs files
+        if is_lib_rs_file:
+            match = re.search(r"#!\[feature\((.*)\)\]", line)
+
+            if match:
+                features = map(lambda w: w.strip(), match.group(1).split(','))
+                sorted_features = sorted(features)
+                if sorted_features != features:
+                    yield(idx + 1, decl_message.format("feature attribute")
+                          + decl_expected.format(tuple(sorted_features))
+                          + decl_found.format(tuple(features)))
+
+                if prev_feature_name > sorted_features[0]:
+                    yield(idx + 1, decl_message.format("feature attribute")
+                          + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
+                          + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
+
+                prev_feature_name = sorted_features[0]
+            else:
+                # not a feature attribute line, so empty previous name
+                prev_feature_name = ""
 
         # imports must be in the same line, alphabetically sorted, and merged
         # into a single import block
