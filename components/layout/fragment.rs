@@ -2874,19 +2874,29 @@ impl Fragment {
     }
 
     pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space().preserve_spaces() {
-            return WhitespaceStrippingResult::RetainFragment;
-        }
+        let preserve_spaces = self.white_space().preserve_spaces();
 
         return match self.specific {
             SpecificFragmentInfo::TruncatedFragment(ref mut t) if t.text_info.is_some() => {
                 let scanned_text_fragment_info = t.text_info.as_mut().unwrap();
-                scanned_text(scanned_text_fragment_info, &mut self.border_box)
+                scanned_text(
+                    scanned_text_fragment_info,
+                    &mut self.border_box,
+                    preserve_spaces,
+                )
             },
-            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                scanned_text(scanned_text_fragment_info, &mut self.border_box)
-            },
+            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => scanned_text(
+                scanned_text_fragment_info,
+                &mut self.border_box,
+                preserve_spaces,
+            ),
             SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
+                if unscanned_text_fragment_info.text.is_empty() {
+                    return WhitespaceStrippingResult::FragmentContainedOnlyWhitespace;
+                } else if preserve_spaces {
+                    return WhitespaceStrippingResult::RetainFragment;
+                }
+
                 let mut new_text_string = String::new();
                 let mut modified = false;
                 for (i, character) in unscanned_text_fragment_info.text.char_indices() {
@@ -2918,7 +2928,12 @@ impl Fragment {
         fn scanned_text(
             scanned_text_fragment_info: &mut ScannedTextFragmentInfo,
             border_box: &mut LogicalRect<Au>,
+            preserve_spaces: bool,
         ) -> WhitespaceStrippingResult {
+            if preserve_spaces || scanned_text_fragment_info.range.is_empty() {
+                return WhitespaceStrippingResult::RetainFragment;
+            }
+
             let leading_whitespace_byte_count = scanned_text_fragment_info
                 .text()
                 .find(|c| !char_is_whitespace(c))
@@ -2945,19 +2960,29 @@ impl Fragment {
 
     /// Returns true if the entire fragment was stripped.
     pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space().preserve_spaces() {
-            return WhitespaceStrippingResult::RetainFragment;
-        }
+        let preserve_spaces = self.white_space().preserve_spaces();
 
         return match self.specific {
             SpecificFragmentInfo::TruncatedFragment(ref mut t) if t.text_info.is_some() => {
                 let scanned_text_fragment_info = t.text_info.as_mut().unwrap();
-                scanned_text(scanned_text_fragment_info, &mut self.border_box)
+                scanned_text(
+                    scanned_text_fragment_info,
+                    &mut self.border_box,
+                    preserve_spaces,
+                )
             },
-            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                scanned_text(scanned_text_fragment_info, &mut self.border_box)
-            },
+            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => scanned_text(
+                scanned_text_fragment_info,
+                &mut self.border_box,
+                preserve_spaces,
+            ),
             SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
+                if unscanned_text_fragment_info.text.is_empty() {
+                    return WhitespaceStrippingResult::FragmentContainedOnlyWhitespace;
+                } else if preserve_spaces {
+                    return WhitespaceStrippingResult::RetainFragment;
+                }
+
                 let mut trailing_bidi_control_characters_to_retain = Vec::new();
                 let (mut modified, mut last_character_index) = (true, 0);
                 for (i, character) in unscanned_text_fragment_info.text.char_indices().rev() {
@@ -2991,7 +3016,12 @@ impl Fragment {
         fn scanned_text(
             scanned_text_fragment_info: &mut ScannedTextFragmentInfo,
             border_box: &mut LogicalRect<Au>,
+            preserve_spaces: bool,
         ) -> WhitespaceStrippingResult {
+            if preserve_spaces || scanned_text_fragment_info.range.is_empty() {
+                return WhitespaceStrippingResult::RetainFragment;
+            }
+
             let mut trailing_whitespace_start_byte = 0;
             for (i, c) in scanned_text_fragment_info.text().char_indices().rev() {
                 if !char_is_whitespace(c) {
