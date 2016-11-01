@@ -36,6 +36,7 @@ extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
+extern crate parking_lot;
 #[macro_use]
 #[no_link]
 extern crate plugins as servo_plugins;
