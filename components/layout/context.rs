@@ -16,11 +16,12 @@ use ipc_channel::ipc;
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use parking_lot::RwLock;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, StyleContext, SharedStyleContext};
 use url::Url;
 use util::opts;
@@ -194,7 +195,6 @@ impl SharedLayoutContext {
                                        -> Option<WebRenderImageInfo> {
         if let Some(existing_webrender_image) = self.webrender_image_cache
                                                     .read()
-                                                    .unwrap()
                                                     .get(&((*url).clone(), use_placeholder)) {
             return Some((*existing_webrender_image).clone())
         }
@@ -205,9 +205,7 @@ impl SharedLayoutContext {
                 if image_info.key.is_none() {
                     Some(image_info)
                 } else {
-                    let mut webrender_image_cache = self.webrender_image_cache
-                                                        .write()
-                                                        .unwrap();
+                    let mut webrender_image_cache = self.webrender_image_cache.write();
                     webrender_image_cache.insert(((*url).clone(), use_placeholder),
                                                  image_info);
                     Some(image_info)
