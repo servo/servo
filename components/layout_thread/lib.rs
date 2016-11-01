@@ -32,6 +32,7 @@ extern crate lazy_static;
 extern crate log;
 extern crate msg;
 extern crate net_traits;
+extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
 extern crate script;
@@ -83,6 +84,7 @@ use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::image_cache_thread::UsePlaceholder;
+use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -101,7 +103,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::{Arc, Mutex, MutexGuard, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
@@ -1316,7 +1318,7 @@ impl LayoutThread {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = self.running_animations.read().unwrap();
+            let animations = self.running_animations.read();
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1368,8 +1370,8 @@ impl LayoutThread {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
                                               &self.script_chan,
-                                              &mut *self.running_animations.write().unwrap(),
-                                              &mut *self.expired_animations.write().unwrap(),
+                                              &mut *self.running_animations.write(),
+                                              &mut *self.expired_animations.write(),
                                               &self.new_animations_receiver,
                                               self.id,
                                               &self.timer);

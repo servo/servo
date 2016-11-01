@@ -672,7 +672,7 @@ pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedVa
                                     context: &SharedStyleContext) -> bool {
     let had_animations_to_expire;
     {
-        let all_expired_animations = context.expired_animations.read().unwrap();
+        let all_expired_animations = context.expired_animations.read();
         let animations_to_expire = all_expired_animations.get(&node);
         had_animations_to_expire = animations_to_expire.is_some();
         if let Some(ref animations) = animations_to_expire {
@@ -686,7 +686,7 @@ pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedVa
     }
 
     if had_animations_to_expire {
-        context.expired_animations.write().unwrap().remove(&node);
+        context.expired_animations.write().remove(&node);
     }
 
     had_animations_to_expire
