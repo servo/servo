@@ -77,7 +77,8 @@ use layout::query::process_offset_parent_query;
 use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
-use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
+use layout::wrapper::LayoutNodeLayoutData;
+use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -86,7 +87,6 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
-use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
@@ -105,7 +105,6 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
-use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::{filter, mix_blend_mode};
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
@@ -648,7 +647,7 @@ impl LayoutThread {
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
-                    self.handle_reap_style_and_layout_data(dead_data)
+                    drop_style_and_layout_data(dead_data)
                 }
             }
             Msg::CollectReports(reports_chan) => {
@@ -756,7 +755,7 @@ impl LayoutThread {
             match self.port.recv().unwrap() {
                 Msg::ReapStyleAndLayoutData(dead_data) => {
                     unsafe {
-                        self.handle_reap_style_and_layout_data(dead_data)
+                        drop_style_and_layout_data(dead_data)
                     }
                 }
                 Msg::ExitNow => {
@@ -1481,14 +1480,6 @@ impl LayoutThread {
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);
         }
-    }
-
-    /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
-    /// because the struct type is transmuted to a different type on the script side.
-    unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        let ptr: *mut AtomicRefCell<PartialPersistentLayoutData> = *data.ptr;
-        let non_opaque: *mut NonOpaqueStyleAndLayoutData = ptr as *mut _;
-        let _ = Box::from_raw(non_opaque);
     }
 
     /// Returns profiling information which is passed to the time profiler.

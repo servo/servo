@@ -952,6 +952,7 @@ pub trait LayoutNodeHelpers {
 
     unsafe fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
     unsafe fn init_style_and_layout_data(&self, OpaqueStyleAndLayoutData);
+    unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
 
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
@@ -1049,6 +1050,14 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     unsafe fn init_style_and_layout_data(&self, val: OpaqueStyleAndLayoutData) {
         debug_assert!((*self.unsafe_get()).style_and_layout_data.get().is_none());
         (*self.unsafe_get()).style_and_layout_data.set(Some(val));
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData {
+        let val = (*self.unsafe_get()).style_and_layout_data.get().unwrap();
+        (*self.unsafe_get()).style_and_layout_data.set(None);
+        val
     }
 
     #[allow(unsafe_code)]
