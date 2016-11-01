@@ -604,12 +604,16 @@ impl LineBreaker {
     ) {
         // Undo any whitespace stripping from previous reflows.
         fragment.reset_text_range_and_inline_size();
+
+        if self.pending_line_has_no_content() {
+            fragment.strip_leading_whitespace_if_necessary();
+        }
+
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or
         // inside, this fragment.
         let fragment_is_line_break_opportunity = if self.pending_line_is_empty() {
-            fragment.strip_leading_whitespace_if_necessary();
             let (line_bounds, _) = self.initial_line_placement(flow, &fragment, self.cur_b);
             self.pending_line.bounds.start = line_bounds.start;
             self.pending_line.green_zone = line_bounds.size;
@@ -919,6 +923,20 @@ impl LineBreaker {
     /// Returns true if the pending line is empty and false otherwise.
     fn pending_line_is_empty(&self) -> bool {
         self.pending_line.range.length() == FragmentIndex(0)
+    }
+
+    /// Returns true if the pending line has no fragments that aren't empty ScannedTexts or
+    /// InlineAbsoluteHypotheticals.
+    fn pending_line_has_no_content(&self) -> bool {
+        self.pending_line.range.each_index().all(|index| {
+            match self.new_fragments[index.to_usize()].specific {
+                SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
+                    scanned_text_fragment_info.range.is_empty()
+                },
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => true,
+                _ => false,
+            }
+        })
     }
 }
 
