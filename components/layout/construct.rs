@@ -1737,7 +1737,7 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
             },
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_front().unwrap();
-                // According to CSS § 9.2.2.1:
+                // According to CSS 2.1 § 9.2.2.1:
                 // "White space content that would subsequently be collapsed away according to the
                 // 'white-space' property does not generate any anonymous inline boxes."
                 //
