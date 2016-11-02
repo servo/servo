@@ -145,43 +145,28 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
-            BluetoothResponse::GATTServerConnect(result) => {
-                match result {
-                    Ok(connected) => {
-                        self.connected.set(connected);
-                        promise.resolve_native(promise_cx, self);
-                    },
-                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
-                }
+            BluetoothResponse::GATTServerConnect(connected) => {
+                self.connected.set(connected);
+                promise.resolve_native(promise_cx, self);
             },
-            BluetoothResponse::GetPrimaryService(result) => {
-                match result {
-                    Ok(service) => {
-                        let s = BluetoothRemoteGATTService::new(self.global().r(),
-                                                                &self.device.get(),
-                                                                DOMString::from(service.uuid),
-                                                                service.is_primary,
-                                                                service.instance_id);
-                        promise.resolve_native(promise_cx, &s);
-                    },
-                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
-                }
+            BluetoothResponse::GetPrimaryService(service) => {
+                let s = BluetoothRemoteGATTService::new(self.global().r(),
+                                                        &self.device.get(),
+                                                        DOMString::from(service.uuid),
+                                                        service.is_primary,
+                                                        service.instance_id);
+                promise.resolve_native(promise_cx, &s);
             },
-            BluetoothResponse::GetPrimaryServices(result) => {
-                match result {
-                    Ok(services_vec) => {
-                        let s: Vec<Root<BluetoothRemoteGATTService>> =
-                            services_vec.into_iter()
-                                        .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
-                                                                                       &self.device.get(),
-                                                                                       DOMString::from(service.uuid),
-                                                                                       service.is_primary,
-                                                                                       service.instance_id))
-                                       .collect();
-                        promise.resolve_native(promise_cx, &s);
-                    },
-                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
-                }
+            BluetoothResponse::GetPrimaryServices(services_vec) => {
+                let s: Vec<Root<BluetoothRemoteGATTService>> =
+                    services_vec.into_iter()
+                                .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                                                                               &self.device.get(),
+                                                                               DOMString::from(service.uuid),
+                                                                               service.is_primary,
+                                                                               service.instance_id))
+                               .collect();
+                promise.resolve_native(promise_cx, &s);
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }

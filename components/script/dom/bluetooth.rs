@@ -22,8 +22,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::{BluetoothError, BluetoothRequest, BluetoothResponseListener};
-use net_traits::bluetooth_thread::BluetoothResponse;
+use net_traits::bluetooth_thread::{BluetoothError, BluetoothRequest};
+use net_traits::bluetooth_thread::{BluetoothResponse, BluetoothResponseListener, BluetoothResponseResult};
 use network_listener::{NetworkListener, PreInvoke};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -57,14 +57,17 @@ impl<Listener: AsyncBluetoothListener + Reflectable> PreInvoke for BluetoothCont
 
 impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener for BluetoothContext<Listener> {
     #[allow(unrooted_must_root)]
-    fn response(&mut self, response: BluetoothResponse) {
+    fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
         let promise_cx = promise.global().r().get_cx();
 
         // JSAutoCompartment needs to be manually made.
         // Otherwise, Servo will crash.
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
-        self.receiver.root().handle_response(response, promise_cx, &promise);
+        match response {
+            Ok(response) => self.receiver.root().handle_response(response, promise_cx, &promise),
+            Err(error) => promise.reject_error(promise_cx, Error::from(error)),
+        }
     }
 }
 
@@ -119,9 +122,8 @@ impl Bluetooth {
 }
 
 pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
-        //chan: Box<ScriptChan + Send>,
         promise: &Rc<Promise>,
-        receiver: Trusted<T>) -> IpcSender<BluetoothResponse> {
+        receiver: Trusted<T>) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let chan = receiver.root().global().r().networking_task_source();
     let context = Arc::new(Mutex::new(BluetoothContext {
@@ -130,7 +132,6 @@ pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
     }));
     let listener = NetworkListener {
         context: context,
-        //script_chan: receiver.root().global().r().networking_task_source(),
         script_chan: chan,
         wrapper: None,
     };
@@ -325,21 +326,16 @@ impl BluetoothMethods for Bluetooth {
 impl AsyncBluetoothListener for Bluetooth {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
-            BluetoothResponse::RequestDevice(result) => {
-                match result {
-                    Ok(device) => {
-                        let ad_data = BluetoothAdvertisingData::new(self.global().r(),
-                                                                    device.appearance,
-                                                                    device.tx_power,
-                                                                    device.rssi);
-                        let dev = BluetoothDevice::new(self.global().r(),
-                                                       DOMString::from(device.id),
-                                                       device.name.map(DOMString::from),
-                                                       &ad_data);
-                        promise.resolve_native(promise_cx, &dev);
-                    },
-                    Err(error) => promise.reject_error(promise_cx, Error::from(error)),
-                }
+            BluetoothResponse::RequestDevice(device) => {
+                let ad_data = BluetoothAdvertisingData::new(self.global().r(),
+                                                            device.appearance,
+                                                            device.tx_power,
+                                                            device.rssi);
+                let dev = BluetoothDevice::new(self.global().r(),
+                                               DOMString::from(device.id),
+                                               device.name.map(DOMString::from),
+                                               &ad_data);
+                promise.resolve_native(promise_cx, &dev);
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
