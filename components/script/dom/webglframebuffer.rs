@@ -251,7 +251,8 @@ impl WebGLFramebuffer {
         Ok(())
     }
 
-    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+    fn call_on_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, closure: F)
+        where F: Fn(&DOMRefCell<Option<WebGLFramebufferAttachment>>) {
         let attachments = [&self.color,
                            &self.depth,
                            &self.stencil,
@@ -267,13 +268,13 @@ impl WebGLFramebuffer {
             };
 
             if matched {
-                *attachment.borrow_mut() = None;
-                self.update_status();
+                closure(attachment);
             }
         }
     }
 
-    pub fn detach_texture(&self, texture: &WebGLTexture) {
+    fn call_on_matching_textures<F>(&self, texture: &WebGLTexture, closure: F)
+        where F: Fn(&DOMRefCell<Option<WebGLFramebufferAttachment>>) {
         let attachments = [&self.color,
                            &self.depth,
                            &self.stencil,
@@ -289,10 +290,35 @@ impl WebGLFramebuffer {
             };
 
             if matched {
-                *attachment.borrow_mut() = None;
-                self.update_status();
+                closure(attachment);
             }
         }
+    }
+
+    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+        self.call_on_matching_renderbuffers(rb, |att| {
+            *att.borrow_mut() = None;
+            self.update_status();
+        });
+    }
+
+    pub fn detach_texture(&self, texture: &WebGLTexture) {
+        self.call_on_matching_textures(texture, |att| {
+            *att.borrow_mut() = None;
+            self.update_status();
+        });
+    }
+
+    pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+        self.call_on_matching_renderbuffers(rb, |_att| {
+            self.update_status();
+        });
+    }
+
+    pub fn invalidate_texture(&self, texture: &WebGLTexture) {
+        self.call_on_matching_textures(texture, |_att| {
+            self.update_status();
+        });
     }
 
     pub fn target(&self) -> Option<u32> {
