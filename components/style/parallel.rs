@@ -6,7 +6,7 @@
 //!
 //! This code is highly unsafe. Keep this file small and easy to audit.
 
-use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
+use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
 use rayon;
 use std::sync::atomic::Ordering;
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
@@ -21,7 +21,6 @@ pub fn traverse_dom<N, C>(root: N,
     where N: TNode,
           C: DomTraversalContext<N>
 {
-    debug_assert!(root.as_element().unwrap().styling_mode() != StylingMode::Stop);
     if opts::get().style_sharing_stats {
         STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);

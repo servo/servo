@@ -37,8 +37,6 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElemen
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::computed_values::content::{self, ContentItem};
-use style::dom::TElement;
-use style::traversal::prepare_for_styling;
 
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
@@ -97,9 +95,6 @@ impl<T: LayoutNode> LayoutNodeHelpers for T {
                 ptr: unsafe { NonZero::new(ptr as *mut AtomicRefCell<PartialPersistentLayoutData>) }
             };
             unsafe { self.init_style_and_layout_data(opaque) };
-            if let Some(el) = self.as_element() {
-                let _ = prepare_for_styling(el, el.get_data().unwrap());
-            }
         };
     }
 

@@ -35,4 +35,4 @@ if [[ ! -d rust-bindgen ]]; then
 fi
 
 cd rust-bindgen
-cargo build --features llvm_stable
+cargo build --features llvm_stable --release

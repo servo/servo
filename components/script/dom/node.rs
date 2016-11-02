@@ -149,9 +149,6 @@ bitflags! {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
-        const IS_DIRTY = 0x04,
-        #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
-                 have changed since the last reflow."]
         const HAS_DIRTY_DESCENDANTS = 0x08,
         // TODO: find a better place to keep this (#4105)
         // https://critic.hoppipolla.co.uk/showcomment?chain=8873
@@ -172,7 +169,7 @@ bitflags! {
 
 impl NodeFlags {
     pub fn new() -> NodeFlags {
-        IS_DIRTY
+        NodeFlags::empty()
     }
 }
 
@@ -426,14 +423,6 @@ impl Node {
         }
 
         self.flags.set(flags);
-    }
-
-    pub fn is_dirty(&self) -> bool {
-        self.get_flag(IS_DIRTY)
-    }
-
-    pub fn set_is_dirty(&self, state: bool) {
-        self.set_flag(IS_DIRTY, state)
     }
 
     pub fn has_dirty_descendants(&self) -> bool {

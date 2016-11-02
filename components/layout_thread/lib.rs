@@ -86,7 +86,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, TimerMetadata, profile};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
+use script::layout_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
@@ -105,7 +105,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{TElement, TNode};
+use style::data::StoredRestyleHint;
+use style::dom::{StylingMode, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
@@ -980,11 +981,9 @@ impl LayoutThread {
                       (data.reflow_info.goal == ReflowGoal::ForScriptQuery &&
                        data.query_type != ReflowQueryType::NoQuery));
 
-        debug!("layout: received layout request for: {}", self.url);
-
         let mut rw_data = possibly_locked_rw_data.lock();
 
-        let node: ServoLayoutNode = match document.root_node() {
+        let element: ServoLayoutElement = match document.root_node() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -1020,12 +1019,13 @@ impl LayoutThread {
                 }
                 return;
             },
-            Some(x) => x,
+            Some(x) => x.as_element().unwrap(),
         };
 
-        debug!("layout: received layout request for: {}", self.url);
+        debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
+               element, self.url, data.query_type);
         if log_enabled!(log::LogLevel::Debug) {
-            node.dump();
+            element.as_node().dump();
         }
 
         let initial_viewport = data.window_size.initial_viewport;
@@ -1061,15 +1061,15 @@ impl LayoutThread {
                        .unwrap();
             }
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change()) {
-                let mut iter = node.traverse_preorder();
+                let mut iter = element.as_node().traverse_preorder();
 
                 let mut next = iter.next();
                 while let Some(node) = next {
                     if node.needs_dirty_on_viewport_size_changed() {
-                        // NB: The dirty bit is propagated down the tree.
-                        unsafe { node.set_dirty(); }
-
-                        if let Some(p) = node.parent_node().and_then(|n| n.as_element()) {
+                        let el = node.as_element().unwrap();
+                        el.mutate_data().map(|mut d| d.restyle()
+                                        .map(|mut r| r.hint.insert(&StoredRestyleHint::subtree())));
+                        if let Some(p) = el.parent_element() {
                             unsafe { p.note_dirty_descendant() };
                         }
 
@@ -1086,20 +1086,17 @@ impl LayoutThread {
                                                                              Some(&*UA_STYLESHEETS),
                                                                              data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
-        unsafe {
-            if needs_dirtying {
-                // NB: The dirty flag is propagated down during the restyle
-                // process.
-                node.set_dirty();
-            }
+        if needs_dirtying {
+            element.mutate_data().map(|mut d| d.restyle().map(|mut r| r.hint.insert(&StoredRestyleHint::subtree())));
         }
         if needs_reflow {
-            if let Some(mut flow) = self.try_get_layout_root(node) {
+            if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
 
         let restyles = document.drain_pending_restyles();
+        debug!("Draining restyles: {}", restyles.len());
         if !needs_dirtying {
             for (el, restyle) in restyles {
                 // Propagate the descendant bit up the ancestors. Do this before
@@ -1109,30 +1106,23 @@ impl LayoutThread {
                     unsafe { parent.note_dirty_descendant() };
                 }
 
-                if el.get_data().is_none() {
-                    // If we haven't styled this node yet, we don't need to track
-                    // a restyle.
-                    continue;
-                }
+                // If we haven't styled this node yet, we don't need to track a restyle.
+                let mut data = match el.mutate_layout_data() {
+                    Some(d) => d,
+                    None => continue,
+                };
+                let mut style_data = &mut data.base.style_data;
+                debug_assert!(!style_data.is_restyle());
+                let mut restyle_data = match style_data.restyle() {
+                    Some(d) => d,
+                    None => continue,
+                };
 
-                // Start with the explicit hint, if any.
-                let mut hint = restyle.hint;
-
-                // Expand any snapshots.
-                if let Some(s) = restyle.snapshot {
-                    hint |= rw_data.stylist.compute_restyle_hint(&el, &s, el.get_state());
-                }
-
-                // Apply the cumulative hint.
-                if !hint.is_empty() {
-                    el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
-                }
-
-                // Apply explicit damage, if any.
-                if !restyle.damage.is_empty() {
-                    let mut d = el.mutate_layout_data().unwrap();
-                    d.base.restyle_damage |= restyle.damage;
-                }
+                // Stash the data on the element for processing by the style system.
+                restyle_data.hint = restyle.hint.into();
+                restyle_data.damage = restyle.damage;
+                restyle_data.snapshot = restyle.snapshot;
+                debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
             }
         }
 
@@ -1141,8 +1131,7 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
-        let el = node.as_element();
-        if el.is_some() && (el.unwrap().deprecated_dirty_bit_is_set() || el.unwrap().has_dirty_descendants()) {
+        if element.styling_mode() != StylingMode::Stop {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1152,11 +1141,11 @@ impl LayoutThread {
                 match self.parallel_traversal {
                     None => {
                         sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            node, &shared_layout_context);
+                            element.as_node(), &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
                         parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            node, &shared_layout_context, traversal);
+                            element.as_node(), &shared_layout_context, traversal);
                     }
                 }
             });
@@ -1174,11 +1163,11 @@ impl LayoutThread {
                                     0);
 
             // Retrieve the (possibly rebuilt) root flow.
-            self.root_flow = self.try_get_layout_root(node);
+            self.root_flow = self.try_get_layout_root(element.as_node());
         }
 
         if opts::get().dump_style_tree {
-            node.dump_style();
+            element.as_node().dump_style();
         }
 
         if opts::get().dump_rule_tree {
