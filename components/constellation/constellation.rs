@@ -31,7 +31,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
@@ -994,6 +994,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("Unable to forward DOMMessage for postMessage call");
                 }
             }
+            FromScriptMsg::BroadcastStorageEvent(pipeline_id, storage, url, key, old_value, new_value) => {
+                self.handle_broadcast_storage_event(pipeline_id, storage, url, key, old_value, new_value);
+            }
         }
     }
 
@@ -1017,6 +1020,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
         } else {
             warn!("sending scope info to service worker manager failed");
+        }
+    }
+
+    fn handle_broadcast_storage_event(&self, pipeline_id: PipelineId, storage: StorageType, url: String,
+                                      key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
+        let origin = match Url::parse(&*url) {
+            Ok(url) => url.origin(),
+            Err(err) => return warn!("Failed to parse url {}: {:?}.", url, err),
+        };
+
+        for pipeline in self.pipelines.values() {
+            if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
+                let msg = ConstellationControlMsg::DispatchStorageEvent(
+                    pipeline.id, storage, url.clone(), key.clone(), old_value.clone(), new_value.clone()
+                );
+                let _ = pipeline.script_chan.send(msg);
+            }
         }
     }
 
