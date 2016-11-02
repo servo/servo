@@ -28,6 +28,7 @@ extern crate lazy_static;
 extern crate log;
 extern crate msg;
 extern crate num_traits;
+extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -54,6 +55,7 @@ use url::Url;
 use websocket::header;
 
 pub mod blob_url_store;
+pub mod bluetooth_blacklist;
 pub mod bluetooth_scanfilter;
 pub mod bluetooth_thread;
 pub mod filemanager_thread;
