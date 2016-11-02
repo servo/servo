@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::{self, Security};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -106,7 +105,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
             p.reject_error(p_cx, Security);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -135,7 +134,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 }
             }
         };
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -159,7 +158,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
             p.reject_error(p_cx, Security);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetIncludedService(self.get_instance_id(),
                                                    uuid,
@@ -185,7 +184,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 }
             };
         };
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetIncludedServices(self.get_instance_id(),
                                                     uuid,

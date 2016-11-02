@@ -10,7 +10,6 @@ use dom::bindings::error::Error::{self, Security};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -69,7 +68,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn Connect(&self) -> Rc<Promise> {
         let p = Promise::new(self.global().r());
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GATTServerConnect(String::from(self.Device().Id()), sender)).unwrap();
         return p;
@@ -108,7 +107,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             p.reject_error(p_cx, Security);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
         return p;
@@ -135,7 +134,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                 }
             }
         };
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
         return p;

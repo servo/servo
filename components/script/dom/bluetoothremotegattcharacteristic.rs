@@ -15,7 +15,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -117,7 +116,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, Security);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -146,7 +145,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 }
             }
         };
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetDescriptors(self.get_instance_id(), uuid, sender)).unwrap();
         return p;
@@ -174,7 +173,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, NotSupported);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::ReadValue(self.get_instance_id(), sender)).unwrap();
         return p;
@@ -204,7 +203,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             p.reject_error(p_cx, NotSupported);
             return p;
         }
-        let sender = response_async(&p, Trusted::new(self));
+        let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
         return p;

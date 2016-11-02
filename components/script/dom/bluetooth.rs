@@ -116,19 +116,19 @@ impl Bluetooth {
 
         // Note: Steps 6-8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
-        let sender = response_async(p, Trusted::new(self));
+        let sender = response_async(p, self);
         self.get_bluetooth_thread().send(BluetoothRequest::RequestDevice(option, sender)).unwrap();
     }
 }
 
 pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
         promise: &Rc<Promise>,
-        receiver: Trusted<T>) -> IpcSender<BluetoothResponseResult> {
+        receiver: &T) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let chan = receiver.root().global().r().networking_task_source();
+    let chan = receiver.global().r().networking_task_source();
     let context = Arc::new(Mutex::new(BluetoothContext {
         promise: Some(TrustedPromise::new(promise.clone())),
-        receiver: receiver,
+        receiver: Trusted::new(receiver),
     }));
     let listener = NetworkListener {
         context: context,
