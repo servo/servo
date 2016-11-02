@@ -10,7 +10,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate azure;
 extern crate heapsize;
 #[macro_use]
 extern crate range;
