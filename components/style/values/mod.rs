@@ -8,6 +8,9 @@
 
 pub use cssparser::RGBA;
 
+use std::fmt::{self, Debug};
+use style_traits::{FromCss, ToCss};
+
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -59,3 +62,67 @@ impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
     }
 }
 
+#[derive(Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum Either<A, B> {
+    First(A),
+    Second(B),
+}
+
+impl<A: Debug, B:Debug> Debug for Either<A, B> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Either::First(ref v) => v.fmt(f),
+            Either::Second(ref v) => v.fmt(f),
+        }
+    }
+}
+
+impl<A: ToCss, B: ToCss> ToCss for Either<A, B> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            Either::First(ref v) => v.to_css(dest),
+            Either::Second(ref v) => v.to_css(dest),
+        }
+    }
+}
+
+impl<A: HasViewportPercentage, B: HasViewportPercentage> HasViewportPercentage for Either<A, B> {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            Either::First(ref v) => v.has_viewport_percentage(),
+            Either::Second(ref v) => v.has_viewport_percentage(),
+        }
+    }
+}
+
+impl<A: FromCss, B: FromCss> Either<A, B> {
+    pub fn parse(input: &mut ::cssparser::Parser) -> Result<Either<A, B>, ()> {
+        if let Ok(v) = input.try(|i| A::from_css(i)) {
+            Ok(Either::First(v))
+        } else {
+            B::from_css(input).map(Either::Second)
+        }
+    }
+}
+
+use self::computed::{Context, ToComputedValue};
+
+impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
+    type ComputedValue = Either<A::ComputedValue, B::ComputedValue>;
+
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            Either::First(ref a) => Either::First(a.to_computed_value(context)),
+            Either::Second(ref a) => Either::Second(a.to_computed_value(context)),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            Either::First(ref a) => Either::First(ToComputedValue::from_computed_value(a)),
+            Either::Second(ref a) => Either::Second(ToComputedValue::from_computed_value(a)),
+        }
+    }
+}
