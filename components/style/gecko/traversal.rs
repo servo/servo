@@ -30,7 +30,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     }
 
     fn process_preorder(&self, node: GeckoNode<'ln>) {
-        if node.is_element() {
+        if node.is_element() && (!self.context.shared_context().skip_root || node.opaque() != self.root) {
             let el = node.as_element().unwrap();
             recalc_style_at::<_, _, Self>(&self.context, self.root, el);
         }
@@ -45,6 +45,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
 
     fn should_traverse_child(parent: GeckoElement<'ln>, child: GeckoNode<'ln>) -> bool {
         if parent.is_display_none() {
+            debug_assert!(child.as_element().map_or(true, |el| el.get_data().is_none()));
             return false;
         }
 

@@ -6,6 +6,8 @@
 
 use owning_ref::{OwningRef, StableAddress};
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::fmt;
+use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 
 /// Container type providing RefCell-like semantics for objects shared across
@@ -47,6 +49,18 @@ impl<'a, T> Deref for AtomicRefMut<'a, T> {
 impl<'a, T> DerefMut for AtomicRefMut<'a, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.0.deref_mut()
+    }
+}
+
+impl<'a, T: 'a + Debug> Debug for AtomicRef<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.0.deref())
+    }
+}
+
+impl<'a, T: 'a + Debug> Debug for AtomicRefMut<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.0.deref())
     }
 }
 

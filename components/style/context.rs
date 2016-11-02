@@ -38,6 +38,10 @@ pub struct SharedStyleContext {
     /// Screen sized changed?
     pub screen_size_changed: bool,
 
+    /// Skip the root during traversal?
+    #[cfg(feature = "gecko")]
+    pub skip_root: bool,
+
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
 

@@ -4,24 +4,38 @@
 
 use element_state::ElementState;
 use gecko::snapshot_helpers;
-use gecko::wrapper::AttrSelectorHelpers;
+use gecko::wrapper::{AttrSelectorHelpers, GeckoElement};
 use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use restyle_hints::ElementSnapshot;
 use selector_parser::SelectorImpl;
 use selectors::parser::AttrSelector;
+use std::ptr;
 use string_cache::Atom;
 
-// NB: This is sound, in some sense, because during computation of restyle hints
-// the snapshot is kept alive by the modified elements table.
 #[derive(Debug)]
-pub struct GeckoElementSnapshot(*mut ServoElementSnapshot);
+pub struct GeckoElementSnapshot(bindings::ServoElementSnapshotOwned);
+
+impl Drop for GeckoElementSnapshot {
+    fn drop(&mut self) {
+        unsafe {
+            bindings::Gecko_DropElementSnapshot(ptr::read(&self.0 as *const _));
+        }
+    }
+}
 
 impl GeckoElementSnapshot {
-    #[inline]
-    pub unsafe fn from_raw(raw: *mut ServoElementSnapshot) -> Self {
-        GeckoElementSnapshot(raw)
+    pub fn new<'le>(el: GeckoElement<'le>) -> Self {
+        unsafe { GeckoElementSnapshot(bindings::Gecko_CreateElementSnapshot(el.0)) }
+    }
+
+    pub fn borrow_mut_raw(&mut self) -> bindings::ServoElementSnapshotBorrowedMut {
+        &mut *self.0
+    }
+
+    pub fn ptr(&self) -> *const ServoElementSnapshot {
+        &*self.0
     }
 
     #[inline]
@@ -40,7 +54,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
 
     fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotHasAttr(self.0,
+            bindings::Gecko_SnapshotHasAttr(self.ptr(),
                                             attr.ns_or_null(),
                                             attr.select_name(self.is_html_element_in_html_document()))
         }
@@ -48,7 +62,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
 
     fn match_attr_equals(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrEquals(self.0,
+            bindings::Gecko_SnapshotAttrEquals(self.ptr(),
                                                attr.ns_or_null(),
                                                attr.select_name(self.is_html_element_in_html_document()),
                                                value.as_ptr(),
@@ -58,7 +72,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
 
     fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrEquals(self.0,
+            bindings::Gecko_SnapshotAttrEquals(self.ptr(),
                                                attr.ns_or_null(),
                                                attr.select_name(self.is_html_element_in_html_document()),
                                                value.as_ptr(),
@@ -67,7 +81,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
     }
     fn match_attr_includes(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrIncludes(self.0,
+            bindings::Gecko_SnapshotAttrIncludes(self.ptr(),
                                                  attr.ns_or_null(),
                                                  attr.select_name(self.is_html_element_in_html_document()),
                                                  value.as_ptr())
@@ -75,7 +89,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
     }
     fn match_attr_dash(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrDashEquals(self.0,
+            bindings::Gecko_SnapshotAttrDashEquals(self.ptr(),
                                                    attr.ns_or_null(),
                                                    attr.select_name(self.is_html_element_in_html_document()),
                                                    value.as_ptr())
@@ -83,7 +97,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
     }
     fn match_attr_prefix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrHasPrefix(self.0,
+            bindings::Gecko_SnapshotAttrHasPrefix(self.ptr(),
                                                   attr.ns_or_null(),
                                                   attr.select_name(self.is_html_element_in_html_document()),
                                                   value.as_ptr())
@@ -91,7 +105,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
     }
     fn match_attr_substring(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrHasSubstring(self.0,
+            bindings::Gecko_SnapshotAttrHasSubstring(self.ptr(),
                                                      attr.ns_or_null(),
                                                      attr.select_name(self.is_html_element_in_html_document()),
                                                      value.as_ptr())
@@ -99,7 +113,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
     }
     fn match_attr_suffix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
-            bindings::Gecko_SnapshotAttrHasSuffix(self.0,
+            bindings::Gecko_SnapshotAttrHasSuffix(self.ptr(),
                                                   attr.ns_or_null(),
                                                   attr.select_name(self.is_html_element_in_html_document()),
                                                   value.as_ptr())
@@ -123,7 +137,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
 
     fn id_attr(&self) -> Option<Atom> {
         let ptr = unsafe {
-            bindings::Gecko_SnapshotAtomAttrValue(self.0,
+            bindings::Gecko_SnapshotAtomAttrValue(self.ptr(),
                                                   atom!("id").as_ptr())
         };
 
@@ -136,7 +150,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
 
     // TODO: share logic with Element::{has_class, each_class}?
     fn has_class(&self, name: &Atom) -> bool {
-        snapshot_helpers::has_class(self.0,
+        snapshot_helpers::has_class(self.ptr(),
                                     name,
                                     bindings::Gecko_SnapshotClassOrClassList)
     }
@@ -144,7 +158,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
     fn each_class<F>(&self, callback: F)
         where F: FnMut(&Atom)
     {
-        snapshot_helpers::each_class(self.0,
+        snapshot_helpers::each_class(self.ptr(),
                                      callback,
                                      bindings::Gecko_SnapshotClassOrClassList)
     }

@@ -156,6 +156,8 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: OpaqueNode, node: N) {
+    debug!("construct_flows_at: {:?}", node);
+
     // Construct flows for this node.
     {
         let tnode = node.to_threadsafe();
@@ -167,16 +169,18 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
-                debug!("Constructed flow for {:x}: {:x}",
-                       tnode.debug_id(),
+                debug!("Constructed flow for {:?}: {:x}",
+                       tnode,
                        tnode.flow_debug_id());
             }
         }
-
-        tnode.clear_restyle_damage();
     }
 
-    unsafe { node.clear_dirty_bits(); }
+    if let Some(el) = node.as_element() {
+        el.mutate_data().unwrap().persist();
+        unsafe { el.unset_dirty_descendants(); }
+    }
+
     remove_from_bloom_filter(context, root, node);
 }
 

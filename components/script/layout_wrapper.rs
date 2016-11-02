@@ -36,7 +36,7 @@ use dom::bindings::js::LayoutJS;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS};
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
@@ -53,11 +53,12 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::fmt;
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::atomic_refcell::{AtomicRef, AtomicRefCell};
+use style::atomic_refcell::AtomicRefCell;
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
@@ -78,6 +79,16 @@ pub struct ServoLayoutNode<'a> {
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
     chain: PhantomData<&'a ()>,
+}
+
+impl<'ln> Debug for ServoLayoutNode<'ln> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(el) = self.as_element() {
+            el.fmt(f)
+        } else {
+            write!(f, "{:?} ({:#x})", self.type_id(), self.opaque().0)
+        }
+    }
 }
 
 impl<'a> PartialEq for ServoLayoutNode<'a> {
@@ -201,30 +212,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
-
-    fn first_child(&self) -> Option<ServoLayoutNode<'ln>> {
-        unsafe {
-            self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn last_child(&self) -> Option<ServoLayoutNode<'ln>> {
-        unsafe {
-            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn prev_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
-        unsafe {
-            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
-
-    fn next_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
-        unsafe {
-            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
-        }
-    }
 }
 
 pub struct ServoChildrenIterator<'a> {
@@ -259,9 +246,28 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.get_jsmanaged().take_style_and_layout_data()
     }
 
-    unsafe fn clear_dirty_bits(&self) {
-        self.node.set_flag(IS_DIRTY, false);
-        self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
+    fn first_child(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn last_child(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn prev_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn next_sibling(&self) -> Option<ServoLayoutNode<'ln>> {
+        unsafe {
+            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
     }
 }
 
@@ -292,14 +298,6 @@ impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
 }
 
 impl<'ln> ServoLayoutNode<'ln> {
-    pub fn is_dirty(&self) -> bool {
-        unsafe { self.node.get_flag(IS_DIRTY) }
-    }
-
-    pub unsafe fn set_dirty(&self) {
-        self.node.set_flag(IS_DIRTY, true)
-    }
-
     fn dump_indent(self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
@@ -330,9 +328,8 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{:?}: dirty={} dirty_descendants={}",
+        format!("{:?}: dirty_descendants={}",
                 self.script_type_id(),
-                self.as_element().map_or(false, |el| el.deprecated_dirty_bit_is_set()),
                 self.as_element().map_or(false, |el| el.has_dirty_descendants()))
     }
 
@@ -406,7 +403,7 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
         if let &Some(ref id) = unsafe { &*self.element.id_attribute() } {
             try!(write!(f, " id={}", id));
         }
-        write!(f, ">")
+        write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
 
@@ -447,10 +444,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
 
-    fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage |= damage;
-    }
-
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_cv: Option<&'a Arc<ComputedValues>>,
@@ -459,16 +452,16 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         current_cv
     }
 
-    fn deprecated_dirty_bit_is_set(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(IS_DIRTY) }
-    }
-
     fn has_dirty_descendants(&self) -> bool {
         unsafe { self.as_node().node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
     unsafe fn set_dirty_descendants(&self) {
         self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, true)
+    }
+
+    unsafe fn unset_dirty_descendants(&self) {
+        self.as_node().node.set_flag(HAS_DIRTY_DESCENDANTS, false)
     }
 
     fn store_children_to_process(&self, n: isize) {
@@ -481,10 +474,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
         debug_assert!(old_value >= 1);
         old_value - 1
-    }
-
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_data().map(|d| d.borrow())
     }
 
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
@@ -729,7 +718,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ServoThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: ServoLayoutNode<'ln>,
@@ -830,7 +819,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         debug_assert!(self.is_text_node());
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
-        parent_data.current_styles().primary.clone()
+        parent_data.current_styles().primary.values.clone()
     }
 
     fn debug_id(self) -> usize {
@@ -874,22 +863,14 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        if self.is_text_node() {
-            let parent = self.node.parent_node().unwrap().as_element().unwrap();
-            let parent_data = parent.get_partial_layout_data().unwrap().borrow();
-            parent_data.restyle_damage
+        let element = if self.is_text_node() {
+            self.node.parent_node().unwrap().as_element().unwrap()
         } else {
-            let el = self.as_element().unwrap().element;
-            let damage = el.get_partial_layout_data().unwrap().borrow().restyle_damage.clone();
-            damage
-        }
-    }
+            self.node.as_element().unwrap()
+        };
 
-    fn clear_restyle_damage(self) {
-        if let Some(el) = self.as_element() {
-            let mut data = el.element.get_partial_layout_data().unwrap().borrow_mut();
-            data.restyle_damage = RestyleDamage::empty();
-        }
+        let damage = element.borrow_data().unwrap().damage();
+        damage
     }
 
     fn can_be_fragmented(&self) -> bool {

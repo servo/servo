@@ -7,21 +7,25 @@ use cssparser::Parser;
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
+use selectors::Element;
 use servo_url::ServoUrl;
 use std::fmt::Write;
 use std::mem::transmute;
+use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
+use style::atomic_refcell::AtomicRefMut;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{NodeInfo, StylingMode, TElement, TNode};
+use style::data::{ElementData, RestyleData};
+use style::dom::{StylingMode, TElement, TNode, TRestyleDamage};
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko::context::clear_local_context;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData};
+use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
-use style::gecko::snapshot::GeckoElementSnapshot;
 use style::gecko::traversal::RecalcStyleOnly;
-use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko::wrapper::DUMMY_BASE_URL;
-use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
+use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
@@ -29,10 +33,11 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
+use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
+use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
-use style::gecko_bindings::structs::ServoElementSnapshot;
-use style::gecko_bindings::structs::nsRestyleHint;
+use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::nsString;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -42,6 +47,7 @@ use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
 use style::properties::{apply_declarations, parse_one_declaration};
+use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
@@ -76,9 +82,15 @@ pub extern "C" fn Servo_Initialize() -> () {
 pub extern "C" fn Servo_Shutdown() -> () {
     // Destroy our default computed values.
     unsafe { ComputedValues::shutdown(); }
+
+    // In general, LocalStyleContexts will get destroyed when the worker thread
+    // is joined and the TLS is dropped. However, under some configurations we
+    // may do sequential style computation on the main thread, so we need to be
+    // sure to clear the main thread TLS entry as well.
+    clear_local_context();
 }
 
-fn restyle_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed) {
+fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed, skip_root: bool) {
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
     //
@@ -99,6 +111,7 @@ fn restyle_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed) {
         // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
         screen_size_changed: false,
+        skip_root: skip_root,
         generation: 0,
         goal: ReflowGoal::ForScriptQuery,
         stylist: per_doc_data.stylist.clone(),
@@ -109,8 +122,17 @@ fn restyle_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed) {
         timer: Timer::new(),
     };
 
-    if element.styling_mode() == StylingMode::Stop {
-        error!("Unnecessary call to restyle_subtree");
+    // When new content is inserted in a display:none subtree, we will call into
+    // servo to try to style it. Detect that here and bail out.
+    if let Some(parent) = element.parent_element() {
+        if parent.get_data().is_none() || parent.is_display_none() {
+            debug!("{:?} has unstyled parent - ignoring call to traverse_subtree", parent);
+            return;
+        }
+    }
+
+    if !skip_root && element.styling_mode() == StylingMode::Stop {
+        error!("Unnecessary call to traverse_subtree");
         return;
     }
 
@@ -123,12 +145,12 @@ fn restyle_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
-                                       raw_data: RawServoStyleSetBorrowed) -> () {
-    let node = GeckoNode(node);
-    if let Some(element) = node.as_element() {
-        restyle_subtree(element, raw_data);
-    }
+pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
+                                        raw_data: RawServoStyleSetBorrowed,
+                                        skip_root: bool) -> () {
+    let element = GeckoElement(root);
+    debug!("Servo_TraverseSubtree: {:?}", element);
+    traverse_subtree(element, raw_data, skip_root);
 }
 
 #[no_mangle]
@@ -163,10 +185,8 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
-    if let Some(element) = GeckoNode(node).as_element() {
-        element.clear_data();
-    }
+pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) -> () {
+    GeckoElement(element).clear_data();
 }
 
 #[no_mangle]
@@ -273,35 +293,16 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
+pub extern "C" fn Servo_ComputedValues_GetInitial(element: RawGeckoElementBorrowed)
      -> ServoComputedValuesStrong {
-    let node = GeckoNode(node);
+    let element = GeckoElement(element);
+    let mut data = element.get_data().unwrap().borrow_mut();
 
-    // Gecko erroneously calls this function from ServoRestyleManager::RecreateStyleContexts.
-    // We plan to fix that, but just support it for now until that code gets rewritten.
-    if node.is_text_node() {
-        error!("Don't call Servo_ComputedValue_Get() for text nodes");
-        let parent = node.parent_node().unwrap().as_element().unwrap();
-        let parent_cv = parent.borrow_data().map_or_else(|| Arc::new(ComputedValues::initial_values().clone()),
-                                                         |x| x.get_current_styles().unwrap()
-                                                              .primary.clone());
-        return ComputedValues::inherit_from(&parent_cv).into_strong();
-    }
+    // FIXME(bholley): Once we start storing style data on frames, we'll want to
+    // drop the data here instead.
+    data.persist();
 
-    let element = node.as_element().unwrap();
-    let data = element.borrow_data();
-    let arc_cv = match data.as_ref().and_then(|x| x.get_current_styles()) {
-        Some(styles) => styles.primary.clone(),
-        None => {
-            // FIXME(bholley): This case subverts the intended semantics of this
-            // function, and exists only to make stylo builds more robust corner-
-            // cases where Gecko wants the style for a node that Servo never
-            // traversed. We should remove this as soon as possible.
-            error!("stylo: encountered unstyled node, substituting default values.");
-            Arc::new(ComputedValues::initial_values().clone())
-        },
-    };
-    arc_cv.into_strong()
+    data.current_styles().primary.values.clone().into_strong()
 }
 
 #[no_mangle]
@@ -319,7 +320,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
     let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false)
-                           .map(|(computed, _rule_node)| computed);
+                           .map(|style| style.values);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
 
@@ -359,7 +360,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
             let parent = ComputedValues::as_arc(&parent_style);
             data.stylist
                 .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
-                .map(|(c, _rule_node)| c)
+                .map(|style| style.values)
                 .map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
         PseudoElementCascadeType::Precomputed => {
@@ -605,21 +606,127 @@ pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const n
     }
 }
 
+/// Only safe to call on the main thread, with exclusive access to the element and
+/// its ancestors.
+unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>, element: GeckoElement)
+    -> Option<&'a mut RestyleData>
+{
+    let r = data.restyle();
+    if r.is_some() {
+        // Propagate the bit up the chain.
+        let mut curr = element;
+        while let Some(parent) = curr.parent_element() {
+            curr = parent;
+            if curr.has_dirty_descendants() { break; }
+            curr.set_dirty_descendants();
+        }
+    }
+    r
+}
+
 #[no_mangle]
-pub extern "C" fn Servo_ComputeRestyleHint(element: RawGeckoElementBorrowed,
-                                           snapshot: *mut ServoElementSnapshot,
-                                           raw_data: RawServoStyleSetBorrowed) -> nsRestyleHint {
-    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-    let snapshot = unsafe { GeckoElementSnapshot::from_raw(snapshot) };
+pub extern "C" fn Servo_Element_GetSnapshot(element: RawGeckoElementBorrowed) -> *mut structs::ServoElementSnapshot
+{
     let element = GeckoElement(element);
+    let mut data = unsafe { element.ensure_data().borrow_mut() };
+    let snapshot = if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
+        if restyle_data.snapshot.is_none() {
+            restyle_data.snapshot = Some(element.create_snapshot());
+        }
+        restyle_data.snapshot.as_mut().unwrap().borrow_mut_raw()
+    } else {
+        ptr::null_mut()
+    };
 
-    // NB: This involves an FFI call, we can get rid of it easily if needed.
-    let current_state = element.get_state();
+    debug!("Servo_Element_GetSnapshot: {:?}: {:?}", element, snapshot);
+    snapshot
+}
 
-    let hint = per_doc_data.stylist
-                           .compute_restyle_hint(&element, &snapshot,
-                                                 current_state);
+#[no_mangle]
+pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
+                                          restyle_hint: nsRestyleHint,
+                                          change_hint: nsChangeHint) {
+    let element = GeckoElement(element);
+    let mut data = unsafe { element.ensure_data().borrow_mut() };
+    debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
+           element, restyle_hint, change_hint);
 
-    // NB: Binary representations match.
-    unsafe { transmute(hint.bits() as u32) }
+    if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
+        let restyle_hint: RestyleHint = restyle_hint.into();
+        restyle_data.hint.insert(&restyle_hint.into());
+        restyle_data.damage |= GeckoRestyleDamage::new(change_hint);
+    } else {
+        debug!("(Element not styled, discarding hints)");
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
+{
+    let element = GeckoElement(element);
+    let mut data = element.get_data().unwrap().borrow_mut();
+    let hint = data.damage();
+
+    // If there's no change hint, the caller won't consume the new style. Do that
+    // ourselves.
+    //
+    // FIXME(bholley): Once we start storing style data on frames, we'll want to
+    // drop the data here instead.
+    if hint.is_empty() {
+        data.persist();
+    }
+
+    debug!("Servo_GetChangeHint: {:?}, hint={:?}", element, hint);
+    hint.as_change_hint()
+}
+
+fn peek_new_style(data: &mut AtomicRefMut<ElementData>) -> Arc<ComputedValues> {
+    match **data {
+        ElementData::Initial(ref s) => s.as_ref().unwrap().primary.values.clone(),
+        ElementData::Restyle(ref r) => r.current_styles().primary.values.clone(),
+        // FIXME(bholley): We should make this panic, but
+        // GetPropagatedScrollbarStylesForViewport gets called in all sorts of
+        // situations. We should fix this.
+        ElementData::Persistent(ref p) => p.primary.values.clone(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_PeekNewStyle(element: RawGeckoElementBorrowed) -> ServoComputedValuesStrong
+{
+    let element = GeckoElement(element);
+    let mut data = element.get_data().unwrap().borrow_mut();
+    peek_new_style(&mut data).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ConsumeNewStyle(element: RawGeckoElementBorrowed) -> ServoComputedValuesStrong
+{
+    let element = GeckoElement(element);
+    let mut data = element.get_data().unwrap().borrow_mut();
+    debug!("Servo_ConsumeNewStyle: {:?}, restyle_hint={:?}", element, data);
+
+    let values = peek_new_style(&mut data);
+
+    // FIXME(bholley): Once we start storing style data on frames, we'll want to
+    // drop the data here instead.
+    data.persist();
+
+    values.into_strong()
+}
+
+#[cfg(debug_assertions)]
+#[no_mangle]
+pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
+    let root = GeckoElement(root);
+    fn assert_subtree_is_clean<'le>(el: GeckoElement<'le>) {
+        debug_assert!(!el.has_dirty_descendants());
+        for child in el.as_node().children() {
+            if let Some(child) = child.as_element() {
+                assert_subtree_is_clean(child);
+            }
+        }
+    }
+
+    assert_subtree_is_clean(root);
 }
