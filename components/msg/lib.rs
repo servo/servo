@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(custom_attribute, custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
-#![plugin(heapsize_plugin, plugins)]
+#![plugin(plugins)]
 
 #![deny(unsafe_code)]
 
@@ -11,6 +11,7 @@
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

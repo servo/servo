@@ -16,13 +16,13 @@
 #![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", feature(rustc_attrs))]
 #![cfg_attr(feature = "servo", feature(structural_match))]
-#![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 
 extern crate app_units;
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
+#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;

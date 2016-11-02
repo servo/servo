@@ -7,7 +7,7 @@
 //! to depend on script.
 
 #![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
-#![plugin(heapsize_plugin, plugins)]
+#![plugin(plugins)]
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
@@ -17,6 +17,7 @@ extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
