@@ -8,6 +8,9 @@
 
 pub use cssparser::RGBA;
 
+use std::fmt::{self, Debug};
+use style_traits::{FromCss, ToCss};
+
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -40,6 +43,29 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
+macro_rules! impl_specified_for_computed {
+    ($specified: ty, $computed: ty) => {
+        impl ToComputedValue for $specified {
+            type ComputedValue = $computed;
+
+            fn to_computed_value(&self, context: &Context) -> $computed {
+                match *self {
+                    Either::First(a) => Either::First(a.to_computed_value(context)),
+                    Either::Second(a) => Either::Second(a.to_computed_value(context)),
+                }
+            }
+
+            #[inline]
+            fn from_computed_value(computed: &$computed) -> Self {
+                match *computed {
+                    Either::First(a) => Either::First(ToComputedValue::from_computed_value(&a)),
+                    Either::Second(a) => Either::Second(ToComputedValue::from_computed_value(&a)),
+                }
+            }
+        }
+    };
+}
+
 pub mod computed;
 pub mod specified;
 
@@ -59,3 +85,43 @@ impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
     }
 }
 
+pub trait CssType: Debug + FromCss + ToCss {}
+
+impl<T> CssType for T where T: Debug + FromCss + ToCss {}
+
+#[derive(Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum Either<A: CssType, B: CssType> {
+    First(A),
+    Second(B),
+}
+
+impl<A: CssType, B: CssType> Debug for Either<A, B> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Either::First(ref v) => write!(f, "{:?}", v),
+            Either::Second(ref v) => write!(f, "{:?}", v),
+        }
+    }
+}
+
+impl<A: CssType, B: CssType> ToCss for Either<A, B> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            Either::First(ref v) => v.to_css(dest),
+            Either::Second(ref v) => v.to_css(dest),
+        }
+    }
+}
+
+impl<A: CssType, B: CssType> Either<A, B> {
+    pub fn parse(input: &mut ::cssparser::Parser) -> Result<Either<A, B>, ()> {
+        if let Ok(v) = input.try(|i| A::from_css(i)) {
+            Ok(Either::First(v))
+        } else if let Ok(v) = B::from_css(input) {
+            Ok(Either::Second(v))
+        } else {
+            Err(())
+        }
+    }
+}
