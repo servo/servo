@@ -1145,18 +1145,16 @@ where
             fragment_info,
         );
 
-        let mut fragment_accumulator = InlineFragmentsAccumulator::new();
-        fragment_accumulator.fragments.fragments.push_back(fragment);
-        fragment_accumulator
-            .fragments
+        let mut fragments = IntermediateInlineFragments::new();
+        fragments.fragments.push_back(fragment);
+        fragments
             .absolute_descendants
             .push_descendants(abs_descendants);
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
-                fragments: fragment_accumulator
-                    .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(context),
+                fragments: fragments,
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -1194,21 +1192,16 @@ where
             fragment_info,
         );
 
-        let mut fragment_accumulator =
-            InlineFragmentsAccumulator::from_inline_node(node, self.style_context());
-        fragment_accumulator.fragments.fragments.push_back(fragment);
-        fragment_accumulator
-            .fragments
+        let mut fragments = IntermediateInlineFragments::new();
+        fragments.fragments.push_back(fragment);
+        fragments
             .absolute_descendants
             .push_descendants(abs_descendants);
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
-                fragments: fragment_accumulator
-                    .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
-                        style_context,
-                    ),
+                fragments: fragments,
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
