@@ -143,6 +143,14 @@ details {
   display: block;
 }
 
+/* CSS 2.1 § 11.1.1: When the root element is an HTML "HTML" element or an XHTML "html" element,
+ * and that element has an HTML "BODY" element or an XHTML "body" element as a child, user agents
+ * must instead apply the 'overflow' property from the first such child element to the viewport, if
+ * the value on the root element is 'visible'. */
+html:root > body:first-of-type {
+    -servo-overflow-target: viewport;
+}
+
 details::-servo-details-summary {
   margin-left: 40px;
   display: list-item;

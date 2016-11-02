@@ -264,6 +264,15 @@ ${helpers.single_keyword("clear", "none left right both",
 
 // CSS 2.1, Section 11 - Visual effects
 
+// This is a special property used to implement the special <body> `overflow` behavior described in
+// CSS 2.1, Section 11.1.1.
+//
+// If `-servo-overflow-target` is `auto`, nothing special happens. If `-servo-overflow-target` is
+// `viewport`, then its `overflow-x`, `overflow-y`, and `overflow` properties affect the viewport
+// rather than the element itself (which is instead treated as though it had `overflow: visible`).
+${helpers.single_keyword("-servo-overflow-target", "auto viewport",
+                         products="servo", animatable=False, internal=True)}
+
 // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
 ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
                          products="servo", animatable=False, internal=True)}
@@ -271,12 +280,10 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 ${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
                          products="gecko", animatable=False, internal=True)}
 
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          need_clone=True, animatable=False,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 <%helpers:longhand name="overflow-y"
                    need_clone="True"
                    animatable="False">
