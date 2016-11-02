@@ -232,7 +232,7 @@ struct InlineFragmentsAccumulator {
     restyle_damage: RestyleDamage,
 
     /// Bidi control characters to insert before and after these fragments.
-    bidi_control_chars: Option<(&'static str, &'static str)>,
+    bidi_control_chars: (&'static str, &'static str),
 }
 
 impl InlineFragmentsAccumulator {
@@ -240,7 +240,7 @@ impl InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: None,
-            bidi_control_chars: None,
+            bidi_control_chars: ("", ""),
             restyle_damage: RestyleDamage::empty(),
         }
     }
@@ -256,7 +256,7 @@ impl InlineFragmentsAccumulator {
                 selected_style: node.selected_style(),
                 flags: FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT,
             }),
-            bidi_control_chars: None,
+            bidi_control_chars: ("", ""),
             restyle_damage: node.restyle_damage(),
         }
     }
@@ -278,29 +278,27 @@ impl InlineFragmentsAccumulator {
             bidi_control_chars,
             restyle_damage,
         } = self;
-        if let Some(mut enclosing_node) = enclosing_node {
-            let fragment_count = fragments.fragments.len();
-            for (index, fragment) in fragments.fragments.iter_mut().enumerate() {
+        if let Some(enclosing_node) = enclosing_node {
+            for fragment in fragments.fragments.iter_mut() {
                 let mut enclosing_node = enclosing_node.clone();
-                if index != 0 {
-                    enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT)
-                }
-                if index != fragment_count - 1 {
-                    enclosing_node.flags.remove(LAST_FRAGMENT_OF_ELEMENT)
-                }
-                fragment.add_inline_context_style(enclosing_node);
+                enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT);
+                fragment.add_inline_context_style(enclosing_node.clone());
             }
 
-            // Control characters are later discarded in transform_text, so they don't affect the
-            // is_first/is_last styles above.
-            enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT);
-
-            if let Some((start, end)) = bidi_control_chars {
-                fragments.fragments.push_front(
-                    control_chars_to_fragment(&enclosing_node, context, start, restyle_damage));
-                fragments.fragments.push_back(
-                    control_chars_to_fragment(&enclosing_node, context, end, restyle_damage));
-            }
+            // Add bidi control characters to the start and end, or empty text fragments if bidi
+            // control characters aren't needed. This ensures that the output starts and ends with
+            // a text fragment, which can be necessary for styling and querying.
+            let (bidi_start, bidi_end) = bidi_control_chars;
+            fragments.fragments.push_front({
+                let mut enclosing_node = enclosing_node.clone();
+                enclosing_node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+                control_chars_to_fragment(enclosing_node, context, bidi_start, restyle_damage)
+            });
+            fragments.fragments.push_back({
+                let mut enclosing_node = enclosing_node.clone();
+                enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+                control_chars_to_fragment(enclosing_node, context, bidi_end, restyle_damage)
+            });
         }
         fragments
     }
@@ -760,23 +758,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         let node_style = node.style(self.style_context());
 
-        // For querying and for rendering the border and background of an inline element, it must
-        // begin and end with a text fragment. Since it may not have text nodes at the beginning
-        // and end, we cap it on both ends with empty text fragments to be sure.
-        let cap_fragment = {
-            let info = SpecificFragmentInfo::UnscannedText(
-                Box::new(UnscannedTextFragmentInfo::new(String::new(), None))
-            );
-            Fragment::from_opaque_node_and_style(node.opaque(),
-                                                 node.get_pseudo_element_type().strip(),
-                                                 node_style.clone(),
-                                                 node.selected_style(),
-                                                 node.restyle_damage(),
-                                                 info)
-        };
-        // Push back the starting cap.
-        fragment_accumulator.fragments.fragments.push_back(cap_fragment.clone());
-
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
@@ -848,9 +829,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 }
             }
         }
-
-        // Push back the ending cap.
-        fragment_accumulator.fragments.fragments.push_back(cap_fragment);
 
         // Finally, make a new construction result.
         fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
@@ -1816,7 +1794,7 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
 
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
 /// to inject before and after the text content of the element.
-fn bidi_control_chars(style: &ServoArc<ComputedValues>) -> Option<(&'static str, &'static str)> {
+fn bidi_control_chars(style: &ServoArc<ComputedValues>) -> (&'static str, &'static str) {
     use style::computed_values::direction::T::*;
     use style::computed_values::unicode_bidi::T::*;
 
@@ -1825,20 +1803,20 @@ fn bidi_control_chars(style: &ServoArc<ComputedValues>) -> Option<(&'static str,
 
     // See the table in http://dev.w3.org/csswg/css-writing-modes/#unicode-bidi
     match (unicode_bidi, direction) {
-        (normal, _)             => None,
-        (embed, ltr)            => Some(("\u{202A}", "\u{202C}")),
-        (embed, rtl)            => Some(("\u{202B}", "\u{202C}")),
-        (isolate, ltr)          => Some(("\u{2066}", "\u{2069}")),
-        (isolate, rtl)          => Some(("\u{2067}", "\u{2069}")),
-        (bidi_override, ltr)    => Some(("\u{202D}", "\u{202C}")),
-        (bidi_override, rtl)    => Some(("\u{202E}", "\u{202C}")),
-        (isolate_override, ltr) => Some(("\u{2068}\u{202D}", "\u{202C}\u{2069}")),
-        (isolate_override, rtl) => Some(("\u{2068}\u{202E}", "\u{202C}\u{2069}")),
-        (plaintext, _)          => Some(("\u{2068}", "\u{2069}")),
+        (normal, _)             => ("", ""),
+        (embed, ltr)            => ("\u{202A}", "\u{202C}"),
+        (embed, rtl)            => ("\u{202B}", "\u{202C}"),
+        (isolate, ltr)          => ("\u{2066}", "\u{2069}"),
+        (isolate, rtl)          => ("\u{2067}", "\u{2069}"),
+        (bidi_override, ltr)    => ("\u{202D}", "\u{202C}"),
+        (bidi_override, rtl)    => ("\u{202E}", "\u{202C}"),
+        (isolate_override, ltr) => ("\u{2068}\u{202D}", "\u{202C}\u{2069}"),
+        (isolate_override, rtl) => ("\u{2068}\u{202E}", "\u{202C}\u{2069}"),
+        (plaintext, _)          => ("\u{2068}", "\u{2069}"),
     }
 }
 
-fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
+fn control_chars_to_fragment(node: InlineFragmentNodeInfo,
                              context: &SharedStyleContext,
                              text: &str,
                              restyle_damage: RestyleDamage)
@@ -1848,12 +1826,14 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
     );
     let text_style = context.stylist.style_for_anonymous(
         &context.guards, &PseudoElement::ServoText, &node.style);
-    Fragment::from_opaque_node_and_style(node.address,
-                                         node.pseudo,
-                                         text_style,
-                                         node.selected_style.clone(),
-                                         restyle_damage,
-                                         info)
+    let mut fragment = Fragment::from_opaque_node_and_style(node.address,
+                                                            node.pseudo,
+                                                            text_style,
+                                                            node.selected_style.clone(),
+                                                            restyle_damage,
+                                                            info);
+    fragment.add_inline_context_style(node);
+    fragment
 }
 
 /// Convenience methods for computed CSS values
