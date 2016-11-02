@@ -10,7 +10,7 @@ use dom::element::Element;
 use dom::window::Window;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
-#[derive_JSTraceable]
+#[derive(JSTraceable)]
 #[derive(HeapSizeOf)]
 pub enum ValidityStatus {
     ValueMissing,

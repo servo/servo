@@ -54,6 +54,8 @@ extern crate image;
 extern crate ipc_channel;
 #[macro_use]
 extern crate js;
+#[macro_use]
+extern crate jstraceable_derive;
 extern crate libc;
 #[macro_use]
 extern crate log;
