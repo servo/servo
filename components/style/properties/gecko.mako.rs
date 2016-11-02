@@ -850,7 +850,8 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_box_longhands= """display overflow-y vertical-align
-                          -moz-binding page-break-before page-break-after""" %>
+                          -moz-binding page-break-before page-break-after
+                          scroll-snap-points-x scroll-snap-points-y""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -975,6 +976,24 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('page_break_after', 'mBreakAfter')}
+
+    pub fn set_scroll_snap_points_x(&mut self, v: longhands::scroll_snap_points_x::computed_value::T) {
+        match v.0 {
+            None => self.gecko.mScrollSnapPointsX.set_value(CoordDataValue::None),
+            Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPointsX),
+        };
+    }
+
+    ${impl_coord_copy('scroll_snap_points_x', 'mScrollSnapPointsX')}
+
+    pub fn set_scroll_snap_points_y(&mut self, v: longhands::scroll_snap_points_y::computed_value::T) {
+        match v.0 {
+            None => self.gecko.mScrollSnapPointsY.set_value(CoordDataValue::None),
+            Some(l) => l.to_gecko_style_coord(&mut self.gecko.mScrollSnapPointsY),
+        };
+    }
+
+    ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
 
 </%self:impl_trait>
 

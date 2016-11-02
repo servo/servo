@@ -841,6 +841,109 @@ ${helpers.keyword_list("animation-fill-mode",
     pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
 
+<%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::HasViewportPercentage;
+    use values::specified::LengthOrPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Repeat(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
+    pub mod computed_value {
+        use values::computed::LengthOrPercentage;
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub Option<LengthOrPercentage>);
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        None,
+        Repeat(LengthOrPercentage),
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self.0 {
+                None => dest.write_str("none"),
+                Some(l) => {
+                    try!(dest.write_str("repeat("));
+                    try!(l.to_css(dest));
+                    dest.write_str(")")
+                },
+            }
+        }
+    }
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::None => dest.write_str("none"),
+                SpecifiedValue::Repeat(ref l) => {
+                    try!(dest.write_str("repeat("));
+                    try!(l.to_css(dest));
+                    dest.write_str(")")
+                },
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(None)
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::None => computed_value::T(None),
+                SpecifiedValue::Repeat(l) =>
+                    computed_value::T(Some(l.to_computed_value(context))),
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue::None,
+                computed_value::T(Some(l)) =>
+                    SpecifiedValue::Repeat(ToComputedValue::from_computed_value(&l))
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            Ok(SpecifiedValue::None)
+        } else if input.try(|input| input.expect_function_matching("repeat")).is_ok() {
+            input.parse_nested_block(|input| {
+                LengthOrPercentage::parse_non_negative(input).map(SpecifiedValue::Repeat)
+            })
+        } else {
+            Err(())
+        }
+    }
+</%helpers:longhand>
+
+<%helpers:longhand products="gecko" name="scroll-snap-points-x" animatable="False">
+    pub use super::scroll_snap_points_y::SpecifiedValue;
+    pub use super::scroll_snap_points_y::computed_value;
+    pub use super::scroll_snap_points_y::get_initial_value;
+    pub use super::scroll_snap_points_y::parse;
+</%helpers:longhand>
+
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
