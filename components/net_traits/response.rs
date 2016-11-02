@@ -14,12 +14,12 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
     CORS,
     Default,
-    Error,
+    Error(NetworkError),
     Opaque,
     OpaqueRedirect
 }
@@ -91,6 +91,7 @@ pub struct Response {
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
+    pub referrer: Option<Url>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
@@ -111,14 +112,15 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            referrer: None,
             internal_response: None,
             return_internal: Cell::new(true)
         }
     }
 
-    pub fn network_error() -> Response {
+    pub fn network_error(e: NetworkError) -> Response {
         Response {
-            response_type: ResponseType::Error,
+            response_type: ResponseType::Error(e),
             termination_reason: None,
             url: None,
             url_list: RefCell::new(vec![]),
@@ -128,6 +130,7 @@ impl Response {
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
+            referrer: None,
             internal_response: None,
             return_internal: Cell::new(true)
         }
@@ -135,8 +138,15 @@ impl Response {
 
     pub fn is_network_error(&self) -> bool {
         match self.response_type {
-            ResponseType::Error => true,
+            ResponseType::Error(..) => true,
             _ => false
+        }
+    }
+
+    pub fn get_network_error(&self) -> Option<&NetworkError> {
+        match self.response_type {
+            ResponseType::Error(ref e) => Some(e),
+            _ => None,
         }
     }
 
@@ -159,13 +169,15 @@ impl Response {
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
-        assert!(filter_type != ResponseType::Error);
-        assert!(filter_type != ResponseType::Default);
+        match filter_type {
+            ResponseType::Default | ResponseType::Error(..) => panic!(),
+            _ => (),
+        }
 
         let old_response = self.to_actual();
 
-        if Response::is_network_error(&old_response) {
-            return Response::network_error();
+        if let ResponseType::Error(e) = old_response.response_type {
+            return Response::network_error(e);
         }
 
         let old_headers = old_response.headers.clone();
@@ -173,8 +185,8 @@ impl Response {
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
 
-        match filter_type {
-            ResponseType::Default | ResponseType::Error => unreachable!(),
+        match response.response_type {
+            ResponseType::Default | ResponseType::Error(..) => unreachable!(),
 
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|header| {
@@ -235,11 +247,12 @@ impl Response {
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
+            metadata.referrer = response.referrer.clone();
             metadata
         };
 
-        if self.is_network_error() {
-            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_owned()));
+        if let Some(error) = self.get_network_error() {
+            return Err(error.clone());
         }
 
         let metadata = self.url.as_ref().map(|url| init_metadata(self, url));

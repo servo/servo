@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{Action, AsyncResponseListener, FetchResponseListener};
-use net_traits::{FetchResponseMsg, ResponseAction};
+use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
 use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_runtime::ScriptThreadEventCategory::NetworkEvent;
 use script_thread::{Runnable, RunnableWrapper};
@@ -31,13 +30,6 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
         if let Err(err) = result {
             warn!("failed to deliver network data: {:?}", err);
         }
-    }
-}
-
-// helps type inference
-impl<Listener: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub fn notify_action(&self, action: ResponseAction) {
-        self.notify(action);
     }
 }
 
