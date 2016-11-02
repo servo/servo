@@ -640,7 +640,7 @@ fn static_assert() {
                                     ["border-{0}-radius".format(x.ident.replace("_", "-"))
                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands} border-image-source"
+                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset"
                   skip_additionals="*">
 
     % for side in SIDES:
@@ -683,6 +683,25 @@ fn static_assert() {
             Gecko_CopyImageValueFrom(&mut self.gecko.mBorderImageSource,
                                      &other.gecko.mBorderImageSource);
         }
+    }
+
+    pub fn set_border_image_outset(&mut self, v: longhands::border_image_outset::computed_value::T) {
+        use properties::longhands::border_image_outset::computed_value::LengthOrNumber;
+        % for side in SIDES:
+            match v.${side.index} {
+                LengthOrNumber::Length(l) =>
+                    self.gecko.mBorderImageOutset.data_at_mut(${side.index}).set_value(CoordDataValue::Coord(l.0)),
+                LengthOrNumber::Number(n) =>
+                self.gecko.mBorderImageOutset.data_at_mut(${side.index}).set_value(CoordDataValue::Factor(n)),
+            }
+        % endfor
+    }
+
+    pub fn copy_border_image_outset_from(&mut self, other: &Self) {
+        % for side in SIDES:
+            self.gecko.mBorderImageOutset.data_at_mut(${side.index})
+                .copy_from(&other.gecko.mBorderImageOutset.data_at(${side.index}));
+        % endfor
     }
 </%self:impl_trait>
 
