@@ -13,7 +13,7 @@ use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::{ElementExt, PseudoElement};
+use selector_impl::{ElementExt, PseudoElement, Snapshot};
 use selector_matching::ApplicableDeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
@@ -159,8 +159,7 @@ pub trait TDocument : Sized + Copy + Clone {
 
     fn root_node(&self) -> Option<Self::ConcreteNode>;
 
-    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement,
-                                              <Self::ConcreteElement as ElementExt>::Snapshot)>;
+    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, Snapshot)>;
 
     fn needs_paint_from_layout(&self);
     fn will_paint(&self);

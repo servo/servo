@@ -5,7 +5,6 @@
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
 use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
-use restyle_hints;
 use selectors::Element;
 use selectors::parser::{AttrSelector, SelectorImpl};
 
@@ -14,14 +13,20 @@ pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
 #[cfg(feature = "servo")]
 pub use servo_selector_impl::*;
 
-#[cfg(feature = "servo")]
-pub use servo_selector_impl::{ServoSelectorImpl as TheSelectorImpl, ServoElementSnapshot as ElementSnapshot};
-
 #[cfg(feature = "gecko")]
 pub use gecko::selector_impl::*;
 
+#[cfg(feature = "servo")]
+pub use servo_selector_impl::ServoSelectorImpl as TheSelectorImpl;
+
 #[cfg(feature = "gecko")]
-pub use gecko::selector_impl::{GeckoSelectorImpl as TheSelectorImpl};
+pub use gecko::selector_impl::GeckoSelectorImpl as TheSelectorImpl;
+
+#[cfg(feature = "servo")]
+pub use servo_selector_impl::ServoElementSnapshot as Snapshot;
+
+#[cfg(feature = "gecko")]
+pub use gecko::snapshot::GeckoElementSnapshot as Snapshot;
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
 ///
@@ -71,8 +76,6 @@ impl PseudoElementCascadeType {
 }
 
 pub trait ElementExt: Element<Impl=TheSelectorImpl> {
-    type Snapshot: restyle_hints::ElementSnapshot + 'static;
-
     fn is_link(&self) -> bool;
 }
 
