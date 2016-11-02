@@ -3,27 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
-use mime_classifier::MimeClassifier;
-use net_traits::{LoadData, Metadata, NetworkError};
-use net_traits::LoadConsumer;
-use net_traits::ProgressMsg::{Done, Payload};
-use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use servo_url::ServoUrl;
-use std::sync::Arc;
 use url::Position;
 use url::percent_encoding::percent_decode;
-
-pub fn factory(load_data: LoadData,
-               senders: LoadConsumer,
-               classifier: Arc<MimeClassifier>,
-               cancel_listener: CancellationListener) {
-    // NB: we don't spawn a new thread.
-    // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
-    // Should be tested at some point.
-    // Left in separate function to allow easy moving to a thread, if desired.
-    load(load_data, senders, classifier, cancel_listener)
-}
 
 pub enum DecodeError {
     InvalidDataUri,
@@ -69,34 +52,4 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
         }
     }
     Ok((content_type, bytes))
-}
-
-pub fn load(load_data: LoadData,
-            start_chan: LoadConsumer,
-            classifier: Arc<MimeClassifier>,
-            cancel_listener: CancellationListener) {
-    let url = load_data.url;
-
-    if cancel_listener.is_cancelled() {
-        return;
-    }
-
-    match decode(&url) {
-        Ok((content_type, bytes)) => {
-            let mut metadata = Metadata::default(url);
-            metadata.set_content_type(Some(content_type).as_ref());
-            if let Ok(chan) = start_sending_sniffed_opt(start_chan,
-                                                metadata,
-                                                classifier,
-                                                &bytes,
-                                                load_data.context) {
-                let _ = chan.send(Payload(bytes));
-                let _ = chan.send(Done(Ok(())));
-            }
-        },
-        Err(DecodeError::InvalidDataUri) =>
-            send_error(url, NetworkError::Internal("invalid data uri".to_owned()), start_chan),
-        Err(DecodeError::NonBase64DataUri) =>
-            send_error(url, NetworkError::Internal("non-base64 data uri".to_owned()), start_chan),
-    }
 }

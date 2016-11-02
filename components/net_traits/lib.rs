@@ -414,8 +414,6 @@ pub struct WebSocketConnectData {
 
 #[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
-    /// Request the data associated with a particular URL
-    Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
