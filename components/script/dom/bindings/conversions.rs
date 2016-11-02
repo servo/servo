@@ -310,9 +310,9 @@ impl ToJSValConvertible for Reflector {
         assert!(!obj.is_null());
         let same_compartment = IsObjectInContextCompartment(obj, cx);
         if same_compartment {
-            rval.set(ObjectValue(&*ToWindowProxyIfWindow(obj)));
+            rval.set(ObjectValue(ToWindowProxyIfWindow(obj)));
         } else {
-            rval.set(ObjectValue(&*obj));
+            rval.set(ObjectValue(obj));
 
             if !JS_WrapValue(cx, rval) {
                 panic!("JS_WrapValue failed.");

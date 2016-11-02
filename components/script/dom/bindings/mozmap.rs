@@ -105,6 +105,6 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
                                          None));
         }
 
-        rval.set(ObjectValue(&*js_object.handle().get()));
+        rval.set(ObjectValue(js_object.handle().get()));
     }
 }

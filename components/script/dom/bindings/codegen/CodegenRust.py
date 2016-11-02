@@ -2936,7 +2936,7 @@ assert!(!unforgeable_holder.is_null());
             code.append(InitUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
             code.append(CGGeneric("""\
 JS_SetReservedSlot(prototype.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT,
-                   ObjectValue(&*unforgeable_holder.get()))"""))
+                   ObjectValue(unforgeable_holder.get()))"""))
 
         return CGList(code, "\n")
 
@@ -6607,7 +6607,7 @@ class CallCallback(CallbackMethod):
         return "aThisObj.get()"
 
     def getCallableDecl(self):
-        return "rooted!(in(cx) let callable = ObjectValue(&*self.parent.callback()));\n"
+        return "rooted!(in(cx) let callable = ObjectValue(self.parent.callback()));\n"
 
     def getCallGuard(self):
         if self.callback._treatNonObjectAsNull:
@@ -6646,7 +6646,7 @@ class CallbackOperationBase(CallbackMethod):
             'rooted!(in(cx) let callable =\n' +
             CGIndenter(
                 CGIfElseWrapper('isCallable',
-                                CGGeneric('ObjectValue(&*self.parent.callback())'),
+                                CGGeneric('ObjectValue(self.parent.callback())'),
                                 CGGeneric(getCallableFromProp))).define() + ');\n')
 
     def getCallGuard(self):
@@ -6734,10 +6734,10 @@ class CGIterableMethodGenerator(CGGeneric):
                   throw_type_error(cx, "Argument 1 of ${ifaceName}.forEach is not callable.");
                   return false;
                 }
-                rooted!(in(cx) let arg0 = ObjectValue(&*arg0));
+                rooted!(in(cx) let arg0 = ObjectValue(arg0));
                 rooted!(in(cx) let mut call_arg1 = UndefinedValue());
                 rooted!(in(cx) let mut call_arg2 = UndefinedValue());
-                let mut call_args = vec![UndefinedValue(), UndefinedValue(), ObjectValue(&**_obj)];
+                let mut call_args = vec![UndefinedValue(), UndefinedValue(), ObjectValue(*_obj)];
                 rooted!(in(cx) let mut ignoredReturnVal = UndefinedValue());
                 for i in 0..(*this).get_iterable_length() {
                   (*this).get_value_at_index(i).to_jsval(cx, call_arg1.handle_mut());

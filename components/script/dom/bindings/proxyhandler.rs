@@ -178,7 +178,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSOb
             expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
             assert!(!expando.is_null());
 
-            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(&*expando));
+            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando));
         }
         expando
     }
