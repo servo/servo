@@ -12,19 +12,18 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
-#![plugin(heapsize_plugin)]
+#![feature(proc_macro, rustc_attrs, structural_match)]
 
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde_derive;
 extern crate time;
 extern crate url;
 

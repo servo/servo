@@ -99,12 +99,18 @@ impl HeapSizeOf for FreeTypeLibraryHandle {
     }
 }
 
-#[derive(Clone, HeapSizeOf, Debug)]
+#[derive(Clone, Debug)]
 pub struct FontContextHandle {
     // WARNING: FreeTypeLibraryHandle contains raw pointers, is clonable, and also implements
     // `Drop`. This field needs to be Rc<> to make sure that the `drop` function is only called
     // once, otherwise we'll get crashes. Yuk.
     pub ctx: Rc<FreeTypeLibraryHandle>,
+}
+
+impl HeapSizeOf for FontContextHandle {
+    fn heap_size_of_children(&self) -> usize {
+        self.ctx.heap_size_of_children()
+    }
 }
 
 impl FontContextHandle {

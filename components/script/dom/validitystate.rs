@@ -11,7 +11,7 @@ use dom::window::Window;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive_JSTraceable]
-#[derive_HeapSizeOf]
+#[derive(HeapSizeOf)]
 pub enum ValidityStatus {
     ValueMissing,
     TypeMismatch,
