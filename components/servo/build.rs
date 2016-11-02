@@ -7,11 +7,19 @@ use std::path::Path;
 use std::process;
 use std::process::{Command, Stdio};
 
+extern crate winres;
+
 fn main() {
     // build.rs is not platform-specific, so we have to check the target here.
     let target = env::var("TARGET").unwrap();
     if target.contains("android") {
         android_main()
+    }
+    if target.contains("windows") {
+        let mut res = winres::WindowsResource::new();
+        res.set_icon("Servo.ico");
+        /*res.set_resource_file("windows.rc");*/
+        res.compile().unwrap();
     }
 }
 
