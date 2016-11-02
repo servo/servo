@@ -290,6 +290,7 @@ impl WebGLFramebuffer {
 
             if matched {
                 *attachment.borrow_mut() = None;
+                self.update_status();
             }
         }
     }
