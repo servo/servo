@@ -691,8 +691,6 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 }
 
 impl<'le> ElementExt for GeckoElement<'le> {
-    type Snapshot = GeckoElementSnapshot;
-
     #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)

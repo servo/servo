@@ -16,7 +16,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
-use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
+use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
@@ -611,7 +611,7 @@ impl Stylist {
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,
-                                   snapshot: &E::Snapshot,
+                                   snapshot: &Snapshot,
                                    // NB: We need to pass current_state as an argument because
                                    // selectors::Element doesn't provide access to ElementState
                                    // directly, and computing it from the ElementState would be
