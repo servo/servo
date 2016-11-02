@@ -24,8 +24,8 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
-use net_traits::{AsyncResponseTarget, CoreResourceThread, Metadata, ProgressMsg, ResponseAction};
-use net_traits::{CookieSource, CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
+use net_traits::{CookieSource, CoreResourceThread, Metadata, ProgressMsg};
+use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
 use net_traits::{CustomResponseMediator, LoadData, LoadResponse, NetworkError, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::LoadContext;
@@ -57,7 +57,6 @@ const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
-    Listener(AsyncResponseTarget),
 }
 
 #[derive(Clone)]
@@ -73,14 +72,6 @@ impl ProgressSender {
     pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
         match *self {
             ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
-            ProgressSender::Listener(ref b) => {
-                let action = match msg {
-                    ProgressMsg::Payload(buf) => ResponseAction::DataAvailable(buf),
-                    ProgressMsg::Done(status) => ResponseAction::ResponseComplete(status),
-                };
-                b.invoke_with_listener(action);
-                Ok(())
-            }
         }
     }
 }
@@ -89,7 +80,7 @@ pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    if let Ok(p) = start_sending_opt(start_chan, metadata, Some(err.clone())) {
+    if let Ok(p) = start_sending_opt(start_chan, metadata) {
         p.send(Done(Err(err))).unwrap();
     }
 }
@@ -130,14 +121,13 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
     }
 
-    start_sending_opt(start_chan, metadata, None)
+    start_sending_opt(start_chan, metadata)
 }
 
 /// For use by loaders in responding to a Load message.
 /// It takes an optional NetworkError, so that we can extract the SSL Validation errors
 /// and take it to the HTML parser
-fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
-                     network_error: Option<NetworkError>) -> Result<ProgressSender, ()> {
+fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
@@ -149,16 +139,6 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
                 Ok(_) => Ok(ProgressSender::Channel(progress_chan)),
                 Err(_) => Err(())
             }
-        }
-        LoadConsumer::Listener(target) => {
-            match network_error {
-                Some(NetworkError::SslValidation(url, reason)) => {
-                    let error = NetworkError::SslValidation(url, reason);
-                    target.invoke_with_listener(ResponseAction::HeadersAvailable(Err(error)));
-                }
-                _ => target.invoke_with_listener(ResponseAction::HeadersAvailable(Ok(metadata))),
-            }
-            Ok(ProgressSender::Listener(target))
         }
     }
 }
