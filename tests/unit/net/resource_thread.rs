@@ -44,26 +44,6 @@ fn test_exit() {
 }
 
 #[test]
-fn test_bad_scheme() {
-    let (tx, _rx) = ipc::channel().unwrap();
-    let (sender, receiver) = ipc::channel().unwrap();
-    let (resource_thread, _) = new_core_resource_thread(
-        "".into(), None, ProfilerChan(tx), None);
-    let (start_chan, start) = ipc::channel().unwrap();
-    let url = ServoUrl::parse("bogus://whatever").unwrap();
-    resource_thread.send(CoreResourceMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
-
-    LoadConsumer::Channel(start_chan), None)).unwrap();
-    let response = start.recv().unwrap();
-    match response.progress_port.recv().unwrap() {
-      ProgressMsg::Done(result) => { assert!(result.is_err()) }
-      _ => panic!("bleh")
-    }
-    resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
-    receiver.recv().unwrap();
-}
-
-#[test]
 fn test_parse_hostsfile() {
     let mock_hosts_file_content = "127.0.0.1 foo.bar.com\n127.0.0.2 servo.test.server";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
