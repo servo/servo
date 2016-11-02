@@ -24,24 +24,15 @@
         <![endif]-->
     </head>
     <body>
-
-        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-            <div class="container">
-                <div class="navbar-header">
-                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                    <a class="navbar-brand" href="#">Servo Layout Debugger</a>
-                </div>
-            </div>
-        </div>
-
         <div class="container" role="main">
             <div class="row">
-                <div class="col-sm-3">
+                <div class="col-sm-12">
+                  <h1> Servo Layout Viewer </h1>
+                  <p> Check the <a href="https://github.com/servo/servo/blob/master/etc/layout_viewer/README.md">README</a> for instructions.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
                     <div class="row">
                         <div class="col-sm-12">
                             <div class="well">
@@ -62,7 +53,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-9">
+                <div class="col-sm-8">
                     <div class="row">
                         <div class="col-sm-12">
                             <div class='panel panel-default'>
@@ -94,6 +85,7 @@
                     text: trace_node.class + " (" + trace_node.data.base.id + ")",
                     id: trace_node.data.base.id,
                     icon: "dummy",
+                    href: "#diff-" + trace_node.data.base.id
                 };
 
                 var children = [];
@@ -131,8 +123,8 @@
             }
 
             function create_tree_node(trace_node) {
-                var pre_trace = flatten_trace(JSON.parse(trace_node.pre));
-                var post_trace = flatten_trace(JSON.parse(trace_node.post));
+                var pre_trace = flatten_trace(trace_node.pre);
+                var post_trace = flatten_trace(trace_node.post);
 
                 var tree_node = {
                     text: trace_node.name,
@@ -192,13 +184,13 @@
                         if (delta !== undefined) {
                             var diff_id = "diff-" + key;
                             $("#flow-diffs").append(
-                                    "<div class='panel panel-default'><div class='panel-heading'>" +
-                                    flow_left.class + " (" + key + ")" +
-                                    "</div><div class='panel-body' id=" +
-                                    diff_id +
-                                    "></div></div>");
+                              "<div class='panel panel-default' id='" +
+                              diff_id +
+                              "'><div class='panel-heading'>" +
+                              flow_left.class + " (" + key + ")" +
+                              "</div><div class='panel-body'></div></div>");
 
-                            document.getElementById(diff_id).innerHTML =
+                            document.getElementById(diff_id).getElementsByClassName('panel-body')[0].innerHTML =
                                 jsondiffpatch.formatters.html.format(delta, flow_left);
                             node_color_hash[key] = "rgba(255, 0, 0, 0.7)";
                         } else {
@@ -207,7 +199,7 @@
                     }
 
                     update_flow_tree_bgcolor(node.flow_tree, node_color_hash);
-                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100});
+                    $('#flow-tree').treeview({data: [node.flow_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
                 });
             }
 
