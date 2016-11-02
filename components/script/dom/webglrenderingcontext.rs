@@ -465,7 +465,11 @@ impl WebGLRenderingContext {
 
         self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
-            .unwrap()
+            .unwrap();
+
+        if let Some(fb) = self.bound_framebuffer.get() {
+            fb.invalidate_texture(&*texture);
+        }
     }
 
     fn tex_sub_image_2d(&self,
@@ -2621,7 +2625,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         match self.bound_renderbuffer.get() {
-            Some(rb) => handle_potential_webgl_error!(self, rb.storage(internal_format, width, height)),
+            Some(rb) => {
+                handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
+                if let Some(fb) = self.bound_framebuffer.get() {
+                    fb.invalidate_renderbuffer(&*rb);
+                }
+            }
             None => self.webgl_error(InvalidOperation),
         };
 
