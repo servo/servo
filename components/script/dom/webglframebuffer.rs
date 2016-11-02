@@ -277,7 +277,6 @@ impl WebGLFramebuffer {
 
             _ => {
                 *binding.borrow_mut() = None;
-                self.update_status();
                 None
             }
         };
