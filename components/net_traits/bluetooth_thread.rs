@@ -89,7 +89,6 @@ pub enum BluetoothRequest {
 pub enum BluetoothResponse {
     RequestDevice(BluetoothDeviceMsg),
     GATTServerConnect(bool),
-    //GATTServerDisconnect(bool),
     GetPrimaryService(BluetoothServiceMsg),
     GetPrimaryServices(BluetoothServicesMsg),
     GetIncludedService(BluetoothServiceMsg),
