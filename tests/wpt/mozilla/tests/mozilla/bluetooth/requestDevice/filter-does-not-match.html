@@ -11,6 +11,8 @@ let matching_namePrefix = 'Heart';
 let non_matching_services = [battery_service.name];
 let non_matching_name = 'Some Device';
 let non_matching_namePrefix = 'Some';
+let non_matching_manufacturer_data = {18: {}};
+let non_matching_service_data = {'battery_service': {}};
 
 let test_specs = [{
     filters: [{
@@ -80,6 +82,16 @@ let test_specs = [{
 }, {
     filters: [{
         namePrefix: non_matching_namePrefix
+    }]
+}, {
+    filters: [{
+        name: matching_name,
+        manufacturerData: non_matching_manufacturer_data
+    }]
+}, {
+    filters: [{
+        namePrefix: matching_namePrefix,
+        serviceData: non_matching_service_data
     }]
 }];
 

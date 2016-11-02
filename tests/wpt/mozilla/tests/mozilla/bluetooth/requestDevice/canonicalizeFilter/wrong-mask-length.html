@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let length_error_cases = [{
+    filters: [{
+        manufacturerData: {
+            17: {
+                dataPrefix: new Uint8Array([0x91, 0xAA, 0x78]),
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {
+                dataPrefix: new Uint8Array([0x91]),
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate': {
+                dataPrefix: new Uint8Array([0x91, 0xAA, 0x78]),
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate': {
+                dataPrefix: new Uint8Array([0x91]),
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate': {
+                mask: new Uint8Array([0x0F, 0x57])
+            }
+        }
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let promises = [];
+    length_error_cases.forEach(args => {
+        promises.push(promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Rejects with TypeError, if mask present, and does not have the same length as dataPrefix.');
+</script>
