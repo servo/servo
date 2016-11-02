@@ -93,7 +93,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          animatable=False)}
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-source
-<%helpers:longhand name="border-image-source" products="none" animatable="False">
+<%helpers:longhand name="border-image-source" products="gecko" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;

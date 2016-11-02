@@ -49,6 +49,7 @@ use std::ptr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::cmp;
+use values::computed::{Image, Gradient};
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -629,7 +630,7 @@ fn static_assert() {
                                     ["border-{0}-radius".format(x.ident.replace("_", "-"))
                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands}"
+                  skip_longhands="${skip_border_longhands} border-image-source"
                   skip_additionals="*">
 
     % for side in SIDES:
@@ -653,6 +654,25 @@ fn static_assert() {
                                corner.y_index,
                                need_clone=True) %>
     % endfor
+
+    pub fn copy_border_image_source_from(&mut self, _other: &Self) {
+        unsafe {
+            Gecko_CopyImageValueFrom(&mut self.gecko.mBorderImageSource,
+                                     &other.gecko.mBorderImageSource);
+        }
+    }
+
+    pub fn set_border_image_source(&mut self, v: longhands::border_image_source::computed_value::T) {
+        unsafe {
+            // Prevent leaking of the last elements we did set
+            Gecko_SetNullImageValue(&mut self.gecko.mBorderImageSource);
+        }
+
+        if let Some(image) = v.0 {
+            set_image(image, &mut self.gecko.mBorderImageSource)
+        }
+    }
+
 </%self:impl_trait>
 
 <% skip_margin_longhands = " ".join(["margin-%s" % x.ident for x in SIDES]) %>
@@ -1207,172 +1227,7 @@ fn static_assert() {
 
     pub fn set_${shorthand}_image(&mut self,
                                   images: longhands::${shorthand}_image::computed_value::T) {
-        use gecko_bindings::structs::nsStyleImage;
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SHAPE_CIRCULAR};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL, NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
-        use gecko_bindings::structs::nsStyleCoord;
-        use values::computed::{Image, Gradient, GradientKind, GradientShape, LengthOrKeyword};
-        use values::computed::LengthOrPercentageOrKeyword;
-        use values::specified::AngleOrCorner;
-        use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
-        use cssparser::Color as CSSColor;
-
-        fn set_gradient(gradient: Gradient, geckoimage: &mut nsStyleImage) {
-            let stop_count = gradient.stops.len();
-            if stop_count >= ::std::u32::MAX as usize {
-                warn!("stylo: Prevented overflow due to too many gradient stops");
-                return;
-            }
-
-            let gecko_gradient = match gradient.gradient_kind {
-                GradientKind::Linear(angle_or_corner) => {
-                    let gecko_gradient = unsafe {
-                        Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
-                                             NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
-                                             gradient.repeating,
-                                             /* legacy_syntax = */ false,
-                                             stop_count as u32)
-                    };
-
-                    match angle_or_corner {
-                        AngleOrCorner::Angle(angle) => {
-                            unsafe {
-                                (*gecko_gradient).mAngle.set(angle);
-                                (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                                (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
-                            }
-                        },
-                        AngleOrCorner::Corner(horiz, vert) => {
-                            let percent_x = match horiz {
-                                HorizontalDirection::Left => 0.0,
-                                HorizontalDirection::Right => 1.0,
-                            };
-                            let percent_y = match vert {
-                                VerticalDirection::Top => 0.0,
-                                VerticalDirection::Bottom => 1.0,
-                            };
-
-                            unsafe {
-                                (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
-                                (*gecko_gradient).mBgPosX
-                                                 .set_value(CoordDataValue::Percent(percent_x));
-                                (*gecko_gradient).mBgPosY
-                                                 .set_value(CoordDataValue::Percent(percent_y));
-                            }
-                        }
-                    }
-                    gecko_gradient
-                },
-                GradientKind::Radial(shape, position) => {
-                    let (gecko_shape, gecko_size) = match shape {
-                        GradientShape::Circle(ref length) => {
-                            let size = match *length {
-                                LengthOrKeyword::Keyword(keyword) => {
-                                    match keyword {
-                                        SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                        SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                        SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                        SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                    }
-                                },
-                                _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
-                            };
-                            (NS_STYLE_GRADIENT_SHAPE_CIRCULAR as u8, size as u8)
-                        },
-                        GradientShape::Ellipse(ref length) => {
-                            let size = match *length {
-                                LengthOrPercentageOrKeyword::Keyword(keyword) => {
-                                    match keyword {
-                                        SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
-                                        SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
-                                        SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
-                                        SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
-                                    }
-                                },
-                                _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
-                            };
-                            (NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL as u8, size as u8)
-                        }
-                    };
-
-                    let gecko_gradient = unsafe {
-                        Gecko_CreateGradient(gecko_shape,
-                                             gecko_size,
-                                             gradient.repeating,
-                                             /* legacy_syntax = */ false,
-                                             stop_count as u32)
-                    };
-
-                    // Clear mAngle and mBgPos fields
-                    unsafe {
-                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
-                        (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                        (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
-                    }
-
-                    // Setting radius values depending shape
-                    match shape {
-                        GradientShape::Circle(length) => {
-                            if let LengthOrKeyword::Length(len) = length {
-                                unsafe {
-                                    (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(len.0));
-                                    (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(len.0));
-                                }
-                            }
-                        },
-                        GradientShape::Ellipse(length) => {
-                            if let LengthOrPercentageOrKeyword::LengthOrPercentage(first_len, second_len) = length {
-                                unsafe {
-                                    (*gecko_gradient).mRadiusX.set(first_len);
-                                    (*gecko_gradient).mRadiusY.set(second_len);
-                                }
-                            }
-                        },
-                    }
-                    unsafe {
-                        (*gecko_gradient).mBgPosX.set(position.horizontal);
-                        (*gecko_gradient).mBgPosY.set(position.vertical);
-                    }
-
-                    gecko_gradient
-                },
-            };
-
-            let mut coord: nsStyleCoord = nsStyleCoord::null();
-            for (index, stop) in gradient.stops.iter().enumerate() {
-                // NB: stops are guaranteed to be none in the gecko side by
-                // default.
-                coord.set(stop.position);
-                let color = match stop.color {
-                    CSSColor::CurrentColor => {
-                        // TODO(emilio): gecko just stores an nscolor,
-                        // and it doesn't seem to support currentColor
-                        // as value in a gradient.
-                        //
-                        // Double-check it and either remove
-                        // currentColor for servo or see how gecko
-                        // handles this.
-                        0
-                    },
-                    CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-                };
-
-                let mut stop = unsafe {
-                    &mut (*gecko_gradient).mStops[index]
-                };
-
-                stop.mColor = color;
-                stop.mIsInterpolationHint = false;
-                stop.mLocation.copy_from(&coord);
-            }
-
-            unsafe {
-                Gecko_SetGradientImageValue(geckoimage, gecko_gradient);
-            }
-        }
 
         unsafe {
             // Prevent leaking of the last elements we did set
@@ -1390,33 +1245,15 @@ fn static_assert() {
                                                                 .mLayers.iter_mut()) {
             % if shorthand == "background":
                 if let Some(image) = image.0 {
-                    match image {
-                        Image::Gradient(gradient) => {
-                            set_gradient(gradient, &mut geckoimage.mImage)
-                        },
-                        Image::Url(..) => {
-                            // let utf8_bytes = url.as_bytes();
-                            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
-                            //                        utf8_bytes.as_ptr() as *const _,
-                            //                        utf8_bytes.len());
-                            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
-                                   background-image: url() not yet implemented");
-                        }
-                    }
+                    set_image(image, &mut geckoimage.mImage)
                 }
             % else:
                 use properties::longhands::mask_image::single_value::computed_value::T;
                 match image {
-                    T::Image(image) => match image {
-                        Image::Gradient(gradient) => {
-                            set_gradient(gradient, &mut geckoimage.mImage)
-                        }
-                        _ => () // we need to support image values
-                    },
+                    T::Image(image) => set_image(image, &mut geckoimage.mImage),
                     _ => () // we need to support url valeus
                 }
             % endif
-
         }
     }
 
@@ -1447,6 +1284,186 @@ fn static_assert() {
     }
 </%def>
 
+fn set_image(image: Image, mut geckoimage: &mut structs::nsStyleImage) {
+    match image {
+        Image::Gradient(gradient) => {
+            set_gradient(gradient, &mut geckoimage)
+        },
+        Image::Url(..) => {
+            // let utf8_bytes = url.as_bytes();
+            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
+            //                        utf8_bytes.as_ptr() as *const _,
+            //                        utf8_bytes.len());
+            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
+                   *-image: url() not yet implemented");
+        }
+    }
+}
+
+fn set_gradient(gradient: Gradient, geckoimage: &mut structs::nsStyleImage) {
+    use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SHAPE_CIRCULAR};
+    use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL, NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER};
+    use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
+    use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
+    use gecko_bindings::structs::nsStyleCoord;
+    use values::computed::{GradientKind, GradientShape, LengthOrKeyword};
+    use values::computed::LengthOrPercentageOrKeyword;
+    use values::specified::AngleOrCorner;
+    use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
+    use cssparser::Color as CSSColor;
+
+    let stop_count = gradient.stops.len();
+    if stop_count >= ::std::u32::MAX as usize {
+        warn!("stylo: Prevented overflow due to too many gradient stops");
+        return;
+    }
+
+    let gecko_gradient = match gradient.gradient_kind {
+        GradientKind::Linear(angle_or_corner) => {
+            let gecko_gradient = unsafe {
+                Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                     NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                                     gradient.repeating,
+                                     /* legacy_syntax = */ false,
+                                     stop_count as u32)
+            };
+
+            match angle_or_corner {
+                AngleOrCorner::Angle(angle) => {
+                    unsafe {
+                        (*gecko_gradient).mAngle.set(angle);
+                        (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                    }
+                },
+                AngleOrCorner::Corner(horiz, vert) => {
+                    let percent_x = match horiz {
+                        HorizontalDirection::Left => 0.0,
+                        HorizontalDirection::Right => 1.0,
+                    };
+                    let percent_y = match vert {
+                        VerticalDirection::Top => 0.0,
+                        VerticalDirection::Bottom => 1.0,
+                    };
+
+                    unsafe {
+                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosX
+                                         .set_value(CoordDataValue::Percent(percent_x));
+                        (*gecko_gradient).mBgPosY
+                                         .set_value(CoordDataValue::Percent(percent_y));
+                    }
+                }
+            }
+            gecko_gradient
+        },
+        GradientKind::Radial(shape, position) => {
+            let (gecko_shape, gecko_size) = match shape {
+                GradientShape::Circle(ref length) => {
+                    let size = match *length {
+                        LengthOrKeyword::Keyword(keyword) => {
+                            match keyword {
+                                SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                                SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
+                                SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
+                                SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                            }
+                        },
+                        _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
+                    };
+                    (NS_STYLE_GRADIENT_SHAPE_CIRCULAR as u8, size as u8)
+                },
+                GradientShape::Ellipse(ref length) => {
+                    let size = match *length {
+                        LengthOrPercentageOrKeyword::Keyword(keyword) => {
+                            match keyword {
+                                SizeKeyword::ClosestSide => NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE,
+                                SizeKeyword::FarthestSide => NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE,
+                                SizeKeyword::ClosestCorner => NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER,
+                                SizeKeyword::FarthestCorner => NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER,
+                            }
+                        },
+                        _ => NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE,
+                    };
+                    (NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL as u8, size as u8)
+                }
+            };
+
+            let gecko_gradient = unsafe {
+                Gecko_CreateGradient(gecko_shape,
+                                     gecko_size,
+                                     gradient.repeating,
+                                     /* legacy_syntax = */ false,
+                                     stop_count as u32)
+            };
+
+            // Clear mAngle and mBgPos fields
+            unsafe {
+                (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+            }
+
+            // Setting radius values depending shape
+            match shape {
+                GradientShape::Circle(length) => {
+                    if let LengthOrKeyword::Length(len) = length {
+                        unsafe {
+                            (*gecko_gradient).mRadiusX.set_value(CoordDataValue::Coord(len.0));
+                            (*gecko_gradient).mRadiusY.set_value(CoordDataValue::Coord(len.0));
+                        }
+                    }
+                },
+                GradientShape::Ellipse(length) => {
+                    if let LengthOrPercentageOrKeyword::LengthOrPercentage(first_len, second_len) = length {
+                        unsafe {
+                            (*gecko_gradient).mRadiusX.set(first_len);
+                            (*gecko_gradient).mRadiusY.set(second_len);
+                        }
+                    }
+                },
+            }
+            unsafe {
+                (*gecko_gradient).mBgPosX.set(position.horizontal);
+                (*gecko_gradient).mBgPosY.set(position.vertical);
+            }
+
+            gecko_gradient
+        },
+    };
+
+    let mut coord: nsStyleCoord = nsStyleCoord::null();
+    for (index, stop) in gradient.stops.iter().enumerate() {
+        // NB: stops are guaranteed to be none in the gecko side by
+        // default.
+        coord.set(stop.position);
+        let color = match stop.color {
+            CSSColor::CurrentColor => {
+                // TODO(emilio): gecko just stores an nscolor,
+                // and it doesn't seem to support currentColor
+                // as value in a gradient.
+                //
+                // Double-check it and either remove
+                // currentColor for servo or see how gecko
+                // handles this.
+                0
+            },
+            CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+        };
+
+        let mut stop = unsafe {
+            &mut (*gecko_gradient).mStops[index]
+        };
+
+        stop.mColor = color;
+        stop.mIsInterpolationHint = false;
+        stop.mLocation.copy_from(&coord);
+    }
+
+    unsafe {
+        Gecko_SetGradientImageValue(geckoimage, gecko_gradient);
+    }
+}
 // TODO: Gecko accepts lists in most background-related properties. We just use
 // the first element (which is the common case), but at some point we want to
 // add support for parsing these lists in servo and pushing to nsTArray's.
