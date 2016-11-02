@@ -1253,27 +1253,29 @@ impl ScriptThread {
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut urls = vec![];
+        let mut path_seg = String::from("url(");
         let mut dom_tree_size = 0;
         let mut reports = vec![];
 
         for document in self.documents.borrow().iter() {
-            let current_url = document.url().to_string();
+            let current_url = document.url().as_str();
 
             for child in document.upcast::<Node>().traverse_preorder() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);
             }
             dom_tree_size += heap_size_of_self_and_children(document.window());
 
+            if reports.len() > 0 { path_seg.push_str(", "); }
+            path_seg.push_str(current_url);
+
             reports.push(Report {
                 path: path![format!("url({})", current_url), "dom-tree"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
                 size: dom_tree_size,
             });
-            urls.push(current_url);
         }
 
-        let path_seg = format!("url({})", urls.join(", "));
+        path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
