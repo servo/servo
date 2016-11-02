@@ -6,6 +6,8 @@
 
 use Atom;
 use element_state::*;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use selector_parser::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, SelectorImpl};
@@ -23,7 +25,7 @@ use std::sync::Arc;
 /// attribute selectors. Doing this conservatively is expensive, and so we use
 /// RestyleHints to short-circuit work we know is unnecessary.
 bitflags! {
-    pub flags RestyleHint: u8 {
+    pub flags RestyleHint: u32 {
         #[doc = "Rerun selector matching on the element."]
         const RESTYLE_SELF = 0x01,
         #[doc = "Rerun selector matching on all of the element's descendants."]
@@ -32,6 +34,21 @@ bitflags! {
         const RESTYLE_DESCENDANTS = 0x02,
         #[doc = "Rerun selector matching on all later siblings of the element and all of their descendants."]
         const RESTYLE_LATER_SIBLINGS = 0x08,
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<nsRestyleHint> for RestyleHint {
+    fn from(raw: nsRestyleHint) -> Self {
+        use std::mem;
+        let raw_bits: u32 = unsafe { mem::transmute(raw) };
+        // FIXME(bholley): Finish aligning the binary representations here and
+        // then .expect() the result of the checked version.
+        if Self::from_bits(raw_bits).is_none() {
+            error!("stylo: dropping unsupported restyle hint bits");
+        }
+
+        Self::from_bits_truncate(raw_bits)
     }
 }
 

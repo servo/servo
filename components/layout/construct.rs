@@ -1354,8 +1354,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut set_has_newly_constructed_flow_flag = false;
         let result = {
             let mut style = node.style(self.style_context());
+            let damage = node.restyle_damage();
             let mut data = node.mutate_layout_data().unwrap();
-            let damage = data.base.restyle_damage;
 
             match *node.construction_result_mut(&mut *data) {
                 ConstructionResult::None => true,

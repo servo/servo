@@ -251,6 +251,7 @@ COMPILATION_TARGETS = {
         "match_headers": [
             "ServoBindingList.h",
             "ServoBindings.h",
+            "ServoTypes.h",
             "nsStyleStructList.h",
         ],
         "files": [
@@ -261,6 +262,9 @@ COMPILATION_TARGETS = {
             "RawGeckoElement",
             "RawGeckoNode",
             "ThreadSafe.*Holder",
+            "ConsumeStyleBehavior",
+            "LazyComputeBehavior",
+            "SkipRootBehavior",
         ],
 
         # Types to just use from the `structs` target.
@@ -339,8 +343,16 @@ COMPILATION_TARGETS = {
             "RawServoStyleRule",
         ],
         "servo_owned_types": [
-            "RawServoStyleSet",
-            "StyleChildrenIterator",
+            {
+                "name": "RawServoStyleSet",
+                "opaque": True,
+            }, {
+                "name": "StyleChildrenIterator",
+                "opaque": True,
+            }, {
+                "name": "ServoElementSnapshot",
+                "opaque": False,
+            },
         ],
         "servo_immutable_borrow_types": [
             "RawGeckoNode",
@@ -446,7 +458,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     if os.path.isdir(bindgen):
         bindgen = ["cargo", "run", "--manifest-path",
-                   os.path.join(bindgen, "Cargo.toml"), "--features", "llvm_stable", "--"]
+                   os.path.join(bindgen, "Cargo.toml"), "--features", "llvm_stable", "--release", "--"]
     else:
         bindgen = [bindgen]
 
@@ -606,7 +618,8 @@ Option<&'a mut {0}>;".format(ty))
             flags.append("pub type {0}{2} = {1}{2};".format(ty["gecko"], ty["servo"], "<T>" if ty["generic"] else ""))
 
     if "servo_owned_types" in current_target:
-        for ty in current_target["servo_owned_types"]:
+        for entry in current_target["servo_owned_types"]:
+            ty = entry["name"]
             flags.append("--blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
@@ -633,7 +646,8 @@ Option<&'a mut {0}>;".format(ty))
             flags.append("{}OwnedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}OwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<{0}>;".format(ty))
-            zero_size_type(ty, flags)
+            if entry["opaque"]:
+                zero_size_type(ty, flags)
 
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:

@@ -5,6 +5,7 @@
 //! Selector matching.
 
 use {Atom, LocalName};
+use data::ComputedStyle;
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
@@ -270,7 +271,7 @@ impl Stylist {
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
                                          inherit_all: bool)
-                                         -> Option<(Arc<ComputedValues>, StrongRuleNode)> {
+                                         -> Option<ComputedStyle> {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
             // FIXME(emilio): When we've taken rid of the cascade we can just
@@ -291,9 +292,9 @@ impl Stylist {
                                     None,
                                     Box::new(StdoutErrorReporter),
                                     flags);
-            Some((Arc::new(computed), rule_node))
+            Some(ComputedStyle::new(rule_node, Arc::new(computed)))
         } else {
-            parent.map(|p| (p.clone(), self.rule_tree.root()))
+            parent.map(|p| ComputedStyle::new(self.rule_tree.root(), p.clone()))
         }
     }
 
@@ -322,14 +323,14 @@ impl Stylist {
         };
         self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), inherit_all)
             .expect("style_for_anonymous_box(): No precomputed values for that pseudo!")
-            .0
+            .values
     }
 
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
-                                                  -> Option<(Arc<ComputedValues>, StrongRuleNode)>
+                                                  -> Option<ComputedStyle>
         where E: ElementExt +
                  fmt::Debug +
                  PresentationalHintsSynthetizer
@@ -359,7 +360,7 @@ impl Stylist {
                                 Box::new(StdoutErrorReporter),
                                 CascadeFlags::empty());
 
-        Some((Arc::new(computed), rule_node))
+        Some(ComputedStyle::new(rule_node, Arc::new(computed)))
     }
 
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {

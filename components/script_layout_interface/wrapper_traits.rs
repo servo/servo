@@ -76,7 +76,7 @@ pub trait GetLayoutData {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
-pub trait LayoutNode: GetLayoutData + TNode {
+pub trait LayoutNode: Debug + GetLayoutData + TNode {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
@@ -85,8 +85,6 @@ pub trait LayoutNode: GetLayoutData + TNode {
 
     unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
-
-    unsafe fn clear_dirty_bits(&self);
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {
         LayoutIterator(ReverseChildrenIterator {
@@ -97,14 +95,22 @@ pub trait LayoutNode: GetLayoutData + TNode {
     fn traverse_preorder(self) -> TreeIterator<Self> {
         TreeIterator::new(self)
     }
+
+    fn first_child(&self) -> Option<Self>;
+
+    fn last_child(&self) -> Option<Self>;
+
+    fn prev_sibling(&self) -> Option<Self>;
+
+    fn next_sibling(&self) -> Option<Self>;
 }
 
-pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
+pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: LayoutNode {
     current: Option<ConcreteNode>,
 }
 
 impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
-                            where ConcreteNode: TNode {
+                            where ConcreteNode: LayoutNode {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let node = self.current;
@@ -113,7 +119,7 @@ impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
     }
 }
 
-pub struct TreeIterator<ConcreteNode> where ConcreteNode: TNode {
+pub struct TreeIterator<ConcreteNode> where ConcreteNode: LayoutNode {
     stack: Vec<ConcreteNode>,
 }
 
@@ -144,7 +150,7 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-pub trait ThreadSafeLayoutNode: Clone + Copy + GetLayoutData + NodeInfo + PartialEq + Sized {
+pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq + Sized {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
         + ::selectors::Element<Impl=SelectorImpl>;
@@ -232,8 +238,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + GetLayoutData + NodeInfo + Partia
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
 
     fn restyle_damage(self) -> RestyleDamage;
-
-    fn clear_restyle_damage(self);
 
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
@@ -353,7 +357,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => self.get_style_data().unwrap().borrow()
-                                             .current_styles().primary.clone(),
+                                             .current_styles().primary.values.clone(),
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
@@ -367,13 +371,13 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                 .borrow()
                                 .current_styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
-                            let new_style_and_rule_node =
+                            let new_style =
                                 context.stylist.precomputed_values_for_pseudo(
                                     &style_pseudo,
-                                    Some(&data.current_styles().primary),
+                                    Some(&data.current_styles().primary.values),
                                     false);
-                            data.current_pseudos_mut()
-                                .insert(style_pseudo.clone(), new_style_and_rule_node.unwrap());
+                            data.current_styles_mut().pseudos
+                                .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
                     PseudoElementCascadeType::Lazy => {
@@ -387,8 +391,8 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                        .lazily_compute_pseudo_element_style(
                                            self,
                                            &style_pseudo,
-                                           &data.current_styles().primary);
-                            data.current_pseudos_mut()
+                                           &data.current_styles().primary.values);
+                            data.current_styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
@@ -396,7 +400,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
                 self.get_style_data().unwrap().borrow()
                     .current_styles().pseudos.get(&style_pseudo)
-                    .unwrap().0.clone()
+                    .unwrap().values.clone()
             }
         }
     }
@@ -405,9 +409,9 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn selected_style(&self) -> Arc<ServoComputedValues> {
         let data = self.get_style_data().unwrap().borrow();
         data.current_styles().pseudos
-            .get(&PseudoElement::Selection).map(|s| &s.0)
+            .get(&PseudoElement::Selection).map(|s| s)
             .unwrap_or(&data.current_styles().primary)
-            .clone()
+            .values.clone()
     }
 
     /// Returns the already resolved style of the node.
@@ -422,10 +426,10 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         let data = self.get_style_data().unwrap().borrow();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
-                => data.current_styles().primary.clone(),
+                => data.current_styles().primary.values.clone(),
             other
                 => data.current_styles().pseudos
-                       .get(&other.style_pseudo_element()).unwrap().0.clone(),
+                       .get(&other.style_pseudo_element()).unwrap().values.clone(),
         }
     }
 }
