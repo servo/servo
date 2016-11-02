@@ -47,18 +47,16 @@ extern crate webrender_traits;
 
 use app_units::Au;
 use azure::azure_hl::Color;
-use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
-use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo};
+use gfx::display_list::{ClippingRegion, OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollPolicy, ScrollRootId, StackingContextId};
+use gfx_traits::{Epoch, FragmentType, ScrollRootId};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -107,7 +105,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
-use style::computed_values::{filter, mix_blend_mode};
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
@@ -910,24 +907,9 @@ impl LayoutThread {
                                                     .unwrap_or(false);
                 match (data.goal, display_list_needed) {
                     (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
-                        let mut root_stacking_context =
-                            StackingContext::new(StackingContextId::new(0),
-                                                 StackingContextType::Real,
-                                                 &Rect::zero(),
-                                                 &Rect::zero(),
-                                                 0,
-                                                 filter::T::new(Vec::new()),
-                                                 mix_blend_mode::T::normal,
-                                                 Matrix4D::identity(),
-                                                 Matrix4D::identity(),
-                                                 true,
-                                                 ScrollPolicy::Scrollable,
-                                                 None);
-
-                        let display_list_entries =
-                            sequential::build_display_list_for_subtree(layout_root,
-                                                                       &mut root_stacking_context,
-                                                                       shared_layout_context);
+                        let mut build_state =
+                             sequential::build_display_list_for_subtree(layout_root,
+                                                                        shared_layout_context);
 
                         debug!("Done building display list.");
 
@@ -941,12 +923,9 @@ impl LayoutThread {
                         };
 
                         let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                        root_stacking_context.bounds = origin;
-                        root_stacking_context.overflow = origin;
-
-                        rw_data.display_list =
-                            Some(Arc::new(DisplayList::new(root_stacking_context,
-                                                           display_list_entries)))
+                        build_state.root_stacking_context.bounds = origin;
+                        build_state.root_stacking_context.overflow = origin;
+                        rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}
                 }

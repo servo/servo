@@ -14,7 +14,6 @@ use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use gfx::display_list::{DisplayItem, StackingContext};
 use gfx_traits::ScrollRootId;
 use script_layout_interface::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use style::context::StyleContext;
@@ -75,17 +74,16 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
 
-pub fn build_display_list_for_subtree(flow_root: &mut Flow,
-                                      root_stacking_context: &mut StackingContext,
-                                      shared_layout_context: &SharedLayoutContext)
-                                      -> Vec<DisplayItem> {
-    flow_root.collect_stacking_contexts(root_stacking_context, ScrollRootId::root());
-    let mut build_display_list = BuildDisplayList {
-        state: DisplayListBuildState::new(shared_layout_context,
-                                          flow::base(flow_root).stacking_context_id),
-    };
+pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
+                                          shared_layout_context: &'a SharedLayoutContext)
+                                          -> DisplayListBuildState<'a> {
+    let mut state = DisplayListBuildState::new(shared_layout_context,
+                                               flow::base(flow_root).stacking_context_id);
+    flow_root.collect_stacking_contexts(&mut state.root_stacking_context, ScrollRootId::root());
+
+    let mut build_display_list = BuildDisplayList { state: state };
     build_display_list.traverse(flow_root);
-    build_display_list.state.items
+    build_display_list.state
 }
 
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,

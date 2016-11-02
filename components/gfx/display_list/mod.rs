@@ -29,7 +29,6 @@ use range::Range;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
-use std::mem;
 use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use style_traits::cursor::Cursor;
@@ -54,96 +53,6 @@ pub struct DisplayList {
 }
 
 impl DisplayList {
-    pub fn new(root_stacking_context: StackingContext,
-               all_items: Vec<DisplayItem>)
-               -> DisplayList {
-        let mut mapped_items = HashMap::new();
-        for item in all_items.into_iter() {
-            let items = mapped_items.entry(item.stacking_context_id()).or_insert(Vec::new());
-            items.push(item);
-        }
-
-        let mut list = Vec::new();
-        DisplayList::generate_display_list(&mut list, &mut mapped_items, root_stacking_context);
-
-        DisplayList {
-            list: list,
-        }
-    }
-
-    fn generate_display_list(list: &mut Vec<DisplayItem>,
-                             mapped_items: &mut HashMap<StackingContextId, Vec<DisplayItem>>,
-                             mut stacking_context: StackingContext) {
-        let mut child_stacking_contexts =
-            mem::replace(&mut stacking_context.children, Vec::new());
-        child_stacking_contexts.sort();
-        let mut child_stacking_contexts = child_stacking_contexts.into_iter().peekable();
-
-        let mut child_items = mapped_items.remove(&stacking_context.id)
-                                          .unwrap_or(Vec::new());
-        child_items.sort_by(|a, b| a.base().section.cmp(&b.base().section));
-        child_items.reverse();
-
-        let stacking_context_id = stacking_context.id;
-        let real_stacking_context = stacking_context.context_type == StackingContextType::Real;
-        if real_stacking_context {
-            list.push(DisplayItem::PushStackingContext(Box::new(PushStackingContextItem {
-                base: BaseDisplayItem::empty(),
-                stacking_context: stacking_context,
-            })));
-        }
-
-        // Properly order display items that make up a stacking context. "Steps" here
-        // refer to the steps in CSS 2.1 Appendix E.
-        // Steps 1 and 2: Borders and background for the root.
-        while child_items.last().map_or(false,
-             |child| child.section() == DisplayListSection::BackgroundAndBorders) {
-            list.push(child_items.pop().unwrap());
-        }
-
-        // Step 3: Positioned descendants with negative z-indices.
-        while child_stacking_contexts.peek().map_or(false, |child| child.z_index < 0) {
-            let context = child_stacking_contexts.next().unwrap();
-            DisplayList::generate_display_list(list, mapped_items, context);
-        }
-
-        // Step 4: Block backgrounds and borders.
-        while child_items.last().map_or(false,
-             |child| child.section() == DisplayListSection::BlockBackgroundsAndBorders) {
-            list.push(child_items.pop().unwrap());
-        }
-
-        // Step 5: Floats.
-        while child_stacking_contexts.peek().map_or(false,
-            |child| child.context_type == StackingContextType::PseudoFloat) {
-            let context = child_stacking_contexts.next().unwrap();
-            DisplayList::generate_display_list(list, mapped_items, context);
-        }
-
-        // Step 6 & 7: Content and inlines that generate stacking contexts.
-        while child_items.last().map_or(false,
-             |child| child.section() == DisplayListSection::Content) {
-            list.push(child_items.pop().unwrap());
-        }
-
-        // Step 8 & 9: Positioned descendants with nonnegative, numeric z-indices.
-        for child in child_stacking_contexts {
-            DisplayList::generate_display_list(list, mapped_items, child);
-        }
-
-        // Step 10: Outlines.
-        list.extend(child_items);
-
-        if real_stacking_context {
-            list.push(DisplayItem::PopStackingContext(Box::new(
-                PopStackingContextItem {
-                    base: BaseDisplayItem::empty(),
-                    stacking_context_id: stacking_context_id,
-                }
-            )));
-        }
-    }
-
     // Return all nodes containing the point of interest, bottommost first, and
     // respecting the `pointer-events` CSS property.
     pub fn hit_test(&self,
@@ -424,6 +333,22 @@ impl StackingContext {
         }
     }
 
+    #[inline]
+    pub fn root() -> StackingContext {
+        StackingContext::new(StackingContextId::new(0),
+                             StackingContextType::Real,
+                             &Rect::zero(),
+                             &Rect::zero(),
+                             0,
+                             filter::T::new(Vec::new()),
+                             mix_blend_mode::T::normal,
+                             Matrix4D::identity(),
+                             Matrix4D::identity(),
+                             true,
+                             ScrollPolicy::Scrollable,
+                             None)
+    }
+
     pub fn add_child(&mut self, mut child: StackingContext) {
         child.update_overflow_for_all_children();
         self.children.push(child);
@@ -473,6 +398,27 @@ impl StackingContext {
             kid.print_with_tree(print_tree);
         }
         print_tree.end_level();
+    }
+
+    pub fn to_display_list_items(self) -> (DisplayItem, DisplayItem) {
+        let mut base_item = BaseDisplayItem::empty();
+        base_item.stacking_context_id = self.id;
+
+        let pop_item = DisplayItem::PopStackingContext(Box::new(
+            PopStackingContextItem {
+                base: base_item.clone(),
+                stacking_context_id: self.id,
+            }
+        ));
+
+        let push_item = DisplayItem::PushStackingContext(Box::new(
+            PushStackingContextItem {
+                base: base_item,
+                stacking_context: self,
+            }
+        ));
+
+        (push_item, pop_item)
     }
 }
 

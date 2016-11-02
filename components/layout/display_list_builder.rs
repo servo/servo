@@ -23,11 +23,11 @@ use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmen
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection, GradientDisplayItem};
-use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
+use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
+use gfx::display_list::{GradientDisplayItem, GradientStop, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
-use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
+use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
 use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
@@ -38,7 +38,9 @@ use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
 use script_layout_interface::restyle_damage::REPAINT;
 use std::{cmp, f32};
+use std::collections::HashMap;
 use std::default::Default;
+use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style};
@@ -76,7 +78,8 @@ fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 
 pub struct DisplayListBuildState<'a> {
     pub shared_layout_context: &'a SharedLayoutContext,
-    pub items: Vec<DisplayItem>,
+    pub root_stacking_context: StackingContext,
+    pub items: HashMap<StackingContextId, Vec<DisplayItem>>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
     pub scroll_root_id_stack: Vec<ScrollRootId>,
 }
@@ -87,14 +90,16 @@ impl<'a> DisplayListBuildState<'a> {
                -> DisplayListBuildState<'a> {
         DisplayListBuildState {
             shared_layout_context: shared_layout_context,
-            items: Vec::new(),
+            root_stacking_context: StackingContext::root(),
+            items: HashMap::new(),
             stacking_context_id_stack: vec!(stacking_context_id),
             scroll_root_id_stack: vec!(ScrollRootId::root()),
         }
     }
 
     fn add_display_item(&mut self, display_item: DisplayItem) {
-        self.items.push(display_item);
+        let items = self.items.entry(display_item.stacking_context_id()).or_insert(Vec::new());
+        items.push(display_item);
     }
 
     pub fn stacking_context_id(&self) -> StackingContextId {
@@ -138,6 +143,91 @@ impl<'a> DisplayListBuildState<'a> {
                              &clip,
                              section,
                              self.stacking_context_id())
+    }
+
+    pub fn to_display_list(mut self) -> DisplayList {
+        let mut list = Vec::new();
+        let root_context = mem::replace(&mut self.root_stacking_context, StackingContext::root());
+
+        self.to_display_list_for_stacking_context(&mut list, root_context);
+
+        DisplayList {
+            list: list,
+        }
+    }
+
+    fn to_display_list_for_stacking_context(&mut self,
+                                            list: &mut Vec<DisplayItem>,
+                                            mut stacking_context: StackingContext) {
+        let mut child_items = self.items.remove(&stacking_context.id).unwrap_or(Vec::new());
+        child_items.sort_by(|a, b| a.base().section.cmp(&b.base().section));
+        child_items.reverse();
+
+        let mut child_stacking_contexts =
+            mem::replace(&mut stacking_context.children, Vec::new());
+        child_stacking_contexts.sort();
+
+        let real_stacking_context = stacking_context.context_type == StackingContextType::Real;
+        if !real_stacking_context {
+            self.to_display_list_for_items(list,
+                                           child_items,
+                                           child_stacking_contexts);
+            return;
+        }
+
+        let (push_item, pop_item) = stacking_context.to_display_list_items();
+        list.push(push_item);
+        self.to_display_list_for_items(list,
+                                       child_items,
+                                       child_stacking_contexts);
+        list.push(pop_item);
+    }
+
+    fn to_display_list_for_items(&mut self,
+                                 list: &mut Vec<DisplayItem>,
+                                 mut child_items: Vec<DisplayItem>,
+                                 child_stacking_contexts: Vec<StackingContext>) {
+        // Properly order display items that make up a stacking context. "Steps" here
+        // refer to the steps in CSS 2.1 Appendix E.
+        // Steps 1 and 2: Borders and background for the root.
+        while child_items.last().map_or(false,
+             |child| child.section() == DisplayListSection::BackgroundAndBorders) {
+            list.push(child_items.pop().unwrap());
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        let mut child_stacking_contexts = child_stacking_contexts.into_iter().peekable();
+        while child_stacking_contexts.peek().map_or(false, |child| child.z_index < 0) {
+            let context = child_stacking_contexts.next().unwrap();
+            self.to_display_list_for_stacking_context(list, context);
+        }
+
+        // Step 4: Block backgrounds and borders.
+        while child_items.last().map_or(false,
+             |child| child.section() == DisplayListSection::BlockBackgroundsAndBorders) {
+            list.push(child_items.pop().unwrap());
+        }
+
+        // Step 5: Floats.
+        while child_stacking_contexts.peek().map_or(false,
+            |child| child.context_type == StackingContextType::PseudoFloat) {
+            let context = child_stacking_contexts.next().unwrap();
+            self.to_display_list_for_stacking_context(list, context);
+        }
+
+        // Step 6 & 7: Content and inlines that generate stacking contexts.
+        while child_items.last().map_or(false,
+             |child| child.section() == DisplayListSection::Content) {
+            list.push(child_items.pop().unwrap());
+        }
+
+        // Step 8 & 9: Positioned descendants with nonnegative, numeric z-indices.
+        for child in child_stacking_contexts {
+            self.to_display_list_for_stacking_context(list, child);
+        }
+
+        // Step 10: Outlines.
+        list.extend(child_items);
     }
 }
 
