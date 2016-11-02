@@ -640,7 +640,7 @@ fn static_assert() {
                                     ["border-{0}-radius".format(x.ident.replace("_", "-"))
                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset"
+                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset border-image-repeat"
                   skip_additionals="*">
 
     % for side in SIDES:
@@ -702,6 +702,28 @@ fn static_assert() {
             self.gecko.mBorderImageOutset.data_at_mut(${side.index})
                 .copy_from(&other.gecko.mBorderImageOutset.data_at(${side.index}));
         % endfor
+    }
+
+    pub fn set_border_image_repeat(&mut self, v: longhands::border_image_repeat::computed_value::T) {
+        use properties::longhands::border_image_repeat::computed_value::RepeatKeyword;
+        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH, NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT};
+        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_REPEAT_ROUND, NS_STYLE_BORDER_IMAGE_REPEAT_SPACE};
+
+        % for i, side in enumerate(["H", "V"]):
+            let k = match v.${i} {
+                RepeatKeyword::Stretch => NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH,
+                RepeatKeyword::Repeat => NS_STYLE_BORDER_IMAGE_REPEAT_REPEAT,
+                RepeatKeyword::Round => NS_STYLE_BORDER_IMAGE_REPEAT_ROUND,
+                RepeatKeyword::Space => NS_STYLE_BORDER_IMAGE_REPEAT_SPACE,
+            };
+
+            self.gecko.mBorderImageRepeat${side} = k as u8;
+        % endfor
+    }
+
+    pub fn copy_border_image_repeat_from(&mut self, other: &Self) {
+        self.gecko.mBorderImageRepeatH = other.gecko.mBorderImageRepeatH;
+        self.gecko.mBorderImageRepeatV = other.gecko.mBorderImageRepeatV;
     }
 </%self:impl_trait>
 
