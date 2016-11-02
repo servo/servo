@@ -27,7 +27,8 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{IpcSend, LoadContext, load_whole_resource};
+use net_traits::{IpcSend, load_whole_resource};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use rand::random;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
@@ -160,10 +161,24 @@ impl DedicatedWorkerGlobalScope {
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let (metadata, bytes) = match load_whole_resource(LoadContext::Script,
-                                                              &init.resource_threads.sender(),
-                                                              worker_url,
-                                                              &worker_load_origin) {
+
+            let WorkerScriptLoadOrigin { referrer_url, referrer_policy, pipeline_id } = worker_load_origin;
+
+            let request = RequestInit {
+                url: worker_url.clone(),
+                type_: RequestType::Script,
+                destination: Destination::Worker,
+                credentials_mode: CredentialsMode::Include,
+                use_url_credentials: true,
+                origin: worker_url,
+                pipeline_id: pipeline_id,
+                referrer_url: referrer_url,
+                referrer_policy: referrer_policy,
+                .. RequestInit::default()
+            };
+
+            let (metadata, bytes) = match load_whole_resource(request,
+                                                              &init.resource_threads.sender()) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,

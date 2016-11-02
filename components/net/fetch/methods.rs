@@ -492,8 +492,8 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         },
 
         "ftp" => {
-            // XXXManishearth handle these
-            panic!("Unimplemented scheme for Fetch")
+            debug!("ftp is not implemented");
+            Response::network_error(NetworkError::Internal("Unexpected scheme".into()))
         },
 
         _ => Response::network_error(NetworkError::Internal("Unexpected scheme".into()))

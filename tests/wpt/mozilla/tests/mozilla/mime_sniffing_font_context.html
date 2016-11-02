@@ -51,8 +51,8 @@ async_test(function() {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'resources/no_mime_type.py?Content-Type=application/xhtml%2Bxml', true);
   xhr.onload = this.step_func_done(function() {
-    t4.step_timeout(checkFontNotLoaded.bind(t4, 'fifth', 'sixth'), 500);
     assert_equals(xhr.getResponseHeader('Content-Type'), 'application/xhtml+xml');
+    t4.step_timeout(checkFontLoaded, 500);
   });
   xhr.send();
 }, "XHR Content-Type has xhtml+xml");
@@ -61,8 +61,8 @@ async_test(function() {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', 'resources/no_mime_type.py?Content-Type=application/xml', true);
   xhr.onload = this.step_func_done(function() {
-    t3.step_timeout(checkFontNotLoaded.bind(t3, 'third', 'fourth'), 500);
     assert_equals(xhr.getResponseHeader('Content-Type'), 'application/xml');
+    t3.step_timeout(checkFontLoaded, 500);
   });
   xhr.send();
 }, "XHR Content-Type has xml");

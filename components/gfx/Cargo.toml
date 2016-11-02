@@ -25,7 +25,6 @@ ipc-channel = "0.5"
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
-mime = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.2.2"
