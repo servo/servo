@@ -190,12 +190,12 @@ dependencies = [
 
 [[package]]
 name = "blurdroid"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "blurmock"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -522,10 +522,10 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#4a6ab4be0de229fafa6aa3657a5702646832ba08"
+source = "git+https://github.com/servo/devices#1bb5a200c7ae1f42ddf3c42b235b3db66226aabf"
 dependencies = [
- "blurdroid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "blurmock 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurz 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3148,8 +3148,8 @@ dependencies = [
 "checksum bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8dead7461c1127cf637931a1e50934eb6eee8bff2f74433ac7909e9afcee04a3"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
-"checksum blurdroid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5fce4ea3366b583e9d49e1aa3a42252e53b42911bccd06f31c3e81c48ccfc79e"
-"checksum blurmock 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c3034c7372bc7951e0a916b7e952b0043cd4ccb5112cd30827f0e1708e05c2b1"
+"checksum blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f4a86fbb3818e7f850410e026bfac7742fe86cbf4acf49f5752936b32d1f7eb8"
+"checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
 "checksum blurz 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4d49796c8d5a1b5f6b2b8686e46ed4ab842987c477f765b69f1d3e8df6072608"
 "checksum brotli 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "bff2d5511b5ba5840f46cc3f9c0c3ab09db20e9b9a4db344ef7df3fb547a627a"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"

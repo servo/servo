@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return Promise.all([
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {dataPrefix: new Uint8Array([1, 2, 3])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {dataPrefix: new Uint8Array([1, 2])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {dataPrefix: new Uint8Array([1])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                serviceData: {
+                    'glucose': {dataPrefix: new Uint8Array([1, 2, 3])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                serviceData: {
+                    '00001808-0000-1000-8000-00805f9b34fb': {dataPrefix: new Uint8Array([1, 2])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                serviceData: {
+                    0x1808: {dataPrefix: new Uint8Array([1])},
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {dataPrefix: new Uint8Array([1])},
+                },
+                serviceData: {
+                    0x1808: {dataPrefix: new Uint8Array([1])},
+                }
+            }]
+        })
+    ])
+    .then(devices => {
+        devices.forEach(device => assert_equals(device.name, mock_device_name.glucose));
+    });
+}, 'A device can be found by requesting with a service/manufacturerData.dataPrefix, which contains the starting or all bytes of device\'s advertised service/manufacturer specific data bytes.');
+</script>

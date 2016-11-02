@@ -7,7 +7,7 @@ use device::bluetooth::{BluetoothAdapter, BluetoothDevice};
 use device::bluetooth::{BluetoothGATTCharacteristic, BluetoothGATTDescriptor, BluetoothGATTService};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::error::Error;
 use std::string::String;
 use uuid::Uuid;
@@ -417,6 +417,29 @@ fn create_blacklisted_device(adapter: &BluetoothAdapter) -> Result<(), Box<Error
     Ok(())
 }
 
+fn create_glucose_heart_rate_devices(adapter: &BluetoothAdapter) -> Result<(), Box<Error>> {
+    let glucose_devie = try!(create_device_with_uuids(adapter,
+                                                      GLUCOSE_DEVICE_NAME.to_owned(),
+                                                      GLUCOSE_DEVICE_ADDRESS.to_owned(),
+                                                      vec![GLUCOSE_SERVICE_UUID.to_owned(),
+                                                           TX_POWER_SERVICE_UUID.to_owned()]));
+
+    let heart_rate_device_empty = try!(create_heart_rate_device(adapter, true));
+
+    let mut manufacturer_dta = HashMap::new();
+    manufacturer_dta.insert(17, vec![1, 2, 3]);
+    try!(glucose_devie.set_manufacturer_data(manufacturer_dta));
+
+    let mut service_data = HashMap::new();
+    service_data.insert(GLUCOSE_SERVICE_UUID.to_owned(), vec![1, 2, 3]);
+    try!(glucose_devie.set_service_data(service_data));
+
+    service_data = HashMap::new();
+    service_data.insert(HEART_RATE_SERVICE_UUID.to_owned(), vec![1, 2, 3]);
+    try!(heart_rate_device_empty.set_service_data(service_data));
+    Ok(())
+}
+
 pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(), Box<Error>> {
     let may_existing_adapter = manager.get_or_create_adapter();
     let adapter = match may_existing_adapter.as_ref() {
@@ -437,14 +460,7 @@ pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(),
         },
         GLUCOSE_HEART_RATE_ADAPTER => {
             try!(set_adapter(adapter, GLUCOSE_HEART_RATE_ADAPTER.to_owned()));
-
-            let _glucose_devie = try!(create_device_with_uuids(adapter,
-                                                               GLUCOSE_DEVICE_NAME.to_owned(),
-                                                               GLUCOSE_DEVICE_ADDRESS.to_owned(),
-                                                               vec![GLUCOSE_SERVICE_UUID.to_owned(),
-                                                                    TX_POWER_SERVICE_UUID.to_owned()]));
-
-            let _heart_rate_device_empty = try!(create_heart_rate_device(adapter, true));
+            let _ = try!(create_glucose_heart_rate_devices(adapter));
         },
         UNICODE_DEVICE_ADAPTER => {
             try!(set_adapter(adapter, UNICODE_DEVICE_ADAPTER.to_owned()));

@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let blocklisted_keys = [{
+    filters: [{
+        serviceData: {
+            'heart_rate':                           {},
+            '00001812-0000-1000-8000-00805f9b34fb': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate':                           {},
+            '00001530-1212-efde-1523-785feabcd123': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate':                           {},
+            'f000ffc0-0451-4000-b000-000000000000': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate':             {},
+            'human_interface_device': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'heart_rate':  {},
+            0x1812:        {}
+        }
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let promises = [];
+    blocklisted_keys.forEach(args => {
+        promises.push(promise_rejects(t, 'SecurityError', window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Rejects with SecurityError, if a serviceData key is blocklisted.');
+</script>

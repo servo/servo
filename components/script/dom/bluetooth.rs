@@ -8,9 +8,11 @@ use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
+use core::ops::Deref;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods, BluetoothRequestDeviceFilter};
-use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
+use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
+use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
+use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -31,10 +33,14 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use network_listener::{NetworkListener, PreInvoke};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
+const KEY_CONVERSION_ERROR: &'static str = "This `manufacturerData` key can not be parsed as unsigned short:";
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
+const MANUFACTURER_DATA_ERROR: &'static str = "'manufacturerData', if present, must be non-empty to filter devices.";
+const MASK_LENGTH_ERROR: &'static str = "`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
 // A device name can never be longer than 29 bytes.
@@ -44,6 +50,7 @@ const MAX_DEVICE_NAME_LENGTH: usize = 248;
 const MAX_FILTER_NAME_LENGTH: usize = 29;
 const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
+const SERVICE_DATA_ERROR: &'static str = "'serviceData', if present, must be non-empty to filter devices.";
 const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
 const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
@@ -122,7 +129,7 @@ impl Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_bluetooth_devices(&self,
                                  p: &Rc<Promise>,
-                                 filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
+                                 filters: &Option<Vec<BluetoothLEScanFilterInit>>,
                                  optional_services: &Option<Vec<BluetoothServiceUUID>>) {
         // TODO: Step 1: Triggered by user activation.
 
@@ -165,7 +172,7 @@ pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
+fn convert_request_device_options(filters: &Option<Vec<BluetoothLEScanFilterInit>>,
                                   optional_services: &Option<Vec<BluetoothServiceUUID>>)
                                   -> Fallible<RequestDeviceoptions> {
     // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
@@ -206,13 +213,13 @@ fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFil
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<BluetoothScanfilter> {
+fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<BluetoothScanfilter> {
     // Step 2.4.1.
     if filter.services.is_none() &&
        filter.name.is_none() &&
        filter.namePrefix.is_none() &&
-       filter.manufacturerId.is_none() &&
-       filter.serviceDataUUID.is_none() {
+       filter.manufacturerData.is_none() &&
+       filter.serviceData.is_none() {
            return Err(Type(FILTER_ERROR.to_owned()));
     }
 
@@ -285,31 +292,72 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
         None => String::new(),
     };
 
-    // Step 2.4.6.
-    let manufacturer_id = filter.manufacturerId;
-
-    // Step 2.4.7.
-    let service_data_uuid = match filter.serviceDataUUID {
-        Some(ref service_data_uuid) => {
-            // Step 2.4.7.1 - 2.4.7.2.
-            let uuid = try!(BluetoothUUID::service(service_data_uuid.clone())).to_string();
-
-            // Step 2.4.7.3.
-            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
-                return Err(Security)
+    // Step 2.4.6 - 2.4.7
+    let manufacturer_data = match filter.manufacturerData {
+        Some(ref manufacturer_data_map) => {
+            if manufacturer_data_map.deref().is_empty() {
+                return Err(Type(MANUFACTURER_DATA_ERROR.to_owned()));
             }
-
-            // Step 2.4.7.4.
-            uuid
+            let mut map = HashMap::new();
+            for (key, bdfi) in manufacturer_data_map.deref() {
+                let manufacturer_id = match u16::from_str(key.as_ref()) {
+                    Ok(id) => id,
+                    Err(err) => return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err))),
+                };
+                map.insert(manufacturer_id, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
+            }
+            Some(map)
         },
-        None => String::new(),
+        None => None,
     };
 
-    Ok(BluetoothScanfilter::new(name,
-                                name_prefix,
-                                services_vec,
-                                manufacturer_id,
-                                service_data_uuid))
+    // Step 2.4.8 -2.4.9
+    let service_data = match filter.serviceData {
+        Some(ref service_data_map) => {
+            if service_data_map.deref().is_empty() {
+                return Err(Type(SERVICE_DATA_ERROR.to_owned()));
+            }
+            let mut map = HashMap::new();
+            for (key, bdfi) in service_data_map.deref() {
+                let service_name = match u32::from_str(key.as_ref()) {
+                    Ok(number) => StringOrUnsignedLong::UnsignedLong(number),
+                    _ => StringOrUnsignedLong::String(key.clone())
+                };
+                let service = try!(BluetoothUUID::service(service_name)).to_string();
+                if uuid_is_blacklisted(service.as_ref(), Blacklist::All) {
+                    return Err(Security);
+                }
+                map.insert(service, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
+            }
+            Some(map)
+        },
+        None => None,
+    };
+
+    // Step 10.
+    Ok(BluetoothScanfilter::new(name, name_prefix, services_vec, manufacturer_data, service_data))
+}
+
+// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing
+fn canonicalize_bluetooth_data_filter_init(bdfi: &BluetoothDataFilterInit) -> Fallible<(Vec<u8>, Vec<u8>)> {
+    // Step 1.
+    let data_prefix = match bdfi.dataPrefix {
+        Some(ref d) => d.clone(),
+        None => Vec::new(),
+    };
+    // Step 2.
+    let mask = match bdfi.mask {
+        Some(ref m) => m.clone(),
+        // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
+        // Masking dataPrefix with this, leaves dataPrefix untouched.
+        None => vec![0xFF; data_prefix.len()],
+    };
+    // Step 3.
+    if mask.len() != data_prefix.len() {
+        return Err(Type(MASK_LENGTH_ERROR.to_owned()));
+    }
+    // Step 4.
+    Ok((data_prefix, mask))
 }
 
 impl From<BluetoothError> for Error {

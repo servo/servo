@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return promise_rejects(
+        t, 'NotFoundError',
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {dataPrefix: new Uint8Array([1, 2, 3])},
+                },
+                serviceData: {
+                    'heart_rate': {dataPrefix: new Uint8Array([1, 2, 3])}
+                }
+            }]}));
+}, 'Requesting with manufacturerData and serviceData in the same filter, will not find a device which does not advertises both.');
+</script>

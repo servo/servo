@@ -130,23 +130,60 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
         }
     }
 
-// Step 4.
-// TODO: Implement get_manufacturer_data in device crate.
-//    if let Some(manufacturer_id) = filter.get_manufacturer_id() {
-//        if !device.get_manufacturer_data().contains_key(manufacturer_id) {
-//            return false;
-//        }
-//    }
-//
-// Step 5.
-// TODO: Implement get_device_data in device crate.
-//    if !filter.get_service_data_uuid().is_empty() {
-//        if !device.get_service_data().contains_key(filter.get_service_data_uuid()) {
-//            return false;
-//        }
-//    }
+    // Step 4.
+    if let Some(ref manufacurer_data) = *filter.get_manufacturer_data() {
+        let advertised_manufacturer_data = match device.get_manufacturer_data() {
+            Ok(data) => data,
+            Err(_) => return false,
+        };
+        for (ref id, &(ref prefix, ref mask)) in manufacurer_data {
+            if let Some(advertised_data) = advertised_manufacturer_data.get(id) {
+                if !data_filter_matches(advertised_data, prefix, mask) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+
+    // Step 5.
+    if let Some(ref service_data) = *filter.get_service_data() {
+        let advertised_service_data = match device.get_service_data() {
+            Ok(data) => data,
+            Err(_) => return false,
+        };
+        for (uuid, &(ref prefix, ref mask)) in service_data {
+            if let Some(advertised_data) = advertised_service_data.get(uuid.as_str()) {
+                if !data_filter_matches(advertised_data, prefix, mask) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
 
     // Step 6.
+    true
+}
+
+// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-matches
+fn data_filter_matches(data: &[u8], prefix: &[u8], mask: &[u8]) -> bool {
+    // Step 1-2: No need to copy the bytes here.
+    // Step 3.
+    if data.len() < prefix.len() {
+        return false;
+    }
+
+    // Step 4.
+    for i in 0..mask.len() {
+        if data[i] & mask[i] != prefix[i] & mask[i] {
+            return false;
+        }
+    }
+
+    // Step 5.
     true
 }
 
