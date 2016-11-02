@@ -4,16 +4,25 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
-dictionary BluetoothRequestDeviceFilter {
+dictionary BluetoothDataFilterInit {
+//  BufferSource dataPrefix;
+ sequence<octet> dataPrefix;
+//  BufferSource mask;
+  sequence<octet> mask;
+};
+
+dictionary BluetoothLEScanFilterInit {
   sequence<BluetoothServiceUUID> services;
   DOMString name;
   DOMString namePrefix;
-  unsigned short manufacturerId;
-  BluetoothServiceUUID serviceDataUUID;
+//  Maps unsigned shorts to BluetoothDataFilters.
+  MozMap<BluetoothDataFilterInit> manufacturerData;
+//  Maps BluetoothServiceUUIDs to BluetoothDataFilters.
+  MozMap<BluetoothDataFilterInit> serviceData;
 };
 
 dictionary RequestDeviceOptions {
-  sequence<BluetoothRequestDeviceFilter> filters;
+  sequence<BluetoothLEScanFilterInit> filters;
   sequence<BluetoothServiceUUID> optionalServices /*= []*/;
   boolean acceptAllDevices = false;
 };
@@ -23,6 +32,12 @@ interface Bluetooth {
 //  [SecureContext]
 //  readonly attribute BluetoothDevice? referringDevice;
 //  [SecureContext]
+//  Promise<boolean> getAvailability();
+//  [SecureContext]
+//  attribute EventHandler onavailabilitychanged;
+//  [SecureContext]
+//  readonly attribute BluetoothDevice? referringDevice;
+  [SecureContext]
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
 };
 

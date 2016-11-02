@@ -7370,6 +7370,12 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html"
           }
         ],
+        "mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/blocklisted-service-data-key.html"
+          }
+        ],
         "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html",
@@ -7466,6 +7472,24 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-namePrefix.html"
           }
         ],
+        "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-manufacturer-data-key.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-mask-length.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-data-key.html"
+          }
+        ],
         "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html": [
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-optionalServices-member.html",
@@ -7476,6 +7500,42 @@
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html",
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-found-using-mask.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-found-using-mask.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-found-using-mask.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-key-and-value.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-found-with-key-only.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-found-with-key-only.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-key-only.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-found-with-service-and-manufacturer-data.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-not-found-with-extra-data.html"
+          }
+        ],
+        "mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html": [
+          {
+            "path": "mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/device-not-found-with-service-and-manufacturer-data.html"
           }
         ],
         "mozilla/bluetooth/requestDevice/discovery-succeeds.html": [

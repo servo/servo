@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return Promise.all([
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {
+                        dataPrefix: new Uint8Array([0x91, 0xAA, 0x03]),
+                        mask: new Uint8Array([0x0F, 0x57, 0x0F])
+                    }
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                serviceData: {
+                    0x1808: {
+                        dataPrefix: new Uint8Array([0x91, 0xAA, 0x03]),
+                        mask: new Uint8Array([0x0F, 0x57, 0x0F])
+                    }
+                }
+            }]
+        }),
+        window.navigator.bluetooth.requestDevice({
+            filters: [{
+                manufacturerData: {
+                    17: {
+                        dataPrefix: new Uint8Array([0x91, 0xAA, 0x03]),
+                        mask: new Uint8Array([0x0F, 0x57, 0x0F])
+                    }
+                },
+                serviceData: {
+                    0x1808: {
+                        dataPrefix: new Uint8Array([0x91, 0xAA, 0x03]),
+                        mask: new Uint8Array([0x0F, 0x57, 0x0F])
+                    }
+                }
+            }]
+        }),
+    ])
+    .then(devices => {
+        devices.forEach(device => assert_equals(device.name, mock_device_name.glucose));
+    });
+}, 'A device can be found by requesting service/manufacturerData with a dataPrefix and an appropriate mask');
+</script>

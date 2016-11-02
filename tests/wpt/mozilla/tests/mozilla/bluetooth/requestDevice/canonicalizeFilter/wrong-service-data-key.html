@@ -1,0 +1,88 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let wrong_service_data_keys = [{
+    filters: [{
+        serviceData: {
+            'glucose':       {},
+            'wrong_service': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            '-240':    {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            '':        {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            '-0':      {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            null:      {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            undefined: {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose':    {},
+            '4294967296': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose':  {},
+            4294967296: {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose':                               {},
+            '123456789-0000-1000-8000-00805f9b34fb': {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'glucose': {},
+            '0x180d':  {}
+        }
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let promises = [];
+    wrong_service_data_keys.forEach(args => {
+        promises.push(promise_rejects(t, 'SyntaxError', window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Rejects with SyntaxError, if a serviceData key not converts to a valid uuid.');
+</script>

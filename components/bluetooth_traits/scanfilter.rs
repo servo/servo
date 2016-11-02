@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::slice::Iter;
 
 // A device name can never be longer than 29 bytes. An adv packet is at most
@@ -23,28 +23,31 @@ impl ServiceUUIDSequence {
     }
 }
 
+type ManufacturerData = HashMap<u16, (Vec<u8>, Vec<u8>)>;
+type ServiceData = HashMap<String, (Vec<u8>, Vec<u8>)>;
+
 #[derive(Deserialize, Serialize)]
 pub struct BluetoothScanfilter {
     name: Option<String>,
     name_prefix: String,
     services: ServiceUUIDSequence,
-    manufacturer_id: Option<u16>,
-    service_data_uuid: String,
+    manufacturer_data: Option<ManufacturerData>,
+    service_data: Option<ServiceData>,
 }
 
 impl BluetoothScanfilter {
     pub fn new(name: Option<String>,
                name_prefix: String,
                services: Vec<String>,
-               manufacturer_id: Option<u16>,
-               service_data_uuid: String)
+               manufacturer_data: Option<ManufacturerData>,
+               service_data: Option<ServiceData>)
                -> BluetoothScanfilter {
         BluetoothScanfilter {
             name: name,
             name_prefix: name_prefix,
             services: ServiceUUIDSequence::new(services),
-            manufacturer_id: manufacturer_id,
-            service_data_uuid: service_data_uuid,
+            manufacturer_data: manufacturer_data,
+            service_data: service_data,
         }
     }
 
@@ -60,20 +63,20 @@ impl BluetoothScanfilter {
         &self.services.0
     }
 
-    pub fn get_manufacturer_id(&self) -> Option<u16> {
-        self.manufacturer_id
+    pub fn get_manufacturer_data(&self) -> &Option<ManufacturerData> {
+        &self.manufacturer_data
     }
 
-    pub fn get_service_data_uuid(&self) -> &str {
-        &self.service_data_uuid
+    pub fn get_service_data(&self) -> &Option<ServiceData> {
+        &self.service_data
     }
 
     pub fn is_empty_or_invalid(&self) -> bool {
         (self.name.is_none() &&
          self.name_prefix.is_empty() &&
          self.get_services().is_empty() &&
-         self.manufacturer_id.is_none() &&
-         self.service_data_uuid.is_empty()) ||
+         self.manufacturer_data.is_none() &&
+         self.service_data.is_none()) ||
         self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
         self.name_prefix.len() > MAX_NAME_LENGTH
     }
