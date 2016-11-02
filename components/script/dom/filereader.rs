@@ -274,7 +274,7 @@ impl FileReader {
             *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
 
             if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
-                heap.set(jsval::ObjectValue(&*array_buffer.get()));
+                heap.set(jsval::ObjectValue(array_buffer.get()));
             };
         }
     }

@@ -51,7 +51,7 @@ impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
     unsafe fn initialize(&self, cx: *mut JSContext) {
         let obj = self.reflector().get_jsobject();
-        self.permanent_js_root.set(ObjectValue(&**obj));
+        self.permanent_js_root.set(ObjectValue(*obj));
         assert!(AddRawValueRoot(cx,
                                 self.permanent_js_root.get_unsafe(),
                                 b"Promise::root\0" as *const _ as *const _));
@@ -278,7 +278,7 @@ fn create_native_handler_function(cx: *mut JSContext,
         assert!(!obj.is_null());
         SetFunctionNativeReserved(obj.get(),
                                   SLOT_NATIVEHANDLER,
-                                  &ObjectValue(&**holder));
+                                  &ObjectValue(*holder));
         SetFunctionNativeReserved(obj.get(),
                                   SLOT_NATIVEHANDLER_TASK,
                                   &Int32Value(task as i32));
