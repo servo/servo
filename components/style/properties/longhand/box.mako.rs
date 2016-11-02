@@ -846,37 +846,41 @@ ${helpers.keyword_list("animation-fill-mode",
     use std::fmt;
     use values::LocalToCss;
     use values::HasViewportPercentage;
-    use values::specified::Length;
+    use values::specified::LengthOrPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                SpecifiedValue::Repeat(length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
     }
 
     pub mod computed_value {
-        use app_units::Au;
+        use values::computed::LengthOrPercentage;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
+        pub struct T(pub Option<LengthOrPercentage>);
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
-        Specified(Length),
+        Repeat(LengthOrPercentage),
     }
 
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.0 {
                 None => dest.write_str("none"),
-                Some(l) => l.to_css(dest)
+                Some(l) => {
+                    try!(dest.write_str("repeat("));
+                    try!(l.to_css(dest));
+                    dest.write_str(")")
+                },
             }
         }
     }
@@ -884,7 +888,11 @@ ${helpers.keyword_list("animation-fill-mode",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::None => dest.write_str("none"),
-                SpecifiedValue::Specified(ref l) => l.to_css(dest),
+                SpecifiedValue::Repeat(ref l) => {
+                    try!(dest.write_str("repeat("));
+                    try!(l.to_css(dest));
+                    dest.write_str(")")
+                },
             }
         }
     }
@@ -901,7 +909,7 @@ ${helpers.keyword_list("animation-fill-mode",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::None => computed_value::T(None),
-                SpecifiedValue::Specified(l) =>
+                SpecifiedValue::Repeat(l) =>
                     computed_value::T(Some(l.to_computed_value(context))),
             }
         }
@@ -910,7 +918,7 @@ ${helpers.keyword_list("animation-fill-mode",
             match *computed {
                 computed_value::T(None) => SpecifiedValue::None,
                 computed_value::T(Some(l)) =>
-                    SpecifiedValue::Specified(ToComputedValue::from_computed_value(&l))
+                    SpecifiedValue::Repeat(ToComputedValue::from_computed_value(&l))
             }
         }
     }
@@ -920,7 +928,7 @@ ${helpers.keyword_list("animation-fill-mode",
             Ok(SpecifiedValue::None)
         } else if input.try(|input| input.expect_function_matching("repeat")).is_ok() {
             input.parse_nested_block(|input| {
-                Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+                LengthOrPercentage::parse_non_negative(input).map(SpecifiedValue::Repeat)
             })
         } else {
             Err(())
