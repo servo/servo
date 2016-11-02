@@ -120,7 +120,7 @@ dictionary ScrollToOptions : ScrollOptions {
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
 partial interface Window {
-  //MediaQueryList matchMedia(DOMString query);
+  [Exposed=(Window), NewObject] MediaQueryList matchMedia(DOMString query);
   [SameObject] readonly attribute Screen screen;
 
   // browsing context

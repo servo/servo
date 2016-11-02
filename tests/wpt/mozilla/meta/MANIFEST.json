@@ -6566,6 +6566,12 @@
             "url": "/_mozilla/css/float_relative_to_position.html"
           }
         ],
+        "css/matchMedia.html": [
+          {
+            "path": "css/matchMedia.html",
+            "url": "/_mozilla/css/matchMedia.html"
+          }
+        ],
         "css/media_calc_crash.html": [
           {
             "path": "css/media_calc_crash.html",

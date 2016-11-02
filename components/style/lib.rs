@@ -137,6 +137,8 @@ pub mod values;
 pub mod viewport;
 pub mod workqueue;
 
+use cssparser::ToCss;
+use std::fmt;
 use std::sync::Arc;
 
 /// The CSS properties supported by the style system.
@@ -175,4 +177,17 @@ pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     let a: &T = &**a;
     let b: &T = &**b;
     (a as *const T) == (b as *const T)
+}
+
+pub fn serialize_comma_separated_list<W, T>(dest: &mut W, list: &[T])
+                                            -> fmt::Result where W: fmt::Write, T: ToCss {
+    if list.len() > 0 {
+        for item in &list[..list.len()-1] {
+            try!(item.to_css(dest));
+            try!(write!(dest, ", "));
+        }
+        list[list.len()-1].to_css(dest)
+    } else {
+        Ok(())
+    }
 }

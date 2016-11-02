@@ -2099,6 +2099,11 @@ impl ScriptThread {
                                        0i32);
             uievent.upcast::<Event>().fire(window.upcast());
         }
+
+        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
+        // Step 7.7 - evaluate media queries and report changes
+        // Since we have resized, we need to re-evaluate MQLs
+        window.evaluate_media_queries_and_report_changes();
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad

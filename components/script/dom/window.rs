@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
@@ -35,6 +36,7 @@ use dom::globalscope::GlobalScope;
 use dom::history::History;
 use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
+use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
 use dom::node::{Node, from_untrusted_node_address, window_from_node};
@@ -86,6 +88,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
+use style::media_queries;
 use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -233,6 +236,9 @@ pub struct Window {
 
     /// A list of scroll offsets for each scrollable element.
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
+
+    /// All the MediaQueryLists we need to update
+    media_query_lists: WeakMediaQueryListVec,
 }
 
 impl Window {
@@ -308,6 +314,10 @@ impl Window {
     /// This is called when layout gives us new ones and WebRender is in use.
     pub fn set_scroll_offsets(&self, offsets: HashMap<UntrustedNodeAddress, Point2D<f32>>) {
         *self.scroll_offsets.borrow_mut() = offsets
+    }
+
+    pub fn current_viewport(&self) -> Rect<Au> {
+        self.current_viewport.clone().get()
     }
 }
 
@@ -854,6 +864,16 @@ impl WindowMethods for Window {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
         }
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
+    fn MatchMedia(&self, query: DOMString) -> Root<MediaQueryList> {
+        let mut parser = Parser::new(&query);
+        let media_query_list = media_queries::parse_media_query_list(&mut parser);
+        let document = self.Document();
+        let mql = MediaQueryList::new(&document, media_query_list);
+        self.media_query_lists.push(&*mql);
+        mql
     }
 
     #[allow(unrooted_must_root)]
@@ -1477,6 +1497,10 @@ impl Window {
         let custom_event = build_mozbrowser_custom_event(&self, event);
         custom_event.upcast::<Event>().fire(self.upcast());
     }
+
+    pub fn evaluate_media_queries_and_report_changes(&self) {
+        self.media_query_lists.evaluate_and_report_changes();
+    }
 }
 
 impl Window {
@@ -1563,6 +1587,7 @@ impl Window {
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
+            media_query_lists: WeakMediaQueryListVec::new(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
