@@ -62,4 +62,4 @@ pub mod cursor;
 pub mod values;
 pub mod viewport;
 
-pub use values::ToCss;
+pub use values::{FromCss, ToCss};

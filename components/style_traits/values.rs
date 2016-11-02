@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::CssStringWriter;
+use cssparser::{CssStringWriter, Parser};
 use std::fmt::{self, Write};
 use url::Url;
 
@@ -55,6 +55,12 @@ impl_to_css_for_predefined_type!(u32);
 impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
 impl_to_css_for_predefined_type!(::cssparser::RGBA);
 impl_to_css_for_predefined_type!(::cssparser::Color);
+
+/// CSS Deserialization (should be implemented by all types)
+pub trait FromCss: Sized {
+    /// Try to the parse the parser's output into a particular CSS type
+    fn from_css(input: &mut Parser) -> Result<Self, ()>;
+}
 
 #[macro_export]
 macro_rules! define_css_keyword_enum {
