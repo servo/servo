@@ -89,6 +89,41 @@ pub trait CssType: Debug + FromCss + ToCss {}
 
 impl<T> CssType for T where T: Debug + FromCss + ToCss {}
 
+use self::computed::ComputedValueAsSpecified;
+
+macro_rules! define_keyword_type {
+    ($name: ident, $css: expr) => {
+        #[derive(Clone, PartialEq, Copy)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct $name;
+
+        impl ::style_traits::ToCss for $name {
+            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
+                write!(dest, $css)
+            }
+        }
+
+        impl ::style_traits::FromCss for $name {
+            fn from_css(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
+                input.expect_ident_matching($css).map(|_| $name)
+            }
+        }
+
+        impl ::std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, $css)
+            }
+        }
+
+        impl ComputedValueAsSpecified for $name {}
+        impl NoViewportPercentage for $name {}
+    };
+}
+
+define_keyword_type!(None_, "none");
+define_keyword_type!(Auto, "auto");
+define_keyword_type!(Normal, "normal");
+
 #[derive(Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Either<A: CssType, B: CssType> {
