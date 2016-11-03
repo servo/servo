@@ -178,7 +178,7 @@
             use parser::{ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
-        #[allow(unused_imports)]
+        use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use parser::Parse;
