@@ -25,11 +25,11 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, SelectionDirection, TextInput};
@@ -75,7 +75,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     fn get_cols(self) -> u32 {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("cols"))
+                .get_attr_for_layout(&ns!(), &local_name!("cols"))
                 .map_or(DEFAULT_COLS, AttrValue::as_uint)
         }
     }
@@ -84,7 +84,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     fn get_rows(self) -> u32 {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("rows"))
+                .get_attr_for_layout(&ns!(), &local_name!("rows"))
                 .map_or(DEFAULT_ROWS, AttrValue::as_uint)
         }
     }
@@ -97,7 +97,7 @@ static DEFAULT_COLS: u32 = 20;
 static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
         let chan = document.window().upcast::<GlobalScope>().constellation_chan().clone();
@@ -112,7 +112,7 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTextAreaElement> {
         Node::reflect_node(box HTMLTextAreaElement::new_inherited(local_name, prefix, document),
@@ -291,7 +291,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!("disabled") => {
+            local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -311,7 +311,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
-            atom!("readonly") => {
+            local_name!("readonly") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -334,10 +334,10 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            atom!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
-            atom!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
+            local_name!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
+            local_name!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

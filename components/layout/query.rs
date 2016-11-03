@@ -23,10 +23,10 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElemen
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
+use servo_atoms::Atom;
 use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use style::computed_values;
 use style::context::StyleContext;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};

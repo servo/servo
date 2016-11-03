@@ -12,8 +12,8 @@ use dom::domtokenlist::DOMTokenList;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use std::default::Default;
-use string_cache::Atom;
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -23,7 +23,7 @@ pub struct HTMLAreaElement {
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
@@ -31,7 +31,7 @@ impl HTMLAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAreaElement> {
         Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
@@ -45,9 +45,9 @@ impl VirtualMethods for HTMLAreaElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -57,7 +57,7 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast(), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &local_name!("rel"))
         })
     }
 }

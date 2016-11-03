@@ -6,6 +6,7 @@
 //!
 //! [custom]: https://drafts.csswg.org/css-variables/
 
+use Atom;
 use cssparser::{Delimiter, Parser, SourcePosition, ToCss, Token, TokenSerializationType};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
@@ -13,7 +14,6 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
-use string_cache::Atom;
 
 // Does not include the `--` prefix
 pub type Name = Atom;

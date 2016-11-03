@@ -15,7 +15,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLLegendElement {
@@ -23,7 +23,7 @@ pub struct HTMLLegendElement {
 }
 
 impl HTMLLegendElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document)
                      -> HTMLLegendElement {
@@ -31,7 +31,7 @@ impl HTMLLegendElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document)
                -> Root<HTMLLegendElement> {

@@ -4,6 +4,8 @@
 
 //! The `ByteString` struct.
 
+use html5ever_atoms::{LocalName, Namespace};
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::{Borrow, Cow, ToOwned};
 use std::fmt;
@@ -12,7 +14,6 @@ use std::ops;
 use std::ops::{Deref, DerefMut};
 use std::str;
 use std::str::{Bytes, FromStr};
-use string_cache::Atom;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(JSTraceable, Clone, Eq, PartialEq, HeapSizeOf, Debug)]
@@ -252,6 +253,18 @@ impl<'a> From<Cow<'a, str>> for DOMString {
             Cow::Owned(s) => DOMString::from(s),
             Cow::Borrowed(s) => DOMString::from(s),
         }
+    }
+}
+
+impl From<DOMString> for LocalName {
+    fn from(contents: DOMString) -> LocalName {
+        LocalName::from(contents.0)
+    }
+}
+
+impl From<DOMString> for Namespace {
+    fn from(contents: DOMString) -> Namespace {
+        Namespace::from(contents.0)
     }
 }
 

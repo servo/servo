@@ -6,13 +6,13 @@
 //!
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 
+use Atom;
 use app_units::Au;
 use cssparser::{Delimiter, Parser, ToCss, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use serialize_comma_separated_list;
 use std::fmt::{self, Write};
-use string_cache::Atom;
 use style_traits::ViewportPx;
 use values::specified;
 

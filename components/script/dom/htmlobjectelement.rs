@@ -17,9 +17,9 @@ use dom::node::{Node, window_from_node};
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use net_traits::image::base::Image;
 use std::sync::Arc;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
@@ -29,7 +29,7 @@ pub struct HTMLObjectElement {
 }
 
 impl HTMLObjectElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
@@ -40,7 +40,7 @@ impl HTMLObjectElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLObjectElement> {
         Node::reflect_node(box HTMLObjectElement::new_inherited(local_name, prefix, document),
@@ -60,8 +60,8 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
         let elem = self.upcast::<Element>();
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(), &atom!("type")),
-               elem.get_attribute(&ns!(), &atom!("data"))) {
+        match (elem.get_attribute(&ns!(), &local_name!("type")),
+               elem.get_attribute(&ns!(), &local_name!("data"))) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
             }
@@ -99,7 +99,7 @@ impl VirtualMethods for HTMLObjectElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("data") => {
+            &local_name!("data") => {
                 if let AttributeMutation::Set(_) = mutation {
                     self.process_data_url();
                 }

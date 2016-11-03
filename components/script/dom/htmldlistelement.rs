@@ -8,7 +8,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLDListElement {
@@ -16,7 +16,7 @@ pub struct HTMLDListElement {
 }
 
 impl HTMLDListElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -24,7 +24,7 @@ impl HTMLDListElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDListElement> {
         Node::reflect_node(box HTMLDListElement::new_inherited(local_name, prefix, document),

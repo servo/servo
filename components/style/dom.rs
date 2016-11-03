@@ -6,6 +6,7 @@
 
 #![allow(unsafe_code)]
 
+use {Atom, Namespace, LocalName};
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use data::{ElementStyles, ElementData};
 use element_state::ElementState;
@@ -19,7 +20,6 @@ use sink::Push;
 use std::fmt::Debug;
 use std::ops::BitOr;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
 use traversal::DomTraversalContext;
 use util::opts;
 
@@ -182,8 +182,8 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn get_state(&self) -> ElementState;
 
-    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
-    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
+    fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
+    fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, value: &Atom) -> bool;
 
     /// Set the restyle damage field.
     fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);

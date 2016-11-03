@@ -16,6 +16,7 @@ use std::collections::HashSet;
 use std::fmt::{self, Write};
 use std::sync::Arc;
 
+use Atom;
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
 use cssparser::{Parser, ToCss, TokenSerializationType};
@@ -23,7 +24,6 @@ use error_reporting::ParseErrorReporter;
 use url::Url;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
-use string_cache::Atom;
 use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;

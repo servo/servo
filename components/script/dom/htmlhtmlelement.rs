@@ -8,7 +8,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLHtmlElement {
@@ -16,14 +16,14 @@ pub struct HTMLHtmlElement {
 }
 
 impl HTMLHtmlElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLHtmlElement {
+    fn new_inherited(localName: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLHtmlElement {
         HTMLHtmlElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(localName: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHtmlElement> {
         Node::reflect_node(box HTMLHtmlElement::new_inherited(localName, prefix, document),

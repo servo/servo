@@ -11,7 +11,7 @@ use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 
 #[dom_struct]
@@ -20,14 +20,14 @@ pub struct HTMLLIElement {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
         HTMLLIElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLLIElement> {
         Node::reflect_node(box HTMLLIElement::new_inherited(local_name, prefix, document),
@@ -49,9 +49,9 @@ impl VirtualMethods for HTMLLIElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("value") => AttrValue::from_i32(value.into(), 0),
+            &local_name!("value") => AttrValue::from_i32(value.into(), 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

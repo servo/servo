@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use {Atom, Prefix, Namespace, LocalName};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::ToCss;
 use element_state::ElementState;
@@ -11,7 +12,6 @@ use selector_impl::{attr_equals_selector_is_shareable, attr_exists_selector_is_s
 use selectors::{Element, MatchAttrGeneric};
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::fmt;
-use string_cache::{Atom, Namespace};
 
 /// NB: If you add to this list, be sure to update `each_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -159,10 +159,10 @@ impl SelectorImpl for ServoSelectorImpl {
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;
-    type LocalName = Atom;
-    type NamespacePrefix = Atom;
+    type LocalName = LocalName;
+    type NamespacePrefix = Prefix;
     type NamespaceUrl = Namespace;
-    type BorrowedLocalName = Atom;
+    type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
 
     fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
@@ -324,14 +324,14 @@ impl ServoElementSnapshot {
         }
     }
 
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&AttrValue> {
+    fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
         self.attrs.as_ref().unwrap().iter()
             .find(|&&(ref ident, _)| ident.local_name == *name &&
                                      ident.namespace == *namespace)
             .map(|&(_, ref v)| v)
     }
 
-    fn get_attr_ignore_ns(&self, name: &Atom) -> Option<&AttrValue> {
+    fn get_attr_ignore_ns(&self, name: &LocalName) -> Option<&AttrValue> {
         self.attrs.as_ref().unwrap().iter()
                   .find(|&&(ref ident, _)| ident.local_name == *name)
                   .map(|&(_, ref v)| v)
@@ -348,18 +348,18 @@ impl ElementSnapshot for ServoElementSnapshot {
     }
 
     fn id_attr(&self) -> Option<Atom> {
-        self.get_attr(&ns!(), &atom!("id")).map(|v| v.as_atom().clone())
+        self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom().clone())
     }
 
     fn has_class(&self, name: &Atom) -> bool {
-        self.get_attr(&ns!(), &atom!("class"))
+        self.get_attr(&ns!(), &local_name!("class"))
             .map_or(false, |v| v.as_tokens().iter().any(|atom| atom == name))
     }
 
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
     {
-        if let Some(v) = self.get_attr(&ns!(), &atom!("class")) {
+        if let Some(v) = self.get_attr(&ns!(), &local_name!("class")) {
             for class in v.as_tokens() {
                 callback(class);
             }

@@ -40,6 +40,7 @@ use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
+use html5ever_atoms::LocalName;
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
@@ -49,7 +50,6 @@ use script_traits::LoadData;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::Sender;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
@@ -66,7 +66,7 @@ pub struct HTMLFormElement {
 }
 
 impl HTMLFormElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
@@ -78,7 +78,7 @@ impl HTMLFormElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFormElement> {
         Node::reflect_node(box HTMLFormElement::new_inherited(local_name, prefix, document),
@@ -205,7 +205,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                             }
                             _ => {
                                 debug_assert!(!elem.downcast::<HTMLElement>().unwrap().is_listed_element() ||
-                                              elem.local_name() == &atom!("keygen"));
+                                              elem.local_name() == &local_name!("keygen"));
                                 return false;
                             }
                         }
@@ -255,9 +255,9 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
     fn pick_encoding(&self) -> EncodingRef {
         // Step 2
-        if self.upcast::<Element>().has_attribute(&atom!("accept-charset")) {
+        if self.upcast::<Element>().has_attribute(&local_name!("accept-charset")) {
             // Substep 1
-            let input = self.upcast::<Element>().get_string_attribute(&atom!("accept-charset"));
+            let input = self.upcast::<Element>().get_string_attribute(&local_name!("accept-charset"));
 
             // Substep 2, 3, 4
             let mut candidate_encodings = split_html_space_chars(&*input).filter_map(encoding_from_whatwg_label);
@@ -728,12 +728,12 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             FormSubmitter::FormElement(form) => form.Action(),
             FormSubmitter::InputElement(input_element) => {
-                input_element.get_form_attribute(&atom!("formaction"),
+                input_element.get_form_attribute(&local_name!("formaction"),
                                                  |i| i.FormAction(),
                                                  |f| f.Action())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&atom!("formaction"),
+                button_element.get_form_attribute(&local_name!("formaction"),
                                                   |i| i.FormAction(),
                                                   |f| f.Action())
             }
@@ -744,12 +744,12 @@ impl<'a> FormSubmitter<'a> {
         let attr = match *self {
             FormSubmitter::FormElement(form) => form.Enctype(),
             FormSubmitter::InputElement(input_element) => {
-                input_element.get_form_attribute(&atom!("formenctype"),
+                input_element.get_form_attribute(&local_name!("formenctype"),
                                                  |i| i.FormEnctype(),
                                                  |f| f.Enctype())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&atom!("formenctype"),
+                button_element.get_form_attribute(&local_name!("formenctype"),
                                                   |i| i.FormEnctype(),
                                                   |f| f.Enctype())
             }
@@ -767,12 +767,12 @@ impl<'a> FormSubmitter<'a> {
         let attr = match *self {
             FormSubmitter::FormElement(form) => form.Method(),
             FormSubmitter::InputElement(input_element) => {
-                input_element.get_form_attribute(&atom!("formmethod"),
+                input_element.get_form_attribute(&local_name!("formmethod"),
                                                  |i| i.FormMethod(),
                                                  |f| f.Method())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&atom!("formmethod"),
+                button_element.get_form_attribute(&local_name!("formmethod"),
                                                   |i| i.FormMethod(),
                                                   |f| f.Method())
             }
@@ -788,12 +788,12 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             FormSubmitter::FormElement(form) => form.Target(),
             FormSubmitter::InputElement(input_element) => {
-                input_element.get_form_attribute(&atom!("formtarget"),
+                input_element.get_form_attribute(&local_name!("formtarget"),
                                                  |i| i.FormTarget(),
                                                  |f| f.Target())
             },
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_attribute(&atom!("formtarget"),
+                button_element.get_form_attribute(&local_name!("formtarget"),
                                                   |i| i.FormTarget(),
                                                   |f| f.Target())
             }
@@ -804,12 +804,12 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             FormSubmitter::FormElement(form) => form.NoValidate(),
             FormSubmitter::InputElement(input_element) => {
-                input_element.get_form_boolean_attribute(&atom!("formnovalidate"),
+                input_element.get_form_boolean_attribute(&local_name!("formnovalidate"),
                                                  |i| i.FormNoValidate(),
                                                  |f| f.NoValidate())
             }
             FormSubmitter::ButtonElement(button_element) => {
-                button_element.get_form_boolean_attribute(&atom!("formnovalidate"),
+                button_element.get_form_boolean_attribute(&local_name!("formnovalidate"),
                                                   |i| i.FormNoValidate(),
                                                   |f| f.NoValidate())
             }
@@ -823,7 +823,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
         // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
         let elem = self.to_element();
-        let owner = elem.get_string_attribute(&atom!("form"));
+        let owner = elem.get_string_attribute(&local_name!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(elem);
             let owner = doc.GetElementById(owner);
@@ -838,7 +838,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(&self,
-                                            attr: &Atom,
+                                            attr: &LocalName,
                                             input: InputFn,
                                             owner: OwnerFn)
                                             -> DOMString
@@ -853,7 +853,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     }
 
     fn get_form_boolean_attribute<InputFn, OwnerFn>(&self,
-                                            attr: &Atom,
+                                            attr: &LocalName,
                                             input: InputFn,
                                             owner: OwnerFn)
                                             -> bool
@@ -881,9 +881,9 @@ impl VirtualMethods for HTMLFormElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value.into()),
+            &local_name!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

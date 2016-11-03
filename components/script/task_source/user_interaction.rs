@@ -8,9 +8,9 @@ use dom::event::{EventBubbles, EventCancelable, EventRunnable};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use servo_atoms::Atom;
 use std::result::Result;
 use std::sync::mpsc::Sender;
-use string_cache::Atom;
 use task_source::TaskSource;
 
 #[derive(JSTraceable, Clone)]

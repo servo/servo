@@ -1937,7 +1937,7 @@ impl ScriptThread {
                                                 .filter_map(Root::downcast::<HTMLAnchorElement>)
                                                 .next() {
                         let status = anchor.upcast::<Element>()
-                                           .get_attribute(&ns!(), &atom!("href"))
+                                           .get_attribute(&ns!(), &local_name!("href"))
                                            .and_then(|href| {
                                                let value = href.value();
                                                let url = document.url();

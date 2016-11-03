@@ -50,8 +50,8 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
         if name.is_empty() { return None; }
 
         let mut filter_map = self.collection.elements_iter().filter_map(|elem| {
-            if elem.get_string_attribute(&atom!("name")) == name
-               || elem.get_string_attribute(&atom!("id")) == name {
+            if elem.get_string_attribute(&local_name!("name")) == name
+               || elem.get_string_attribute(&local_name!("id")) == name {
                 Some(elem)
             } else { None }
         });

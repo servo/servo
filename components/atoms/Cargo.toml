@@ -1,0 +1,16 @@
+[package]
+name = "servo_atoms"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+build = "build.rs"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+string_cache = {version = "0.3", features = ["heap_size"]}
+
+[build-dependencies]
+string_cache_codegen = "0.3"

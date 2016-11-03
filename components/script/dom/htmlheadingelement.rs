@@ -8,7 +8,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum HeadingLevel {
@@ -27,7 +27,7 @@ pub struct HTMLHeadingElement {
 }
 
 impl HTMLHeadingElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document,
                      level: HeadingLevel) -> HTMLHeadingElement {
@@ -39,7 +39,7 @@ impl HTMLHeadingElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document,
                level: HeadingLevel) -> Root<HTMLHeadingElement> {

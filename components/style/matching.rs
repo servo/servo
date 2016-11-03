@@ -6,6 +6,7 @@
 
 #![allow(unsafe_code)]
 
+use {Atom, LocalName};
 use animation;
 use arc_ptr_eq;
 use atomic_refcell::AtomicRefMut;
@@ -29,7 +30,6 @@ use std::mem;
 use std::ops::Deref;
 use std::slice::IterMut;
 use std::sync::Arc;
-use string_cache::Atom;
 use util::opts;
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
@@ -38,12 +38,12 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.has_attr(&ns!(), &attribute_info.atom) {
+                if element.has_attr(&ns!(), &attribute_info.attr_name) {
                     flags.insert(flag)
                 }
             }
             CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
-                if element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
+                if element.attr_equals(&ns!(), &attribute_info.attr_name, target_value) {
                     flags.insert(flag)
                 }
             }
@@ -333,7 +333,7 @@ bitflags! {
 }
 
 pub struct CommonStyleAffectingAttributeInfo {
-    pub atom: Atom,
+    pub attr_name: LocalName,
     pub mode: CommonStyleAffectingAttributeMode,
 }
 
@@ -348,23 +348,23 @@ pub enum CommonStyleAffectingAttributeMode {
 pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
     [
         CommonStyleAffectingAttributeInfo {
-            atom: atom!("hidden"),
+            attr_name: local_name!("hidden"),
             mode: CommonStyleAffectingAttributeMode::IsPresent(HIDDEN_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
-            atom: atom!("nowrap"),
+            attr_name: local_name!("nowrap"),
             mode: CommonStyleAffectingAttributeMode::IsPresent(NO_WRAP_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
-            atom: atom!("align"),
+            attr_name: local_name!("align"),
             mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("left"), ALIGN_LEFT_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
-            atom: atom!("align"),
+            attr_name: local_name!("align"),
             mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("center"), ALIGN_CENTER_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
-            atom: atom!("align"),
+            attr_name: local_name!("align"),
             mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("right"), ALIGN_RIGHT_ATTRIBUTE),
         }
     ]
@@ -373,8 +373,8 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
-pub fn rare_style_affecting_attributes() -> [Atom; 3] {
-    [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
+pub fn rare_style_affecting_attributes() -> [LocalName; 3] {
+    [ local_name!("bgcolor"), local_name!("border"), local_name!("colspan") ]
 }
 
 fn have_same_class<E: TElement>(element: &E,
@@ -703,7 +703,7 @@ pub trait MatchMethods : TElement {
             return StyleSharingResult::CannotShare
         }
 
-        if self.has_attr(&ns!(), &atom!("id")) {
+        if self.has_attr(&ns!(), &local_name!("id")) {
             return StyleSharingResult::CannotShare
         }
 

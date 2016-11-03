@@ -14,7 +14,7 @@ use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]

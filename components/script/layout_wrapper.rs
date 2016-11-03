@@ -40,6 +40,7 @@ use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_CHANGED, H
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
+use html5ever_atoms::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
 use parking_lot::RwLock;
 use range::Range;
@@ -50,12 +51,12 @@ use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, Get
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use servo_atoms::Atom;
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use string_cache::{Atom, Namespace};
 use style::atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::attr::AttrValue;
 use style::computed_values::display;
@@ -451,12 +452,12 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
+    fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool {
         self.get_attr(namespace, attr).is_some()
     }
 
     #[inline]
-    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
+    fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, val: &Atom) -> bool {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
 
@@ -526,7 +527,7 @@ impl<'le> ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
+    fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
         }
@@ -628,7 +629,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &Atom {
+    fn get_local_name(&self) -> &LocalName {
         self.element.local_name()
     }
 
@@ -647,14 +648,14 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) =>
-                        (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &atom!("href")).is_some(),
+                        (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("href")).is_some(),
                     _ => false,
                 }
             },
             NonTSPseudoClass::Visited => false,
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
-                match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &atom!("border")) {
+                match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
                     None | Some(&AttrValue::UInt(_, 0)) => false,
                     _ => true,
                 }
@@ -962,7 +963,7 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if node.is_element() &&
-                           node.as_element().unwrap().get_local_name() == &atom!("summary") &&
+                           node.as_element().unwrap().get_local_name() == &local_name!("summary") &&
                            node.as_element().unwrap().get_namespace() == &ns!(html) {
                             self.current_node = None;
                             return Some(node.clone());
@@ -980,7 +981,7 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                       node.as_element().unwrap().get_local_name() == &atom!("summary") &&
+                       node.as_element().unwrap().get_local_name() == &local_name!("summary") &&
                        node.as_element().unwrap().get_namespace() == &ns!(html) {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
@@ -1061,7 +1062,7 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.as_node().type_id()
     }
 
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
+    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &LocalName) -> Option<&'a str> {
         self.element.get_attr(namespace, name)
     }
 
@@ -1137,7 +1138,7 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &Atom {
+    fn get_local_name(&self) -> &LocalName {
         self.element.get_local_name()
     }
 

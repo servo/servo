@@ -6,7 +6,7 @@ use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::TypedSize2D;
 use std::borrow::ToOwned;
-use string_cache::Atom;
+use style::Atom;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::parser::ParserContextExtraData;

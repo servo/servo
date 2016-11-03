@@ -24,11 +24,11 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use msg::constellation_msg::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
 use std::default::Default;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use url::Url;
 use util::prefs::PREFS;
@@ -41,7 +41,7 @@ pub struct HTMLAnchorElement {
 }
 
 impl HTMLAnchorElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
@@ -53,7 +53,7 @@ impl HTMLAnchorElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAnchorElement> {
         Node::reflect_node(box HTMLAnchorElement::new_inherited(local_name, prefix, document),
@@ -63,7 +63,7 @@ impl HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set
     fn set_url(&self) {
-        let attribute = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href"));
+        let attribute = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"));
         *self.url.borrow_mut() = attribute.and_then(|attribute| {
             let document = document_from_node(self);
             document.base_url().join(&attribute.value()).ok()
@@ -84,7 +84,7 @@ impl HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#update-href
     fn update_href(&self, url: DOMString) {
-        self.upcast::<Element>().set_string_attribute(&atom!("href"), url);
+        self.upcast::<Element>().set_string_attribute(&local_name!("href"), url);
     }
 }
 
@@ -93,9 +93,9 @@ impl VirtualMethods for HTMLAnchorElement {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
+            &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -115,7 +115,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast(), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &local_name!("rel"))
         })
     }
 
@@ -265,7 +265,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         USVString(match *self.url.borrow() {
             None => {
-                match self.upcast::<Element>().get_attribute(&ns!(), &atom!("href")) {
+                match self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href")) {
                     // Step 3.
                     None => String::new(),
                     // Step 4.
@@ -279,7 +279,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
     fn SetHref(&self, value: USVString) {
-        self.upcast::<Element>().set_string_attribute(&atom!("href"),
+        self.upcast::<Element>().set_string_attribute(&local_name!("href"),
                                                       DOMString::from_string(value.0));
         self.set_url();
     }
@@ -499,7 +499,7 @@ impl Activatable for HTMLAnchorElement {
         // hyperlink"
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
-        self.upcast::<Element>().has_attribute(&atom!("href"))
+        self.upcast::<Element>().has_attribute(&local_name!("href"))
     }
 
 
@@ -525,7 +525,7 @@ impl Activatable for HTMLAnchorElement {
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
         if let Some(element) = target.downcast::<Element>() {
-            if target.is::<HTMLImageElement>() && element.has_attribute(&atom!("ismap")) {
+            if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
                 let rect = window_from_node(target_node).content_box_query(
                     target_node.to_trusted_node_address());
@@ -563,10 +563,10 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referre
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.
-    let target = subject.get_attribute(&ns!(), &atom!("target"));
+    let target = subject.get_attribute(&ns!(), &local_name!("target"));
 
     // Step 4: disown target's opener if needed.
-    let attribute = subject.get_attribute(&ns!(), &atom!("href")).unwrap();
+    let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
     let mut href = attribute.Value();
 
     // Step 7: append a hyperlink suffix.

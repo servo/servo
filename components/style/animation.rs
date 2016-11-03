@@ -4,6 +4,7 @@
 
 //! CSS transitions and animations.
 
+use Atom;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, UnsafeNode};
@@ -19,7 +20,6 @@ use properties::longhands::transition_timing_function::computed_value::Transitio
 use selector_matching::ApplicableDeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
-use string_cache::Atom;
 use timer::Timer;
 use values::computed::Time;
 

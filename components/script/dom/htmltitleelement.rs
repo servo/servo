@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -22,14 +22,14 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTitleElement> {
         Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),

@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{self, Parser, SourcePosition};
+use html5ever_atoms::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
 use selectors::parser::*;
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
-use string_cache::{Atom, Namespace as NsAtom};
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -58,7 +59,7 @@ fn test_parse_stylesheet() {
         rules: vec![
             CSSRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
-                url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                url: NsAtom::from("http://www.w3.org/1999/xhtml")
             }))),
             CSSRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
@@ -67,15 +68,15 @@ fn test_parse_stylesheet() {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
-                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
                                 }),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!("input"),
-                                    lower_name: atom!("input"),
+                                    name: local_name!("input"),
+                                    lower_name: local_name!("input"),
                                 }),
                                 SimpleSelector::AttrEqual(AttrSelector {
-                                    name: atom!("type"),
-                                    lower_name: atom!("type"),
+                                    name: local_name!("type"),
+                                    lower_name: local_name!("type"),
                                     namespace: NamespaceConstraint::Specific(Namespace {
                                         prefix: None,
                                         url: ns!()
@@ -106,11 +107,11 @@ fn test_parse_stylesheet() {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
-                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
                                 }),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!("html"),
-                                    lower_name: atom!("html"),
+                                    name: local_name!("html"),
+                                    lower_name: local_name!("html"),
                                 }),
                             ],
                             next: None,
@@ -123,11 +124,11 @@ fn test_parse_stylesheet() {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
-                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
                                 }),
                                 SimpleSelector::LocalName(LocalName {
-                                    name: atom!("body"),
-                                    lower_name: atom!("body"),
+                                    name: local_name!("body"),
+                                    lower_name: local_name!("body"),
                                 }),
                             ],
                             next: None,
@@ -152,7 +153,7 @@ fn test_parse_stylesheet() {
                             compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
-                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                    url: NsAtom::from("http://www.w3.org/1999/xhtml")
                                 }),
                                 SimpleSelector::Class(Atom::from("ok")),
                             ],
@@ -160,7 +161,7 @@ fn test_parse_stylesheet() {
                                 compound_selector: vec![
                                     SimpleSelector::Namespace(Namespace {
                                         prefix: None,
-                                        url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                        url: NsAtom::from("http://www.w3.org/1999/xhtml")
                                     }),
                                     SimpleSelector::ID(Atom::from("d1")),
                                 ],

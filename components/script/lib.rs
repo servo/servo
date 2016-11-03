@@ -46,6 +46,7 @@ extern crate gfx_traits;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate html5ever;
+#[macro_use] extern crate html5ever_atoms;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image;
@@ -78,8 +79,8 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
+#[macro_use] extern crate servo_atoms;
 extern crate smallvec;
-#[macro_use(atom, ns)] extern crate string_cache;
 #[macro_use]
 extern crate style;
 extern crate style_traits;

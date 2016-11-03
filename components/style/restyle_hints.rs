@@ -4,6 +4,7 @@
 
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
+use Atom;
 use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
@@ -14,7 +15,6 @@ use selectors::matching::matches_complex_selector;
 use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
 use std::clone::Clone;
 use std::sync::Arc;
-use string_cache::Atom;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes, certain
 /// pseudo-classes (like :hover) may require us to restyle that element, its

@@ -14,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::element_state::*;
 
 #[dom_struct]
@@ -23,7 +23,7 @@ pub struct HTMLOptGroupElement {
 }
 
 impl HTMLOptGroupElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
@@ -34,7 +34,7 @@ impl HTMLOptGroupElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptGroupElement> {
         Node::reflect_node(box HTMLOptGroupElement::new_inherited(local_name, prefix, document),
@@ -59,7 +59,7 @@ impl VirtualMethods for HTMLOptGroupElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &local_name!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {

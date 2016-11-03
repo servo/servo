@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 use style::element_state::ElementState;
 
 #[dom_struct]
@@ -19,12 +19,12 @@ pub struct SVGElement {
 }
 
 impl SVGElement {
-    pub fn new_inherited(tag_name: Atom, prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<DOMString>,
                          document: &Document) -> SVGElement {
         SVGElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: Atom,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> SVGElement {
         SVGElement {
@@ -34,7 +34,7 @@ impl SVGElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> Root<SVGElement> {
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> Root<SVGElement> {
         Node::reflect_node(box SVGElement::new_inherited(local_name, prefix, document),
                            document,
                            SVGElementBinding::Wrap)

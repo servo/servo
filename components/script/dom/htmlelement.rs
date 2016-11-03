@@ -29,11 +29,11 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::rc::Rc;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
 
@@ -45,12 +45,12 @@ pub struct HTMLElement {
 }
 
 impl HTMLElement {
-    pub fn new_inherited(tag_name: Atom, prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: LocalName, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: ElementState, tag_name: Atom,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: LocalName,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {
@@ -62,7 +62,7 @@ impl HTMLElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
         Node::reflect_node(box HTMLElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLElementBinding::Wrap)
@@ -76,7 +76,7 @@ impl HTMLElement {
     fn update_sequentially_focusable_status(&self) {
         let element = self.upcast::<Element>();
         let node = self.upcast::<Node>();
-        if element.has_attribute(&atom!("tabindex")) {
+        if element.has_attribute(&local_name!("tabindex")) {
             node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
         } else {
             match node.type_id() {
@@ -87,12 +87,12 @@ impl HTMLElement {
                     => node.set_flag(SEQUENTIALLY_FOCUSABLE, true),
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                    if element.has_attribute(&atom!("href")) {
+                    if element.has_attribute(&local_name!("href")) {
                         node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
                     }
                 },
                 _ => {
-                    if let Some(attr) = element.get_attribute(&ns!(), &atom!("draggable")) {
+                    if let Some(attr) = element.get_attribute(&ns!(), &local_name!("draggable")) {
                         let value = attr.value();
                         let is_true = match *value {
                             AttrValue::String(ref string) => string == "true",
@@ -393,16 +393,16 @@ impl HTMLElement {
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(to_snake_case(local_name));
+        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
+        let local_name = LocalName::from(to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(), &local_name).map(|attr| {
             DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
         })
     }
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
-        // FIXME(ajeffrey): Convert directly from DOMString to Atom
-        let local_name = Atom::from(to_snake_case(local_name));
+        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
+        let local_name = LocalName::from(to_snake_case(local_name));
         self.upcast::<Element>().remove_attribute(&ns!(), &local_name);
     }
 
@@ -430,7 +430,7 @@ impl HTMLElement {
     pub fn is_listed_element(&self) -> bool {
         // Servo does not implement HTMLKeygenElement
         // https://github.com/servo/servo/issues/2782
-        if self.upcast::<Element>().local_name() == &atom!("keygen") {
+        if self.upcast::<Element>().local_name() == &local_name!("keygen") {
             return true;
         }
 
@@ -475,7 +475,7 @@ impl HTMLElement {
                 // will be a label for this HTMLElement
                 .take_while(|elem| !elem.is_labelable_element())
                 .filter_map(Root::downcast::<HTMLLabelElement>)
-                .filter(|elem| !elem.upcast::<Element>().has_attribute(&atom!("for")))
+                .filter(|elem| !elem.upcast::<Element>().has_attribute(&local_name!("for")))
                 .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
                 .map(Root::upcast::<Node>);
 
@@ -491,7 +491,7 @@ impl HTMLElement {
         let children = root_node.traverse_preorder()
                                 .filter_map(Root::downcast::<Element>)
                                 .filter(|elem| elem.is::<HTMLLabelElement>())
-                                .filter(|elem| elem.get_string_attribute(&atom!("for")) == id)
+                                .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
                                 .map(Root::upcast::<Node>);
 
         NodeList::new_simple_list(&window, children.chain(ancestors))

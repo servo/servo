@@ -4,6 +4,7 @@
 
 //! Style sheets and their CSS rules.
 
+use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
 use cssparser::{AtRuleType, RuleListParser, Token};
 use encoding::EncodingRef;
@@ -18,7 +19,6 @@ use selector_impl::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
 use std::cell::Cell;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
 use url::Url;
 use viewport::ViewportRule;
 
@@ -99,7 +99,7 @@ impl CSSRule {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct NamespaceRule {
     /// `None` for the default Namespace
-    pub prefix: Option<Atom>,
+    pub prefix: Option<Prefix>,
     pub url: Namespace,
 }
 
@@ -316,10 +316,10 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     self.state.set(State::Namespaces);
 
                     let prefix_result = input.try(|input| input.expect_ident());
-                    let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
+                    let url = Namespace::from(try!(input.expect_url_or_string()));
 
                     let opt_prefix = if let Ok(prefix) = prefix_result {
-                        let prefix: Atom = prefix.into();
+                        let prefix = Prefix::from(prefix);
                         self.context.selector_context.namespace_prefixes.insert(
                             prefix.clone(), url.clone());
                         Some(prefix)

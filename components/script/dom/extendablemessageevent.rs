@@ -15,8 +15,8 @@ use dom::extendableevent::ExtendableEvent;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
+use servo_atoms::Atom;
 use std::default::Default;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct ExtendableMessageEvent {

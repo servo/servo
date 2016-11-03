@@ -9,13 +9,13 @@ use core_text;
 use core_text::font::CTFont;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Visitor};
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Error as IoError};
 use std::ops::Deref;
 use std::sync::Mutex;
-use string_cache::Atom;
 use url::Url;
 
 /// Platform specific font representation for mac.

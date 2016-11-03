@@ -71,9 +71,8 @@ extern crate serde_derive;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 extern crate simd;
 
+#[macro_use] extern crate servo_atoms;
 extern crate smallvec;
-#[macro_use]
-extern crate string_cache;
 extern crate style;
 extern crate style_traits;
 extern crate time;

@@ -15,24 +15,24 @@ use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
+use html5ever_atoms::LocalName;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::iter;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct FormData {
     reflector_: Reflector,
-    data: DOMRefCell<HashMap<Atom, Vec<FormDatum>>>,
+    data: DOMRefCell<HashMap<LocalName, Vec<FormDatum>>>,
 }
 
 impl FormData {
     fn new_inherited(opt_form: Option<&HTMLFormElement>) -> FormData {
-        let mut hashmap: HashMap<Atom, Vec<FormDatum>> = HashMap::new();
+        let mut hashmap: HashMap<LocalName, Vec<FormDatum>> = HashMap::new();
 
         if let Some(form) = opt_form {
             for datum in form.get_form_dataset(None) {
-                match hashmap.entry(Atom::from(datum.name.as_ref())) {
+                match hashmap.entry(LocalName::from(datum.name.as_ref())) {
                     Occupied(entry) => entry.into_mut().push(datum),
                     Vacant(entry) => { entry.insert(vec!(datum)); }
                 }
@@ -66,7 +66,7 @@ impl FormDataMethods for FormData {
         };
 
         let mut data = self.data.borrow_mut();
-        match data.entry(Atom::from(name.0)) {
+        match data.entry(LocalName::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(datum),
             Vacant(entry) => { entry.insert(vec!(datum)); }
         }
@@ -83,7 +83,7 @@ impl FormDataMethods for FormData {
 
         let mut data = self.data.borrow_mut();
 
-        match data.entry(Atom::from(name.0)) {
+        match data.entry(LocalName::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(datum),
             Vacant(entry) => { entry.insert(vec!(datum)); },
         }
@@ -91,13 +91,13 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-delete
     fn Delete(&self, name: USVString) {
-        self.data.borrow_mut().remove(&Atom::from(name.0));
+        self.data.borrow_mut().remove(&LocalName::from(name.0));
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
     fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
         self.data.borrow()
-                 .get(&Atom::from(name.0))
+                 .get(&LocalName::from(name.0))
                  .map(|entry| match entry[0].value {
                      FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
                      FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
@@ -107,7 +107,7 @@ impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-getall
     fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
         self.data.borrow()
-                 .get(&Atom::from(name.0))
+                 .get(&LocalName::from(name.0))
                  .map_or(vec![], |data|
                     data.iter().map(|item| match item.value {
                         FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
@@ -118,12 +118,12 @@ impl FormDataMethods for FormData {
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
     fn Has(&self, name: USVString) -> bool {
-        self.data.borrow().contains_key(&Atom::from(name.0))
+        self.data.borrow().contains_key(&LocalName::from(name.0))
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set(&self, name: USVString, str_value: USVString) {
-        self.data.borrow_mut().insert(Atom::from(name.0.clone()), vec![FormDatum {
+        self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
             ty: DOMString::from("string"),
             name: DOMString::from(name.0),
             value: FormDatumValue::String(DOMString::from(str_value.0)),
@@ -133,7 +133,7 @@ impl FormDataMethods for FormData {
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
-        self.data.borrow_mut().insert(Atom::from(name.0.clone()), vec![FormDatum {
+        self.data.borrow_mut().insert(LocalName::from(name.0.clone()), vec![FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0),
             value: FormDatumValue::File(Root::from_ref(&*self.get_file(blob, filename))),

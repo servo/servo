@@ -8,7 +8,7 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLPreElement {
@@ -16,7 +16,7 @@ pub struct HTMLPreElement {
 }
 
 impl HTMLPreElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLPreElement {
         HTMLPreElement {
@@ -26,7 +26,7 @@ impl HTMLPreElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLPreElement> {
         Node::reflect_node(box HTMLPreElement::new_inherited(local_name, prefix, document),

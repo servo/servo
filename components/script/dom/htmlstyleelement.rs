@@ -14,9 +14,9 @@ use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use script_layout_interface::message::Msg;
 use std::sync::Arc;
-use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
@@ -29,7 +29,7 @@ pub struct HTMLStyleElement {
 }
 
 impl HTMLStyleElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLStyleElement {
         HTMLStyleElement {
@@ -39,7 +39,7 @@ impl HTMLStyleElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLStyleElement> {
         Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document),
@@ -55,7 +55,7 @@ impl HTMLStyleElement {
         let win = window_from_node(node);
         let url = win.get_url();
 
-        let mq_attribute = element.get_attribute(&ns!(), &atom!("media"));
+        let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let mq_str = match mq_attribute {
             Some(a) => String::from(&**a.value()),
             None => String::new(),

@@ -17,8 +17,8 @@ use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use script_traits::ScriptMsg as ConstellationMsg;
-use string_cache::Atom;
 use style::attr::AttrValue;
 use time;
 use url::Url;
@@ -33,7 +33,7 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -41,7 +41,7 @@ impl HTMLBodyElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLBodyElement> {
         Node::reflect_node(box HTMLBodyElement::new_inherited(local_name, prefix, document),
                            document,
@@ -93,7 +93,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("bgcolor"))
+                .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -103,7 +103,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     fn get_color(&self) -> Option<RGBA> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("text"))
+                .get_attr_for_layout(&ns!(), &local_name!("text"))
                 .and_then(AttrValue::as_color)
                 .cloned()
         }
@@ -113,7 +113,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     fn get_background(&self) -> Option<Url> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
-                .get_attr_for_layout(&ns!(), &atom!("background"))
+                .get_attr_for_layout(&ns!(), &local_name!("background"))
                 .and_then(AttrValue::as_url)
                 .cloned()
         }
@@ -141,11 +141,11 @@ impl VirtualMethods for HTMLBodyElement {
         window.upcast::<GlobalScope>().constellation_chan().send(event).unwrap();
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            atom!("bgcolor") |
-            atom!("text") => AttrValue::from_legacy_color(value.into()),
-            atom!("background") => {
+            local_name!("bgcolor") |
+            local_name!("text") => AttrValue::from_legacy_color(value.into()),
+            local_name!("background") => {
                 AttrValue::from_url(document_from_node(self).url(), value.into())
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
@@ -159,11 +159,14 @@ impl VirtualMethods for HTMLBodyElement {
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {
-                    &atom!("onfocus") | &atom!("onload") | &atom!("onscroll") | &atom!("onafterprint") |
-                    &atom!("onbeforeprint") | &atom!("onbeforeunload") | &atom!("onhashchange") |
-                    &atom!("onlanguagechange") | &atom!("onmessage") | &atom!("onoffline") | &atom!("ononline") |
-                    &atom!("onpagehide") | &atom!("onpageshow") | &atom!("onpopstate") | &atom!("onstorage") |
-                    &atom!("onresize") | &atom!("onunload") | &atom!("onerror")
+                    &local_name!("onfocus") | &local_name!("onload") | &local_name!("onscroll") |
+                    &local_name!("onafterprint") | &local_name!("onbeforeprint") |
+                    &local_name!("onbeforeunload") | &local_name!("onhashchange") |
+                    &local_name!("onlanguagechange") | &local_name!("onmessage") |
+                    &local_name!("onoffline") | &local_name!("ononline") |
+                    &local_name!("onpagehide") | &local_name!("onpageshow") |
+                    &local_name!("onpopstate") | &local_name!("onstorage") |
+                    &local_name!("onresize") | &local_name!("onunload") | &local_name!("onerror")
                       => {
                           let evtarget = window.upcast::<EventTarget>(); // forwarded event
                           let source_line = 1; //TODO(#9604) obtain current JS execution line

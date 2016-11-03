@@ -25,7 +25,11 @@ pub mod atom_macro;
 #[macro_use]
 pub mod namespace;
 
-pub use string_cache::namespace::{Namespace, WeakNamespace};
+pub use self::namespace::{Namespace, WeakNamespace};
+
+macro_rules! local_name {
+    ($s: tt) => { atom!($s) }
+}
 
 /// A strong reference to a Gecko atom.
 #[derive(PartialEq, Eq)]

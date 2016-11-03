@@ -44,7 +44,7 @@ impl HTMLOptionsCollection {
         let document = document_from_node(&*root);
 
         for _ in 0..count {
-            let element = HTMLOptionElement::new(atom!("option"), None, &document);
+            let element = HTMLOptionElement::new(local_name!("option"), None, &document);
             let node = element.upcast::<Node>();
             try!(root.AppendChild(node));
         };

@@ -32,10 +32,10 @@ use html5ever::tendril::StrTendril;
 use html5ever::tokenizer::{Tokenizer as H5ETokenizer, TokenizerOpts};
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts, TreeSink};
+use html5ever_atoms::QualName;
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write};
-use string_cache::QualName;
 use super::{HtmlTokenizer, LastChunkState, ServoParser, Sink, Tokenizer};
 use url::Url;
 

@@ -15,8 +15,8 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
+use servo_atoms::Atom;
 use std::cell::Cell;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct ErrorEvent {

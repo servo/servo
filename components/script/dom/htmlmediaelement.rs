@@ -27,15 +27,16 @@ use dom::htmlvideoelement::HTMLVideoElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
+use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::{Runnable, ScriptThread};
+use servo_atoms::Atom;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 use url::Url;
@@ -224,7 +225,7 @@ pub struct HTMLMediaElement {
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(tag_name: Atom,
+    pub fn new_inherited(tag_name: LocalName,
                          prefix: Option<DOMString>, document: &Document)
                          -> HTMLMediaElement {
         HTMLMediaElement {
@@ -443,7 +444,7 @@ impl HTMLMediaElement {
         let mode = if false {
             // TODO media provider object
             ResourceSelectionMode::Object
-        } else if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &atom!("src")) {
+        } else if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
             ResourceSelectionMode::Attribute(attr.Value().to_string())
         } else if false {
             // TODO <source> child
@@ -770,7 +771,7 @@ impl VirtualMethods for HTMLMediaElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         match attr.local_name() {
-            &atom!("src") => {
+            &local_name!("src") => {
                 if mutation.new_value(attr).is_some() {
                     self.media_element_load_algorithm();
                 }

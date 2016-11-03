@@ -53,8 +53,10 @@ extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
+#[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
+#[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
@@ -78,8 +80,8 @@ extern crate selectors;
 #[cfg(feature = "servo")]
 extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+#[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
 extern crate smallvec;
-#[cfg(feature = "servo")] #[macro_use] extern crate string_cache;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
@@ -87,10 +89,6 @@ extern crate time;
 extern crate unicode_segmentation;
 extern crate url;
 extern crate util;
-
-#[cfg(feature = "gecko")]
-#[path = "./gecko_string_cache/mod.rs"]
-#[macro_use] pub mod string_cache;
 
 pub mod animation;
 pub mod atomic_refcell;
@@ -136,6 +134,17 @@ pub mod workqueue;
 use cssparser::ToCss;
 use std::fmt;
 use std::sync::Arc;
+
+#[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
+#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom;
+#[cfg(feature = "gecko")] pub use gecko_string_cache::Namespace;
+#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as Prefix;
+#[cfg(feature = "gecko")] pub use gecko_string_cache::Atom as LocalName;
+
+#[cfg(feature = "servo")] pub use servo_atoms::Atom;
+#[cfg(feature = "servo")] pub use html5ever_atoms::Prefix;
+#[cfg(feature = "servo")] pub use html5ever_atoms::LocalName;
+#[cfg(feature = "servo")] pub use html5ever_atoms::Namespace;
 
 /// The CSS properties supported by the style system.
 // Generated from the properties.mako.rs template by build.rs

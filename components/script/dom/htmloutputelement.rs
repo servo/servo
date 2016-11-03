@@ -13,7 +13,7 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
-use string_cache::Atom;
+use html5ever_atoms::LocalName;
 
 #[dom_struct]
 pub struct HTMLOutputElement {
@@ -21,7 +21,7 @@ pub struct HTMLOutputElement {
 }
 
 impl HTMLOutputElement {
-    fn new_inherited(local_name: Atom,
+    fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOutputElement {
         HTMLOutputElement {
@@ -31,7 +31,7 @@ impl HTMLOutputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: Atom,
+    pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOutputElement> {
         Node::reflect_node(box HTMLOutputElement::new_inherited(local_name, prefix, document),

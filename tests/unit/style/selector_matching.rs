@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
+use html5ever_atoms::LocalName;
 use parking_lot::RwLock;
-use selectors::parser::{LocalName, ParserContext, parse_selector_list};
+use selectors::parser::{LocalName as LocalNameSelector, ParserContext, parse_selector_list};
+use servo_atoms::Atom;
 use std::sync::Arc;
-use string_cache::Atom;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
 use style::selector_matching::{Rule, SelectorMap};
@@ -78,9 +79,9 @@ fn test_get_local_name() {
     let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
     let check = |i: usize, names: Option<(&str, &str)>| {
         assert!(SelectorMap::get_local_name(&rules_list[i][0])
-                == names.map(|(name, lower_name)| LocalName {
-                        name: Atom::from(name),
-                        lower_name: Atom::from(lower_name) }))
+                == names.map(|(name, lower_name)| LocalNameSelector {
+                        name: LocalName::from(name),
+                        lower_name: LocalName::from(lower_name) }))
     };
     check(0, Some(("img", "img")));
     check(1, None);

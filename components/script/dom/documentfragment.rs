@@ -16,7 +16,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
-use string_cache::Atom;
+use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
@@ -57,7 +57,7 @@ impl DocumentFragmentMethods for DocumentFragment {
         let node = self.upcast::<Node>();
         let id = Atom::from(id);
         node.traverse_preorder().filter_map(Root::downcast::<Element>).find(|descendant| {
-            match descendant.get_attribute(&ns!(), &atom!("id")) {
+            match descendant.get_attribute(&ns!(), &local_name!("id")) {
                 None => false,
                 Some(attr) => *attr.value().as_atom() == id,
             }

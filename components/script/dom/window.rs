@@ -74,6 +74,7 @@ use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, Untruste
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -85,7 +86,6 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;

@@ -913,10 +913,10 @@ impl RangeMethods for Range {
         // Step 2.
         let should_create_body = element.as_ref().map_or(true, |elem| {
             let elem = elem.downcast::<Element>().unwrap();
-            elem.local_name() == &atom!("html") && elem.html_element_in_html_document()
+            elem.local_name() == &local_name!("html") && elem.html_element_in_html_document()
         });
         let element: Root<Node> = if should_create_body {
-            Root::upcast(HTMLBodyElement::new(atom!("body"), None, &self.StartContainer().owner_doc()))
+            Root::upcast(HTMLBodyElement::new(local_name!("body"), None, &self.StartContainer().owner_doc()))
         } else {
             Root::upcast(element.unwrap())
         };

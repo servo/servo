@@ -17,9 +17,9 @@ use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use html5ever;
+use html5ever_atoms::{Prefix, QualName};
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
-use string_cache::{Atom, QualName, Namespace};
 use super::{LastChunkState, ServoParser, Sink, Tokenizer};
 use url::Url;
 use xml5ever::tendril::StrTendril;
@@ -41,17 +41,17 @@ impl<'a> TreeSink for Sink {
         let elem = target.downcast::<Element>()
             .expect("tried to get name of non-Element in XML parsing");
         QName {
-            prefix: elem.prefix().as_ref().map_or(atom!(""), |p| Atom::from(&**p)),
-            namespace_url: elem.namespace().0.clone(),
+            prefix: elem.prefix().as_ref().map_or(namespace_prefix!(""), |p| Prefix::from(&**p)),
+            namespace_url: elem.namespace().clone(),
             local: elem.local_name().clone(),
         }
     }
 
     fn create_element(&mut self, name: QName, attrs: Vec<Attribute>)
             -> JS<Node> {
-        let prefix = if name.prefix == atom!("") { None } else { Some(name.prefix) };
+        let prefix = if name.prefix == namespace_prefix!("") { None } else { Some(name.prefix) };
         let name = QualName {
-            ns: Namespace(name.namespace_url),
+            ns: name.namespace_url,
             local: name.local,
         };
         let elem = Element::create(name, prefix, &*self.document,
@@ -59,7 +59,7 @@ impl<'a> TreeSink for Sink {
 
         for attr in attrs {
             let name = QualName {
-                ns: Namespace(attr.name.namespace_url),
+                ns: attr.name.namespace_url,
                 local: attr.name.local,
             };
             elem.set_attribute_from_parser(name, DOMString::from(String::from(attr.value)), None);
