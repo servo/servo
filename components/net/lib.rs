@@ -16,7 +16,6 @@ extern crate bitflags;
 extern crate brotli;
 extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
-extern crate device;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
@@ -34,7 +33,6 @@ extern crate net_traits;
 extern crate openssl;
 extern crate openssl_verify;
 extern crate profile_traits;
-extern crate rand;
 extern crate rustc_serialize;
 #[macro_use]
 extern crate serde_derive;
@@ -51,7 +49,6 @@ extern crate websocket;
 
 pub mod about_loader;
 pub mod blob_loader;
-pub mod bluetooth_thread;
 pub mod chrome_loader;
 pub mod connector;
 pub mod content_blocker;

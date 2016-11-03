@@ -10,6 +10,7 @@
 //! `LayoutThread`, and `PaintThread`.
 
 use backtrace::Backtrace;
+use bluetooth_traits::BluetoothMethodMsg;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
@@ -29,7 +30,6 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};

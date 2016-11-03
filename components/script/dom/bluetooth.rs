@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_traits::{BluetoothError, BluetoothMethodMsg};
+use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
+use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods, BluetoothRequestDeviceFilter};
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
@@ -18,9 +21,6 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
-use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
-use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
 use std::rc::Rc;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";

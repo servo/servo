@@ -2,8 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_scanfilter::RequestDeviceoptions;
+#![feature(proc_macro)]
+
+extern crate ipc_channel;
+#[macro_use]
+extern crate serde_derive;
+
+pub mod scanfilter;
+
 use ipc_channel::ipc::IpcSender;
+use scanfilter::RequestDeviceoptions;
 
 #[derive(Deserialize, Serialize)]
 pub enum BluetoothError {

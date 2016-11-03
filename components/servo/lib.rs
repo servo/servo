@@ -24,6 +24,8 @@ extern crate gaol;
 extern crate gleam;
 extern crate log;
 
+pub extern crate bluetooth;
+pub extern crate bluetooth_traits;
 pub extern crate canvas;
 pub extern crate canvas_traits;
 pub extern crate compositing;
@@ -61,6 +63,8 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
+use bluetooth::BluetoothThreadFactory;
+use bluetooth_traits::BluetoothMethodMsg;
 use compositing::{CompositorProxy, IOCompositor};
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
@@ -75,11 +79,9 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, LogMetadata, LogRecord};
-use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;

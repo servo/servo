@@ -11,6 +11,7 @@
 #![deny(unsafe_code)]
 
 extern crate backtrace;
+extern crate bluetooth_traits;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate compositing;

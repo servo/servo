@@ -11,6 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.3"
+bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 devtools_traits = {path = "../devtools_traits"}

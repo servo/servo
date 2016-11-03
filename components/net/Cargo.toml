@@ -14,7 +14,6 @@ bitflags = "0.7"
 brotli = "1.0.6"
 content-blocker = "0.2.1"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
-device = {git = "https://github.com/servo/devices"}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
@@ -32,7 +31,6 @@ openssl = "0.7.6"
 openssl-verify = "0.1"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
-rand = "0.3"
 rustc-serialize = "0.3"
 serde = "0.8"
 serde_derive = "0.8"

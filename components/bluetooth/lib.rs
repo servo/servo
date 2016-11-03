@@ -2,25 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[macro_use]
+extern crate bitflags;
+extern crate bluetooth_traits;
+extern crate device;
+extern crate ipc_channel;
+extern crate rand;
+#[cfg(target_os = "linux")]
+extern crate tinyfiledialogs;
+extern crate util;
+
+use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothCharacteristicsMsg};
+use bluetooth_traits::{BluetoothDescriptorMsg, BluetoothDescriptorsMsg};
+use bluetooth_traits::{BluetoothDeviceMsg, BluetoothError, BluetoothMethodMsg};
+use bluetooth_traits::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
+use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
 use device::bluetooth::BluetoothAdapter;
 use device::bluetooth::BluetoothDevice;
 use device::bluetooth::BluetoothGATTCharacteristic;
 use device::bluetooth::BluetoothGATTDescriptor;
 use device::bluetooth::BluetoothGATTService;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
-use net_traits::bluetooth_thread::{BluetoothCharacteristicMsg, BluetoothCharacteristicsMsg};
-use net_traits::bluetooth_thread::{BluetoothDescriptorMsg, BluetoothDescriptorsMsg};
-use net_traits::bluetooth_thread::{BluetoothDeviceMsg, BluetoothError, BluetoothMethodMsg};
-use net_traits::bluetooth_thread::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
-use rand::{self, Rng};
+use rand::Rng;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
 use std::string::String;
 use std::thread;
 use std::time::Duration;
-#[cfg(target_os = "linux")]
-use tinyfiledialogs;
 use util::thread::spawn_named;
 
 const ADAPTER_ERROR: &'static str = "No adapter found";
