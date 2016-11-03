@@ -325,7 +325,7 @@ impl FetchResponseListener for StylesheetContext {
         if let Some(ref meta) = self.metadata {
             if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
             } else {
-                self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
+                self.elem.root().upcast::<EventTarget>().fire_event("error");
             }
         }
     }
@@ -382,7 +382,7 @@ impl FetchResponseListener for StylesheetContext {
 
         let event = if successful { "load" } else { "error" };
 
-        elem.upcast::<EventTarget>().fire_simple_event(event);
+        elem.upcast::<EventTarget>().fire_event(event);
     }
 }
 

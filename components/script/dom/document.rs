@@ -606,7 +606,7 @@ impl Document {
 
         self.ready_state.set(state);
 
-        self.upcast::<EventTarget>().fire_simple_event("readystatechange");
+        self.upcast::<EventTarget>().fire_event("readystatechange");
     }
 
     /// Return whether scripting is enabled or not

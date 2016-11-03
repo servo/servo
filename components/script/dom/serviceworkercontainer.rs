@@ -45,7 +45,7 @@ pub trait Controllable {
 impl Controllable for ServiceWorkerContainer {
     fn set_controller(&self, active_worker: &ServiceWorker) {
         self.controller.set(Some(active_worker));
-        self.upcast::<EventTarget>().fire_simple_event("controllerchange");
+        self.upcast::<EventTarget>().fire_event("controllerchange");
     }
 }
 

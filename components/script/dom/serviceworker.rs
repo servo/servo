@@ -56,12 +56,12 @@ impl ServiceWorker {
 
     pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {
         let service_worker = address.root();
-        service_worker.upcast().fire_simple_event("error");
+        service_worker.upcast().fire_event("error");
     }
 
     pub fn set_transition_state(&self, state: ServiceWorkerState) {
         self.state.set(state);
-        self.upcast::<EventTarget>().fire_simple_event("statechange");
+        self.upcast::<EventTarget>().fire_event("statechange");
     }
 
     pub fn get_script_url(&self) -> Url {

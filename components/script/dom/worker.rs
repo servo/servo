@@ -138,7 +138,7 @@ impl Worker {
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
-        worker.upcast().fire_simple_event("error");
+        worker.upcast().fire_event("error");
     }
 
     #[allow(unsafe_code)]
