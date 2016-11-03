@@ -1,15 +1,5 @@
-files:
-  tests:
-    wpt:
-      web-platform-tests:
-        tools:
-          html5lib:
-            requirements-optional.txt:
-              tests:
-                unmaintained: skip
-      css-tests:
-        tools:
-          html5lib:
-            requirements-optional.txt:
-              tests:
-                unmaintained: skip
+platforms:
+  pypi:
+    charade:
+      tests:
+        unmaintained: skip
