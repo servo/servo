@@ -76,9 +76,16 @@ CATEGORIES = {
 }
 
 # Possible names of executables
-PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
-PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
+# NOTE: Windows Python doesn't provide versioned executables, so we must use
+# the plain names. On MSYS, we still use Windows Python.
+if sys.platform in ['msys', 'win32']:
+    PYTHON_NAMES = ["python"]
+    VIRTUALENV_NAMES = ["virtualenv"]
+    PIP_NAMES = ["pip"]
+else:
+    PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
+    VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
+    PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
 
 
 def _get_exec_path(names, is_valid_path=lambda _path: True):
@@ -197,10 +204,11 @@ def bootstrap(topdir):
 
     # We don't support MinGW Python
     if os.path.join(os.sep, 'mingw64', 'bin') in sys.executable:
-        print('Cannot run mach with MinGW Python.')
-        print('\nPlease rename following files:')
-        print(' /mingw64/bin/python2.exe   -> /mingw64/bin/python2-mingw64.exe')
-        print(' /mingw64/bin/python2.7.exe -> /mingw64/bin/python2.7-mingw64.exe')
+        print('Cannot run mach with MinGW or MSYS Python.')
+        print('\nPlease add the path to Windows Python (usually /c/Python27) to your path.')
+        print('You can do this by appending the line:')
+        print('    export PATH=/c/Python27:$PATH')
+        print('to your ~/.profile.')
         sys.exit(1)
 
     # Ensure we are running Python 2.7+. We put this check here so we generate a
