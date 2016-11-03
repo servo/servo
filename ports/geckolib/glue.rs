@@ -421,6 +421,11 @@ pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString) -> RawServo
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> RawServoDeclarationBlockStrong {
+    Arc::new(RwLock::new(PropertyDeclarationBlock { declarations: vec![], important_count: 0 })).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: RawServoDeclarationBlockBorrowed) {
     unsafe { RwLock::<PropertyDeclarationBlock>::addref(declarations) };
 }

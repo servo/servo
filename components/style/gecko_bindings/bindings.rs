@@ -923,6 +923,10 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_CreateEmpty()
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                          b: RawServoDeclarationBlockBorrowed)
      -> bool;
