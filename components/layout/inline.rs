@@ -13,7 +13,7 @@ use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, MutableFlowUtils};
 use flow::OpaqueFlow;
-use flow_ref;
+use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{OpaqueNode, StackingContext};
@@ -1468,14 +1468,14 @@ impl Flow for InlineFlow {
         self.mutate_fragments(&mut |f: &mut Fragment| {
             match f.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    let block = FlowRef::deref_mut(&mut info.flow_ref);
                     flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    let block = FlowRef::deref_mut(&mut info.flow_ref);
                     flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
@@ -1551,7 +1551,7 @@ impl Flow for InlineFlow {
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    let flow = FlowRef::deref_mut(&mut info.flow_ref);
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;
@@ -1573,7 +1573,7 @@ impl Flow for InlineFlow {
                     block_flow.base.clip = self.base.clip.clone()
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    let flow = FlowRef::deref_mut(&mut info.flow_ref);
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;
@@ -1585,7 +1585,7 @@ impl Flow for InlineFlow {
                     block_flow.base.clip = self.base.clip.clone()
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    let flow = FlowRef::deref_mut(&mut info.flow_ref);
                     let block_flow = flow.as_mut_block();
                     block_flow.base.late_absolute_position_info =
                         self.base.late_absolute_position_info;

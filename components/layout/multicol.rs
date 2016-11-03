@@ -14,7 +14,6 @@ use euclid::Point2D;
 use euclid::Size2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
-use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::ScrollRootId;
@@ -148,14 +147,14 @@ impl Flow for MulticolFlow {
 
         // Before layout, everything is in a single "column"
         assert!(self.block_flow.base.children.len() == 1);
-        let mut column = self.block_flow.base.children.pop_front().unwrap();
+        let mut column = self.block_flow.base.children.pop_front_arc().unwrap();
 
         // Pretend there is no children for this:
         self.block_flow.assign_block_size(ctx);
 
         loop {
-            let remaining = flow_ref::deref_mut(&mut column).fragment(ctx, fragmentation_context);
-            self.block_flow.base.children.push_back(column);
+            let remaining = Arc::get_mut(&mut column).unwrap().fragment(ctx, fragmentation_context);
+            self.block_flow.base.children.push_back_arc(column);
             column = match remaining {
                 Some(remaining) => remaining,
                 None => break
@@ -249,7 +248,7 @@ impl Flow for MulticolColumnFlow {
 
     fn fragment(&mut self, layout_context: &LayoutContext,
                 fragmentation_context: Option<FragmentationContext>)
-                -> Option<FlowRef> {
+                -> Option<Arc<Flow>> {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 

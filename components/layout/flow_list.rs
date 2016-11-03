@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use flow::Flow;
-use flow_ref::{self, FlowRef};
+use flow_ref::FlowRef;
 use std::collections::{LinkedList, linked_list};
+use std::sync::Arc;
 
 /// This needs to be reworked now that we have dynamically-sized types in Rust.
 /// Until then, it's just a wrapper around LinkedList.
@@ -31,6 +32,10 @@ impl FlowList {
         self.flows.push_back(new_tail);
     }
 
+    pub fn push_back_arc(&mut self, new_head: Arc<Flow>) {
+        self.flows.push_back(FlowRef::new(new_head));
+    }
+
     pub fn back(&self) -> Option<&Flow> {
         self.flows.back().map(|x| &**x)
     }
@@ -42,8 +47,12 @@ impl FlowList {
         self.flows.push_front(new_head);
     }
 
-    pub fn pop_front(&mut self) -> Option<FlowRef> {
-        self.flows.pop_front()
+    pub fn push_front_arc(&mut self, new_head: Arc<Flow>) {
+        self.flows.push_front(FlowRef::new(new_head));
+    }
+
+    pub fn pop_front_arc(&mut self) -> Option<Arc<Flow>> {
+        self.flows.pop_front().map(FlowRef::into_arc)
     }
 
     pub fn front(&self) -> Option<&Flow> {
@@ -114,7 +123,7 @@ impl FlowList {
 
 impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
     fn next_back(&mut self) -> Option<&'a mut Flow> {
-        self.it.next_back().map(flow_ref::deref_mut)
+        self.it.next_back().map(FlowRef::deref_mut)
     }
 }
 
@@ -122,7 +131,7 @@ impl<'a> Iterator for MutFlowListIterator<'a> {
     type Item = &'a mut Flow;
     #[inline]
     fn next(&mut self) -> Option<&'a mut Flow> {
-        self.it.next().map(flow_ref::deref_mut)
+        self.it.next().map(FlowRef::deref_mut)
     }
 
     #[inline]
@@ -146,6 +155,6 @@ impl<'a> FlowListRandomAccessMut<'a> {
                 Some(next_flow) => self.cache.push((*next_flow).clone()),
             }
         }
-        flow_ref::deref_mut(&mut self.cache[index])
+        FlowRef::deref_mut(&mut self.cache[index])
     }
 }
