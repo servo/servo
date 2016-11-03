@@ -1,0 +1,7 @@
+---
+duplicate_yaml_key:
+    - value1
+other_key:
+    - value2
+duplicate_yaml_key:
+    - value3

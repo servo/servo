@@ -177,6 +177,21 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('Unordered key (found b before a)', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_yaml_with_duplicate_key(self):
+        errors = tidy.collect_errors_for_files(iterFile('duplicate_keys_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
+        self.assertEqual('Duplicated Key (duplicate_yaml_key)', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_non_list_mapped_buildbot_steps(self):
+        errors = tidy.collect_errors_for_files(iterFile('non_list_mapping_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
+        self.assertEqual("Key 'non-list-key' maps to type 'str', but list expected", errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_non_string_list_mapping_buildbot_steps(self):
+        errors = tidy.collect_errors_for_files(iterFile('non_string_list_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
+        self.assertEqual("List mapped to 'mapping_key' contains non-string element", errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_lock(self):
         errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
         msg = """duplicate versions for package "test"
