@@ -29,7 +29,6 @@
 #![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", feature(rustc_attrs))]
 #![cfg_attr(feature = "servo", feature(structural_match))]
-#![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(warnings)]
@@ -59,6 +58,7 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate heapsize;
+#[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;

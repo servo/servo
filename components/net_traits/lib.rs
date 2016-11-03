@@ -4,19 +4,17 @@
 
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
-#![feature(custom_derive)]
-#![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(rustc_attrs)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(structural_match)]
-#![plugin(heapsize_plugin)]
 
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
 extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;

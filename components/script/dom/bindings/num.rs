@@ -4,6 +4,7 @@
 
 //! The `Finite<T>` struct.
 
+use heapsize::HeapSizeOf;
 use num_traits::Float;
 use std::ops::Deref;
 
@@ -36,5 +37,11 @@ impl<T: Float> Deref for Finite<T> {
     fn deref(&self) -> &T {
         let &Finite(ref value) = self;
         value
+    }
+}
+
+impl<T: Float + HeapSizeOf> HeapSizeOf for Finite<T> {
+    fn heap_size_of_children(&self) -> usize {
+        (**self).heap_size_of_children()
     }
 }

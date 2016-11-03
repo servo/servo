@@ -14,6 +14,7 @@
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(try_from)]
@@ -24,7 +25,6 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(heapsize_plugin)]
 #![plugin(phf_macros)]
 #![plugin(plugins)]
 
@@ -46,6 +46,7 @@ extern crate euclid;
 extern crate fnv;
 extern crate gfx_traits;
 extern crate heapsize;
+#[macro_use] extern crate heapsize_derive;
 extern crate html5ever;
 extern crate hyper;
 extern crate hyper_serde;
@@ -53,6 +54,8 @@ extern crate image;
 extern crate ipc_channel;
 #[macro_use]
 extern crate js;
+#[macro_use]
+extern crate jstraceable_derive;
 extern crate libc;
 #[macro_use]
 extern crate log;

@@ -625,6 +625,12 @@ impl<T: Reflectable> Deref for Root<T> {
     }
 }
 
+impl<T: Reflectable + HeapSizeOf> HeapSizeOf for Root<T> {
+    fn heap_size_of_children(&self) -> usize {
+        (**self).heap_size_of_children()
+    }
+}
+
 impl<T: Reflectable> PartialEq for Root<T> {
     fn eq(&self, other: &Self) -> bool {
         self.ptr == other.ptr
