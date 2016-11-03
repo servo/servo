@@ -26,7 +26,6 @@
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", feature(rustc_attrs))]
-#![cfg_attr(feature = "servo", feature(structural_match))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(warnings)]

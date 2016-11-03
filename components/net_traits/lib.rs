@@ -7,7 +7,6 @@
 #![feature(rustc_attrs)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(structural_match)]
 
 #![deny(unsafe_code)]
 
