@@ -13,9 +13,6 @@ from ..backends import static
 
 
 class TestStatic(unittest.TestCase):
-    def parse(self, input_str):
-        return self.parser.parse(StringIO(input_str))
-
     def compile(self, input_text, input_data):
         return static.compile(input_text, input_data)
 
