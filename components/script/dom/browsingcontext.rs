@@ -14,7 +14,9 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -145,6 +147,11 @@ impl BrowsingContext {
     }
 
     pub fn activate_history_state(&self, history_state_id: HistoryStateId) {
+        if self.active_state.get() != history_state_id {
+            let window = self.active_window();
+            let handle = self.states.borrow().get(&history_state_id).expect("Activated nonexistent history state.").state.handle();
+            PopStateEvent::dispatch_jsval(window.upcast::<EventTarget>(), window.upcast::<GlobalScope>(), handle);
+        }
         self.active_state.set(history_state_id);
     }
 
