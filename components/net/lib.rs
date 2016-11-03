@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
-#![feature(custom_derive)]
 #![feature(fnbox)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
@@ -37,6 +36,8 @@ extern crate openssl_verify;
 extern crate profile_traits;
 extern crate rand;
 extern crate rustc_serialize;
+#[macro_use]
+extern crate serde_derive;
 extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]

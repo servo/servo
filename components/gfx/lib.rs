@@ -7,13 +7,9 @@
 
 #![feature(alloc)]
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
-#![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(range_contains)]
-#![feature(rustc_attrs)]
-#![feature(structural_match)]
 #![feature(unique)]
 
 #![plugin(plugins)]

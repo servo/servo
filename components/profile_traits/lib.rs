@@ -7,7 +7,7 @@
 //! modules won't have to depend on `profile`.
 
 #![feature(box_syntax)]
-#![feature(custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
+#![feature(plugin, proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

@@ -12,7 +12,7 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#![feature(proc_macro, rustc_attrs, structural_match)]
+#![feature(proc_macro)]
 
 #[allow(unused_extern_crates)]
 #[macro_use]

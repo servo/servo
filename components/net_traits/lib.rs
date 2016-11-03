@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
 #![feature(proc_macro)]
-#![feature(rustc_attrs)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(structural_match)]
 
 #![deny(unsafe_code)]
 

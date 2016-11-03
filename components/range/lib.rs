@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(proc_macro)]
-#![feature(rustc_attrs)]
 #![feature(step_trait)]
 
 #![deny(unsafe_code)]

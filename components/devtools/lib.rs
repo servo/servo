@@ -11,8 +11,6 @@
 #![crate_type = "rlib"]
 
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
-#![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![plugin(plugins)]

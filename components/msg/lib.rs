@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(custom_attribute, custom_derive, plugin, proc_macro, rustc_attrs, structural_match)]
+#![feature(plugin, proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
