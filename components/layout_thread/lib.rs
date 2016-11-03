@@ -65,7 +65,7 @@ use layout::construct::ConstructionResult;
 use layout::context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use layout::flow_ref::{self, FlowRef};
+use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use layout::layout_debug;
 use layout::parallel;
@@ -594,7 +594,7 @@ impl LayoutThread {
         let mut rw_data = possibly_locked_rw_data.lock();
 
         if let Some(mut root_flow) = self.root_flow.clone() {
-            let flow = flow::mut_base(flow_ref::deref_mut(&mut root_flow));
+            let flow = flow::mut_base(FlowRef::deref_mut(&mut root_flow));
             flow.restyle_damage.insert(REPAINT);
         }
 
@@ -836,7 +836,7 @@ impl LayoutThread {
             _ => return None,
         };
 
-        flow_ref::deref_mut(&mut flow).mark_as_root();
+        FlowRef::deref_mut(&mut flow).mark_as_root();
 
         Some(flow)
     }
@@ -1120,7 +1120,7 @@ impl LayoutThread {
         }
         if needs_reflow {
             if let Some(mut flow) = self.try_get_layout_root(node) {
-                LayoutThread::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
+                LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
 
@@ -1197,7 +1197,7 @@ impl LayoutThread {
             Some(root_flow) => root_flow,
             None => return,
         };
-        let root_flow = flow_ref::deref_mut(&mut root_flow);
+        let root_flow = FlowRef::deref_mut(&mut root_flow);
         match *query_type {
             ReflowQueryType::ContentBoxQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1303,7 +1303,7 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                         animation::recalc_style_for_animations(&layout_context,
-                                                               flow_ref::deref_mut(&mut root_flow),
+                                                               FlowRef::deref_mut(&mut root_flow),
                                                                &animations)
                     });
         }
@@ -1361,10 +1361,10 @@ impl LayoutThread {
                     || {
                 // Call `compute_layout_damage` even in non-incremental mode, because it sets flags
                 // that are needed in both incremental and non-incremental traversals.
-                let damage = flow_ref::deref_mut(&mut root_flow).compute_layout_damage();
+                let damage = FlowRef::deref_mut(&mut root_flow).compute_layout_damage();
 
                 if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
-                    flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
+                    FlowRef::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
 
@@ -1376,13 +1376,13 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(flow_ref::deref_mut(&mut root_flow), &layout_context));
+                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &layout_context));
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::guess_float_placement(flow_ref::deref_mut(&mut root_flow)));
+                    || sequential::guess_float_placement(FlowRef::deref_mut(&mut root_flow)));
 
             // Perform the primary layout passes over the flow tree to compute the locations of all
             // the boxes.
@@ -1395,12 +1395,12 @@ impl LayoutThread {
                     match self.parallel_traversal {
                         None => {
                             // Sequential mode.
-                            LayoutThread::solve_constraints(flow_ref::deref_mut(&mut root_flow), &layout_context)
+                            LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &layout_context)
                         }
                         Some(ref mut parallel) => {
                             // Parallel mode.
                             LayoutThread::solve_constraints_parallel(parallel,
-                                                                     flow_ref::deref_mut(&mut root_flow),
+                                                                     FlowRef::deref_mut(&mut root_flow),
                                                                      profiler_metadata,
                                                                      self.time_profiler_chan.clone(),
                                                                      &*layout_context);
@@ -1415,7 +1415,7 @@ impl LayoutThread {
                     || {
                 let layout_context = LayoutContext::new(&*layout_context);
                 sequential::store_overflow(&layout_context,
-                                           flow_ref::deref_mut(&mut root_flow) as &mut Flow);
+                                           FlowRef::deref_mut(&mut root_flow) as &mut Flow);
             });
 
             self.perform_post_main_layout_passes(data,
@@ -1437,7 +1437,7 @@ impl LayoutThread {
             self.compute_abs_pos_and_build_display_list(data,
                                                         query_type,
                                                         document,
-                                                        flow_ref::deref_mut(&mut root_flow),
+                                                        FlowRef::deref_mut(&mut root_flow),
                                                         &mut *layout_context,
                                                         rw_data);
             self.first_reflow = false;

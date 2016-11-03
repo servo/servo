@@ -18,7 +18,7 @@ use context::SharedLayoutContext;
 use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
-use flow_ref;
+use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
@@ -1994,11 +1994,11 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         for mut fragment in self.fragments.fragments.iter_mut() {
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
+                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
                     block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
+                    let block_flow = FlowRef::deref_mut(&mut block_flow.flow_ref);
                     block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
                 }
                 _ if fragment.establishes_stacking_context() => {
