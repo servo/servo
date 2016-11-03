@@ -30,7 +30,7 @@ use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData};
 use style_traits::ToCss;
 use stylesheets::Origin;
-use values::{HasViewportPercentage, computed};
+use values::{Either, HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
@@ -1249,7 +1249,7 @@ impl ComputedValues {
             if effects.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if effects.perspective != computed::LengthOrNone::None {
+            if let Either::First(ref _length) = effects.perspective {
                 return transform_style::T::flat;
             }
         }

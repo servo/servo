@@ -7,7 +7,7 @@ use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
-use values::{CSSFloat, specified};
+use values::{CSSFloat, Either, None_, specified};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -452,61 +452,7 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum LengthOrNone {
-    Length(Au),
-    None,
-}
-
-impl fmt::Debug for LengthOrNone {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrNone::Length(length) => write!(f, "{:?}", length),
-            LengthOrNone::None => write!(f, "none"),
-        }
-    }
-}
-
-impl ToComputedValue for specified::LengthOrNone {
-    type ComputedValue = LengthOrNone;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> LengthOrNone {
-        match *self {
-            specified::LengthOrNone::Length(specified::Length::Calc(calc, range)) => {
-                LengthOrNone::Length(range.clamp(calc.to_computed_value(context).length()))
-            }
-            specified::LengthOrNone::Length(value) => {
-                LengthOrNone::Length(value.to_computed_value(context))
-            }
-            specified::LengthOrNone::None => {
-                LengthOrNone::None
-            }
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &LengthOrNone) -> Self {
-        match *computed {
-            LengthOrNone::Length(au) => {
-                specified::LengthOrNone::Length(ToComputedValue::from_computed_value(&au))
-            }
-            LengthOrNone::None => {
-                specified::LengthOrNone::None
-            }
-        }
-    }
-}
-
-impl ToCss for LengthOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrNone::Length(length) => length.to_css(dest),
-            LengthOrNone::None => dest.write_str("none"),
-        }
-    }
-}
+pub type LengthOrNone = Either<Length, None_>;
 
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

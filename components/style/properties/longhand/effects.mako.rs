@@ -1395,7 +1395,7 @@ ${helpers.single_keyword("transform-style",
 
 ${helpers.predefined_type("perspective",
                           "LengthOrNone",
-                          "computed::LengthOrNone::None",
+                          "Either::Second(None_)",
                           products="servo",
                           animatable=True)}
 
