@@ -30,6 +30,7 @@ use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData};
 use style_traits::ToCss;
 use stylesheets::Origin;
+#[cfg(feature = "servo")] use values::Either;
 use values::{HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
@@ -1249,7 +1250,7 @@ impl ComputedValues {
             if effects.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if effects.perspective != computed::LengthOrNone::None {
+            if let Either::First(ref _length) = effects.perspective {
                 return transform_style::T::flat;
             }
         }

@@ -83,7 +83,6 @@ impl ToCss for CSSRGBA {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct SimplifiedSumNode {
     values: Vec<SimplifiedValueNode>,
