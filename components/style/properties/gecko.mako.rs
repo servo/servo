@@ -640,7 +640,8 @@ fn static_assert() {
                                     ["border-{0}-radius".format(x.ident.replace("_", "-"))
                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset border-image-repeat"
+                  skip_longhands="${skip_border_longhands} border-image-source border-image-outset
+                                  border-image-repeat border-image-width"
                   skip_additionals="*">
 
     % for side in SIDES:
@@ -724,6 +725,31 @@ fn static_assert() {
     pub fn copy_border_image_repeat_from(&mut self, other: &Self) {
         self.gecko.mBorderImageRepeatH = other.gecko.mBorderImageRepeatH;
         self.gecko.mBorderImageRepeatV = other.gecko.mBorderImageRepeatV;
+    }
+
+    pub fn set_border_image_width(&mut self, v: longhands::border_image_width::computed_value::T) {
+        use properties::longhands::border_image_width::computed_value::SingleComputedValue;
+
+        % for side in SIDES:
+        match v.${side.index} {
+            SingleComputedValue::Auto => {
+                self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Auto)
+            },
+            SingleComputedValue::LengthOrPercentage(l) => {
+                l.to_gecko_style_coord(&mut self.gecko.mBorderImageWidth.data_at_mut(${side.index}))
+            },
+            SingleComputedValue::Number(n) => {
+                self.gecko.mBorderImageWidth.data_at_mut(${side.index}).set_value(CoordDataValue::Factor(n))
+            },
+        }
+        % endfor
+    }
+
+    pub fn copy_border_image_width_from(&mut self, other: &Self) {
+        % for side in SIDES:
+            self.gecko.mBorderImageWidth.data_at_mut(${side.index})
+                .copy_from(&other.gecko.mBorderImageWidth.data_at(${side.index}));
+        % endfor
     }
 </%self:impl_trait>
 
