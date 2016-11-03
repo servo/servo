@@ -11,6 +11,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
@@ -63,6 +64,16 @@ impl PopStateEvent {
                               init.parent.bubbles,
                               init.parent.cancelable,
                               unsafe { HandleValue::from_marked_location(&init.state) }))
+    }
+}
+
+impl PopStateEvent {
+    pub fn dispatch_jsval(target: &EventTarget,
+                          scope: &GlobalScope,
+                          state: HandleValue) {
+        let pop_state_event = PopStateEvent::new(
+            scope, Atom::from("popstate"), true, false, state);
+        pop_state_event.upcast::<Event>().fire(target);
     }
 }
 
