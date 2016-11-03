@@ -579,7 +579,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 </%helpers:longhand>
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-slice
-<%helpers:longhand name="border-image-slice" products="none" animatable="False">
+<%helpers:longhand name="border-image-slice" products="gecko" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;

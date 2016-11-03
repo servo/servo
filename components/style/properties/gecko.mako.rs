@@ -641,7 +641,7 @@ fn static_assert() {
                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${skip_border_longhands} border-image-source border-image-outset
-                                  border-image-repeat border-image-width"
+                                  border-image-repeat border-image-width border-image-slice"
                   skip_additionals="*">
 
     % for side in SIDES:
@@ -750,6 +750,37 @@ fn static_assert() {
             self.gecko.mBorderImageWidth.data_at_mut(${side.index})
                 .copy_from(&other.gecko.mBorderImageWidth.data_at(${side.index}));
         % endfor
+    }
+
+    pub fn set_border_image_slice(&mut self, v: longhands::border_image_slice::computed_value::T) {
+        use gecko_bindings::structs::{NS_STYLE_BORDER_IMAGE_SLICE_NOFILL, NS_STYLE_BORDER_IMAGE_SLICE_FILL};
+        use properties::longhands::border_image_slice::computed_value::PercentageOrNumber;
+
+        for (i, corner) in v.corners.iter().enumerate() {
+            match *corner {
+                PercentageOrNumber::Percentage(p) => {
+                    self.gecko.mBorderImageSlice.data_at_mut(i).set_value(CoordDataValue::Percent(p.0))
+                },
+                PercentageOrNumber::Number(n) => {
+                    self.gecko.mBorderImageSlice.data_at_mut(i).set_value(CoordDataValue::Factor(n))
+                },
+            }
+        }
+
+        let fill = if v.fill {
+            NS_STYLE_BORDER_IMAGE_SLICE_FILL
+        } else {
+            NS_STYLE_BORDER_IMAGE_SLICE_NOFILL
+        };
+        self.gecko.mBorderImageFill = fill as u8;
+    }
+
+    pub fn copy_border_image_slice_from(&mut self, other: &Self) {
+        for i in 0..4 {
+            self.gecko.mBorderImageSlice.data_at_mut(i)
+                .copy_from(&other.gecko.mBorderImageSlice.data_at(i));
+        }
+        self.gecko.mBorderImageFill = other.gecko.mBorderImageFill;
     }
 </%self:impl_trait>
 
