@@ -1,0 +1,4 @@
+files:
+  html5lib:
+    tests:
+      deprecated: skip
