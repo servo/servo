@@ -32,3 +32,50 @@ extern crate util;
 #[cfg(test)] mod hsts;
 #[cfg(test)] mod http_loader;
 #[cfg(test)] mod filemanager_thread;
+
+use devtools_traits::DevtoolsControlMsg;
+use filemanager_thread::{TestProvider, TEST_PROVIDER};
+use net::fetch::methods::{FetchContext, fetch};
+use net::filemanager_thread::FileManager;
+use net::http_loader::HttpState;
+use net_traits::FetchTaskTarget;
+use net_traits::request::Request;
+use net_traits::response::Response;
+use std::rc::Rc;
+use std::sync::mpsc::Sender;
+use std::thread;
+
+const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
+
+struct FetchResponseCollector {
+    sender: Sender<Response>,
+}
+
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext<TestProvider> {
+    FetchContext {
+        state: HttpState::new(),
+        user_agent: DEFAULT_USER_AGENT.into(),
+        devtools_chan: dc,
+        filemanager: FileManager::new(TEST_PROVIDER),
+    }
+}
+impl FetchTaskTarget for FetchResponseCollector {
+    fn process_request_body(&mut self, _: &Request) {}
+    fn process_request_eof(&mut self, _: &Request) {}
+    fn process_response(&mut self, _: &Response) {}
+    fn process_response_chunk(&mut self, _: Vec<u8>) {}
+    /// Fired when the response is fully fetched
+    fn process_response_eof(&mut self, response: &Response) {
+        let _ = self.sender.send(response.clone());
+    }
+}
+
+fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
+    thread::spawn(move || {
+        fetch(Rc::new(request), &mut Some(target), new_fetch_context(dc));
+    });
+}
+
+fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+    fetch(Rc::new(request), &mut None, new_fetch_context(dc))
+}

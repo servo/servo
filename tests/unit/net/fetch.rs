@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use {DEFAULT_USER_AGENT, FetchResponseCollector, new_fetch_context, fetch_async, fetch_sync};
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
-use filemanager_thread::{TestProvider, TEST_PROVIDER};
 use http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
@@ -22,10 +22,7 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use msg::constellation_msg::{ReferrerPolicy, TEST_PIPELINE_ID};
 use net::fetch::cors_cache::CORSCache;
-use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
-use net::filemanager_thread::FileManager;
-use net::http_loader::HttpState;
-use net_traits::FetchTaskTarget;
+use net::fetch::methods::{fetch, fetch_with_cors_cache};
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use std::fs::File;
@@ -34,48 +31,12 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
-use std::thread;
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin as UrlOrigin, Url};
 use util::resource_files::resources_dir_path;
 
-const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
-
 // TODO write a struct that impls Handler for storing test values
-
-struct FetchResponseCollector {
-    sender: Sender<Response>,
-}
-
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext<TestProvider> {
-    FetchContext {
-        state: HttpState::new(),
-        user_agent: DEFAULT_USER_AGENT.into(),
-        devtools_chan: dc,
-        filemanager: FileManager::new(TEST_PROVIDER),
-    }
-}
-impl FetchTaskTarget for FetchResponseCollector {
-    fn process_request_body(&mut self, _: &Request) {}
-    fn process_request_eof(&mut self, _: &Request) {}
-    fn process_response(&mut self, _: &Response) {}
-    fn process_response_chunk(&mut self, _: Vec<u8>) {}
-    /// Fired when the response is fully fetched
-    fn process_response_eof(&mut self, response: &Response) {
-        let _ = self.sender.send(response.clone());
-    }
-}
-
-fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
-    thread::spawn(move || {
-        fetch(Rc::new(request), &mut Some(target), new_fetch_context(dc));
-    });
-}
-
-fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch(Rc::new(request), &mut None, new_fetch_context(dc))
-}
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
     // this is a Listening server because of handle_threads()
@@ -140,31 +101,6 @@ fn test_fetch_aboutblank() {
     let fetch_response = fetch_sync(request, None);
     assert!(!fetch_response.is_network_error());
     assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
-}
-
-#[test]
-fn test_fetch_data() {
-    let url = Url::parse("data:text/html,<p>Servo</p>").unwrap();
-    let origin = Origin::Origin(url.origin());
-    let request = Request::new(url, Some(origin), false, None);
-    let expected_resp_body = "<p>Servo</p>".to_owned();
-    let fetch_response = fetch_sync(request, None);
-
-    assert!(!fetch_response.is_network_error());
-    assert_eq!(fetch_response.headers.len(), 1);
-    let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert!(**content_type == Mime(TopLevel::Text, SubLevel::Html, vec![]));
-    let resp_body = fetch_response.body.lock().unwrap();
-
-    match *resp_body {
-        ResponseBody::Done(ref val) => {
-            assert_eq!(val, &expected_resp_body.into_bytes());
-        }
-        ResponseBody::Receiving(_) => {
-            panic!();
-        },
-        ResponseBody::Empty => panic!(),
-    }
 }
 
 #[test]

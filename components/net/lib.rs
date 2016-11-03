@@ -57,7 +57,7 @@ pub mod connector;
 pub mod content_blocker;
 pub mod cookie;
 pub mod cookie_storage;
-pub mod data_loader;
+mod data_loader;
 pub mod file_loader;
 pub mod filemanager_thread;
 pub mod hsts;
