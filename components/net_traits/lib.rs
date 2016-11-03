@@ -4,7 +4,6 @@
 
 #![feature(box_syntax)]
 #![feature(proc_macro)]
-#![feature(rustc_attrs)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 

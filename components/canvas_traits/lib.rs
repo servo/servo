@@ -6,7 +6,6 @@
 #![crate_type = "rlib"]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(rustc_attrs)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

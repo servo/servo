@@ -13,7 +13,6 @@
 
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(proc_macro))]
-#![cfg_attr(feature = "servo", feature(rustc_attrs))]
 
 extern crate app_units;
 #[macro_use]

@@ -10,7 +10,6 @@
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(range_contains)]
-#![feature(rustc_attrs)]
 #![feature(unique)]
 
 #![plugin(plugins)]

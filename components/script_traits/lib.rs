@@ -6,7 +6,7 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#![feature(plugin, proc_macro, rustc_attrs)]
+#![feature(plugin, proc_macro)]
 #![plugin(plugins)]
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
