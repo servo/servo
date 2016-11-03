@@ -7,6 +7,7 @@ use cssparser::{Parser, ToCss};
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
+use std::fmt::Write;
 use std::mem::transmute;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
@@ -471,6 +472,25 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     // this and fill in |buffer| directly.
     unsafe {
         Gecko_Utf8SliceToString(buffer, value.as_ptr(), length);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
+     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+     declarations.read().declarations.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                        index: u32, result: *mut nsAString) -> bool {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    if let Some(&(ref decl, _)) = declarations.read().declarations.get(index as usize) {
+        let result = unsafe { result.as_mut().unwrap() };
+        write!(result, "{}", decl.name()).unwrap();
+        true
+    } else {
+        false
     }
 }
 
