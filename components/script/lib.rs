@@ -7,7 +7,6 @@
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
-#![feature(custom_derive)]
 #![feature(fnbox)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]

@@ -11,7 +11,6 @@
 
 #![deny(unsafe_code)]
 
-#![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", feature(rustc_attrs))]
