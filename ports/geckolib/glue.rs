@@ -26,9 +26,9 @@ use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSet
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
+use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
-use style::gecko_bindings::bindings::nsACString;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
@@ -441,6 +441,13 @@ pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorro
                                                 b: RawServoDeclarationBlockBorrowed)
                                                 -> bool {
     *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read() == *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclarationBlockBorrowed,
+                                                    result: *mut nsAString) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    declarations.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]

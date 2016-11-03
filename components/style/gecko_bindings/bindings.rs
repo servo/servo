@@ -933,6 +933,11 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_GetCssText(declarations:
+                                                 RawServoDeclarationBlockBorrowed,
+                                             result: *mut nsAString_internal);
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
                                                         RawServoDeclarationBlockBorrowed,
                                                     buffer: *mut nsString);
