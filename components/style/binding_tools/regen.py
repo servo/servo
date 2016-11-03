@@ -256,6 +256,7 @@ COMPILATION_TARGETS = {
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoNode",
+            "ThreadSafe.*Holder",
         ],
 
         # Types to just use from the `structs` target.
