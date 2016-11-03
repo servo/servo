@@ -409,7 +409,7 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
-        if iframe.upcast::<Node>().is_in_doc() {
+        if iframe.upcast::<Node>().is_in_doc_with_browsing_context() {
             let window = window_from_node(iframe);
             let msg = ConstellationMsg::TraverseHistory(iframe.pipeline_id(), direction);
             window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
@@ -495,7 +495,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
     fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
-            if self.upcast::<Node>().is_in_doc() {
+            if self.upcast::<Node>().is_in_doc_with_browsing_context() {
                 self.navigate_or_reload_child_browsing_context(None, true);
             }
             Ok(())
@@ -593,7 +593,16 @@ impl VirtualMethods for HTMLIFrameElement {
             },
             &local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if self.upcast::<Node>().is_in_doc() {
+                    // https://html.spec.whatwg.org/multipage/#the-iframe-element
+                    // "Similarly, whenever an iframe element with a non-null nested browsing context
+                    // but with no srcdoc attribute specified has its src attribute set, changed, or removed,
+                    // the user agent must process the iframe attributes,"
+                    // but we can't check that directly, since the child browsing context
+                    // may be in a different script thread. Instread, we check to see if the parent
+                    // is in a document tree and has a browsing context, which is what causes
+                    // the child browsing context to be created.
+                    if self.upcast::<Node>().is_in_doc_with_browsing_context() {
+                        debug!("iframe {} src set while in browsing context.", self.frame_id);
                         self.process_the_iframe_attributes();
                     }
                 }
@@ -616,7 +625,14 @@ impl VirtualMethods for HTMLIFrameElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        if tree_in_doc {
+        // https://html.spec.whatwg.org/multipage/#the-iframe-element
+        // "When an iframe element is inserted into a document that has
+        // a browsing context, the user agent must create a new
+        // browsing context, set the element's nested browsing context
+        // to the newly-created browsing context, and then process the
+        // iframe attributes for the "first time"."
+        if self.upcast::<Node>().is_in_doc_with_browsing_context() {
+            debug!("iframe {} bound to browsing context.", self.frame_id);
             self.process_the_iframe_attributes();
         }
     }
