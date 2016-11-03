@@ -29,14 +29,14 @@ use html5ever::serialize::{AttrRef, Serializable, Serializer};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tendril::StrTendril;
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
+use html5ever::tokenizer::{Tokenizer as H5ETokenizer, TokenizerOpts};
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts, TreeSink};
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;
-use super::{LastChunkState, ServoParser, Sink, Tokenizer};
+use super::{HtmlTokenizer, LastChunkState, ServoParser, Sink, Tokenizer};
 use url::Url;
 
 fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
@@ -276,10 +276,13 @@ pub fn parse_html(document: &Document,
     let parser = match context {
         ParseContext::Owner(owner) => {
             let tb = TreeBuilder::new(sink, options);
-            let tok = HtmlTokenizer::new(tb, Default::default());
+            let tok = H5ETokenizer::new(tb, Default::default());
 
             ServoParser::new(
-                document, owner, Tokenizer::HTML(tok), LastChunkState::NotReceived)
+                document,
+                owner,
+                Tokenizer::HTML(HtmlTokenizer::new(tok)),
+                LastChunkState::NotReceived)
         },
         ParseContext::Fragment(fc) => {
             let tb = TreeBuilder::new_for_fragment(
@@ -292,10 +295,13 @@ pub fn parse_html(document: &Document,
                 initial_state: Some(tb.tokenizer_state_for_context_elem()),
                 .. Default::default()
             };
-            let tok = HtmlTokenizer::new(tb, tok_options);
+            let tok = H5ETokenizer::new(tb, tok_options);
 
             ServoParser::new(
-                document, None, Tokenizer::HTML(tok), LastChunkState::Received)
+                document,
+                None,
+                Tokenizer::HTML(HtmlTokenizer::new(tok)),
+                LastChunkState::Received)
         }
     };
     parser.parse_chunk(String::from(input));
