@@ -10,6 +10,7 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{LoadContext, LoadData, LoadOrigin, NetworkError};
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Done, Payload};
+use std::ops::Deref;
 use url::Url;
 
 struct DataLoadTest;
@@ -29,8 +30,8 @@ impl LoadOrigin for DataLoadTest {
 #[cfg(test)]
 fn assert_parse(url:          &'static str,
                 content_type: Option<ContentType>,
-                charset:      Option<String>,
-                data:         Option<Vec<u8>>) {
+                charset:      Option<&str>,
+                data:         Option<&[u8]>) {
     use net::data_loader::load;
     use net::mime_classifier::MimeClassifier;
     use net::resource_thread::CancellationListener;
@@ -45,7 +46,7 @@ fn assert_parse(url:          &'static str,
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type.map(Serde::into_inner),
                &content_type);
-    assert_eq!(&response.metadata.charset,      &charset);
+    assert_eq!(response.metadata.charset.as_ref().map(String::deref), charset);
 
     let progress = response.progress_port.recv().unwrap();
 
@@ -54,7 +55,10 @@ fn assert_parse(url:          &'static str,
             assert_eq!(progress, Done(Err(NetworkError::Internal("invalid data uri".to_owned()))));
         }
         Some(dat) => {
-            assert_eq!(progress, Payload(dat));
+            match progress {
+                Payload(d) => assert_eq!(d, dat),
+                _ => panic!(),
+            }
             assert_eq!(response.progress_port.recv().unwrap(), Done(Ok(())));
         }
     }
@@ -71,7 +75,8 @@ fn plain() {
         "data:,hello%20world",
         Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
                               vec!((Attr::Charset, Value::Ext("us-ascii".to_owned())))))),
-        Some("US-ASCII".to_owned()), Some(b"hello world".iter().map(|&x| x).collect()));
+        Some("US-ASCII"),
+        Some(b"hello world"));
 }
 
 #[test]
@@ -80,16 +85,18 @@ fn plain_ct() {
         "data:text/plain,hello",
         Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!()))),
         None,
-        Some(b"hello".iter().map(|&x| x).collect()));
+        Some(b"hello"));
 }
 
 #[test]
 fn plain_charset() {
-    assert_parse("data:text/plain;charset=latin1,hello",
+    assert_parse(
+        "data:text/plain;charset=latin1,hello",
         Some(ContentType(Mime(TopLevel::Text,
                               SubLevel::Plain,
                               vec!((Attr::Charset, Value::Ext("latin1".to_owned())))))),
-        Some("latin1".to_owned()), Some(b"hello".iter().map(|&x| x).collect()));
+        Some("latin1"),
+        Some(b"hello"));
 }
 
 #[test]
@@ -99,7 +106,8 @@ fn plain_only_charset() {
         Some(ContentType(Mime(TopLevel::Text,
                               SubLevel::Plain,
                               vec!((Attr::Charset, Value::Utf8))))),
-        Some("utf-8".to_owned()), Some(b"hello".iter().map(|&x| x).collect()));
+        Some("utf-8"),
+        Some(b"hello"));
 }
 
 #[test]
@@ -109,22 +117,25 @@ fn base64() {
         Some(ContentType(Mime(TopLevel::Text,
                               SubLevel::Plain,
                               vec!((Attr::Charset, Value::Ext("us-ascii".to_owned())))))),
-        Some("US-ASCII".to_owned()), Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+        Some("US-ASCII"),
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
 }
 
 #[test]
 fn base64_ct() {
-    assert_parse("data:application/octet-stream;base64,C62+7w==",
+    assert_parse(
+        "data:application/octet-stream;base64,C62+7w==",
         Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_owned()), vec!()))),
         None,
-        Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
 }
 
 #[test]
 fn base64_charset() {
-    assert_parse("data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
+    assert_parse(
+        "data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
         Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
                               vec!((Attr::Charset, Value::Ext("koi8-r".to_owned())))))),
-        Some("koi8-r".to_owned()),
-        Some(vec!(0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4)));
+        Some("koi8-r"),
+        Some(&[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
 }
