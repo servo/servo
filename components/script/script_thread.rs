@@ -1586,7 +1586,7 @@ impl ScriptThread {
     }
 
     /// Notify a window of a storage event
-    fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: String,
+    fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: Url,
                             key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let window = match self.root_browsing_context().find(pipeline_id) {
             Some(browsing_context) => browsing_context.active_window(),

@@ -246,8 +246,8 @@ pub enum ConstellationControlMsg {
         child: PipelineId,
     },
     /// Cause a `storage` event to be dispatched at the appropriate window.
-    /// The strings are url, key, old value and new value.
-    DispatchStorageEvent(PipelineId, StorageType, String, Option<String>, Option<String>, Option<String>),
+    /// The strings are key, old value and new value.
+    DispatchStorageEvent(PipelineId, StorageType, Url, Option<String>, Option<String>, Option<String>),
     /// Notifies a parent pipeline that one of its child frames is now active.
     /// PipelineId is for the parent, FrameId is the child frame.
     FramedContentChanged(PipelineId, FrameId),

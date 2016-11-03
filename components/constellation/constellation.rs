@@ -1055,13 +1055,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_broadcast_storage_event(&self, pipeline_id: PipelineId, storage: StorageType, url: String,
+    fn handle_broadcast_storage_event(&self, pipeline_id: PipelineId, storage: StorageType, url: Url,
                                       key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
-        let origin = match Url::parse(&*url) {
-            Ok(url) => url.origin(),
-            Err(err) => return warn!("Failed to parse url {}: {:?}.", url, err),
-        };
-
+        let origin = url.origin();
         for pipeline in self.pipelines.values() {
             if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
                 let msg = ConstellationControlMsg::DispatchStorageEvent(

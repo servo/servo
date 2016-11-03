@@ -152,13 +152,13 @@ impl Storage {
                                      new_value: Option<String>) {
         let pipeline_id = self.global().pipeline_id();
         let storage = self.storage_type;
-        let url = self.get_url().to_string();
+        let url = self.get_url();
         let msg = ScriptMsg::BroadcastStorageEvent(pipeline_id, storage, url, key, old_value, new_value);
         self.global().constellation_chan().send(msg).unwrap();
     }
 
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    pub fn queue_storage_event(&self, url: String,
+    pub fn queue_storage_event(&self, url: Url,
                                key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let global = self.global();
         let window = global.as_window();
@@ -173,14 +173,14 @@ impl Storage {
 
 pub struct StorageEventRunnable {
     element: Trusted<Storage>,
-    url: String,
+    url: Url,
     key: Option<String>,
     old_value: Option<String>,
     new_value: Option<String>
 }
 
 impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, url: String,
+    fn new(storage: Trusted<Storage>, url: Url,
            key: Option<String>, old_value: Option<String>, new_value: Option<String>) -> StorageEventRunnable {
         StorageEventRunnable { element: storage, url: url, key: key, old_value: old_value, new_value: new_value }
     }
@@ -200,7 +200,7 @@ impl Runnable for StorageEventRunnable {
             atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
-            DOMString::from(this.url),
+            DOMString::from(this.url.into_string()),
             Some(&*storage)
         );
 
