@@ -796,6 +796,8 @@ cfg_if! {
             pub static nsGkAtoms_fullscreenerror: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17functionAvailableE"]
             pub static nsGkAtoms_functionAvailable: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms12freshProcessE"]
+            pub static nsGkAtoms_freshProcess: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms10generateIdE"]
             pub static nsGkAtoms_generateId: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6getterE"]
@@ -1544,6 +1546,10 @@ cfg_if! {
             pub static nsGkAtoms_onfinish: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7onfocusE"]
             pub static nsGkAtoms_onfocus: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9onfocusinE"]
+            pub static nsGkAtoms_onfocusin: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10onfocusoutE"]
+            pub static nsGkAtoms_onfocusout: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17onfrequencychangeE"]
             pub static nsGkAtoms_onfrequencychange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18onfullscreenchangeE"]
@@ -5709,6 +5715,8 @@ cfg_if! {
             pub static nsGkAtoms_fullscreenerror: *mut nsIAtom;
             #[link_name = "?functionAvailable@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_functionAvailable: *mut nsIAtom;
+            #[link_name = "?freshProcess@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_freshProcess: *mut nsIAtom;
             #[link_name = "?generateId@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_generateId: *mut nsIAtom;
             #[link_name = "?getter@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6457,6 +6465,10 @@ cfg_if! {
             pub static nsGkAtoms_onfinish: *mut nsIAtom;
             #[link_name = "?onfocus@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onfocus: *mut nsIAtom;
+            #[link_name = "?onfocusin@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onfocusin: *mut nsIAtom;
+            #[link_name = "?onfocusout@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onfocusout: *mut nsIAtom;
             #[link_name = "?onfrequencychange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onfrequencychange: *mut nsIAtom;
             #[link_name = "?onfullscreenchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10622,6 +10634,8 @@ cfg_if! {
             pub static nsGkAtoms_fullscreenerror: *mut nsIAtom;
             #[link_name = "\x01?functionAvailable@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_functionAvailable: *mut nsIAtom;
+            #[link_name = "\x01?freshProcess@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_freshProcess: *mut nsIAtom;
             #[link_name = "\x01?generateId@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_generateId: *mut nsIAtom;
             #[link_name = "\x01?getter@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11370,6 +11384,10 @@ cfg_if! {
             pub static nsGkAtoms_onfinish: *mut nsIAtom;
             #[link_name = "\x01?onfocus@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onfocus: *mut nsIAtom;
+            #[link_name = "\x01?onfocusin@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onfocusin: *mut nsIAtom;
+            #[link_name = "\x01?onfocusout@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onfocusout: *mut nsIAtom;
             #[link_name = "\x01?onfrequencychange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onfrequencychange: *mut nsIAtom;
             #[link_name = "\x01?onfullscreenchange@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15538,6 +15556,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fullscreenerror as *mut _) } };
 ("function-available") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_functionAvailable as *mut _) } };
+("freshProcess") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_freshProcess as *mut _) } };
 ("generate-id") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_generateId as *mut _) } };
 ("getter") =>
@@ -16286,6 +16306,10 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfinish as *mut _) } };
 ("onfocus") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfocus as *mut _) } };
+("onfocusin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfocusin as *mut _) } };
+("onfocusout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfocusout as *mut _) } };
 ("onfrequencychange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onfrequencychange as *mut _) } };
 ("onfullscreenchange") =>
