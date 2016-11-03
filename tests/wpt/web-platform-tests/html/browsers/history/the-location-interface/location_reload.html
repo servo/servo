@@ -15,18 +15,17 @@
     async_test(function(t) {
 
       var url = new URL("./location_reload-iframe.html", window.location).href;
-      var pingCount = 0;
 
+      window._pingCount = 0;
       window._ping = t.step_func(function(innerURL) {
           // Some browsers keep 'about:blank' in the session history
-          if (pingCount == 0) {
+          if (_pingCount == 0) {
             history_length = history.length;
           }
-          assert_equals(url, innerURL, "iframe url (" + pingCount + ")");
-          assert_equals(history_length, history.length, "history length (" + pingCount + ")");
-          pingCount++;
-          if (pingCount == 5) {
-            iframe.src = 'about:blank';
+          assert_equals(url, innerURL, "iframe url (" + _pingCount + ")");
+          assert_equals(history_length, history.length, "history length (" + _pingCount + ")");
+          _pingCount++;
+          if (_pingCount == 5) {
             t.done();
           }
       });
