@@ -1,0 +1,21 @@
+[package]
+name = "bluetooth"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "bluetooth"
+path = "lib.rs"
+
+[dependencies]
+bitflags = "0.7"
+bluetooth_traits = {path = "../bluetooth_traits"}
+device = {git = "https://github.com/servo/devices"}
+ipc-channel = "0.5"
+rand = "0.3"
+util = {path = "../util"}
+
+[target.'cfg(target_os = "linux")'.dependencies]
+tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}

@@ -1,5 +1,9 @@
 # Servo's directory structure:
 * components
+  * bluetooth
+    * Implementation the bluetooth thread.
+  * bluetooth_traits
+    * APIs to the bluetooth crate for crates that don't want to depend on the bluetooth crate for build speed reasons.
   * canvas
     * Implementation of painting threads for 2d and WebGL canvases.
   * canvas_traits

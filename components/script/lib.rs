@@ -32,6 +32,7 @@ extern crate audio_video_metadata;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
+extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate caseless;
 extern crate cookie as cookie_rs;

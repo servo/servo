@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_traits::BluetoothMethodMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
@@ -25,7 +26,6 @@ use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use std::rc::Rc;
 
 // Maximum length of an attribute value.

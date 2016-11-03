@@ -17,6 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+use bluetooth_traits::BluetoothMethodMsg;
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -73,7 +74,6 @@ use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, PipelineId, PipelineNamespace, ReferrerPolicy};
 use net_traits::{CoreResourceMsg, IpcSend, Metadata, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::NetworkListener;

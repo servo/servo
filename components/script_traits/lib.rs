@@ -11,6 +11,7 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
@@ -37,6 +38,7 @@ extern crate url;
 mod script_msg;
 pub mod webdriver_msg;
 
+use bluetooth_traits::BluetoothMethodMsg;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
 use euclid::length::Length;
@@ -55,7 +57,6 @@ use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy, TraversalDirection};
 use net_traits::ResourceThreads;
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;

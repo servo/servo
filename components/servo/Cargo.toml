@@ -46,6 +46,8 @@ util_tests = {path = "../../tests/unit/util"}
 
 [dependencies]
 backtrace = "0.2"
+bluetooth_traits = {path = "../bluetooth_traits"}
+bluetooth = {path = "../bluetooth"}
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
