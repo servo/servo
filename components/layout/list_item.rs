@@ -20,12 +20,12 @@ use generated_content;
 use gfx::display_list::StackingContext;
 use gfx_traits::ScrollRootId;
 use inline::InlineFlow;
-use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
+use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]

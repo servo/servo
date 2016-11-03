@@ -13,7 +13,7 @@ use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::{ElementExt, PseudoElement, Snapshot};
+use selector_impl::{ElementExt, PseudoElement, RestyleDamage, Snapshot};
 use selector_matching::ApplicableDeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
@@ -173,7 +173,6 @@ pub trait PresentationalHintsSynthetizer {
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
-    type ConcreteRestyleDamage: TRestyleDamage;
 
     fn as_node(&self) -> Self::ConcreteNode;
 
@@ -185,7 +184,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
     /// Set the restyle damage field.
-    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage);
+    fn set_restyle_damage(self, damage: RestyleDamage);
 
     /// XXX: It's a bit unfortunate we need to pass the current computed values
     /// as an argument here, but otherwise Servo would crash due to double
@@ -193,7 +192,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_computed_values: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
-        -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
+        -> Option<&'a <RestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 
     /// The concept of a dirty bit doesn't exist in our new restyle algorithm.
     /// Instead, we associate restyle and change hints with nodes. However, we

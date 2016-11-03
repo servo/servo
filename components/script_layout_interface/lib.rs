@@ -42,7 +42,6 @@ extern crate url;
 
 pub mod message;
 pub mod reporter;
-pub mod restyle_damage;
 pub mod rpc;
 pub mod wrapper_traits;
 
@@ -50,10 +49,10 @@ use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use restyle_damage::RestyleDamage;
 use std::sync::atomic::AtomicIsize;
 use style::atomic_refcell::AtomicRefCell;
 use style::data::ElementData;
+use style::selector_impl::RestyleDamage;
 
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the

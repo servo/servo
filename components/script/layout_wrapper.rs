@@ -45,7 +45,6 @@ use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::restyle_damage::RestyleDamage;
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutElement, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
@@ -65,7 +64,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl, Snapshot};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl, Snapshot};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -434,7 +433,6 @@ impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type ConcreteDocument = ServoLayoutDocument<'le>;
-    type ConcreteRestyleDamage = RestyleDamage;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())

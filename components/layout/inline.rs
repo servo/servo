@@ -24,8 +24,6 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
-use script_layout_interface::restyle_damage::{REPOSITION, RESOLVE_GENERATED_CONTENT};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
 use std::cmp::max;
@@ -37,6 +35,7 @@ use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi;
 

@@ -9,12 +9,12 @@ use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::restyle_damage::RestyleDamage;
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
 use style::dom::TRestyleDamage;
+use style::selector_impl::RestyleDamage;
 use style::timer::Timer;
 
 /// Processes any new animations that were discovered after style recalculation.

@@ -11,22 +11,28 @@ use selectors::parser::{AttrSelector, SelectorImpl};
 pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
-pub use servo_selector_impl::*;
+pub use servo::selector_impl::*;
 
 #[cfg(feature = "gecko")]
 pub use gecko::selector_impl::*;
 
 #[cfg(feature = "servo")]
-pub use servo_selector_impl::ServoSelectorImpl as TheSelectorImpl;
+pub use servo::selector_impl::ServoSelectorImpl as TheSelectorImpl;
 
 #[cfg(feature = "gecko")]
 pub use gecko::selector_impl::GeckoSelectorImpl as TheSelectorImpl;
 
 #[cfg(feature = "servo")]
-pub use servo_selector_impl::ServoElementSnapshot as Snapshot;
+pub use servo::selector_impl::ServoElementSnapshot as Snapshot;
 
 #[cfg(feature = "gecko")]
 pub use gecko::snapshot::GeckoElementSnapshot as Snapshot;
+
+#[cfg(feature = "servo")]
+pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
+
+#[cfg(feature = "gecko")]
+pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
 ///
