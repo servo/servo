@@ -8,7 +8,6 @@
 
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(proc_macro)]

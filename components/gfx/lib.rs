@@ -7,7 +7,6 @@
 
 #![feature(alloc)]
 #![feature(box_syntax)]
-#![feature(custom_attribute)]
 #![feature(plugin)]
 #![feature(proc_macro)]
 #![feature(range_contains)]
