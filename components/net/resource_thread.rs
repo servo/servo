@@ -241,7 +241,7 @@ impl ResourceChannelManager {
                 };
                 if let Ok(msg) = data.to() {
                     if !self.process_msg(msg, group, &sender) {
-                        break;
+                        return;
                     }
                 }
             }
