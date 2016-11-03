@@ -539,6 +539,28 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                     property: *mut nsIAtom, is_custom: bool,
+                                                     value: *mut nsACString, is_important: bool) -> bool {
+    let property = get_property_name_from_atom(property, is_custom);
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    // FIXME Needs real URL and ParserContextExtraData.
+    let base_url = &*DUMMY_BASE_URL;
+    let extra_data = ParserContextExtraData::default();
+    if let Ok(decls) = parse_one_declaration(&property, value, &base_url,
+                                             Box::new(StdoutErrorReporter), extra_data) {
+        let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
+        let importance = if is_important { Importance::Important } else { Importance::Normal };
+        for decl in decls.into_iter() {
+            declarations.set_parsed_declaration(decl, importance);
+        }
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                         property: *mut nsIAtom, is_custom: bool) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);

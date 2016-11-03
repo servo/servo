@@ -977,6 +977,14 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_SetProperty(declarations:
+                                                  RawServoDeclarationBlockBorrowed,
+                                              property: *mut nsIAtom,
+                                              is_custom: bool,
+                                              value: *mut nsACString_internal,
+                                              is_important: bool) -> bool;
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_RemoveProperty(declarations:
                                                      RawServoDeclarationBlockBorrowed,
                                                  property: *mut nsIAtom,
