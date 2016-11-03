@@ -206,24 +206,24 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    pub fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
+    pub fn elements_iter_after<'a>(&'a self, after: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate forwards from a node.
         HTMLCollectionElementsIter {
-            node_iter: box after.following_nodes(&self.root),
+            node_iter: after.following_nodes(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
 
-    pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
+    pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate forwards from the root.
         self.elements_iter_after(&*self.root)
     }
 
-    pub fn elements_iter_before(&self, before: &Node) -> HTMLCollectionElementsIter {
+    pub fn elements_iter_before<'a>(&'a self, before: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate backwards from a node.
         HTMLCollectionElementsIter {
-            node_iter: box before.preceding_nodes(&self.root),
+            node_iter: before.preceding_nodes(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
@@ -235,13 +235,13 @@ impl HTMLCollection {
 }
 
 // TODO: Make this generic, and avoid code duplication
-pub struct HTMLCollectionElementsIter<'a> {
-    node_iter: Box<Iterator<Item = Root<Node>>>,
+struct HTMLCollectionElementsIter<'a, I> {
+    node_iter: I,
     root: Root<Node>,
     filter: &'a Box<CollectionFilter>,
 }
 
-impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
+impl<'a, I: Iterator<Item=Root<Node>>> Iterator for HTMLCollectionElementsIter<'a, I> {
     type Item = Root<Element>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -285,13 +285,15 @@ impl HTMLCollectionMethods for HTMLCollection {
                     // Iterate forwards, starting at the cursor.
                     let offset = index - (cached_index + 1);
                     let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_after(&node).nth(offset as usize))
+                    let mut iter = self.elements_iter_after(&node);
+                    self.set_cached_cursor(index, iter.nth(offset as usize))
                 } else {
                     // The cursor is after the element we're looking for
                     // Iterate backwards, starting at the cursor.
                     let offset = cached_index - (index + 1);
                     let node: Root<Node> = Root::upcast(element);
-                    self.set_cached_cursor(index, self.elements_iter_before(&node).nth(offset as usize))
+                    let mut iter = self.elements_iter_before(&node);
+                    self.set_cached_cursor(index, iter.nth(offset as usize))
                 }
             } else {
                 // Cache miss

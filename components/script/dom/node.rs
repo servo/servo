@@ -853,22 +853,23 @@ impl Node {
 
         let tr = new_child();
 
-        let after_node = if index == -1 {
-            None
-        } else {
-            match get_items().elements_iter()
-                             .map(Root::upcast::<Node>)
-                             .map(Some)
-                             .chain(iter::once(None))
-                             .nth(index as usize) {
-                None => return Err(Error::IndexSize),
-                Some(node) => node,
-            }
-        };
 
         {
             let tr_node = tr.upcast::<Node>();
-            try!(self.InsertBefore(tr_node, after_node.r()));
+            if index == -1 {
+                try!(self.InsertBefore(tr_node, None));
+            } else {
+                let items = get_items();
+                let node = match items.elements_iter()
+                                      .map(Root::upcast::<Node>)
+                                      .map(Some)
+                                      .chain(iter::once(None))
+                                      .nth(index as usize) {
+                    None => return Err(Error::IndexSize),
+                    Some(node) => node,
+                };
+                try!(self.InsertBefore(tr_node, node.r()));
+            }
         }
 
         Ok(Root::upcast::<HTMLElement>(tr))
