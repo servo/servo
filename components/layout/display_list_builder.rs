@@ -11,7 +11,6 @@
 #![deny(unsafe_code)]
 
 use app_units::{AU_PER_PX, Au};
-use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
@@ -24,7 +23,7 @@ use fragment::SpecificFragmentInfo;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
-use gfx::display_list::{GradientDisplayItem, GradientStop, IframeDisplayItem, ImageDisplayItem};
+use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
@@ -60,16 +59,32 @@ use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::opts;
+use webrender_traits::{ColorF, GradientStop};
 
-static THREAD_TINT_COLORS: [Color; 8] = [
-    Color { r: 6.0 / 255.0, g: 153.0 / 255.0, b: 198.0 / 255.0, a: 0.7 },
-    Color { r: 255.0 / 255.0, g: 212.0 / 255.0, b: 83.0 / 255.0, a: 0.7 },
-    Color { r: 116.0 / 255.0, g: 29.0 / 255.0, b: 109.0 / 255.0, a: 0.7 },
-    Color { r: 204.0 / 255.0, g: 158.0 / 255.0, b: 199.0 / 255.0, a: 0.7 },
-    Color { r: 242.0 / 255.0, g: 46.0 / 255.0, b: 121.0 / 255.0, a: 0.7 },
-    Color { r: 116.0 / 255.0, g: 203.0 / 255.0, b: 196.0 / 255.0, a: 0.7 },
-    Color { r: 255.0 / 255.0, g: 249.0 / 255.0, b: 201.0 / 255.0, a: 0.7 },
-    Color { r: 137.0 / 255.0, g: 196.0 / 255.0, b: 78.0 / 255.0, a: 0.7 },
+trait RgbColor {
+    fn rgb(r: u8, g: u8, b: u8) -> Self;
+}
+
+impl RgbColor for ColorF {
+    fn rgb(r: u8, g: u8, b: u8) -> Self {
+        ColorF {
+            r: (r as f32) / (255.0 as f32),
+            g: (g as f32) / (255.0 as f32),
+            b: (b as f32) / (255.0 as f32),
+            a: 1.0 as f32
+        }
+    }
+}
+
+static THREAD_TINT_COLORS: [ColorF; 8] = [
+    ColorF { r: 6.0 / 255.0, g: 153.0 / 255.0, b: 198.0 / 255.0, a: 0.7 },
+    ColorF { r: 255.0 / 255.0, g: 212.0 / 255.0, b: 83.0 / 255.0, a: 0.7 },
+    ColorF { r: 116.0 / 255.0, g: 29.0 / 255.0, b: 109.0 / 255.0, a: 0.7 },
+    ColorF { r: 204.0 / 255.0, g: 158.0 / 255.0, b: 199.0 / 255.0, a: 0.7 },
+    ColorF { r: 242.0 / 255.0, g: 46.0 / 255.0, b: 121.0 / 255.0, a: 0.7 },
+    ColorF { r: 116.0 / 255.0, g: 203.0 / 255.0, b: 196.0 / 255.0, a: 0.7 },
+    ColorF { r: 255.0 / 255.0, g: 249.0 / 255.0, b: 201.0 / 255.0, a: 0.7 },
+    ColorF { r: 137.0 / 255.0, g: 196.0 / 255.0, b: 78.0 / 255.0, a: 0.7 },
 ];
 
 fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
@@ -1053,7 +1068,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            color: SideOffsets2D::new_all_same(Color::rgb(0, 0, 200)),
+            color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
         }));
@@ -1073,7 +1088,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::Line(box LineDisplayItem {
             base: base,
-            color: Color::rgb(0, 200, 0),
+            color: ColorF::rgb(0, 200, 0),
             style: border_style::T::dashed,
         }));
     }
@@ -1091,7 +1106,7 @@ impl FragmentDisplayListBuilding for Fragment {
         state.add_display_item(DisplayItem::Border(box BorderDisplayItem {
             base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
-            color: SideOffsets2D::new_all_same(Color::rgb(0, 0, 200)),
+            color: SideOffsets2D::new_all_same(ColorF::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
         }));
@@ -2191,12 +2206,12 @@ fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) ->
 /// Allows a CSS color to be converted into a graphics color.
 pub trait ToGfxColor {
     /// Converts a CSS color to a graphics color.
-    fn to_gfx_color(&self) -> Color;
+    fn to_gfx_color(&self) -> ColorF;
 }
 
 impl ToGfxColor for RGBA {
-    fn to_gfx_color(&self) -> Color {
-        Color::rgba(self.red, self.green, self.blue, self.alpha)
+    fn to_gfx_color(&self) -> ColorF {
+        ColorF::new(self.red, self.green, self.blue, self.alpha)
     }
 }
 

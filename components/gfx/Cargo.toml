@@ -12,7 +12,6 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.3"
-azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
 euclid = "0.10.1"
 fnv = "1.0"
