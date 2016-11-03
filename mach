@@ -6,13 +6,15 @@
 # The beginning of this script is both valid shell and valid python,
 # such that the script starts with the shell and is reexecuted with
 # the right python.
-'''which' python2.7 > /dev/null 2> /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@"
+''':' && if [ ! -z "$MSYSTEM" ] ; then exec python "$0" "$@" ; else which python2.7 > /dev/null 2> /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@" ; fi
 '''
 
 from __future__ import print_function, unicode_literals
 
+
 import os
 import sys
+
 
 def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -21,5 +23,70 @@ def main(args):
     mach = mach_bootstrap.bootstrap(topdir)
     sys.exit(mach.run(sys.argv[1:]))
 
+
 if __name__ == '__main__':
+    if sys.platform == 'win32':
+        # This is a complete hack to work around the fact that Windows
+        # multiprocessing needs to import the original module (ie: this
+        # file), but only works if it has a .py extension.
+        #
+        # We do this by a sort of two-level function interposing. The first
+        # level interposes forking.get_command_line() with our version defined
+        # in my_get_command_line(). Our version of get_command_line will
+        # replace the command string with the contents of the fork_interpose()
+        # function to be used in the subprocess.
+        #
+        # The subprocess then gets an interposed imp.find_module(), which we
+        # hack up to find 'mach' without the .py extension, since we already
+        # know where it is (it's us!). If we're not looking for 'mach', then
+        # the original find_module will suffice.
+        #
+        # See also: http://bugs.python.org/issue19946
+        # And: https://bugzilla.mozilla.org/show_bug.cgi?id=914563
+        import inspect
+        from multiprocessing import forking
+        global orig_command_line
+
+        def fork_interpose():
+            import imp
+            import os
+            import sys
+            orig_find_module = imp.find_module
+            def my_find_module(name, dirs):
+                if name == 'mach':
+                    path = os.path.join(dirs[0], 'mach')
+                    f = open(path)
+                    return (f, path, ('', 'r', imp.PY_SOURCE))
+                return orig_find_module(name, dirs)
+
+            # Don't allow writing bytecode file for mach module.
+            orig_load_module = imp.load_module
+            def my_load_module(name, file, path, description):
+                # multiprocess.forking invokes imp.load_module manually and
+                # hard-codes the name __parents_main__ as the module name.
+                if name == '__parents_main__':
+                    old_bytecode = sys.dont_write_bytecode
+                    sys.dont_write_bytecode = True
+                    try:
+                        return orig_load_module(name, file, path, description)
+                    finally:
+                        sys.dont_write_bytecode = old_bytecode
+
+                return orig_load_module(name, file, path, description)
+
+            imp.find_module = my_find_module
+            imp.load_module = my_load_module
+            from multiprocessing.forking import main; main()
+
+        def my_get_command_line():
+            fork_code, lineno = inspect.getsourcelines(fork_interpose)
+            # Remove the first line (for 'def fork_interpose():') and the three
+            # levels of indentation (12 spaces).
+            fork_string = ''.join(x[12:] for x in fork_code[1:])
+            cmdline = orig_command_line()
+            cmdline[2] = fork_string
+            return cmdline
+        orig_command_line = forking.get_command_line
+        forking.get_command_line = my_get_command_line
+
     main(sys.argv)

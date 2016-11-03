@@ -135,16 +135,14 @@ pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
 easy_install-2.7 pip virtualenv
 ```
 
-Open a new MSYS shell window as Administrator and remove the Python binaries (they
-are not compatible with our `mach` driver script yet, unfortunately):
+Add the following line to the end of `.profile` in your home directory:
 
-```sh
-cd /mingw64/bin
-mv python2.exe python2-mingw64.exe
-mv python2.7.exe python2.7-mingw64.exe
+```
+export PATH=/c/Python27:$PATH
 ```
 
-Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build servo as usual!
+Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build
+servo as usual!
 
 #### Cross-compilation for Android
 
