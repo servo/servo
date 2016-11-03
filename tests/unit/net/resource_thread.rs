@@ -20,7 +20,7 @@ fn ip(s: &str) -> IpAddr {
 fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
-    let (resource_thread, _) = new_core_resource_thread(
+    let (resource_thread, _private_resource_thread) = new_core_resource_thread(
         "".into(), None, ProfilerChan(tx), None);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();

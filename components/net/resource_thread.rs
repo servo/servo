@@ -161,8 +161,6 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
-    let public_setup_chan_clone = public_setup_chan.clone();
-    let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
             user_agent, devtools_chan, profiler_chan
@@ -172,9 +170,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             resource_manager: resource_manager,
             config_dir: config_dir,
         };
-        channel_manager.start(public_setup_chan_clone,
-                              private_setup_chan_clone,
-                              public_setup_port,
+        channel_manager.start(public_setup_port,
                               private_setup_port);
     });
     (public_setup_chan, private_setup_chan)
@@ -213,8 +209,6 @@ fn create_resource_groups(config_dir: Option<&Path>)
 impl ResourceChannelManager {
     #[allow(unsafe_code)]
     fn start(&mut self,
-             public_control_sender: CoreResourceThread,
-             private_control_sender: CoreResourceThread,
              public_receiver: IpcReceiver<CoreResourceMsg>,
              private_receiver: IpcReceiver<CoreResourceMsg>) {
         let (public_resource_group, private_resource_group) =
@@ -226,14 +220,14 @@ impl ResourceChannelManager {
 
         loop {
             for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
-                let (group, sender) = if id == private_id {
-                    (&private_resource_group, &private_control_sender)
+                let group = if id == private_id {
+                    &private_resource_group
                 } else {
                     assert_eq!(id, public_id);
-                    (&public_resource_group, &public_control_sender)
+                    &public_resource_group
                 };
                 if let Ok(msg) = data.to() {
-                    if !self.process_msg(msg, group, &sender) {
+                    if !self.process_msg(msg, group) {
                         return;
                     }
                 }
@@ -244,8 +238,7 @@ impl ResourceChannelManager {
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
-                   group: &ResourceGroup,
-                   _control_sender: &CoreResourceThread) -> bool {
+                   group: &ResourceGroup) -> bool {
         match msg {
             CoreResourceMsg::Fetch(init, sender) =>
                 self.resource_manager.fetch(init, sender, group),
