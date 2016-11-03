@@ -2,17 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate hyper;
-extern crate hyper_serde;
-
+use hyper::header::ContentType;
+use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{LoadContext, LoadData, LoadOrigin, NetworkError};
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Done, Payload};
-use self::hyper::header::ContentType;
-use self::hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use url::Url;
 
 struct DataLoadTest;
