@@ -2071,6 +2071,19 @@ impl VirtualMethods for Element {
             return;
         }
 
+        if self.is_focusable_area() {
+            let doc = document_from_node(self);
+            let children = self.upcast::<Node>().traverse_preorder();
+
+            for child in children {
+                if let Some(element) = child.downcast::<Element>() {
+                    if element.is_focusable_area() && !element.disabled_state() {
+                        doc.add_focusable_element(element);
+                    }
+                }
+            }
+        }
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             let doc = document_from_node(self);
             doc.register_named_element(self, value.clone());
