@@ -13,7 +13,6 @@ use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, Immutab
 use flow::InorderFlowTraversal;
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use script_layout_interface::restyle_damage::{RESOLVE_GENERATED_CONTENT, RestyleDamage};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
@@ -22,6 +21,8 @@ use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
 use style::dom::TRestyleDamage;
 use style::properties::ServoComputedValues;
+use style::selector_impl::RestyleDamage;
+use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use text::TextRunScanner;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:

@@ -12,7 +12,6 @@ use gfx_traits::ByteIndex;
 use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
-use restyle_damage::RestyleDamage;
 use std::fmt::Debug;
 use std::sync::Arc;
 use style::atomic_refcell::AtomicRefCell;
@@ -22,7 +21,7 @@ use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
-use style::selector_impl::{PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
+use style::selector_impl::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
 use url::Url;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
