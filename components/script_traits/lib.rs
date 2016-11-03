@@ -195,6 +195,8 @@ pub enum ConstellationControlMsg {
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
     ExitPipeline(PipelineId),
+    /// Notifies the script that the whole thread should be closed.
+    ExitScriptThread,
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
@@ -259,6 +261,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",
             ExitPipeline(..) => "ExitPipeline",
+            ExitScriptThread => "ExitScriptThread",
             SendEvent(..) => "SendEvent",
             Viewport(..) => "Viewport",
             SetScrollState(..) => "SetScrollState",

@@ -841,10 +841,9 @@ impl ScriptThread {
 
             let result = self.profile_event(category, move || {
                 match msg {
-                    FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
-                        if self.handle_exit_pipeline_msg(id) {
-                            return Some(false)
-                        }
+                    FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
+                        self.handle_exit_script_thread_msg();
+                        return Some(false);
                     },
                     FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
@@ -990,11 +989,13 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            ConstellationControlMsg::ExitPipeline(pipeline_id) =>
+                self.handle_exit_pipeline_msg(pipeline_id),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
-            msg @ ConstellationControlMsg::ExitPipeline(..) =>
+            msg @ ConstellationControlMsg::ExitScriptThread =>
                       panic!("should have handled {:?} already", msg),
         }
     }
@@ -1485,10 +1486,9 @@ impl ScriptThread {
         document.send_title_to_compositor();
     }
 
-    /// Handles a request to exit the script thread and shut down layout.
-    /// Returns true if the script thread should shut down and false otherwise.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
-        debug!("Exiting pipeline {:?}.", id);
+    /// Handles a request to exit a pipeline and shut down layout.
+    fn handle_exit_pipeline_msg(&self, id: PipelineId) {
+        debug!("Exiting pipeline {}.", id);
 
         self.closed_pipelines.borrow_mut().insert(id);
 
@@ -1505,7 +1505,7 @@ impl ScriptThread {
             let (response_chan, response_port) = channel();
             let chan = &load.layout_chan;
             if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
-                debug!("shutting down layout for page {:?}", id);
+                debug!("shutting down layout for page {}", id);
                 response_port.recv().unwrap();
                 chan.send(message::Msg::ExitNow).ok();
             }
@@ -1516,13 +1516,20 @@ impl ScriptThread {
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
         }
 
-        let no_pending_loads = self.incomplete_loads.borrow().is_empty();
-        let no_remaining_contexts = self.documents.borrow().is_empty();
+        debug!("Exited pipeline {}.", id);
+    }
 
-        debug!("Exited pipeline {:?} ({}&{}).", id, no_pending_loads, no_remaining_contexts);
+    /// Handles a request to exit the script thread and shut down layout.
+    fn handle_exit_script_thread_msg(&self) {
+        debug!("Exiting script thread.");
 
-        // Exit if no pending loads and no remaining contexts
-        no_pending_loads && no_remaining_contexts
+        while let Some(pipeline_id) = self.incomplete_loads.borrow().iter().next().map(|load| load.pipeline_id)
+            .or_else(|| self.documents.borrow().iter().next().map(|doc| doc.global().pipeline_id()))
+        {
+            self.handle_exit_pipeline_msg(pipeline_id);
+        }
+
+        debug!("Exited script thread.");
     }
 
     /// Handles when layout thread finishes all animation in one tick
