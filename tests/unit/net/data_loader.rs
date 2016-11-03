@@ -78,6 +78,15 @@ fn plain_ct() {
 }
 
 #[test]
+fn plain_html() {
+    assert_parse(
+        "data:text/html,<p>Servo</p>",
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec!()))),
+        None,
+        Some(b"<p>Servo</p>"));
+}
+
+#[test]
 fn plain_charset() {
     assert_parse(
         "data:text/plain;charset=latin1,hello",

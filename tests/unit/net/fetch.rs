@@ -104,31 +104,6 @@ fn test_fetch_aboutblank() {
 }
 
 #[test]
-fn test_fetch_data() {
-    let url = Url::parse("data:text/html,<p>Servo</p>").unwrap();
-    let origin = Origin::Origin(url.origin());
-    let request = Request::new(url, Some(origin), false, None);
-    let expected_resp_body = "<p>Servo</p>".to_owned();
-    let fetch_response = fetch_sync(request, None);
-
-    assert!(!fetch_response.is_network_error());
-    assert_eq!(fetch_response.headers.len(), 1);
-    let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert!(**content_type == Mime(TopLevel::Text, SubLevel::Html, vec![]));
-    let resp_body = fetch_response.body.lock().unwrap();
-
-    match *resp_body {
-        ResponseBody::Done(ref val) => {
-            assert_eq!(val, &expected_resp_body.into_bytes());
-        }
-        ResponseBody::Receiving(_) => {
-            panic!();
-        },
-        ResponseBody::Empty => panic!(),
-    }
-}
-
-#[test]
 fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
