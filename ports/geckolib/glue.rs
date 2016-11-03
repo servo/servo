@@ -508,6 +508,44 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
     }
 }
 
+// FIXME Methods of PropertyDeclarationBlock should take atoms directly.
+// This function is just a temporary workaround before that finishes.
+fn get_property_name_from_atom(atom: *mut nsIAtom, is_custom: bool) -> String {
+    let atom = Atom::from(atom);
+    if !is_custom {
+        atom.to_string()
+    } else {
+        let mut result = String::with_capacity(atom.len() as usize + 2);
+        write!(result, "--{}", atom).unwrap();
+        result
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetPropertyValue(declarations: RawServoDeclarationBlockBorrowed,
+                                                          property: *mut nsIAtom, is_custom: bool,
+                                                          value: *mut nsAString) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.read().property_value_to_css(&property, unsafe { value.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: RawServoDeclarationBlockBorrowed,
+                                                                property: *mut nsIAtom, is_custom: bool) -> bool {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.read().property_priority(&property).important()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                        property: *mut nsIAtom, is_custom: bool) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.write().remove_property(&property);
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const nsACString) -> bool {
     let property = unsafe { property.as_ref().unwrap().as_str_unchecked() };
