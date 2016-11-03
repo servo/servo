@@ -491,28 +491,28 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event(&self, name: &str) -> Root<Event> {
+    pub fn fire_event(&self, name: Atom) -> Root<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: &str) -> Root<Event> {
+    pub fn fire_bubbling_event(&self, name: Atom) -> Root<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::NotCancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: &str) -> Root<Event> {
+    pub fn fire_cancelable_event(&self, name: Atom) -> Root<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::DoesNotBubble,
                                     EventCancelable::Cancelable)
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: &str) -> Root<Event> {
+    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> Root<Event> {
         self.fire_event_with_params(name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable)
@@ -520,11 +520,11 @@ impl EventTarget {
 
     // https://dom.spec.whatwg.org/#concept-event-fire
     pub fn fire_event_with_params(&self,
-                                  name: &str,
+                                  name: Atom,
                                   bubbles: EventBubbles,
                                   cancelable: EventCancelable)
                                   -> Root<Event> {
-        let event = Event::new(&self.global(), Atom::from(name), bubbles, cancelable);
+        let event = Event::new(&self.global(), name, bubbles, cancelable);
         event.fire(self);
         event
     }

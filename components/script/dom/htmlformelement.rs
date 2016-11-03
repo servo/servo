@@ -304,14 +304,14 @@ impl HTMLFormElement {
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                self.upcast::<EventTarget>().fire_event("invalid");
+                self.upcast::<EventTarget>().fire_event(atom!("invalid"));
                 return;
             }
         }
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self.upcast::<EventTarget>()
-                .fire_bubbling_cancelable_event("submit");
+                .fire_bubbling_cancelable_event(atom!("submit"));
             if event.DefaultPrevented() {
                 return;
             }
@@ -481,7 +481,7 @@ impl HTMLFormElement {
         // Step 5-6
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
             let event = field.as_event_target()
-                .fire_cancelable_event("invalid");
+                .fire_cancelable_event(atom!("invalid"));
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -610,7 +610,7 @@ impl HTMLFormElement {
         }
 
         let event = self.upcast::<EventTarget>()
-            .fire_bubbling_cancelable_event("reset");
+            .fire_bubbling_cancelable_event(atom!("reset"));
         if event.DefaultPrevented() {
             return;
         }

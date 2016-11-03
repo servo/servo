@@ -849,8 +849,8 @@ impl HTMLInputElement {
             let filelist = FileList::new(&window, files);
             self.filelist.set(Some(&filelist));
 
-            target.fire_bubbling_event("input");
-            target.fire_bubbling_event("change");
+            target.fire_bubbling_event(atom!("input"));
+            target.fire_bubbling_event(atom!("change"));
         }
     }
 }
@@ -1286,8 +1286,8 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
                 let target = self.upcast::<EventTarget>();
-                target.fire_bubbling_event("input");
-                target.fire_bubbling_event("change");
+                target.fire_bubbling_event(atom!("input"));
+                target.fire_bubbling_event(atom!("change"));
             },
             InputType::InputFile => self.select_files(None),
             _ => ()
