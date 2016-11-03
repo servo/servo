@@ -427,6 +427,13 @@ pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> RawServoDeclarationBlo
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclarationBlockBorrowed)
+                                               -> RawServoDeclarationBlockStrong {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    Arc::new(RwLock::new(declarations.read().clone())).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: RawServoDeclarationBlockBorrowed) {
     unsafe { RwLock::<PropertyDeclarationBlock>::addref(declarations) };
 }

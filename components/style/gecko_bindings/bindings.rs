@@ -928,6 +928,11 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_Clone(declarations:
+                                            RawServoDeclarationBlockBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                          b: RawServoDeclarationBlockBorrowed)
      -> bool;
