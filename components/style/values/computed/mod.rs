@@ -12,7 +12,7 @@ pub use cssparser::Color as CSSColor;
 pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData, UrlOrNone};
-pub use self::length::{CalcLengthOrPercentage, LengthOrPercentage, LengthOrPercentageOrAuto};
+pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 
 pub mod basic_shape;
@@ -147,7 +147,5 @@ impl ::cssparser::ToCss for BorderRadiusSize {
     }
 }
 
-
-pub type Length = Au;
 pub type Number = CSSFloat;
 pub type Opacity = CSSFloat;

@@ -141,25 +141,27 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 <%helpers:longhand name="border-image-outset" products="gecko" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
+    use values::HasViewportPercentage;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
-    use values::specified::{Length, Number};
+    use values::specified::LengthOrNumber;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let mut viewport_percentage = false;
+            for value in self.0.iter() {
+                let vp = value.has_viewport_percentage();
+                viewport_percentage = vp || viewport_percentage;
+            }
+            viewport_percentage
+        }
+    }
 
     pub mod computed_value {
-        use values::computed::{Length, Number};
+        use values::computed::LengthOrNumber;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub LengthOrNumber, pub LengthOrNumber,
                      pub LengthOrNumber, pub LengthOrNumber);
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum LengthOrNumber {
-            Length(Length),
-            Number(Number),
-        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -188,59 +190,12 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum LengthOrNumber {
-        Length(Length),
-        Number(Number),
-    }
-
-    impl ToCss for computed_value::LengthOrNumber {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                computed_value::LengthOrNumber::Length(len) => len.to_css(dest),
-                computed_value::LengthOrNumber::Number(number) => number.to_css(dest),
-            }
-        }
-    }
-    impl ToCss for LengthOrNumber {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                LengthOrNumber::Length(len) => len.to_css(dest),
-                LengthOrNumber::Number(number) => number.to_css(dest),
-            }
-        }
-    }
-
-    impl ToComputedValue for LengthOrNumber {
-        type ComputedValue = computed_value::LengthOrNumber;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::LengthOrNumber {
-            match *self {
-                LengthOrNumber::Length(len) =>
-                    computed_value::LengthOrNumber::Length(len.to_computed_value(context)),
-                LengthOrNumber::Number(number) =>
-                    computed_value::LengthOrNumber::Number(number.to_computed_value(context)),
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::LengthOrNumber) -> Self {
-            match *computed {
-                computed_value::LengthOrNumber::Length(len) =>
-                    LengthOrNumber::Length(ToComputedValue::from_computed_value(&len)),
-                computed_value::LengthOrNumber::Number(number) =>
-                    LengthOrNumber::Number(ToComputedValue::from_computed_value(&number)),
-            }
-        }
-    }
-
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(computed_value::LengthOrNumber::Number(0.0),
-                          computed_value::LengthOrNumber::Number(0.0),
-                          computed_value::LengthOrNumber::Number(0.0),
-                          computed_value::LengthOrNumber::Number(0.0))
+        computed_value::T(computed::LengthOrNumber::Number(0.0),
+                          computed::LengthOrNumber::Number(0.0),
+                          computed::LengthOrNumber::Number(0.0),
+                          computed::LengthOrNumber::Number(0.0))
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -275,18 +230,6 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                                 ToComputedValue::from_computed_value(&computed.1),
                                 ToComputedValue::from_computed_value(&computed.2),
                                 ToComputedValue::from_computed_value(&computed.3)])
-        }
-    }
-
-    impl Parse for LengthOrNumber {
-        fn parse(input: &mut Parser) -> Result<LengthOrNumber, ()> {
-            let length = input.try(|input| Length::parse(input));
-            if let Ok(len) = length {
-                return Ok(LengthOrNumber::Length(len));
-            }
-
-            let num = try!(Number::parse_non_negative(input));
-            Ok(LengthOrNumber::Number(num))
         }
     }
 
