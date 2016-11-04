@@ -236,10 +236,12 @@ COMPILATION_TARGETS = {
         "target_dir": "../gecko_bindings",
         "blacklist_types": [
             "nsACString_internal",
+            "nsAString_internal",
         ],
         "raw_lines": [
-            "pub use nsstring::nsACString;",
+            "pub use nsstring::{nsACString, nsAString};",
             "type nsACString_internal = nsACString;",
+            "type nsAString_internal = nsAString;"
         ],
         "flags": [
             "--ignore-methods",

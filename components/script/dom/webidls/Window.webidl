@@ -185,3 +185,10 @@ Window implements WindowLocalStorage;
 
 // http://w3c.github.io/animation-timing/#framerequestcallback
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
+
+// https://webbluetoothcg.github.io/web-bluetooth/tests#test-interfaces
+partial interface Window {
+   [Pref="dom.bluetooth.testing.enabled", Exposed=Window]
+   readonly attribute TestRunner testRunner;
+   //readonly attribute EventSender eventSender;
+};

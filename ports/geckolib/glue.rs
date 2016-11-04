@@ -7,6 +7,7 @@ use cssparser::{Parser, ToCss};
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
+use std::fmt::Write;
 use std::mem::transmute;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
@@ -25,9 +26,9 @@ use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSet
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
+use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
-use style::gecko_bindings::bindings::nsACString;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
@@ -421,6 +422,18 @@ pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString) -> RawServo
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> RawServoDeclarationBlockStrong {
+    Arc::new(RwLock::new(PropertyDeclarationBlock { declarations: vec![], important_count: 0 })).into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclarationBlockBorrowed)
+                                               -> RawServoDeclarationBlockStrong {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    Arc::new(RwLock::new(declarations.read().clone())).into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: RawServoDeclarationBlockBorrowed) {
     unsafe { RwLock::<PropertyDeclarationBlock>::addref(declarations) };
 }
@@ -435,6 +448,13 @@ pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorro
                                                 b: RawServoDeclarationBlockBorrowed)
                                                 -> bool {
     *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read() == *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclarationBlockBorrowed,
+                                                    result: *mut nsAString) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    declarations.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
@@ -467,6 +487,85 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     unsafe {
         Gecko_Utf8SliceToString(buffer, value.as_ptr(), length);
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
+     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+     declarations.read().declarations.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                        index: u32, result: *mut nsAString) -> bool {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    if let Some(&(ref decl, _)) = declarations.read().declarations.get(index as usize) {
+        let result = unsafe { result.as_mut().unwrap() };
+        write!(result, "{}", decl.name()).unwrap();
+        true
+    } else {
+        false
+    }
+}
+
+// FIXME Methods of PropertyDeclarationBlock should take atoms directly.
+// This function is just a temporary workaround before that finishes.
+fn get_property_name_from_atom(atom: *mut nsIAtom, is_custom: bool) -> String {
+    let atom = Atom::from(atom);
+    if !is_custom {
+        atom.to_string()
+    } else {
+        let mut result = String::with_capacity(atom.len() as usize + 2);
+        write!(result, "--{}", atom).unwrap();
+        result
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetPropertyValue(declarations: RawServoDeclarationBlockBorrowed,
+                                                          property: *mut nsIAtom, is_custom: bool,
+                                                          value: *mut nsAString) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.read().property_value_to_css(&property, unsafe { value.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: RawServoDeclarationBlockBorrowed,
+                                                                property: *mut nsIAtom, is_custom: bool) -> bool {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.read().property_priority(&property).important()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                     property: *mut nsIAtom, is_custom: bool,
+                                                     value: *mut nsACString, is_important: bool) -> bool {
+    let property = get_property_name_from_atom(property, is_custom);
+    let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
+    // FIXME Needs real URL and ParserContextExtraData.
+    let base_url = &*DUMMY_BASE_URL;
+    let extra_data = ParserContextExtraData::default();
+    if let Ok(decls) = parse_one_declaration(&property, value, &base_url,
+                                             Box::new(StdoutErrorReporter), extra_data) {
+        let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
+        let importance = if is_important { Importance::Important } else { Importance::Normal };
+        for decl in decls.into_iter() {
+            declarations.set_parsed_declaration(decl, importance);
+        }
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                        property: *mut nsIAtom, is_custom: bool) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let property = get_property_name_from_atom(property, is_custom);
+    declarations.write().remove_property(&property);
 }
 
 #[no_mangle]

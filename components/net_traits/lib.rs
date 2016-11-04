@@ -42,7 +42,7 @@ use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::PipelineId;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use std::io::Error as IOError;
@@ -51,8 +51,6 @@ use url::Url;
 use websocket::header;
 
 pub mod blob_url_store;
-pub mod bluetooth_scanfilter;
-pub mod bluetooth_thread;
 pub mod filemanager_thread;
 pub mod hosts;
 pub mod image_cache_thread;
@@ -109,6 +107,28 @@ impl CustomResponse {
 pub struct CustomResponseMediator {
     pub response_chan: IpcSender<Option<CustomResponse>>,
     pub load_url: Url
+}
+
+/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
+/// for providing a referrer header for a request
+#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
+pub enum ReferrerPolicy {
+    /// "no-referrer"
+    NoReferrer,
+    /// "no-referrer-when-downgrade"
+    NoReferrerWhenDowngrade,
+    /// "origin"
+    Origin,
+    /// "same-origin"
+    SameOrigin,
+    /// "origin-when-cross-origin"
+    OriginWhenCrossOrigin,
+    /// "unsafe-url"
+    UnsafeUrl,
+    /// "strict-origin"
+    StrictOrigin,
+    /// "strict-origin-when-cross-origin"
+    StrictOriginWhenCrossOrigin,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]

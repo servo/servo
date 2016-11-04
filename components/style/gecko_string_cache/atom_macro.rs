@@ -11,6 +11,8 @@ pub enum nsICSSPseudoElement {}
 
 pub enum nsICSSAnonBoxPseudo {}
 
+pub enum nsICSSProperty {}
+
 #[inline(always)]
 pub unsafe fn atom_from_static(ptr: *mut nsIAtom) -> Atom {
     Atom::from_static(ptr)
@@ -4936,6 +4938,726 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes10mozSVGTextE"]
             pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "_ZN10nsCSSProps13align_contentE"]
+            pub static nsCSSProps_align_content: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11align_itemsE"]
+            pub static nsCSSProps_align_items: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10align_selfE"]
+            pub static nsCSSProps_align_self: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps3allE"]
+            pub static nsCSSProps_all: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9animationE"]
+            pub static nsCSSProps_animation: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15animation_delayE"]
+            pub static nsCSSProps_animation_delay: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19animation_directionE"]
+            pub static nsCSSProps_animation_direction: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18animation_durationE"]
+            pub static nsCSSProps_animation_duration: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19animation_fill_modeE"]
+            pub static nsCSSProps_animation_fill_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25animation_iteration_countE"]
+            pub static nsCSSProps_animation_iteration_count: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14animation_nameE"]
+            pub static nsCSSProps_animation_name: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20animation_play_stateE"]
+            pub static nsCSSProps_animation_play_state: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25animation_timing_functionE"]
+            pub static nsCSSProps_animation_timing_function: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10appearanceE"]
+            pub static nsCSSProps_appearance: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19backface_visibilityE"]
+            pub static nsCSSProps_backface_visibility: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10backgroundE"]
+            pub static nsCSSProps_background: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21background_attachmentE"]
+            pub static nsCSSProps_background_attachment: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21background_blend_modeE"]
+            pub static nsCSSProps_background_blend_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15background_clipE"]
+            pub static nsCSSProps_background_clip: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16background_colorE"]
+            pub static nsCSSProps_background_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16background_imageE"]
+            pub static nsCSSProps_background_image: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17background_originE"]
+            pub static nsCSSProps_background_origin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19background_positionE"]
+            pub static nsCSSProps_background_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21background_position_xE"]
+            pub static nsCSSProps_background_position_x: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21background_position_yE"]
+            pub static nsCSSProps_background_position_y: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17background_repeatE"]
+            pub static nsCSSProps_background_repeat: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15background_sizeE"]
+            pub static nsCSSProps_background_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7bindingE"]
+            pub static nsCSSProps_binding: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10block_sizeE"]
+            pub static nsCSSProps_block_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6borderE"]
+            pub static nsCSSProps_border: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16border_block_endE"]
+            pub static nsCSSProps_border_block_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22border_block_end_colorE"]
+            pub static nsCSSProps_border_block_end_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22border_block_end_styleE"]
+            pub static nsCSSProps_border_block_end_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22border_block_end_widthE"]
+            pub static nsCSSProps_border_block_end_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_block_startE"]
+            pub static nsCSSProps_border_block_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps24border_block_start_colorE"]
+            pub static nsCSSProps_border_block_start_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps24border_block_start_styleE"]
+            pub static nsCSSProps_border_block_start_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps24border_block_start_widthE"]
+            pub static nsCSSProps_border_block_start_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13border_bottomE"]
+            pub static nsCSSProps_border_bottom: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_bottom_colorE"]
+            pub static nsCSSProps_border_bottom_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20border_bottom_colorsE"]
+            pub static nsCSSProps_border_bottom_colors: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25border_bottom_left_radiusE"]
+            pub static nsCSSProps_border_bottom_left_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps26border_bottom_right_radiusE"]
+            pub static nsCSSProps_border_bottom_right_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_bottom_styleE"]
+            pub static nsCSSProps_border_bottom_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_bottom_widthE"]
+            pub static nsCSSProps_border_bottom_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15border_collapseE"]
+            pub static nsCSSProps_border_collapse: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12border_colorE"]
+            pub static nsCSSProps_border_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12border_imageE"]
+            pub static nsCSSProps_border_image: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_image_outsetE"]
+            pub static nsCSSProps_border_image_outset: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_image_repeatE"]
+            pub static nsCSSProps_border_image_repeat: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_image_sliceE"]
+            pub static nsCSSProps_border_image_slice: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_image_sourceE"]
+            pub static nsCSSProps_border_image_source: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_image_widthE"]
+            pub static nsCSSProps_border_image_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17border_inline_endE"]
+            pub static nsCSSProps_border_inline_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23border_inline_end_colorE"]
+            pub static nsCSSProps_border_inline_end_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23border_inline_end_styleE"]
+            pub static nsCSSProps_border_inline_end_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23border_inline_end_widthE"]
+            pub static nsCSSProps_border_inline_end_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_inline_startE"]
+            pub static nsCSSProps_border_inline_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25border_inline_start_colorE"]
+            pub static nsCSSProps_border_inline_start_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25border_inline_start_styleE"]
+            pub static nsCSSProps_border_inline_start_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25border_inline_start_widthE"]
+            pub static nsCSSProps_border_inline_start_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11border_leftE"]
+            pub static nsCSSProps_border_left: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17border_left_colorE"]
+            pub static nsCSSProps_border_left_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_left_colorsE"]
+            pub static nsCSSProps_border_left_colors: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17border_left_styleE"]
+            pub static nsCSSProps_border_left_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17border_left_widthE"]
+            pub static nsCSSProps_border_left_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13border_radiusE"]
+            pub static nsCSSProps_border_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12border_rightE"]
+            pub static nsCSSProps_border_right: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_right_colorE"]
+            pub static nsCSSProps_border_right_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19border_right_colorsE"]
+            pub static nsCSSProps_border_right_colors: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_right_styleE"]
+            pub static nsCSSProps_border_right_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18border_right_widthE"]
+            pub static nsCSSProps_border_right_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14border_spacingE"]
+            pub static nsCSSProps_border_spacing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12border_styleE"]
+            pub static nsCSSProps_border_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10border_topE"]
+            pub static nsCSSProps_border_top: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16border_top_colorE"]
+            pub static nsCSSProps_border_top_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17border_top_colorsE"]
+            pub static nsCSSProps_border_top_colors: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22border_top_left_radiusE"]
+            pub static nsCSSProps_border_top_left_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23border_top_right_radiusE"]
+            pub static nsCSSProps_border_top_right_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16border_top_styleE"]
+            pub static nsCSSProps_border_top_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16border_top_widthE"]
+            pub static nsCSSProps_border_top_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12border_widthE"]
+            pub static nsCSSProps_border_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6bottomE"]
+            pub static nsCSSProps_bottom: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9box_alignE"]
+            pub static nsCSSProps_box_align: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20box_decoration_breakE"]
+            pub static nsCSSProps_box_decoration_break: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13box_directionE"]
+            pub static nsCSSProps_box_direction: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8box_flexE"]
+            pub static nsCSSProps_box_flex: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17box_ordinal_groupE"]
+            pub static nsCSSProps_box_ordinal_group: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10box_orientE"]
+            pub static nsCSSProps_box_orient: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8box_packE"]
+            pub static nsCSSProps_box_pack: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10box_shadowE"]
+            pub static nsCSSProps_box_shadow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10box_sizingE"]
+            pub static nsCSSProps_box_sizing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12caption_sideE"]
+            pub static nsCSSProps_caption_side: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps5clearE"]
+            pub static nsCSSProps_clear: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4clipE"]
+            pub static nsCSSProps_clip: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9clip_pathE"]
+            pub static nsCSSProps_clip_path: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9clip_ruleE"]
+            pub static nsCSSProps_clip_rule: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps5colorE"]
+            pub static nsCSSProps_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12color_adjustE"]
+            pub static nsCSSProps_color_adjust: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19color_interpolationE"]
+            pub static nsCSSProps_color_interpolation: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps27color_interpolation_filtersE"]
+            pub static nsCSSProps_color_interpolation_filters: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12column_countE"]
+            pub static nsCSSProps_column_count: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11column_fillE"]
+            pub static nsCSSProps_column_fill: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10column_gapE"]
+            pub static nsCSSProps_column_gap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11column_ruleE"]
+            pub static nsCSSProps_column_rule: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17column_rule_colorE"]
+            pub static nsCSSProps_column_rule_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17column_rule_styleE"]
+            pub static nsCSSProps_column_rule_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17column_rule_widthE"]
+            pub static nsCSSProps_column_rule_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12column_widthE"]
+            pub static nsCSSProps_column_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7columnsE"]
+            pub static nsCSSProps_columns: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7containE"]
+            pub static nsCSSProps_contain: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7contentE"]
+            pub static nsCSSProps_content: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps33_moz_control_character_visibilityE"]
+            pub static nsCSSProps__moz_control_character_visibility: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17counter_incrementE"]
+            pub static nsCSSProps_counter_increment: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13counter_resetE"]
+            pub static nsCSSProps_counter_reset: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6cursorE"]
+            pub static nsCSSProps_cursor: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9directionE"]
+            pub static nsCSSProps_direction: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7displayE"]
+            pub static nsCSSProps_display: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17dominant_baselineE"]
+            pub static nsCSSProps_dominant_baseline: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11empty_cellsE"]
+            pub static nsCSSProps_empty_cells: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4fillE"]
+            pub static nsCSSProps_fill: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12fill_opacityE"]
+            pub static nsCSSProps_fill_opacity: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9fill_ruleE"]
+            pub static nsCSSProps_fill_rule: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6filterE"]
+            pub static nsCSSProps_filter: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4flexE"]
+            pub static nsCSSProps_flex: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10flex_basisE"]
+            pub static nsCSSProps_flex_basis: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14flex_directionE"]
+            pub static nsCSSProps_flex_direction: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9flex_flowE"]
+            pub static nsCSSProps_flex_flow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9flex_growE"]
+            pub static nsCSSProps_flex_grow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11flex_shrinkE"]
+            pub static nsCSSProps_flex_shrink: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9flex_wrapE"]
+            pub static nsCSSProps_flex_wrap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6float_E"]
+            pub static nsCSSProps_float_: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10float_edgeE"]
+            pub static nsCSSProps_float_edge: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11flood_colorE"]
+            pub static nsCSSProps_flood_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13flood_opacityE"]
+            pub static nsCSSProps_flood_opacity: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4fontE"]
+            pub static nsCSSProps_font: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11font_familyE"]
+            pub static nsCSSProps_font_family: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21font_feature_settingsE"]
+            pub static nsCSSProps_font_feature_settings: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12font_kerningE"]
+            pub static nsCSSProps_font_kerning: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22font_language_overrideE"]
+            pub static nsCSSProps_font_language_override: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9font_sizeE"]
+            pub static nsCSSProps_font_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16font_size_adjustE"]
+            pub static nsCSSProps_font_size_adjust: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12font_stretchE"]
+            pub static nsCSSProps_font_stretch: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10font_styleE"]
+            pub static nsCSSProps_font_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14font_synthesisE"]
+            pub static nsCSSProps_font_synthesis: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12font_variantE"]
+            pub static nsCSSProps_font_variant: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23font_variant_alternatesE"]
+            pub static nsCSSProps_font_variant_alternates: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17font_variant_capsE"]
+            pub static nsCSSProps_font_variant_caps: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23font_variant_east_asianE"]
+            pub static nsCSSProps_font_variant_east_asian: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22font_variant_ligaturesE"]
+            pub static nsCSSProps_font_variant_ligatures: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20font_variant_numericE"]
+            pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21font_variant_positionE"]
+            pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11font_weightE"]
+            pub static nsCSSProps_font_weight: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23force_broken_image_iconE"]
+            pub static nsCSSProps_force_broken_image_icon: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4gridE"]
+            pub static nsCSSProps_grid: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9grid_areaE"]
+            pub static nsCSSProps_grid_area: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17grid_auto_columnsE"]
+            pub static nsCSSProps_grid_auto_columns: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14grid_auto_flowE"]
+            pub static nsCSSProps_grid_auto_flow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14grid_auto_rowsE"]
+            pub static nsCSSProps_grid_auto_rows: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11grid_columnE"]
+            pub static nsCSSProps_grid_column: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15grid_column_endE"]
+            pub static nsCSSProps_grid_column_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15grid_column_gapE"]
+            pub static nsCSSProps_grid_column_gap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17grid_column_startE"]
+            pub static nsCSSProps_grid_column_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8grid_gapE"]
+            pub static nsCSSProps_grid_gap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8grid_rowE"]
+            pub static nsCSSProps_grid_row: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12grid_row_endE"]
+            pub static nsCSSProps_grid_row_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12grid_row_gapE"]
+            pub static nsCSSProps_grid_row_gap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14grid_row_startE"]
+            pub static nsCSSProps_grid_row_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13grid_templateE"]
+            pub static nsCSSProps_grid_template: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19grid_template_areasE"]
+            pub static nsCSSProps_grid_template_areas: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21grid_template_columnsE"]
+            pub static nsCSSProps_grid_template_columns: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18grid_template_rowsE"]
+            pub static nsCSSProps_grid_template_rows: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6heightE"]
+            pub static nsCSSProps_height: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7hyphensE"]
+            pub static nsCSSProps_hyphens: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14initial_letterE"]
+            pub static nsCSSProps_initial_letter: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17image_orientationE"]
+            pub static nsCSSProps_image_orientation: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12image_regionE"]
+            pub static nsCSSProps_image_region: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15image_renderingE"]
+            pub static nsCSSProps_image_rendering: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8ime_modeE"]
+            pub static nsCSSProps_ime_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11inline_sizeE"]
+            pub static nsCSSProps_inline_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9isolationE"]
+            pub static nsCSSProps_isolation: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15justify_contentE"]
+            pub static nsCSSProps_justify_content: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13justify_itemsE"]
+            pub static nsCSSProps_justify_items: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12justify_selfE"]
+            pub static nsCSSProps_justify_self: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7_x_langE"]
+            pub static nsCSSProps__x_lang: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4leftE"]
+            pub static nsCSSProps_left: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14letter_spacingE"]
+            pub static nsCSSProps_letter_spacing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14lighting_colorE"]
+            pub static nsCSSProps_lighting_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11line_heightE"]
+            pub static nsCSSProps_line_height: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10list_styleE"]
+            pub static nsCSSProps_list_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16list_style_imageE"]
+            pub static nsCSSProps_list_style_image: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19list_style_positionE"]
+            pub static nsCSSProps_list_style_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15list_style_typeE"]
+            pub static nsCSSProps_list_style_type: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6marginE"]
+            pub static nsCSSProps_margin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16margin_block_endE"]
+            pub static nsCSSProps_margin_block_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18margin_block_startE"]
+            pub static nsCSSProps_margin_block_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13margin_bottomE"]
+            pub static nsCSSProps_margin_bottom: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17margin_inline_endE"]
+            pub static nsCSSProps_margin_inline_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19margin_inline_startE"]
+            pub static nsCSSProps_margin_inline_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11margin_leftE"]
+            pub static nsCSSProps_margin_left: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12margin_rightE"]
+            pub static nsCSSProps_margin_right: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10margin_topE"]
+            pub static nsCSSProps_margin_top: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6markerE"]
+            pub static nsCSSProps_marker: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10marker_endE"]
+            pub static nsCSSProps_marker_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10marker_midE"]
+            pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13marker_offsetE"]
+            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12marker_startE"]
+            pub static nsCSSProps_marker_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps4maskE"]
+            pub static nsCSSProps_mask: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9mask_clipE"]
+            pub static nsCSSProps_mask_clip: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14mask_compositeE"]
+            pub static nsCSSProps_mask_composite: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10mask_imageE"]
+            pub static nsCSSProps_mask_image: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9mask_modeE"]
+            pub static nsCSSProps_mask_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11mask_originE"]
+            pub static nsCSSProps_mask_origin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13mask_positionE"]
+            pub static nsCSSProps_mask_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15mask_position_xE"]
+            pub static nsCSSProps_mask_position_x: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15mask_position_yE"]
+            pub static nsCSSProps_mask_position_y: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11mask_repeatE"]
+            pub static nsCSSProps_mask_repeat: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9mask_sizeE"]
+            pub static nsCSSProps_mask_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9mask_typeE"]
+            pub static nsCSSProps_mask_type: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12math_displayE"]
+            pub static nsCSSProps_math_display: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12math_variantE"]
+            pub static nsCSSProps_math_variant: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14max_block_sizeE"]
+            pub static nsCSSProps_max_block_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10max_heightE"]
+            pub static nsCSSProps_max_height: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15max_inline_sizeE"]
+            pub static nsCSSProps_max_inline_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9max_widthE"]
+            pub static nsCSSProps_max_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14min_block_sizeE"]
+            pub static nsCSSProps_min_block_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps24_moz_min_font_size_ratioE"]
+            pub static nsCSSProps__moz_min_font_size_ratio: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10min_heightE"]
+            pub static nsCSSProps_min_height: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15min_inline_sizeE"]
+            pub static nsCSSProps_min_inline_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9min_widthE"]
+            pub static nsCSSProps_min_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14mix_blend_modeE"]
+            pub static nsCSSProps_mix_blend_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10object_fitE"]
+            pub static nsCSSProps_object_fit: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15object_positionE"]
+            pub static nsCSSProps_object_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16offset_block_endE"]
+            pub static nsCSSProps_offset_block_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18offset_block_startE"]
+            pub static nsCSSProps_offset_block_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17offset_inline_endE"]
+            pub static nsCSSProps_offset_inline_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19offset_inline_startE"]
+            pub static nsCSSProps_offset_inline_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7opacityE"]
+            pub static nsCSSProps_opacity: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps5orderE"]
+            pub static nsCSSProps_order: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6orientE"]
+            pub static nsCSSProps_orient: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18osx_font_smoothingE"]
+            pub static nsCSSProps_osx_font_smoothing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7outlineE"]
+            pub static nsCSSProps_outline: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13outline_colorE"]
+            pub static nsCSSProps_outline_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14outline_offsetE"]
+            pub static nsCSSProps_outline_offset: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19_moz_outline_radiusE"]
+            pub static nsCSSProps__moz_outline_radius: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps30_moz_outline_radius_bottomLeftE"]
+            pub static nsCSSProps__moz_outline_radius_bottomLeft: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps31_moz_outline_radius_bottomRightE"]
+            pub static nsCSSProps__moz_outline_radius_bottomRight: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps27_moz_outline_radius_topLeftE"]
+            pub static nsCSSProps__moz_outline_radius_topLeft: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps28_moz_outline_radius_topRightE"]
+            pub static nsCSSProps__moz_outline_radius_topRight: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13outline_styleE"]
+            pub static nsCSSProps_outline_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13outline_widthE"]
+            pub static nsCSSProps_outline_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8overflowE"]
+            pub static nsCSSProps_overflow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17overflow_clip_boxE"]
+            pub static nsCSSProps_overflow_clip_box: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10overflow_xE"]
+            pub static nsCSSProps_overflow_x: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10overflow_yE"]
+            pub static nsCSSProps_overflow_y: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7paddingE"]
+            pub static nsCSSProps_padding: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17padding_block_endE"]
+            pub static nsCSSProps_padding_block_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19padding_block_startE"]
+            pub static nsCSSProps_padding_block_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14padding_bottomE"]
+            pub static nsCSSProps_padding_bottom: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18padding_inline_endE"]
+            pub static nsCSSProps_padding_inline_end: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20padding_inline_startE"]
+            pub static nsCSSProps_padding_inline_start: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12padding_leftE"]
+            pub static nsCSSProps_padding_left: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13padding_rightE"]
+            pub static nsCSSProps_padding_right: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11padding_topE"]
+            pub static nsCSSProps_padding_top: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16page_break_afterE"]
+            pub static nsCSSProps_page_break_after: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17page_break_beforeE"]
+            pub static nsCSSProps_page_break_before: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17page_break_insideE"]
+            pub static nsCSSProps_page_break_inside: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11paint_orderE"]
+            pub static nsCSSProps_paint_order: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11perspectiveE"]
+            pub static nsCSSProps_perspective: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18perspective_originE"]
+            pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14pointer_eventsE"]
+            pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps8positionE"]
+            pub static nsCSSProps_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6quotesE"]
+            pub static nsCSSProps_quotes: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6resizeE"]
+            pub static nsCSSProps_resize: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps5rightE"]
+            pub static nsCSSProps_right: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10ruby_alignE"]
+            pub static nsCSSProps_ruby_align: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13ruby_positionE"]
+            pub static nsCSSProps_ruby_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12script_levelE"]
+            pub static nsCSSProps_script_level: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15script_min_sizeE"]
+            pub static nsCSSProps_script_min_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22script_size_multiplierE"]
+            pub static nsCSSProps_script_size_multiplier: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15scroll_behaviorE"]
+            pub static nsCSSProps_scroll_behavior: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22scroll_snap_coordinateE"]
+            pub static nsCSSProps_scroll_snap_coordinate: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23scroll_snap_destinationE"]
+            pub static nsCSSProps_scroll_snap_destination: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20scroll_snap_points_xE"]
+            pub static nsCSSProps_scroll_snap_points_x: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20scroll_snap_points_yE"]
+            pub static nsCSSProps_scroll_snap_points_y: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16scroll_snap_typeE"]
+            pub static nsCSSProps_scroll_snap_type: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18scroll_snap_type_xE"]
+            pub static nsCSSProps_scroll_snap_type_x: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18scroll_snap_type_yE"]
+            pub static nsCSSProps_scroll_snap_type_y: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13shape_outsideE"]
+            pub static nsCSSProps_shape_outside: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15shape_renderingE"]
+            pub static nsCSSProps_shape_rendering: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7_x_spanE"]
+            pub static nsCSSProps__x_span: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12stack_sizingE"]
+            pub static nsCSSProps_stack_sizing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10stop_colorE"]
+            pub static nsCSSProps_stop_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12stop_opacityE"]
+            pub static nsCSSProps_stop_opacity: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps6strokeE"]
+            pub static nsCSSProps_stroke: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16stroke_dasharrayE"]
+            pub static nsCSSProps_stroke_dasharray: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17stroke_dashoffsetE"]
+            pub static nsCSSProps_stroke_dashoffset: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14stroke_linecapE"]
+            pub static nsCSSProps_stroke_linecap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15stroke_linejoinE"]
+            pub static nsCSSProps_stroke_linejoin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps17stroke_miterlimitE"]
+            pub static nsCSSProps_stroke_miterlimit: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14stroke_opacityE"]
+            pub static nsCSSProps_stroke_opacity: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12stroke_widthE"]
+            pub static nsCSSProps_stroke_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14_x_system_fontE"]
+            pub static nsCSSProps__x_system_font: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13_moz_tab_sizeE"]
+            pub static nsCSSProps__moz_tab_size: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12table_layoutE"]
+            pub static nsCSSProps_table_layout: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10text_alignE"]
+            pub static nsCSSProps_text_align: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15text_align_lastE"]
+            pub static nsCSSProps_text_align_last: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11text_anchorE"]
+            pub static nsCSSProps_text_anchor: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20text_combine_uprightE"]
+            pub static nsCSSProps_text_combine_upright: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15text_decorationE"]
+            pub static nsCSSProps_text_decoration: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21text_decoration_colorE"]
+            pub static nsCSSProps_text_decoration_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20text_decoration_lineE"]
+            pub static nsCSSProps_text_decoration_line: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps21text_decoration_styleE"]
+            pub static nsCSSProps_text_decoration_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13text_emphasisE"]
+            pub static nsCSSProps_text_emphasis: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19text_emphasis_colorE"]
+            pub static nsCSSProps_text_emphasis_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps22text_emphasis_positionE"]
+            pub static nsCSSProps_text_emphasis_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19text_emphasis_styleE"]
+            pub static nsCSSProps_text_emphasis_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23_webkit_text_fill_colorE"]
+            pub static nsCSSProps__webkit_text_fill_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11text_indentE"]
+            pub static nsCSSProps_text_indent: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16text_orientationE"]
+            pub static nsCSSProps_text_orientation: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13text_overflowE"]
+            pub static nsCSSProps_text_overflow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14text_renderingE"]
+            pub static nsCSSProps_text_rendering: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11text_shadowE"]
+            pub static nsCSSProps_text_shadow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16text_size_adjustE"]
+            pub static nsCSSProps_text_size_adjust: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19_webkit_text_strokeE"]
+            pub static nsCSSProps__webkit_text_stroke: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25_webkit_text_stroke_colorE"]
+            pub static nsCSSProps__webkit_text_stroke_color: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps25_webkit_text_stroke_widthE"]
+            pub static nsCSSProps__webkit_text_stroke_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14text_transformE"]
+            pub static nsCSSProps_text_transform: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12_x_text_zoomE"]
+            pub static nsCSSProps__x_text_zoom: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps3topE"]
+            pub static nsCSSProps_top: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14_moz_top_layerE"]
+            pub static nsCSSProps__moz_top_layer: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12touch_actionE"]
+            pub static nsCSSProps_touch_action: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps9transformE"]
+            pub static nsCSSProps_transform: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14_moz_transformE"]
+            pub static nsCSSProps__moz_transform: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13transform_boxE"]
+            pub static nsCSSProps_transform_box: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16transform_originE"]
+            pub static nsCSSProps_transform_origin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps15transform_styleE"]
+            pub static nsCSSProps_transform_style: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10transitionE"]
+            pub static nsCSSProps_transition: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps16transition_delayE"]
+            pub static nsCSSProps_transition_delay: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19transition_durationE"]
+            pub static nsCSSProps_transition_duration: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps19transition_propertyE"]
+            pub static nsCSSProps_transition_property: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps26transition_timing_functionE"]
+            pub static nsCSSProps_transition_timing_function: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12unicode_bidiE"]
+            pub static nsCSSProps_unicode_bidi: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10user_focusE"]
+            pub static nsCSSProps_user_focus: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10user_inputE"]
+            pub static nsCSSProps_user_input: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11user_modifyE"]
+            pub static nsCSSProps_user_modify: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11user_selectE"]
+            pub static nsCSSProps_user_select: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13vector_effectE"]
+            pub static nsCSSProps_vector_effect: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps14vertical_alignE"]
+            pub static nsCSSProps_vertical_align: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10visibilityE"]
+            pub static nsCSSProps_visibility: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11white_spaceE"]
+            pub static nsCSSProps_white_space: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps5widthE"]
+            pub static nsCSSProps_width: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11will_changeE"]
+            pub static nsCSSProps_will_change: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps20_moz_window_draggingE"]
+            pub static nsCSSProps__moz_window_dragging: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps18_moz_window_shadowE"]
+            pub static nsCSSProps__moz_window_shadow: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10word_breakE"]
+            pub static nsCSSProps_word_break: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12word_spacingE"]
+            pub static nsCSSProps_word_spacing: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13overflow_wrapE"]
+            pub static nsCSSProps_overflow_wrap: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps12writing_modeE"]
+            pub static nsCSSProps_writing_mode: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps7z_indexE"]
+            pub static nsCSSProps_z_index: *mut nsICSSProperty;
         }
     } else if #[cfg(target_pointer_width = "64")] {
         extern {
@@ -9855,6 +10577,726 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?mozSVGText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "?align_content@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_align_content: *mut nsICSSProperty;
+            #[link_name = "?align_items@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_align_items: *mut nsICSSProperty;
+            #[link_name = "?align_self@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_align_self: *mut nsICSSProperty;
+            #[link_name = "?all@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_all: *mut nsICSSProperty;
+            #[link_name = "?animation@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation: *mut nsICSSProperty;
+            #[link_name = "?animation_delay@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_delay: *mut nsICSSProperty;
+            #[link_name = "?animation_direction@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_direction: *mut nsICSSProperty;
+            #[link_name = "?animation_duration@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_duration: *mut nsICSSProperty;
+            #[link_name = "?animation_fill_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_fill_mode: *mut nsICSSProperty;
+            #[link_name = "?animation_iteration_count@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_iteration_count: *mut nsICSSProperty;
+            #[link_name = "?animation_name@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_name: *mut nsICSSProperty;
+            #[link_name = "?animation_play_state@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_play_state: *mut nsICSSProperty;
+            #[link_name = "?animation_timing_function@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_animation_timing_function: *mut nsICSSProperty;
+            #[link_name = "?appearance@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_appearance: *mut nsICSSProperty;
+            #[link_name = "?backface_visibility@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_backface_visibility: *mut nsICSSProperty;
+            #[link_name = "?background@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background: *mut nsICSSProperty;
+            #[link_name = "?background_attachment@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_attachment: *mut nsICSSProperty;
+            #[link_name = "?background_blend_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_blend_mode: *mut nsICSSProperty;
+            #[link_name = "?background_clip@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_clip: *mut nsICSSProperty;
+            #[link_name = "?background_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_color: *mut nsICSSProperty;
+            #[link_name = "?background_image@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_image: *mut nsICSSProperty;
+            #[link_name = "?background_origin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_origin: *mut nsICSSProperty;
+            #[link_name = "?background_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_position: *mut nsICSSProperty;
+            #[link_name = "?background_position_x@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_position_x: *mut nsICSSProperty;
+            #[link_name = "?background_position_y@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_position_y: *mut nsICSSProperty;
+            #[link_name = "?background_repeat@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_repeat: *mut nsICSSProperty;
+            #[link_name = "?background_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_background_size: *mut nsICSSProperty;
+            #[link_name = "?binding@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_binding: *mut nsICSSProperty;
+            #[link_name = "?block_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_block_size: *mut nsICSSProperty;
+            #[link_name = "?border@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border: *mut nsICSSProperty;
+            #[link_name = "?border_block_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_end: *mut nsICSSProperty;
+            #[link_name = "?border_block_end_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_end_color: *mut nsICSSProperty;
+            #[link_name = "?border_block_end_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_end_style: *mut nsICSSProperty;
+            #[link_name = "?border_block_end_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_end_width: *mut nsICSSProperty;
+            #[link_name = "?border_block_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_start: *mut nsICSSProperty;
+            #[link_name = "?border_block_start_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_start_color: *mut nsICSSProperty;
+            #[link_name = "?border_block_start_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_start_style: *mut nsICSSProperty;
+            #[link_name = "?border_block_start_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_block_start_width: *mut nsICSSProperty;
+            #[link_name = "?border_bottom@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_color: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_colors@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_colors: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_left_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_left_radius: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_right_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_right_radius: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_style: *mut nsICSSProperty;
+            #[link_name = "?border_bottom_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_bottom_width: *mut nsICSSProperty;
+            #[link_name = "?border_collapse@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_collapse: *mut nsICSSProperty;
+            #[link_name = "?border_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_color: *mut nsICSSProperty;
+            #[link_name = "?border_image@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image: *mut nsICSSProperty;
+            #[link_name = "?border_image_outset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image_outset: *mut nsICSSProperty;
+            #[link_name = "?border_image_repeat@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image_repeat: *mut nsICSSProperty;
+            #[link_name = "?border_image_slice@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image_slice: *mut nsICSSProperty;
+            #[link_name = "?border_image_source@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image_source: *mut nsICSSProperty;
+            #[link_name = "?border_image_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_image_width: *mut nsICSSProperty;
+            #[link_name = "?border_inline_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_end: *mut nsICSSProperty;
+            #[link_name = "?border_inline_end_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_end_color: *mut nsICSSProperty;
+            #[link_name = "?border_inline_end_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_end_style: *mut nsICSSProperty;
+            #[link_name = "?border_inline_end_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_end_width: *mut nsICSSProperty;
+            #[link_name = "?border_inline_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_start: *mut nsICSSProperty;
+            #[link_name = "?border_inline_start_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_start_color: *mut nsICSSProperty;
+            #[link_name = "?border_inline_start_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_start_style: *mut nsICSSProperty;
+            #[link_name = "?border_inline_start_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_inline_start_width: *mut nsICSSProperty;
+            #[link_name = "?border_left@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_left: *mut nsICSSProperty;
+            #[link_name = "?border_left_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_left_color: *mut nsICSSProperty;
+            #[link_name = "?border_left_colors@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_left_colors: *mut nsICSSProperty;
+            #[link_name = "?border_left_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_left_style: *mut nsICSSProperty;
+            #[link_name = "?border_left_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_left_width: *mut nsICSSProperty;
+            #[link_name = "?border_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_radius: *mut nsICSSProperty;
+            #[link_name = "?border_right@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_right: *mut nsICSSProperty;
+            #[link_name = "?border_right_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_right_color: *mut nsICSSProperty;
+            #[link_name = "?border_right_colors@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_right_colors: *mut nsICSSProperty;
+            #[link_name = "?border_right_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_right_style: *mut nsICSSProperty;
+            #[link_name = "?border_right_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_right_width: *mut nsICSSProperty;
+            #[link_name = "?border_spacing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_spacing: *mut nsICSSProperty;
+            #[link_name = "?border_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_style: *mut nsICSSProperty;
+            #[link_name = "?border_top@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top: *mut nsICSSProperty;
+            #[link_name = "?border_top_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_color: *mut nsICSSProperty;
+            #[link_name = "?border_top_colors@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_colors: *mut nsICSSProperty;
+            #[link_name = "?border_top_left_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_left_radius: *mut nsICSSProperty;
+            #[link_name = "?border_top_right_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_right_radius: *mut nsICSSProperty;
+            #[link_name = "?border_top_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_style: *mut nsICSSProperty;
+            #[link_name = "?border_top_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_top_width: *mut nsICSSProperty;
+            #[link_name = "?border_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_border_width: *mut nsICSSProperty;
+            #[link_name = "?bottom@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_bottom: *mut nsICSSProperty;
+            #[link_name = "?box_align@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_align: *mut nsICSSProperty;
+            #[link_name = "?box_decoration_break@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_decoration_break: *mut nsICSSProperty;
+            #[link_name = "?box_direction@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_direction: *mut nsICSSProperty;
+            #[link_name = "?box_flex@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_flex: *mut nsICSSProperty;
+            #[link_name = "?box_ordinal_group@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_ordinal_group: *mut nsICSSProperty;
+            #[link_name = "?box_orient@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_orient: *mut nsICSSProperty;
+            #[link_name = "?box_pack@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_pack: *mut nsICSSProperty;
+            #[link_name = "?box_shadow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_shadow: *mut nsICSSProperty;
+            #[link_name = "?box_sizing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_box_sizing: *mut nsICSSProperty;
+            #[link_name = "?caption_side@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_caption_side: *mut nsICSSProperty;
+            #[link_name = "?clear@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_clear: *mut nsICSSProperty;
+            #[link_name = "?clip@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_clip: *mut nsICSSProperty;
+            #[link_name = "?clip_path@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_clip_path: *mut nsICSSProperty;
+            #[link_name = "?clip_rule@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_clip_rule: *mut nsICSSProperty;
+            #[link_name = "?color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_color: *mut nsICSSProperty;
+            #[link_name = "?color_adjust@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_color_adjust: *mut nsICSSProperty;
+            #[link_name = "?color_interpolation@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_color_interpolation: *mut nsICSSProperty;
+            #[link_name = "?color_interpolation_filters@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_color_interpolation_filters: *mut nsICSSProperty;
+            #[link_name = "?column_count@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_count: *mut nsICSSProperty;
+            #[link_name = "?column_fill@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_fill: *mut nsICSSProperty;
+            #[link_name = "?column_gap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_gap: *mut nsICSSProperty;
+            #[link_name = "?column_rule@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_rule: *mut nsICSSProperty;
+            #[link_name = "?column_rule_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_rule_color: *mut nsICSSProperty;
+            #[link_name = "?column_rule_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_rule_style: *mut nsICSSProperty;
+            #[link_name = "?column_rule_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_rule_width: *mut nsICSSProperty;
+            #[link_name = "?column_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_column_width: *mut nsICSSProperty;
+            #[link_name = "?columns@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_columns: *mut nsICSSProperty;
+            #[link_name = "?contain@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_contain: *mut nsICSSProperty;
+            #[link_name = "?content@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_content: *mut nsICSSProperty;
+            #[link_name = "?_moz_control_character_visibility@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_control_character_visibility: *mut nsICSSProperty;
+            #[link_name = "?counter_increment@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_counter_increment: *mut nsICSSProperty;
+            #[link_name = "?counter_reset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_counter_reset: *mut nsICSSProperty;
+            #[link_name = "?cursor@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_cursor: *mut nsICSSProperty;
+            #[link_name = "?direction@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_direction: *mut nsICSSProperty;
+            #[link_name = "?display@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_display: *mut nsICSSProperty;
+            #[link_name = "?dominant_baseline@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_dominant_baseline: *mut nsICSSProperty;
+            #[link_name = "?empty_cells@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_empty_cells: *mut nsICSSProperty;
+            #[link_name = "?fill@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_fill: *mut nsICSSProperty;
+            #[link_name = "?fill_opacity@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_fill_opacity: *mut nsICSSProperty;
+            #[link_name = "?fill_rule@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_fill_rule: *mut nsICSSProperty;
+            #[link_name = "?filter@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_filter: *mut nsICSSProperty;
+            #[link_name = "?flex@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex: *mut nsICSSProperty;
+            #[link_name = "?flex_basis@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_basis: *mut nsICSSProperty;
+            #[link_name = "?flex_direction@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_direction: *mut nsICSSProperty;
+            #[link_name = "?flex_flow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_flow: *mut nsICSSProperty;
+            #[link_name = "?flex_grow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_grow: *mut nsICSSProperty;
+            #[link_name = "?flex_shrink@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_shrink: *mut nsICSSProperty;
+            #[link_name = "?flex_wrap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flex_wrap: *mut nsICSSProperty;
+            #[link_name = "?float_@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_float_: *mut nsICSSProperty;
+            #[link_name = "?float_edge@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_float_edge: *mut nsICSSProperty;
+            #[link_name = "?flood_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flood_color: *mut nsICSSProperty;
+            #[link_name = "?flood_opacity@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_flood_opacity: *mut nsICSSProperty;
+            #[link_name = "?font@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font: *mut nsICSSProperty;
+            #[link_name = "?font_family@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_family: *mut nsICSSProperty;
+            #[link_name = "?font_feature_settings@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_feature_settings: *mut nsICSSProperty;
+            #[link_name = "?font_kerning@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_kerning: *mut nsICSSProperty;
+            #[link_name = "?font_language_override@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_language_override: *mut nsICSSProperty;
+            #[link_name = "?font_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_size: *mut nsICSSProperty;
+            #[link_name = "?font_size_adjust@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_size_adjust: *mut nsICSSProperty;
+            #[link_name = "?font_stretch@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_stretch: *mut nsICSSProperty;
+            #[link_name = "?font_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_style: *mut nsICSSProperty;
+            #[link_name = "?font_synthesis@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_synthesis: *mut nsICSSProperty;
+            #[link_name = "?font_variant@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant: *mut nsICSSProperty;
+            #[link_name = "?font_variant_alternates@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_alternates: *mut nsICSSProperty;
+            #[link_name = "?font_variant_caps@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_caps: *mut nsICSSProperty;
+            #[link_name = "?font_variant_east_asian@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_east_asian: *mut nsICSSProperty;
+            #[link_name = "?font_variant_ligatures@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_ligatures: *mut nsICSSProperty;
+            #[link_name = "?font_variant_numeric@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
+            #[link_name = "?font_variant_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "?font_weight@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_weight: *mut nsICSSProperty;
+            #[link_name = "?force_broken_image_icon@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_force_broken_image_icon: *mut nsICSSProperty;
+            #[link_name = "?grid@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid: *mut nsICSSProperty;
+            #[link_name = "?grid_area@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_area: *mut nsICSSProperty;
+            #[link_name = "?grid_auto_columns@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_auto_columns: *mut nsICSSProperty;
+            #[link_name = "?grid_auto_flow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_auto_flow: *mut nsICSSProperty;
+            #[link_name = "?grid_auto_rows@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_auto_rows: *mut nsICSSProperty;
+            #[link_name = "?grid_column@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_column: *mut nsICSSProperty;
+            #[link_name = "?grid_column_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_column_end: *mut nsICSSProperty;
+            #[link_name = "?grid_column_gap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_column_gap: *mut nsICSSProperty;
+            #[link_name = "?grid_column_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_column_start: *mut nsICSSProperty;
+            #[link_name = "?grid_gap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_gap: *mut nsICSSProperty;
+            #[link_name = "?grid_row@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_row: *mut nsICSSProperty;
+            #[link_name = "?grid_row_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_row_end: *mut nsICSSProperty;
+            #[link_name = "?grid_row_gap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_row_gap: *mut nsICSSProperty;
+            #[link_name = "?grid_row_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_row_start: *mut nsICSSProperty;
+            #[link_name = "?grid_template@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_template: *mut nsICSSProperty;
+            #[link_name = "?grid_template_areas@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_template_areas: *mut nsICSSProperty;
+            #[link_name = "?grid_template_columns@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_template_columns: *mut nsICSSProperty;
+            #[link_name = "?grid_template_rows@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_grid_template_rows: *mut nsICSSProperty;
+            #[link_name = "?height@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_height: *mut nsICSSProperty;
+            #[link_name = "?hyphens@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_hyphens: *mut nsICSSProperty;
+            #[link_name = "?initial_letter@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_initial_letter: *mut nsICSSProperty;
+            #[link_name = "?image_orientation@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_image_orientation: *mut nsICSSProperty;
+            #[link_name = "?image_region@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_image_region: *mut nsICSSProperty;
+            #[link_name = "?image_rendering@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_image_rendering: *mut nsICSSProperty;
+            #[link_name = "?ime_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_ime_mode: *mut nsICSSProperty;
+            #[link_name = "?inline_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_inline_size: *mut nsICSSProperty;
+            #[link_name = "?isolation@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_isolation: *mut nsICSSProperty;
+            #[link_name = "?justify_content@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_justify_content: *mut nsICSSProperty;
+            #[link_name = "?justify_items@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_justify_items: *mut nsICSSProperty;
+            #[link_name = "?justify_self@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_justify_self: *mut nsICSSProperty;
+            #[link_name = "?_x_lang@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__x_lang: *mut nsICSSProperty;
+            #[link_name = "?left@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_left: *mut nsICSSProperty;
+            #[link_name = "?letter_spacing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_letter_spacing: *mut nsICSSProperty;
+            #[link_name = "?lighting_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_lighting_color: *mut nsICSSProperty;
+            #[link_name = "?line_height@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_line_height: *mut nsICSSProperty;
+            #[link_name = "?list_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_list_style: *mut nsICSSProperty;
+            #[link_name = "?list_style_image@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_list_style_image: *mut nsICSSProperty;
+            #[link_name = "?list_style_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_list_style_position: *mut nsICSSProperty;
+            #[link_name = "?list_style_type@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_list_style_type: *mut nsICSSProperty;
+            #[link_name = "?margin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin: *mut nsICSSProperty;
+            #[link_name = "?margin_block_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_block_end: *mut nsICSSProperty;
+            #[link_name = "?margin_block_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_block_start: *mut nsICSSProperty;
+            #[link_name = "?margin_bottom@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_bottom: *mut nsICSSProperty;
+            #[link_name = "?margin_inline_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_inline_end: *mut nsICSSProperty;
+            #[link_name = "?margin_inline_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_inline_start: *mut nsICSSProperty;
+            #[link_name = "?margin_left@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_left: *mut nsICSSProperty;
+            #[link_name = "?margin_right@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_right: *mut nsICSSProperty;
+            #[link_name = "?margin_top@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_margin_top: *mut nsICSSProperty;
+            #[link_name = "?marker@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_marker: *mut nsICSSProperty;
+            #[link_name = "?marker_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_marker_end: *mut nsICSSProperty;
+            #[link_name = "?marker_mid@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
+            #[link_name = "?marker_offset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
+            #[link_name = "?marker_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_marker_start: *mut nsICSSProperty;
+            #[link_name = "?mask@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask: *mut nsICSSProperty;
+            #[link_name = "?mask_clip@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_clip: *mut nsICSSProperty;
+            #[link_name = "?mask_composite@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_composite: *mut nsICSSProperty;
+            #[link_name = "?mask_image@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_image: *mut nsICSSProperty;
+            #[link_name = "?mask_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_mode: *mut nsICSSProperty;
+            #[link_name = "?mask_origin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_origin: *mut nsICSSProperty;
+            #[link_name = "?mask_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_position: *mut nsICSSProperty;
+            #[link_name = "?mask_position_x@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_position_x: *mut nsICSSProperty;
+            #[link_name = "?mask_position_y@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_position_y: *mut nsICSSProperty;
+            #[link_name = "?mask_repeat@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_repeat: *mut nsICSSProperty;
+            #[link_name = "?mask_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_size: *mut nsICSSProperty;
+            #[link_name = "?mask_type@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mask_type: *mut nsICSSProperty;
+            #[link_name = "?math_display@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_math_display: *mut nsICSSProperty;
+            #[link_name = "?math_variant@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_math_variant: *mut nsICSSProperty;
+            #[link_name = "?max_block_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_max_block_size: *mut nsICSSProperty;
+            #[link_name = "?max_height@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_max_height: *mut nsICSSProperty;
+            #[link_name = "?max_inline_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_max_inline_size: *mut nsICSSProperty;
+            #[link_name = "?max_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_max_width: *mut nsICSSProperty;
+            #[link_name = "?min_block_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_min_block_size: *mut nsICSSProperty;
+            #[link_name = "?_moz_min_font_size_ratio@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_min_font_size_ratio: *mut nsICSSProperty;
+            #[link_name = "?min_height@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_min_height: *mut nsICSSProperty;
+            #[link_name = "?min_inline_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_min_inline_size: *mut nsICSSProperty;
+            #[link_name = "?min_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_min_width: *mut nsICSSProperty;
+            #[link_name = "?mix_blend_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_mix_blend_mode: *mut nsICSSProperty;
+            #[link_name = "?object_fit@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_object_fit: *mut nsICSSProperty;
+            #[link_name = "?object_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_object_position: *mut nsICSSProperty;
+            #[link_name = "?offset_block_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_offset_block_end: *mut nsICSSProperty;
+            #[link_name = "?offset_block_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_offset_block_start: *mut nsICSSProperty;
+            #[link_name = "?offset_inline_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_offset_inline_end: *mut nsICSSProperty;
+            #[link_name = "?offset_inline_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_offset_inline_start: *mut nsICSSProperty;
+            #[link_name = "?opacity@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_opacity: *mut nsICSSProperty;
+            #[link_name = "?order@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_order: *mut nsICSSProperty;
+            #[link_name = "?orient@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_orient: *mut nsICSSProperty;
+            #[link_name = "?osx_font_smoothing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_osx_font_smoothing: *mut nsICSSProperty;
+            #[link_name = "?outline@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_outline: *mut nsICSSProperty;
+            #[link_name = "?outline_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_outline_color: *mut nsICSSProperty;
+            #[link_name = "?outline_offset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_outline_offset: *mut nsICSSProperty;
+            #[link_name = "?_moz_outline_radius@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_outline_radius: *mut nsICSSProperty;
+            #[link_name = "?_moz_outline_radius_bottomLeft@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_outline_radius_bottomLeft: *mut nsICSSProperty;
+            #[link_name = "?_moz_outline_radius_bottomRight@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_outline_radius_bottomRight: *mut nsICSSProperty;
+            #[link_name = "?_moz_outline_radius_topLeft@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_outline_radius_topLeft: *mut nsICSSProperty;
+            #[link_name = "?_moz_outline_radius_topRight@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_outline_radius_topRight: *mut nsICSSProperty;
+            #[link_name = "?outline_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_outline_style: *mut nsICSSProperty;
+            #[link_name = "?outline_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_outline_width: *mut nsICSSProperty;
+            #[link_name = "?overflow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_overflow: *mut nsICSSProperty;
+            #[link_name = "?overflow_clip_box@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_overflow_clip_box: *mut nsICSSProperty;
+            #[link_name = "?overflow_x@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_overflow_x: *mut nsICSSProperty;
+            #[link_name = "?overflow_y@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_overflow_y: *mut nsICSSProperty;
+            #[link_name = "?padding@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding: *mut nsICSSProperty;
+            #[link_name = "?padding_block_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_block_end: *mut nsICSSProperty;
+            #[link_name = "?padding_block_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_block_start: *mut nsICSSProperty;
+            #[link_name = "?padding_bottom@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_bottom: *mut nsICSSProperty;
+            #[link_name = "?padding_inline_end@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_inline_end: *mut nsICSSProperty;
+            #[link_name = "?padding_inline_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_inline_start: *mut nsICSSProperty;
+            #[link_name = "?padding_left@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_left: *mut nsICSSProperty;
+            #[link_name = "?padding_right@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_right: *mut nsICSSProperty;
+            #[link_name = "?padding_top@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_padding_top: *mut nsICSSProperty;
+            #[link_name = "?page_break_after@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_page_break_after: *mut nsICSSProperty;
+            #[link_name = "?page_break_before@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_page_break_before: *mut nsICSSProperty;
+            #[link_name = "?page_break_inside@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_page_break_inside: *mut nsICSSProperty;
+            #[link_name = "?paint_order@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_paint_order: *mut nsICSSProperty;
+            #[link_name = "?perspective@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_perspective: *mut nsICSSProperty;
+            #[link_name = "?perspective_origin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "?pointer_events@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
+            #[link_name = "?position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_position: *mut nsICSSProperty;
+            #[link_name = "?quotes@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_quotes: *mut nsICSSProperty;
+            #[link_name = "?resize@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_resize: *mut nsICSSProperty;
+            #[link_name = "?right@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_right: *mut nsICSSProperty;
+            #[link_name = "?ruby_align@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_ruby_align: *mut nsICSSProperty;
+            #[link_name = "?ruby_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_ruby_position: *mut nsICSSProperty;
+            #[link_name = "?script_level@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_script_level: *mut nsICSSProperty;
+            #[link_name = "?script_min_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_script_min_size: *mut nsICSSProperty;
+            #[link_name = "?script_size_multiplier@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_script_size_multiplier: *mut nsICSSProperty;
+            #[link_name = "?scroll_behavior@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_behavior: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_coordinate@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_coordinate: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_destination@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_destination: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_points_x@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_points_x: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_points_y@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_points_y: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_type@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_type: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_type_x@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_type_x: *mut nsICSSProperty;
+            #[link_name = "?scroll_snap_type_y@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_scroll_snap_type_y: *mut nsICSSProperty;
+            #[link_name = "?shape_outside@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_shape_outside: *mut nsICSSProperty;
+            #[link_name = "?shape_rendering@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_shape_rendering: *mut nsICSSProperty;
+            #[link_name = "?_x_span@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__x_span: *mut nsICSSProperty;
+            #[link_name = "?stack_sizing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stack_sizing: *mut nsICSSProperty;
+            #[link_name = "?stop_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stop_color: *mut nsICSSProperty;
+            #[link_name = "?stop_opacity@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stop_opacity: *mut nsICSSProperty;
+            #[link_name = "?stroke@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke: *mut nsICSSProperty;
+            #[link_name = "?stroke_dasharray@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_dasharray: *mut nsICSSProperty;
+            #[link_name = "?stroke_dashoffset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_dashoffset: *mut nsICSSProperty;
+            #[link_name = "?stroke_linecap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_linecap: *mut nsICSSProperty;
+            #[link_name = "?stroke_linejoin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_linejoin: *mut nsICSSProperty;
+            #[link_name = "?stroke_miterlimit@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_miterlimit: *mut nsICSSProperty;
+            #[link_name = "?stroke_opacity@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_opacity: *mut nsICSSProperty;
+            #[link_name = "?stroke_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_stroke_width: *mut nsICSSProperty;
+            #[link_name = "?_x_system_font@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__x_system_font: *mut nsICSSProperty;
+            #[link_name = "?_moz_tab_size@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_tab_size: *mut nsICSSProperty;
+            #[link_name = "?table_layout@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_table_layout: *mut nsICSSProperty;
+            #[link_name = "?text_align@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_align: *mut nsICSSProperty;
+            #[link_name = "?text_align_last@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_align_last: *mut nsICSSProperty;
+            #[link_name = "?text_anchor@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_anchor: *mut nsICSSProperty;
+            #[link_name = "?text_combine_upright@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_combine_upright: *mut nsICSSProperty;
+            #[link_name = "?text_decoration@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_decoration: *mut nsICSSProperty;
+            #[link_name = "?text_decoration_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_decoration_color: *mut nsICSSProperty;
+            #[link_name = "?text_decoration_line@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_decoration_line: *mut nsICSSProperty;
+            #[link_name = "?text_decoration_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_decoration_style: *mut nsICSSProperty;
+            #[link_name = "?text_emphasis@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_emphasis: *mut nsICSSProperty;
+            #[link_name = "?text_emphasis_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_emphasis_color: *mut nsICSSProperty;
+            #[link_name = "?text_emphasis_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_emphasis_position: *mut nsICSSProperty;
+            #[link_name = "?text_emphasis_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_emphasis_style: *mut nsICSSProperty;
+            #[link_name = "?_webkit_text_fill_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__webkit_text_fill_color: *mut nsICSSProperty;
+            #[link_name = "?text_indent@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_indent: *mut nsICSSProperty;
+            #[link_name = "?text_orientation@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_orientation: *mut nsICSSProperty;
+            #[link_name = "?text_overflow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_overflow: *mut nsICSSProperty;
+            #[link_name = "?text_rendering@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_rendering: *mut nsICSSProperty;
+            #[link_name = "?text_shadow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_shadow: *mut nsICSSProperty;
+            #[link_name = "?text_size_adjust@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_size_adjust: *mut nsICSSProperty;
+            #[link_name = "?_webkit_text_stroke@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__webkit_text_stroke: *mut nsICSSProperty;
+            #[link_name = "?_webkit_text_stroke_color@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__webkit_text_stroke_color: *mut nsICSSProperty;
+            #[link_name = "?_webkit_text_stroke_width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__webkit_text_stroke_width: *mut nsICSSProperty;
+            #[link_name = "?text_transform@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_text_transform: *mut nsICSSProperty;
+            #[link_name = "?_x_text_zoom@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__x_text_zoom: *mut nsICSSProperty;
+            #[link_name = "?top@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_top: *mut nsICSSProperty;
+            #[link_name = "?_moz_top_layer@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_top_layer: *mut nsICSSProperty;
+            #[link_name = "?touch_action@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_touch_action: *mut nsICSSProperty;
+            #[link_name = "?transform@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transform: *mut nsICSSProperty;
+            #[link_name = "?_moz_transform@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_transform: *mut nsICSSProperty;
+            #[link_name = "?transform_box@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transform_box: *mut nsICSSProperty;
+            #[link_name = "?transform_origin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transform_origin: *mut nsICSSProperty;
+            #[link_name = "?transform_style@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transform_style: *mut nsICSSProperty;
+            #[link_name = "?transition@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transition: *mut nsICSSProperty;
+            #[link_name = "?transition_delay@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transition_delay: *mut nsICSSProperty;
+            #[link_name = "?transition_duration@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transition_duration: *mut nsICSSProperty;
+            #[link_name = "?transition_property@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transition_property: *mut nsICSSProperty;
+            #[link_name = "?transition_timing_function@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_transition_timing_function: *mut nsICSSProperty;
+            #[link_name = "?unicode_bidi@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_unicode_bidi: *mut nsICSSProperty;
+            #[link_name = "?user_focus@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_user_focus: *mut nsICSSProperty;
+            #[link_name = "?user_input@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_user_input: *mut nsICSSProperty;
+            #[link_name = "?user_modify@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_user_modify: *mut nsICSSProperty;
+            #[link_name = "?user_select@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_user_select: *mut nsICSSProperty;
+            #[link_name = "?vector_effect@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_vector_effect: *mut nsICSSProperty;
+            #[link_name = "?vertical_align@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_vertical_align: *mut nsICSSProperty;
+            #[link_name = "?visibility@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_visibility: *mut nsICSSProperty;
+            #[link_name = "?white_space@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_white_space: *mut nsICSSProperty;
+            #[link_name = "?width@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_width: *mut nsICSSProperty;
+            #[link_name = "?will_change@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_will_change: *mut nsICSSProperty;
+            #[link_name = "?_moz_window_dragging@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_window_dragging: *mut nsICSSProperty;
+            #[link_name = "?_moz_window_shadow@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps__moz_window_shadow: *mut nsICSSProperty;
+            #[link_name = "?word_break@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_word_break: *mut nsICSSProperty;
+            #[link_name = "?word_spacing@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_word_spacing: *mut nsICSSProperty;
+            #[link_name = "?overflow_wrap@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_overflow_wrap: *mut nsICSSProperty;
+            #[link_name = "?writing_mode@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_writing_mode: *mut nsICSSProperty;
+            #[link_name = "?z_index@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_z_index: *mut nsICSSProperty;
         }
     } else {
         extern {
@@ -14774,6 +16216,726 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozSVGForeignContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?mozSVGText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_mozSVGText: *mut nsICSSAnonBoxPseudo;
+            #[link_name = "\x01?align_content@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_align_content: *mut nsICSSProperty;
+            #[link_name = "\x01?align_items@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_align_items: *mut nsICSSProperty;
+            #[link_name = "\x01?align_self@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_align_self: *mut nsICSSProperty;
+            #[link_name = "\x01?all@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_all: *mut nsICSSProperty;
+            #[link_name = "\x01?animation@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_delay@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_delay: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_direction@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_direction: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_duration@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_duration: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_fill_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_fill_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_iteration_count@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_iteration_count: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_name@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_name: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_play_state@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_play_state: *mut nsICSSProperty;
+            #[link_name = "\x01?animation_timing_function@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_animation_timing_function: *mut nsICSSProperty;
+            #[link_name = "\x01?appearance@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_appearance: *mut nsICSSProperty;
+            #[link_name = "\x01?backface_visibility@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_backface_visibility: *mut nsICSSProperty;
+            #[link_name = "\x01?background@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background: *mut nsICSSProperty;
+            #[link_name = "\x01?background_attachment@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_attachment: *mut nsICSSProperty;
+            #[link_name = "\x01?background_blend_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_blend_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?background_clip@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_clip: *mut nsICSSProperty;
+            #[link_name = "\x01?background_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_color: *mut nsICSSProperty;
+            #[link_name = "\x01?background_image@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_image: *mut nsICSSProperty;
+            #[link_name = "\x01?background_origin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_origin: *mut nsICSSProperty;
+            #[link_name = "\x01?background_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_position: *mut nsICSSProperty;
+            #[link_name = "\x01?background_position_x@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_position_x: *mut nsICSSProperty;
+            #[link_name = "\x01?background_position_y@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_position_y: *mut nsICSSProperty;
+            #[link_name = "\x01?background_repeat@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_repeat: *mut nsICSSProperty;
+            #[link_name = "\x01?background_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_background_size: *mut nsICSSProperty;
+            #[link_name = "\x01?binding@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_binding: *mut nsICSSProperty;
+            #[link_name = "\x01?block_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_block_size: *mut nsICSSProperty;
+            #[link_name = "\x01?border@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_end: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_end_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_end_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_end_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_end_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_end_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_end_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_start: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_start_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_start_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_start_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_start_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_block_start_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_block_start_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_colors@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_colors: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_left_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_left_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_right_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_right_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_bottom_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_bottom_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_collapse@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_collapse: *mut nsICSSProperty;
+            #[link_name = "\x01?border_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image_outset@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image_outset: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image_repeat@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image_repeat: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image_slice@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image_slice: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image_source@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image_source: *mut nsICSSProperty;
+            #[link_name = "\x01?border_image_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_image_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_end: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_end_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_end_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_end_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_end_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_end_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_end_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_start: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_start_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_start_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_start_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_start_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_inline_start_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_inline_start_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_left@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_left: *mut nsICSSProperty;
+            #[link_name = "\x01?border_left_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_left_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_left_colors@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_left_colors: *mut nsICSSProperty;
+            #[link_name = "\x01?border_left_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_left_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_left_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_left_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?border_right@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_right: *mut nsICSSProperty;
+            #[link_name = "\x01?border_right_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_right_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_right_colors@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_right_colors: *mut nsICSSProperty;
+            #[link_name = "\x01?border_right_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_right_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_right_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_right_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_spacing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_spacing: *mut nsICSSProperty;
+            #[link_name = "\x01?border_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_color: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_colors@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_colors: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_left_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_left_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_right_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_right_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_style: *mut nsICSSProperty;
+            #[link_name = "\x01?border_top_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_top_width: *mut nsICSSProperty;
+            #[link_name = "\x01?border_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_border_width: *mut nsICSSProperty;
+            #[link_name = "\x01?bottom@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_bottom: *mut nsICSSProperty;
+            #[link_name = "\x01?box_align@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_align: *mut nsICSSProperty;
+            #[link_name = "\x01?box_decoration_break@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_decoration_break: *mut nsICSSProperty;
+            #[link_name = "\x01?box_direction@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_direction: *mut nsICSSProperty;
+            #[link_name = "\x01?box_flex@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_flex: *mut nsICSSProperty;
+            #[link_name = "\x01?box_ordinal_group@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_ordinal_group: *mut nsICSSProperty;
+            #[link_name = "\x01?box_orient@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_orient: *mut nsICSSProperty;
+            #[link_name = "\x01?box_pack@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_pack: *mut nsICSSProperty;
+            #[link_name = "\x01?box_shadow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_shadow: *mut nsICSSProperty;
+            #[link_name = "\x01?box_sizing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_box_sizing: *mut nsICSSProperty;
+            #[link_name = "\x01?caption_side@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_caption_side: *mut nsICSSProperty;
+            #[link_name = "\x01?clear@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_clear: *mut nsICSSProperty;
+            #[link_name = "\x01?clip@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_clip: *mut nsICSSProperty;
+            #[link_name = "\x01?clip_path@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_clip_path: *mut nsICSSProperty;
+            #[link_name = "\x01?clip_rule@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_clip_rule: *mut nsICSSProperty;
+            #[link_name = "\x01?color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_color: *mut nsICSSProperty;
+            #[link_name = "\x01?color_adjust@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_color_adjust: *mut nsICSSProperty;
+            #[link_name = "\x01?color_interpolation@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_color_interpolation: *mut nsICSSProperty;
+            #[link_name = "\x01?color_interpolation_filters@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_color_interpolation_filters: *mut nsICSSProperty;
+            #[link_name = "\x01?column_count@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_count: *mut nsICSSProperty;
+            #[link_name = "\x01?column_fill@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_fill: *mut nsICSSProperty;
+            #[link_name = "\x01?column_gap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_gap: *mut nsICSSProperty;
+            #[link_name = "\x01?column_rule@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_rule: *mut nsICSSProperty;
+            #[link_name = "\x01?column_rule_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_rule_color: *mut nsICSSProperty;
+            #[link_name = "\x01?column_rule_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_rule_style: *mut nsICSSProperty;
+            #[link_name = "\x01?column_rule_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_rule_width: *mut nsICSSProperty;
+            #[link_name = "\x01?column_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_column_width: *mut nsICSSProperty;
+            #[link_name = "\x01?columns@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_columns: *mut nsICSSProperty;
+            #[link_name = "\x01?contain@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_contain: *mut nsICSSProperty;
+            #[link_name = "\x01?content@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_content: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_control_character_visibility@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_control_character_visibility: *mut nsICSSProperty;
+            #[link_name = "\x01?counter_increment@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_counter_increment: *mut nsICSSProperty;
+            #[link_name = "\x01?counter_reset@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_counter_reset: *mut nsICSSProperty;
+            #[link_name = "\x01?cursor@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_cursor: *mut nsICSSProperty;
+            #[link_name = "\x01?direction@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_direction: *mut nsICSSProperty;
+            #[link_name = "\x01?display@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_display: *mut nsICSSProperty;
+            #[link_name = "\x01?dominant_baseline@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_dominant_baseline: *mut nsICSSProperty;
+            #[link_name = "\x01?empty_cells@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_empty_cells: *mut nsICSSProperty;
+            #[link_name = "\x01?fill@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_fill: *mut nsICSSProperty;
+            #[link_name = "\x01?fill_opacity@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_fill_opacity: *mut nsICSSProperty;
+            #[link_name = "\x01?fill_rule@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_fill_rule: *mut nsICSSProperty;
+            #[link_name = "\x01?filter@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_filter: *mut nsICSSProperty;
+            #[link_name = "\x01?flex@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_basis@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_basis: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_direction@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_direction: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_flow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_flow: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_grow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_grow: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_shrink@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_shrink: *mut nsICSSProperty;
+            #[link_name = "\x01?flex_wrap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flex_wrap: *mut nsICSSProperty;
+            #[link_name = "\x01?float_@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_float_: *mut nsICSSProperty;
+            #[link_name = "\x01?float_edge@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_float_edge: *mut nsICSSProperty;
+            #[link_name = "\x01?flood_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flood_color: *mut nsICSSProperty;
+            #[link_name = "\x01?flood_opacity@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_flood_opacity: *mut nsICSSProperty;
+            #[link_name = "\x01?font@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font: *mut nsICSSProperty;
+            #[link_name = "\x01?font_family@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_family: *mut nsICSSProperty;
+            #[link_name = "\x01?font_feature_settings@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_feature_settings: *mut nsICSSProperty;
+            #[link_name = "\x01?font_kerning@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_kerning: *mut nsICSSProperty;
+            #[link_name = "\x01?font_language_override@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_language_override: *mut nsICSSProperty;
+            #[link_name = "\x01?font_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_size: *mut nsICSSProperty;
+            #[link_name = "\x01?font_size_adjust@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_size_adjust: *mut nsICSSProperty;
+            #[link_name = "\x01?font_stretch@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_stretch: *mut nsICSSProperty;
+            #[link_name = "\x01?font_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_style: *mut nsICSSProperty;
+            #[link_name = "\x01?font_synthesis@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_synthesis: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_alternates@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_alternates: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_caps@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_caps: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_east_asian@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_east_asian: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_ligatures@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_ligatures: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_numeric@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variant_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "\x01?font_weight@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_weight: *mut nsICSSProperty;
+            #[link_name = "\x01?force_broken_image_icon@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_force_broken_image_icon: *mut nsICSSProperty;
+            #[link_name = "\x01?grid@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_area@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_area: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_auto_columns@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_auto_columns: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_auto_flow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_auto_flow: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_auto_rows@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_auto_rows: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_column@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_column: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_column_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_column_end: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_column_gap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_column_gap: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_column_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_column_start: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_gap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_gap: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_row@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_row: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_row_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_row_end: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_row_gap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_row_gap: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_row_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_row_start: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_template@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_template: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_template_areas@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_template_areas: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_template_columns@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_template_columns: *mut nsICSSProperty;
+            #[link_name = "\x01?grid_template_rows@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_grid_template_rows: *mut nsICSSProperty;
+            #[link_name = "\x01?height@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_height: *mut nsICSSProperty;
+            #[link_name = "\x01?hyphens@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_hyphens: *mut nsICSSProperty;
+            #[link_name = "\x01?initial_letter@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_initial_letter: *mut nsICSSProperty;
+            #[link_name = "\x01?image_orientation@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_image_orientation: *mut nsICSSProperty;
+            #[link_name = "\x01?image_region@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_image_region: *mut nsICSSProperty;
+            #[link_name = "\x01?image_rendering@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_image_rendering: *mut nsICSSProperty;
+            #[link_name = "\x01?ime_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_ime_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?inline_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_inline_size: *mut nsICSSProperty;
+            #[link_name = "\x01?isolation@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_isolation: *mut nsICSSProperty;
+            #[link_name = "\x01?justify_content@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_justify_content: *mut nsICSSProperty;
+            #[link_name = "\x01?justify_items@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_justify_items: *mut nsICSSProperty;
+            #[link_name = "\x01?justify_self@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_justify_self: *mut nsICSSProperty;
+            #[link_name = "\x01?_x_lang@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__x_lang: *mut nsICSSProperty;
+            #[link_name = "\x01?left@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_left: *mut nsICSSProperty;
+            #[link_name = "\x01?letter_spacing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_letter_spacing: *mut nsICSSProperty;
+            #[link_name = "\x01?lighting_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_lighting_color: *mut nsICSSProperty;
+            #[link_name = "\x01?line_height@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_line_height: *mut nsICSSProperty;
+            #[link_name = "\x01?list_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_list_style: *mut nsICSSProperty;
+            #[link_name = "\x01?list_style_image@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_list_style_image: *mut nsICSSProperty;
+            #[link_name = "\x01?list_style_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_list_style_position: *mut nsICSSProperty;
+            #[link_name = "\x01?list_style_type@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_list_style_type: *mut nsICSSProperty;
+            #[link_name = "\x01?margin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_block_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_block_end: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_block_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_block_start: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_bottom@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_bottom: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_inline_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_inline_end: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_inline_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_inline_start: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_left@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_left: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_right@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_right: *mut nsICSSProperty;
+            #[link_name = "\x01?margin_top@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_margin_top: *mut nsICSSProperty;
+            #[link_name = "\x01?marker@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_marker: *mut nsICSSProperty;
+            #[link_name = "\x01?marker_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_marker_end: *mut nsICSSProperty;
+            #[link_name = "\x01?marker_mid@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
+            #[link_name = "\x01?marker_offset@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
+            #[link_name = "\x01?marker_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_marker_start: *mut nsICSSProperty;
+            #[link_name = "\x01?mask@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_clip@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_clip: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_composite@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_composite: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_image@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_image: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_origin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_origin: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_position: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_position_x@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_position_x: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_position_y@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_position_y: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_repeat@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_repeat: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_size: *mut nsICSSProperty;
+            #[link_name = "\x01?mask_type@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mask_type: *mut nsICSSProperty;
+            #[link_name = "\x01?math_display@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_math_display: *mut nsICSSProperty;
+            #[link_name = "\x01?math_variant@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_math_variant: *mut nsICSSProperty;
+            #[link_name = "\x01?max_block_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_max_block_size: *mut nsICSSProperty;
+            #[link_name = "\x01?max_height@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_max_height: *mut nsICSSProperty;
+            #[link_name = "\x01?max_inline_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_max_inline_size: *mut nsICSSProperty;
+            #[link_name = "\x01?max_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_max_width: *mut nsICSSProperty;
+            #[link_name = "\x01?min_block_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_min_block_size: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_min_font_size_ratio@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_min_font_size_ratio: *mut nsICSSProperty;
+            #[link_name = "\x01?min_height@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_min_height: *mut nsICSSProperty;
+            #[link_name = "\x01?min_inline_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_min_inline_size: *mut nsICSSProperty;
+            #[link_name = "\x01?min_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_min_width: *mut nsICSSProperty;
+            #[link_name = "\x01?mix_blend_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_mix_blend_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?object_fit@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_object_fit: *mut nsICSSProperty;
+            #[link_name = "\x01?object_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_object_position: *mut nsICSSProperty;
+            #[link_name = "\x01?offset_block_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_offset_block_end: *mut nsICSSProperty;
+            #[link_name = "\x01?offset_block_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_offset_block_start: *mut nsICSSProperty;
+            #[link_name = "\x01?offset_inline_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_offset_inline_end: *mut nsICSSProperty;
+            #[link_name = "\x01?offset_inline_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_offset_inline_start: *mut nsICSSProperty;
+            #[link_name = "\x01?opacity@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_opacity: *mut nsICSSProperty;
+            #[link_name = "\x01?order@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_order: *mut nsICSSProperty;
+            #[link_name = "\x01?orient@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_orient: *mut nsICSSProperty;
+            #[link_name = "\x01?osx_font_smoothing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_osx_font_smoothing: *mut nsICSSProperty;
+            #[link_name = "\x01?outline@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_outline: *mut nsICSSProperty;
+            #[link_name = "\x01?outline_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_outline_color: *mut nsICSSProperty;
+            #[link_name = "\x01?outline_offset@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_outline_offset: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_outline_radius@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_outline_radius: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_outline_radius_bottomLeft@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_outline_radius_bottomLeft: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_outline_radius_bottomRight@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_outline_radius_bottomRight: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_outline_radius_topLeft@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_outline_radius_topLeft: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_outline_radius_topRight@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_outline_radius_topRight: *mut nsICSSProperty;
+            #[link_name = "\x01?outline_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_outline_style: *mut nsICSSProperty;
+            #[link_name = "\x01?outline_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_outline_width: *mut nsICSSProperty;
+            #[link_name = "\x01?overflow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_overflow: *mut nsICSSProperty;
+            #[link_name = "\x01?overflow_clip_box@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_overflow_clip_box: *mut nsICSSProperty;
+            #[link_name = "\x01?overflow_x@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_overflow_x: *mut nsICSSProperty;
+            #[link_name = "\x01?overflow_y@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_overflow_y: *mut nsICSSProperty;
+            #[link_name = "\x01?padding@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_block_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_block_end: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_block_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_block_start: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_bottom@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_bottom: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_inline_end@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_inline_end: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_inline_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_inline_start: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_left@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_left: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_right@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_right: *mut nsICSSProperty;
+            #[link_name = "\x01?padding_top@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_padding_top: *mut nsICSSProperty;
+            #[link_name = "\x01?page_break_after@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_page_break_after: *mut nsICSSProperty;
+            #[link_name = "\x01?page_break_before@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_page_break_before: *mut nsICSSProperty;
+            #[link_name = "\x01?page_break_inside@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_page_break_inside: *mut nsICSSProperty;
+            #[link_name = "\x01?paint_order@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_paint_order: *mut nsICSSProperty;
+            #[link_name = "\x01?perspective@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_perspective: *mut nsICSSProperty;
+            #[link_name = "\x01?perspective_origin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "\x01?pointer_events@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
+            #[link_name = "\x01?position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_position: *mut nsICSSProperty;
+            #[link_name = "\x01?quotes@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_quotes: *mut nsICSSProperty;
+            #[link_name = "\x01?resize@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_resize: *mut nsICSSProperty;
+            #[link_name = "\x01?right@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_right: *mut nsICSSProperty;
+            #[link_name = "\x01?ruby_align@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_ruby_align: *mut nsICSSProperty;
+            #[link_name = "\x01?ruby_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_ruby_position: *mut nsICSSProperty;
+            #[link_name = "\x01?script_level@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_script_level: *mut nsICSSProperty;
+            #[link_name = "\x01?script_min_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_script_min_size: *mut nsICSSProperty;
+            #[link_name = "\x01?script_size_multiplier@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_script_size_multiplier: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_behavior@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_behavior: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_coordinate@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_coordinate: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_destination@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_destination: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_points_x@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_points_x: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_points_y@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_points_y: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_type@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_type: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_type_x@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_type_x: *mut nsICSSProperty;
+            #[link_name = "\x01?scroll_snap_type_y@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_scroll_snap_type_y: *mut nsICSSProperty;
+            #[link_name = "\x01?shape_outside@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_shape_outside: *mut nsICSSProperty;
+            #[link_name = "\x01?shape_rendering@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_shape_rendering: *mut nsICSSProperty;
+            #[link_name = "\x01?_x_span@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__x_span: *mut nsICSSProperty;
+            #[link_name = "\x01?stack_sizing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stack_sizing: *mut nsICSSProperty;
+            #[link_name = "\x01?stop_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stop_color: *mut nsICSSProperty;
+            #[link_name = "\x01?stop_opacity@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stop_opacity: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_dasharray@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_dasharray: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_dashoffset@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_dashoffset: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_linecap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_linecap: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_linejoin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_linejoin: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_miterlimit@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_miterlimit: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_opacity@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_opacity: *mut nsICSSProperty;
+            #[link_name = "\x01?stroke_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_stroke_width: *mut nsICSSProperty;
+            #[link_name = "\x01?_x_system_font@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__x_system_font: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_tab_size@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_tab_size: *mut nsICSSProperty;
+            #[link_name = "\x01?table_layout@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_table_layout: *mut nsICSSProperty;
+            #[link_name = "\x01?text_align@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_align: *mut nsICSSProperty;
+            #[link_name = "\x01?text_align_last@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_align_last: *mut nsICSSProperty;
+            #[link_name = "\x01?text_anchor@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_anchor: *mut nsICSSProperty;
+            #[link_name = "\x01?text_combine_upright@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_combine_upright: *mut nsICSSProperty;
+            #[link_name = "\x01?text_decoration@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_decoration: *mut nsICSSProperty;
+            #[link_name = "\x01?text_decoration_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_decoration_color: *mut nsICSSProperty;
+            #[link_name = "\x01?text_decoration_line@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_decoration_line: *mut nsICSSProperty;
+            #[link_name = "\x01?text_decoration_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_decoration_style: *mut nsICSSProperty;
+            #[link_name = "\x01?text_emphasis@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_emphasis: *mut nsICSSProperty;
+            #[link_name = "\x01?text_emphasis_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_emphasis_color: *mut nsICSSProperty;
+            #[link_name = "\x01?text_emphasis_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_emphasis_position: *mut nsICSSProperty;
+            #[link_name = "\x01?text_emphasis_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_emphasis_style: *mut nsICSSProperty;
+            #[link_name = "\x01?_webkit_text_fill_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__webkit_text_fill_color: *mut nsICSSProperty;
+            #[link_name = "\x01?text_indent@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_indent: *mut nsICSSProperty;
+            #[link_name = "\x01?text_orientation@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_orientation: *mut nsICSSProperty;
+            #[link_name = "\x01?text_overflow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_overflow: *mut nsICSSProperty;
+            #[link_name = "\x01?text_rendering@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_rendering: *mut nsICSSProperty;
+            #[link_name = "\x01?text_shadow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_shadow: *mut nsICSSProperty;
+            #[link_name = "\x01?text_size_adjust@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_size_adjust: *mut nsICSSProperty;
+            #[link_name = "\x01?_webkit_text_stroke@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__webkit_text_stroke: *mut nsICSSProperty;
+            #[link_name = "\x01?_webkit_text_stroke_color@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__webkit_text_stroke_color: *mut nsICSSProperty;
+            #[link_name = "\x01?_webkit_text_stroke_width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__webkit_text_stroke_width: *mut nsICSSProperty;
+            #[link_name = "\x01?text_transform@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_text_transform: *mut nsICSSProperty;
+            #[link_name = "\x01?_x_text_zoom@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__x_text_zoom: *mut nsICSSProperty;
+            #[link_name = "\x01?top@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_top: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_top_layer@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_top_layer: *mut nsICSSProperty;
+            #[link_name = "\x01?touch_action@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_touch_action: *mut nsICSSProperty;
+            #[link_name = "\x01?transform@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transform: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_transform@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_transform: *mut nsICSSProperty;
+            #[link_name = "\x01?transform_box@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transform_box: *mut nsICSSProperty;
+            #[link_name = "\x01?transform_origin@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transform_origin: *mut nsICSSProperty;
+            #[link_name = "\x01?transform_style@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transform_style: *mut nsICSSProperty;
+            #[link_name = "\x01?transition@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transition: *mut nsICSSProperty;
+            #[link_name = "\x01?transition_delay@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transition_delay: *mut nsICSSProperty;
+            #[link_name = "\x01?transition_duration@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transition_duration: *mut nsICSSProperty;
+            #[link_name = "\x01?transition_property@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transition_property: *mut nsICSSProperty;
+            #[link_name = "\x01?transition_timing_function@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_transition_timing_function: *mut nsICSSProperty;
+            #[link_name = "\x01?unicode_bidi@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_unicode_bidi: *mut nsICSSProperty;
+            #[link_name = "\x01?user_focus@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_user_focus: *mut nsICSSProperty;
+            #[link_name = "\x01?user_input@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_user_input: *mut nsICSSProperty;
+            #[link_name = "\x01?user_modify@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_user_modify: *mut nsICSSProperty;
+            #[link_name = "\x01?user_select@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_user_select: *mut nsICSSProperty;
+            #[link_name = "\x01?vector_effect@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_vector_effect: *mut nsICSSProperty;
+            #[link_name = "\x01?vertical_align@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_vertical_align: *mut nsICSSProperty;
+            #[link_name = "\x01?visibility@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_visibility: *mut nsICSSProperty;
+            #[link_name = "\x01?white_space@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_white_space: *mut nsICSSProperty;
+            #[link_name = "\x01?width@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_width: *mut nsICSSProperty;
+            #[link_name = "\x01?will_change@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_will_change: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_window_dragging@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_window_dragging: *mut nsICSSProperty;
+            #[link_name = "\x01?_moz_window_shadow@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps__moz_window_shadow: *mut nsICSSProperty;
+            #[link_name = "\x01?word_break@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_word_break: *mut nsICSSProperty;
+            #[link_name = "\x01?word_spacing@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_word_spacing: *mut nsICSSProperty;
+            #[link_name = "\x01?overflow_wrap@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_overflow_wrap: *mut nsICSSProperty;
+            #[link_name = "\x01?writing_mode@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_writing_mode: *mut nsICSSProperty;
+            #[link_name = "\x01?z_index@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_z_index: *mut nsICSSProperty;
         }
     }
 }
@@ -19696,4 +21858,724 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGForeignContent as *mut _) } };
 (":-moz-svg-text") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozSVGText as *mut _) } };
+("align-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_align_content as *mut _) } };
+("align-items") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_align_items as *mut _) } };
+("align-self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_align_self as *mut _) } };
+("all") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_all as *mut _) } };
+("animation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation as *mut _) } };
+("animation-delay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_delay as *mut _) } };
+("animation-direction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_direction as *mut _) } };
+("animation-duration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_duration as *mut _) } };
+("animation-fill-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_fill_mode as *mut _) } };
+("animation-iteration-count") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_iteration_count as *mut _) } };
+("animation-name") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_name as *mut _) } };
+("animation-play-state") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_play_state as *mut _) } };
+("animation-timing-function") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_animation_timing_function as *mut _) } };
+("-moz-appearance") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_appearance as *mut _) } };
+("backface-visibility") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_backface_visibility as *mut _) } };
+("background") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background as *mut _) } };
+("background-attachment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_attachment as *mut _) } };
+("background-blend-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_blend_mode as *mut _) } };
+("background-clip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_clip as *mut _) } };
+("background-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_color as *mut _) } };
+("background-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_image as *mut _) } };
+("background-origin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_origin as *mut _) } };
+("background-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_position as *mut _) } };
+("background-position-x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_position_x as *mut _) } };
+("background-position-y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_position_y as *mut _) } };
+("background-repeat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_repeat as *mut _) } };
+("background-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_background_size as *mut _) } };
+("-moz-binding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_binding as *mut _) } };
+("block-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_block_size as *mut _) } };
+("border") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border as *mut _) } };
+("border-block-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_end as *mut _) } };
+("border-block-end-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_end_color as *mut _) } };
+("border-block-end-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_end_style as *mut _) } };
+("border-block-end-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_end_width as *mut _) } };
+("border-block-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_start as *mut _) } };
+("border-block-start-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_start_color as *mut _) } };
+("border-block-start-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_start_style as *mut _) } };
+("border-block-start-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_block_start_width as *mut _) } };
+("border-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom as *mut _) } };
+("border-bottom-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_color as *mut _) } };
+("-moz-border-bottom-colors") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_colors as *mut _) } };
+("border-bottom-left-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_left_radius as *mut _) } };
+("border-bottom-right-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_right_radius as *mut _) } };
+("border-bottom-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_style as *mut _) } };
+("border-bottom-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_bottom_width as *mut _) } };
+("border-collapse") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_collapse as *mut _) } };
+("border-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_color as *mut _) } };
+("border-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image as *mut _) } };
+("border-image-outset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image_outset as *mut _) } };
+("border-image-repeat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image_repeat as *mut _) } };
+("border-image-slice") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image_slice as *mut _) } };
+("border-image-source") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image_source as *mut _) } };
+("border-image-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_image_width as *mut _) } };
+("border-inline-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_end as *mut _) } };
+("border-inline-end-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_end_color as *mut _) } };
+("border-inline-end-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_end_style as *mut _) } };
+("border-inline-end-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_end_width as *mut _) } };
+("border-inline-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_start as *mut _) } };
+("border-inline-start-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_start_color as *mut _) } };
+("border-inline-start-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_start_style as *mut _) } };
+("border-inline-start-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_inline_start_width as *mut _) } };
+("border-left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_left as *mut _) } };
+("border-left-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_left_color as *mut _) } };
+("-moz-border-left-colors") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_left_colors as *mut _) } };
+("border-left-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_left_style as *mut _) } };
+("border-left-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_left_width as *mut _) } };
+("border-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_radius as *mut _) } };
+("border-right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_right as *mut _) } };
+("border-right-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_right_color as *mut _) } };
+("-moz-border-right-colors") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_right_colors as *mut _) } };
+("border-right-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_right_style as *mut _) } };
+("border-right-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_right_width as *mut _) } };
+("border-spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_spacing as *mut _) } };
+("border-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_style as *mut _) } };
+("border-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top as *mut _) } };
+("border-top-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_color as *mut _) } };
+("-moz-border-top-colors") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_colors as *mut _) } };
+("border-top-left-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_left_radius as *mut _) } };
+("border-top-right-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_right_radius as *mut _) } };
+("border-top-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_style as *mut _) } };
+("border-top-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_top_width as *mut _) } };
+("border-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_border_width as *mut _) } };
+("bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_bottom as *mut _) } };
+("-moz-box-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_align as *mut _) } };
+("box-decoration-break") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_decoration_break as *mut _) } };
+("-moz-box-direction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_direction as *mut _) } };
+("-moz-box-flex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_flex as *mut _) } };
+("-moz-box-ordinal-group") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_ordinal_group as *mut _) } };
+("-moz-box-orient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_orient as *mut _) } };
+("-moz-box-pack") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_pack as *mut _) } };
+("box-shadow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_shadow as *mut _) } };
+("box-sizing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_box_sizing as *mut _) } };
+("caption-side") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_caption_side as *mut _) } };
+("clear") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_clear as *mut _) } };
+("clip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_clip as *mut _) } };
+("clip-path") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_clip_path as *mut _) } };
+("clip-rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_clip_rule as *mut _) } };
+("color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_color as *mut _) } };
+("color-adjust") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_color_adjust as *mut _) } };
+("color-interpolation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_color_interpolation as *mut _) } };
+("color-interpolation-filters") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_color_interpolation_filters as *mut _) } };
+("column-count") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_count as *mut _) } };
+("column-fill") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_fill as *mut _) } };
+("column-gap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_gap as *mut _) } };
+("column-rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_rule as *mut _) } };
+("column-rule-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_rule_color as *mut _) } };
+("column-rule-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_rule_style as *mut _) } };
+("column-rule-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_rule_width as *mut _) } };
+("column-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_column_width as *mut _) } };
+("columns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_columns as *mut _) } };
+("contain") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_contain as *mut _) } };
+("content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_content as *mut _) } };
+("-moz-control-character-visibility") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_control_character_visibility as *mut _) } };
+("counter-increment") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_counter_increment as *mut _) } };
+("counter-reset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_counter_reset as *mut _) } };
+("cursor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_cursor as *mut _) } };
+("direction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_direction as *mut _) } };
+("display") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_display as *mut _) } };
+("dominant-baseline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_dominant_baseline as *mut _) } };
+("empty-cells") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_empty_cells as *mut _) } };
+("fill") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_fill as *mut _) } };
+("fill-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_fill_opacity as *mut _) } };
+("fill-rule") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_fill_rule as *mut _) } };
+("filter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_filter as *mut _) } };
+("flex") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex as *mut _) } };
+("flex-basis") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_basis as *mut _) } };
+("flex-direction") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_direction as *mut _) } };
+("flex-flow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_flow as *mut _) } };
+("flex-grow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_grow as *mut _) } };
+("flex-shrink") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_shrink as *mut _) } };
+("flex-wrap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flex_wrap as *mut _) } };
+("float") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_float_ as *mut _) } };
+("-moz-float-edge") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_float_edge as *mut _) } };
+("flood-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flood_color as *mut _) } };
+("flood-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_flood_opacity as *mut _) } };
+("font") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font as *mut _) } };
+("font-family") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_family as *mut _) } };
+("font-feature-settings") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_feature_settings as *mut _) } };
+("font-kerning") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_kerning as *mut _) } };
+("font-language-override") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_language_override as *mut _) } };
+("font-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_size as *mut _) } };
+("font-size-adjust") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_size_adjust as *mut _) } };
+("font-stretch") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_stretch as *mut _) } };
+("font-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_style as *mut _) } };
+("font-synthesis") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_synthesis as *mut _) } };
+("font-variant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant as *mut _) } };
+("font-variant-alternates") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_alternates as *mut _) } };
+("font-variant-caps") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_caps as *mut _) } };
+("font-variant-east-asian") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_east_asian as *mut _) } };
+("font-variant-ligatures") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_ligatures as *mut _) } };
+("font-variant-numeric") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_numeric as *mut _) } };
+("font-variant-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_position as *mut _) } };
+("font-weight") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_weight as *mut _) } };
+("-moz-force-broken-image-icon") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_force_broken_image_icon as *mut _) } };
+("grid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid as *mut _) } };
+("grid-area") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_area as *mut _) } };
+("grid-auto-columns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_auto_columns as *mut _) } };
+("grid-auto-flow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_auto_flow as *mut _) } };
+("grid-auto-rows") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_auto_rows as *mut _) } };
+("grid-column") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_column as *mut _) } };
+("grid-column-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_column_end as *mut _) } };
+("grid-column-gap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_column_gap as *mut _) } };
+("grid-column-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_column_start as *mut _) } };
+("grid-gap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_gap as *mut _) } };
+("grid-row") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_row as *mut _) } };
+("grid-row-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_row_end as *mut _) } };
+("grid-row-gap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_row_gap as *mut _) } };
+("grid-row-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_row_start as *mut _) } };
+("grid-template") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_template as *mut _) } };
+("grid-template-areas") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_template_areas as *mut _) } };
+("grid-template-columns") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_template_columns as *mut _) } };
+("grid-template-rows") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_grid_template_rows as *mut _) } };
+("height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_height as *mut _) } };
+("hyphens") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_hyphens as *mut _) } };
+("initial-letter") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_initial_letter as *mut _) } };
+("image-orientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_image_orientation as *mut _) } };
+("-moz-image-region") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_image_region as *mut _) } };
+("image-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_image_rendering as *mut _) } };
+("ime-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_ime_mode as *mut _) } };
+("inline-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_inline_size as *mut _) } };
+("isolation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_isolation as *mut _) } };
+("justify-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_justify_content as *mut _) } };
+("justify-items") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_justify_items as *mut _) } };
+("justify-self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_justify_self as *mut _) } };
+("-x-lang") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__x_lang as *mut _) } };
+("left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_left as *mut _) } };
+("letter-spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_letter_spacing as *mut _) } };
+("lighting-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_lighting_color as *mut _) } };
+("line-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_line_height as *mut _) } };
+("list-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_list_style as *mut _) } };
+("list-style-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_list_style_image as *mut _) } };
+("list-style-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_list_style_position as *mut _) } };
+("list-style-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_list_style_type as *mut _) } };
+("margin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin as *mut _) } };
+("margin-block-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_block_end as *mut _) } };
+("margin-block-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_block_start as *mut _) } };
+("margin-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_bottom as *mut _) } };
+("margin-inline-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_inline_end as *mut _) } };
+("margin-inline-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_inline_start as *mut _) } };
+("margin-left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_left as *mut _) } };
+("margin-right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_right as *mut _) } };
+("margin-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_margin_top as *mut _) } };
+("marker") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker as *mut _) } };
+("marker-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_end as *mut _) } };
+("marker-mid") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_mid as *mut _) } };
+("marker-offset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_offset as *mut _) } };
+("marker-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_start as *mut _) } };
+("mask") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask as *mut _) } };
+("mask-clip") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_clip as *mut _) } };
+("mask-composite") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_composite as *mut _) } };
+("mask-image") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_image as *mut _) } };
+("mask-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_mode as *mut _) } };
+("mask-origin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_origin as *mut _) } };
+("mask-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_position as *mut _) } };
+("mask-position-x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_position_x as *mut _) } };
+("mask-position-y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_position_y as *mut _) } };
+("mask-repeat") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_repeat as *mut _) } };
+("mask-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_size as *mut _) } };
+("mask-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mask_type as *mut _) } };
+("-moz-math-display") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_math_display as *mut _) } };
+("-moz-math-variant") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_math_variant as *mut _) } };
+("max-block-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_max_block_size as *mut _) } };
+("max-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_max_height as *mut _) } };
+("max-inline-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_max_inline_size as *mut _) } };
+("max-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_max_width as *mut _) } };
+("min-block-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_min_block_size as *mut _) } };
+("-moz-min-font-size-ratio") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_min_font_size_ratio as *mut _) } };
+("min-height") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_min_height as *mut _) } };
+("min-inline-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_min_inline_size as *mut _) } };
+("min-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_min_width as *mut _) } };
+("mix-blend-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_mix_blend_mode as *mut _) } };
+("object-fit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_object_fit as *mut _) } };
+("object-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_object_position as *mut _) } };
+("offset-block-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_offset_block_end as *mut _) } };
+("offset-block-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_offset_block_start as *mut _) } };
+("offset-inline-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_offset_inline_end as *mut _) } };
+("offset-inline-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_offset_inline_start as *mut _) } };
+("opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_opacity as *mut _) } };
+("order") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_order as *mut _) } };
+("-moz-orient") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_orient as *mut _) } };
+("-moz-osx-font-smoothing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_osx_font_smoothing as *mut _) } };
+("outline") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_outline as *mut _) } };
+("outline-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_outline_color as *mut _) } };
+("outline-offset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_outline_offset as *mut _) } };
+("-moz-outline-radius") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_outline_radius as *mut _) } };
+("-moz-outline-radius-bottomleft") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_outline_radius_bottomLeft as *mut _) } };
+("-moz-outline-radius-bottomright") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_outline_radius_bottomRight as *mut _) } };
+("-moz-outline-radius-topleft") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_outline_radius_topLeft as *mut _) } };
+("-moz-outline-radius-topright") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_outline_radius_topRight as *mut _) } };
+("outline-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_outline_style as *mut _) } };
+("outline-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_outline_width as *mut _) } };
+("overflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_overflow as *mut _) } };
+("overflow-clip-box") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_overflow_clip_box as *mut _) } };
+("overflow-x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_overflow_x as *mut _) } };
+("overflow-y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_overflow_y as *mut _) } };
+("padding") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding as *mut _) } };
+("padding-block-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_block_end as *mut _) } };
+("padding-block-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_block_start as *mut _) } };
+("padding-bottom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_bottom as *mut _) } };
+("padding-inline-end") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_inline_end as *mut _) } };
+("padding-inline-start") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_inline_start as *mut _) } };
+("padding-left") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_left as *mut _) } };
+("padding-right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_right as *mut _) } };
+("padding-top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_padding_top as *mut _) } };
+("page-break-after") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_page_break_after as *mut _) } };
+("page-break-before") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_page_break_before as *mut _) } };
+("page-break-inside") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_page_break_inside as *mut _) } };
+("paint-order") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_paint_order as *mut _) } };
+("perspective") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_perspective as *mut _) } };
+("perspective-origin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_perspective_origin as *mut _) } };
+("pointer-events") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_pointer_events as *mut _) } };
+("position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_position as *mut _) } };
+("quotes") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_quotes as *mut _) } };
+("resize") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_resize as *mut _) } };
+("right") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_right as *mut _) } };
+("ruby-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_ruby_align as *mut _) } };
+("ruby-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_ruby_position as *mut _) } };
+("-moz-script-level") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_script_level as *mut _) } };
+("-moz-script-min-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_script_min_size as *mut _) } };
+("-moz-script-size-multiplier") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_script_size_multiplier as *mut _) } };
+("scroll-behavior") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_behavior as *mut _) } };
+("scroll-snap-coordinate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_coordinate as *mut _) } };
+("scroll-snap-destination") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_destination as *mut _) } };
+("scroll-snap-points-x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_points_x as *mut _) } };
+("scroll-snap-points-y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_points_y as *mut _) } };
+("scroll-snap-type") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_type as *mut _) } };
+("scroll-snap-type-x") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_type_x as *mut _) } };
+("scroll-snap-type-y") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_scroll_snap_type_y as *mut _) } };
+("shape-outside") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_shape_outside as *mut _) } };
+("shape-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_shape_rendering as *mut _) } };
+("-x-span") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__x_span as *mut _) } };
+("-moz-stack-sizing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stack_sizing as *mut _) } };
+("stop-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stop_color as *mut _) } };
+("stop-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stop_opacity as *mut _) } };
+("stroke") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke as *mut _) } };
+("stroke-dasharray") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_dasharray as *mut _) } };
+("stroke-dashoffset") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_dashoffset as *mut _) } };
+("stroke-linecap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_linecap as *mut _) } };
+("stroke-linejoin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_linejoin as *mut _) } };
+("stroke-miterlimit") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_miterlimit as *mut _) } };
+("stroke-opacity") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_opacity as *mut _) } };
+("stroke-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_stroke_width as *mut _) } };
+("-x-system-font") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__x_system_font as *mut _) } };
+("-moz-tab-size") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_tab_size as *mut _) } };
+("table-layout") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_table_layout as *mut _) } };
+("text-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_align as *mut _) } };
+("text-align-last") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_align_last as *mut _) } };
+("text-anchor") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_anchor as *mut _) } };
+("text-combine-upright") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_combine_upright as *mut _) } };
+("text-decoration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_decoration as *mut _) } };
+("text-decoration-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_decoration_color as *mut _) } };
+("text-decoration-line") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_decoration_line as *mut _) } };
+("text-decoration-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_decoration_style as *mut _) } };
+("text-emphasis") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_emphasis as *mut _) } };
+("text-emphasis-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_emphasis_color as *mut _) } };
+("text-emphasis-position") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_emphasis_position as *mut _) } };
+("text-emphasis-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_emphasis_style as *mut _) } };
+("-webkit-text-fill-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__webkit_text_fill_color as *mut _) } };
+("text-indent") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_indent as *mut _) } };
+("text-orientation") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_orientation as *mut _) } };
+("text-overflow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_overflow as *mut _) } };
+("text-rendering") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_rendering as *mut _) } };
+("text-shadow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_shadow as *mut _) } };
+("-moz-text-size-adjust") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_size_adjust as *mut _) } };
+("-webkit-text-stroke") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__webkit_text_stroke as *mut _) } };
+("-webkit-text-stroke-color") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__webkit_text_stroke_color as *mut _) } };
+("-webkit-text-stroke-width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__webkit_text_stroke_width as *mut _) } };
+("text-transform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_text_transform as *mut _) } };
+("-x-text-zoom") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__x_text_zoom as *mut _) } };
+("top") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_top as *mut _) } };
+("-moz-top-layer") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_top_layer as *mut _) } };
+("touch-action") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_touch_action as *mut _) } };
+("transform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transform as *mut _) } };
+("-moz-transform") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_transform as *mut _) } };
+("transform-box") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transform_box as *mut _) } };
+("transform-origin") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transform_origin as *mut _) } };
+("transform-style") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transform_style as *mut _) } };
+("transition") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transition as *mut _) } };
+("transition-delay") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transition_delay as *mut _) } };
+("transition-duration") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transition_duration as *mut _) } };
+("transition-property") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transition_property as *mut _) } };
+("transition-timing-function") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_transition_timing_function as *mut _) } };
+("unicode-bidi") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_unicode_bidi as *mut _) } };
+("-moz-user-focus") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_user_focus as *mut _) } };
+("-moz-user-input") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_user_input as *mut _) } };
+("-moz-user-modify") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_user_modify as *mut _) } };
+("-moz-user-select") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_user_select as *mut _) } };
+("vector-effect") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_vector_effect as *mut _) } };
+("vertical-align") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_vertical_align as *mut _) } };
+("visibility") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_visibility as *mut _) } };
+("white-space") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_white_space as *mut _) } };
+("width") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_width as *mut _) } };
+("will-change") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_will_change as *mut _) } };
+("-moz-window-dragging") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_window_dragging as *mut _) } };
+("-moz-window-shadow") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps__moz_window_shadow as *mut _) } };
+("word-break") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_word_break as *mut _) } };
+("word-spacing") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_word_spacing as *mut _) } };
+("overflow-wrap") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_overflow_wrap as *mut _) } };
+("writing-mode") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_writing_mode as *mut _) } };
+("z-index") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_z_index as *mut _) } };
 }

@@ -28,9 +28,9 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use log;
 use mime_classifier::MimeClassifier;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::PipelineId;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{CustomResponse, CustomResponseMediator, Metadata, NetworkError};
+use net_traits::{CustomResponse, CustomResponseMediator, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
@@ -447,15 +447,11 @@ fn strict_origin(referrer_url: Url, url: Url) -> Option<Url> {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin
 fn strict_origin_when_cross_origin(referrer_url: Url, url: Url) -> Option<Url> {
-    let cross_origin = referrer_url.origin() != url.origin();
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
-    } else {
-        if cross_origin {
-            return strip_url(referrer_url, true);
-        }
-        return strip_url(referrer_url, false);
     }
+    let cross_origin = referrer_url.origin() != url.origin();
+    return strip_url(referrer_url, cross_origin);
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
@@ -807,7 +803,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         }
 
         if log_enabled!(log::LogLevel::Info) {
-            info!("{}", method);
+            info!("{} {}", method, connection_url);
             for header in headers.iter() {
                 info!(" - {}", header);
             }

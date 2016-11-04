@@ -5,8 +5,8 @@
 use about_loader;
 use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{LoadConsumer, LoadData, LoadOrigin, Metadata, NetworkError};
+use msg::constellation_msg::PipelineId;
+use net_traits::{LoadConsumer, LoadData, LoadOrigin, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};

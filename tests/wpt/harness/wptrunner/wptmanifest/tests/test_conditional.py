@@ -11,9 +11,6 @@ from ..node import BinaryExpressionNode, BinaryOperatorNode, VariableNode, Numbe
 
 
 class TestConditional(unittest.TestCase):
-    def parse(self, input_str):
-        return self.parser.parse(StringIO(input_str))
-
     def compile(self, input_text):
         return conditional.compile(input_text)
 

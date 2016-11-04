@@ -70,4 +70,8 @@ keydown
 abort
 beforescriptexecute
 afterscriptexecute
+invalid
+change
+open
+toggle
 

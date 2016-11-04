@@ -11,6 +11,7 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
+extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
@@ -37,6 +38,7 @@ extern crate url;
 mod script_msg;
 pub mod webdriver_msg;
 
+use bluetooth_traits::BluetoothMethodMsg;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
 use euclid::length::Length;
@@ -53,9 +55,8 @@ use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy, TraversalDirection};
-use net_traits::ResourceThreads;
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
+use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
@@ -167,7 +168,9 @@ pub struct NewLayoutInfo {
     pub parent_pipeline_id: PipelineId,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
-    /// Type of the new frame associated with this pipeline.
+    /// Id of the frame associated with this pipeline.
+    pub frame_id: FrameId,
+    /// Type of the frame associated with this pipeline.
     pub frame_type: FrameType,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
@@ -207,22 +210,20 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    NotifyVisibilityChange(PipelineId, PipelineId, bool),
+    /// PipelineId is for the parent, FrameId is for the actual frame.
+    NotifyVisibilityChange(PipelineId, FrameId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    Navigate(PipelineId, PipelineId, LoadData, bool),
+    /// PipelineId is for the parent, FrameId is for the actual frame.
+    Navigate(PipelineId, FrameId, LoadData, bool),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
-    /// or to the window if no child pipeline id is provided.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
+    /// or to the window if no child frame id is provided.
+    MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
-    /// First PipelineId is for the parent, second is the old PipelineId for the frame,
-    /// third is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, PipelineId, PipelineId),
+    /// First PipelineId is for the parent, second is the new PipelineId for the frame.
+    UpdatePipelineId(PipelineId, FrameId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    FocusIFrame(PipelineId, PipelineId),
+    /// PipelineId is for the parent, FrameId is for the actual frame.
+    FocusIFrame(PipelineId, FrameId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -234,14 +235,16 @@ pub enum ConstellationControlMsg {
     WebFontLoaded(PipelineId),
     /// Cause a `load` event to be dispatched at the appropriate frame element.
     DispatchFrameLoadEvent {
-        /// The pipeline that has been marked as loaded.
-        target: PipelineId,
+        /// The frame that has been marked as loaded.
+        target: FrameId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
+        /// The pipeline that has completed loading.
+        child: PipelineId,
     },
-    /// Notifies a parent frame that one of its child frames is now active.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    FramedContentChanged(PipelineId, PipelineId),
+    /// Notifies a parent pipeline that one of its child frames is now active.
+    /// PipelineId is for the parent, FrameId is the child frame.
+    FramedContentChanged(PipelineId, FrameId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
@@ -429,6 +432,8 @@ pub struct InitialScriptState {
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
+    /// The ID of the frame this script is part of.
+    pub frame_id: FrameId,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.

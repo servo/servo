@@ -25,7 +25,7 @@ use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
 use hyper::method::Method as HttpMethod;
-use msg::constellation_msg::ReferrerPolicy as MsgReferrerPolicy;
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;

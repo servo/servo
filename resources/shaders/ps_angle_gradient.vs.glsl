@@ -12,7 +12,7 @@ void main(void) {
                                  prim.layer,
                                  prim.tile);
 
-    vStopCount = int(prim.user_data.y);
+    vStopCount = int(prim.user_data.x);
     vPos = vi.local_clamped_pos;
 
     // Snap the start/end points to device pixel units.
@@ -24,10 +24,8 @@ void main(void) {
     vStartPoint = floor(0.5 + gradient.start_end_point.xy * uDevicePixelRatio) / uDevicePixelRatio;
     vEndPoint = floor(0.5 + gradient.start_end_point.zw * uDevicePixelRatio) / uDevicePixelRatio;
 
-    int stop_index = int(prim.user_data.x);
-
     for (int i=0 ; i < vStopCount ; ++i) {
-        GradientStop stop = fetch_gradient_stop(stop_index + i);
+        GradientStop stop = fetch_gradient_stop(prim.sub_index + i);
         vColors[i] = stop.color;
         vOffsets[i/4][i%4] = stop.offset.x;
     }

@@ -7,9 +7,8 @@ void main(void) {
     Primitive prim = load_primitive(gl_InstanceID);
     Gradient gradient = fetch_gradient(prim.prim_index);
 
-    int stop_index = prim.user_data.x + prim.user_data.y;
-    GradientStop g0 = fetch_gradient_stop(stop_index + 0);
-    GradientStop g1 = fetch_gradient_stop(stop_index + 1);
+    GradientStop g0 = fetch_gradient_stop(prim.sub_index + 0);
+    GradientStop g1 = fetch_gradient_stop(prim.sub_index + 1);
 
     vec4 segment_rect;
     switch (int(gradient.kind.x)) {

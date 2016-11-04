@@ -6276,7 +6276,7 @@ class CGCallback(CGClass):
             })
         bodyWithoutThis = string.Template(
             setupCall +
-            "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut());"
+            "rooted!(in(s.get_context()) let thisObjJS = ptr::null_mut());\n"
             "return ${methodName}(${callArgs});").substitute({
                 "callArgs": ", ".join(argnamesWithoutThis),
                 "methodName": 'self.' + method.name,

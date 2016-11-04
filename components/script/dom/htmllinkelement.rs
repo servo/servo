@@ -30,8 +30,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::ReferrerPolicy;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::message::Msg;
@@ -325,7 +324,7 @@ impl FetchResponseListener for StylesheetContext {
         if let Some(ref meta) = self.metadata {
             if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
             } else {
-                self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
+                self.elem.root().upcast::<EventTarget>().fire_event(atom!("error"));
             }
         }
     }
@@ -380,9 +379,9 @@ impl FetchResponseListener for StylesheetContext {
 
         document.finish_load(LoadType::Stylesheet(self.url.clone()));
 
-        let event = if successful { "load" } else { "error" };
+        let event = if successful { atom!("load") } else { atom!("error") };
 
-        elem.upcast::<EventTarget>().fire_simple_event(event);
+        elem.upcast::<EventTarget>().fire_event(event);
     }
 }
 

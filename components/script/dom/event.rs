@@ -330,7 +330,9 @@ impl Runnable for EventRunnable {
 
     fn handler(self: Box<EventRunnable>) {
         let target = self.target.root();
-        target.fire_event(&*self.name, self.bubbles, self.cancelable);
+        let bubbles = self.bubbles.clone();
+        let cancelable = self.cancelable.clone();
+        target.fire_event_with_params(self.name, bubbles, cancelable);
     }
 }
 
@@ -345,6 +347,6 @@ impl Runnable for SimpleEventRunnable {
 
     fn handler(self: Box<SimpleEventRunnable>) {
         let target = self.target.root();
-        target.fire_simple_event(&*self.name);
+        target.fire_event(self.name);
     }
 }

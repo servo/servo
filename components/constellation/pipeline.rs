@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_traits::BluetoothMethodMsg;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
@@ -17,7 +18,6 @@ use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespaceId};
 use net_traits::{IpcSend, ResourceThreads};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
@@ -69,9 +69,6 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
-    /// Whether this pipeline is has matured or not.
-    /// A pipeline is considered mature when it has an associated frame.
-    pub is_mature: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -152,6 +149,7 @@ impl Pipeline {
                 let new_layout_info = NewLayoutInfo {
                     parent_pipeline_id: parent_pipeline_id,
                     new_pipeline_id: state.id,
+                    frame_id: state.frame_id,
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     pipeline_port: pipeline_port,
@@ -203,6 +201,7 @@ impl Pipeline {
 
             let unprivileged_pipeline_content = UnprivilegedPipelineContent {
                 id: state.id,
+                frame_id: state.frame_id,
                 parent_info: state.parent_info,
                 constellation_chan: state.constellation_chan,
                 scheduler_chan: state.scheduler_chan,
@@ -281,7 +280,6 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
-            is_mature: false,
         }
     }
 
@@ -348,7 +346,7 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     child_id: Option<PipelineId>,
+                                     child_id: Option<FrameId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -380,6 +378,7 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
+    frame_id: FrameId,
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -414,6 +413,7 @@ impl UnprivilegedPipelineContent {
     {
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
+            frame_id: self.frame_id,
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
