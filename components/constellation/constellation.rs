@@ -264,9 +264,8 @@ impl Frame {
     }
 
     fn load(&mut self, pipeline_id: PipelineId) {
-        self.prev.push(self.current.clone());
         // TODO(ConnorGBrewster): Should HistoryStateId(0) be hardcoded like this?
-        self.current = FrameState::new(pipeline_id, self.id, HistoryStateId(0));
+        self.prev.push(replace(&mut self.current, FrameState::new(pipeline_id, self.id, HistoryStateId(0))));
     }
 
     fn remove_forward_entries(&mut self) -> Vec<FrameState> {
@@ -278,8 +277,7 @@ impl Frame {
     }
 
     fn push_state(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
-        self.prev.push(self.current.clone());
-        self.current = FrameState::new(pipeline_id, self.id, history_state_id);
+        self.prev.push(replace(&mut self.current, FrameState::new(pipeline_id, self.id, history_state_id)));
     }
 }
 
@@ -1707,6 +1705,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_history_state_pushed(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId) {
+        if !self.pipeline_is_in_current_frame(pipeline_id) {
+            return warn!("Received push state from not fully active pipeline {:?}", pipeline_id);
+        }
         let frame_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.frame_id,
             None => return warn!("Pipeline closed after history state was pushed."),
@@ -1715,10 +1716,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(frame) => frame,
             None => return warn!("Frame closed after history state was pushed."),
         };
-        if frame.current.pipeline_id != pipeline_id {
-            // Pipeline is not fully active. Abort.
-            return;
-        }
         frame.push_state(pipeline_id, history_state_id);
     }
 
