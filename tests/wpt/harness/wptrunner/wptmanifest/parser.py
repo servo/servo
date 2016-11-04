@@ -16,6 +16,8 @@
 
 # TODO: keep comments in the tree
 
+from __future__ import unicode_literals
+
 import types
 from cStringIO import StringIO
 
@@ -48,8 +50,9 @@ atoms = {"True": True,
          "False": False,
          "Reset": object()}
 
-def decode(byte_str):
-    return byte_str.decode("utf8")
+def decode(s):
+    assert isinstance(s, unicode)
+    return s
 
 
 def precedence(operator_node):
@@ -76,7 +79,8 @@ class Tokenizer(object):
 
     def tokenize(self, stream):
         self.reset()
-        if type(stream) in types.StringTypes:
+        assert not isinstance(stream, unicode)
+        if isinstance(stream, str):
             stream = StringIO(stream)
         if not hasattr(stream, "name"):
             self.filename = ""
@@ -85,13 +89,15 @@ class Tokenizer(object):
 
         self.next_line_state = self.line_start_state
         for i, line in enumerate(stream):
+            assert isinstance(line, str)
             self.state = self.next_line_state
             assert self.state is not None
             states = []
             self.next_line_state = None
             self.line_number = i + 1
             self.index = 0
-            self.line = line.rstrip()
+            self.line = line.decode('utf-8').rstrip()
+            assert isinstance(self.line, unicode)
             while self.state != self.eol_state:
                 states.append(self.state)
                 tokens = self.state()
@@ -474,7 +480,7 @@ class Tokenizer(object):
             value += self.escape_value(c)
             self.consume()
 
-        return unichr(value).encode("utf8")
+        return unichr(value)
 
     def escape_value(self, c):
         if '0' <= c <= '9':
