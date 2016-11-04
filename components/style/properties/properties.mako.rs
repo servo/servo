@@ -1436,13 +1436,250 @@ pub fn cascade(viewport_size: Size2D<Au>,
         Some(parent_style) => (false, parent_style),
         None => (true, ComputedValues::initial_values()),
     };
+    // Hold locks until after the apply_declarations() call returns.
+    // Use filter_map because the root node has no style source.
+    let lock_guards = rule_node.self_and_ancestors().filter_map(|node| {
+        node.style_source().map(|source| (source.read(), node.importance()))
+    }).collect::<Vec<_>>();
+    let iter_declarations = || {
+        lock_guards.iter().flat_map(|&(ref source, source_importance)| {
+            source.declarations.iter()
+            // Yield declarations later in source order (with more precedence) first.
+            .rev()
+            .filter_map(move |&(ref declaration, declaration_importance)| {
+                if declaration_importance == source_importance {
+                    Some(declaration)
+                } else {
+                    None
+                }
+            })
+        })
+    };
     apply_declarations(viewport_size,
                        is_root_element,
-                       rule_node.iter_declarations(),
+                       iter_declarations,
                        shareable,
                        inherited_style,
                        cascade_info,
                        error_reporter)
+}
+
+/// NOTE: This function expects the declaration with more priority to appear
+/// first.
+pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
+                                    is_root_element: bool,
+                                    iter_declarations: F,
+                                    shareable: bool,
+                                    inherited_style: &ComputedValues,
+                                    mut cascade_info: Option<<&mut CascadeInfo>,
+                                    mut error_reporter: StdBox<ParseErrorReporter + Send>)
+                                    -> ComputedValues
+    where F: Fn() -> I, I: Iterator<Item = &'a PropertyDeclaration>
+{
+    let inherited_custom_properties = inherited_style.custom_properties();
+    let mut custom_properties = None;
+    let mut seen_custom = HashSet::new();
+    for declaration in iter_declarations() {
+        match *declaration {
+            PropertyDeclaration::Custom(ref name, ref value) => {
+                ::custom_properties::cascade(
+                    &mut custom_properties, &inherited_custom_properties,
+                    &mut seen_custom, name, value)
+            }
+            _ => {}
+        }
+    }
+
+    let custom_properties =
+        ::custom_properties::finish_cascade(
+            custom_properties, &inherited_custom_properties);
+
+    let initial_values = ComputedValues::initial_values();
+
+    let mut context = computed::Context {
+        is_root_element: is_root_element,
+        viewport_size: viewport_size,
+        inherited_style: inherited_style,
+        style: ComputedValues::new(
+            custom_properties,
+            shareable,
+            WritingMode::empty(),
+            inherited_style.root_font_size(),
+            % for style_struct in data.active_style_structs():
+            % if style_struct.inherited:
+            inherited_style
+            % else:
+            initial_values
+            % endif
+                .clone_${style_struct.name_lower}(),
+            % endfor
+        ),
+    };
+
+    // Set computed values, overwriting earlier declarations for the same
+    // property.
+    let mut cacheable = true;
+    let mut seen = PropertyBitField::new();
+
+    // Declaration blocks are stored in increasing precedence order, we want
+    // them in decreasing order here.
+    //
+    // We could (and used to) use a pattern match here, but that bloats this
+    // function to over 100K of compiled code!
+    //
+    // To improve i-cache behavior, we outline the individual functions and use
+    // virtual dispatch instead.
+    ComputedValues::do_cascade_property(|cascade_property| {
+        % for category_to_cascade_now in ["early", "other"]:
+            for declaration in iter_declarations() {
+                if let PropertyDeclaration::Custom(..) = *declaration {
+                    continue
+                }
+                // The computed value of some properties depends on the
+                // (sometimes computed) value of *other* properties.
+                //
+                // So we classify properties into "early" and "other", such that
+                // the only dependencies can be from "other" to "early".
+                //
+                // We iterate applicable_declarations twice, first cascading
+                // "early" properties then "other".
+                //
+                // Unfortunately, it’s not easy to check that this
+                // classification is correct.
+                let is_early_property = matches!(*declaration,
+                    PropertyDeclaration::FontSize(_) |
+                    PropertyDeclaration::Color(_) |
+                    PropertyDeclaration::Position(_) |
+                    PropertyDeclaration::Float(_) |
+                    PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_)
+                );
+                if
+                    % if category_to_cascade_now == "early":
+                        !
+                    % endif
+                    is_early_property
+                {
+                    continue
+                }
+
+                let discriminant = declaration.discriminant_value();
+                (cascade_property[discriminant])(declaration,
+                                                 inherited_style,
+                                                 &mut context,
+                                                 &mut seen,
+                                                 &mut cacheable,
+                                                 &mut cascade_info,
+                                                 &mut error_reporter);
+            }
+        % endfor
+    });
+
+    let mut style = context.style;
+
+    let positioned = matches!(style.get_box().clone_position(),
+        longhands::position::SpecifiedValue::absolute |
+        longhands::position::SpecifiedValue::fixed);
+    let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
+    let is_flex_item =
+        context.inherited_style.get_box().clone_display() == computed_values::display::T::flex;
+    if positioned || floated || is_root_element || is_flex_item {
+        use computed_values::display::T;
+
+        let specified_display = style.get_box().clone_display();
+        let computed_display = match specified_display {
+            T::inline_table => {
+                Some(T::table)
+            }
+            T::inline | T::inline_block |
+            T::table_row_group | T::table_column |
+            T::table_column_group | T::table_header_group |
+            T::table_footer_group | T::table_row | T::table_cell |
+            T::table_caption => {
+                Some(T::block)
+            }
+            _ => None
+        };
+        if let Some(computed_display) = computed_display {
+            let box_ = style.mutate_box();
+            box_.set_display(computed_display);
+            % if product == "servo":
+                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_flex_item {
+                    computed_display
+                } else {
+                    specified_display
+                });
+            % endif
+        }
+    }
+
+    {
+        use computed_values::overflow_x::T as overflow;
+        use computed_values::overflow_y;
+        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
+               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
+            (true, true) => {}
+            (true, _) => {
+                style.mutate_box().set_overflow_x(overflow::auto);
+            }
+            (_, true) => {
+                style.mutate_box().set_overflow_y(overflow_y::T(overflow::auto));
+            }
+            _ => {}
+        }
+    }
+
+    % if "align-items" in data.longhands_by_name:
+    {
+        use computed_values::align_self::T as align_self;
+        use computed_values::align_items::T as align_items;
+        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
+            let self_align =
+                match context.inherited_style.get_position().clone_align_items() {
+                    align_items::stretch => align_self::stretch,
+                    align_items::baseline => align_self::baseline,
+                    align_items::flex_start => align_self::flex_start,
+                    align_items::flex_end => align_self::flex_end,
+                    align_items::center => align_self::center,
+                };
+            style.mutate_position().set_align_self(self_align);
+        }
+    }
+    % endif
+
+    // The initial value of border-*-width may be changed at computed value time.
+    % for side in ["top", "right", "bottom", "left"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
+           style.get_border().border_${side}_has_nonzero_width() {
+            style.mutate_border().set_border_${side}_width(Au(0));
+        }
+    % endfor
+
+
+    % if product == "gecko":
+        style.mutate_background().fill_arrays();
+        style.mutate_svg().fill_arrays();
+    % endif
+
+    // The initial value of outline width may be changed at computed value time.
+    if style.get_outline().clone_outline_style().none_or_hidden() &&
+       style.get_outline().outline_has_nonzero_width() {
+        style.mutate_outline().set_outline_width(Au(0));
+    }
+
+    if is_root_element {
+        let s = style.get_font().clone_font_size();
+        style.set_root_font_size(s);
+    }
+
+    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
+            seen.get_font_family() {
+        style.mutate_font().compute_font_hash();
+    }
+
+    let mode = get_writing_mode(style.get_inheritedbox());
+    style.set_writing_mode(mode);
+    style
 }
 
 #[cfg(feature = "servo")]
@@ -1648,229 +1885,6 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
         let effects_style = Arc::make_mut(&mut style.effects);
         effects_style.clip.0 = None
     }
-}
-
-/// NOTE: This function expects the declaration with more priority to appear
-/// first.
-pub fn apply_declarations<'a, I>(viewport_size: Size2D<Au>,
-                                 is_root_element: bool,
-                                 declarations_iter: I,
-                                 shareable: bool,
-                                 inherited_style: &ComputedValues,
-                                 mut cascade_info: Option<<&mut CascadeInfo>,
-                                 mut error_reporter: StdBox<ParseErrorReporter + Send>)
-                                 -> ComputedValues
-    where I: Iterator<Item = &'a PropertyDeclaration> + Clone
-{
-    let inherited_custom_properties = inherited_style.custom_properties();
-    let mut custom_properties = None;
-    let mut seen_custom = HashSet::new();
-    for declaration in declarations_iter.clone() {
-        match *declaration {
-            PropertyDeclaration::Custom(ref name, ref value) => {
-                ::custom_properties::cascade(
-                    &mut custom_properties, &inherited_custom_properties,
-                    &mut seen_custom, name, value)
-            }
-            _ => {}
-        }
-    }
-
-    let custom_properties =
-        ::custom_properties::finish_cascade(
-            custom_properties, &inherited_custom_properties);
-
-    let initial_values = ComputedValues::initial_values();
-
-    let mut context = computed::Context {
-        is_root_element: is_root_element,
-        viewport_size: viewport_size,
-        inherited_style: inherited_style,
-        style: ComputedValues::new(
-            custom_properties,
-            shareable,
-            WritingMode::empty(),
-            inherited_style.root_font_size(),
-            % for style_struct in data.active_style_structs():
-            % if style_struct.inherited:
-            inherited_style
-            % else:
-            initial_values
-            % endif
-                .clone_${style_struct.name_lower}(),
-            % endfor
-        ),
-    };
-
-    // Set computed values, overwriting earlier declarations for the same
-    // property.
-    let mut cacheable = true;
-    let mut seen = PropertyBitField::new();
-
-    // Declaration blocks are stored in increasing precedence order, we want
-    // them in decreasing order here.
-    //
-    // We could (and used to) use a pattern match here, but that bloats this
-    // function to over 100K of compiled code!
-    //
-    // To improve i-cache behavior, we outline the individual functions and use
-    // virtual dispatch instead.
-    ComputedValues::do_cascade_property(|cascade_property| {
-        % for category_to_cascade_now in ["early", "other"]:
-            % if category_to_cascade_now == "early":
-            for declaration in declarations_iter.clone() {
-            % else:
-            for declaration in declarations_iter {
-            % endif
-
-                if let PropertyDeclaration::Custom(..) = *declaration {
-                    continue
-                }
-                // The computed value of some properties depends on the
-                // (sometimes computed) value of *other* properties.
-                //
-                // So we classify properties into "early" and "other", such that
-                // the only dependencies can be from "other" to "early".
-                //
-                // We iterate applicable_declarations twice, first cascading
-                // "early" properties then "other".
-                //
-                // Unfortunately, it’s not easy to check that this
-                // classification is correct.
-                let is_early_property = matches!(*declaration,
-                    PropertyDeclaration::FontSize(_) |
-                    PropertyDeclaration::Color(_) |
-                    PropertyDeclaration::Position(_) |
-                    PropertyDeclaration::Float(_) |
-                    PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_)
-                );
-                if
-                    % if category_to_cascade_now == "early":
-                        !
-                    % endif
-                    is_early_property
-                {
-                    continue
-                }
-
-                let discriminant = declaration.discriminant_value();
-                (cascade_property[discriminant])(declaration,
-                                                 inherited_style,
-                                                 &mut context,
-                                                 &mut seen,
-                                                 &mut cacheable,
-                                                 &mut cascade_info,
-                                                 &mut error_reporter);
-            }
-        % endfor
-    });
-
-    let mut style = context.style;
-
-    let positioned = matches!(style.get_box().clone_position(),
-        longhands::position::SpecifiedValue::absolute |
-        longhands::position::SpecifiedValue::fixed);
-    let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
-    let is_flex_item =
-        context.inherited_style.get_box().clone_display() == computed_values::display::T::flex;
-    if positioned || floated || is_root_element || is_flex_item {
-        use computed_values::display::T;
-
-        let specified_display = style.get_box().clone_display();
-        let computed_display = match specified_display {
-            T::inline_table => {
-                Some(T::table)
-            }
-            T::inline | T::inline_block |
-            T::table_row_group | T::table_column |
-            T::table_column_group | T::table_header_group |
-            T::table_footer_group | T::table_row | T::table_cell |
-            T::table_caption => {
-                Some(T::block)
-            }
-            _ => None
-        };
-        if let Some(computed_display) = computed_display {
-            let box_ = style.mutate_box();
-            box_.set_display(computed_display);
-            % if product == "servo":
-                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_flex_item {
-                    computed_display
-                } else {
-                    specified_display
-                });
-            % endif
-        }
-    }
-
-    {
-        use computed_values::overflow_x::T as overflow;
-        use computed_values::overflow_y;
-        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
-               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
-            (true, true) => {}
-            (true, _) => {
-                style.mutate_box().set_overflow_x(overflow::auto);
-            }
-            (_, true) => {
-                style.mutate_box().set_overflow_y(overflow_y::T(overflow::auto));
-            }
-            _ => {}
-        }
-    }
-
-    % if "align-items" in data.longhands_by_name:
-    {
-        use computed_values::align_self::T as align_self;
-        use computed_values::align_items::T as align_items;
-        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
-            let self_align =
-                match context.inherited_style.get_position().clone_align_items() {
-                    align_items::stretch => align_self::stretch,
-                    align_items::baseline => align_self::baseline,
-                    align_items::flex_start => align_self::flex_start,
-                    align_items::flex_end => align_self::flex_end,
-                    align_items::center => align_self::center,
-                };
-            style.mutate_position().set_align_self(self_align);
-        }
-    }
-    % endif
-
-    // The initial value of border-*-width may be changed at computed value time.
-    % for side in ["top", "right", "bottom", "left"]:
-        // Like calling to_computed_value, which wouldn't type check.
-        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
-           style.get_border().border_${side}_has_nonzero_width() {
-            style.mutate_border().set_border_${side}_width(Au(0));
-        }
-    % endfor
-
-
-    % if product == "gecko":
-        style.mutate_background().fill_arrays();
-        style.mutate_svg().fill_arrays();
-    % endif
-
-    // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().clone_outline_style().none_or_hidden() &&
-       style.get_outline().outline_has_nonzero_width() {
-        style.mutate_outline().set_outline_width(Au(0));
-    }
-
-    if is_root_element {
-        let s = style.get_font().clone_font_size();
-        style.set_root_font_size(s);
-    }
-
-    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
-            seen.get_font_family() {
-        style.mutate_font().compute_font_hash();
-    }
-
-    let mode = get_writing_mode(style.get_inheritedbox());
-    style.set_writing_mode(mode);
-    style
 }
 
 // FIXME: https://github.com/w3c/csswg-drafts/issues/580

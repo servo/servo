@@ -127,15 +127,14 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
                                                     previous_style: ServoComputedValuesBorrowed)
   -> ServoComputedValuesStrong
 {
-    use style::declarations_iterators::RawDeclarationsIterator;
-
     let previous_style = ComputedValues::as_arc(&previous_style);
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
 
     let guard = declarations.read();
 
-    let declarations =
-        RawDeclarationsIterator::new(&guard.declarations);
+    let declarations = || {
+        guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
+    };
 
     // FIXME (bug 1303229): Use the actual viewport size here
     let computed = apply_declarations(Size2D::new(Au(0), Au(0)),

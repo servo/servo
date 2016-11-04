@@ -6,7 +6,6 @@
 
 use bezier::Bezier;
 use context::SharedStyleContext;
-use declarations_iterators::RawDeclarationsIterator;
 use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
@@ -393,7 +392,9 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             debug_assert!(guard.declarations.iter()
                             .all(|&(_, importance)| importance == Importance::Normal));
 
-            let iter = RawDeclarationsIterator::new(&guard.declarations);
+            let iter = || {
+                guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
+            };
 
             let computed =
                 properties::apply_declarations(context.viewport_size,
