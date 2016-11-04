@@ -10,7 +10,7 @@ use heapsize::HeapSizeOf;
 use owning_handle::OwningHandle;
 use owning_ref::{ArcRef, OwningRef};
 use parking_lot::{RwLock, RwLockReadGuard};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{Importance, PropertyDeclarationBlock};
 use std::io::{self, Write};
 use std::ptr;
 use std::sync::Arc;
@@ -382,13 +382,17 @@ impl StrongRuleNode {
         unsafe { &*self.ptr }
     }
 
-    pub fn iter_declarations<'a>(&'a self) -> RuleTreeDeclarationsIterator<'a> {
-        RuleTreeDeclarationsIterator {
-            current: match self.get().source.as_ref() {
-                Some(ref source) => Some((self, source.read())),
-                None => None,
-            },
-            index: 0,
+    pub fn style_source(&self) -> Option<&StyleSource> {
+        self.get().source.as_ref()
+    }
+
+    pub fn importance(&self) -> Importance {
+        self.get().importance
+    }
+
+    pub fn self_and_ancestors(&self) -> SelfAndAncestors {
+        SelfAndAncestors {
+            current: Some(self)
         }
     }
 
@@ -443,71 +447,19 @@ impl StrongRuleNode {
     }
 }
 
-pub struct RuleTreeDeclarationsIterator<'a> {
-    current: Option<(&'a StrongRuleNode, StyleSourceGuard<'a>)>,
-    index: usize,
+#[derive(Clone)]
+pub struct SelfAndAncestors<'a> {
+    current: Option<&'a StrongRuleNode>,
 }
 
-impl<'a> Clone for RuleTreeDeclarationsIterator<'a> {
-    fn clone(&self) -> Self {
-        RuleTreeDeclarationsIterator {
-            current: self.current.as_ref().map(|&(node, _)| {
-                (&*node, node.get().source.as_ref().unwrap().read())
-            }),
-            index: self.index,
-        }
-    }
-}
-
-impl<'a> Iterator for RuleTreeDeclarationsIterator<'a> {
-    type Item = &'a PropertyDeclaration;
+impl<'a> Iterator for SelfAndAncestors<'a> {
+    type Item = &'a StrongRuleNode;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (node, guard) = match self.current.take() {
-            Some(node_and_guard) => node_and_guard,
-            None => return None,
-        };
-
-        let declaration_count = guard.declarations.len();
-
-        if self.index == declaration_count {
-            let parent = node.parent().unwrap();
-            let guard = match parent.get().source {
-                Some(ref source) => source.read(),
-                None => {
-                    debug_assert!(parent.parent().is_none());
-                    self.current = None;
-                    return None;
-                }
-            };
-
-            self.current = Some((parent, guard));
-            self.index = 0;
-            // FIXME: Make this a loop and use continue, the borrow checker
-            // isn't too happy about it for some reason.
-            return self.next();
-        }
-
-        let (decl, importance) = {
-            let (ref decl, importance) =
-                guard.declarations[declaration_count - self.index - 1];
-
-            // FIXME: The borrow checker is not smart enough to see that the
-            // guard is moved below and that affects the lifetime of `decl`,
-            // plus `decl` has a stable address (because it's in an Arc), so we
-            // need to transmute here.
-            let decl: &'a PropertyDeclaration = unsafe { ::std::mem::transmute(decl) };
-
-            (decl, importance)
-        };
-
-        self.current = Some((node, guard));
-        self.index += 1;
-        if importance == node.get().importance {
-            return Some(decl);
-        }
-        // FIXME: Same as above, this is crap...
-        return self.next();
+        self.current.map(|node| {
+            self.current = node.parent();
+            node
+        })
     }
 }
 

@@ -1434,9 +1434,28 @@ pub fn cascade(viewport_size: Size2D<Au>,
         Some(parent_style) => (false, parent_style),
         None => (true, ComputedValues::initial_values()),
     };
+    // Hold locks until after the apply_declarations() call returns.
+    // Use filter_map because the root node has no style source.
+    let lock_guards = rule_node.self_and_ancestors().filter_map(|node| {
+        node.style_source().map(|source| (source.read(), node.importance()))
+    }).collect::<Vec<_>>();
+    let iter_declarations = || {
+        lock_guards.iter().flat_map(|&(ref source, source_importance)| {
+            source.declarations.iter()
+            // Yield declarations later in source order (with more precedence) first.
+            .rev()
+            .filter_map(move |&(ref declaration, declaration_importance)| {
+                if declaration_importance == source_importance {
+                    Some(declaration)
+                } else {
+                    None
+                }
+            })
+        })
+    };
     apply_declarations(viewport_size,
                        is_root_element,
-                       rule_node.iter_declarations(),
+                       iter_declarations,
                        inherited_style,
                        cascade_info,
                        error_reporter,
@@ -1445,20 +1464,20 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, I>(viewport_size: Size2D<Au>,
-                                 is_root_element: bool,
-                                 declarations_iter: I,
-                                 inherited_style: &ComputedValues,
-                                 mut cascade_info: Option<<&mut CascadeInfo>,
-                                 mut error_reporter: StdBox<ParseErrorReporter + Send>,
-                                 flags: CascadeFlags)
-                                 -> ComputedValues
-    where I: Iterator<Item = &'a PropertyDeclaration> + Clone
+pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
+                                    is_root_element: bool,
+                                    iter_declarations: F,
+                                    inherited_style: &ComputedValues,
+                                    mut cascade_info: Option<<&mut CascadeInfo>,
+                                    mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    flags: CascadeFlags)
+                                    -> ComputedValues
+    where F: Fn() -> I, I: Iterator<Item = &'a PropertyDeclaration>
 {
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
-    for declaration in declarations_iter.clone() {
+    for declaration in iter_declarations() {
         match *declaration {
             PropertyDeclaration::Custom(ref name, ref value) => {
                 ::custom_properties::cascade(
@@ -1521,12 +1540,7 @@ pub fn apply_declarations<'a, I>(viewport_size: Size2D<Au>,
     // virtual dispatch instead.
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
-            % if category_to_cascade_now == "early":
-            for declaration in declarations_iter.clone() {
-            % else:
-            for declaration in declarations_iter {
-            % endif
-
+            for declaration in iter_declarations() {
                 if let PropertyDeclaration::Custom(..) = *declaration {
                     continue
                 }
