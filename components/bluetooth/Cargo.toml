@@ -12,10 +12,11 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
-device = {git = "https://github.com/servo/devices"}
+device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
 ipc-channel = "0.5"
 rand = "0.3"
 util = {path = "../util"}
+uuid = {version = "0.3.1", features = ["v4"]}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
