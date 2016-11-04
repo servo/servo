@@ -1,0 +1,5 @@
+platforms:
+  pypi:
+    charade:
+      tests:
+        unmaintained: skip
