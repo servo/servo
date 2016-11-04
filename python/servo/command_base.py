@@ -484,6 +484,14 @@ class CommandBase(object):
 
         git_info = []
         if os.path.isdir('.git') and is_build:
+            pwd_output = subprocess.check_output(['pwd']).strip()
+            print('pwd = {}'.format(pwd_output))
+            git_sha = subprocess.check_output(['which', 'git']).strip()
+            print('git = {}'.format(git_sha))
+            git_output = subprocess.check_output(['ls', '-l', '/usr/bin/git']).strip()
+            print('ls = {}'.format(git_output))
+            git_output = subprocess.check_output(['git']).strip()
+            print('git output = {}'.format(git_output))
             git_sha = subprocess.check_output([
                 'git', 'rev-parse', '--short', 'HEAD'
             ]).strip()
