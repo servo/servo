@@ -8,7 +8,6 @@ use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use owning_handle::OwningHandle;
-use owning_ref::{ArcRef, OwningRef};
 use parking_lot::{RwLock, RwLockReadGuard};
 use properties::{Importance, PropertyDeclarationBlock};
 use std::io::{self, Write};
@@ -30,12 +29,9 @@ pub enum StyleSource {
     Declarations(Arc<RwLock<PropertyDeclarationBlock>>),
 }
 
-// This is really nasty.
 type StyleSourceGuardHandle<'a> =
     OwningHandle<
-        OwningHandle<
-            OwningRef<Arc<RwLock<StyleRule>>, RwLock<StyleRule>>,
-            RwLockReadGuard<'a, StyleRule>>,
+        RwLockReadGuard<'a, StyleRule>,
         RwLockReadGuard<'a, PropertyDeclarationBlock>>;
 
 pub enum StyleSourceGuard<'a> {
@@ -80,13 +76,8 @@ impl StyleSource {
         use self::StyleSource::*;
         match *self {
             Style(ref rule) => {
-                let arc_ref = ArcRef::new(rule.clone());
-                let rule_owning_ref =
-                    OwningHandle::new(arc_ref, |r| unsafe { &*r }.read());
-                let block_owning_ref =
-                    OwningHandle::new(rule_owning_ref, |r| unsafe { &*r }.block.read());
-
-                StyleSourceGuard::Style(block_owning_ref)
+                let owning_ref = OwningHandle::new(rule.read(), |r| unsafe { &*r }.block.read());
+                StyleSourceGuard::Style(owning_ref)
             }
             Declarations(ref block) => StyleSourceGuard::Declarations(block.read()),
         }
@@ -325,7 +316,7 @@ impl StrongRuleNode {
             last = Some(child);
         }
 
-        let node = Box::new(RuleNode::new(root.clone(),
+        let node = Box::new(RuleNode::new(root,
                                           self.clone(),
                                           source.clone(),
                                           importance));
