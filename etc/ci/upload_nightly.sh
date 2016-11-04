@@ -16,10 +16,11 @@ usage() {
 
 
 upload() {
-    local package_filename
-    package_filename="$(basename "${2}")"
+    local nightly_filename nightly_timestamp
+    nightly_timestamp="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
+    nightly_filename="${nightly_timestamp}-$(basename "${2}")"
     local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
-    local -r package_upload_path="${nightly_upload_dir}/${package_filename}"
+    local -r package_upload_path="${nightly_upload_dir}/${nightly_filename}"
     s3cmd --mime-type="application/octet-stream" \
           put "${2}" "${package_upload_path}"
     s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
