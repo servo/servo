@@ -6,6 +6,7 @@
 void main(void) {
     Primitive prim = load_primitive(gl_InstanceID);
     Border border = fetch_border(prim.prim_index);
+    int sub_part = prim.sub_index;
 
     vec2 tl_outer = prim.local_rect.xy;
     vec2 tl_inner = tl_outer + vec2(max(border.radii[0].x, border.widths.x),
@@ -27,7 +28,7 @@ void main(void) {
                                     -max(border.radii[1].w, border.widths.w));
 
     vec4 segment_rect;
-    switch (prim.user_data.x) {
+    switch (sub_part) {
         case PST_TOP_LEFT:
             segment_rect = vec4(tl_outer, tl_inner - tl_outer);
             break;
@@ -92,9 +93,6 @@ void main(void) {
     vLocalRect = prim.local_rect;
 #endif
 
-    float x0, y0, x1, y1;
-    int sub_part = prim.user_data.x;
-
     switch (sub_part) {
         case PST_LEFT:
             vBorderStyle = int(border.style.x);
@@ -150,6 +148,7 @@ void main(void) {
             break;
     }
 
+    float x0, y0, x1, y1;
     switch (sub_part) {
         // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
         case PST_TOP_LEFT:

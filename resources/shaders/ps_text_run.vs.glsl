@@ -6,7 +6,7 @@
 void main(void) {
     Primitive prim = load_primitive(gl_InstanceID);
     TextRun text = fetch_text_run(prim.prim_index);
-    Glyph glyph = fetch_glyph(prim.user_data.x + prim.user_data.y);
+    Glyph glyph = fetch_glyph(prim.sub_index);
     vec4 local_rect = vec4(glyph.offset.xy, (glyph.uv_rect.zw - glyph.uv_rect.xy) / uDevicePixelRatio);
 
 #ifdef WR_FEATURE_TRANSFORM

@@ -523,8 +523,6 @@ impl WebRenderFrameBuilder {
                             stacking_context: &mut webrender_traits::StackingContext)
                             -> DisplayListId {
         let id = api.next_display_list_id();
-        stacking_context.has_stacking_contexts = stacking_context.has_stacking_contexts ||
-                                                 display_list.descriptor().has_stacking_contexts;
         stacking_context.display_lists.push(id);
         self.display_lists.push((id, display_list));
         id
