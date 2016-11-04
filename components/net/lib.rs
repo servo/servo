@@ -49,7 +49,7 @@ extern crate websocket;
 
 mod about_loader;
 mod blob_loader;
-pub mod chrome_loader;
+mod chrome_loader;
 mod connector;
 mod content_blocker;
 pub mod cookie;
@@ -73,6 +73,7 @@ pub mod fetch {
 
 /// A module for re-exports of items used in unit tests.
 pub mod test {
+    pub use chrome_loader::resolve_chrome_url;
     pub use http_loader::{HttpRequest, HttpRequestFactory, HttpResponse, HttpState};
     pub use http_loader::{LoadError, LoadErrorType, UIProvider, load};
 }
