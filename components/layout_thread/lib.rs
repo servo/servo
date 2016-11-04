@@ -511,7 +511,7 @@ impl LayoutThread {
                 local_context_creation_data: Mutex::new(local_style_context_creation_data),
                 timer: self.timer.clone(),
             },
-            image_cache_thread: self.image_cache_thread.clone(),
+            image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
