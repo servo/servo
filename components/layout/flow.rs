@@ -32,7 +32,7 @@ use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Size2D};
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
-use flow_ref::{self, FlowRef, WeakFlowRef};
+use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::{ScrollRootId, StackingContextId};
@@ -212,7 +212,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn fragment(&mut self,
                 layout_context: &LayoutContext,
                 _fragmentation_context: Option<FragmentationContext>)
-                -> Option<FlowRef> {
+                -> Option<Arc<Flow>> {
         fn recursive_assign_block_size<F: ?Sized + Flow>(flow: &mut F, ctx: &LayoutContext) {
             for child in mut_base(flow).children.iter_mut() {
                 recursive_assign_block_size(child, ctx)
@@ -791,7 +791,7 @@ pub struct AbsoluteDescendantIter<'a> {
 impl<'a> Iterator for AbsoluteDescendantIter<'a> {
     type Item = &'a mut Flow;
     fn next(&mut self) -> Option<&'a mut Flow> {
-        self.iter.next().map(|info| flow_ref::deref_mut(&mut info.flow))
+        self.iter.next().map(|info| FlowRef::deref_mut(&mut info.flow))
     }
 }
 
@@ -1403,11 +1403,11 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// construction is allowed to possess.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants) {
         let this = self.clone();
-        let base = mut_base(flow_ref::deref_mut(self));
+        let base = mut_base(FlowRef::deref_mut(self));
         base.abs_descendants = abs_descendants;
         for descendant_link in base.abs_descendants.descendant_links.iter_mut() {
             debug_assert!(!descendant_link.has_reached_containing_block);
-            let descendant_base = mut_base(flow_ref::deref_mut(&mut descendant_link.flow));
+            let descendant_base = mut_base(FlowRef::deref_mut(&mut descendant_link.flow));
             descendant_base.absolute_cb.set(this.clone());
         }
     }
@@ -1433,7 +1433,7 @@ impl MutableOwnedFlowUtils for FlowRef {
         });
 
         let this = self.clone();
-        let base = mut_base(flow_ref::deref_mut(self));
+        let base = mut_base(FlowRef::deref_mut(self));
         base.abs_descendants = applicable_absolute_descendants;
         for descendant_link in base.abs_descendants.iter() {
             let descendant_base = mut_base(descendant_link);
@@ -1464,7 +1464,7 @@ impl ContainingBlockLink {
     }
 
     fn set(&mut self, link: FlowRef) {
-        self.link = Some(Arc::downgrade(&link))
+        self.link = Some(FlowRef::downgrade(&link))
     }
 
     #[inline]

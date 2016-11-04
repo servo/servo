@@ -10,19 +10,56 @@
 
 
 use flow::Flow;
+use std::ops::Deref;
 use std::sync::{Arc, Weak};
 
-pub type FlowRef = Arc<Flow>;
-pub type WeakFlowRef = Weak<Flow>;
+#[derive(Clone,Debug)]
+pub struct FlowRef(Arc<Flow>);
 
-/// WARNING: This should only be used when there is no aliasing:
-/// when the traversal ensures that no other threads accesses the same flow at the same time.
-/// See https://github.com/servo/servo/issues/6503
-/// Use Arc::get_mut instead when possible (e.g. on an Arc that was just created).
-#[allow(unsafe_code)]
-pub fn deref_mut<'a>(r: &'a mut FlowRef) -> &'a mut Flow {
-    let ptr: *const Flow = &**r;
-    unsafe {
-        &mut *(ptr as *mut Flow)
+impl Deref for FlowRef {
+    type Target = Flow;
+    fn deref(&self) -> &Flow {
+        self.0.deref()
+    }
+}
+
+impl FlowRef {
+    /// `FlowRef`s can only be made available to the traversal code.
+    /// See https://github.com/servo/servo/issues/14014 for more details.
+    pub fn new(mut r: Arc<Flow>) -> Self {
+        // This assertion checks that this `FlowRef` does not alias normal `Arc`s.
+        // If that happens, we're in trouble.
+        assert!(Arc::get_mut(&mut r).is_some());
+        FlowRef(r)
+    }
+    pub fn get_mut(this: &mut FlowRef) -> Option<&mut Flow> {
+        Arc::get_mut(&mut this.0)
+    }
+    pub fn downgrade(this: &FlowRef) -> WeakFlowRef {
+        WeakFlowRef(Arc::downgrade(&this.0))
+    }
+    pub fn into_arc(mut this: FlowRef) -> Arc<Flow> {
+        // This assertion checks that this `FlowRef` does not alias normal `Arc`s.
+        // If that happens, we're in trouble.
+        assert!(FlowRef::get_mut(&mut this).is_some());
+        this.0
+    }
+    /// WARNING: This should only be used when there is no aliasing:
+    /// when the traversal ensures that no other threads accesses the same flow at the same time.
+    /// See https://github.com/servo/servo/issues/6503
+    /// Use Arc::get_mut instead when possible (e.g. on an Arc that was just created).
+    #[allow(unsafe_code)]
+    pub fn deref_mut(this: &mut FlowRef) -> &mut Flow {
+        let ptr: *const Flow = &*this.0;
+        unsafe { &mut *(ptr as *mut Flow) }
+    }
+}
+
+#[derive(Clone,Debug)]
+pub struct WeakFlowRef(Weak<Flow>);
+
+impl WeakFlowRef {
+    pub fn upgrade(&self) -> Option<FlowRef> {
+        self.0.upgrade().map(FlowRef)
     }
 }

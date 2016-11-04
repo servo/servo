@@ -40,7 +40,6 @@ use flow::{FragmentationContext, MARGINS_CANNOT_COLLAPSE, PreorderFlowTraversal}
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
-use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
@@ -791,7 +790,7 @@ impl BlockFlow {
                                             layout_context: &'a LayoutContext<'a>,
                                             mut fragmentation_context: Option<FragmentationContext>,
                                             margins_may_collapse: MarginsMayCollapseFlag)
-                                            -> Option<FlowRef> {
+                                            -> Option<Arc<Flow>> {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}",
                                          self.base.debug_id());
 
@@ -1101,9 +1100,9 @@ impl BlockFlow {
             } else {
                 let mut children = self.base.children.split_off(i);
                 if let Some(child) = child_remaining {
-                    children.push_front(child);
+                    children.push_front_arc(child);
                 }
-                Some(Arc::new(self.clone_with_children(children)) as FlowRef)
+                Some(Arc::new(self.clone_with_children(children)) as Arc<Flow>)
             }
         })
     }
@@ -1898,7 +1897,7 @@ impl Flow for BlockFlow {
 
     fn fragment(&mut self, layout_context: &LayoutContext,
                 fragmentation_context: Option<FragmentationContext>)
-                -> Option<FlowRef> {
+                -> Option<Arc<Flow>> {
         if self.is_replaced_content() {
             let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:x}",
                                              self.base.debug_id());
