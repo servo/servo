@@ -683,14 +683,9 @@ fn static_assert() {
     }
 
     pub fn set_border_image_outset(&mut self, v: longhands::border_image_outset::computed_value::T) {
-        use properties::longhands::border_image_outset::computed_value::LengthOrNumber;
         % for side in SIDES:
-            match v.${side.index} {
-                LengthOrNumber::Length(l) =>
-                    l.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset.data_at_mut(${side.index})),
-                LengthOrNumber::Number(n) =>
-                self.gecko.mBorderImageOutset.data_at_mut(${side.index}).set_value(CoordDataValue::Factor(n)),
-            }
+            v.${side.index}.to_gecko_style_coord(&mut self.gecko.mBorderImageOutset
+                                                          .data_at_mut(${side.index}));
         % endfor
     }
 
