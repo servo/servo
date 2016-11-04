@@ -1756,6 +1756,10 @@ impl ScriptThread {
                     ReferrerPolicy::OriginWhenCrossOrigin,
                 ReferrerPolicyHeader::UnsafeUrl =>
                     ReferrerPolicy::UnsafeUrl,
+                ReferrerPolicyHeader::StrictOrigin =>
+                    ReferrerPolicy::StrictOrigin,
+                ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
+                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
             })
         } else {
             None

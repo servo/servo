@@ -822,6 +822,9 @@ impl Into<MsgReferrerPolicy> for ReferrerPolicy {
             ReferrerPolicy::Origin => MsgReferrerPolicy::Origin,
             ReferrerPolicy::Origin_when_cross_origin => MsgReferrerPolicy::OriginWhenCrossOrigin,
             ReferrerPolicy::Unsafe_url => MsgReferrerPolicy::UnsafeUrl,
+            ReferrerPolicy::Strict_origin => MsgReferrerPolicy::StrictOrigin,
+            ReferrerPolicy::Strict_origin_when_cross_origin =>
+                MsgReferrerPolicy::StrictOriginWhenCrossOrigin,
         }
     }
 }
@@ -836,6 +839,9 @@ impl Into<ReferrerPolicy> for MsgReferrerPolicy {
             MsgReferrerPolicy::SameOrigin => ReferrerPolicy::Origin,
             MsgReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicy::Origin_when_cross_origin,
             MsgReferrerPolicy::UnsafeUrl => ReferrerPolicy::Unsafe_url,
+            MsgReferrerPolicy::StrictOrigin => ReferrerPolicy::Strict_origin,
+            MsgReferrerPolicy::StrictOriginWhenCrossOrigin =>
+                ReferrerPolicy::Strict_origin_when_cross_origin,
         }
     }
 }

@@ -316,4 +316,6 @@ pub enum ReferrerPolicy {
     SameOrigin,
     OriginWhenCrossOrigin,
     UnsafeUrl,
+    StrictOrigin,
+    StrictOriginWhenCrossOrigin
 }
