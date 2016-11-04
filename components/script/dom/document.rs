@@ -2176,18 +2176,13 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        let tag_atom = LocalName::from(&*tag_name);
-        match self.tag_map.borrow_mut().entry(tag_atom.clone()) {
+    fn GetElementsByTagName(&self, qualified_name: DOMString) -> Root<HTMLCollection> {
+        let qualified_name = LocalName::from(&*qualified_name);
+        match self.tag_map.borrow_mut().entry(qualified_name.clone()) {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
-                let mut tag_copy = tag_name;
-                tag_copy.make_ascii_lowercase();
-                let ascii_lower_tag = LocalName::from(tag_copy);
-                let result = HTMLCollection::by_atomic_tag_name(&self.window,
-                                                                self.upcast(),
-                                                                tag_atom,
-                                                                ascii_lower_tag);
+                let result = HTMLCollection::by_qualified_name(
+                    &self.window, self.upcast(), qualified_name);
                 entry.insert(JS::from_ref(&*result));
                 result
             }

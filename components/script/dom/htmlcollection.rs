@@ -15,7 +15,6 @@ use dom::node::Node;
 use dom::window::Window;
 use html5ever_atoms::{LocalName, QualName};
 use servo_atoms::Atom;
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use style::str::split_html_space_chars;
 
@@ -114,37 +113,50 @@ impl HTMLCollection {
         }
     }
 
-    pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
-                       -> Root<HTMLCollection> {
-        let tag_atom = LocalName::from(&*tag);
-        tag.make_ascii_lowercase();
-        let ascii_lower_tag = LocalName::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
-        HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
-    }
-
-    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: LocalName, ascii_lower_tag: LocalName)
-                       -> Root<HTMLCollection> {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct TagNameFilter {
-            tag: LocalName,
-            ascii_lower_tag: LocalName,
-        }
-        impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                if self.tag == local_name!("*") {
+    // https://dom.spec.whatwg.org/#concept-getelementsbytagname
+    pub fn by_qualified_name(window: &Window, root: &Node, qualified_name: LocalName)
+                             -> Root<HTMLCollection> {
+        // case 1
+        if qualified_name == local_name!("*") {
+            #[derive(JSTraceable, HeapSizeOf)]
+            struct AllFilter;
+            impl CollectionFilter for AllFilter {
+                fn filter(&self, _elem: &Element, _root: &Node) -> bool {
                     true
-                } else if elem.html_element_in_html_document() {
-                    *elem.local_name() == self.ascii_lower_tag
-                } else {
-                    *elem.local_name() == self.tag
+                }
+            }
+            return HTMLCollection::create(window, root, box AllFilter);
+        }
+
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct HtmlDocumentFilter {
+            qualified_name: LocalName,
+            ascii_lower_qualified_name: LocalName,
+        }
+        impl CollectionFilter for HtmlDocumentFilter {
+            fn filter(&self, elem: &Element, root: &Node) -> bool {
+                if root.is_in_html_doc() && elem.namespace() == &ns!(html) {    // case 2
+                    HTMLCollection::match_element(elem, &self.ascii_lower_qualified_name)
+                } else {    // case 2 and 3
+                    HTMLCollection::match_element(elem, &self.qualified_name)
                 }
             }
         }
-        let filter = TagNameFilter {
-            tag: tag_atom,
-            ascii_lower_tag: ascii_lower_tag,
+
+        let filter = HtmlDocumentFilter {
+            ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
+            qualified_name: qualified_name,
         };
         HTMLCollection::create(window, root, box filter)
+    }
+
+    fn match_element(elem: &Element, qualified_name: &LocalName) -> bool {
+        match *elem.prefix() {
+            None => elem.local_name() == qualified_name,
+            Some(ref prefix) => qualified_name.starts_with(prefix as &str) &&
+                qualified_name.find(":") == Some((prefix as &str).len()) &&
+                qualified_name.ends_with(elem.local_name() as &str),
+        }
     }
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
