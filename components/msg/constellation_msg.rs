@@ -305,15 +305,3 @@ pub enum FrameType {
     IFrame,
     MozBrowserIFrame,
 }
-
-/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
-/// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
-pub enum ReferrerPolicy {
-    NoReferrer,
-    NoReferrerWhenDowngrade,
-    Origin,
-    SameOrigin,
-    OriginWhenCrossOrigin,
-    UnsafeUrl,
-}
