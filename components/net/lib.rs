@@ -58,7 +58,7 @@ mod data_loader;
 mod file_loader;
 pub mod filemanager_thread;
 pub mod hsts;
-pub mod http_loader;
+mod http_loader;
 pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod resource_thread;
@@ -69,4 +69,10 @@ mod websocket_loader;
 pub mod fetch {
     pub mod cors_cache;
     pub mod methods;
+}
+
+/// A module for re-exports of items used in unit tests.
+pub mod test {
+    pub use http_loader::{HttpRequest, HttpRequestFactory, HttpResponse, HttpState};
+    pub use http_loader::{LoadError, LoadErrorType, UIProvider, load};
 }
