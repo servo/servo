@@ -21,19 +21,20 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         let selectors =
             parse_selector_list(&context, &mut Parser::new(*selectors)).unwrap();
 
-        let rule = Arc::new(StyleRule {
-            selectors: selectors.clone(),
-            block: PropertyDeclarationBlock {
+        let rule = Arc::new(RwLock::new(StyleRule {
+            selectors: selectors,
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                 declarations: vec![
                     (PropertyDeclaration::Display(DeclaredValue::Value(
                         longhands::display::SpecifiedValue::block)),
                      Importance::Normal),
                 ],
                 important_count: 0,
-            },
-        });
+            })),
+        }));
 
-        rule.selectors.iter().map(|s| {
+        let guard = rule.read();
+        guard.selectors.iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
                 style_rule: rule.clone(),
