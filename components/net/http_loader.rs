@@ -442,7 +442,7 @@ fn strict_origin(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
     }
-    return strip_url(referrer_url, true);
+    strip_url(referrer_url, true)
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin
@@ -451,7 +451,7 @@ fn strict_origin_when_cross_origin(referrer_url: Url, url: Url) -> Option<Url> {
         return None;
     }
     let cross_origin = referrer_url.origin() != url.origin();
-    return strip_url(referrer_url, cross_origin);
+    strip_url(referrer_url, cross_origin)
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
