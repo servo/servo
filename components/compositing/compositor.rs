@@ -18,7 +18,7 @@ use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::mem::{self, Reporter, ReporterRequest};
@@ -1302,7 +1302,23 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_key_event(&self, ch: Option<char>, key: Key, state: KeyState, modifiers: KeyModifiers) {
+    fn on_key_event(&mut self,
+                    ch: Option<char>,
+                    key: Key,
+                    state: KeyState,
+                    modifiers: KeyModifiers) {
+        // Steal a few key events for webrender debug options.
+        if modifiers.contains(CONTROL) && state == KeyState::Pressed {
+            match key {
+                Key::F12 => {
+                    let profiler_enabled = self.webrender.get_profiler_enabled();
+                    self.webrender.set_profiler_enabled(!profiler_enabled);
+                    return;
+                }
+                _ => {}
+            }
+        }
+
         let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending key event to constellation failed ({}).", e);

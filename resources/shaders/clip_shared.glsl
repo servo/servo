@@ -16,7 +16,8 @@ void write_clip(ClipInfo clip) {
                        clip.bottom_right.outer_inner_radius.x,
                        clip.bottom_left.outer_inner_radius.x);
     //TODO: interpolate the final mask UV
-    vClipMaskUvRect = clip.mask_info.uv_rect;
+    vec2 texture_size = textureSize(sMask, 0);
+    vClipMaskUvRect = clip.mask_info.uv_rect / texture_size.xyxy;
     vClipMaskLocalRect = clip.mask_info.local_rect; //TODO: transform
 }
 #endif
