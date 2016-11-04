@@ -20,7 +20,6 @@ use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::Element;
-use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
 use dom::globalscope::GlobalScope;
@@ -305,16 +304,14 @@ impl HTMLFormElement {
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements
-                self.upcast::<EventTarget>().fire_simple_event("invalid");
+                self.upcast::<EventTarget>().fire_event(atom!("invalid"));
                 return;
             }
         }
         // Step 5
         if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self.upcast::<EventTarget>()
-                .fire_event("submit",
-                            EventBubbles::Bubbles,
-                            EventCancelable::Cancelable);
+                .fire_bubbling_cancelable_event(atom!("submit"));
             if event.DefaultPrevented() {
                 return;
             }
@@ -484,9 +481,7 @@ impl HTMLFormElement {
         // Step 5-6
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
             let event = field.as_event_target()
-                .fire_event("invalid",
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::Cancelable);
+                .fire_cancelable_event(atom!("invalid"));
             if !event.DefaultPrevented() { return Some(field); }
             None
         }).collect::<Vec<FormSubmittableElement>>();
@@ -615,9 +610,7 @@ impl HTMLFormElement {
         }
 
         let event = self.upcast::<EventTarget>()
-            .fire_event("reset",
-                        EventBubbles::Bubbles,
-                        EventCancelable::Cancelable);
+            .fire_bubbling_cancelable_event(atom!("reset"));
         if event.DefaultPrevented() {
             return;
         }

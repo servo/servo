@@ -18,6 +18,7 @@ use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
 use script_traits::{ScriptMsg, DOMMessage};
+use servo_atoms::Atom;
 use std::cell::Cell;
 use url::Url;
 
@@ -56,12 +57,12 @@ impl ServiceWorker {
 
     pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {
         let service_worker = address.root();
-        service_worker.upcast().fire_simple_event("error");
+        service_worker.upcast().fire_event(atom!("error"));
     }
 
     pub fn set_transition_state(&self, state: ServiceWorkerState) {
         self.state.set(state);
-        self.upcast::<EventTarget>().fire_simple_event("statechange");
+        self.upcast::<EventTarget>().fire_event(Atom::from("statechange"));
     }
 
     pub fn get_script_url(&self) -> Url {

@@ -105,12 +105,12 @@ impl Runnable for ImageResponseHandlerRunnable {
 
         // Fire image.onload
         if trigger_image_load {
-            element.upcast::<EventTarget>().fire_simple_event("load");
+            element.upcast::<EventTarget>().fire_event(atom!("load"));
         }
 
         // Fire image.onerror
         if trigger_image_error {
-            element.upcast::<EventTarget>().fire_simple_event("error");
+            element.upcast::<EventTarget>().fire_event(atom!("error"));
         }
 
         // Trigger reflow
@@ -180,8 +180,8 @@ impl HTMLImageElement {
                             // Step 11, substep 5
                             let img = self.img.root();
                             img.current_request.borrow_mut().source_url = Some(self.src.into());
-                            img.upcast::<EventTarget>().fire_simple_event("error");
-                            img.upcast::<EventTarget>().fire_simple_event("loadend");
+                            img.upcast::<EventTarget>().fire_event(atom!("error"));
+                            img.upcast::<EventTarget>().fire_event(atom!("loadend"));
                         }
                     }
 

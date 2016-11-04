@@ -498,7 +498,7 @@ impl Runnable for ConnectionEstablishedTask {
         }
 
         // Step 6.
-        ws.upcast().fire_simple_event("open");
+        ws.upcast().fire_event(atom!("open"));
     }
 }
 
@@ -548,7 +548,7 @@ impl Runnable for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_simple_event("error");
+            ws.upcast().fire_event(atom!("error"));
         }
 
         // Step 3.

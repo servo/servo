@@ -142,7 +142,7 @@ impl WeakMediaQueryListVec {
     pub fn evaluate_and_report_changes(&self) {
         for mql in self.cell.borrow().iter() {
             if let MediaQueryListMatchState::Changed(_) = mql.root().unwrap().evaluate_changes() {
-                mql.root().unwrap().upcast::<EventTarget>().fire_simple_event("change");
+                mql.root().unwrap().upcast::<EventTarget>().fire_event(atom!("change"));
             }
         }
     }

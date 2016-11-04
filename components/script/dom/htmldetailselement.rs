@@ -94,7 +94,7 @@ impl Runnable for DetailsNotificationRunnable {
     fn handler(self: Box<DetailsNotificationRunnable>) {
         let target = self.element.root();
         if target.check_toggle_count(self.toggle_number) {
-            target.upcast::<EventTarget>().fire_simple_event("toggle");
+            target.upcast::<EventTarget>().fire_event(atom!("toggle"));
         }
     }
 }
