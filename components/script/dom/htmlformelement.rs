@@ -36,7 +36,7 @@ use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
-use dom::validitystate::ValidityStatus;
+use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -467,12 +467,21 @@ impl HTMLFormElement {
     fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
         let node = self.upcast::<Node>();
         for child in node.traverse_preorder() {
-            match child.downcast::<Element>() {
-                Some(el) if !el.disabled_state() => (match el.as_maybe_validatable() {
-                    Some(ele) => (if ele.is_instance_validatable() {}),
-                    None => {}
-                }),
-                _ => continue,
+            if let Some(el) = child.downcast::<Element>() {
+                if el.disabled_state() {
+                    continue;
+                }
+                let validatable = match el.as_maybe_validatable() {
+                    Some(v) => v,
+                    None => continue,
+                };
+                if !validatable.is_instance_validatable() {
+                    continue;
+                }
+                let mut validate_flags: ValidationFlags = ValidationFlags::empty();
+                // Need match and insert ValidationFlags later
+                validatable.validate(validate_flags);
+                // Invoke validata here that returns true if the form element validates, false otherwise
             }
         }
         // FIXME(#3553): This is an incorrect way of getting controls owned by the

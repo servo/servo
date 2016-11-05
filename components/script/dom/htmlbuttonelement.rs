@@ -21,8 +21,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
-use dom::validitystate::ValidityState;
-use dom::validitystate::ValidityStatus;
+use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -240,11 +239,12 @@ impl VirtualMethods for HTMLButtonElement {
 impl FormControl for HTMLButtonElement {}
 
 impl Validatable for HTMLButtonElement {
-    fn as_element_validatable(&self) -> &Element {
-        self.upcast()
-    }
-
     fn is_instance_validatable(&self) -> bool {
+        true
+    }
+    fn validate(&self, validate_flags: ValidationFlags) -> bool {
+        if validate_flags.is_empty() {}
+        // Need more flag check for different validation types later
         true
     }
 }

@@ -31,7 +31,7 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
-use dom::validitystate::ValidityStatus;
+use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
@@ -1145,9 +1145,6 @@ impl VirtualMethods for HTMLInputElement {
 impl FormControl for HTMLInputElement {}
 
 impl Validatable for HTMLInputElement {
-    fn as_element_validatable(&self) -> &Element {
-        self.upcast()
-    }
     fn is_instance_validatable(&self) -> bool {
         match self.input_type.get() {
             InputType::InputSubmit => {},
@@ -1160,6 +1157,11 @@ impl Validatable for HTMLInputElement {
             InputType::InputRadio => {},
             InputType::InputPassword => {},
         }
+        true
+    }
+    fn validate(&self, validate_flags: ValidationFlags) -> bool {
+        if validate_flags.is_empty() {}
+        // Need more flag check for different validation types later
         true
     }
 }

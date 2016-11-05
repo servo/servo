@@ -15,8 +15,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
 use dom::validation::Validatable;
-use dom::validitystate::ValidityState;
-use dom::validitystate::ValidityStatus;
+use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
 use std::sync::Arc;
@@ -91,10 +90,12 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
 }
 
 impl Validatable for HTMLObjectElement {
-    fn as_element_validatable(&self) -> &Element {
-        self.upcast()
-    }
     fn is_instance_validatable(&self) -> bool {
+        true
+    }
+    fn validate(&self, validate_flags: ValidationFlags) -> bool {
+        if validate_flags.is_empty() {}
+        // Need more flag check for different validation types later
         true
     }
 }
