@@ -268,6 +268,7 @@ impl Request {
         };
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
+        req.redirect_mode.set(init.redirect_mode);
         req
     }
 
