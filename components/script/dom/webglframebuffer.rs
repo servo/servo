@@ -190,11 +190,6 @@ impl WebGLFramebuffer {
             // Note, from the GLES 2.0.25 spec, page 113:
             //      "If texture is zero, then textarget and level are ignored."
             Some(texture) => {
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
-                    texture: JS::from_ref(texture),
-                    level: level }
-                );
-
                 // From the GLES 2.0.25 spec, page 113:
                 //
                 //     "level specifies the mipmap level of the texture image
@@ -233,6 +228,11 @@ impl WebGLFramebuffer {
                     Some(_) if !is_cube => {}
                     _ => return Err(WebGLError::InvalidOperation),
                 }
+
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
+                    texture: JS::from_ref(texture),
+                    level: level }
+                );
 
                 Some(texture.id())
             }
