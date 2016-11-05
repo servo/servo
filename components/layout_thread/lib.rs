@@ -13,7 +13,6 @@
 #![plugin(plugins)]
 
 extern crate app_units;
-extern crate azure;
 extern crate core;
 extern crate euclid;
 extern crate fnv;
@@ -46,7 +45,6 @@ extern crate util;
 extern crate webrender_traits;
 
 use app_units::Au;
-use azure::azure_hl::Color;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
@@ -969,11 +967,6 @@ impl LayoutThread {
                 epoch,
                 &mut frame_builder);
             let root_background_color = get_root_flow_background_color(layout_root);
-            let root_background_color =
-                webrender_traits::ColorF::new(root_background_color.r,
-                                              root_background_color.g,
-                                              root_background_color.b,
-                                              root_background_color.a);
 
             let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                             self.viewport_size.height.to_f32_px());
@@ -1491,18 +1484,19 @@ impl LayoutThread {
 // clearing the frame buffer to white. This ensures that setting a background
 // color on an iframe element, while the iframe content itself has a default
 // transparent background color is handled correctly.
-fn get_root_flow_background_color(flow: &mut Flow) -> Color {
+fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
+    let transparent = webrender_traits::ColorF { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
     if !flow.is_block_like() {
-        return Color::transparent()
+        return transparent;
     }
 
     let block_flow = flow.as_mut_block();
     let kid = match block_flow.base.children.iter_mut().next() {
-        None => return Color::transparent(),
+        None => return transparent,
         Some(kid) => kid,
     };
     if !kid.is_block_like() {
-        return Color::transparent()
+        return transparent;
     }
 
     let kid_block_flow = kid.as_block();

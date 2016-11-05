@@ -16,7 +16,6 @@
 #![plugin(plugins)]
 
 extern crate app_units;
-extern crate azure;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;

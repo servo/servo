@@ -15,7 +15,6 @@
 //! low-level drawing primitives.
 
 use app_units::Au;
-use azure::azure_hl::Color;
 use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
@@ -35,13 +34,9 @@ use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
 use util::geometry::{self, max_rect};
-use webrender_traits::{self, WebGLContextId};
+use webrender_traits::{self, ColorF, GradientStop, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
-
-// It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
-// layout to use.
-pub use azure::azure_hl::GradientStop;
 
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
@@ -750,7 +745,7 @@ pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The color.
-    pub color: Color,
+    pub color: ColorF,
 }
 
 /// Paints text.
@@ -767,7 +762,7 @@ pub struct TextDisplayItem {
     pub range: Range<ByteIndex>,
 
     /// The color of the text.
-    pub text_color: Color,
+    pub text_color: ColorF,
 
     /// The position of the start of the baseline of this text.
     pub baseline_origin: Point2D<Au>,
@@ -851,7 +846,7 @@ pub struct BorderDisplayItem {
     pub border_widths: SideOffsets2D<Au>,
 
     /// Border colors.
-    pub color: SideOffsets2D<Color>,
+    pub color: SideOffsets2D<ColorF>,
 
     /// Border styles.
     pub style: SideOffsets2D<border_style::T>,
@@ -932,7 +927,7 @@ pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
     /// The line segment color.
-    pub color: Color,
+    pub color: ColorF,
 
     /// The line segment style.
     pub style: border_style::T
@@ -951,7 +946,7 @@ pub struct BoxShadowDisplayItem {
     pub offset: Point2D<Au>,
 
     /// The color of this shadow.
-    pub color: Color,
+    pub color: ColorF,
 
     /// The blur radius for this shadow.
     pub blur_radius: Au,

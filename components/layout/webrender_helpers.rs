@@ -8,11 +8,10 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use azure::azure_hl::Color;
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal};
-use gfx::display_list::{GradientStop, StackingContext, StackingContextType};
+use gfx::display_list::{StackingContext, StackingContextType};
 use gfx_traits::{FragmentType, ScrollPolicy, StackingContextId, ScrollRootId};
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
@@ -119,29 +118,6 @@ impl ToRectF for Rect<Au> {
         let w = self.size.width.to_f32_px();
         let h = self.size.height.to_f32_px();
         Rect::new(Point2D::new(x, y), Size2D::new(w, h))
-    }
-}
-
-trait ToColorF {
-    fn to_colorf(&self) -> webrender_traits::ColorF;
-}
-
-impl ToColorF for Color {
-    fn to_colorf(&self) -> webrender_traits::ColorF {
-        webrender_traits::ColorF::new(self.r, self.g, self.b, self.a)
-    }
-}
-
-trait ToGradientStop {
-    fn to_gradient_stop(&self) -> webrender_traits::GradientStop;
-}
-
-impl ToGradientStop for GradientStop {
-    fn to_gradient_stop(&self) -> webrender_traits::GradientStop {
-        webrender_traits::GradientStop {
-            offset: self.offset,
-            color: self.color.to_colorf(),
-        }
     }
 }
 
@@ -352,7 +328,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             frame_builder: &mut WebRenderFrameBuilder) {
         match *self {
             DisplayItem::SolidColor(ref item) => {
-                let color = item.color.to_colorf();
+                let color = item.color;
                 if color.a > 0.0 {
                     builder.push_rect(item.base.bounds.to_rectf(),
                                       item.base.clip.to_clip_region(frame_builder),
@@ -388,7 +364,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.base.clip.to_clip_region(frame_builder),
                                       glyphs,
                                       item.text_run.font_key,
-                                      item.text_color.to_colorf(),
+                                      item.text_color,
                                       item.text_run.actual_pt_size,
                                       item.blur_radius,
                                       &mut frame_builder.auxiliary_lists_builder);
@@ -416,22 +392,22 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let rect = item.base.bounds.to_rectf();
                 let left = webrender_traits::BorderSide {
                     width: item.border_widths.left.to_f32_px(),
-                    color: item.color.left.to_colorf(),
+                    color: item.color.left,
                     style: item.style.left.to_border_style(),
                 };
                 let top = webrender_traits::BorderSide {
                     width: item.border_widths.top.to_f32_px(),
-                    color: item.color.top.to_colorf(),
+                    color: item.color.top,
                     style: item.style.top.to_border_style(),
                 };
                 let right = webrender_traits::BorderSide {
                     width: item.border_widths.right.to_f32_px(),
-                    color: item.color.right.to_colorf(),
+                    color: item.color.right,
                     style: item.style.right.to_border_style(),
                 };
                 let bottom = webrender_traits::BorderSide {
                     width: item.border_widths.bottom.to_f32_px(),
-                    color: item.color.bottom.to_colorf(),
+                    color: item.color.bottom,
                     style: item.style.bottom.to_border_style(),
                 };
                 let radius = item.radius.to_border_radius();
@@ -447,15 +423,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let rect = item.base.bounds.to_rectf();
                 let start_point = item.start_point.to_pointf();
                 let end_point = item.end_point.to_pointf();
-                let mut stops = Vec::new();
-                for stop in &item.stops {
-                    stops.push(stop.to_gradient_stop());
-                }
                 builder.push_gradient(rect,
                                       item.base.clip.to_clip_region(frame_builder),
                                       start_point,
                                       end_point,
-                                      stops,
+                                      item.stops.clone(),
                                       &mut frame_builder.auxiliary_lists_builder);
             }
             DisplayItem::Line(..) => {
@@ -468,7 +440,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                         item.base.clip.to_clip_region(frame_builder),
                                         box_bounds,
                                         item.offset.to_pointf(),
-                                        item.color.to_colorf(),
+                                        item.color,
                                         item.blur_radius.to_f32_px(),
                                         item.spread_radius.to_f32_px(),
                                         item.border_radius.to_f32_px(),
