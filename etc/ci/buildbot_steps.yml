@@ -63,7 +63,7 @@ linux-rel-wpt:
 linux-rel-css:
   - ./mach build --release --with-debug-assertions
   - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log
-  - ./mach build-cef --release
+  - ./mach build-cef --release --with-debug-assertions
   - ./mach build-geckolib --release
   - ./mach test-stylo --release
   - bash ./etc/ci/lockfile_changed.sh
