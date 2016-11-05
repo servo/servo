@@ -120,6 +120,7 @@ impl RuleTree {
         current
     }
 
+    /// This can only be called when no other threads is accessing this tree.
     pub unsafe fn gc(&self) {
         self.root.gc();
     }
@@ -140,10 +141,10 @@ struct RuleNode {
     /// meaningless in the root node.
     importance: Importance,
 
-    children: RuleChildrenList,
     refcount: AtomicUsize,
-    next: AtomicPtr<RuleNode>,
-    prev: AtomicPtr<RuleNode>,
+    first_child: AtomicPtr<RuleNode>,
+    next_sibling: AtomicPtr<RuleNode>,
+    prev_sibling: AtomicPtr<RuleNode>,
 
     /// The next item in the rule tree free list, that starts on the root node.
     next_free: AtomicPtr<RuleNode>,
@@ -163,10 +164,10 @@ impl RuleNode {
             parent: Some(parent),
             source: Some(source),
             importance: importance,
-            children: RuleChildrenList::new(),
             refcount: AtomicUsize::new(1),
-            next: AtomicPtr::new(ptr::null_mut()),
-            prev: AtomicPtr::new(ptr::null_mut()),
+            first_child: AtomicPtr::new(ptr::null_mut()),
+            next_sibling: AtomicPtr::new(ptr::null_mut()),
+            prev_sibling: AtomicPtr::new(ptr::null_mut()),
             next_free: AtomicPtr::new(ptr::null_mut()),
         }
     }
@@ -177,10 +178,10 @@ impl RuleNode {
             parent: None,
             source: None,
             importance: Importance::Normal,
-            children: RuleChildrenList::new(),
             refcount: AtomicUsize::new(1),
-            next: AtomicPtr::new(ptr::null_mut()),
-            prev: AtomicPtr::new(ptr::null_mut()),
+            first_child: AtomicPtr::new(ptr::null_mut()),
+            next_sibling: AtomicPtr::new(ptr::null_mut()),
+            prev_sibling: AtomicPtr::new(ptr::null_mut()),
             next_free: AtomicPtr::new(FREE_LIST_SENTINEL),
         }
     }
@@ -199,21 +200,21 @@ impl RuleNode {
     unsafe fn remove_from_child_list(&self) {
         debug!("Remove from child list: {:?}, parent: {:?}",
                self as *const RuleNode, self.parent.as_ref().map(|p| p.ptr()));
-        let previous = self.prev.swap(ptr::null_mut(), Ordering::SeqCst);
-        let next = self.next.swap(ptr::null_mut(), Ordering::SeqCst);
+        let prev_sibling = self.prev_sibling.swap(ptr::null_mut(), Ordering::SeqCst);
+        let next_sibling = self.next_sibling.swap(ptr::null_mut(), Ordering::SeqCst);
 
-        if previous != ptr::null_mut() {
-            let really_previous = WeakRuleNode { ptr: previous };
+        if prev_sibling != ptr::null_mut() {
+            let really_previous = WeakRuleNode { ptr: prev_sibling };
             really_previous.upgrade()
-                .get().next.store(next, Ordering::SeqCst);
+                .get().next_sibling.store(next_sibling, Ordering::SeqCst);
         } else {
             self.parent.as_ref().unwrap()
-                .get().children.head.store(ptr::null_mut(), Ordering::SeqCst);
+                .get().first_child.store(ptr::null_mut(), Ordering::SeqCst);
         }
 
-        if next != ptr::null_mut() {
-            let really_next = WeakRuleNode { ptr: next };
-            really_next.upgrade().get().prev.store(previous, Ordering::SeqCst);
+        if next_sibling != ptr::null_mut() {
+            let really_next = WeakRuleNode { ptr: next_sibling };
+            really_next.upgrade().get().prev_sibling.store(prev_sibling, Ordering::SeqCst);
         }
     }
 
@@ -245,8 +246,20 @@ impl RuleNode {
         }
 
         let _ = write!(writer, "\n");
-        for child in self.children.iter() {
+        for child in self.iter_children() {
             child.get().dump(writer, indent + INDENT_INCREMENT);
+        }
+    }
+
+    fn iter_children(&self) -> RuleChildrenListIter {
+        // FIXME(emilio): Fiddle with memory orderings.
+        let first_child = self.first_child.load(Ordering::SeqCst);
+        RuleChildrenListIter {
+            current: if first_child.is_null() {
+                None
+            } else {
+                Some(WeakRuleNode { ptr: first_child })
+            }
         }
     }
 }
@@ -286,10 +299,10 @@ impl StrongRuleNode {
         }
     }
 
-    fn next(&self) -> Option<WeakRuleNode> {
+    fn next_sibling(&self) -> Option<WeakRuleNode> {
         // FIXME(emilio): Investigate what ordering can we achieve without
         // messing things up.
-        let ptr = self.get().next.load(Ordering::SeqCst);
+        let ptr = self.get().next_sibling.load(Ordering::SeqCst);
         if ptr.is_null() {
             None
         } else {
@@ -308,7 +321,7 @@ impl StrongRuleNode {
                     source: StyleSource,
                     importance: Importance) -> StrongRuleNode {
         let mut last = None;
-        for child in self.get().children.iter() {
+        for child in self.get().iter_children() {
             if child .get().importance == importance &&
                 child.get().source.as_ref().unwrap().ptr_equals(&source) {
                 return child;
@@ -316,25 +329,25 @@ impl StrongRuleNode {
             last = Some(child);
         }
 
-        let node = Box::new(RuleNode::new(root,
-                                          self.clone(),
-                                          source.clone(),
-                                          importance));
-        let new_ptr = &*node as *const _ as *mut RuleNode;
+        let mut node = Box::new(RuleNode::new(root,
+                                             self.clone(),
+                                             source.clone(),
+                                             importance));
+        let new_ptr: *mut RuleNode = &mut *node;
 
         loop {
             let strong;
 
             {
-                let next_ptr = match last {
-                    Some(ref l) => &l.get().next,
-                    None => &self.get().children.head,
+                let next_sibling_ptr = match last {
+                    Some(ref l) => &l.get().next_sibling,
+                    None => &self.get().first_child,
                 };
 
                 let existing =
-                    next_ptr.compare_and_swap(ptr::null_mut(),
-                                              new_ptr,
-                                              Ordering::SeqCst);
+                    next_sibling_ptr.compare_and_swap(ptr::null_mut(),
+                                                      new_ptr,
+                                                      Ordering::SeqCst);
 
                 if existing == ptr::null_mut() {
                     // Now we know we're in the correct position in the child list,
@@ -342,21 +355,22 @@ impl StrongRuleNode {
                     // accessed again in a single-threaded manner when we're
                     // sweeping possibly dead nodes.
                     if let Some(ref l) = last {
-                        node.prev.store(l.ptr(), Ordering::Relaxed);
+                        node.prev_sibling.store(l.ptr(), Ordering::Relaxed);
                     }
 
                     return StrongRuleNode::new(node);
                 }
 
+                // Existing is not null: some thread insert a child node since we accessed `last`.
                 strong = WeakRuleNode { ptr: existing }.upgrade();
 
                 if strong.get().source.as_ref().unwrap().ptr_equals(&source) {
-                    // Some thread that was racing with as inserted the same rule
-                    // node than us, so give up and just use that.
+                    // That node happens to be for the same style source, use that.
                     return strong;
                 }
             }
 
+            // Try again inserting after the new last child.
             last = Some(strong);
         }
     }
@@ -479,40 +493,42 @@ impl Drop for StrongRuleNode {
             node.refcount.fetch_sub(1, Ordering::SeqCst) == 1
         };
 
-        if should_drop {
-            debug_assert_eq!(node.children.head.load(Ordering::SeqCst),
-                             ptr::null_mut());
-            if node.parent.is_none() {
-                debug!("Dropping root node!");
-                // NOTE: Calling this is fine, because the rule tree root
-                // destructor needs to happen from the layout thread, where the
-                // stylist, and hence, the rule tree, is held.
-                unsafe { self.gc() };
-                let _ = unsafe { Box::from_raw(self.ptr()) };
-                return;
-            }
+        if !should_drop {
+            return
+        }
 
-            // The node is already in the free list, so do nothing.
-            if node.next_free.load(Ordering::SeqCst) != ptr::null_mut() {
-                return;
-            }
+        debug_assert_eq!(node.first_child.load(Ordering::SeqCst),
+                         ptr::null_mut());
+        if node.parent.is_none() {
+            debug!("Dropping root node!");
+            // NOTE: Calling this is fine, because the rule tree root
+            // destructor needs to happen from the layout thread, where the
+            // stylist, and hence, the rule tree, is held.
+            unsafe { self.gc() };
+            let _ = unsafe { Box::from_raw(self.ptr()) };
+            return;
+        }
 
-            let free_list =
-                &unsafe { &*node.root.as_ref().unwrap().ptr() }.next_free;
-            loop {
-                let next_free = free_list.load(Ordering::SeqCst);
-                debug_assert!(!next_free.is_null());
+        // The node is already in the free list, so do nothing.
+        if node.next_free.load(Ordering::SeqCst) != ptr::null_mut() {
+            return;
+        }
 
-                node.next_free.store(next_free, Ordering::SeqCst);
+        let free_list =
+            &unsafe { &*node.root.as_ref().unwrap().ptr() }.next_free;
+        loop {
+            let next_free = free_list.load(Ordering::SeqCst);
+            debug_assert!(!next_free.is_null());
 
-                let existing =
-                    free_list.compare_and_swap(next_free,
-                                               self.ptr(),
-                                               Ordering::SeqCst);
-                if existing == next_free {
-                    // Successfully inserted, yay! Otherwise try again.
-                    break;
-                }
+            node.next_free.store(next_free, Ordering::SeqCst);
+
+            let existing =
+                free_list.compare_and_swap(next_free,
+                                           self.ptr(),
+                                           Ordering::SeqCst);
+            if existing == next_free {
+                // Successfully inserted, yay! Otherwise try again.
+                break;
             }
         }
     }
@@ -542,32 +558,6 @@ impl WeakRuleNode {
     }
 }
 
-struct RuleChildrenList {
-    head: AtomicPtr<RuleNode>,
-}
-
-impl RuleChildrenList {
-    fn new() -> Self {
-        RuleChildrenList {
-            head: AtomicPtr::new(ptr::null_mut())
-        }
-    }
-
-    fn iter(&self) -> RuleChildrenListIter {
-        // FIXME(emilio): Fiddle with memory orderings.
-        let head = self.head.load(Ordering::SeqCst);
-        RuleChildrenListIter {
-            current: if head.is_null() {
-                None
-            } else {
-                Some(WeakRuleNode {
-                    ptr: head,
-                })
-            },
-        }
-    }
-}
-
 struct RuleChildrenListIter {
     current: Option<WeakRuleNode>,
 }
@@ -578,7 +568,7 @@ impl Iterator for RuleChildrenListIter {
     fn next(&mut self) -> Option<Self::Item> {
         self.current.take().map(|current| {
             let current = current.upgrade();
-            self.current = current.next();
+            self.current = current.next_sibling();
             current
         })
     }
