@@ -159,7 +159,7 @@ impl Default for RequestInit {
             referrer_url: None,
             referrer_policy: None,
             pipeline_id: None,
-            redirect_mode: RedirectMode::Manual,
+            redirect_mode: RedirectMode::Follow,
         }
     }
 }
