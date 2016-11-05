@@ -375,13 +375,13 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                 .borrow()
                                 .current_styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
-                            let new_style =
+                            let new_style_and_rule_node =
                                 context.stylist.precomputed_values_for_pseudo(
                                     &style_pseudo,
                                     Some(&data.current_styles().primary),
                                     false);
                             data.current_pseudos_mut()
-                                .insert(style_pseudo.clone(), new_style.unwrap());
+                                .insert(style_pseudo.clone(), new_style_and_rule_node.unwrap());
                         }
                     }
                     PseudoElementCascadeType::Lazy => {
@@ -404,7 +404,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
 
                 self.get_style_data().unwrap().borrow()
                     .current_styles().pseudos.get(&style_pseudo)
-                    .unwrap().clone()
+                    .unwrap().0.clone()
             }
         }
     }
@@ -413,7 +413,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn selected_style(&self) -> Arc<ServoComputedValues> {
         let data = self.get_style_data().unwrap().borrow();
         data.current_styles().pseudos
-            .get(&PseudoElement::Selection)
+            .get(&PseudoElement::Selection).map(|s| &s.0)
             .unwrap_or(&data.current_styles().primary)
             .clone()
     }
@@ -432,7 +432,8 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
             PseudoElementType::Normal
                 => data.current_styles().primary.clone(),
             other
-                => data.current_styles().pseudos.get(&other.style_pseudo_element()).unwrap().clone(),
+                => data.current_styles().pseudos
+                       .get(&other.style_pseudo_element()).unwrap().0.clone(),
         }
     }
 

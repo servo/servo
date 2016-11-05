@@ -215,8 +215,8 @@ impl ToCss for Length {
             Length::FontRelative(length) => length.to_css(dest),
             Length::ViewportPercentage(length) => length.to_css(dest),
             Length::Calc(ref calc, _) => calc.to_css(dest),
-            Length::ServoCharacterWidth(_)
-            => panic!("internal CSS values should never be serialized"),
+            /* This should only be reached from style dumping code */
+            Length::ServoCharacterWidth(CharacterWidth(i)) => write!(dest, "CharWidth({})", i),
         }
     }
 }

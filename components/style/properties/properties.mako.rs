@@ -28,12 +28,12 @@ use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData};
-use selector_matching::{ApplicableDeclarationBlock, ApplicableDeclarationBlockReadGuard};
 use stylesheets::Origin;
 #[cfg(feature = "servo")] use values::LocalToCss;
 use values::HasViewportPercentage;
-use values::computed::{self, ToComputedValue};
+use values::computed;
 use cascade_info::CascadeInfo;
+use rule_tree::StrongRuleNode;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
 use self::property_bit_field::PropertyBitField;
@@ -1382,120 +1382,6 @@ mod lazy_static_module {
     }
 }
 
-/// Fast path for the function below. Only computes new inherited styles.
-#[allow(unused_mut, unused_imports)]
-fn cascade_with_cached_declarations(
-        viewport_size: Size2D<Au>,
-        applicable_declarations: &[ApplicableDeclarationBlockReadGuard],
-        shareable: bool,
-        parent_style: &ComputedValues,
-        cached_style: &ComputedValues,
-        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-        mut cascade_info: Option<<&mut CascadeInfo>,
-        mut error_reporter: StdBox<ParseErrorReporter + Send>)
-        -> ComputedValues {
-    let mut context = computed::Context {
-        is_root_element: false,
-        viewport_size: viewport_size,
-        inherited_style: parent_style,
-        style: ComputedValues::new(
-            custom_properties,
-            shareable,
-            WritingMode::empty(),
-            parent_style.root_font_size(),
-            % for style_struct in data.active_style_structs():
-                % if style_struct.inherited:
-                    parent_style
-                % else:
-                    cached_style
-                % endif
-                    .clone_${style_struct.name_lower}(),
-            % endfor
-        ),
-    };
-    let mut seen = PropertyBitField::new();
-    // Declaration blocks are stored in increasing precedence order,
-    // we want them in decreasing order here.
-    for block in applicable_declarations.iter().rev() {
-        for declaration in block.iter().rev() {
-            match *declaration {
-                % for style_struct in data.active_style_structs():
-                    % for property in style_struct.longhands:
-                        % if not property.derived_from:
-                            PropertyDeclaration::${property.camel_case}(ref
-                                    ${'_' if not style_struct.inherited else ''}declared_value)
-                                    => {
-                                % if style_struct.inherited:
-                                    if seen.get_${property.ident}() {
-                                        continue
-                                    }
-                                    seen.set_${property.ident}();
-                                    let custom_props = context.style().custom_properties();
-                                    substitute_variables_${property.ident}(
-                                        declared_value, &custom_props,
-                                    |value| {
-                                        if let Some(ref mut cascade_info) = cascade_info {
-                                            cascade_info.on_cascade_property(&declaration,
-                                                                             &value);
-                                        }
-                                        match *value {
-                                            DeclaredValue::Value(ref specified_value)
-                                            => {
-                                                let computed = specified_value.to_computed_value(&context);
-                                                context.mutate_style().mutate_${style_struct.name_lower}()
-                                                       .set_${property.ident}(computed);
-                                            },
-                                            DeclaredValue::Initial
-                                            => {
-                                                // FIXME(bholley): We may want set_X_to_initial_value() here.
-                                                let initial = longhands::${property.ident}::get_initial_value();
-                                                context.mutate_style().mutate_${style_struct.name_lower}()
-                                                       .set_${property.ident}(initial);
-                                            },
-                                            DeclaredValue::Inherit => {
-                                                // This is a bit slow, but this is rare so it shouldn't
-                                                // matter.
-                                                //
-                                                // FIXME: is it still?
-                                                let inherited_struct = parent_style.get_${style_struct.ident}();
-                                                context.mutate_style().mutate_${style_struct.name_lower}()
-                                                       .copy_${property.ident}_from(inherited_struct);
-                                            }
-                                            DeclaredValue::WithVariables { .. } => unreachable!()
-                                        }
-                                    }, &mut error_reporter);
-                                % endif
-
-                                % if property.name in data.derived_longhands:
-                                    % for derived in data.derived_longhands[property.name]:
-                                            longhands::${derived.ident}
-                                                     ::derive_from_${property.ident}(&mut context);
-                                    % endfor
-                                % endif
-                            }
-                        % else:
-                            PropertyDeclaration::${property.camel_case}(_) => {
-                                // Do not allow stylesheets to set derived properties.
-                            }
-                        % endif
-                    % endfor
-                % endfor
-                PropertyDeclaration::Custom(..) => {}
-            }
-        }
-    }
-
-    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
-            seen.get_font_family() {
-        context.mutate_style().mutate_font().compute_font_hash();
-    }
-
-    let mode = get_writing_mode(context.style.get_inheritedbox());
-    context.style.set_writing_mode(mode);
-
-    context.style
-}
-
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &ComputedValues,
@@ -1523,71 +1409,90 @@ bitflags! {
     }
 }
 
-/// Performs the CSS cascade, computing new styles for an element from its parent style and
-/// optionally a cached related style. The arguments are:
+/// Performs the CSS cascade, computing new styles for an element from its parent style.
+///
+/// The arguments are:
 ///
 ///   * `viewport_size`: The size of the initial viewport.
 ///
-///   * `applicable_declarations`: The list of CSS rules that matched.
+///   * `rule_node`: The rule node in the tree that represent the CSS rules that
+///   matched.
 ///
 ///   * `parent_style`: The parent style, if applicable; if `None`, this is the root node.
 ///
-///   * `cached_style`: If present, cascading is short-circuited for everything but inherited
-///     values and these values are used instead. Obviously, you must be careful when supplying
-///     this that it is safe to only provide inherited declarations. If `parent_style` is `None`,
-///     this is ignored.
-///
+/// Returns the computed values.
 ///   * `flags`: Various flags.
 ///
-/// Returns the computed values and a boolean indicating whether the result is cacheable.
 pub fn cascade(viewport_size: Size2D<Au>,
-               applicable_declarations: &[ApplicableDeclarationBlock],
+               rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
-               cached_style: Option<<&ComputedValues>,
-               mut cascade_info: Option<<&mut CascadeInfo>,
-               mut error_reporter: StdBox<ParseErrorReporter + Send>,
+               cascade_info: Option<<&mut CascadeInfo>,
+               error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
-               -> (ComputedValues, bool) {
-    let initial_values = ComputedValues::initial_values();
+               -> ComputedValues {
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
-        None => (true, initial_values),
+        None => (true, ComputedValues::initial_values()),
     };
-
-    // Aquire locks for at least the lifetime of `specified_custom_properties`.
-    let applicable_declarations = applicable_declarations.iter()
-        .map(|block| block.read())
-        .collect::<Vec<_>>();
-
-    let inherited_custom_properties = inherited_style.custom_properties();
-    let mut specified_custom_properties = None;
-    let mut seen_custom = HashSet::new();
-    for block in applicable_declarations.iter().rev() {
-        for declaration in block.iter().rev() {
-            match *declaration {
-                PropertyDeclaration::Custom(ref name, ref value) => {
-                    ::custom_properties::cascade(
-                        &mut specified_custom_properties, &inherited_custom_properties,
-                        &mut seen_custom, name, value)
+    // Hold locks until after the apply_declarations() call returns.
+    // Use filter_map because the root node has no style source.
+    let lock_guards = rule_node.self_and_ancestors().filter_map(|node| {
+        node.style_source().map(|source| (source.read(), node.importance()))
+    }).collect::<Vec<_>>();
+    let iter_declarations = || {
+        lock_guards.iter().flat_map(|&(ref source, source_importance)| {
+            source.declarations.iter()
+            // Yield declarations later in source order (with more precedence) first.
+            .rev()
+            .filter_map(move |&(ref declaration, declaration_importance)| {
+                if declaration_importance == source_importance {
+                    Some(declaration)
+                } else {
+                    None
                 }
-                _ => {}
+            })
+        })
+    };
+    apply_declarations(viewport_size,
+                       is_root_element,
+                       iter_declarations,
+                       inherited_style,
+                       cascade_info,
+                       error_reporter,
+                       flags)
+}
+
+/// NOTE: This function expects the declaration with more priority to appear
+/// first.
+pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
+                                    is_root_element: bool,
+                                    iter_declarations: F,
+                                    inherited_style: &ComputedValues,
+                                    mut cascade_info: Option<<&mut CascadeInfo>,
+                                    mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    flags: CascadeFlags)
+                                    -> ComputedValues
+    where F: Fn() -> I, I: Iterator<Item = &'a PropertyDeclaration>
+{
+    let inherited_custom_properties = inherited_style.custom_properties();
+    let mut custom_properties = None;
+    let mut seen_custom = HashSet::new();
+    for declaration in iter_declarations() {
+        match *declaration {
+            PropertyDeclaration::Custom(ref name, ref value) => {
+                ::custom_properties::cascade(
+                    &mut custom_properties, &inherited_custom_properties,
+                    &mut seen_custom, name, value)
             }
+            _ => {}
         }
     }
-    let custom_properties = ::custom_properties::finish_cascade(
-            specified_custom_properties, &inherited_custom_properties);
 
-    if let (Some(cached_style), Some(parent_style)) = (cached_style, parent_style) {
-        let style = cascade_with_cached_declarations(viewport_size,
-                                                     &applicable_declarations,
-                                                     flags.contains(SHAREABLE),
-                                                     parent_style,
-                                                     cached_style,
-                                                     custom_properties,
-                                                     cascade_info,
-                                                     error_reporter);
-        return (style, false)
-    }
+    let custom_properties =
+        ::custom_properties::finish_cascade(
+            custom_properties, &inherited_custom_properties);
+
+    let initial_values = ComputedValues::initial_values();
 
     let starting_style = if !flags.contains(INHERIT_ALL) {
         ComputedValues::new(custom_properties,
@@ -1620,54 +1525,61 @@ pub fn cascade(viewport_size: Size2D<Au>,
         style: starting_style,
     };
 
-    // Set computed values, overwriting earlier declarations for the same property.
+    // Set computed values, overwriting earlier declarations for the same
+    // property.
     let mut cacheable = true;
     let mut seen = PropertyBitField::new();
-    // Declaration blocks are stored in increasing precedence order, we want them in decreasing
-    // order here.
+
+    // Declaration blocks are stored in increasing precedence order, we want
+    // them in decreasing order here.
     //
-    // We could (and used to) use a pattern match here, but that bloats this function to over 100K
-    // of compiled code! To improve i-cache behavior, we outline the individual functions and use
+    // We could (and used to) use a pattern match here, but that bloats this
+    // function to over 100K of compiled code!
+    //
+    // To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
-            for block in applicable_declarations.iter().rev() {
-                for declaration in block.iter().rev() {
-                    if let PropertyDeclaration::Custom(..) = *declaration {
-                        continue
-                    }
-                    // The computed value of some properties depends on the (sometimes computed)
-                    // value of *other* properties.
-                    // So we classify properties into "early" and "other",
-                    // such that the only dependencies can be from "other" to "early".
-                    // We iterate applicable_declarations twice, first cascading "early" properties
-                    // then "other".
-                    // Unfortunately, it’s not easy to check that this classification is correct.
-                    let is_early_property = matches!(*declaration,
-                        PropertyDeclaration::FontSize(_) |
-                        PropertyDeclaration::Color(_) |
-                        PropertyDeclaration::Position(_) |
-                        PropertyDeclaration::Float(_) |
-                        PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
-                        PropertyDeclaration::WritingMode(_)
-                    );
-                    if
-                        % if category_to_cascade_now == "early":
-                            !
-                        % endif
-                        is_early_property
-                    {
-                        continue
-                    }
-                    let discriminant = declaration.discriminant_value();
-                    (cascade_property[discriminant])(declaration,
-                                                     inherited_style,
-                                                     &mut context,
-                                                     &mut seen,
-                                                     &mut cacheable,
-                                                     &mut cascade_info,
-                                                     &mut error_reporter);
+            for declaration in iter_declarations() {
+                if let PropertyDeclaration::Custom(..) = *declaration {
+                    continue
                 }
+                // The computed value of some properties depends on the
+                // (sometimes computed) value of *other* properties.
+                //
+                // So we classify properties into "early" and "other", such that
+                // the only dependencies can be from "other" to "early".
+                //
+                // We iterate applicable_declarations twice, first cascading
+                // "early" properties then "other".
+                //
+                // Unfortunately, it’s not easy to check that this
+                // classification is correct.
+                let is_early_property = matches!(*declaration,
+                    PropertyDeclaration::FontSize(_) |
+                    PropertyDeclaration::Color(_) |
+                    PropertyDeclaration::Position(_) |
+                    PropertyDeclaration::Float(_) |
+                    PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
+                    PropertyDeclaration::WritingMode(_)
+                );
+                if
+                    % if category_to_cascade_now == "early":
+                        !
+                    % endif
+                    is_early_property
+                {
+                    continue
+                }
+
+                let discriminant = declaration.discriminant_value();
+                (cascade_property[discriminant])(declaration,
+                                                 inherited_style,
+                                                 &mut context,
+                                                 &mut seen,
+                                                 &mut cacheable,
+                                                 &mut cascade_info,
+                                                 &mut error_reporter);
             }
         % endfor
     });
@@ -1753,6 +1665,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
         }
     % endfor
 
+
     % if product == "gecko":
         style.mutate_background().fill_arrays();
         style.mutate_svg().fill_arrays();
@@ -1776,7 +1689,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     let mode = get_writing_mode(style.get_inheritedbox());
     style.set_writing_mode(mode);
-    (style, cacheable)
+    style
 }
 
 #[cfg(feature = "servo")]
@@ -1971,7 +1884,6 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
         effects_style.clip.0 = None
     }
 }
-
 
 // FIXME: https://github.com/w3c/csswg-drafts/issues/580
 pub fn is_supported_property(property: &str) -> bool {

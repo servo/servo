@@ -40,9 +40,8 @@ use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
-use style::properties::{cascade, parse_one_declaration};
+use style::properties::{apply_declarations, parse_one_declaration};
 use style::selector_impl::PseudoElementCascadeType;
-use style::selector_matching::ApplicableDeclarationBlock;
 use style::sequential;
 use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};
@@ -132,23 +131,23 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
                                                     previous_style: ServoComputedValuesBorrowed)
   -> ServoComputedValuesStrong
 {
-    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let declaration_block = ApplicableDeclarationBlock {
-        mixed_declarations: declarations.clone(),
-        importance: Importance::Normal,
-        source_order: 0,
-        specificity: ::std::u32::MAX,
-    };
     let previous_style = ComputedValues::as_arc(&previous_style);
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+
+    let guard = declarations.read();
+
+    let declarations = || {
+        guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
+    };
 
     // FIXME (bug 1303229): Use the actual viewport size here
-    let (computed, _) = cascade(Size2D::new(Au(0), Au(0)),
-                                &[declaration_block],
-                                Some(previous_style),
-                                None,
-                                None,
-                                Box::new(StdoutErrorReporter),
-                                CascadeFlags::empty());
+    let computed = apply_declarations(Size2D::new(Au(0), Au(0)),
+                                      /* is_root_element = */ false,
+                                      declarations,
+                                      previous_style,
+                                      None,
+                                      Box::new(StdoutErrorReporter),
+                                      CascadeFlags::empty());
     Arc::new(computed).into_strong()
 }
 
@@ -297,7 +296,8 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
-    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false);
+    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false)
+                           .map(|(computed, _rule_node)| computed);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
 
@@ -337,6 +337,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
             let parent = ComputedValues::as_arc(&parent_style);
             data.stylist
                 .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
+                .map(|(c, _rule_node)| c)
                 .map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
         PseudoElementCascadeType::Precomputed => {
