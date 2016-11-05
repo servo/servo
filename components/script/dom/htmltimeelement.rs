@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeElementMethods;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -30,4 +31,12 @@ impl HTMLTimeElement {
                            document,
                            HTMLTimeElementBinding::Wrap)
     }
+}
+
+impl HTMLTimeElementMethods for HTMLTimeElement {
+    // https://html.spec.whatwg.org/multipage/#dom-time-datetime
+    make_getter!(DateTime, "datetime");
+
+    // https://html.spec.whatwg.org/multipage/#dom-time-datetime
+    make_setter!(SetDateTime, "datetime");
 }
