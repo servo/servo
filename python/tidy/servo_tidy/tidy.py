@@ -653,7 +653,7 @@ def check_for_possible_duplicate_json_keys(key_value_pairs):
 
 
 def check_for_alphabetical_sorted_json_keys(key_value_pairs):
-    for a, b in itertools.combinations(key_value_pairs, 2):
+    for a, b in zip(key_value_pairs[:-1], key_value_pairs[1:]):
         if a[0] > b[0]:
             raise UnsortedKeyError(a[0], b[0])
 
