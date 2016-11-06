@@ -1,16 +1,16 @@
 {
-  "title": "Servo Performance Comparison",
-  "name": "addon",
-  "version": "0.0.1",
-  "description": "Monitor website rendering performance",
-  "main": "index.js",
   "author": "The Servo team",
+  "description": "Monitor website rendering performance",
   "engines": {
-    "firefox": ">=38.0a1",
-    "fennec": ">=38.0a1"
+    "fennec": ">=38.0a1",
+    "firefox": ">=38.0a1"
   },
-  "license": "MPL",
   "keywords": [
     "jetpack"
-  ]
+  ],
+  "license": "MPL",
+  "main": "index.js",
+  "name": "addon",
+  "title": "Servo Performance Comparison",
+  "version": "0.0.1"
 }
