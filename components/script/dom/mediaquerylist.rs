@@ -126,7 +126,6 @@ pub struct WeakMediaQueryListVec {
     cell: DOMRefCell<WeakRefVec<MediaQueryList>>,
 }
 
-#[allow(unsafe_code)]
 impl WeakMediaQueryListVec {
     /// Create a new vector of weak references to MediaQueryList
     pub fn new() -> Self {
@@ -148,7 +147,6 @@ impl WeakMediaQueryListVec {
     }
 }
 
-#[allow(unsafe_code)]
 impl JSTraceable for WeakMediaQueryListVec {
     fn trace(&self, _: *mut JSTracer) {
         self.cell.borrow_mut().retain_alive()
