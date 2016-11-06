@@ -7,10 +7,11 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::{Parser, ToCss};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::f32::consts::PI;
 use std::fmt;
+use style_traits::ToCss;
 use url::Url;
 use values::computed::ComputedValueAsSpecified;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage, UrlExtraData};
@@ -27,7 +28,6 @@ pub enum Image {
 
 impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
             Image::Url(ref url, ref _extra_data) => {
                 url.to_css(dest)

@@ -29,9 +29,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 
 <%helpers:longhand name="outline-width" animatable="True">
     use app_units::Au;
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     impl ToCss for SpecifiedValue {

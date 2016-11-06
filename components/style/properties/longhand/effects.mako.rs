@@ -13,10 +13,10 @@ ${helpers.predefined_type("opacity",
                           animatable=True)}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True">
-    use cssparser::{self, ToCss};
+    use cssparser;
     use std::fmt;
     use parser::Parse;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     #[derive(Debug, Clone, PartialEq)]
@@ -189,9 +189,8 @@ ${helpers.predefined_type("opacity",
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="clip" products="servo" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
@@ -405,11 +404,9 @@ ${helpers.predefined_type("opacity",
 // FIXME: This prop should be animatable
 <%helpers:longhand name="filter" animatable="False">
     //pub use self::computed_value::T as SpecifiedValue;
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
-    use values::CSSFloat;
-    use values::HasViewportPercentage;
+    use style_traits::ToCss;
+    use values::{CSSFloat, HasViewportPercentage};
     use values::specified::{Angle, Length};
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -675,11 +672,9 @@ ${helpers.predefined_type("opacity",
 
 <%helpers:longhand name="transform" products="servo" animatable="True">
     use app_units::Au;
-    use values::CSSFloat;
-    use values::HasViewportPercentage;
-
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
+    use values::{CSSFloat, HasViewportPercentage};
 
     pub mod computed_value {
         use values::CSSFloat;
@@ -1293,12 +1288,10 @@ ${helpers.single_keyword("transform-style",
 
 <%helpers:longhand name="transform-origin" products="servo" animatable="True">
     use app_units::Au;
-    use values::LocalToCss;
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::specified::{Length, LengthOrPercentage, Percentage};
-
-    use cssparser::ToCss;
-    use std::fmt;
 
     pub mod computed_value {
         use properties::animated_properties::Interpolate;
@@ -1408,11 +1401,10 @@ ${helpers.predefined_type("perspective",
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="perspective-origin" products="servo" animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Percentage};
-
-    use cssparser::ToCss;
-    use std::fmt;
 
     pub mod computed_value {
         use values::computed::LengthOrPercentage;

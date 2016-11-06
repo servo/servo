@@ -5,8 +5,9 @@
 use app_units::Au;
 use ordered_float::NotNaN;
 use std::fmt;
+use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
-use values::{CSSFloat, LocalToCss, specified};
+use values::{CSSFloat, specified};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -79,7 +80,7 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
     }
 }
 
-impl ::cssparser::ToCss for CalcLengthOrPercentage {
+impl ToCss for CalcLengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match (self.length, self.percentage) {
             (None, Some(p)) => write!(dest, "{}%", p * 100.),
@@ -192,7 +193,7 @@ impl ToComputedValue for specified::LengthOrPercentage {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrPercentage {
+impl ToCss for LengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentage::Length(length) => length.to_css(dest),
@@ -279,7 +280,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrPercentageOrAuto {
+impl ToCss for LengthOrPercentageOrAuto {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
@@ -364,7 +365,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrPercentageOrAutoOrContent {
+impl ToCss for LengthOrPercentageOrAutoOrContent {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentageOrAutoOrContent::Length(length) => length.to_css(dest),
@@ -439,7 +440,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrPercentageOrNone {
+impl ToCss for LengthOrPercentageOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
@@ -498,7 +499,7 @@ impl ToComputedValue for specified::LengthOrNone {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrNone {
+impl ToCss for LengthOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrNone::Length(length) => length.to_css(dest),
@@ -546,7 +547,7 @@ impl ToComputedValue for specified::LengthOrNumber {
     }
 }
 
-impl ::cssparser::ToCss for LengthOrNumber {
+impl ToCss for LengthOrNumber {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrNumber::Length(len) => len.to_css(dest),

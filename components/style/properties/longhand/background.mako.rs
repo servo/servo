@@ -12,10 +12,9 @@ ${helpers.predefined_type("background-color", "CSSColor",
 
 <%helpers:vector_longhand name="background-image" animatable="False"
                           has_uncacheable_values="${product == 'gecko'}">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::specified::Image;
-    use values::LocalToCss;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
@@ -88,9 +87,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="background-position" animatable="True">
-        use cssparser::ToCss;
         use std::fmt;
-        use values::LocalToCss;
+        use style_traits::ToCss;
         use values::HasViewportPercentage;
         use values::specified::position::Position;
 
@@ -149,9 +147,10 @@ ${helpers.single_keyword("background-origin",
                          animatable=False)}
 
 <%helpers:vector_longhand name="background-size" animatable="True">
-    use cssparser::{ToCss, Token};
+    use cssparser::Token;
     use std::ascii::AsciiExt;
     use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     pub mod computed_value {

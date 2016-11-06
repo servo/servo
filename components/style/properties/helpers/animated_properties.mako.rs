@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, RGBA, ToCss};
+use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
 use properties::PropertyDeclaration;
 use properties::longhands;
@@ -20,6 +20,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp;
 use std::fmt;
+use style_traits::ToCss;
 use super::ComputedValues;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};

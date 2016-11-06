@@ -23,8 +23,9 @@
     pub mod computed_value {
         use super::super::list_style_type;
 
-        use cssparser::{self, ToCss};
+        use cssparser;
         use std::fmt;
+        use style_traits::ToCss;
 
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -175,11 +176,12 @@
 
 <%helpers:longhand name="counter-increment" products="servo" animatable="False">
     use std::fmt;
+    use style_traits::ToCss;
     use super::content;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
-    use cssparser::{ToCss, Token, serialize_identifier};
+    use cssparser::{Token, serialize_identifier};
     use std::borrow::{Cow, ToOwned};
 
     pub use self::computed_value::T as SpecifiedValue;

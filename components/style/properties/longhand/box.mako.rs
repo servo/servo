@@ -27,11 +27,12 @@
     %>
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
-
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
+        use style_traits::ToCss;
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -41,7 +42,7 @@
             % endfor
         }
 
-        impl ::cssparser::ToCss for T {
+        impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where W: ::std::fmt::Write {
                 match *self {
@@ -148,8 +149,9 @@ ${helpers.single_keyword("clear", "none left right both",
 
 <%helpers:longhand name="vertical-align"
                    animatable="True">
-  use cssparser::ToCss;
   use std::fmt;
+  use style_traits::ToCss;
+  use values::HasViewportPercentage;
 
   <% vertical_align = data.longhands_by_name["vertical-align"] %>
   <% vertical_align.keyword = Keyword("vertical-align",
@@ -157,7 +159,6 @@ ${helpers.single_keyword("clear", "none left right both",
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
 
-  use values::HasViewportPercentage;
   impl HasViewportPercentage for SpecifiedValue {
       fn has_viewport_percentage(&self) -> bool {
           match *self {
@@ -204,7 +205,7 @@ ${helpers.single_keyword("clear", "none left right both",
   pub mod computed_value {
       use app_units::Au;
       use std::fmt;
-      use values::LocalToCss;
+      use style_traits::ToCss;
       use values::{CSSFloat, computed};
       #[allow(non_camel_case_types)]
       #[derive(PartialEq, Copy, Clone, Debug)]
@@ -215,7 +216,7 @@ ${helpers.single_keyword("clear", "none left right both",
           % endfor
           LengthOrPercentage(computed::LengthOrPercentage),
       }
-      impl ::cssparser::ToCss for T {
+      impl ToCss for T {
           fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
               match *self {
                   % for keyword in vertical_align_keywords:
@@ -282,13 +283,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    animatable="False">
   use super::overflow_x;
 
-  use cssparser::ToCss;
   use std::fmt;
+  use style_traits::ToCss;
   use values::computed::ComputedValueAsSpecified;
+  use values::NoViewportPercentage;
 
   pub use self::computed_value::T as SpecifiedValue;
 
-  use values::NoViewportPercentage;
   impl NoViewportPercentage for SpecifiedValue {}
 
   impl ToCss for SpecifiedValue {
@@ -327,8 +328,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
         use values::computed::{Context, ToComputedValue};
 
         pub use values::computed::Time as SingleComputedValue;
@@ -426,9 +427,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         TransitionTimingFunction::Steps(1, StartEnd::End);
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use euclid::point::Point2D;
         use std::fmt;
+        use style_traits::ToCss;
         use values::computed::ComputedValueAsSpecified;
 
         pub use self::TransitionTimingFunction as SingleComputedValue;
@@ -581,8 +582,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
         // NB: Can't generate the type here because it needs all the longhands
         // generated beforehand.
         pub use properties::animated_properties::TransitionProperty;
@@ -646,9 +647,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
         use Atom;
+        use style_traits::ToCss;
 
         pub use Atom as SingleComputedValue;
 
@@ -732,8 +733,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
 
         pub use self::AnimationIterationCount as SingleComputedValue;
 
@@ -842,9 +843,8 @@ ${helpers.keyword_list("animation-fill-mode",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::specified::LengthOrPercentage;
 

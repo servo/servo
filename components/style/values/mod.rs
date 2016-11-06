@@ -7,7 +7,6 @@
 //! [values]: https://drafts.csswg.org/css-values/
 
 pub use cssparser::RGBA;
-pub use style_traits::ToCss as LocalToCss;
 
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
@@ -30,7 +29,7 @@ macro_rules! define_numbered_css_keyword_enum {
             }
         }
 
-        impl ::cssparser::ToCss for $name {
+        impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where W: ::std::fmt::Write {
                 match *self {
