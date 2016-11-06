@@ -1025,6 +1025,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.shutting_down { return; }
         self.shutting_down = true;
 
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
         // TODO: exit before the root frame is initialized?
         debug!("Removing root frame.");
         let root_frame_id = self.root_frame_id;
