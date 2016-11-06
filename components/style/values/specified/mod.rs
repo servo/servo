@@ -22,8 +22,8 @@ pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingSha
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use self::image::{SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
-pub use self::length::{Percentage, LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-pub use self::length::{LengthOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
+pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
+pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
 
 pub mod basic_shape;
 pub mod image;

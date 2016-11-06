@@ -11,7 +11,7 @@ use std::cmp;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
-use super::{Angle, SimplifiedValueNode, SimplifiedSumNode, Time};
+use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
 use values::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, computed};
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -713,6 +713,18 @@ impl ToCss for Percentage {
     }
 }
 
+impl Parse for Percentage {
+    #[inline]
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let context = AllowedNumericType::All;
+        match try!(input.next()) {
+            Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                Ok(Percentage(value.unit_value)),
+            _ => Err(())
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentage {
@@ -999,6 +1011,43 @@ impl LengthOrPercentageOrAutoOrContent {
             },
             _ => Err(())
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum LengthOrNumber {
+    Length(Length),
+    Number(Number),
+}
+
+impl HasViewportPercentage for LengthOrNumber {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            LengthOrNumber::Length(length) => length.has_viewport_percentage(),
+            _ => false
+        }
+    }
+}
+
+impl ToCss for LengthOrNumber {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            LengthOrNumber::Length(len) => len.to_css(dest),
+            LengthOrNumber::Number(number) => number.to_css(dest),
+        }
+    }
+}
+
+impl Parse for LengthOrNumber {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let length = input.try(Length::parse);
+        if let Ok(len) = length {
+            return Ok(LengthOrNumber::Length(len));
+        }
+
+        let num = try!(Number::parse_non_negative(input));
+        Ok(LengthOrNumber::Number(num))
     }
 }
 
