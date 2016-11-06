@@ -23,6 +23,7 @@ extern crate euclid;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+extern crate url;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from TNode.
@@ -61,3 +62,4 @@ pub mod cursor;
 pub mod values;
 pub mod viewport;
 
+pub use values::ToCss;
