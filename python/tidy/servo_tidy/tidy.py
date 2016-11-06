@@ -658,9 +658,12 @@ def check_for_alphabetical_sorted_json_keys(key_value_pairs):
             raise UnsortedKeyError(a[0], b[0])
 
 
-def check_json_requirements(key_value_pairs):
-    check_for_possible_duplicate_json_keys(key_value_pairs)
-    check_for_alphabetical_sorted_json_keys(key_value_pairs)
+def check_json_requirements(filename):
+    def check_fn(key_value_pairs):
+        check_for_possible_duplicate_json_keys(key_value_pairs)
+        if filename.startswith("./resources/"):
+            check_for_alphabetical_sorted_json_keys(key_value_pairs)
+    return check_fn
 
 
 def check_json(filename, contents):
@@ -668,7 +671,7 @@ def check_json(filename, contents):
         raise StopIteration
 
     try:
-        json.loads(contents, object_pairs_hook=check_json_requirements)
+        json.loads(contents, object_pairs_hook=check_json_requirements(filename))
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
