@@ -18,9 +18,9 @@
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
         use Atom;
+        use style_traits::ToCss;
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -137,8 +137,8 @@ ${helpers.single_keyword("font-variant",
                          animatable=False)}
 
 <%helpers:longhand name="font-weight" need_clone="True" animatable="True">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
 
     impl NoViewportPercentage for SpecifiedValue {}
@@ -271,10 +271,9 @@ ${helpers.single_keyword("font-variant",
 
 <%helpers:longhand name="font-size" need_clone="True" animatable="True">
     use app_units::Au;
-    use cssparser::ToCss;
     use std::fmt;
-    use values::FONT_MEDIUM_PX;
-    use values::HasViewportPercentage;
+    use style_traits::ToCss;
+    use values::{FONT_MEDIUM_PX, HasViewportPercentage};
     use values::specified::{LengthOrPercentage, Length, Percentage};
 
     impl ToCss for SpecifiedValue {
@@ -351,11 +350,10 @@ ${helpers.single_keyword("font-variant",
 </%helpers:longhand>
 
 <%helpers:longhand products="gecko" name="font-synthesis" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
-    use values::computed::ComputedValueAsSpecified;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
@@ -438,8 +436,8 @@ ${helpers.single_keyword("font-variant-position",
                          animatable=False)}
 
 <%helpers:longhand name="font-feature-settings" products="none" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -448,9 +446,9 @@ ${helpers.single_keyword("font-variant-position",
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use cssparser::Parser;
         use std::fmt;
+        use style_traits::ToCss;
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -555,8 +553,8 @@ ${helpers.single_keyword("font-variant-position",
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

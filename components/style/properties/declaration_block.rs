@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{DeclarationListParser, parse_important, ToCss};
+use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::fmt;
+use style_traits::ToCss;
 use stylesheets::Origin;
 use super::*;
 use url::Url;

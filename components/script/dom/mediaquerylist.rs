@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::ToCss;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -22,7 +21,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use style;
 use style::media_queries::{Device, MediaType};
-use style_traits::{PagePx, ViewportPx};
+use style_traits::{PagePx, ToCss, ViewportPx};
 
 pub enum MediaQueryListMatchState {
     Same(bool),

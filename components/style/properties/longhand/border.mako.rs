@@ -24,8 +24,8 @@
 % for side in ["top", "right", "bottom", "left"]:
     <%helpers:longhand name="border-${side}-width" animatable="True">
         use app_units::Au;
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
         use values::HasViewportPercentage;
         use values::specified::BorderWidth;
 

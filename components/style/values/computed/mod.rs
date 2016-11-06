@@ -6,6 +6,7 @@ use app_units::Au;
 use euclid::size::Size2D;
 use properties::ComputedValues;
 use std::fmt;
+use style_traits::ToCss;
 use super::{CSSFloat, specified};
 
 pub use cssparser::Color as CSSColor;
@@ -111,6 +112,7 @@ impl ToComputedValue for specified::Length {
     }
 }
 
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
@@ -139,7 +141,7 @@ impl ToComputedValue for specified::BorderRadiusSize {
     }
 }
 
-impl ::cssparser::ToCss for BorderRadiusSize {
+impl ToCss for BorderRadiusSize {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.0.width.to_css(dest));
         try!(dest.write_str("/"));

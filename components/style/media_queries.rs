@@ -8,12 +8,12 @@
 
 use Atom;
 use app_units::Au;
-use cssparser::{Delimiter, Parser, ToCss, Token};
+use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use serialize_comma_separated_list;
 use std::fmt::{self, Write};
-use style_traits::ViewportPx;
+use style_traits::{ToCss, ViewportPx};
 use values::specified;
 
 

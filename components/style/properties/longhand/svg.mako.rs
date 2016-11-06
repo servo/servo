@@ -51,9 +51,8 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animatable=False)}
 
 <%helpers:longhand name="clip-path" animatable="False" products="gecko">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::specified::basic_shape::{ShapeSource, GeometryBox};
 
@@ -148,18 +147,17 @@ ${helpers.single_keyword("mask-composite",
 
 <%helpers:vector_longhand name="mask-image" products="gecko" animatable="False"
                           has_uncacheable_values="${product == 'gecko'}">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use url::Url;
     use values::specified::{Image, UrlExtraData};
-    use values::LocalToCss;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
         use url::Url;
-        use values::{computed, LocalToCss};
+        use values::computed;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {

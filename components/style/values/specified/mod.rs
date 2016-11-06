@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::{self, Parser, ToCss, Token};
+use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
@@ -14,6 +14,7 @@ use std::ascii::AsciiExt;
 use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
+use style_traits::ToCss;
 use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use url::Url;
@@ -555,7 +556,6 @@ impl NoViewportPercentage for UrlOrNone {}
 
 impl ToCss for UrlOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
             UrlOrNone::Url(ref url, _) => {
                 url.to_css(dest)

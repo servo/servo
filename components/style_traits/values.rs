@@ -49,6 +49,13 @@ macro_rules! impl_to_css_for_predefined_type {
     };
 }
 
+impl_to_css_for_predefined_type!(f32);
+impl_to_css_for_predefined_type!(i32);
+impl_to_css_for_predefined_type!(u32);
+impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
+impl_to_css_for_predefined_type!(::cssparser::RGBA);
+impl_to_css_for_predefined_type!(::cssparser::Color);
+
 #[macro_export]
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
@@ -97,7 +104,7 @@ macro_rules! __define_css_keyword_enum__actual {
             }
         }
 
-        impl ::cssparser::ToCss for $name {
+        impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
                 where W: ::std::fmt::Write {
                     match *self {
