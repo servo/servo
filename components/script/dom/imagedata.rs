@@ -87,6 +87,6 @@ impl ImageDataMethods for ImageData {
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     unsafe fn Data(&self, _: *mut JSContext) -> NonZero<*mut JSObject> {
         assert!(!self.data.get().is_null());
-        unsafe { NonZero::new(self.data.get()) }
+        NonZero::new(self.data.get())
     }
 }

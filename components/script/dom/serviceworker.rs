@@ -80,6 +80,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         USVString(self.script_url.borrow().clone())
     }
 
+    #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#service-worker-postmessage
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         // Step 1

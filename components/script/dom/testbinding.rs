@@ -668,19 +668,23 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::Resolve(&self.global(), cx, v)
     }
 
     #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
     unsafe fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::Reject(&self.global(), cx, v)
     }
 
+    #[allow(unsafe_code)]
     unsafe fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
         p.resolve(cx, v);
     }
 
+    #[allow(unsafe_code)]
     unsafe fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
         p.reject(cx, v);
     }
@@ -727,7 +731,7 @@ impl TestBindingMethods for TestBinding {
         impl Callback for SimpleHandler {
             #[allow(unsafe_code)]
             fn callback(&self, cx: *mut JSContext, v: HandleValue) {
-                let global = GlobalScope::from_context(cx);
+                let global = unsafe { GlobalScope::from_context(cx) };
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
         }

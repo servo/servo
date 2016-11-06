@@ -344,9 +344,7 @@ impl FileReaderMethods for FileReader {
             FileReaderResult::String(ref string) =>
                 StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
-                unsafe {
-                    StringOrObject::Object((*arr_buffer.ptr.get()).to_object())
-                }
+                StringOrObject::Object((*arr_buffer.ptr.get()).to_object())
             }
         })
     }

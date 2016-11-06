@@ -618,8 +618,8 @@ impl WindowMethods for Window {
         doc.cancel_animation_frame(ident);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
     #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
     unsafe fn PostMessage(&self,
                    cx: *mut JSContext,
                    message: HandleValue,

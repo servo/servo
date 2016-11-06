@@ -156,7 +156,7 @@ impl CompiledEventListener {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let cx = object.global().get_cx();
-                            rooted!(in(cx) let error = event.Error(cx));
+                            rooted!(in(cx) let error = unsafe { event.Error(cx) });
                             let return_value = handler.Call_(object,
                                                              EventOrString::String(event.Message()),
                                                              Some(event.Filename()),
