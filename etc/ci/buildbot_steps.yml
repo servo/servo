@@ -55,15 +55,15 @@ linux-dev:
   - bash ./etc/ci/check_no_panic.sh
 
 linux-rel-wpt:
-  - ./mach build --release
+  - ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
-  - ./mach build --release
+  - ./mach build --release --with-debug-assertions
   - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log
-  - ./mach build-cef --release
+  - ./mach build-cef --release --with-debug-assertions
   - ./mach build-geckolib --release
   - ./mach test-stylo --release
   - bash ./etc/ci/lockfile_changed.sh
