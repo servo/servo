@@ -37,7 +37,7 @@ use devtools_traits::DevtoolsControlMsg;
 use filemanager_thread::{TestProvider, TEST_PROVIDER};
 use net::fetch::methods::{FetchContext, fetch};
 use net::filemanager_thread::FileManager;
-use net::http_loader::HttpState;
+use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
