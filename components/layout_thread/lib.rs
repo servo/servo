@@ -173,7 +173,7 @@ pub struct LayoutThread {
     first_reflow: bool,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: WorkQueue<SharedLayoutContext, WorkQueueData>,
+    parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
 
     /// Flag to indicate whether to use parallel operations
     parallel_flag: bool,
@@ -388,7 +388,7 @@ impl LayoutThread {
 
         let parallel_traversal = WorkQueue::new("LayoutWorker",
                                     thread_state::LAYOUT,
-                                    layout_threads);
+                                    layout_threads).ok();
 
         debug!("Possible layout Threads: {}", layout_threads);
 
@@ -717,14 +717,16 @@ impl LayoutThread {
         });
 
         // ... as do each of the LayoutWorkers, if present.
-        let sizes = self.parallel_traversal.heap_size_of_tls(heap_size_of_local_context);
-        for (i, size) in sizes.iter().enumerate() {
-            reports.push(Report {
-                path: path![formatted_url,
-                            format!("layout-worker-{}-local-context", i)],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: *size,
-            });
+        if let Some(ref parallel_traversal) = self.parallel_traversal {
+            let sizes = parallel_traversal.heap_size_of_tls(heap_size_of_local_context);
+            for (i, size) in sizes.iter().enumerate() {
+                reports.push(Report {
+                    path: path![formatted_url,
+                                format!("layout-worker-{}-local-context", i)],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: *size,
+                });
+            }
         }
 
         reports_chan.send(reports);
@@ -776,7 +778,9 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
-        self.parallel_traversal.shutdown();
+        if let Some(ref mut parallel_traversal) = self.parallel_traversal {
+            parallel_traversal.shutdown();
+        }
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
@@ -1144,10 +1148,10 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                if self.parallel_flag {
+                if let (true, Some(parallel_traversal)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
                     // Parallel mode
                     parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                    node, &shared_layout_context, &mut self.parallel_traversal);
+                    node, &shared_layout_context, parallel_traversal);
                 } else {
                     // Sequential mode
                     sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
@@ -1399,9 +1403,9 @@ impl LayoutThread {
                         || {
                     let profiler_metadata = self.profiler_metadata();
 
-                    if self.parallel_flag {
+                    if let (true, Some(parallel_traversal)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
                         // Parallel mode.
-                        LayoutThread::solve_constraints_parallel(&mut self.parallel_traversal,
+                        LayoutThread::solve_constraints_parallel(parallel_traversal,
                                                                  FlowRef::deref_mut(&mut root_flow),
                                                                  profiler_metadata,
                                                                  self.time_profiler_chan.clone(),
