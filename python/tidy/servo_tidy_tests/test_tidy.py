@@ -172,6 +172,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_json_with_unordered_keys(self):
+        tidy.config["check-ordered-json-keys"].append('python/tidy/servo_tidy_tests/unordered_key.json')
         errors = tidy.collect_errors_for_files(iterFile('unordered_key.json'), [tidy.check_json], [], print_text=False)
         self.assertEqual('Unordered key (found b before a)', errors.next()[2])
         self.assertNoMoreErrors(errors)

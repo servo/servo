@@ -27,6 +27,7 @@ CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
+    "check-ordered-json-keys": [],
     "ignore": {
         "files": [
             "./.",   # ignore hidden files
@@ -650,7 +651,8 @@ def check_for_alphabetical_sorted_json_keys(key_value_pairs):
 def check_json_requirements(filename):
     def check_fn(key_value_pairs):
         check_for_possible_duplicate_json_keys(key_value_pairs)
-        check_for_alphabetical_sorted_json_keys(key_value_pairs)
+        if filename in config["check-ordered-json-keys"]:
+            check_for_alphabetical_sorted_json_keys(key_value_pairs)
     return check_fn
 
 
