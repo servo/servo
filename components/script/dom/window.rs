@@ -21,7 +21,6 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
@@ -987,30 +986,7 @@ impl Window {
         global_scope.constellation_chan().send(message).unwrap();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
-    pub fn check_and_scroll_fragment(&self, fragment: &str) {
-        let doc = self.Document();
-        let body = doc.GetBody();
-        let target = doc.find_fragment_node(fragment);
-
-        // Step 1
-        doc.set_target_element(target.r().map(|e| &*e));
-
-        let target = target.r().map(|e| &*e).or_else(
-            // Step 2
-            || if fragment == "" {
-                body.r().map(|b| b.upcast::<Element>())
-            } else {
-                None
-            });
-
-        if let Some(element) = target {
-            // Step 3
-            self.scroll_fragment_point(element);
-        }
-    }
-
-    fn scroll_fragment_point(&self, element: &Element) {
+    pub fn scroll_fragment_point(&self, element: &Element) {
         // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
@@ -1374,8 +1350,8 @@ impl Window {
         if !force_reload && url[..Position::AfterQuery] == doc.url()[..Position::AfterQuery] {
             // Step 5
             if let Some(fragment) = url.fragment() {
-                self.check_and_scroll_fragment(fragment);
-                doc.set_url(&url);
+                doc.check_and_scroll_fragment(fragment);
+                doc.set_url(url.clone());
                 return
             }
         }

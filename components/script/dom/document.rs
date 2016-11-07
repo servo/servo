@@ -380,8 +380,8 @@ impl Document {
         self.url.borrow()
     }
 
-    pub fn set_url(&self, url: &Url) {
-        *self.url.borrow_mut() = url.clone();
+    pub fn set_url(&self, url: Url) {
+        *self.url.borrow_mut() = url;
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
@@ -575,6 +575,28 @@ impl Document {
                     // Step 8
                     None
                 })
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
+    pub fn check_and_scroll_fragment(&self, fragment: &str) {
+        let body = self.GetBody();
+        let target = self.find_fragment_node(fragment);
+
+        // Step 1
+        self.set_target_element(target.r());
+
+        let target = target.r().or_else(||
+                                        // Step 2
+                                        if fragment.is_empty() {
+                                            body.r().map(|b| b.upcast::<Element>())
+                                        } else {
+                                            None
+                                        });
+
+        if let Some(element) = target {
+            // Step 3
+            self.window.scroll_fragment_point(element);
         }
     }
 
