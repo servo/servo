@@ -89,7 +89,7 @@ use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeDat
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::option::Option;
 use std::ptr;
@@ -1220,7 +1220,6 @@ impl ScriptThread {
         }
 
         doc.mut_loader().inhibit_events();
-        let window = doc.window();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
@@ -1229,7 +1228,7 @@ impl ScriptThread {
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
-            window.check_and_scroll_fragment(fragment);
+            doc.check_and_scroll_fragment(fragment);
         };
     }
 
@@ -1239,7 +1238,9 @@ impl ScriptThread {
         let mut reports = vec![];
 
         for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url().as_str();
+            //FIXME: https://github.com/rust-lang/rust/issues/37785
+            let url = document.url();
+            let current_url = url.as_str();
 
             for child in document.upcast::<Node>().traverse_preorder() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);

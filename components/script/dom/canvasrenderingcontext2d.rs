@@ -239,6 +239,7 @@ impl CanvasRenderingContext2D {
                         // TODO(zbarsky): we should check the origin of the image against
                         // the entry settings object, but for now check it against the canvas' doc.
                         let node: &Node = &*self.canvas.upcast();
+                        //FIXME: https://github.com/rust-lang/rust/issues/37785
                         let doc = node.owner_doc();
                         let result = url.origin() == doc.url().origin();
                         result

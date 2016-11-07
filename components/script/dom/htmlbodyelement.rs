@@ -146,6 +146,7 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") |
             local_name!("text") => AttrValue::from_legacy_color(value.into()),
             local_name!("background") => {
+                //FIXME: https://github.com/rust-lang/rust/issues/37785
                 let doc = document_from_node(self);
                 let val = AttrValue::from_url(&*doc.url(), value.into());
                 val

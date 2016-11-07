@@ -157,8 +157,9 @@ impl XMLHttpRequest {
     fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
         let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
+            //FIXME: https://github.com/rust-lang/rust/issues/37785
             let document = window.Document();
-            let val = (Some((*document.url()).clone()), document.get_referrer_policy());
+            let val = (Some(document.url().clone()), document.get_referrer_policy());
             val
         } else {
             (None, None)

@@ -21,7 +21,6 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::js::RootedReference;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
@@ -987,51 +986,6 @@ impl Window {
         global_scope.constellation_chan().send(message).unwrap();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
-    pub fn check_and_scroll_fragment(&self, fragment: &str) {
-        let doc = self.Document();
-        let body = doc.GetBody();
-        let target = doc.find_fragment_node(fragment);
-
-        // Step 1
-        doc.set_target_element(target.r().map(|e| &*e));
-
-        let target = target.r().map(|e| &*e).or_else(
-            // Step 2
-            || if fragment == "" {
-                body.r().map(|b| b.upcast::<Element>())
-            } else {
-                None
-            });
-
-        if let Some(element) = target {
-            // Step 3
-            self.scroll_fragment_point(element);
-        }
-    }
-
-    fn scroll_fragment_point(&self, element: &Element) {
-        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
-        // Really what needs to happen is that this needs to go through layout to ask which
-        // layer the element belongs to, and have it send the scroll message to the
-        // compositor.
-        let rect = element.upcast::<Node>().bounding_content_box();
-        let global_scope = self.upcast::<GlobalScope>();
-
-        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
-        // paint thread currently does the same for drawing elements. This is important for pages
-        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
-        // don't have the device pixel ratio here, this might not be accurate, but should work as
-        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
-        // account the real device pixel ratio.
-        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
-                                 rect.origin.y.to_nearest_px() as f32);
-
-        let message = ConstellationMsg::ScrollFragmentPoint(global_scope.pipeline_id(),
-                                                            point, false);
-        global_scope.constellation_chan().send(message).unwrap();
-    }
-
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
         let size = self.current_viewport.get().size;
         let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
@@ -1374,8 +1328,8 @@ impl Window {
         if !force_reload && url[..Position::AfterQuery] == doc.url()[..Position::AfterQuery] {
             // Step 5
             if let Some(fragment) = url.fragment() {
-                self.check_and_scroll_fragment(fragment);
-                doc.set_url(&url);
+                doc.check_and_scroll_fragment(fragment);
+                doc.set_url(url.clone());
                 return
             }
         }
@@ -1402,6 +1356,7 @@ impl Window {
     }
 
     pub fn get_url(&self) -> Url {
+        //FIXME: https://github.com/rust-lang/rust/issues/37785
         let doc = self.Document();
         let val = (*doc.url()).clone();
         val
