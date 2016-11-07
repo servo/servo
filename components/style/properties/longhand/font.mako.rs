@@ -350,6 +350,58 @@ ${helpers.single_keyword("font-variant",
     }
 </%helpers:longhand>
 
+// https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop
+// FIXME: This prop should be animatable
+<%helpers:longhand products="none" name="font-size-adjust" animatable="False">
+    use values::CSSFloat;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        None,
+        Number(CSSFloat),
+    }
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+
+        pub use super::SpecifiedValue as T;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::None => dest.write_str("none"),
+                    T::Number(number) => write!(dest, "{}", number),
+                }
+            }
+        }
+    }
+
+    #[inline] pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::None
+    }
+
+    /// none | <number>
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use cssparser::Token;
+        use std::ascii::AsciiExt;
+
+        match try!(input) {
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
+            Ok(SpecifiedValue::None),
+            Token::Number(ref value) if value.value >= 0. =>
+            Ok(SpecifiedValue::Number(value.value)),
+            _ => Err(())
+        }
+    }
+</%helpers:longhand>
+
 <%helpers:longhand products="gecko" name="font-synthesis" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
