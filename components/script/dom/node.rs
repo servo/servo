@@ -207,6 +207,14 @@ impl Node {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
+        
+        let document = new_child.owner_doc();
+        
+        // This is used for layout optimization.
+        if new_child.is::<Element>() {
+            document.increment_dom_count();
+        }
+        
         match before {
             Some(ref before) => {
                 assert!(before.parent_node.get().r() == Some(self));
@@ -247,13 +255,7 @@ impl Node {
             node.set_flag(IS_IN_DOC, parent_in_doc);
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
         }
-        let document = new_child.owner_doc();
         document.content_and_heritage_changed(new_child, NodeDamage::OtherNodeDamage);
-
-        // This is used for layout optimization.
-        if new_child.is::<Element>() {
-            document.increment_dom_count();
-        }
     }
 
     /// Removes the given child from this node's list of children.
