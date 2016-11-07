@@ -41,6 +41,19 @@ function testTextDecoding(body, expectedText, urlParameter, title)
             });
         });
     }, title + " with fetched data (UTF-16 charset)");
+
+    promise_test(function(test) {
+        return new Response(body).arrayBuffer().then(function(buffer) {
+            assert_array_equals(new Uint8Array(buffer), encode_utf8(body), "Response.arrayBuffer() should contain data encoded as UTF-8");
+        });
+    }, title + " (Response object)");
+
+    promise_test(function(test) {
+        return new Request("", {method: "POST", body: body}).arrayBuffer().then(function(buffer) {
+            assert_array_equals(new Uint8Array(buffer), encode_utf8(body), "Request.arrayBuffer() should contain data encoded as UTF-8");
+        });
+    }, title + " (Request object)");
+
 }
 
 var utf8WithBOM = "\xef\xbb\xbf\xe4\xb8\x89\xe6\x9d\x91\xe3\x81\x8b\xe3\x81\xaa\xe5\xad\x90";

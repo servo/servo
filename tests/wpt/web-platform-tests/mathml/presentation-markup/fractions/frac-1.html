@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Fraction</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS3.SSS2">
+<meta name="assert" content="Verify fraction metrics for different sizes of numerator and denominator.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  math, mspace {
+    font-size: 10px;
+  }
+</style>
+<script>
+  /* This test does not use any specific fonts and so the exact rules are not
+  specified precisely. We assume reasonable values for numerator/denominator
+  shifts and spacing. */
+
+  function getBox(aId) {
+    var box = document.getElementById(aId).getBoundingClientRect();
+    box.middle = (box.bottom + box.top) / 2;
+    box.center = (box.left + box.right) / 2;
+    return box;
+  }
+
+  function getFractionAxis(aId) {
+    return (getBox(aId).top * den.height + getBox(aId).bottom * num.height) / (num.height + den.height);
+  }
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+    test(function() {
+      var e = 3;
+      var mathAxis = getBox("axis").middle;
+      // For stacks, nothing in the OpenType MATH specification seems to ensure
+      // that the gap is split symmetrically around the math axis so we only
+      // do the following verification for standard fractions.
+      for (var i = 0; i <= 4; i++) {
+        var frac = getBox("frac" + i);
+        var num = getBox("frac" + i + "num");
+        var den = getBox("frac" + i + "den");
+        // To estimate the fraction axis, we calculate barycenter between the
+        // top and bottom of the fraction, using the heights of numerator and
+        // denominator as weights.
+        var fracAxis = (frac.top * den.height + frac.bottom * num.height) / (num.height + den.height);
+        assert_approx_equals(fracAxis, mathAxis, e, "frac" + i + " fraction bar");
+      }
+    }, "Fraction axis is aligned on the math axis");
+
+    test(function() {
+      for (var i = 0; i < 10; i++) {
+        assert_less_than(getBox("frac" + i + "num").bottom, getBox("frac" + i + "den").top, "numerator is above denominator");
+        assert_less_than(getBox("frac" + i + "den").top - getBox("frac" + i + "num").bottom, 5, "The gap between numerator and denominator is not too large");
+      }
+    }, "Vertical positions of numerator and denominator");
+
+    test(function() {
+      var e = 3;
+      for (var i = 0; i < 10; i++)
+        assert_approx_equals(getBox("frac" + i + "num").center, getBox("frac" + i + "den").center, e, "numerator and denominator are horizontally centered");
+    }, "Horizontal alignments of numerator and denominator");
+
+    test(function() {
+      var e = 5;
+      for (var i = 0; i < 10; i++) {
+        var frac = getBox("frac" + i);
+        var num = getBox("frac" + i + "num");
+        var den = getBox("frac" + i + "den");
+        assert_approx_equals(frac.height, den.bottom - num.top, e, "height of frac " + i + " is determined by the bottom/top sides of the denominator/numerator");
+        assert_approx_equals(frac.width, Math.max(num.right, den.right) - Math.min(num.left, den.left), e, "width of frac " + i + " is determined by the left/right sides of the denominator/numerator (plus some spacing)");
+      }
+    }, "Dimension of mfrac elements");
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <p>
+    <math>
+      <mo id="axis">−</mo>
+      <mfrac id="frac0">
+        <mspace id="frac0num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac0den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac1">
+        <mspace id="frac1num" width="30px" height="15px" mathbackground="blue"/>
+        <mspace id="frac1den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac2">
+        <mspace id="frac2num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac2den" width="30px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac3">
+        <mspace id="frac3num" width="15px" height="30px" mathbackground="blue"/>
+        <mspace id="frac3den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac4">
+        <mspace id="frac4num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac4den" width="15px" height="30px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac5" linethickness="0px">
+        <mspace id="frac5num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac5den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac6" linethickness="0px">
+        <mspace id="frac6num" width="30px" height="15px" mathbackground="blue"/>
+        <mspace id="frac6den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac7" linethickness="0px">
+        <mspace id="frac7num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac7den" width="30px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac8" linethickness="0px">
+        <mspace id="frac8num" width="15px" height="30px" mathbackground="blue"/>
+        <mspace id="frac8den" width="15px" height="15px" mathbackground="green"/>
+      </mfrac>
+      <mfrac id="frac9" linethickness="0px">
+        <mspace id="frac9num" width="15px" height="15px" mathbackground="blue"/>
+        <mspace id="frac9den" width="15px" height="30px" mathbackground="green"/>
+      </mfrac>
+    </math>
+  </p>
+  <hr/>
+</body>
+</html>

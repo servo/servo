@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Custom Elements: Enqueue a custom element upgrade reaction</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="Enqueue a custom element upgrade reaction must upgrade a custom element">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#concept-try-upgrade">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#enqueue-a-custom-element-upgrade-reaction">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/custom-elements-helpers.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+class PredefinedCustomElement extends HTMLElement {}
+customElements.define('predefined-custom-element', PredefinedCustomElement);
+
+var customElementNumber = 1;
+function generateNextCustomElementName() { return 'custom-' + customElementNumber++; }
+
+// Tests for documents without a browsing context.
+document_types().filter(function (entry) { return !entry.isOwner && !entry.hasBrowsingContext; }).forEach(function (entry) {
+    var documentName = entry.name;
+    var getDocument = entry.create;
+
+    promise_test(function () {
+        return getDocument().then(function (doc) {
+            assert_false(doc.createElement('predefined-custom-element') instanceof PredefinedCustomElement);
+        });
+    }, 'Creating an element in ' + documentName + ' must not enqueue a custom element upgrade reaction'
+        + ' because the document does not have a browsing context');
+
+    promise_test(function () {
+        var name = generateNextCustomElementName();
+        var unresolvedElement = document.createElement(name);
+
+        assert_equals(unresolvedElement.__proto__, HTMLElement.prototype,
+            '[[Prototype]] internal slot of the unresolved custom element must be the HTMLElement prototype');
+
+        return getDocument().then(function (doc) {
+            var unresolvedElementInDoc = doc.createElement(name);
+            var prototype = (unresolvedElementInDoc.namespaceURI == 'http://www.w3.org/1999/xhtml' ? HTMLElement : Element).prototype;
+
+            assert_equals(unresolvedElementInDoc.__proto__, prototype,
+                '[[Prototype]] internal slot of the unresolved custom element must be the ' + prototype.toString() + ' prototype');
+            var someCustomElement = class extends HTMLElement {};
+            customElements.define(name, someCustomElement);
+            assert_equals(unresolvedElementInDoc.__proto__, prototype, '"define" must not upgrade a disconnected unresolved custom elements');
+            doc.documentElement.appendChild(unresolvedElementInDoc);
+            assert_equals(unresolvedElementInDoc.__proto__, prototype,
+                'Inserting an element into a document without a browsing context must not enqueue a custom element upgrade reaction');
+        });
+    }, 'Creating an element in ' + documentName + ' and inserting into the document must not enqueue a custom element upgrade reaction');
+
+    promise_test(function () {
+        var name = generateNextCustomElementName();
+        var unresolvedElement = document.createElement(name);
+
+        assert_equals(unresolvedElement.__proto__, HTMLElement.prototype,
+            '[[Prototype]] internal slot of the unresolved custom element must be the HTMLElement prototype');
+
+        return getDocument().then(function (doc) {
+            var unresolvedElementInDoc = doc.createElement(name);
+            var prototype = (unresolvedElementInDoc.namespaceURI == 'http://www.w3.org/1999/xhtml' ? HTMLElement : Element).prototype;
+
+            assert_equals(unresolvedElementInDoc.__proto__, prototype,
+                '[[Prototype]] internal slot of the unresolved custom element must be the ' + prototype.toString() + ' prototype');
+            var someCustomElement = class extends HTMLElement {};
+            customElements.define(name, someCustomElement);
+            assert_equals(unresolvedElementInDoc.__proto__, prototype, '"define" must not upgrade a disconnected unresolved custom elements');
+            document.body.appendChild(unresolvedElementInDoc);
+
+            if (unresolvedElementInDoc.namespaceURI == 'http://www.w3.org/1999/xhtml') {
+                assert_equals(unresolvedElementInDoc.__proto__, someCustomElement.prototype,
+                    'Inserting an element into a document with a browsing context must enqueue a custom element upgrade reaction');
+            } else {
+                assert_equals(unresolvedElementInDoc.__proto__, prototype,
+                    'Looking up a custom element definition must return null if the element is not in the HTML namespace');
+            }
+        });
+    }, 'Creating an element in ' + documentName + ' and adopting back to a document with browsing context must enqueue a custom element upgrade reaction');
+
+});
+
+// Tests for documents with a browsing context.
+document_types().filter(function (entry) { return !entry.isOwner && entry.hasBrowsingContext; }).forEach(function (entry) {
+    var documentName = entry.name;
+    var getDocument = entry.create;
+
+    promise_test(function () {
+        return getDocument().then(function (doc) {
+            assert_false(doc.createElement('predefined-custom-element') instanceof PredefinedCustomElement);
+        });
+    }, 'Creating an element in ' + documentName + ' must not enqueue a custom element upgrade reaction if there is no matching definition');
+
+    promise_test(function () {
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class DistinctPredefinedCustomElement extends docWindow.HTMLElement { };
+            docWindow.customElements.define('predefined-custom-element', DistinctPredefinedCustomElement);
+            assert_true(doc.createElement('predefined-custom-element') instanceof DistinctPredefinedCustomElement);
+        });
+    }, 'Creating an element in ' + documentName + ' must enqueue a custom element upgrade reaction if there is a matching definition');
+
+    promise_test(function () {
+        var unresolvedElement = document.createElement('unresolved-element');
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class UnresolvedElement extends docWindow.HTMLElement { };
+            var unresolvedElementInDoc = doc.createElement('unresolved-element');
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, docWindow.HTMLElement.prototype);
+
+            docWindow.customElements.define('unresolved-element', UnresolvedElement);
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, docWindow.HTMLElement.prototype);
+
+        });
+    }, '"define" in ' + documentName + ' must not enqueue a custom element upgrade reaction on a disconnected unresolved custom element');
+
+    promise_test(function () {
+        var unresolvedElement = document.createElement('unresolved-element');
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class UnresolvedElement extends docWindow.HTMLElement { };
+            var unresolvedElementInDoc = doc.createElement('unresolved-element');
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, docWindow.HTMLElement.prototype);
+
+            docWindow.customElements.define('unresolved-element', UnresolvedElement);
+            doc.documentElement.appendChild(unresolvedElementInDoc);
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, UnresolvedElement.prototype);
+        });
+    }, 'Inserting an unresolved custom element into ' + documentName + ' must enqueue a custom element upgrade reaction');
+
+    promise_test(function () {
+        var unresolvedElement = document.createElement('unresolved-element');
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class UnresolvedElement extends docWindow.HTMLElement { };
+            var unresolvedElementInDoc = doc.createElement('unresolved-element');
+            doc.documentElement.appendChild(unresolvedElementInDoc);
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, docWindow.HTMLElement.prototype);
+
+            docWindow.customElements.define('unresolved-element', UnresolvedElement);
+
+            assert_equals(unresolvedElement.__proto__, HTMLElement.prototype);
+            assert_equals(unresolvedElementInDoc.__proto__, UnresolvedElement.prototype);
+        });
+    }, '"define" in ' + documentName + ' must enqueue a custom element upgrade reaction on a connected unresolved custom element');
+
+    promise_test(function () {
+        var unresolvedElement = document.createElement('unresolved-element');
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class UnresolvedElement extends docWindow.HTMLElement { };
+            assert_false(unresolvedElement instanceof UnresolvedElement);
+            docWindow.customElements.define('unresolved-element', UnresolvedElement);
+            doc.adoptNode(unresolvedElement);
+            assert_false(unresolvedElement instanceof UnresolvedElement);
+        });
+    }, 'Adopting (and leaving disconnceted) an unresolved custom element into ' + documentName + ' must not enqueue a custom element upgrade reaction');
+
+    promise_test(function () {
+        var unresolvedElement = document.createElement('unresolved-element');
+        return getDocument().then(function (doc) {
+            var docWindow = doc.defaultView;
+            class UnresolvedElement extends docWindow.HTMLElement { };
+            assert_false(unresolvedElement instanceof UnresolvedElement);
+            docWindow.customElements.define('unresolved-element', UnresolvedElement);
+            doc.documentElement.appendChild(unresolvedElement);
+            assert_true(unresolvedElement instanceof UnresolvedElement);
+        });
+    }, 'Adopting and inserting an unresolved custom element into ' + documentName + ' must enqueue a custom element upgrade reaction');
+
+});
+
+</script>
+</body>
+</html>

@@ -17,9 +17,4 @@ test(function() {
   assert_true(ev.timeStamp > 0)
   assert_true("initEvent" in ev)
 }, "Default event values.")
-test(function() {
-  var e = document.createEvent("ProgressEvent");
-  var eProto = Object.getPrototypeOf(e);
-  assert_equals(eProto, ProgressEvent.prototype);
-}, "document.createEvent() should work with ProgressEvent.");
 </script>

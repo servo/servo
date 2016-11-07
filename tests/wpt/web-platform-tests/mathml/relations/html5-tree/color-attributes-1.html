@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Color Attributes</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2"/>
+<meta name="assert" content="Verify that the mathcolor and mathbackground attributes are supported on the math element.">
+<link rel="match" href="color-attributes-1-ref.html"/>
+<style>
+  #content {
+    color: red;
+  }
+  #content > div {
+    position: absolute;
+  }
+</style>
+</head>
+<body>
+
+  <p>Test passes if you see the text below is written in white on a green
+    background.</p>
+
+  <div id="content">
+    <div>
+      <math style="background: red;">
+        <mtext style="visibility: hidden;">Hello World!</mtext>
+      </math>
+    </div>
+    <div>
+      <math mathcolor="white" mathbackground="green">
+        <mtext>Hello World!</mtext>
+      </math>
+    </div>
+  </div>
+
+</body>
+</html>

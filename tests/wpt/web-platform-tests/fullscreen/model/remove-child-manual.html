@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Remove the child of the fullscreen element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="parent">
+    <div></div>
+</div>
+<script>
+async_test(function(t)
+{
+    var parent = document.getElementById("parent");
+    trusted_request(parent);
+    document.onfullscreenchange = t.step_func(function()
+    {
+        assert_equals(document.fullscreenElement, parent);
+        parent.textContent = ""; // removes all children
+        document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+        // A fullscreenchange event would be fired after an async section
+        // and an animation frame task, so wait until after that.
+        t.step_timeout(function()
+        {
+            requestAnimationFrame(t.step_func_done());
+        }, 0);
+    });
+});
+</script>

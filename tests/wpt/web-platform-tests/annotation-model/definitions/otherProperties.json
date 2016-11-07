@@ -51,16 +51,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/createdPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/createdPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -73,12 +73,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["created"] ,
-          "$ref": "#/definitions/createdValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["created"] ,
+              "$ref": "#/definitions/createdValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -110,7 +110,7 @@
       "title": "Collate: generated key with qualifying body/target classes",
       "description": "Supports implementation check of generated (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Sections 3.2.1-6, 3.3)",
       "oneOf": [
-      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
+        {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
       ],
       "allOf": [
       {"$ref": "#/definitions/generatedValidIfPresent"},
@@ -164,16 +164,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/modifiedPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/modifiedPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -186,12 +186,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["modified"] ,
-          "$ref": "#/definitions/modifiedValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["modified"] ,
+              "$ref": "#/definitions/modifiedValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -269,16 +269,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -291,12 +291,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["creator"] ,
-          "$ref": "#/definitions/creatorValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["creator"] ,
+              "$ref": "#/definitions/creatorValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -325,16 +325,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/singleCreatorPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/singleCreatorPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -347,12 +347,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["creator"] ,
-          "$ref": "#/definitions/creatorSingularIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["creator"] ,
+              "$ref": "#/definitions/creatorSingularIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -386,7 +386,7 @@
       "title": "Collate: generator key with qualifying body/target classes",
       "description": "Supports implementation check of generator (if/when) used on External Web Resources, Specific Resources, Textual Body Resources (Section 3.3.1)",
       "oneOf": [
-      {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
+         {"$ref": "annotations.json#/definitions/annotationTypeValueFound"}
       ],
       "allOf": [
       {"required": ["generator"]},
@@ -474,16 +474,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/audiencePropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/audiencePropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -496,12 +496,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["audience"] ,
-          "$ref": "#/definitions/audienceValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["audience"] ,
+              "$ref": "#/definitions/audienceValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -551,16 +551,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/accessibilityPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/accessibilityPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -573,12 +573,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["accessibility"] ,
-          "$ref": "#/definitions/accessibilityValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["accessibility"] ,
+              "$ref": "#/definitions/accessibilityValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -623,16 +623,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/rightsPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/rightsPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -645,12 +645,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["rights"] ,
-          "$ref": "#/definitions/rightsValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["rights"] ,
+              "$ref": "#/definitions/rightsValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -689,16 +689,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/canonicalPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/canonicalPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -711,12 +711,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["canonical"] ,
-          "$ref": "#/definitions/canonicalValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["canonical"] ,
+              "$ref": "#/definitions/canonicalValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -761,16 +761,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/viaPropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/viaPropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -783,12 +783,12 @@
       "type": "object",
       "properties":
       {
-        "source":
-        {
-          "type": "object",
-          "required": ["via"] ,
-          "$ref": "#/definitions/viaValidIfPresent"
-        }
+          "source":
+          {
+              "type": "object",
+              "required": ["via"] ,
+              "$ref": "#/definitions/viaValidIfPresent"
+          }
       },
       "required": ["source"]
     },
@@ -831,16 +831,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/purposePropertyFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/purposePropertyFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -866,11 +866,11 @@
     "sourceCreatorAgentWithIdFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithIdFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithIdFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithIdFound":
@@ -878,16 +878,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithIdFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithIdFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -954,11 +954,11 @@
     "sourceCreatorAgentWithTypeFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithTypeFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithTypeFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithTypeFound":
@@ -966,16 +966,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithTypeFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithTypeFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1057,11 +1057,11 @@
     "sourceCreatorAgentWithNameFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithNameFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithNameFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithNameFound":
@@ -1069,16 +1069,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithNameFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithNameFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1115,11 +1115,11 @@
     "sourceCreatorAgentWithSingularNameFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithSingularNameFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithSingularNameFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithSingularNameFound":
@@ -1127,16 +1127,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithSingularNameFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithSingularNameFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1196,11 +1196,11 @@
     "sourceCreatorAgentWithSingularNicknameFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithSingularNicknameFound":
@@ -1208,16 +1208,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithSingularNicknameFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1280,11 +1280,11 @@
     "sourceCreatorAgentWithEmailFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithEmailFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithEmailFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithEmailFound":
@@ -1292,16 +1292,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithEmailFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithEmailFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1360,11 +1360,11 @@
     "sourceCreatorAgentWithEmail_sha1Found":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithEmail_sha1Found":
@@ -1372,16 +1372,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithEmail_sha1Found" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -1442,11 +1442,11 @@
     "sourceCreatorAgentWithHomepageFound":
     { "type": "object",
       "properties":
-      {
-        "source":
-        { "$ref": "#/definitions/creatorAgentWithHomepageFound" }
-      },
-      "required": ["source"]
+        {
+            "source":
+            { "$ref": "#/definitions/creatorAgentWithHomepageFound" }
+        },
+       "required": ["source"]
     },
 
     "itemCreatorAgentWithHomepageFound":
@@ -1454,16 +1454,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/creatorAgentWithHomepageFound" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/creatorAgentWithHomepageFound" } }
+              }
           }
-        }
       },
       "required": ["items"]
     }

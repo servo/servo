@@ -5,120 +5,124 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/custom-elements-helpers.js"></script>
-
+<body>
 <script>
 "use strict";
 
 test_with_window(w => {
-  let afterDefinition = false;
+  let beforeDefinition = true;
   const proto1 = { "proto": "number one" };
   const proto2 = { "proto": "number two" };
 
-  const TestElement = (function () {
-    assert_throws({ name: "prototype throws" }, () => {
-      const o = Reflect.construct(w.HTMLElement, [], new.target);
+  function TestElement() {
+    const o = Reflect.construct(w.HTMLElement, [], new.target);
+    assert_equals(Object.getPrototypeOf(o), proto2,
+      "Must use the value returned from new.target.prototype");
+    assert_not_equals(Object.getPrototypeOf(o), proto1,
+      "Must not use the prototype stored at definition time");
+  }
 
-      assert_equals(Object.getPrototypeOf(o), proto2,
-        "Must use the value returned from new.target.prototype");
-      assert_not_equals(Object.getPrototypeOf(o), proto1,
-        "Must not use the prototype stored at definition time");
-    });
-  }).bind({});
-
-  Object.defineProperty(TestElement, "prototype", {
-    get() {
-      return beforeDefinition ? proto1 : proto2;
-    }
+  const ElementWithDynamicPrototype = new Proxy(TestElement, {
+      get: function (target, name) {
+        if (name == "prototype")
+          return beforeDefinition ? proto1 : proto2;
+        return target[name];
+      }
   });
 
-  w.customElements.define("test-element", TestElement);
+  w.customElements.define("test-element", ElementWithDynamicPrototype);
 
-  beforeDefinition = true;
-  new TestElement();
-
+  beforeDefinition = false;
+  new ElementWithDynamicPrototype();
 }, "Use NewTarget's prototype, not the one stored at definition time");
 
 test_with_window(w => {
   // We have to not throw during define(), but throw during super()
   let throws = false;
 
-  const TestElement = (function () {
+  function TestElement() {
+    throws = true;
     assert_throws({ name: "prototype throws" }, () => {
-      return Reflect.construct(w.HTMLElement, [], new.target);
+      Reflect.construct(w.HTMLElement, [], new.target);
     });
-  }).bind({});
+  }
 
-  Object.defineProperty(TestElement, "prototype", {
-    get() {
-      if (throws) {
+  const ElementWithDynamicPrototype = new Proxy(TestElement, {
+    get: function (target, name) {
+      if (throws && name == "prototype")
         throw { name: "prototype throws" };
-      }
-      return {};
+      return target[name];
     }
   });
 
-  w.customElements.define("test-element", TestElement);
+  w.customElements.define("test-element", ElementWithDynamicPrototype);
 
-  throws = true;
-  new TestElement();
+  new ElementWithDynamicPrototype();
 
 }, "Rethrow any exceptions thrown while getting the prototype");
 
-test_with_window(w => {
-  for (const notAnObject of [null, undefined, 5, "string"]) {
+[null, undefined, 5, "string"].forEach(function (notAnObject) {
+  test_with_window(w => {
     // We have to return an object during define(), but not during super()
     let returnNotAnObject = false;
 
-    const TestElement = (function () {
+    function TestElement() {
       const o = Reflect.construct(w.HTMLElement, [], new.target);
 
-      assert_equals(Object.getPrototypeOf(o), window.HTMLElement,
+      assert_equals(Object.getPrototypeOf(new.target), window.Function.prototype);
+      assert_equals(Object.getPrototypeOf(o), window.HTMLElement.prototype,
         "Must use the HTMLElement from the realm of NewTarget");
-      assert_not_equals(Object.getPrototypeOf(o), w.HTMLElement,
+      assert_not_equals(Object.getPrototypeOf(o), w.HTMLElement.prototype,
         "Must not use the HTMLElement from the realm of the active function object (w.HTMLElement)");
 
       return o;
-    }).bind({});
+    }
 
-    Object.defineProperty(TestElement, "prototype", {
-      get() {
-        return returnNotAnObject ? notAnObject : {};
+    const ElementWithDynamicPrototype = new Proxy(TestElement, {
+      get: function (target, name) {
+        if (name == "prototype")
+          return returnNotAnObject ? notAnObject : {};
+        return target[name];
       }
     });
 
-    w.customElements.define("test-element", TestElement);
+    w.customElements.define("test-element", ElementWithDynamicPrototype);
 
     returnNotAnObject = true;
-    new TestElement();
-  }
-}, "If prototype is not object, derives the fallback from NewTarget's realm (autonomous custom elements)");
+    new ElementWithDynamicPrototype();
+  }, "If prototype is not object (" + notAnObject + "), derives the fallback from NewTarget's realm (autonomous custom elements)");
+});
 
-test_with_window(w => {
-  for (const notAnObject of [null, undefined, 5, "string"]) {
+[null, undefined, 5, "string"].forEach(function (notAnObject) {
+  test_with_window(w => {
     // We have to return an object during define(), but not during super()
     let returnNotAnObject = false;
 
-    const TestElement = (function () {
+    function TestElement() {
       const o = Reflect.construct(w.HTMLParagraphElement, [], new.target);
 
-      assert_equals(Object.getPrototypeOf(o), window.HTMLParagraphElement,
+      assert_equals(Object.getPrototypeOf(o), window.HTMLParagraphElement.prototype,
         "Must use the HTMLParagraphElement from the realm of NewTarget");
-      assert_not_equals(Object.getPrototypeOf(o), w.HTMLParagraphElement,
+      assert_not_equals(Object.getPrototypeOf(o), w.HTMLParagraphElement.prototype,
         "Must not use the HTMLParagraphElement from the realm of the active function object (w.HTMLParagraphElement)");
 
       return o;
-    }).bind({});
+    }
 
-    Object.defineProperty(TestElement, "prototype", {
-      get() {
-        return returnNotAnObject ? notAnObject : {};
+    const ElementWithDynamicPrototype = new Proxy(TestElement, {
+      get: function (target, name) {
+        if (name == "prototype")
+          return returnNotAnObject ? notAnObject : {};
+        return target[name];
       }
     });
 
-    w.customElements.define("test-element", TestElement, { extends: "p" });
+    w.customElements.define("test-element", ElementWithDynamicPrototype, { extends: "p" });
 
     returnNotAnObject = true;
-    new TestElement();
-  }
-}, "If prototype is not object, derives the fallback from NewTarget's realm (customized built-in elements)");
+    new ElementWithDynamicPrototype();
+  }, "If prototype is not object (" + notAnObject + "), derives the fallback from NewTarget's realm (customized built-in elements)");
+});
+
 </script>
+</body>

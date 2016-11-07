@@ -726,7 +726,6 @@ interface CSSStyleDeclaration {
            attribute DOMString marginRight;
            attribute DOMString marginBottom;
            attribute DOMString marginLeft;
-           attribute DOMString markerOffset;
            attribute DOMString marks;
            attribute DOMString maxHeight;
            attribute DOMString maxWidth;
@@ -883,7 +882,7 @@ interface HTMLAllCollection {
 
 interface HTMLFormControlsCollection : HTMLCollection {
   // inherits length and item()
-  legacycaller getter (RadioNodeList or Element)? namedItem(DOMString name); // shadows inherited namedItem()
+  getter (RadioNodeList or Element)? namedItem(DOMString name); // shadows inherited namedItem()
 };
 
 interface RadioNodeList : NodeList {
@@ -891,13 +890,12 @@ interface RadioNodeList : NodeList {
 };
 
 interface HTMLOptionsCollection : HTMLCollection {
-  // inherits item()
-           attribute unsigned long length; // shadows inherited length
-  legacycaller HTMLOptionElement? (DOMString name);
-  setter creator void (unsigned long index, HTMLOptionElement? option);
-  void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
-  void remove(long index);
-           attribute long selectedIndex;
+  // inherits item(), namedItem()
+  attribute unsigned long length; // shadows inherited length
+  [CEReactions] setter void (unsigned long index, HTMLOptionElement? option);
+  [CEReactions] void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
+  [CEReactions] void remove(long index);
+  attribute long selectedIndex;
 };
 
 typedef sequence<any> PropertyValueArray;
@@ -1179,7 +1177,6 @@ interface HTMLEmbedElement : HTMLElement {
            attribute DOMString width;
            attribute DOMString height;
   Document getSVGDocument();
-  legacycaller any (any... arguments);
 
   // also has obsolete members
 };
@@ -1202,8 +1199,6 @@ interface HTMLObjectElement : HTMLElement {
   boolean checkValidity();
   boolean reportValidity();
   void setCustomValidity(DOMString error);
-
-  legacycaller any (any... arguments);
 
   // also has obsolete members
 };
@@ -2628,9 +2623,9 @@ interface MessageEvent : Event {
   readonly attribute DOMString origin;
   readonly attribute DOMString lastEventId;
   readonly attribute (WindowProxy or MessagePort)? source;
-  readonly attribute MessagePort[]? ports;
+  readonly attribute FrozenArray<MessagePort> ports;
 
-  void initMessageEvent(DOMString typeArg, boolean canBubbleArg, boolean cancelableArg, any dataArg, DOMString originArg, DOMString lastEventIdArg, (WindowProxy or MessagePort) sourceArg, MessagePort[]? portsArg);
+  void initMessageEvent(DOMString type, boolean bubbles, boolean cancelable, any data, DOMString origin, DOMString lastEventId, (WindowProxy or MessagePort) source, sequence<MessagePort> ports);
 };
 
 dictionary MessageEventInit : EventInit {

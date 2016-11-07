@@ -11,8 +11,7 @@ function testAlias(arg, iface) {
   var ev;
   test(function() {
     ev = document.createEvent(arg);
-    assert_true(ev instanceof window[iface]);
-    assert_true(ev instanceof Event);
+    assert_equals(Object.getPrototypeOf(ev), window[iface].prototype);
   }, arg + " should be an alias for " + iface + ".");
   test(function() {
     assert_equals(ev.type, "",

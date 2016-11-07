@@ -107,12 +107,8 @@ test(function(t) {
   assert_equals(getComputedStyle(div).opacity, '0.5',
                 'set currentTime same as endTime');
 
-  anim.currentTime = 9999;
-  assert_equals(getComputedStyle(div).opacity, '0.5',
-                'set currentTime during duration');
-
   anim.currentTime = 10000;
-  assert_equals(getComputedStyle(div).opacity, '0.5',
+  assert_equals(getComputedStyle(div).opacity, '0',
                 'set currentTime after endTime');
 }, 'change currentTime when fill forwards and endDelay is negative');
 

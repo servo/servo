@@ -1,0 +1,28 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "A single Annotation Page implements optional keys and meets optional key value constraints",
+  "description": "Pages of Web Annotations: <ul> <li>MUST include certain properties (keys)</li> <li>MUST satisfy model constraints on values of required and any optional Annotation keys used</li> </ul> Note: Implementation of optional Annotation Collection keys (features), optional constraints on key values, and optional keys and constraints on Agents involved in an Annotation Collection checked by other tests.<br/><b>Please fill textarea with json-ld serialization of a single Annotation Page or an Annotation Collection with an embedded Page</b>",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/",
+  "assertions": [
+    "collections/pages/5.2-pagePartOfImplemented.json",
+    "collections/pages/5.2-pageStartIndexImplemented.json",
+    "collections/pages/5.2-pageNextImplemented.json",
+    "collections/pages/5.2-pagePrevImplemented.json",
+    "collections/pages/5.2-pageLabelImplemented.json",
+    "collections/pages/5.2-pageLastImplemented.json",
+    "collections/pages/5.2-pageTotalImplemented.json",
+    "collections/pages/5.2-pageFirstImplemented.json",
+    "collections/pages/3.3.1-pageModifiedImplemented.json",
+    "collections/pages/3.3.1-pageCreatorImplemented.json",
+    "collections/pages/3.3.1-pageCreatedImplemented.json",
+    "collections/pages/3.3.6-pageRightsImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentEmail_sha1Implemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentEmailImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentHomepageImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentIdImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentNameImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentNicknameImplemented.json",
+    "collections/pages/3.3.2-pageCreatorAgentTypeImplemented.json"
+  ]
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>`strict-dynamic` allows scripts matching hashes present in the policy.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' 'sha256-IFt1v6itHgqlrtInbPm/y7qyWcAlDbPgZM+92C5EZ5o=' -->
+</head>
+
+<body>
+    <h1>`strict-dynamic` allows scripts matching hashes present in the policy.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        var hashScriptRan = false;
+        window.addEventListener('securitypolicyviolation', function(e) {
+            assert_unreached('No CSP violation report has fired.');
+        });
+    </script>
+
+    <!-- Hash: 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' -->
+    <script>
+        hashScriptRan = true;
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            assert_true(hashScriptRan);
+            t.done();
+        }, "Script matching SHA256 hash is allowed with `strict-dynamic`.");
+    </script>
+
+    <!-- Hash: 'sha256-IFt1v6itHgqlrtInbPm/y7qyWcAlDbPgZM+92C5EZ5o=' -->
+    <script>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'hashScript') {
+                    t.done();
+                }
+            }));
+            var e = document.createElement('script');
+            e.id = 'hashScript';
+            e.src = 'simpleSourcedScript.js?' + e.id;
+            e.onerror = t.unreached_func('Error should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Script injected via `appendChild` from a script matching SHA256 hash is allowed with `strict-dynamic`.');
+    </script>
+</body>
+
+</html>

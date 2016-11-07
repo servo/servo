@@ -346,7 +346,7 @@
             }
         },
         {
-            "comment": "Port number is unchanges if empty in the new value. Note: this may change, see https://github.com/whatwg/url/pull/113",
+            "comment": "Port number is unchanged if not specified",
             "href": "http://example.net:8080",
             "new_value": "example.com:",
             "expected": {
@@ -761,14 +761,14 @@
             }
         },
         {
-            "comment": "Port number is unchanged if empty in the new value. Note: this may change, see https://github.com/whatwg/url/pull/113",
+            "comment": "Port number is removed if empty is the new value",
             "href": "http://example.net:8080",
             "new_value": "",
             "expected": {
-                "href": "http://example.net:8080/",
-                "host": "example.net:8080",
+                "href": "http://example.net/",
+                "host": "example.net",
                 "hostname": "example.net",
-                "port": "8080"
+                "port": ""
             }
         },
         {
@@ -972,6 +972,15 @@
             "expected": {
                 "href": "http://example.net/..%c3%89t%C3%A9",
                 "pathname": "/..%c3%89t%C3%A9"
+            }
+        },
+        {
+            "comment": "? needs to be encoded",
+            "href": "http://example.net",
+            "new_value": "?",
+            "expected": {
+                "href": "http://example.net/%3F",
+                "pathname": "/%3F"
             }
         }
     ],

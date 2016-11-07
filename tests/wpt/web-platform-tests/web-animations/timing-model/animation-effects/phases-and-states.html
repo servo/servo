@@ -73,7 +73,7 @@ test(function(t) {
   var animation = createDiv(t).animate(null, { duration: 1, delay: -1 });
 
   [ { currentTime: -2, phase: 'before' },
-    { currentTime: -1, phase: 'active' },
+    { currentTime: -1, phase: 'before' },
     { currentTime:  0, phase: 'after'  } ]
   .forEach(function(test) {
     assert_phase_at_time(animation, test.phase, test.currentTime);
@@ -121,7 +121,8 @@ test(function(t) {
   var animation = createDiv(t).animate(null, { duration: 1, endDelay: -2 });
 
   [ { currentTime: -2, phase: 'before' },
-    { currentTime: -1, phase: 'after'  } ]
+    { currentTime: -1, phase: 'before' },
+    { currentTime:  0, phase: 'after'  } ]
   .forEach(function(test) {
     assert_phase_at_time(animation, test.phase, test.currentTime);
   });
@@ -133,8 +134,8 @@ test(function(t) {
                                                delay: 1,
                                                endDelay: -1 });
 
-  [ { currentTime: 0,   phase: 'before' },
-    { currentTime: 1,   phase: 'active' },
+  [ { currentTime: 0, phase: 'before' },
+    { currentTime: 1, phase: 'active' },
     { currentTime: 2, phase: 'after'  } ]
   .forEach(function(test) {
     assert_phase_at_time(animation, test.phase, test.currentTime);
@@ -147,8 +148,9 @@ test(function(t) {
                                                delay: -1,
                                                endDelay: -1 });
 
-  [ { currentTime: -2,   phase: 'before' },
-    { currentTime: -1,   phase: 'after'  } ]
+  [ { currentTime: -2, phase: 'before' },
+    { currentTime: -1, phase: 'before' },
+    { currentTime:  0, phase: 'after'  } ]
   .forEach(function(test) {
     assert_phase_at_time(animation, test.phase, test.currentTime);
   });
@@ -160,8 +162,10 @@ test(function(t) {
                                                delay: -1,
                                                endDelay: -2 });
 
-  [ { currentTime: -3,   phase: 'before' },
-    { currentTime: -2,   phase: 'after'  } ]
+  [ { currentTime: -3, phase: 'before' },
+    { currentTime: -2, phase: 'before' },
+    { currentTime: -1, phase: 'before' },
+    { currentTime:  0, phase: 'after'  } ]
   .forEach(function(test) {
     assert_phase_at_time(animation, test.phase, test.currentTime);
   });

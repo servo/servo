@@ -4,6 +4,7 @@
     <title>XMLHttpRequest: abort() after send()</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following-sibling::ol/li[1] following-sibling::ol/li[3] following-sibling::ol/li[4] following-sibling::ol/li[4]/ol/li[1] following-sibling::ol/li[4]/ol/li[3] following-sibling::ol/li[4]/ol/li[4] following-sibling::ol/li[4]/ol/li[5] following-sibling::ol/li[4]/ol/li[6] following-sibling::ol/li[5]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetext-attribute" data-tested-assertations="following::ol/li[3]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsexml-attribute" data-tested-assertations="following::ol/li[3]" />
@@ -19,36 +20,26 @@
       var test = async_test()
       test.step(function() {
         var client = new XMLHttpRequest(),
-            control_flag = false,
-            result = [],
-            expected = [1, 4, 'progress', 'abort', 'loadend'] // open() -> 1, abort() -> 4
-        client.onreadystatechange = function() {
-          test.step(function() {
-            result.push(client.readyState)
-            if(client.readyState == 4) {
-              control_flag = true
-              assert_equals(client.responseXML, null)
-              assert_equals(client.responseText, "")
-              assert_equals(client.status, 0)
-              assert_equals(client.statusText, "")
-              assert_equals(client.getAllResponseHeaders(), "")
-              assert_equals(client.getResponseHeader('Content-Type'), null)
-            }
-          })
-        }
+            control_flag = false;
+        prepare_xhr_for_event_order_test(client);
+        client.addEventListener("readystatechange", test.step_func(function() {
+          if(client.readyState == 4) {
+            control_flag = true
+            assert_equals(client.responseXML, null)
+            assert_equals(client.responseText, "")
+            assert_equals(client.status, 0)
+            assert_equals(client.statusText, "")
+            assert_equals(client.getAllResponseHeaders(), "")
+            assert_equals(client.getResponseHeader('Content-Type'), null)
+          }
+        }))
         client.open("GET", "resources/well-formed.xml", true)
         client.send(null)
-        client.addEventListener('progress', logEvt)
-        client.addEventListener('abort', logEvt)
-        client.addEventListener('loadend', logEvt)
         client.abort()
         assert_true(control_flag)
         assert_equals(client.readyState, 0)
-        assert_array_equals(result, expected)
+        assert_xhr_event_order_matches([1, "loadstart(0,0,false)", 4, "abort(0,0,false)", "loadend(0,0,false)"])
         test.done()
-        function logEvt (e) {
-          result.push(e.type)
-        }
       })
     </script>
   </body>

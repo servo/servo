@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageTotalValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has total key with non-numeric value, a negative numeric value, or more than one value.",
+  "title": "**Annotation Page _total_ key**, if present (inherited from Collection), is **a non-negative integer value** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/totalDefinition" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/totalDefinition" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

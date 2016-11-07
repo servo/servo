@@ -162,7 +162,7 @@ promise_test(() => {
   assert_equals(controller.desiredSize, -2, '0 reads, 6 enqueues: desiredSize should be -2');
 
 
-  reader.read()
+  return reader.read()
     .then(result => {
       assert_object_equals(result, { value: 'a', done: false },
                            '1st read gives back the 1st chunk enqueued (queue now contains 5 chunks)');

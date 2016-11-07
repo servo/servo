@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>MessageEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var ev = new MessageEvent("test")
+  assert_equals(ev.type, "test", "type attribute")
+  assert_equals(ev.target, null, "target attribute")
+  assert_equals(ev.currentTarget, null, "currentTarget attribute")
+  assert_equals(ev.eventPhase, Event.NONE, "eventPhase attribute")
+  assert_equals(ev.bubbles, false, "bubbles attribute")
+  assert_equals(ev.cancelable, false, "cancelable attribute")
+  assert_equals(ev.defaultPrevented, false, "defaultPrevented attribute")
+  assert_equals(ev.isTrusted, false, "isTrusted attribute")
+  assert_true(ev.timeStamp > 0, "timeStamp attribute")
+  assert_true("initMessageEvent" in ev, "initMessageEvent operation")
+  assert_equals(ev.data, null, "data attribute")
+  assert_equals(ev.origin, "", "origin attribute")
+  assert_equals(ev.lastEventId, "", "lastEventId attribute")
+  assert_equals(ev.source, null, "source attribute")
+  assert_array_equals(ev.ports, [], "ports attribute")
+}, "Default event values")
+
+test(function() {
+  var channel = new MessageChannel()
+  var ev = new MessageEvent("test", { data: "testData", origin: "testOrigin", lastEventId: "testId", source: window, ports: [channel.port1] })
+  assert_equals(ev.type, "test", "type attribute")
+  assert_equals(ev.data, "testData", "data attribute")
+  assert_equals(ev.origin, "testOrigin", "origin attribute")
+  assert_equals(ev.lastEventId, "testId", "lastEventId attribute")
+  assert_equals(ev.source, window, "source attribute")
+  assert_array_equals(ev.ports, [channel.port1], "ports attribute")
+}, "MessageEventInit dictionary")
+
+test(function() {
+  assert_throws(new TypeError(), function() {
+    new MessageEvent("test", { ports: null })
+  })
+}, "Passing null for ports member")
+
+test(function() {
+  var ev = new MessageEvent("test", { ports: [] })
+  assert_true(Array.isArray(ev.ports), "Array.isArray() should return true")
+  assert_true(Object.isFrozen(ev.ports), "Object.isFrozen() should return true")
+  assert_true(ev.ports === ev.ports, "ev.ports should return the same object")
+}, "ports attribute should be a FrozenArray")
+
+test(function() {
+  var ev = document.createEvent("messageevent");
+  var channel = new MessageChannel()
+  ev.initMessageEvent("test", true, false, "testData", "testOrigin", "testId", window, [channel.port1])
+  assert_equals(ev.type, "test", "type attribute")
+  assert_equals(ev.bubbles, true, "bubbles attribute")
+  assert_equals(ev.cancelable, false, "bubbles attribute")
+  assert_equals(ev.data, "testData", "data attribute")
+  assert_equals(ev.origin, "testOrigin", "origin attribute")
+  assert_equals(ev.lastEventId, "testId", "lastEventId attribute")
+  assert_equals(ev.source, window, "source attribute")
+  assert_array_equals(ev.ports, [channel.port1], "ports attribute")
+}, "initMessageEvent operation")
+
+test(function() {
+  var ev = document.createEvent("messageevent")
+  assert_throws(new TypeError(), function() {
+    ev.initMessageEvent("test", true, false, "testData", "testOrigin", "testId", window, null)
+  })
+}, "Passing null for ports parameter to initMessageEvent")
+
+test(function() {
+  var ev = document.createEvent("messageevent")
+  assert_equals(MessageEvent.prototype.initMessageEvent.length, 8, "MessageEvent.prototype.initMessageEvent.length should be 8")
+  assert_throws(new TypeError(), function() {
+    ev.initMessageEvent("test", true, false, "testData", "testOrigin", "testId", window)
+  }, "Calling initMessageEvent with only 7 parameters should throw a TypeError")
+}, "All parameters to initMessageEvent should be mandatory")
+
+</script>

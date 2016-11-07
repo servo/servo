@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-pageCreatorAgentIdImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Single id for Annotation Page Creator (Agent), inherited from Collection,  not found for any Creator. Agents should have exactly one id of format uri.",
+  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_id_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when at least one Annotation Page Creator (Agent), inherited from Collection, has exactly one id (Section 3.3.2)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "#/definitions/creatorAgentIdFound" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "#/definitions/creatorAgentIdFound" }
+         },
+        "required": [ "first" ]
+      }
+  ],
+  "definitions": {
+   "creatorAgentIdFound":
+   {
+    "properties":
+    {  "creator":
+      { "oneOf":
+        [
+         { "$ref": "id.json#/definitions/idValueFound" },
+         { "type": "array",
+           "minItems": 1,
+           "not":
+           { "items": { "not": { "$ref": "id.json#/definitions/idValueFound" } } }
+         }
+        ]
+      }
+    },
+    "required": ["creator"]
+   }
+  }
+}

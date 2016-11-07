@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Element ready check for sibling of fullscreen element</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="a"></div>
+<div id="b"></div>
+<script>
+async_test(function(t)
+{
+    var a = document.getElementById("a");
+    var b = document.getElementById("b");
+    document.onfullscreenchange = t.step_func(function()
+    {
+        assert_equals(document.fullscreenElement, a, "fullscreen element");
+        trusted_request(b, a);
+        document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
+        document.onfullscreenerror = t.step_func_done();
+    });
+    trusted_request(a);
+});
+</script>

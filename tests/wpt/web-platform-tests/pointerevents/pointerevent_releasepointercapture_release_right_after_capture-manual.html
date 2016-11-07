@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Release pointer capture right after setpointercapture</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="pointerevent_support.js"></script>
+        <script type="text/javascript">
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
+            var test_setPointerCapture = async_test("Release pointer capture right after setpointercapture");
+
+            function run() {
+                var target0 = document.getElementById("target0");
+                var target1 = document.getElementById("target1");
+
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    target0.setPointerCapture(event.pointerId);
+                    target0.releasePointerCapture(event.pointerId);
+                    assert_equals(target0.hasPointerCapture(e.pointerId), false, "After target0.releasePointerCapture, target0.hasPointerCapture should be false");
+                });
+
+                on_event(target0, "gotpointercapture", function (event) {
+                    test_setPointerCapture.step(function () {
+                        assert_true(false, "target0 shouldn't receive gotpointercapture");
+                    });
+                });
+
+                on_event(target0, "lostpointercapture", function (event) {
+                    test_setPointerCapture.step(function () {
+                        assert_true(false, "target0 shouldn't receive lostpointercapture");
+                    });
+                });
+
+                on_event(target0, "pointerup", function (event) {
+                    test_setPointerCapture.done();
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Release pointer capture right after setpointercapture</h1>
+        <h4>Test Description:
+            When calling releasePointer right after setPointerCapture method is invoked, the pending pointer capture should be cleared and no element should receive gotpointercapture and lostpointercapture events
+            <ol>
+                <li>Press and hold left mouse button over black box
+                <li>Move mouse and release mouse button
+            </ol>
+        </h4>
+        <br>
+        <div id="target0" touch-action:none></div>
+        <div id="target1" touch-action:none></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

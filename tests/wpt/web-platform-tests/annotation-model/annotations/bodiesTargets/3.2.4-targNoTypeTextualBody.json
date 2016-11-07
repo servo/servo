@@ -13,15 +13,15 @@
         "target":
         {
            "allOf": [
-                       { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesTextualBody" } },
-                       { "not": { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesTextualBody" } },
+                       { "not": { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeInclTextualBodyWithoutId" } },
+                       { "not": { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeInclTextualBodyWithoutId" } },
                        {
                          "items":
                           { "not":
                              { "anyOf":
                               [
-                                { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeIncludesTextualBody" },
-                                { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeIncludesTextualBody" }
+                                { "$ref": "bodyTarget.json#/definitions/embeddedTextTypeInclTextualBodyWithoutId" },
+                                { "$ref": "bodyTarget.json#/definitions/itemEmbeddedTextTypeInclTextualBodyWithoutId" }
                               ]
                              }
                            }

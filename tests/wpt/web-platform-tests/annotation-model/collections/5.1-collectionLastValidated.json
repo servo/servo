@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.1-collectionLastValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Collection has last key with non-uri value or array as value containing more than one item.",
+  "title": "**Annotation Collection _last_ key**, if present, is **a single value of format uri** - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "$ref": "collections.json#/definitions/lastValidIfPresent"
+}

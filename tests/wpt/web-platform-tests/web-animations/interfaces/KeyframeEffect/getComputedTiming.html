@@ -189,10 +189,10 @@ var gEndTimeTests = [
   { desc:     "an non-zero duration and negative delay greater than active " +
               "duration",
     input:    { duration: 1000, iterations: 2, delay: -3000 },
-    expected: -1000 },
+    expected: 0 },
   { desc:     "a zero duration and negative delay",
     input:    { duration: 0, iterations: 2, delay: -1000 },
-    expected: -1000 }
+    expected: 0 }
 ];
 
 gEndTimeTests.forEach(function(stest) {

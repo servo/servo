@@ -5,7 +5,6 @@ from __future__ import print_function
 import argparse
 import json
 import os
-import signal
 import socket
 import sys
 import threading
@@ -41,7 +40,7 @@ class WorkersHandler(object):
         return self.handler(request, response)
 
     def handle_request(self, request, response):
-        worker_path = replace_end(request.url_parts.path, ".worker", ".worker.js")
+        worker_path = replace_end(request.url_parts.path, ".worker.html", ".worker.js")
         return """<!doctype html>
 <meta charset=utf-8>
 <script src="/resources/testharness.js"></script>
@@ -118,7 +117,7 @@ class RoutesBuilder(object):
                           ("*", "/serve.py", handlers.ErrorHandler(404))]
 
         self.static = [
-            ("GET", "*.worker", WorkersHandler()),
+            ("GET", "*.worker.html", WorkersHandler()),
             ("GET", "*.any.html", AnyHtmlHandler()),
             ("GET", "*.any.worker.js", AnyWorkerHandler()),
         ]
@@ -155,9 +154,25 @@ class RoutesBuilder(object):
                  b"%s%s" % (str(url_base) if url_base != "/" else "", str(suffix)),
                  handler_cls(base_path=path, url_base=url_base)))
 
+    def add_file_mount_point(self, file_url, base_path):
+        assert file_url.startswith("/")
+        url_base = file_url[0:file_url.rfind("/") + 1]
+        self.mountpoint_routes[file_url] = [("GET", file_url, handlers.FileHandler(base_path=base_path, url_base=url_base))]
 
-def default_routes():
-    return RoutesBuilder().get_routes()
+
+def build_routes(aliases):
+    builder = RoutesBuilder()
+    for alias in aliases:
+        url = alias["url-path"]
+        directory = alias["local-dir"]
+        if not url.startswith("/") or len(directory) == 0:
+            logger.error("\"url-path\" value must start with '/'.")
+            continue
+        if url.endswith("/"):
+            builder.add_mount_point(url, directory)
+        else:
+            builder.add_file_mount_point(url, directory)
+    return builder.get_routes()
 
 
 def setup_logger(level):
@@ -235,12 +250,12 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(host, paths, bind_hostname, ssl_config):
+def check_subdomains(host, paths, bind_hostname, ssl_config, aliases):
     port = get_port()
     subdomains = get_subdomains(host)
 
     wrapper = ServerProc()
-    wrapper.start(start_http_server, host, port, paths, default_routes(), bind_hostname,
+    wrapper.start(start_http_server, host, port, paths, build_routes(aliases), bind_hostname,
                   None, ssl_config)
 
     connected = False
@@ -469,7 +484,7 @@ def start(config, ssl_environment, routes, **kwargs):
     ssl_config = get_ssl_config(config, external_config["domains"].values(), ssl_environment)
 
     if config["check_subdomains"]:
-        check_subdomains(host, paths, bind_hostname, ssl_config)
+        check_subdomains(host, paths, bind_hostname, ssl_config, config["aliases"])
 
     servers = start_servers(host, ports, paths, routes, bind_hostname, external_config,
                             ssl_config, **kwargs)
@@ -498,6 +513,9 @@ def set_computed_defaults(config):
     if not value_set(config, "ws_doc_root"):
         root = get_value_or_default(config, "doc_root", default=repo_root)
         config["ws_doc_root"] = os.path.join(root, "websockets", "handlers")
+
+    if not value_set(config, "aliases"):
+        config["aliases"] = []
 
 
 def merge_json(base_obj, override_obj):
@@ -585,7 +603,7 @@ def main():
 
     with stash.StashServer((config["host"], get_port()), authkey=str(uuid.uuid4())):
         with get_ssl_environment(config) as ssl_env:
-            config_, servers = start(config, ssl_env, default_routes(), **kwargs)
+            config_, servers = start(config, ssl_env, build_routes(config["aliases"]), **kwargs)
 
             try:
                 while any(item.is_alive() for item in iter_procs(servers)):

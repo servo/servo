@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<title>A single Annotation Collection implements optional keys and meets optional key value constraints</title>
+<link rel="stylesheet" href="/resources/testharness.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/annotation-model/scripts/ajv.min.js"></script>
+<script src="/annotation-model/scripts/showdown.min.js"></script>
+<script src="/annotation-model/scripts/JSONtest.js"></script>
+<script>
+setup({explicit_timeout: true, explicit_done: true });
+
+var theDefinitions=[
+  "definitions/choiceSet.json",
+  "definitions/id.json",
+  "definitions/bodyTarget.json",
+  "definitions/annotations.json",
+  "definitions/specificResource.json",
+  "definitions/otherProperties.json",
+  "definitions/collections.json"
+];
+
+var theTestFile="collectionOptionals.test";
+
+var runningTest = new JSONtest( {
+    "testInput"   : "annotation-input",
+    "runTest"     : "annotation-run",
+    "closeWindow" : "annotation-close",
+    "schemaDefs"  : theDefinitions,
+    "testFile"    : theTestFile
+} ) ;
+
+</script>
+</head>
+<body>
+<p>Fill the textarea below with JSON output from your annotation client
+implementation that supports the following criteria:</p>
+<div id="testDescription"></div>
+<form name="annotation" id="annotation">
+    <textarea name="annotation-input" id="annotation-input" style="width: 90%; height: 10em" ></textarea>
+    <p><input type="button" id="annotation-run" name="Loading..." value="Loading...">
+       <input style="display: none" type="button" id="annotation-close"
+       name="Close" value="Close"></p>
+</form>
+<p>Specifically, the following assertions will be evaluated:</p>
+<div id="assertion"></div>
+</body>
+</html>

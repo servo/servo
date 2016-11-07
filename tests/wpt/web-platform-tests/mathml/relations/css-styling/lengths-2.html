@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MathML lengths</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS3.SSS1"/>
+<link rel="match" href="lengths-2-ref.html"/>
+<meta name="assert" content="Verify whether the different namedspaces are accepted for MathML lengths.">
+<style>
+  @font-face {
+    font-family: TestFont;
+    src: url("/fonts/math/xheight500.woff");
+  }
+  mpadded {
+    font-family: TestFont;
+    font-size: 200px; /* 1em = 200px */
+  }
+  div {
+    position: absolute;
+  }
+  #red mspace {
+    background: red;
+  }
+  #green mspace {
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+  <div>
+    <div id="red" style="position: absolute; width: 200px; height: 200px; background: green;">
+      <!-- veryverythinmathspace -->
+      <div style="left: 0px;"><math><mpadded height="100px" depth="100px" voffset="1veryverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 10px;"><math><mpadded height="100px" depth="100px" voffset="0.05555555555555556em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- verythinmathspace -->
+      <div style="left: 20px;"><math><mpadded height="100px" depth="100px" voffset="1verythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 30px;"><math><mpadded height="100px" depth="100px" voffset="0.1111111111111111em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- thinmathspace -->
+      <div style="left: 40px;"><math><mpadded height="100px" depth="100px" voffset="1thinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 50px;"><math><mpadded height="100px" depth="100px" voffset="0.1666666666666667em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- mediummathspace -->
+      <div style="left: 60px;"><math><mpadded height="100px" depth="100px" voffset="1mediummathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 70px;"><math><mpadded height="100px" depth="100px" voffset="0.2222222222222222em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- thickmathspace -->
+      <div style="left: 80px;"><math><mpadded height="100px" depth="100px" voffset="1thickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 90px;"><math><mpadded height="100px" depth="100px" voffset="0.2777777777777778em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- verythickmathspace -->
+      <div style="left: 100px;"><math><mpadded height="100px" depth="100px" voffset="1verythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 110px;"><math><mpadded height="100px" depth="100px" voffset="0.3333333333333333em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- veryverythickmathspace -->
+      <div style="left: 120px;"><math><mpadded height="100px" depth="100px" voffset="1veryverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 130px;"><math><mpadded height="100px" depth="100px" voffset="0.3888888888888889em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeveryverythinmathspace -->
+      <div style="left: 0px;"><math><mpadded height="100px" depth="100px" voffset="1negativeveryverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 10px;"><math><mpadded height="100px" depth="100px" voffset="-0.05555555555555556em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeverythinmathspace -->
+      <div style="left: 20px;"><math><mpadded height="100px" depth="100px" voffset="1negativeverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 30px;"><math><mpadded height="100px" depth="100px" voffset="-0.1111111111111111em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativethinmathspace -->
+      <div style="left: 40px;"><math><mpadded height="100px" depth="100px" voffset="1negativethinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 50px;"><math><mpadded height="100px" depth="100px" voffset="-0.1666666666666667em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativemediummathspace -->
+      <div style="left: 60px;"><math><mpadded height="100px" depth="100px" voffset="1negativemediummathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 70px;"><math><mpadded height="100px" depth="100px" voffset="-0.2222222222222222em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativethickmathspace -->
+      <div style="left: 80px;"><math><mpadded height="100px" depth="100px" voffset="1negativethickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 90px;"><math><mpadded height="100px" depth="100px" voffset="-0.2777777777777778em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeverythickmathspace -->
+      <div style="left: 100px;"><math><mpadded height="100px" depth="100px" voffset="1negativeverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 110px;"><math><mpadded height="100px" depth="100px" voffset="-0.3333333333333333em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeveryverythickmathspace -->
+      <div style="left: 120px;"><math><mpadded height="100px" depth="100px" voffset="1negativeveryverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 130px;"><math><mpadded height="100px" depth="100px" voffset="-0.3888888888888889em"><mspace width="10px" height="10px"/></mpadded></math></div>
+    </div>
+    <div id="green" style="position: absolute; width: 200px; height: 200px;">
+      <!-- veryverythinmathspace -->
+      <div style="left: 10px;"><math><mpadded height="100px" depth="100px" voffset="1veryverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 0px;"><math><mpadded height="100px" depth="100px" voffset="0.05555555555555556em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- verythinmathspace -->
+      <div style="left: 30px;"><math><mpadded height="100px" depth="100px" voffset="1verythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 20px;"><math><mpadded height="100px" depth="100px" voffset="0.1111111111111111em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- thinmathspace -->
+      <div style="left: 50px;"><math><mpadded height="100px" depth="100px" voffset="1thinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 40px;"><math><mpadded height="100px" depth="100px" voffset="0.1666666666666667em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- mediummathspace -->
+      <div style="left: 70px;"><math><mpadded height="100px" depth="100px" voffset="1mediummathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 60px;"><math><mpadded height="100px" depth="100px" voffset="0.2222222222222222em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- thickmathspace -->
+      <div style="left: 90px;"><math><mpadded height="100px" depth="100px" voffset="1thickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 80px;"><math><mpadded height="100px" depth="100px" voffset="0.2777777777777778em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- verythickmathspace -->
+      <div style="left: 110px;"><math><mpadded height="100px" depth="100px" voffset="1verythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 100px;"><math><mpadded height="100px" depth="100px" voffset="0.3333333333333333em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- veryverythickmathspace -->
+      <div style="left: 130px;"><math><mpadded height="100px" depth="100px" voffset="1veryverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 120px;"><math><mpadded height="100px" depth="100px" voffset="0.3888888888888889em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeveryverythinmathspace -->
+      <div style="left: 10px;"><math><mpadded height="100px" depth="100px" voffset="1negativeveryverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 0px;"><math><mpadded height="100px" depth="100px" voffset="-0.05555555555555556em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeverythinmathspace -->
+      <div style="left: 30px;"><math><mpadded height="100px" depth="100px" voffset="1negativeverythinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 20px;"><math><mpadded height="100px" depth="100px" voffset="-0.1111111111111111em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativethinmathspace -->
+      <div style="left: 50px;"><math><mpadded height="100px" depth="100px" voffset="1negativethinmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 40px;"><math><mpadded height="100px" depth="100px" voffset="-0.1666666666666667em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativemediummathspace -->
+      <div style="left: 70px;"><math><mpadded height="100px" depth="100px" voffset="1negativemediummathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 60px;"><math><mpadded height="100px" depth="100px" voffset="-0.2222222222222222em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativethickmathspace -->
+      <div style="left: 90px;"><math><mpadded height="100px" depth="100px" voffset="1negativethickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 80px;"><math><mpadded height="100px" depth="100px" voffset="-0.2777777777777778em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeverythickmathspace -->
+      <div style="left: 110px;"><math><mpadded height="100px" depth="100px" voffset="1negativeverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 100px;"><math><mpadded height="100px" depth="100px" voffset="-0.3333333333333333em"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <!-- negativeveryverythickmathspace -->
+      <div style="left: 130px;"><math><mpadded height="100px" depth="100px" voffset="1negativeveryverythickmathspace"><mspace width="10px" height="10px"/></mpadded></math></div>
+      <div style="left: 120px;"><math><mpadded height="100px" depth="100px" voffset="-0.3888888888888889em"><mspace width="10px" height="10px"/></mpadded></math></div>
+    </div>
+  </div>
+</body>
+</html>
