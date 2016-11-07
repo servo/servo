@@ -100,11 +100,11 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new() -> Response {
+    pub fn new(url: Url) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
-            url: None,
+            url: Some(url),
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             raw_status: Some((200, b"OK".to_vec())),
