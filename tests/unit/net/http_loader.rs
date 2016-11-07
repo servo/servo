@@ -436,24 +436,24 @@ fn test_check_default_headers_loaded_in_every_request() {
 
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, _: HyperResponse| {
+        assert_eq!(request.headers.get::<ContentLength>(), Some(&ContentLength(0)));
+    };
+    let (mut server, url) = make_server(handler);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+    assert!(response.status.unwrap().is_success());
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = None;
-    load_data.method = Method::Post;
-
-    let mut content_length = Headers::new();
-    content_length.set(ContentLength(0));
-
-    let _ = load(
-        &load_data, &ui_provider, &http_state,
-        None, &AssertMustIncludeHeadersRequestFactory {
-            expected_headers: content_length,
-            body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    let _ = server.close();
 }
 
 #[test]
