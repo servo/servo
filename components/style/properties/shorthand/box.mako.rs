@@ -297,3 +297,47 @@ macro_rules! try_parse_one {
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="scroll-snap-type" products="gecko"
+                    sub_properties="scroll-snap-type-x scroll-snap-type-y">
+    use properties::longhands::scroll_snap_type_x;
+    use properties::longhands::scroll_snap_type_x::SpecifiedValue as SpecifiedValueX;
+    use properties::longhands::scroll_snap_type_y::SpecifiedValue as SpecifiedValueY;
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let result = try!(scroll_snap_type_x::parse(context, input));
+        Ok(Longhands {
+            scroll_snap_type_x: Some(result),
+            scroll_snap_type_y: Some(match result {
+                SpecifiedValueX::none => SpecifiedValueY::none,
+                SpecifiedValueX::mandatory => SpecifiedValueY::mandatory,
+                SpecifiedValueX::proximity => SpecifiedValueY::proximity,
+            }),
+        })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let x_and_y_equal = match (self.scroll_snap_type_x, self.scroll_snap_type_y) {
+                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_value)) => {
+                    match (*x_value, *y_value) {
+                        (SpecifiedValueX::none, SpecifiedValueY::none) => true,
+                        (SpecifiedValueX::mandatory, SpecifiedValueY::mandatory) => true,
+                        (SpecifiedValueX::proximity, SpecifiedValueY::proximity) => true,
+                        _ => false,
+                    }
+                },
+                (&DeclaredValue::WithVariables { .. }, &DeclaredValue::WithVariables { .. }) => true,
+                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
+                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
+                _ => false
+            };
+
+            if x_and_y_equal {
+                self.scroll_snap_type_x.to_css(dest)
+            } else {
+                write!(dest, "")
+            }
+        }
+    }
+</%helpers:shorthand>
