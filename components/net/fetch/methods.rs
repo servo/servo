@@ -607,7 +607,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                 RedirectMode::Follow => {
                     // set back to default
                     response.return_internal.set(true);
-                    http_redirect_fetch(request, cache, Rc::new(response),
+                    http_redirect_fetch(request, cache, response,
                                         cors_flag, target, done_chan, context)
                 }
             }
@@ -677,7 +677,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                                                  cache: &mut CORSCache,
-                                                 response: Rc<Response>,
+                                                 response: Response,
                                                  cors_flag: bool,
                                                  target: &mut Target,
                                                  done_chan: &mut DoneChannel,
@@ -688,7 +688,7 @@ fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
     // Step 2
     if !response.actual_response().headers.has::<Location>() {
-        return Rc::try_unwrap(response).ok().unwrap();
+        return response;
     }
 
     // Step 3
