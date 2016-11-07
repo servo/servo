@@ -36,7 +36,7 @@ promise_test(function() {
 }, "Test: Service Worker Registration property scope when provided a scope");
 
 promise_test(function (p) {
-  promise_rejects(p, new TypeError(), register_sw('./in%5Csome%5fdir/sw.js'));
+  return promise_rejects(p, new TypeError(), register_sw('./in%5Csome%5fdir/sw.js'));
 }, "Test: Throws Error when Invalid Url Path");
 
 promise_test(function (p) {
