@@ -1,6 +1,10 @@
 [configs]
 skip-check-length = false
 skip-check-licenses = false
+check-ordered-json-keys = [
+  "./resources/prefs.json",
+  "./resources/package-prefs.json",
+]
 
 [ignore]
 # Ignored packages with duplicated versions
