@@ -4,13 +4,8 @@
 <script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
 <script>
 'use strict';
-promise_test(() => {
+promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
-    try {
-        window.navigator.bluetooth.requestDevice()
-        .then(() => assert_unreached('requestDevice() should have thrown an error'));
-    } catch(error) {
-        assert_equals('TypeError', error.name);
-    }
+    return promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice());
 }, 'requestDevice() requires an argument.');
 </script>
