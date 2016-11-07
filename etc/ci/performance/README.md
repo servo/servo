@@ -68,3 +68,12 @@ If you want to test the data submission code in `submit_to_perfherder.py` withou
 * Run `jpm xpi` in the `firefox/addon` folder
 * Install the generated `xpi` file to your Firefox Nightly
 
+# Troubleshooting
+
+ If you saw this error message:
+
+```
+venv/bin/activate: line 8: _OLD_VIRTUAL_PATH: unbound variable
+```
+
+That means your `virtualenv` is too old, try run `pip install -U virtualenv` to upgrade (If you installed ubuntu's `python-virtualenv` package, uninstall it first then install it through `pip`)
