@@ -41,6 +41,8 @@ impl UrlHelper {
             let host = url.host_str().unwrap();
             host == "127.0.0.0/8" || host == "::1/128"
         // Step 5
-        } else  { url.scheme() == "file" }
+        } else {
+            url.scheme() == "file"
+        }
     }
 }

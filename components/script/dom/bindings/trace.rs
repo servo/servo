@@ -41,7 +41,6 @@ use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
-use dom::serviceworkerjob::{Job, JobQueue};
 use encoding::types::EncodingRef;
 use euclid::{Matrix2D, Matrix4D, Point2D};
 use euclid::length::Length as EuclidLength;
@@ -79,6 +78,7 @@ use script_runtime::ScriptChan;
 use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
+use serviceworkerjob::{JobQueue, Job};
 use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -157,6 +157,19 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
+    }
+}
+
+impl JSTraceable for JobQueue {
+    fn trace(&self, trc: *mut JSTracer) {
+        self.0.trace(trc)
+    }
+}
+
+impl JSTraceable for Job {
+    fn trace(&self, trc: *mut JSTracer) {
+        self.client.trace(trc);
+        self.equivalent_jobs.trace(trc);
     }
 }
 
@@ -332,8 +345,6 @@ no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(EuclidLength<Unit, T>);
-no_jsmanaged_fields!(Job);
-no_jsmanaged_fields!(JobQueue);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(Matrix4D<T>);
 no_jsmanaged_fields!(StorageType);

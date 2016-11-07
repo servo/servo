@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::Registratio
 use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::refcounted::{TrustedPromise, Trusted};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::client::Client;
@@ -15,9 +14,9 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
-use dom::serviceworkerjob::{Job, JobType};
-use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
+use serviceworkerjob::{Job, JobType};
+use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::default::Default;
 use std::rc::Rc;
@@ -26,23 +25,22 @@ use std::rc::Rc;
 pub struct ServiceWorkerContainer {
     eventtarget: EventTarget,
     controller: MutNullableHeap<JS<ServiceWorker>>,
-    client: MutNullableHeap<JS<Client>>,
+    client: JS<Client>
 }
 
 impl ServiceWorkerContainer {
-    fn new_inherited() -> ServiceWorkerContainer {
+    fn new_inherited(client: &Client) -> ServiceWorkerContainer {
         ServiceWorkerContainer {
             eventtarget: EventTarget::new_inherited(),
             controller: Default::default(),
-            client: Default::default(),
+            client: JS::from_ref(client),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope) -> Root<ServiceWorkerContainer> {
-        let container = ServiceWorkerContainer::new_inherited();
         let client = Client::new(&global.as_window());
-        container.client.set(Some(&*client));
+        let container = ServiceWorkerContainer::new_inherited(&*client);
         reflect_dom_object(box container, global, Wrap)
     }
 }
@@ -51,9 +49,13 @@ pub trait Controllable {
     fn set_controller(&self, active_worker: &ServiceWorker);
 }
 // TODO remove this trait usage
+// Setting the controller attribute to an active worker needs to happen at a much later stage,
+// probably during activate algorithm. Since we are passing the client with
+// schedule_job (which can be used to set controller), we may not need
+// this trait then.
 impl Controllable for ServiceWorkerContainer {
     fn set_controller(&self, active_worker: &ServiceWorker) {
-        self.client.get().unwrap().set_controller(active_worker);
+        (&*self.client).set_controller(active_worker);
         self.upcast::<EventTarget>().fire_event(atom!("controllerchange"));
     }
 }
@@ -61,7 +63,7 @@ impl Controllable for ServiceWorkerContainer {
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
-        return self.client.get().unwrap().get_controller()
+        (&*self.client).get_controller().map(|s| Root::from_ref(&*s))
     }
 
     #[allow(unrooted_must_root)]
@@ -72,8 +74,6 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                 options: &RegistrationOptions) -> Rc<Promise> {
         // A: Step 1
         let promise = Promise::new(&*self.global());
-        // A: Step 2
-        let client = self.client.get().unwrap();
         let ctx = (&*self.global()).get_cx();
         let USVString(ref script_url) = script_url;
         let api_base_url = self.global().api_base_url();
@@ -129,13 +129,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         }
 
         let global = self.global();
-        let worker_registration = ServiceWorkerRegistration::new(&global,
-                                                                 script_url.clone(),
-                                                                 scope.clone(),
-                                                                 self);
         // B: Step 8
-        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*client);
-        ScriptThread::schedule_job(job, &*worker_registration);
+        let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*self.client);
+        ScriptThread::schedule_job(job, &*global);
         promise
     }
 }
