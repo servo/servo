@@ -207,14 +207,14 @@ impl Node {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
-        
+
         let document = new_child.owner_doc();
-        
+
         // This is used for layout optimization.
         if new_child.is::<Element>() {
             document.increment_dom_count();
         }
-        
+
         match before {
             Some(ref before) => {
                 assert!(before.parent_node.get().r() == Some(self));
