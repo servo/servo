@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-pageCreatedImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Valid Annotation Page-level created key not found. Annotation Page may have exactly one created key value inherited from Collection.",
+  "title": "Implements Annotation Page-level **_created_ key** which has a **single value** that is a **string of format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Page implements exactly one created key value (Sections 3.3.1 and 5.2)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "#/definitions/createdImplemented" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "#/definitions/createdImplemented" }
+         },
+        "required": [ "first" ]
+      }
+  ],
+  "definitions":
+  {
+    "createdImplemented":
+    {
+      "allOf":
+       [
+        { "$ref": "otherProperties.json#/definitions/createdValidIfPresent"},
+        { "type": "object",
+          "required" : [ "created" ]
+        }
+       ]
+    }
+  }
+}

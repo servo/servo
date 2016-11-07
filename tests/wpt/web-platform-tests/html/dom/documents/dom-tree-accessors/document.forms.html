@@ -56,11 +56,11 @@ test(function() {
   // http://heycam.github.io/webidl/#property-enumeration
   // If the object supports indexed properties, then the object’s supported
   // property indices are enumerated first, in numerical order.
-  assert_array_equals(result.splice(0, 2), ["0", "1", "2"]);
+  assert_array_equals(result.splice(0, 3), ["0", "1", "2"]);
   // [...]
   // Finally, any enumerable own properties or properties from the object’s
   // prototype chain are then enumerated, in no defined order.
-  assert_array_equals(result.sort(), ["0", "1", "2", "item", "namedItem", "length"].sort())
+  assert_array_equals(result.sort(), ["item", "namedItem", "length"].sort())
 }, "document.forms iteration")
 
 test(function() {

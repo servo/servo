@@ -286,8 +286,8 @@
           removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
           {
               var expectations = {
-                webm: ("{ [3.187, " + duration + ") }"),
-                mp4: ("{ [3.187, " + duration + ") }"),
+                webm: ("{ [3.315, " + duration + ") }"),
+                mp4: ("{ [3.298, " + duration + ") }"),
               };
 
               // Note: Range doesn't start exactly at the end of the remove range because there isn't
@@ -299,8 +299,8 @@
           {
               var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
               var expectations = {
-                webm: ("{ [" + start + ", 1.012) [3.187, " + duration + ") }"),
-                mp4: ("{ [" + start + ", 0.996) [3.187, " + duration + ") }"),
+                webm: ("{ [" + start + ", 1.005) [3.315, " + duration + ") }"),
+                mp4: ("{ [" + start + ", 0.997) [3.298, " + duration + ") }"),
               };
 
               // Note: The first resulting range ends slightly after start because the removal algorithm only removes
@@ -313,7 +313,7 @@
           {
               var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
               var expectations = {
-                webm: "{ [" + start + ", 1.029) }",
+                webm: "{ [" + start + ", 1.013) }",
                 mp4: "{ [" + start + ", 1.022) }",
               };
 

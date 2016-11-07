@@ -97,4 +97,83 @@ test(function() {
   assert_equals(collection[4294967296], document.getElementById("4294967296"));
   assert_equals(collection[4294967297], document.getElementById("4294967297"));
 }, "Handling of property names that look like integers around 2^32");
+
+test(function() {
+  var elements = document.getElementsByTagName("foo");
+  var old_item = elements[0];
+  var old_desc = Object.getOwnPropertyDescriptor(elements, 0);
+  assert_equals(old_desc.value, old_item);
+  assert_true(old_desc.enumerable);
+  assert_true(old_desc.configurable);
+  assert_false(old_desc.writable);
+
+  elements[0] = 5;
+  assert_equals(elements[0], old_item);
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    elements[0] = 5;
+  });
+  assert_throws(new TypeError(), function() {
+    Object.defineProperty(elements, 0, { value: 5 });
+  });
+
+  delete elements[0];
+  assert_equals(elements[0], old_item);
+
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    delete elements[0];
+  });
+  assert_equals(elements[0], old_item);
+}, 'Trying to set an expando that would shadow an already-existing indexed property');
+
+test(function() {
+  var elements = document.getElementsByTagName("foo");
+  var idx = elements.length;
+  var old_item = elements[idx];
+  var old_desc = Object.getOwnPropertyDescriptor(elements, idx);
+  assert_equals(old_item, undefined);
+  assert_equals(old_desc, undefined);
+
+  // [[DefineOwnProperty]] will disallow defining an indexed expando.
+  elements[idx] = 5;
+  assert_equals(elements[idx], undefined);
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    elements[idx] = 5;
+  });
+  assert_throws(new TypeError(), function() {
+    Object.defineProperty(elements, idx, { value: 5 });
+  });
+
+  // Check that deletions out of range do not throw
+  delete elements[idx];
+  (function() {
+    "use strict";
+    delete elements[idx];
+  })();
+}, 'Trying to set an expando with an indexed property name past the end of the list');
+
+test(function(){
+  var elements = document.getElementsByTagName("foo");
+  var old_item = elements[0];
+  var old_desc = Object.getOwnPropertyDescriptor(elements, 0);
+  assert_equals(old_desc.value, old_item);
+  assert_true(old_desc.enumerable);
+  assert_true(old_desc.configurable);
+  assert_false(old_desc.writable);
+
+  Object.prototype[0] = 5;
+  this.add_cleanup(function () { delete Object.prototype[0]; });
+  assert_equals(elements[0], old_item);
+
+  delete elements[0];
+  assert_equals(elements[0], old_item);
+
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    delete elements[0];
+  });
+  assert_equals(elements[0], old_item);
+}, 'Trying to delete an indexed property name should never work');
 </script>

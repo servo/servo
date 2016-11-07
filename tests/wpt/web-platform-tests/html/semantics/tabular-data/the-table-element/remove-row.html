@@ -42,9 +42,23 @@ test(function() {
   assert_equals(old_length, el.rows.length);
 }, "check normal deleteRow");
 test(function() {
-  while (el.rows.length > 1) {
+  assert_equals(el.rows.length, 3);
+  do {
+    var old_length = el.rows.length;
     el.deleteRow(-1);
-  }
-  assert_equals(1, el.rows.length);
+    assert_equals(el.rows.length, old_length - 1);
+  } while (el.rows.length);
 }, "check normal deleteRow bis");
+
+test(function() {
+  assert_equals(el.rows.length, 0);
+  el.deleteRow(-1);
+}, 'deleteRow(-1) with no rows');
+
+test(function() {
+  assert_equals(el.rows.length, 0);
+  assert_throws("IndexSizeError", function() {
+    el.deleteRow(0);
+  });
+}, 'deleteRow(0) with no rows');
 </script>

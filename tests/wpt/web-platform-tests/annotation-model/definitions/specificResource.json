@@ -16,8 +16,8 @@
         {
           "type": ["string", "object" ],
           "oneOf": [
-          { "$ref": "id.json#/definitions/stringUri" },
-          { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"}
+             { "$ref": "id.json#/definitions/stringUri" },
+             { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected"}
           ]
         }
       },
@@ -29,14 +29,14 @@
       "title": "Detection: Specific Resource",
       "description": "True when object has exactly 1 source value and at least one of purpose, selector, state, styleClass, renderedVia, scope (Section 4)",
       "type": "object",
-        "$ref": "#/definitions/sourceDetected",
+      "$ref": "#/definitions/sourceDetected",
       "anyOf": [
-      { "$ref": "otherProperties.json#/definitions/purposeRecognizedIfPresent", "required": ["purpose"] },
-      { "$ref": "#/definitions/selectorDetected" },
-      { "$ref": "#/definitions/stateDetected" },
+        { "$ref": "otherProperties.json#/definitions/purposeRecognizedIfPresent", "required": ["purpose"] },
+        { "$ref": "#/definitions/selectorDetected" },
+        { "$ref": "#/definitions/stateDetected" },
         { "$ref": "#/definitions/styleClassDetected" },
         { "$ref": "#/definitions/renderedViaDetected" },
-          { "$ref": "#/definitions/scopeDetected" }
+        { "$ref": "#/definitions/scopeDetected" }
       ]
     },
 
@@ -47,16 +47,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/specificeResourceDetected" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/specificeResourceDetected" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -77,11 +77,11 @@
             {"$ref": "id.json#/definitions/idValueFound"},
             {"$ref": "#/definitions/fragmentSelectorDetected"},
             {"$ref": "#/definitions/cssSelectorDetected"},
-              {"$ref": "#/definitions/xpathSelectorDetected"},
+            {"$ref": "#/definitions/xpathSelectorDetected"},
               {"$ref": "#/definitions/textQuoteSelectorDetected"},
-                {"$ref": "#/definitions/textPositionSelectorDetected"},
+              {"$ref": "#/definitions/textPositionSelectorDetected"},
                 {"$ref": "#/definitions/dataPositionSelectorDetected"},
-                  {"$ref": "#/definitions/rangeSelectorDetected"},
+                {"$ref": "#/definitions/rangeSelectorDetected"},
                   {"$ref": "#/definitions/svgSelectorDetected"}
             ]
           },
@@ -96,11 +96,11 @@
                 {"$ref": "id.json#/definitions/idValueFound"},
                 {"$ref": "#/definitions/fragmentSelectorDetected"},
                 {"$ref": "#/definitions/cssSelectorDetected"},
-                  {"$ref": "#/definitions/xpathSelectorDetected"},
+                {"$ref": "#/definitions/xpathSelectorDetected"},
                   {"$ref": "#/definitions/textQuoteSelectorDetected"},
-                    {"$ref": "#/definitions/textPositionSelectorDetected"},
+                  {"$ref": "#/definitions/textPositionSelectorDetected"},
                     {"$ref": "#/definitions/dataPositionSelectorDetected"},
-                      {"$ref": "#/definitions/rangeSelectorDetected"},
+                    {"$ref": "#/definitions/rangeSelectorDetected"},
                       {"$ref": "#/definitions/svgSelectorDetected"}
                 ]
               }
@@ -114,23 +114,23 @@
 
     "itemSelectorValidIfPresent":
     {
-      "description": "True if ALL items in the items array of object tested have no selector, or have a selector that is uri, or have a selector that has recognized value(s)",
-      "type": "object",
-      "properties":
-      {
-        "items":
-        { "type": "array",
-          "minItems": 1,
-          "items":
-          {
-            "oneOf":
-              [
-              { "$ref": "id.json#/definitions/stringUri" },
-              { "$ref": "#/definitions/selectorDefined" }
-              ]
-          }
+        "description": "True if ALL items in the items array of object tested have no selector, or have a selector that is uri, or have a selector that has recognized value(s)",
+        "type": "object",
+        "properties":
+        {
+            "items":
+            { "type": "array",
+              "minItems": 1,
+              "items":
+              {
+                "oneOf":
+                 [
+                   { "$ref": "id.json#/definitions/stringUri" },
+                   { "$ref": "#/definitions/selectorDefined" }
+                 ]
+               }
+            }
         }
-      }
     },
 
     "selectorDetected":
@@ -138,7 +138,7 @@
       "title": "Detection: selector type",
       "description": "True when object tested has selector(s) that is(are) recognized as being one or more of the selectors described in the model (Section 4.2)",
       "type": "object",
-        "$ref": "#/definitions/selectorDefined",
+      "$ref": "#/definitions/selectorDefined",
       "required": ["selector"]
     },
 
@@ -146,9 +146,9 @@
     {
       "type": "object",
       "properties":
-      {
-        "type": { "type": "string", "enum": ["FragmentSelector"] }
-      },
+        {
+          "type": { "type": "string", "enum": ["FragmentSelector"] }
+        },
       "required": ["type"]
     },
 
@@ -157,7 +157,7 @@
       "title": "Detection: fragment selector",
       "description": "True when object is a fragment selelctor (Section 4.2.1)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/fragmentSelectorTypeDetected"},
         {
           "type": "object",
@@ -168,7 +168,7 @@
           },
           "required": ["value"]
         }
-        ]
+      ]
     },
 
     "conformsToPropertyFound":
@@ -177,20 +177,20 @@
       "description": "True when object is a fragment selelctor with a conformsTo key (Section 4.2.1)",
       "type": "object",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/fragmentSelectorDetected"},
         { "required": ["conformsTo"] }
-        ]
+      ]
     },
 
     "fragmentSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/fragmentSelectorTypeDetected" } },
-        { "$ref": "#/definitions/fragmentSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/fragmentSelectorTypeDetected" } },
+         { "$ref": "#/definitions/fragmentSelectorDetected" }
+       ]
     },
 
     "cssSelectorTypeDetected":
@@ -208,7 +208,7 @@
       "title": "Detection: CssSelector selector",
       "description": "True when object is a CssSelector selelctor (Section 4.2.2)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/cssSelectorTypeDetected" },
         {
           "type": "object",
@@ -218,17 +218,17 @@
           },
           "required": ["value"]
         }
-        ]
+      ]
     },
 
     "cssSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/cssSelectorTypeDetected" } },
-        { "$ref": "#/definitions/cssSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/cssSelectorTypeDetected" } },
+         { "$ref": "#/definitions/cssSelectorDetected" }
+       ]
     },
 
     "xpathSelectorTypeDetected":
@@ -246,7 +246,7 @@
       "title": "Detection: XPath selector",
       "description": "True when object is a XPath selelctor (Section 4.2.3)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/xpathSelectorTypeDetected" },
         {
           "type": "object",
@@ -256,18 +256,18 @@
           },
           "required": ["value"]
         }
-        ]
+      ]
 
     },
 
     "xpathSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/xpathSelectorTypeDetected" } },
-        { "$ref": "#/definitions/xpathSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/xpathSelectorTypeDetected" } },
+         { "$ref": "#/definitions/xpathSelectorDetected" }
+       ]
     },
 
     "textQuoteSelectorTypeDetected":
@@ -285,7 +285,7 @@
       "title": "Detection: text quote selector",
       "description": "True when object is a text quote selelctor (Section 4.2.4)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/textQuoteSelectorTypeDetected" },
         {
           "type": "object",
@@ -297,7 +297,7 @@
           },
           "required": ["exact"]
         }
-        ]
+      ]
     },
 
     "prefixPropertyFound":
@@ -306,10 +306,10 @@
       "description": "True when object is a text quote selelctor with a prefix key (Section 4.2.4)",
       "type": "object",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/textQuoteSelectorDetected"},
         { "required": ["prefix"] }
-        ]
+      ]
     },
 
     "suffixPropertyFound":
@@ -318,20 +318,20 @@
       "description": "True when object is a text quote selelctor with a suffix key (Section 4.2.4)",
       "type": "object",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/textQuoteSelectorDetected"},
         { "required": ["suffix"] }
-        ]
+      ]
     },
 
     "textQuoteSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/textQuoteSelectorTypeDetected" } },
-        { "$ref": "#/definitions/textQuoteSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/textQuoteSelectorTypeDetected" } },
+         { "$ref": "#/definitions/textQuoteSelectorDetected" }
+       ]
     },
 
     "textPositionSelectorTypeDetected":
@@ -349,28 +349,28 @@
       "title": "Definition: text position selector",
       "description": "True when object is a text position selelctor (Section 4.2.5)",
       "allOf":
-        [
-        { "$ref": "#/definitions/textPositionSelectorTypeDetected" },
-        {
-          "type": "object",
-          "properties":
-          {
-            "start": { "type": "integer", "minimum": 0 },
-            "end": { "type": "integer","minimum": 0 }
-          },
-          "required": ["start", "end"]
-        }
-        ]
+      [
+         { "$ref": "#/definitions/textPositionSelectorTypeDetected" },
+         {
+           "type": "object",
+           "properties":
+           {
+             "start": { "type": "integer", "minimum": 0 },
+             "end": { "type": "integer","minimum": 0 }
+           },
+           "required": ["start", "end"]
+         }
+      ]
     },
 
     "textPositionSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/textPositionSelectorTypeDetected" } },
-        { "$ref": "#/definitions/textPositionSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/textPositionSelectorTypeDetected" } },
+         { "$ref": "#/definitions/textPositionSelectorDetected" }
+       ]
     },
 
     "dataPositionSelectorTypeDetected":
@@ -378,7 +378,7 @@
       "type": "object",
       "properties":
       {
-        "type": { "type": "string", "enum": ["DataPositionSelector"] }
+          "type": { "type": "string", "enum": ["DataPositionSelector"] }
       },
       "required": ["type"]
     },
@@ -388,28 +388,28 @@
       "title": "Definition: data position selector",
       "description": "True when object is a data position selelctor (Section 4.2.5)",
       "allOf":
-        [
-        { "$ref": "#/definitions/dataPositionSelectorTypeDetected" },
-        {
-          "type": "object",
-          "properties":
-          {
-            "start": { "type": "integer", "minimum": 0 },
-            "end": { "type": "integer","minimum": 0 }
-          },
-          "required": ["start", "end"]
-        }
-        ]
+      [
+         { "$ref": "#/definitions/dataPositionSelectorTypeDetected" },
+         {
+           "type": "object",
+           "properties":
+           {
+             "start": { "type": "integer", "minimum": 0 },
+             "end": { "type": "integer","minimum": 0 }
+           },
+           "required": ["start", "end"]
+         }
+      ]
     },
 
     "dataPositionSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/dataPositionSelectorTypeDetected" } },
-        { "$ref": "#/definitions/dataPositionSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/dataPositionSelectorTypeDetected" } },
+         { "$ref": "#/definitions/dataPositionSelectorDetected" }
+       ]
     },
 
     "svgSelectorTypeDetected":
@@ -417,7 +417,7 @@
       "type": "object",
       "properties":
       {
-        "type": { "type": "string", "enum": ["SvgSelector"] }
+          "type": { "type": "string", "enum": ["SvgSelector"] }
       },
       "required": ["type"]
     },
@@ -427,7 +427,7 @@
       "title": "Detection: svg selector",
       "description": "True when object is a svg selelctor (Section 4.2.7)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/svgSelectorTypeDetected" },
         {
           "type": "object",
@@ -437,21 +437,21 @@
             "id": { "$ref": "id.json#/definitions/arraySingleStringUri" }
           },
           "oneOf": [
-          {"required": ["value"] },
-          {"required": ["id"] }
+            {"required": ["value"] },
+            {"required": ["id"] }
           ]
         }
-        ]
+      ]
     },
 
     "svgSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/svgSelectorTypeDetected" } },
-        { "$ref": "#/definitions/svgSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/svgSelectorTypeDetected" } },
+         { "$ref": "#/definitions/svgSelectorDetected" }
+       ]
     },
 
     "rangeSelectorTypeDetected":
@@ -469,7 +469,7 @@
       "title": "Detection: range selector",
       "description": "True when object is a range selelctor (Section 4.2.9)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/rangeSelectorTypeDetected" },
         {
           "type": "object",
@@ -478,13 +478,13 @@
             "^(startSelector|endSelector)$":
             { "type": "object",
               "oneOf": [
-              {"$ref": "#/definitions/fragmentSelectorDetected"},
-              {"$ref": "#/definitions/cssSelectorDetected"},
-              {"$ref": "#/definitions/xpathSelectorDetected"},
+                {"$ref": "#/definitions/fragmentSelectorDetected"},
+                {"$ref": "#/definitions/cssSelectorDetected"},
+                {"$ref": "#/definitions/xpathSelectorDetected"},
                 {"$ref": "#/definitions/textQuoteSelectorDetected"},
                 {"$ref": "#/definitions/textPositionSelectorDetected"},
-                  {"$ref": "#/definitions/dataPositionSelectorDetected"},
-                  {"$ref": "#/definitions/svgSelectorDetected"}
+                {"$ref": "#/definitions/dataPositionSelectorDetected"},
+                {"$ref": "#/definitions/svgSelectorDetected"}
               ]
             }
           },
@@ -495,12 +495,12 @@
 
     "rangeSelectorTypeValidIfPresent":
     {
-      "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/rangeSelectorTypeDetected" } },
-        { "$ref": "#/definitions/rangeSelectorDetected" }
-        ]
+       "description": "True if Selector Type not detected (i.e., not present), or if both Type and Selector detected (i.e., Selector constraints met); note, Selector cannot be detected if Selector Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/rangeSelectorTypeDetected" } },
+         { "$ref": "#/definitions/rangeSelectorDetected" }
+       ]
     },
 
     "stateDefined" :
@@ -513,30 +513,30 @@
         "state":
         {
           "oneOf": [
-          { "$ref": "id.json#/definitions/stringUri" },
-          { "type": "object",
-            "anyOf": [
-            {"$ref": "id.json#/definitions/idValueFound"},
-            {"$ref": "#/definitions/timeStateDetected"},
-            {"$ref": "#/definitions/requestHeaderStateDetected"}
-            ]
-          },
-          {
-            "type": "array",
-            "minItems": 1,
-            "items":
-            { "oneOf": [
-              { "$ref": "id.json#/definitions/stringUri" },
-              { "type": "object",
-                "anyOf": [
+            { "$ref": "id.json#/definitions/stringUri" },
+            { "type": "object",
+              "anyOf": [
                 {"$ref": "id.json#/definitions/idValueFound"},
                 {"$ref": "#/definitions/timeStateDetected"},
                 {"$ref": "#/definitions/requestHeaderStateDetected"}
+              ]
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items":
+              { "oneOf": [
+                 { "$ref": "id.json#/definitions/stringUri" },
+                 { "type": "object",
+                   "anyOf": [
+                     {"$ref": "id.json#/definitions/idValueFound"},
+                     {"$ref": "#/definitions/timeStateDetected"},
+                     {"$ref": "#/definitions/requestHeaderStateDetected"}
+                   ]
+                 }
                 ]
               }
-            ]
             }
-          }
           ]
         }
       }
@@ -544,23 +544,23 @@
 
     "itemStateValidIfPresent":
     {
-      "description": "True if ALL items in the items array of object tested have no state, or have a state that is uri, or have a state that has recognized value(s)",
-      "type": "object",
-      "properties":
-      {
-        "items":
-        { "type": "array",
-          "minItems": 1,
-          "items":
-          {
-            "oneOf":
-              [
-              { "$ref": "id.json#/definitions/stringUri" },
-              { "$ref": "#/definitions/stateDefined" }
-              ]
-          }
+        "description": "True if ALL items in the items array of object tested have no state, or have a state that is uri, or have a state that has recognized value(s)",
+        "type": "object",
+        "properties":
+        {
+            "items":
+            { "type": "array",
+              "minItems": 1,
+              "items":
+              {
+                "oneOf":
+                 [
+                   { "$ref": "id.json#/definitions/stringUri" },
+                   { "$ref": "#/definitions/stateDefined" }
+                 ]
+               }
+            }
         }
-      }
     },
 
     "stateDetected":
@@ -568,7 +568,7 @@
       "title": "Detection: state type",
       "description": "True when object tested has state(s) that is(are) recognized as being one or more of the states described in the model (Section 4.3)",
       "type": "object",
-        "$ref": "#/definitions/stateDefined",
+      "$ref": "#/definitions/stateDefined",
       "required": ["state"]
     },
 
@@ -587,34 +587,34 @@
       "title": "Detection: time state",
       "description": "True when object is a time state (Section 4.3.1)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/timeStateTypeDetected" },
         {
           "type": "object",
           "properties":
           {
-            "sourceDate":
-            { "oneOf": [
-              { "type": "string",
-                "format": "date-time"},
-              { "type": "array",
-                "minItems": 1,
-                "items":
-                {"type": "string", "format": "date-time"}
-              }
-            ]
-            },
-            "sourceDateStart": { "type": "string", "format": "date-time"},
-            "sourceDateEnd": { "type": "string", "format": "date-time"},
-            "cached": { "type": "string", "format": "uri"}
+             "sourceDate":
+                { "oneOf": [
+                  { "type": "string",
+                    "format": "date-time"},
+                  { "type": "array",
+                    "minItems": 1,
+                    "items":
+                      {"type": "string", "format": "date-time"}
+                   }
+                  ]
+                },
+              "sourceDateStart": { "type": "string", "format": "date-time"},
+              "sourceDateEnd": { "type": "string", "format": "date-time"},
+              "cached": { "type": "string", "format": "uri"}
           },
           "oneOf":
-            [
-            { "required": ["sourceDate"] },
-            { "required": ["sourceDateStart", "sourceDateEnd"] }
-            ],
+           [
+               { "required": ["sourceDate"] },
+               { "required": ["sourceDateStart", "sourceDateEnd"] }
+           ],
           "not":
-          { "required": [ "sourceDate", "sourceDateStart", "sourceDateEnd" ] }
+            { "required": [ "sourceDate", "sourceDateStart", "sourceDateEnd" ] }
         }
       ]
     },
@@ -625,20 +625,20 @@
       "description": "True when object is a time state with a cached key (Section 4.3.1)",
       "type": "object",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/timeStateDetected"},
         { "required": ["cached"] }
-        ]
+      ]
     },
 
     "timeStateTypeValidIfPresent":
     {
-      "description": "True if State Type not detected (i.e., not present), or if both Type and State detected (i.e., State constraints met); note, State cannot be detected if State Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/timeStateTypeDetected" } },
-        { "$ref": "#/definitions/timeStateDetected" }
-        ]
+       "description": "True if State Type not detected (i.e., not present), or if both Type and State detected (i.e., State constraints met); note, State cannot be detected if State Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/timeStateTypeDetected" } },
+         { "$ref": "#/definitions/timeStateDetected" }
+       ]
     },
 
     "requestHeaderStateTypeDetected":
@@ -656,27 +656,27 @@
       "title": "Detection: request header state",
       "description": "True when object is a request header state (Section 4.3.2)",
       "allOf":
-        [
+      [
         { "$ref": "#/definitions/requestHeaderStateTypeDetected" },
         {
           "type": "object",
           "properties":
           {
-            "value": { "type": "string"}
+              "value": { "type": "string"}
           },
           "required": ["value"]
         }
-        ]
+      ]
     },
 
     "requestHeaderStateTypeValidIfPresent":
     {
-      "description": "True if State Type not detected (i.e., not present), or if both Type and State detected (i.e., State constraints met); note, State cannot be detected if State Type not detected.",
-      "oneOf":
-        [
-        { "not": { "$ref": "#/definitions/requestHeaderStateTypeDetected" } },
-        { "$ref": "#/definitions/requestHeaderStateDetected" }
-        ]
+       "description": "True if State Type not detected (i.e., not present), or if both Type and State detected (i.e., State constraints met); note, State cannot be detected if State Type not detected.",
+       "oneOf":
+       [
+         { "not": { "$ref": "#/definitions/requestHeaderStateTypeDetected" } },
+         { "$ref": "#/definitions/requestHeaderStateDetected" }
+       ]
     },
 
     "refinedByDefined":
@@ -695,14 +695,14 @@
             {"$ref": "id.json#/definitions/idValueFound"},
             {"$ref": "#/definitions/fragmentSelectorDetected"},
             {"$ref": "#/definitions/cssSelectorDetected"},
-              {"$ref": "#/definitions/xpathSelectorDetected"},
+            {"$ref": "#/definitions/xpathSelectorDetected"},
               {"$ref": "#/definitions/textQuoteSelectorDetected"},
-                {"$ref": "#/definitions/textPositionSelectorDetected"},
+              {"$ref": "#/definitions/textPositionSelectorDetected"},
                 {"$ref": "#/definitions/dataPositionSelectorDetected"},
-                  {"$ref": "#/definitions/rangeSelectorDetected"},
+                {"$ref": "#/definitions/rangeSelectorDetected"},
                   {"$ref": "#/definitions/svgSelectorDetected"},
-                    {"$ref": "#/definitions/timeStateDetected"},
-                    {"$ref": "#/definitions/requestHeaderStateDetected"}
+                {"$ref": "#/definitions/timeStateDetected"},
+                {"$ref": "#/definitions/requestHeaderStateDetected"}
             ]
           },
           {
@@ -716,14 +716,14 @@
                 {"$ref": "id.json#/definitions/idValueFound"},
                 {"$ref": "#/definitions/fragmentSelectorDetected"},
                 {"$ref": "#/definitions/cssSelectorDetected"},
-                  {"$ref": "#/definitions/xpathSelectorDetected"},
+                {"$ref": "#/definitions/xpathSelectorDetected"},
                   {"$ref": "#/definitions/textQuoteSelectorDetected"},
-                    {"$ref": "#/definitions/textPositionSelectorDetected"},
+                  {"$ref": "#/definitions/textPositionSelectorDetected"},
                     {"$ref": "#/definitions/dataPositionSelectorDetected"},
-                      {"$ref": "#/definitions/rangeSelectorDetected"},
+                    {"$ref": "#/definitions/rangeSelectorDetected"},
                       {"$ref": "#/definitions/svgSelectorDetected"},
-                        {"$ref": "#/definitions/timeStateDetected"},
-                        {"$ref": "#/definitions/requestHeaderStateDetected"}
+                {"$ref": "#/definitions/timeStateDetected"},
+                {"$ref": "#/definitions/requestHeaderStateDetected"}
                 ]
               }
             ]
@@ -736,51 +736,51 @@
 
     "checkForRefinedBy":
     {
-      "description": "True if no state or selector, if no refinedBy, or if correct refinedBy",
-      "type": "object",
-      "patternProperties":
-      {
-        "^(state|selector)$":
+       "description": "True if no state or selector, if no refinedBy, or if correct refinedBy",
+       "type": "object",
+       "patternProperties":
+        {
+         "^(state|selector)$":
         {"oneOf":
-          [
-          { "$ref": "id.json#/definitions/stringUri" },
-          { "type": "object",
-            "$ref": "#/definitions/refinedByDefined" },
-          { "type": "array",
-            "minItems": 1,
-            "items":
-            {"oneOf":
-              [
-              { "$ref": "id.json#/definitions/stringUri" },
-              { "type": "object",
-                "$ref": "#/definitions/refinedByDefined" }
-              ]
-            }
-          }
-          ]
-        }
+         [
+           { "$ref": "id.json#/definitions/stringUri" },
+           { "type": "object",
+             "$ref": "#/definitions/refinedByDefined" },
+           { "type": "array",
+             "minItems": 1,
+             "items":
+              {"oneOf":
+                [
+                  { "$ref": "id.json#/definitions/stringUri" },
+                  { "type": "object",
+                    "$ref": "#/definitions/refinedByDefined" }
+                ]
+             }
+           }
+        ]
+       }
       }
     },
 
     "itemRefinedByValidIfPresent":
     {
-      "description": "True if items in the items array of object tested have no refinedBy, or have a refinedBy that is uri, or have a refinedBy that has recognized value(s)",
-      "type": "object",
-      "properties":
-      {
-        "items":
-        { "type": "array",
-          "minItems": 1,
-          "items":
-          {
-            "oneOf":
-              [
-              { "$ref": "id.json#/definitions/stringUri" },
-              { "$ref": "#/definitions/checkForRefinedBy" }
-              ]
-          }
+        "description": "True if items in the items array of object tested have no refinedBy, or have a refinedBy that is uri, or have a refinedBy that has recognized value(s)",
+        "type": "object",
+        "properties":
+        {
+            "items":
+            { "type": "array",
+              "minItems": 1,
+              "items":
+              {
+                "oneOf":
+                 [
+                   { "$ref": "id.json#/definitions/stringUri" },
+                   { "$ref": "#/definitions/checkForRefinedBy" }
+                 ]
+               }
+            }
         }
-      }
     },
 
     "refinedByDetected":
@@ -789,22 +789,22 @@
       "description": "True when object tested has selector or state that has refinedBy(s) that is(are) recognized as being one or more of the refinedBys described in the model (Section 4.2)",
       "type": "object",
       "anyOf":
-        [
-        { "properties":
-          { "state" : { "$ref ": "#/definitions/refinedByWithinStateSelector" } },
-          "required": ["state"]
-        },
-        { "properties":
-          { "selector" : { "$ref ": "#/definitions/refinedByWithinStateSelector" } },
-          "required": ["selector"]
-        }
-        ]
+       [
+         { "properties":
+            { "state" : { "$ref ": "#/definitions/refinedByWithinStateSelector" } },
+            "required": ["state"]
+         },
+         { "properties":
+            { "selector" : { "$ref ": "#/definitions/refinedByWithinStateSelector" } },
+            "required": ["selector"]
+         }
+       ]
     },
 
     "refinedByWithinStateSelector":
     {
-      "oneOf":
-        [
+    "oneOf":
+      [
         { "type": "object",
           "$ref": "#/definitions/refinedByDefined",
           "required": ["refinedBy"]
@@ -813,16 +813,16 @@
           "minItems": 1,
           "not":
           {
-            "items":
+           "items":
             {"not":
-              { "type": "object",
-                "$ref": "#/definitions/refinedByDefined",
-                "required": ["refinedBy"]
-              }
+               { "type": "object",
+                 "$ref": "#/definitions/refinedByDefined",
+                 "required": ["refinedBy"]
+               }
             }
           }
         }
-        ]
+      ]
     },
 
     "styleClassDefinition":
@@ -830,22 +830,22 @@
       "title": "Definition: styleClass property value",
       "description": "True when the object has no styleClass property or has a styleClass property that appears with source and that is a string value or array of string values (Section 4.4)",
       "properties":
-      {
-        "styleClass":
-        {
-          "oneOf":
-            [
-            { "type": "string" },
-            { "type": "array",
-              "minItems": 1,
-              "items": { "type": "string" } }
-            ]
-        }
-      },
-      "dependencies":
-      {
-        "styleClass": ["source"]
-      }
+         {
+           "styleClass":
+            {
+              "oneOf":
+              [
+                { "type": "string" },
+                { "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string" } }
+              ]
+            }
+         },
+       "dependencies":
+       {
+           "styleClass": ["source"]
+       }
     },
 
     "styleClassDetected":
@@ -854,8 +854,8 @@
       "description": "Supports implementation check of styleClass (if/when) used on Specific Resources (Sections 4.4)",
       "type": "object",
       "allOf": [
-      { "$ref": "#/definitions/styleClassDefinition" },
-      { "required": ["styleClass"] }
+         { "$ref": "#/definitions/styleClassDefinition" },
+         { "required": ["styleClass"] }
       ]
     },
 
@@ -867,16 +867,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/styleClassDetected" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/styleClassDetected" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -914,9 +914,9 @@
       "title": "Collate: renderedVia key with qualifying body/target classes",
       "description": "Supports implementation check of renderedVia (if/when) used on Specific Resources (Sections 4.4)",
       "allOf": [
-      { "$ref": "#/definitions/sourceDetected" },
-      { "required": ["renderedVia"] },
-      { "$ref": "#/definitions/renderedViaDefinition" }
+         { "$ref": "#/definitions/sourceDetected" },
+         { "required": ["renderedVia"] },
+         { "$ref": "#/definitions/renderedViaDefinition" }
       ]
     },
 
@@ -928,16 +928,16 @@
       "type": "object",
       "properties":
       {
-        "items":
-        {
-          "type": "array",
-          "minItems": 1,
-          "not":
+          "items":
           {
-            "items":
-            { "not": { "$ref": "#/definitions/renderedViaDetected" } }
+              "type": "array",
+              "minItems": 1,
+              "not":
+              {
+                  "items":
+                  { "not": { "$ref": "#/definitions/renderedViaDetected" } }
+              }
           }
-        }
       },
       "required": ["items"]
     },
@@ -966,162 +966,161 @@
     { "$schema": "http://json-schema.org/draft-04/schema#",
       "title": "Collate: scope key with qualifying body/target classes",
       "description": "Supports implementation check of scope (if/when) used on Specific Resource Body (Sections 4.6)",
-      "$ref": "#/definitions/sourceDetected",
       "allOf": [
-      {"required": ["scope"]},
-      {"$ref": "#/definitions/scopeDefinition"}
+         {"required": ["scope"]},
+         {"$ref": "#/definitions/scopeDefinition"}
       ]
     },
 
-    "sourceWithCreated":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have created key, or if source is object that has only 1 created key of date-time format",
-      "type": "object",
-      "properties":
-      {
-        "source":
+        "sourceWithCreated":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have created key, or if source is object that has only 1 created key of date-time format",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "sourceWithModified":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have modified key, or if source is object that has only 1 modified key of date-time format",
-      "type": "object",
-      "properties":
-      {
-        "source":
+       "sourceWithModified":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have modified key, or if source is object that has only 1 modified key of date-time format",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "sourceWithRights":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have rights key, or if source is object that has rights key with all values of uri format",
-      "type": "object",
-      "properties":
-      {
-        "source":
+        "sourceWithRights":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have rights key, or if source is object that has rights key with all values of uri format",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "sourceWithCanonical":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have canonical key, or if source is object that has only 1 canonical key of uri format",
-      "type": "object",
-      "properties":
-      {
-        "source":
+       "sourceWithCanonical":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "otherProperties.json#/definitions/canonicalValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have canonical key, or if source is object that has only 1 canonical key of uri format",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "otherProperties.json#/definitions/canonicalValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "sourceWithVia":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have via key, or if source is object that has via key with all values of uri format",
-      "type": "object",
-      "properties":
-      {
-        "source":
+       "sourceWithVia":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "otherProperties.json#/definitions/viaValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have via key, or if source is object that has via key with all values of uri format",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "otherProperties.json#/definitions/viaValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "sourceWithTextDirection":
-    {
-      "description": "True if no source, or source is uri, or source is object that does not have textDirection key, or if source is object that has only 1 textDirectoin key, one of ltr, rtl, auto",
-      "type": "object",
-      "properties":
-      {
-        "source":
+        "sourceWithTextDirection":
         {
-          "oneOf":
-            [
-            { "$ref": "id.json#/definitions/arraySingleStringUri" },
-            { "$ref": "bodyTarget.json#/definitions/textDirectionValidIfPresent" }
-            ]
-        }
-      }
-    },
+            "description": "True if no source, or source is uri, or source is object that does not have textDirection key, or if source is object that has only 1 textDirectoin key, one of ltr, rtl, auto",
+            "type": "object",
+            "properties":
+            {
+                "source":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "$ref": "bodyTarget.json#/definitions/textDirectionValidIfPresent" }
+                    ]
+                }
+            }
+        },
 
-    "specificResourceWithItems" :
-    {
-      "description": "True if both source and items keys are present.",
-      "allOf":
-        [
-        { "$ref": "#/definitions/sourceDetected"},
-        { "required": [ "items" ] }
-        ]
-    },
+        "specificResourceWithItems" :
+        {
+           "description": "True if both source and items keys are present.",
+           "allOf":
+               [
+                { "$ref": "#/definitions/sourceDetected"},
+                { "required": [ "items" ] }
+               ]
+        },
 
     "itemSRWithItems":
     {
       "type": "object",
       "properties":
-      {
-        "items": {
-          "type": "array",
-          "minItems": 1,
-          "not":
-          { "items": {"not": { "$ref": "#/definitions/specificResourceWithItems" } } }
-        }
-      },
+        {
+          "items": {
+             "type": "array",
+             "minItems": 1,
+             "not":
+                { "items": {"not": { "$ref": "#/definitions/specificResourceWithItems" } } }
+          }
+        },
       "required": ["items"]
     },
 
-    "specificResourceWithValue" :
-    {
-      "description": "True if both source and value keys are present.",
-      "allOf":
-        [
-        { "$ref": "#/definitions/sourceDetected"},
-        { "required": [ "value" ] }
-        ]
-    },
+        "specificResourceWithValue" :
+        {
+           "description": "True if both source and value keys are present.",
+            "allOf":
+               [
+                { "$ref": "#/definitions/sourceDetected"},
+                { "required": [ "value" ] }
+               ]
+        },
 
     "itemSRWithValue":
     {
       "type": "object",
       "properties":
-      {
-        "items": {
-          "type": "array",
-          "minItems": 1,
-          "not":
-          { "items": {"not": { "$ref": "#/definitions/specificResourceWithValue" } } }
-        }
-      },
+        {
+          "items": {
+             "type": "array",
+             "minItems": 1,
+             "not":
+                { "items": {"not": { "$ref": "#/definitions/specificResourceWithValue" } } }
+          }
+        },
       "required": ["items"]
     }
 

@@ -1,0 +1,24 @@
+environment:
+  matrix:
+    - PYTHON: 'C:\\Python27'
+    - PYTHON: 'C:\\Python35'
+
+# Needed to make py.test believe our top level can be imported (we
+# otherwise end up in a wpt-tools directory, and of course you cannot
+# import a name including a hyphen in Python, so it ignores the fact
+# we have a __init__.py at the top level).
+clone_folder: 'C:\projects\wpttools'
+      
+install:
+  - 'SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%'
+  - 'git submodule update --init --recursive'
+  - 'python.exe -m pip install tox codecov'
+  
+build: off
+
+test_script:
+  - 'tox -e py'
+
+on_success:
+  - 'coverage combine'
+  - 'codecov'

@@ -1,8 +1,8 @@
 function runTest(config,qualifier) {
 
-    var testname = testnamePrefix( qualifier, config.keysystem )
+    var testname = testnamePrefix(qualifier, config.keysystem)
                                     + ', persistent-license, '
-                                    + /video\/([^;]*)/.exec( config.videoType )[ 1 ]
+                                    + /video\/([^;]*)/.exec(config.videoType)[1]
                                     + 'playback';
 
     var configuration = {   initDataTypes: [ config.initDataType ],
@@ -11,8 +11,7 @@ function runTest(config,qualifier) {
                             sessionTypes: [ 'persistent-license' ] };
 
 
-    async_test( function( test ) {
-
+    async_test(function(test) {
         var _video = config.video,
             _mediaKeys,
             _mediaKeySession,
@@ -29,11 +28,9 @@ function runTest(config,qualifier) {
 
             assert_in_array( event.messageType, [ 'license-request', 'individualization-request' ] );
 
-            config.messagehandler( event.messageType, event.message )
-            .then( function( response ) {
-                _mediaKeySession.update( response )
-                .catch(onFailure);
-            });
+            config.messagehandler(event.messageType, event.message).then( function( response ) {
+                return _mediaKeySession.update(response)
+            }).catch(onFailure);
         }
 
         function onEncrypted(event) {
@@ -47,7 +44,7 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 1 ) ) {
+            if (_video.currentTime > (config.duration || 1)) {
                 _video.pause();
                 test.done();
             }
@@ -68,11 +65,12 @@ function runTest(config,qualifier) {
             _mediaKeySession = _mediaKeys.createSession( 'persistent-license' );
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
-        }).then(function() {
             return testmediasource(config);
         }).then(function(source) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
+            return source.done;
+        }).then(function(){
             _video.play();
         }).catch(onFailure);
     }, testname);

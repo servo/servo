@@ -21,14 +21,14 @@
           "items": {
             "oneOf":
               [
-              { "$ref": "specificResource.json#/definitions/specificeResourceDetected" },
-              { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected" },
-              { "$ref": "bodyTarget.json#/definitions/textualBodyFound" },
+                { "$ref": "specificResource.json#/definitions/specificeResourceDetected" },
+                { "$ref": "bodyTarget.json#/definitions/externalWebResourceDetected" },
+                { "$ref": "bodyTarget.json#/definitions/textualBodyFound" },
                 { "$ref": "id.json#/definitions/stringUri" },
                 { "allOf":
                   [
-                  { "$ref" : "#/definitions/choiceOrSetTypeDefinition" },
-                  { "$ref": "#/definitions/itemsDetected"  }
+                     { "$ref" : "#/definitions/choiceOrSetTypeDefinition" },
+                     { "$ref": "#/definitions/itemsDetected"  }
                   ]
                 }
               ]
@@ -108,19 +108,19 @@
 
     "choiceOrSetTypeDefinition":
     {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Definition: Choice or Set type",
-      "description": "True when object has type key and object's type is any of 'Choice', 'Composite', 'List', 'Independents' (Section 3.2.7)",
-      "type": "object",
-      "properties":
-      {
-        "type":
-        {
-          "type": "string",
-          "enum": ["Choice", "Composite", "List", "Independents"]
-        }
-      },
-      "required": [ "type" ]
+       "$schema": "http://json-schema.org/draft-04/schema#",
+       "title": "Definition: Choice or Set type",
+       "description": "True when object has type key and object's type is any of 'Choice', 'Composite', 'List', 'Independents' (Section 3.2.7)",
+       "type": "object",
+       "properties":
+       {
+         "type":
+         {
+           "type": "string",
+           "enum": ["Choice", "Composite", "List", "Independents"]
+         }
+       },
+            "required": [ "type" ]
     },
 
     "choiceDetected": {
@@ -178,36 +178,36 @@
       "type": "object",
       "allOf":
         [
-        { "$ref": "#/definitions/choiceOrSetTypeDefinition" },
-        { "$ref": "#/definitions/itemsDetected" }
+           { "$ref": "#/definitions/choiceOrSetTypeDefinition" },
+           { "$ref": "#/definitions/itemsDetected" }
         ]
     },
 
     "choiceSetWithValue" :
     {
-      "allOf":
-        [
-        { "$ref": "#/definitions/choiceOrSetDetected" },
-        { "required": [ "value" ] }
-        ]
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "value" ] }
+           ]
     },
 
     "choiceSetWithSource" :
     {
-      "allOf":
-        [
-        { "$ref": "#/definitions/choiceOrSetDetected" },
-        { "required": [ "source" ] }
-        ]
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "source" ] }
+           ]
     },
 
     "choiceSetWithPurpose" :
     {
-      "allOf":
-        [
-        { "$ref": "#/definitions/choiceOrSetDetected" },
-        { "required": [ "purpose" ] }
-        ]
+        "allOf":
+           [
+            { "$ref": "#/definitions/choiceOrSetDetected" },
+            { "required": [ "purpose" ] }
+           ]
     }
 
   }

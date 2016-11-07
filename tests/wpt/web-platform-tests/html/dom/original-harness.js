@@ -5,13 +5,10 @@ ReflectionHarness.passed = document.getElementById("passed");
 ReflectionHarness.failed = document.getElementById("failed");
 
 /**
- * Should we report a failure for unexpected exceptions, or just rethrow them?
- * The original test framework reports an exception, but testharness.js doesn't
- * want that.
- *
- * @public
+ * In conformance testing mode, all tests will be run.  Otherwise, we'll skip
+ * tests for attributes that have an entirely incorrect type.
  */
-ReflectionHarness.catchUnexpectedExceptions = true;
+ReflectionHarness.conformanceTesting = false;
 
 /**
  * Returns a string representing val.  Basically just adds quotes for strings,
@@ -86,12 +83,28 @@ ReflectionHarness.stringRep = function(val) {
 ReflectionHarness.currentTestInfo = {};
 
 /**
- * This is called when we want to test a single element/attribute combination.
- * For the original harness, it does nothing special (just calls the function),
- * but for testharness.js, it can wrap everything in a test() call.
+ * .test() sets this, and it's used by .assertEquals()/.assertThrows().
+ * Calling .test() recursively is an error.
  */
-ReflectionHarness.testWrapper = function(fn) {
-  fn();
+ReflectionHarness.currentTestDescription = null;
+
+/**
+ * Run a group of one or more assertions.  If any exceptions are thrown, catch
+ * them and report a failure.
+ */
+ReflectionHarness.test = function(fn, description) {
+  if (this.currentTestDescription) {
+    throw "TEST BUG: test() may not be called recursively!";
+  }
+  this.currentTestDescription = description;
+  try {
+    fn();
+    // Not throwing is a success
+    this.success();
+  } catch(err) {
+    this.failure("Exception thrown during tests with " + description);
+  }
+  this.currentTestDescription = null;
 }
 
 /**
@@ -102,37 +115,29 @@ ReflectionHarness.testWrapper = function(fn) {
  *
  * @public
  */
-ReflectionHarness.test = function(expected, actual, description) {
+ReflectionHarness.assertEquals = function(expected, actual, description) {
   // Special-case -0 yay!
   if (expected === 0 && actual === 0 && 1/expected === 1/actual) {
     this.increment(this.passed);
-    return true;
   } else if (expected === actual) {
     this.increment(this.passed);
-    return true;
   } else {
     this.increment(this.failed);
-    this.reportFailure(description + ' (expected ' + this.stringRep(actual) + ', got ' + this.stringRep(expected) + ')');
-    return false;
-  }
-}
-
-ReflectionHarness.run = function(fun, description) {
-  try {
-    fun();
-  } catch (err) {
-    ReflectionHarness.failure(description);
+    this.reportFailure(this.currentTestDescription +
+        (description ? " followed by " + description : "") +
+        ' (expected ' + this.stringRep(actual) + ', got ' +
+        this.stringRep(expected) + ')');
   }
 }
 
 /**
  * If calling fn causes a DOMException of the type given by the string
- * exceptionName (e.g., "INDEX_SIZE_ERR"), output a success.  Otherwise, report
- * a failure with the given description.
+ * exceptionName (e.g., "IndexSizeError"), output a success.  Otherwise, report
+ * a failure.
  *
  * @public
  */
-ReflectionHarness.testException = function(exceptionName, fn, description) {
+ReflectionHarness.assertThrows = function(exceptionName, fn) {
   try {
     fn();
   } catch (e) {
@@ -142,7 +147,8 @@ ReflectionHarness.testException = function(exceptionName, fn, description) {
     }
   }
   this.increment(this.failed);
-  this.reportFailure(description);
+  this.reportFailure(this.currentTestDescription + " must throw " +
+      exceptionName);
   return false;
 }
 
@@ -248,9 +254,9 @@ ReflectionHarness.reportFailure = function(description) {
 }
 
 /**
- * Shorthand function for when we have a failure outside of test().  Generally
- * used when the failure is an exception thrown unexpectedly or such, something
- * not equality-based.
+ * Shorthand function for when we have a failure outside of
+ * assertEquals()/assertThrows().  Generally used when the failure is an
+ * exception thrown unexpectedly or such, something not equality-based.
  *
  * @public
  */
@@ -260,8 +266,8 @@ ReflectionHarness.failure = function(message) {
 }
 
 /**
- * Shorthand function for when we have a success outside of test().  Only
- * called if catchUnexpectedExceptions is true.
+ * Shorthand function for when we have a success outside of
+ * assertEquals()/assertThrows().
  *
  * @public
  */

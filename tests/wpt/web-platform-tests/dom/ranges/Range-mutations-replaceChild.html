@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Range mutation tests - replaceChild</title>
+<link rel="author" title="Aryeh Gregor" href=ayg@aryeh.name>
+<meta name=timeout content=long>
+
+<div id=log></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../common.js"></script>
+<script src="Range-mutations.js"></script>
+<script>
+doTests(replaceChildTests, function(params) { return params[0] + ".replaceChild(" + params[1] + ", " + params[2] + ")" }, testReplaceChild);
+testDiv.style.display = "none";
+</script>

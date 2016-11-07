@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-pageCreatorAgentHomepageImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Homepage for Annotation Page Creator (Agent), inherited from Collection, not found. Agents may have one or more homepage values.",
+  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_homepage_ key** with one or more values, each of which is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when one or more homepage values for Annotation Page Creator (Agent), inherited from Collection, is implemented (Section 3.3.2)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "#/definitions/creatorAgentHomePageFound" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "#/definitions/creatorAgentHomePageFound" }
+         },
+        "required": [ "first" ]
+      }
+  ],
+  "definitions": {
+   "creatorAgentHomePageFound":
+    {  "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "otherProperties.json#/definitions/agentHomepageFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "otherProperties.json#/definitions/agentHomepageFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+   }
+  }
+}

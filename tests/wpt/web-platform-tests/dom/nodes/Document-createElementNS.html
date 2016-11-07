@@ -6,58 +6,86 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="Document-createElementNS.js"></script>
 <div id="log"></div>
+<iframe src="/common/dummy.xml"></iframe>
+<iframe src="/common/dummy.xhtml"></iframe>
 <script>
-test(function() {
-  var tests = createElementNS_tests.concat([
-    /* Arrays with three elements:
-     *   the namespace argument
-     *   the qualifiedName argument
-     *   the expected exception, or null if none
-     */
-    ["", "", "INVALID_CHARACTER_ERR"],
-    [null, null, null],
-    [null, "", "INVALID_CHARACTER_ERR"],
-    [undefined, null, null],
-    [undefined, "", "INVALID_CHARACTER_ERR"],
-    ["http://example.com/", null, null],
-    ["http://example.com/", "", "INVALID_CHARACTER_ERR"],
-    ["/", null, null],
-    ["/", "", "INVALID_CHARACTER_ERR"],
-    ["http://www.w3.org/XML/1998/namespace", null, null],
-    ["http://www.w3.org/XML/1998/namespace", "", "INVALID_CHARACTER_ERR"],
-    ["http://www.w3.org/2000/xmlns/", null, "NAMESPACE_ERR"],
-    ["http://www.w3.org/2000/xmlns/", "", "INVALID_CHARACTER_ERR"],
-    ["foo:", null, null],
-    ["foo:", "", "INVALID_CHARACTER_ERR"],
-  ])
+var tests = createElementNS_tests.concat([
+  /* Arrays with three elements:
+   *   the namespace argument
+   *   the qualifiedName argument
+   *   the expected exception, or null if none
+   */
+  ["", "", "INVALID_CHARACTER_ERR"],
+  [null, null, null],
+  [null, "", "INVALID_CHARACTER_ERR"],
+  [undefined, null, null],
+  [undefined, "", "INVALID_CHARACTER_ERR"],
+  ["http://example.com/", null, null],
+  ["http://example.com/", "", "INVALID_CHARACTER_ERR"],
+  ["/", null, null],
+  ["/", "", "INVALID_CHARACTER_ERR"],
+  ["http://www.w3.org/XML/1998/namespace", null, null],
+  ["http://www.w3.org/XML/1998/namespace", "", "INVALID_CHARACTER_ERR"],
+  ["http://www.w3.org/2000/xmlns/", null, "NAMESPACE_ERR"],
+  ["http://www.w3.org/2000/xmlns/", "", "INVALID_CHARACTER_ERR"],
+  ["foo:", null, null],
+  ["foo:", "", "INVALID_CHARACTER_ERR"],
+])
 
-  tests.forEach(function(t, i) {
-    test(function() {
-      var namespace = t[0], qualifiedName = t[1], expected = t[2]
-      if (expected != null) {
-        assert_throws(expected, function() { document.createElementNS(namespace, qualifiedName) })
-      } else {
-        var element = document.createElementNS(namespace, qualifiedName)
-        assert_not_equals(element, null)
-        assert_equals(element.nodeType, Node.ELEMENT_NODE)
-        assert_equals(element.nodeType, element.ELEMENT_NODE)
-        assert_equals(element.nodeValue, null)
-        assert_equals(element.ownerDocument, document)
-        var qualified = String(qualifiedName), names = []
-        if (qualified.indexOf(":") >= 0) {
-          names = qualified.split(":", 2)
-        } else {
-          names = [null, qualified]
+var xmlIframe = document.querySelector('[src="/common/dummy.xml"]');
+var xhtmlIframe = document.querySelector('[src="/common/dummy.xhtml"]');
+
+function runTest(t, i, desc) {
+  async_test(function(testObj) {
+    window.addEventListener("load", function() {
+      testObj.step(function() {
+        var doc;
+        if (desc == "HTML document") {
+          doc = document;
+        } else if (desc == "XML document") {
+          doc = xmlIframe.contentDocument;
+          // Make sure we're testing the right document
+          assert_equals(doc.documentElement.textContent, "Dummy XML document");
+        } else if (desc == "XHTML document") {
+          doc = xhtmlIframe.contentDocument;
+          assert_equals(doc.documentElement.textContent, "Dummy XHTML document");
         }
-        assert_equals(element.prefix, names[0])
-        assert_equals(element.localName, names[1])
-        assert_equals(element.tagName, qualified)
-        assert_equals(element.nodeName, qualified)
-        assert_equals(element.namespaceURI, namespace === undefined ? null : namespace)
-      }
-    }, "createElementNS test: " + t.map(format_value))
-  })
+        var namespace = t[0], qualifiedName = t[1], expected = t[2]
+        if (expected != null) {
+          assert_throws(expected, function() { doc.createElementNS(namespace, qualifiedName) })
+        } else {
+          var element = doc.createElementNS(namespace, qualifiedName)
+          assert_not_equals(element, null)
+          assert_equals(element.nodeType, Node.ELEMENT_NODE)
+          assert_equals(element.nodeType, element.ELEMENT_NODE)
+          assert_equals(element.nodeValue, null)
+          assert_equals(element.ownerDocument, doc)
+          var qualified = String(qualifiedName), names = []
+          if (qualified.indexOf(":") >= 0) {
+            names = qualified.split(":", 2)
+          } else {
+            names = [null, qualified]
+          }
+          assert_equals(element.prefix, names[0])
+          assert_equals(element.localName, names[1])
+          assert_equals(element.tagName, qualified)
+          assert_equals(element.nodeName, qualified)
+          assert_equals(element.namespaceURI,
+                        namespace === undefined || namespace === "" ? null
+                                                                    : namespace)
+        }
+      });
+      testObj.done();
+    });
+  }, "createElementNS test in " + desc + ": " + t.map(format_value))
+}
+
+tests.forEach(function(t, i) {
+  runTest(t, i, "HTML document")
+  runTest(t, i, "XML document")
+  runTest(t, i, "XHTML document")
 })
+
 
 test(function() {
   var HTMLNS = "http://www.w3.org/1999/xhtml";

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>SVG requiredExtensions</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS1"/>
+<link rel="match" href="required-extensions-2-ref.html"/>
+<meta name="assert" content="Verify that a foreignObject with MathML used as a requiredExtensions value is selected for display in a SVG switch element.">
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+  <svg width="200px" height="200px">
+    <rect width="200px" height="100px" fill="red"/>
+    <switch>
+      <foreignObject width="200px" height="200px"
+                     requiredExtensions="http://www.w3.org/1998/Math/MathML">
+        <div style="width: 200px; height: 200px; background: green"></div>
+      </foreignObject>
+      <rect y="100px" width="200px" height="100px" fill="red"/>
+    </switch>
+  </svg>
+</body>
+</html>

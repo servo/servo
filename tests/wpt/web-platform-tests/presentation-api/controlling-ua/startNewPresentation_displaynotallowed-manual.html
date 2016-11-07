@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Calling "start" when the user denied permission to use the display returns a Promise rejected with a NotAllowedError exception.</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs/">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+
+<p>Before starting this test, confirm that there are one or more available presentation display on your local network.</p>
+<p>Click the button below to start the manual test. If prompted to select a device, please dismiss the dialog box. The test passes if a "PASS" result appears.
+</p>
+<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
+
+<script>
+    // ----------
+    // DOM Object
+    // ----------
+    var presentBtn = document.getElementById("presentBtn");
+
+    // -------------------------------------------
+    // Start New Presentation Test (error) - begin
+    // -------------------------------------------
+    var startPresentation = function () {
+        presentBtn.disabled = true;
+        promise_test(function (t) {
+            var request = new PresentationRequest(presentationUrls);
+            return promise_rejects(t, 'NotAllowedError', request.start());
+        });
+    };
+    // -----------------------------------------
+    // Start New Presentation Test (error) - end
+    // -----------------------------------------
+</script>

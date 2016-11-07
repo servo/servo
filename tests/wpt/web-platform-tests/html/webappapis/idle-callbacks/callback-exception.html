@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>requestIdleCallback callback exception reported to error handler</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+  var custom_exception = 'requestIdleCallbackException';
+  setup({allow_uncaught_exception : true});
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    addEventListener("error",function(e) {
+      t.step(function() {
+        assert_equals(e.error.message, custom_exception);
+        t.done();
+      })
+    });
+    window.requestIdleCallback(function () {
+      throw new Error(custom_exception);
+    });
+  }, "requestIdleCallback callback exceptions are reported to error handler");
+</script>

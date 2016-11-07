@@ -7,6 +7,7 @@
 <link rel="help" href="http://w3c.github.io/presentation-api/#interface-presentationconnection">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
 <h2>Description</h2>
 <p>
   This test validates that after connection starts,<br/>
@@ -14,15 +15,14 @@
 </p>
 <br/>
 <p>Click the button below to start the test.</p>
-<button id="presentStartBtn" onclick="startPresentation()">Start Presentation Test</button>
+<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
 
 <script>
   setup({explicit_timeout: true});
   var startPresentation = function () {
+    document.getElementById('presentBtn').disabled = true;
     async_test(function(t) {
-      var client_id = String(new Date().getTime()) + String(Math.floor(Math.random() * 1e5));
-      var url = "support/presentation.html#__castAppId__=C2335F62/__castClientId__="+ client_id;
-      var request = new PresentationRequest(url);
+      var request = new PresentationRequest(presentationUrls);
       request.start()
         .then(function(connection) {
           assert_true(connection instanceof PresentationConnection);

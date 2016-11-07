@@ -14,12 +14,6 @@
     }, 'Call PresentationRequest() constructor without presentation URL. TypeError Exception expected.');
 
     test(function() {
-        assert_throws(new TypeError(), function() {
-            new PresentationRequest(null);
-        });
-    }, 'Call PresentationRequest constructor with null presentation URL. TypeError Exception expected.');
-
-    test(function() {
         assert_throws('NotSupportedError', function() {
             new PresentationRequest([]);
         });
@@ -27,13 +21,13 @@
 
     test(function() {
         assert_throws('SyntaxError', function() {
-            new PresentationRequest(':invalid');
+            new PresentationRequest('http://@');
         });
     }, 'Call PresentationRequest constructor with an invalid URL. SyntaxError Exception expected.');
 
     test(function() {
         assert_throws('SyntaxError', function() {
-            new PresentationRequest(['presentation.html', ':invalid']);
+            new PresentationRequest(['presentation.html', 'http://@']);
         });
     }, 'Call PresentationRequest constructor with a sequence of URLs, one of them invalid. SyntaxError Exception expected.');
 </script>

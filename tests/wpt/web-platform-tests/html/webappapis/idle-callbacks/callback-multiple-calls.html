@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>multiple calls to requestIdleCallback</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    var counter = 0;
+    function f(c) {
+      assert_equals(counter, c);
+      if (counter === 99) {
+        t.done();
+      }
+
+      ++counter;
+    }
+    for (var i = 0; i < 100; ++i) {
+      let j = i;
+      window.requestIdleCallback(t.step_func(function () { f(j) }));
+    }
+  }, "requestIdleCallback callbacks should be invoked in order (called iteratively)");
+
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    var counter = 0;
+
+    function f(c) {
+      assert_equals(counter, c);
+      if (counter === 99) {
+        t.done();
+      }
+
+      ++counter;
+      window.requestIdleCallback(t.step_func(function () { f(c + 1) }));
+    }
+
+    window.requestIdleCallback(t.step_func(function () { f(0) }));
+  }, "requestIdleCallback callbacks should be invoked in order (called recursively)");
+</script>

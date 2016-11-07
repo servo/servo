@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions - Test navigator.requestmediakeysystemaccess exception and MediaKeySystemAccess attribute syntax for Clear Key, mp4</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/syntax-mediakeysystemaccess.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+    <script>
+        var contentItem = content['mp4-basic'],
+            config = {
+                keysystem: 'org.w3.clearkey',
+                content: contentItem,
+                initDataType: 'keyids',
+                initData: getInitData(contentItem, 'keyids'),
+                audioType: contentItem.audio.type,
+                videoType: contentItem.video.type
+                };
+        runTest(config);
+    </script>
+  </body>
+</html>

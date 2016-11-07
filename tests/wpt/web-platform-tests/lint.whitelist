@@ -133,6 +133,9 @@ TRAILING WHITESPACE:webgl/tools/*.patch
 # The tests under this directory are not done by us
 *:webgl/conformance-1.0.3/*
 
+# CI scripts
+PRINT STATEMENT:check_stability.py
+W3C-TEST.ORG:check_stability.py
 
 # Git submodules are not currently scanned
 *:tools/*

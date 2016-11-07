@@ -2,12 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-
-import errno
 import httplib
 import json
-import socket
-import time
 import urlparse
 
 import error
@@ -30,20 +26,9 @@ class HTTPWireProtocol(object):
 
         self.host = host
         self.port = port
-        self.path_prefix = url_prefix
+        self.url_prefix = url_prefix
 
         self._timeout = timeout
-        self._connection = None
-
-    def connect(self):
-        wait_for_port(self.host, self.port, self._timeout)
-        self._connection = httplib.HTTPConnection(
-            self.host, self.port, timeout=self._timeout)
-
-    def disconnect(self):
-        if self._connection:
-            self._connection.close()
-        self._connection = None
 
     def url(self, suffix):
         return urlparse.urljoin(self.path_prefix, suffix)
@@ -59,9 +44,6 @@ class HTTPWireProtocol(object):
             the remote.
         """
 
-        if not self._connection:
-            self.connect()
-
         if body is None and method == "POST":
             body = {}
 
@@ -74,16 +56,20 @@ class HTTPWireProtocol(object):
         if headers is None:
             headers = {}
 
-        url = self.path_prefix + url
-        self._connection.request(method, url, body, headers)
+        url = self.url_prefix + url
 
-        resp = self._connection.getresponse()
+        conn = httplib.HTTPConnection(
+            self.host, self.port, strict=True, timeout=self._timeout)
+        conn.request(method, url, body, headers)
+
+        resp = conn.getresponse()
         resp_body = resp.read()
+        conn.close()
 
         try:
             data = json.loads(resp_body)
         except:
-            raise IOError("Could not parse response body as JSON: %s" % body)
+            raise IOError("Could not parse response body as JSON: '%s'" % resp_body)
 
         if resp.status != 200:
             cls = error.get(data.get("error"))
@@ -95,23 +81,3 @@ class HTTPWireProtocol(object):
             data = None
 
         return data
-
-
-def wait_for_port(host, port, timeout=HTTP_TIMEOUT):
-    """Wait for a given host/port to be available."""
-    starttime = time.time()
-    poll_interval = 0.1
-    while time.time() - starttime < timeout:
-        sock = None
-        try:
-            sock = socket.socket()
-            sock.connect((host, port))
-            return True
-        except socket.error as e:
-            if e[0] != errno.ECONNREFUSED:
-                raise
-        finally:
-            if sock:
-                sock.close()
-        time.sleep(poll_interval)
-    return False

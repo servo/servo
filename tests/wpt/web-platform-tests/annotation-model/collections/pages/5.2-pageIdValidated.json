@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageIdValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page is missing id key or value of id key is not a single string of format uri.",
+  "title": "Implements **Annotation Page _id_ key** which has a **single value** that is a **string of format uri** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "description": "True when the Annotation Page has a single id that is a string of format uri (Section 5.2)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "id.json#/definitions/idValueFound" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      {  "type": "object",
+         "properties":
+          {"first":
+            { "$ref": "id.json#/definitions/idValueFound" }
+          },
+         "required": [ "first" ]
+      }
+  ]
+}

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>data URL worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  var worker = new Worker("data:,fetch('/').then(() => self.postMessage('fail'), () => self.postMessage('pass'))") // not same-origin
+  worker.onmessage = t.step_func_done(e => {
+    assert_equals(e.data, "pass")
+  })
+})
+</script>

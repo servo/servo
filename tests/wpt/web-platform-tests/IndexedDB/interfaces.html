@@ -21,8 +21,8 @@ setup(function() {
     var idls = request.responseText;
 
     idlArray.add_untested_idls("[PrimaryGlobal] interface Window { };");
-    idlArray.add_untested_idls("interface Event { };");
-    idlArray.add_untested_idls("interface EventTarget { };");
+    idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface Event { };");
+    idlArray.add_untested_idls("[Exposed=(Window,Worker)] interface EventTarget { };");
 
     // From Indexed DB:
     idlArray.add_idls(idls);

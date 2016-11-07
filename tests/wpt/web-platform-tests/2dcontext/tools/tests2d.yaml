@@ -1005,6 +1005,26 @@
     @assert pixel 50,25 ==~ 2,253,0,255;
   expected: green
 
+- name: 2d.composite.globalAlpha.canvascopy
+  testing:
+    - 2d.composite.globalAlpha.image
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.globalCompositeOperation = 'copy'
+    ctx.globalAlpha = 0.51;
+    ctx.drawImage(canvas2, 0, 0);
+    @assert pixel 50,25 ==~ 0,255,0,130;
+  expected: green
+
 
 - meta: |
     # Composite operation tests
@@ -1372,6 +1392,40 @@
         ('hsla-clamp-6', 'hsla(120, 100%, 0%, -2)', 0,0,0,0, ""),
         ('svg-1', 'gray', 128,128,128,255, ""),
         ('svg-2', 'grey', 128,128,128,255, ""),
+        # css-color-4 rgb() color function
+        #   https://drafts.csswg.org/css-color/#numeric-rgb
+        ('css-color-4-rgb-1', 'rgb(0, 255.0, 0)', 0,255,0,255, ""),
+        ('css-color-4-rgb-2', 'rgb(0, 255, 0, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-rgb-3', 'rgb(0, 255, 0, 20%)', 0,255,0,51, ""),
+        ('css-color-4-rgb-4', 'rgb(0 255 0)', 0,255,0,255, ""),
+        ('css-color-4-rgb-5', 'rgb(0 255 0 / 0.2)', 0,255,0,51, ""),
+        ('css-color-4-rgb-6', 'rgb(0 255 0 / 20%)', 0,255,0,51, ""),
+        ('css-color-4-rgba-1', 'rgba(0, 255.0, 0)', 0,255,0,255, ""),
+        ('css-color-4-rgba-2', 'rgba(0, 255, 0, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-rgba-3', 'rgba(0, 255, 0, 20%)', 0,255,0,51, ""),
+        ('css-color-4-rgba-4', 'rgba(0 255 0)', 0,255,0,255, ""),
+        ('css-color-4-rgba-5', 'rgba(0 255 0 / 0.2)', 0,255,0,51, ""),
+        ('css-color-4-rgba-6', 'rgba(0 255 0 / 20%)', 0,255,0,51, ""),
+        # css-color-4 hsl() color function
+        #   https://drafts.csswg.org/css-color/#the-hsl-notation
+        ('css-color-4-hsl-1', 'hsl(120 100.0% 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsl-2', 'hsl(120 100.0% 50.0% / 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsl-3', 'hsl(120.0, 100.0%, 50.0%, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsl-4', 'hsl(120.0, 100.0%, 50.0%, 20%)', 0,255,0,51, ""),
+        ('css-color-4-hsl-5', 'hsl(120deg, 100.0%, 50.0%, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsl-6', 'hsl(120deg, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsl-7', 'hsl(133.33333333grad, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsl-8', 'hsl(2.0943951024rad, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsl-9', 'hsl(0.3333333333turn, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsla-1', 'hsl(120 100.0% 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsla-2', 'hsl(120 100.0% 50.0% / 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsla-3', 'hsl(120.0, 100.0%, 50.0%, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsla-4', 'hsl(120.0, 100.0%, 50.0%, 20%)', 0,255,0,51, ""),
+        ('css-color-4-hsla-5', 'hsl(120deg, 100.0%, 50.0%, 0.2)', 0,255,0,51, ""),
+        ('css-color-4-hsla-6', 'hsl(120deg, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsla-7', 'hsl(133.33333333grad, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsla-8', 'hsl(2.0943951024rad, 100.0%, 50.0%)', 0,255,0,255, ""),
+        ('css-color-4-hsla-9', 'hsl(0.3333333333turn, 100.0%, 50.0%)', 0,255,0,255, ""),
         # currentColor is handled later
     ]:
         # TODO: test by retrieving fillStyle, instead of actually drawing?
@@ -1404,33 +1458,47 @@
         ('hex6', '#fg0000'),
         ('hex7', '#ff0000f'),
         ('hex8', '#fg0000ff'),
-        ('rgb-1', 'rgb(255.0, 0, 0)'),
-        ('rgb-2', 'rgb(255, 0.0, 0)'),
-        ('rgb-3', 'rgb(255.0, 0, 0,)'),
-        ('rgb-4', 'rgb(100%, 0, 0)'),
-        ('rgb-5', 'rgb(255 0 0)'),
-        ('rgb-6', 'rgb(255, - 1, 0)'),
-        ('rgb-7', 'rgb(255, 0, 0, 1)'),
-        ('rgba-1', 'rgba(255, 0, 0)'),
-        ('rgba-2', 'rgba(255.0, 0, 0, 1)'),
-        ('rgba-3', 'rgba(100%, 0, 0, 1)'),
-        ('rgba-4', 'rgba(255, 0, 0, 100%)'),
-        ('rgba-5', 'rgba(255, 0, 0, 1. 0)'),
-        ('rgba-6', 'rgba(255, 0, 0, 1.)'),
-        ('rgba-7', 'rgba(255, 0, 0, '),
+        ('rgb-1', 'rgb(255.0, 0, 0,)'),
+        ('rgb-2', 'rgb(100%, 0, 0)'),
+        ('rgb-3', 'rgb(255, - 1, 0)'),
+        ('rgba-1', 'rgba(100%, 0, 0, 1)'),
+        ('rgba-2', 'rgba(255, 0, 0, 1. 0)'),
+        ('rgba-3', 'rgba(255, 0, 0, 1.)'),
+        ('rgba-4', 'rgba(255, 0, 0, '),
+        ('rgba-5', 'rgba(255, 0, 0, 1,)'),
         ('hsl-1', 'hsl(0%, 100%, 50%)'),
         ('hsl-2', 'hsl(z, 100%, 50%)'),
         ('hsl-3', 'hsl(0, 0, 50%)'),
         ('hsl-4', 'hsl(0, 100%, 0)'),
-        ('hsl-5', 'hsl(0, 100%, 100%, 1)'),
-        ('hsl-6', 'hsl(0, 100.%, 50%)'),
+        ('hsl-5', 'hsl(0, 100.%, 50%)'),
+        ('hsl-6', 'hsl(0, 100%, 50%,)'),
         ('hsla-1', 'hsla(0%, 100%, 50%, 1)'),
         ('hsla-2', 'hsla(0, 0, 50%, 1)'),
+        ('hsla-3', 'hsla(0, 0, 50%, 1,)'),
         ('name-1', 'darkbrown'),
         ('name-2', 'firebrick1'),
         ('name-3', 'red blue'),
         ('name-4', '"red"'),
         ('name-5', '"red'),
+        # css-color-4 color function
+        #   comma and comma-less expressions should not mix together.
+        ('css-color-4-rgb-1', 'rgb(255, 0, 0 / 1)'),
+        ('css-color-4-rgb-2', 'rgb(255 0 0, 1)'),
+        ('css-color-4-rgb-3', 'rgb(255, 0 0)'),
+        ('css-color-4-rgba-1', 'rgba(255, 0, 0 / 1)'),
+        ('css-color-4-rgba-2', 'rgba(255 0 0, 1)'),
+        ('css-color-4-rgba-3', 'rgba(255, 0 0)'),
+        ('css-color-4-hsl-1', 'hsl(0, 100%, 50% / 1)'),
+        ('css-color-4-hsl-2', 'hsl(0 100% 50%, 1)'),
+        ('css-color-4-hsl-3', 'hsl(0, 100% 50%)'),
+        ('css-color-4-hsla-1', 'hsla(0, 100%, 50% / 1)'),
+        ('css-color-4-hsla-2', 'hsla(0 100% 50%, 1)'),
+        ('css-color-4-hsla-3', 'hsla(0, 100% 50%)'),
+        #  trailing slash
+        ('css-color-4-rgb-4', 'rgb(0 0 0 /)'),
+        ('css-color-4-rgb-5', 'rgb(0, 0, 0 /)'),
+        ('css-color-4-hsl-4', 'hsl(0 100% 50% /)'),
+        ('css-color-4-hsl-5', 'hsl(0, 100%, 50% /)'),
     ]:
         test = {
             'name': '2d.fillStyle.parse.invalid.%s' % name,
@@ -6196,6 +6264,18 @@
     @assert pixel 50,25 == 0,255,0,255;
     @assert pixel 90,45 == 0,255,0,255;
   expected: green
+
+- name: 2d.path.lineTo.nonfinite.details
+  desc: lineTo() with Infinity/NaN for first arg still converts the second arg
+  testing:
+    - 2d.nonfinite
+  code: |
+    for (var arg1 of [Infinity, -Infinity, NaN]) {
+      var converted = false;
+      ctx.lineTo(arg1, { valueOf: function() { converted = true; return 0; } });
+      @assert converted;
+    }
+  expected: clear
 
 - name: 2d.path.quadraticCurveTo.ensuresubpath.1
   desc: If there is no subpath, the first control point is added (and nothing is drawn up to it)

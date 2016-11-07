@@ -6,24 +6,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-
-
-    // ------------
-    // Request init
-    // ------------
-    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
-            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate,
-            request = new PresentationRequest(validPresURL);
-
     // -----------------------------------
     // Start New Presentation Test - begin
     // -----------------------------------
-    promise_test(function () {
-        return request.start()
-                .catch(function (error) {
-                    assert_true(error instanceof InvalidAccessError);
-                });
-
+    promise_test(function (t) {
+      var request = new PresentationRequest('presentation.html');
+      promise_rejects(t, 'InvalidAccessError', request.start());
     }, "The presentation could not start, because a user gesture is required.");
     // ----------------------------------
     // Launch New Presentation Test - end

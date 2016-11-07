@@ -1,10 +1,12 @@
 function runTest(config,qualifier)
 {
-    var testname = testnamePrefix( qualifier, config.keysystem ) + ', temporary, keystatuses';
+    var testname = testnamePrefix(qualifier, config.keysystem) + ', temporary, keystatuses';
 
-    var configuration = getSimpleConfigurationForContent( config.content );
+    var configuration = getSimpleConfigurationForContent(config.content);
 
-    if ( config.initDataType && config.initData ) configuration.initDataTypes = [ config.initDataType ];
+    if (config.initDataType && config.initData) {
+        configuration.initDataTypes = [config.initDataType];
+    }
 
     async_test(function(test)
     {
@@ -15,8 +17,8 @@ function runTest(config,qualifier)
 
         // Even though key ids are uint8, using printable values so that
         // they can be verified easily.
-        var key1 = new Uint8Array( config.content.keys[ 0 ].kid ),
-            key2 = new Uint8Array( config.content.keys[ 1 ].kid ),
+        var key1 = new Uint8Array(config.content.keys[0].kid),
+            key2 = new Uint8Array(config.content.keys[1].kid),
             key1String = arrayBufferAsString(key1),
             key2String = arrayBufferAsString(key2);
 
@@ -32,9 +34,9 @@ function runTest(config,qualifier)
             waitForEventAndRunStep('keystatuseschange', mediaKeySession, processKeyStatusesChange, test);
 
             // Add keys to session
-            config.messagehandler( event.messageType, event.message ).then( function( response ) {
-                event.target.update( response ).catch(onFailure);
-            });
+            config.messagehandler(event.messageType, event.message).then(function(response) {
+                return event.target.update(response);
+            }).catch(onFailure);
         }
 
         function checkKeyStatusFor2Keys()
@@ -49,10 +51,11 @@ function runTest(config,qualifier)
             }
             function lexicographical( a, b ) { return a < b ? -1 : a === b ? 0 : +1; }
             function lexicographicalkey( a, b ) { return lexicographical( a.key, b.key ); }
-            var expected = [{ key: key1String, value: 'usable'}, { key: key2String, value: 'usable'}].sort( lexicographicalkey );
-            assert_equals(JSON.stringify(result),
-                          JSON.stringify(expected),
-                                 "keystatuses should have the two expected keys with keystatus 'usable'");
+            var expected1 = [{ key: key1String, value: 'usable'}, { key: key2String, value: 'usable'}].sort( lexicographicalkey );
+            var expected2 = [{ key: key1String, value: 'status-pending'}, { key: key2String, value: 'status-pending'}].sort( lexicographicalkey );
+            assert_in_array(    JSON.stringify(result),
+                                [ JSON.stringify(expected1),JSON.stringify(expected2) ],
+                                 "keystatuses should have the two expected keys with keystatus 'usable' or 'status-pending'");
 
             // |keyStatuses| must contain both keys.
             result = [];
@@ -63,38 +66,39 @@ function runTest(config,qualifier)
                                 [key1String, key2String].sort( lexicographical ),
                                 "keyStatuses.keys() should return an iterable over the two expected keys");
 
-            // Both values in |mediaKeySession| should be 'usable'.
+            // Both values in |mediaKeySession| should be 'usable' or 'status-pending'.
             result = [];
             for (var value of mediaKeySession.keyStatuses.values()) {
                 result.push(value);
             }
-            assert_array_equals(result,
-                                ['usable', 'usable'],
-                                "keyStatuses.values() should return an iterable with two 'usable' values");
+
+            assert_equals( result.length, 2, "keyStatuses.values() should have two elements" );
+            assert_equals( result[0], result[1], "the values in keyStatuses.values() should be equal" );
+            assert_in_array( result[0], [ 'usable', 'status-pending' ] );
 
             // Check |keyStatuses.entries()|.
             result = [];
             for (var entry of mediaKeySession.keyStatuses.entries()) {
                 result.push({ key: arrayBufferAsString(entry[0]), value: entry[1] });
             }
-            assert_equals(JSON.stringify(result),
-                          JSON.stringify(expected),
-                                 "keyStatuses.entries() should return an iterable over the two expected keys, with keystatus 'usable'");
+            assert_in_array(JSON.stringify(result),
+                            [ JSON.stringify(expected1), JSON.stringify(expected2) ],
+                                 "keyStatuses.entries() should return an iterable over the two expected keys, with keystatus 'usable' or 'status-pending'");
 
             // forEach() should return both entries.
             result = [];
             mediaKeySession.keyStatuses.forEach(function(status, keyId) {
                 result.push({ key: arrayBufferAsString(keyId), value: status });
             });
-            assert_equals(JSON.stringify(result),
-                          JSON.stringify(expected),
-                                 "keyStatuses.forEach() should iterate over the two expected keys, with keystatus 'usable'");
+            assert_in_array(JSON.stringify(result),
+                            [ JSON.stringify(expected1), JSON.stringify(expected2) ],
+                                 "keyStatuses.forEach() should iterate over the two expected keys, with keystatus 'usable' or 'status-pending'");
 
             // has() and get() should return the expected values.
             assert_true(mediaKeySession.keyStatuses.has(key1), "keyStatuses should have key1");
             assert_true(mediaKeySession.keyStatuses.has(key2), "keyStatuses should have key2");
-            assert_equals(mediaKeySession.keyStatuses.get(key1), 'usable', "key1 should have status 'usable'");
-            assert_equals(mediaKeySession.keyStatuses.get(key2), 'usable', "key2 should have status 'usable'");
+            assert_in_array(mediaKeySession.keyStatuses.get(key1), [ 'usable', 'status-pending' ], "key1 should have status 'usable' or 'status-pending'");
+            assert_in_array(mediaKeySession.keyStatuses.get(key2), [ 'usable', 'status-pending' ], "key2 should have status 'usable' or 'status-pending'");
 
             // Try some invalid keyIds.
             var invalid1 = key1.subarray(0, key1.length - 1);
@@ -128,7 +132,7 @@ function runTest(config,qualifier)
 
         function processKeyStatusesChange(event)
         {
-            if ( !closed )
+            if (!closed)
             {
                 // The first keystatuseschange (caused by update())
                 // should include both keys.
@@ -146,7 +150,7 @@ function runTest(config,qualifier)
             }
         }
 
-        navigator.requestMediaKeySystemAccess( config.keysystem, [ configuration ] ).then(function(access) {
+        navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function(access) {
             return access.createMediaKeys();
         }).then(test.step_func(function(mediaKeys) {
             mediaKeySession = mediaKeys.createSession();

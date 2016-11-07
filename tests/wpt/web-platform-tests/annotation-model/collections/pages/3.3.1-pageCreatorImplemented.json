@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.1-pageCreatorImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Valid Annotation Page-level creator key not found. Annotation Page may have zero or more creators inherited from Collection.",
+  "title": "Implements **Annotation Page-level _creator_ key** which has one or more values, each of which is a **string of format uri** or an **object** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Page implements creator key (Section 3.3.1)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "#/definitions/creatorImplemented" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "#/definitions/creatorImplemented" }
+         },
+        "required": [ "first" ]
+      }
+  ],
+  "definitions":
+  {
+    "creatorImplemented":
+    {
+      "allOf":
+       [
+        { "$ref": "otherProperties.json#/definitions/creatorValidIfPresent"},
+        { "type": "object",
+          "required": [ "creator" ] }
+       ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Whitelists are discarded with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'self' 'strict-dynamic' 'nonce-dummy' -->
+</head>
+
+<body>
+    <h1>Whitelists are discarded with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'whitelistedScript') {
+                    assert_unreached('Whitelisted script without a correct nonce is not allowed with `strict-dynamic`.');
+                }
+            }));
+            window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
+                assert_equals(e.effectiveDirective, 'script-src');
+            }));
+        }, 'Whitelisted script without a correct nonce is not allowed with `strict-dynamic`.');
+    </script>
+    <script id='whitelistedScript' src='simpleSourcedScript.js'></script>
+
+</body>
+
+</html>

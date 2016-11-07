@@ -1,9 +1,11 @@
 <!doctype html>
 <!--
-To quickly iterate when developing this test, use --use-fake-ui-for-media-stream
-for Chrome and set the media.navigator.permission.disabled property to true in
-Firefox. You must either have a webcam/mic available on the system or use for
-instance --use-fake-device-for-media-stream for Chrome.
+To run this test, you must have a webcam and a microphone or use
+fake devices by specifying
+  --use-fake-device-for-media-stream --use-fake-ui-for-media-stream
+for Chrome or by setting the
+  media.navigator.streams.fake
+property to true in Firefox.
 -->
 
 <html>
@@ -108,9 +110,8 @@ instance --use-fake-device-for-media-stream for Chrome.
 
   // This function starts the test.
   test.step(function() {
-    navigator.getUserMedia({ video: true, audio: true },
-        getUserMediaOkCallback,
-        failed('getUserMedia'));
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(getUserMediaOkCallback, failed('getUserMedia'));
   });
 </script>
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageLastValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has last key with non-uri value or array as value containing more than one item.",
+  "title": "**Annotation Page _last_ key** (inherited from Collection), if present, is **a single value of format uri** - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/lastValidIfPresent" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/lastValidIfPresent" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+
+
+
+
+}

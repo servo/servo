@@ -9,6 +9,7 @@ enum IDBRequestReadyState {
     "done"
 };
 
+[Exposed=(Window,Worker)]
 interface IDBKeyRange {
     readonly    attribute any     lower;
     readonly    attribute any     upper;
@@ -42,6 +43,7 @@ dictionary IDBVersionChangeEventInit : EventInit {
     unsigned long long? newVersion = null;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBRequest : EventTarget {
     readonly    attribute any                                        result;
     readonly    attribute DOMError                                   error;
@@ -52,12 +54,14 @@ interface IDBRequest : EventTarget {
                 attribute EventHandler                               onerror;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBOpenDBRequest : IDBRequest {
                 attribute EventHandler onblocked;
                 attribute EventHandler onupgradeneeded;
 };
 
-[Constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict)]
+[Exposed=(Window,Worker),
+ Constructor(DOMString type, optional IDBVersionChangeEventInit eventInitDict)]
 interface IDBVersionChangeEvent : Event {
     readonly    attribute unsigned long long  oldVersion;
     readonly    attribute unsigned long long? newVersion;
@@ -68,12 +72,14 @@ interface IDBEnvironment {
     readonly    attribute IDBFactory indexedDB;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBFactory {
     IDBOpenDBRequest open (DOMString name, [EnforceRange] optional unsigned long long version);
     IDBOpenDBRequest deleteDatabase (DOMString name);
     short            cmp (any first, any second);
 };
 
+[Exposed=(Window,Worker)]
 interface IDBDatabase : EventTarget {
     readonly    attribute DOMString          name;
     readonly    attribute unsigned long long version;
@@ -88,6 +94,7 @@ interface IDBDatabase : EventTarget {
                 attribute EventHandler       onversionchange;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBObjectStore {
     attribute DOMString name;
     readonly    attribute any            keyPath;
@@ -106,6 +113,7 @@ interface IDBObjectStore {
     IDBRequest count (optional any key);
 };
 
+[Exposed=(Window,Worker)]
 interface IDBIndex {
     attribute DOMString name;
     readonly    attribute IDBObjectStore objectStore;
@@ -119,6 +127,7 @@ interface IDBIndex {
     IDBRequest count (optional any key);
 };
 
+[Exposed=(Window,Worker)]
 interface IDBCursor {
     readonly    attribute (IDBObjectStore or IDBIndex) source;
     readonly    attribute IDBCursorDirection           direction;
@@ -130,10 +139,12 @@ interface IDBCursor {
     IDBRequest delete ();
 };
 
+[Exposed=(Window,Worker)]
 interface IDBCursorWithValue : IDBCursor {
     readonly    attribute any value;
 };
 
+[Exposed=(Window,Worker)]
 interface IDBTransaction : EventTarget {
     readonly    attribute IDBTransactionMode mode;
     readonly    attribute IDBDatabase        db;

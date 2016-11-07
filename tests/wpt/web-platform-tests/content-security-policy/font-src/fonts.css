@@ -1,0 +1,8 @@
+@font-face {
+  font-family: 'Halflings';
+  src:  url('/tools/runner/fonts/glyphicons-halflings-regular.woff') format('woff');
+}
+
+body {
+    font-family: 'Halflings', Fallback, sans-serif;
+}

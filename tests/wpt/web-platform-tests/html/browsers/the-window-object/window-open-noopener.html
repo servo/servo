@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>window.open() with "noopener" tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+var testData = [
+  { testDescription: "window.open() with 'noopener' should not reuse existing target",
+    secondWindowFeatureString: "noopener",
+    shouldReuse: false },
+  { testDescription: "noopener needs to be present as a token on its own",
+    secondWindowFeatureString: "noopener=1",
+    shouldReuse: true },
+  { testDescription: "noopener needs to be present as a token on its own again",
+    secondWindowFeatureString: "noopener=0",
+    shouldReuse: true },
+  { testDescription: "noopener needs to be present as a token on its own yet again",
+    secondWindowFeatureString: "make me noopener",
+    shouldReuse: true },
+  { testDescription: "Trailing noopener should work",
+    secondWindowFeatureString: "abc def,  \n\r noopener",
+    shouldReuse: false },
+  { testDescription: "Leading noopener should work",
+    secondWindowFeatureString: "noopener \f\t , hey, there",
+    shouldReuse: false },
+  { testDescription: "Interior noopener should work",
+    secondWindowFeatureString: "and now, noopener   , hey, there",
+    shouldReuse: false },
+];
+
+var tests = [];
+/**
+ * Loop over our testData array and kick off an async test for each entry.  Each
+ * async test opens a window using window.open() with some per-test unique name,
+ * then tries to do a second window.open() call with the same name and the
+ * test-specific feature string.  It then checks whether that second
+ * window.open() call reuses the existing window, whether the return value of
+ * the second window.open() call is correct (it should be null in the noopener
+ * cases and non-null in the cases when the existing window gets reused) and so
+ * forth.
+ */
+for (var i = 0; i < testData.length; ++i) {
+  var test = testData[i];
+  var t = async_test(test.testDescription);
+  tests.push(t);
+  t.secondWindowFeatureString = test.secondWindowFeatureString;
+  t.windowName = "someuniquename" + i;
+
+  if (test.shouldReuse) {
+    t.step(function() {
+      var windowName = this.windowName;
+
+      var w1 = window.open("", windowName);
+      this.add_cleanup(function() { w1.close(); });
+
+      assert_equals(w1.opener, window);
+
+      var w2 = window.open("", windowName, this.secondWindowFeatureString);
+      assert_equals(w2, w1);
+      assert_equals(w2.opener, w1.opener);
+      assert_equals(w2.opener, window);
+      this.done();
+    });
+  } else {
+    t.step(function() {
+      var w1;
+      this.add_cleanup(function() { w1.close(); });
+
+      var windowName = this.windowName;
+      var channel = new BroadcastChannel(windowName);
+
+      channel.onmessage = this.step_func_done(function(e) {
+        var data = e.data;
+        assert_equals(data.name, windowName, "Should have the right name");
+        assert_equals(data.haveOpener, false, "Should not have opener");
+        assert_equals(w1.opener, window);
+        assert_equals(w1.location.href, "about:blank");
+      });
+
+      w1 = window.open("", windowName);
+      assert_equals(w1.opener, window);
+
+      var w2 = window.open("support/noopener-target.html?" + windowName,
+                           windowName, this.secondWindowFeatureString);
+      assert_equals(w2, null);
+
+      assert_equals(w1.opener, window);
+    });
+  }
+}
+
+/**
+ * Loop over the special targets that ignore noopener and check that doing a
+ * window.open() with those targets correctly reuses the existing window.
+ */
+for (var target of ["_self", "_parent", "_top"]) {
+  var t = async_test("noopener window.open targeting " + target);
+  tests.push(t);
+  t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
+  assert_equals(t.openedWindow.opener, window);
+  t.openedWindow.checkValues = t.step_func_done(function(win) {
+    assert_equals(win, this.openedWindow);
+  });
+}
+</script>

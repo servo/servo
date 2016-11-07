@@ -1,0 +1,432 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "collections.json",
+  "title": "Definitions: Annotation Collections.",
+  "description": "Schemas in #/definitions detect or validate keys/objects (direct children) uniquely used to describe Annotation Collections (Section 5.1 and 5.2).",
+  "definitions": {
+
+    "contextValueFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid @context string included in Collection / Page description",
+      "description": "True when the string has value http://www.w3.org/ns/anno.jsonld (Section 5)",
+      "type": "string",
+      "enum": [ "http://www.w3.org/ns/anno.jsonld" ]
+    },
+
+    "contextValueInArrayFound": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid @context string found in array included in Collection / Page description",
+      "description": "True when the array contains a string item having value http://www.w3.org/ns/anno.jsonld (Section 5)",
+      "type": "array",
+      "not":
+      { "items":
+        { "not":
+          { "$ref": "#/definitions/contextValueFound" }
+        }
+      }
+    },
+
+    "annotationCollectionTypeValueRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid AnnotationCollection type value string included in Collection description",
+      "description": "True when the string has value 'AnnotationCollection' (Section 5.1)",
+      "type": "string",
+      "enum": [ "AnnotationCollection" ]
+    },
+
+    "annotationCollectionTypeValueInArrayRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid AnnotationCollection type in array included in Collection description",
+      "description": "True when the array contains a string item having value 'AnnotationCollection' (Section 5.1)",
+      "type": "array",
+      "not":
+      { "items":
+        { "not":
+          { "$ref": "#/definitions/annotationCollectionTypeValueRecognized" }
+        }
+      }
+    },
+
+    "annotationCollectionTypeValueFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Implementation: AnnotationCollection type",
+      "description": "True when the Annotation Collection has type key and 'AnnotationCollection' is a value of type (Section 5.1)",
+      "type": "object",
+      "required": [ "type" ],
+      "properties": {
+        "type": {
+          "oneOf": [
+          { "$ref": "#/definitions/annotationCollectionTypeValueRecognized" },
+          { "$ref": "#/definitions/annotationCollectionTypeValueInArrayRecognized" }
+          ]
+        }
+      }
+    },
+
+    "annotationPageTypeValueRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid AnnotationPage type value string included in Page description",
+      "description": "True when the string has value 'AnnotationPage' (Section 5.2)",
+      "type": "string",
+      "enum": [ "AnnotationPage" ]
+    },
+
+    "annotationPageTypeValueInArrayRecognized": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: Valid AnnotationPage type in array included in Page description",
+      "description": "True when the array contains a string item having value 'AnnotationPage' (Section 5.2)",
+      "type": "array",
+      "not":
+      { "items":
+        { "not":
+          { "$ref": "#/definitions/annotationPageTypeValueRecognized" }
+        }
+      }
+    },
+
+    "annotationPageTypeValueFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Implementation: AnnotationPage type",
+      "description": "True when the Annotation Page has type key and 'AnnotationPage' is a value of type (Section 5.2)",
+      "type": "object",
+      "required": [ "type" ],
+      "properties": {
+        "type": {
+          "oneOf": [
+          { "$ref": "#/definitions/annotationPageTypeValueRecognized" },
+          { "$ref": "#/definitions/annotationPageTypeValueInArrayRecognized" }
+          ]
+        }
+      }
+    },
+
+    "labelDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: label (Annotation Collections)",
+      "description": "True when the object has no label or has one or more label values of type string (Section 5.1)",
+      "type": "object",
+      "properties":
+      {
+        "label":
+        {
+          "oneOf":
+            [
+            {"type": "string" },
+            {"type": "array",
+              "minItems": 1,
+              "items": {"type": "string"}
+            }
+            ]
+        }
+      }
+    },
+
+    "labelFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Collection label",
+      "description": "True when the object has one or more label value(s) (Section 5.1)",
+      "allOf": [
+      {"required": ["label"]},
+      {"$ref": "#/definitions/labelDefinition"}
+      ]
+    },
+
+    "totalDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: total (Annotation Collections)",
+      "description": "True when the object has no total key or has exactly one total value of type integer greater or equal to zero (Section 5.1)",
+      "type": "object",
+      "properties":
+      {
+        "total":
+        {
+          "oneOf":
+            [
+             {"type": "integer",
+              "minimum": 0 },
+             {"type": "array",
+               "minItems": 1,
+               "maxItems": 1,
+               "items": {"type": "integer",
+                         "minimum": 0 }
+             }
+            ]
+        }
+      }
+    },
+
+    "totalFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Collection total key",
+      "description": "True when the object has exactly one total value (Section 5.1)",
+      "allOf": [
+      {"required": ["total"]},
+      {"$ref": "#/definitions/totalDefinition"}
+      ]
+    },
+
+    "totalMoreThanZero":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: total more than zero (Annotation Collections)",
+      "description": "True when the object has exactly one total value of type integer and greater than zero (Section 5.1)",
+      "type": "object",
+      "properties":
+      {
+        "total":
+        {
+          "oneOf":
+            [
+             {"type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true},
+             {"type": "array",
+               "minItems": 1,
+               "maxItems": 1,
+               "items": {"type": "integer",
+                         "minimum": 0,
+                         "exclusiveMinimum": true}
+             }
+            ]
+        }
+      },
+      "required": [ "total" ]
+    },
+
+    "firstValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: first value (Annotation Collection)",
+      "description": "True when the Annotation Collection has no first key or has 1 first key value that is string of format uri or has first key value that is an object of type AnnotationPage (Section 5.1)",
+      "type": "object",
+      "properties": {"first":
+        { "oneOf": [
+          {
+            "oneOf": [
+              { "$ref": "id.json#/definitions/stringUri" },
+              { "$ref": "#/definitions/annotationPageTypeValueFound" }
+             ]
+          },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+                "oneOf": [
+                  { "$ref": "id.json#/definitions/stringUri" },
+                  { "$ref": "#/definitions/annotationPageTypeValueFound" }
+               ]
+             }
+          }
+         ]
+        }
+      }
+    },
+
+    "firstFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Collection first key",
+      "description": "True when the object has exactly one first value (Section 5.1)",
+      "allOf": [
+      {"required": ["first"]},
+      {"$ref": "#/definitions/firstValidIfPresent"}
+      ]
+    },
+
+    "firstRequiredIfTotalMoreThanZero":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "If total greater than zero, check for implementation of Annotation Collection first key",
+      "description": "True when the object has no total or has total = zero or has exactly one first value (Section 5.1)",
+      "type": "object",
+      "oneOf": [
+        {
+          "allOf": [
+             { "$ref": "#/definitions/totalMoreThanZero" },
+             { "$ref": "#/definitions/firstFound" }
+          ]
+        },
+        { "not": { "$ref": "#/definitions/totalMoreThanZero" } }
+      ]
+    },
+
+    "lastValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: last value (Annotation Collection)",
+      "description": "True when the Annotation Collection has no last key or has 1 last key value that is string of format uri (Section 5.1)",
+      "type": "object",
+      "properties": {"last":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" }
+          }
+         ]
+        }
+      }
+    },
+
+    "lastFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Collection last key",
+      "description": "True when the object has exactly one last value that is string of format uri (Section 5.1)",
+      "allOf": [
+      {"required": ["last"]},
+      {"$ref": "#/definitions/lastValidIfPresent"}
+      ]
+    },
+
+    "partOfValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: partOf value (Annotation Page)",
+      "description": "True when the Annotation Page has no partOf key or has 1 partOf key value that is string of format uri (Section 5.2)",
+      "type": "object",
+      "properties": {"partOf":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" }
+          }
+         ]
+        }
+      }
+    },
+
+    "partOfFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Page partOf key",
+      "description": "True when the object has exactly one partOf value that is string of format uri (Section 5.2)",
+      "allOf": [
+      {"required": ["partOf"]},
+      {"$ref": "#/definitions/partOfValidIfPresent"}
+      ]
+    },
+
+    "nextValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: next value (Annotation Page)",
+      "description": "True when the Annotation Page has no next key or has 1 next key value that is string of format uri (Section 5.2)",
+      "type": "object",
+      "properties": {"next":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" }
+          }
+         ]
+        }
+      }
+    },
+
+    "nextFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Page next key",
+      "description": "True when the object has exactly one next value that is string of format uri (Section 5.2)",
+      "allOf": [
+      {"required": ["next"]},
+      {"$ref": "#/definitions/nextValidIfPresent"}
+      ]
+    },
+
+    "prevValidIfPresent":
+    {   "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Validation: prev value (Annotation Page)",
+      "description": "True when the Annotation Page has no prev key or has 1 prev key value that is string of format uri (Section 5.2)",
+      "type": "object",
+      "properties": {"prev":
+        { "oneOf": [
+          { "$ref": "id.json#/definitions/stringUri" },
+          { "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": { "$ref": "id.json#/definitions/stringUri" }
+          }
+         ]
+        }
+      }
+    },
+
+    "prevFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Page prev key",
+      "description": "True when the object has exactly one prev value that is string of format uri (Section 5.2)",
+      "allOf": [
+      {"required": ["prev"]},
+      {"$ref": "#/definitions/prevValidIfPresent"}
+      ]
+    },
+
+    "startIndexDefinition":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Definition: startIndex (Annotation Pages)",
+      "description": "True when the object has no startIndex key or has exactly one startIndex value of type integer greater or equal to zero (Section 5.2)",
+      "type": "object",
+      "properties":
+      {
+        "startIndex":
+        {
+          "oneOf":
+            [
+             {"type": "integer",
+              "minimum": 0 },
+             {"type": "array",
+               "minItems": 1,
+               "maxItems": 1,
+               "items": {"type": "integer",
+                         "minimum": 0 }
+             }
+            ]
+        }
+      }
+    },
+
+    "startIndexFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Page startIndex key",
+      "description": "True when the object has exactly one startIndex value (Section 5.2)",
+      "allOf": [
+      {"required": ["startIndex"]},
+      {"$ref": "#/definitions/startIndexDefinition"}
+      ]
+    },
+
+    "itemsFound":
+    {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "title": "Check for implementation of Annotation Page items key",
+      "description": "True when the object has items key with value that is an array of strings of format uri and/or objects of type Annotation (Section 5.2)",
+      "type": "object",
+      "properties":
+      {   "items":
+          {  "type": "array",
+             "items": {
+               "oneOf":[
+                   { "$ref": "annotations.json#/definitions/annotationTypeValueFound" },
+                   { "type": "string",
+                     "format": "uri" }
+                ]
+              }
+          }
+      },
+      "required": [ "items" ]
+    }
+
+  }
+}

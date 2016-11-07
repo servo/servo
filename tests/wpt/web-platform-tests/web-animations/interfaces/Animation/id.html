@@ -13,11 +13,16 @@
 test(function(t) {
   var div = createDiv(t);
   var animation = div.animate({}, 100 * MS_PER_SEC);
-  assert_equals(animation.id, '', 'id for CSS Animation is initially empty');
-  animation.id = 'anim'
+  assert_equals(animation.id, '', 'id for Animation is initially empty');
+}, 'Animation.id initial value');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.id = 'anim';
 
   assert_equals(animation.id, 'anim', 'animation.id reflects the value set');
-}, 'Animation.id for CSS Animations');
+}, 'Animation.id setter');
 
 </script>
 </body>

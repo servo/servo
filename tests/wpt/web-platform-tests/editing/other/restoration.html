@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Restoration of style tests</title>
+<!--
+No spec, based on: https://bugzilla.mozilla.org/show_bug.cgi?id=1250805
+If the user presses Ctrl+B and then hits Enter and then types text, the text
+should still be bold.  Hitting Enter shouldn't make it forget.  And so too for
+other commands.
+-->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div contenteditable></div>
+<script>
+var div = document.querySelector("div");
+
+function doTestInner(cmd, param, startBold) {
+  div.innerHTML = startBold ? "<b>foo</b>bar" : "foobar";
+  getSelection().collapse(startBold ? div.firstChild.firstChild
+                                    : div.firstChild, 3);
+
+  // Set/unset bold, then run command and see if it's still there
+  assert_true(document.execCommand("bold", false, ""),
+              "execCommand needs to return true for bold");
+
+  assert_true(document.execCommand(cmd, false, param),
+              "execCommand needs to return true for " + cmd + " " + param);
+
+  assert_equals(document.queryCommandState("bold"), !startBold,
+               "bold state");
+
+  assert_true(document.execCommand("inserttext", false, "x"),
+              "execCommand needs to return true for inserttext x");
+
+  // Find the new text node and check that it's actually bold (or not)
+  var node = div;
+  while (node) {
+    if (node.nodeType == Node.TEXT_NODE && node.nodeValue.indexOf("x") != -1) {
+      assert_in_array(getComputedStyle(node.parentNode).fontWeight,
+                    !startBold ? ["700", "bold"] : ["400", "normal"],
+                    "font-weight");
+      return;
+    }
+    if (node.firstChild) {
+      node = node.firstChild;
+      continue;
+    }
+    while (node != div && !node.nextSibling) {
+      node = node.parentNode;
+    }
+    if (node == div) {
+      assert_unreached("x not found!");
+      break;
+    }
+    node = node.nextSibling;
+  }
+}
+
+function doTest(cmd, param) {
+  if (param === undefined) {
+    param = "";
+  }
+
+  test(function() {
+    doTestInner(cmd, param, true);
+  }, cmd + " " + param + " starting bold");
+
+  test(function() {
+    doTestInner(cmd, param, false);
+  }, cmd + " " + param + " starting not bold");
+}
+
+doTest("insertparagraph");
+doTest("insertlinebreak");
+doTest("delete");
+doTest("forwarddelete");
+doTest("insertorderedlist");
+doTest("insertunorderedlist");
+doTest("indent");
+// Outdent does nothing here, but should be harmless.
+doTest("outdent");
+doTest("justifyleft");
+doTest("justifyright");
+doTest("justifycenter");
+doTest("justifyfull");
+doTest("formatblock", "div");
+doTest("formatblock", "blockquote");
+doTest("inserthorizontalrule");
+doTest("insertimage", "a");
+doTest("inserttext", "bar");
+</script>

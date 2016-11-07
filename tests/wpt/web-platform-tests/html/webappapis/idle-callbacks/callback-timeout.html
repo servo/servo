@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>requestIdleCallback timeout callback must be called with didTimeout equal to true</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    var counter = 0;
+
+    function g(deadline) {
+      assert_true(deadline.didTimeout)
+      t.done();
+    }
+
+    function f(deadline) {
+      assert_false(deadline.didTimeout);
+      window.requestIdleCallback(t.step_func(g), {timeout:300});
+
+      var d = Date.now() + 500;
+      while (Date.now() < d) {
+
+      }
+    }
+    window.requestIdleCallback(t.step_func(f));
+  }, "requestIdleCallback callback should time out");
+</script>

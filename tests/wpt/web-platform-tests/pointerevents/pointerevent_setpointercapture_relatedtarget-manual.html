@@ -13,9 +13,9 @@
         <h4>
             Test Description: This test checks if setCapture/releaseCapture functions works properly. Complete the following actions:
             <ol>
-                <li> Put your mouse over the lower rectangle. pointerover should be received for the purple rectangle
+                <li> Put your mouse over the purple rectangle. pointerover should be received for the purple rectangle
                 <li> Press and hold left mouse button over "Set Capture" button
-                <li> Put your mouse over the upper rectangle. pointerover should be received for the black rectangle
+                <li> Move your mouse. pointerover should be received for the black rectangle
                 <li> Release left mouse button to complete the test.
             </ol>
         </h4>
@@ -65,15 +65,14 @@
             }
 
             function run() {
-                // After invoking the setPointerCapture method on an element, subsequent pointer events for the specified pointer must be targeted at that element.
-                // Additionally, the relatedTarget property of all such pointer events must be set to null.
-                // TA: 13.3
+                // After invoking the setPointerCapture method on an element, subsequent pointer events for the specified pointer must be targeted at that element
+                // and boundary events should be sent accordingly and relatedTarget should behave normally.
                 on_event(target0, "pointerover", function (event) {
                     log("pointerover", document.getElementById('target0'));
                     if(isPointerCapture && isPointeroverGot) {
                         test(function() {
-                            assert_true(event.relatedTarget==null, "relatedTarget is null when the capture is set")
-                        }, "relatedTarget is null when the capture is set. relatedTarget is " + event.relatedTarget);
+                            assert_not_equals(event.relatedTarget, null, "relatedTarget should not be null even when the capture is set")
+                        }, "relatedTarget should not be null even when the capture is set.");
                         done();
                     }
                 });

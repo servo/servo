@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Subscripts and Superscripts metrics</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S3.html#SS4">
+<meta name="assert" content="Basic metrics for elements msub, msup and msubsup.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  math, mspace {
+    font-size: 10px;
+  }
+</style>
+<script>
+  /* This test does not use any specific fonts and so the exact rules are not
+  specified precisely. We assume reasonable values for script shifts and
+  spacing. */
+
+  function getBox(aId) {
+    var box = document.getElementById(aId).getBoundingClientRect();
+    box.middle = (box.bottom + box.top) / 2;
+    return box;
+  }
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+    test(function() {
+      var e = 1;
+      assert_less_than_equal(getBox("msubBase").right, getBox("msubSub").left, e, "msub: subscript is after base");
+      assert_less_than_equal(getBox("msupBase").right, getBox("msupSup").left, e, "msup: superscript is after base");
+      assert_less_than_equal(getBox("msubsupBase").right, getBox("msubsupSub").left, e, "msubsup: subscript is after base");
+      assert_less_than_equal(getBox("msubsupBase").right, getBox("msubsupSup").left, e, "msubsup: superscript is after base");
+
+      e = 3;
+      assert_approx_equals(getBox("msubBase").right, getBox("msubSub").left, e, "msub: space between base and subscript is small");
+      assert_approx_equals(getBox("msubBase").right, getBox("msubSub").left, e, "msub: subscript is after base");
+      assert_approx_equals(getBox("msupBase").right, getBox("msupSup").left, e, "msup: superscript is after base");
+      assert_approx_equals(getBox("msubsupBase").right, getBox("msubsupSub").left, e, "msubsup: subscript is after base");
+      assert_approx_equals(getBox("msubsupBase").right, getBox("msubsupSup").left, e, "msubsup: superscript is after base");
+    }, "Respective horizontal positions");
+
+    test(function() {
+      var e = 1;
+      assert_approx_equals(getBox("msubBase").middle, getBox("baseline").bottom, e, "msub: base is placed on the baseline");
+      assert_approx_equals(getBox("msupBase").middle, getBox("baseline").bottom, e, "msup: base is placed on the baseline");
+      assert_approx_equals(getBox("msubsupBase").middle, getBox("baseline").bottom, e, "msubsup: base is placed on the baseline");
+    }, "Alignment of the base on the baseline");
+
+    test(function() {
+      var e = 3;
+      assert_approx_equals(getBox("msubSub").middle, getBox("msubBase").bottom, e, "msub: script is placed at the bottom of the base");
+      assert_approx_equals(getBox("msupSup").middle, getBox("msupBase").top, e, "msup: script is placed at the top of the base");
+      assert_approx_equals(getBox("msubsupSub").middle, getBox("msubsupBase").bottom, e, "msubsup: script is placed at the bottom of the base");
+      assert_approx_equals(getBox("msubsupSup").middle, getBox("msubsupBase").top, e, "msubsup: script is placed at the top of the base");
+    }, "Vertical position of scripts");
+
+    test(function() {
+      var e = 3;
+      assert_approx_equals(getBox("msub").width, getBox("msubSub").right - getBox("msubBase").left, e, "msub: width is determined by the left/right sides of base/script (+ some space after script)");
+      assert_approx_equals(getBox("msup").width, getBox("msupSup").right - getBox("msupBase").left, e, "msup: width is determined by the left/right sides of base/script (+ some space after script)");
+      assert_approx_equals(getBox("msubsup").width, Math.max(getBox("msubsupSub").right, getBox("msubsupSup").right) - getBox("msubsupBase").left, e, "msubsup: width is determined by the left/right sides of base/scripts (+ some space after script)");
+    }, "Width of scripted elements");
+
+    test(function() {
+      var e = 1;
+      assert_greater_than_equal(getBox("msub").height, getBox("msubBase").height, e, "msub: height is at least the one of the base");
+      assert_greater_than_equal(getBox("msup").height, getBox("msupBase").height, e, "msup: height is at least the one of the base");
+      assert_greater_than_equal(getBox("msubsup").height, getBox("msubsupBase").height, e, "msubsup: height is at least the one of the base");
+
+      e = 3;
+      assert_approx_equals(getBox("msub").height, Math.max(getBox("msubSub").bottom, getBox("msubBase").bottom) - getBox("msubBase").top, e, "msub: height is determined by the top/bottom sides of base/scripts");
+      assert_approx_equals(getBox("msup").height, getBox("msupBase").bottom - Math.min(getBox("msupSup").top, getBox("msupBase").top), e, "msup: height is determined by the top/bottom sides of base/scripts");
+      assert_approx_equals(getBox("msubsup").height, Math.max(getBox("msubSub").bottom, getBox("msubBase").bottom) - Math.min(getBox("msupSup").top, getBox("msupBase").top), e, "msubsup: height is determined by the top/bottom sides of base/scripts");
+    }, "Height of scripted elements");
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <p>
+    <math>
+      <mspace id="baseline" width="30px" height="2px" depth="0px" mathbackground="blue"/>
+      <msub id="msub" mathbackground="green">
+        <mspace id="msubBase" width="30px" height="15px" depth="15px" mathbackground="black"/>
+        <mspace id="msubSub" width="10px" height="5px" depth="5px" mathbackground="black"/>
+      </msub>
+      <msup id="msup" mathbackground="blue">
+        <mspace id="msupBase" width="30px" height="15px" depth="15px" mathbackground="black"/>
+        <mspace id="msupSup" width="10px" height="5px" depth="5px" mathbackground="black"/>
+      </msup>
+      <msubsup id="msubsup" mathbackground="green">
+        <mspace id="msubsupBase" width="30px" height="15px" depth="15px" mathbackground="black"/>
+        <mspace id="msubsupSub" width="10px" height="5px" depth="5px" mathbackground="black"/>
+        <mspace id="msubsupSup" width="10px" height="5px" depth="5px" mathbackground="black"/>
+      </msubsup>
+    </math>
+  </p>
+  <hr/>
+</body>
+</html>

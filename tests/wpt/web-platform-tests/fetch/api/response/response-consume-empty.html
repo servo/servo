@@ -93,11 +93,13 @@
       }, "Consume empty " + bodyType + " response body as " + (asText ? "text" : "arrayBuffer"));
     }
 
-    // FIXME: Add BufferSource, FormData and URLSearchParams.
     checkResponseWithEmptyBody("blob", new Blob([], { "type" : "text/plain" }), false);
     checkResponseWithEmptyBody("text", "", false);
     checkResponseWithEmptyBody("blob", new Blob([], { "type" : "text/plain" }), true);
     checkResponseWithEmptyBody("text", "", true);
+    checkResponseWithEmptyBody("URLSearchParams", new URLSearchParams(""), true);
+    checkResponseWithEmptyBody("FormData", new FormData(), true);
+    checkResponseWithEmptyBody("ArrayBuffer", new ArrayBuffer(), true);
     </script>
   </body>
 </html>

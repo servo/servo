@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals
 import abc
 import argparse
 import ast
-import fnmatch
 import json
 import os
 import re
@@ -12,6 +11,7 @@ import sys
 
 from collections import defaultdict
 
+from . import fnmatch
 from ..localpaths import repo_root
 
 from manifest.sourcefile import SourceFile
@@ -65,6 +65,7 @@ def parse_whitelist(f):
             parts[-1] = int(parts[-1])
 
         error_type, file_match, line_number = parts
+        file_match = os.path.normcase(file_match)
 
         if error_type == "*":
             ignored_files.add(file_match)
@@ -79,10 +80,14 @@ def filter_whitelist_errors(data, path, errors):
     Filter out those errors that are whitelisted in `data`.
     """
 
+    if not errors:
+        return []
+
     whitelisted = [False for item in range(len(errors))]
+    normpath = os.path.normcase(path)
 
     for file_match, whitelist_errors in iteritems(data):
-        if fnmatch.fnmatch(path, file_match):
+        if fnmatch.fnmatchcase(path, file_match):
             for i, (error_type, msg, path, line) in enumerate(errors):
                 if error_type in whitelist_errors:
                     allowed_lines = whitelist_errors[error_type]
