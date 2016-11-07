@@ -7,9 +7,9 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::ToCss;
 use properties::shorthands::serialize_four_sides;
 use std::fmt;
+use style_traits::ToCss;
 use url::Url;
 use values::computed::{BorderRadiusSize, LengthOrPercentage};
 use values::computed::UrlExtraData;
@@ -34,7 +34,6 @@ impl<T> Default for ShapeSource<T> {
 
 impl<T: ToCss> ToCss for ShapeSource<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
             ShapeSource::Url(ref url, _) => url.to_css(dest),
             ShapeSource::Shape(ref shape, Some(ref reference)) => {

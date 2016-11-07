@@ -15,9 +15,9 @@
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use cssparser::ToCss;
         use std::fmt;
         use style_traits::cursor::Cursor;
+        use style_traits::ToCss;
 
         #[derive(Clone, PartialEq, Eq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

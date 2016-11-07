@@ -9,12 +9,11 @@
 
 use cssparser::Color as CSSColor;
 use std::fmt;
+use style_traits::ToCss;
 use url::Url;
-use values::LocalToCss;
 use values::computed::{Context, Length, LengthOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified;
-use values::specified::{AngleOrCorner, SizeKeyword, UrlExtraData};
+use values::specified::{self, AngleOrCorner, SizeKeyword, UrlExtraData};
 
 
 impl ToComputedValue for specified::Image {
@@ -73,9 +72,8 @@ impl fmt::Debug for Image {
     }
 }
 
-impl ::cssparser::ToCss for Image {
+impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
             Image::Url(ref url, _) => {
                 url.to_css(dest)
@@ -98,7 +96,7 @@ pub struct Gradient {
     pub gradient_kind: GradientKind,
 }
 
-impl ::cssparser::ToCss for Gradient {
+impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         if self.repeating {
             try!(dest.write_str("repeating-"));
@@ -224,7 +222,7 @@ pub struct ColorStop {
     pub position: Option<LengthOrPercentage>,
 }
 
-impl ::cssparser::ToCss for ColorStop {
+impl ToCss for ColorStop {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.color.to_css(dest));
         if let Some(position) = self.position {
@@ -279,7 +277,7 @@ pub enum EndingShape {
     Ellipse(LengthOrPercentageOrKeyword),
 }
 
-impl ::cssparser::ToCss for EndingShape {
+impl ToCss for EndingShape {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             EndingShape::Circle(ref length) => {
@@ -344,7 +342,7 @@ pub enum LengthOrKeyword {
     Keyword(SizeKeyword),
 }
 
-impl ::cssparser::ToCss for LengthOrKeyword {
+impl ToCss for LengthOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrKeyword::Length(ref length) => length.to_css(dest),
@@ -402,7 +400,7 @@ pub enum LengthOrPercentageOrKeyword {
     Keyword(SizeKeyword),
 }
 
-impl ::cssparser::ToCss for LengthOrPercentageOrKeyword {
+impl ToCss for LengthOrPercentageOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {

@@ -7,13 +7,14 @@
 //! [custom]: https://drafts.csswg.org/css-variables/
 
 use Atom;
-use cssparser::{Delimiter, Parser, SourcePosition, ToCss, Token, TokenSerializationType};
+use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
+use style_traits::ToCss;
 
 // Does not include the `--` prefix
 pub type Name = Atom;

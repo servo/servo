@@ -132,9 +132,9 @@ pub mod values;
 pub mod viewport;
 pub mod workqueue;
 
-use cssparser::ToCss;
 use std::fmt;
 use std::sync::Arc;
+use style_traits::ToCss;
 
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Atom;

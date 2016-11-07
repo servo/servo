@@ -8,11 +8,6 @@
 
 pub use cssparser::RGBA;
 
-use app_units::Au;
-use cssparser::CssStringWriter;
-use std::fmt::{self, Write};
-use url::Url;
-
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -34,7 +29,7 @@ macro_rules! define_numbered_css_keyword_enum {
             }
         }
 
-        impl ::cssparser::ToCss for $name {
+        impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where W: ::std::fmt::Write {
                 match *self {
@@ -47,38 +42,6 @@ macro_rules! define_numbered_css_keyword_enum {
 
 pub mod computed;
 pub mod specified;
-
-/// The real ToCss trait can't be implemented for types in crates that don't
-/// depend on each other.
-pub trait LocalToCss {
-    /// Serialize `self` in CSS syntax, writing to `dest`.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
-
-    /// Serialize `self` in CSS syntax and return a string.
-    ///
-    /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
-    #[inline]
-    fn to_css_string(&self) -> String {
-        let mut s = String::new();
-        self.to_css(&mut s).unwrap();
-        s
-    }
-}
-
-impl LocalToCss for Au {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}px", self.to_f64_px())
-    }
-}
-
-impl LocalToCss for Url {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("url(\""));
-        try!(write!(CssStringWriter::new(dest), "{}", self));
-        try!(dest.write_str("\")"));
-        Ok(())
-    }
-}
 
 pub type CSSFloat = f32;
 

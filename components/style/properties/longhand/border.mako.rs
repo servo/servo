@@ -24,8 +24,8 @@
 % for side in ["top", "right", "bottom", "left"]:
     <%helpers:longhand name="border-${side}-width" animatable="True">
         use app_units::Au;
-        use cssparser::ToCss;
         use std::fmt;
+        use style_traits::ToCss;
         use values::HasViewportPercentage;
         use values::specified::BorderWidth;
 
@@ -67,9 +67,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-source
 <%helpers:longhand name="border-image-source" products="gecko" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::specified::Image;
 
@@ -139,10 +138,9 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-outset
 <%helpers:longhand name="border-image-outset" products="gecko" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::LocalToCss;
     use values::specified::LengthOrNumber;
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -253,9 +251,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-repeat
 <%helpers:longhand name="border-image-repeat" products="gecko" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
 
     impl NoViewportPercentage for SpecifiedValue {}
@@ -327,9 +324,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-width
 <%helpers:longhand name="border-image-width" products="gecko" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Number};
 
@@ -523,9 +519,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
 // https://drafts.csswg.org/css-backgrounds-3/#border-image-slice
 <%helpers:longhand name="border-image-slice" products="gecko" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::specified::{Number, Percentage};
 

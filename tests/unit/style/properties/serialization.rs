@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pub use cssparser::ToCss;
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
 pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
@@ -11,6 +10,7 @@ pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto,
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::values::RGBA;
 pub use style::values::specified::UrlExtraData;
+pub use style_traits::ToCss;
 pub use url::Url;
 
 #[test]

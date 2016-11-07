@@ -8,9 +8,8 @@
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="column-width" experimental="True" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -91,8 +90,8 @@
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="column-count" experimental="True" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
 
     impl NoViewportPercentage for SpecifiedValue {}
@@ -171,9 +170,8 @@
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="column-gap" experimental="True" products="servo" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::LocalToCss;
+    use style_traits::ToCss;
     use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {

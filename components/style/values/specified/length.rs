@@ -3,16 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::{Parser, ToCss, Token};
+use cssparser::{Parser, Token};
 use euclid::size::Size2D;
 use parser::Parse;
 use std::ascii::AsciiExt;
 use std::cmp;
 use std::fmt;
 use std::ops::Mul;
+use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, computed};
+use values::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, computed};
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
