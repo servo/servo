@@ -7,15 +7,15 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
+use gecko::restyle_damage::GeckoRestyleDamage;
 use gecko::selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot::GeckoElementSnapshot;
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
@@ -26,10 +26,10 @@ use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::Gecko_SetNodeFlags;
+use gecko_bindings::bindings::Gecko_StoreStyleDifference;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
-use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsIContent, nsStyleContext};
-use gecko_bindings::sugar::ownership::FFIArcHelpers;
+use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use libc::uintptr_t;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
@@ -41,7 +41,6 @@ use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use sink::Push;
 use std::fmt;
-use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -65,39 +64,6 @@ impl<'ln> GeckoNode<'ln> {
         unsafe { &*self.0.mNodeInfo.mRawPtr }
     }
 }
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct GeckoRestyleDamage(nsChangeHint);
-
-impl TRestyleDamage for GeckoRestyleDamage {
-    type PreExistingComputedValues = nsStyleContext;
-
-    fn empty() -> Self {
-        use std::mem;
-        GeckoRestyleDamage(unsafe { mem::transmute(0u32) })
-    }
-
-    fn compute(source: &nsStyleContext,
-               new_style: &Arc<ComputedValues>) -> Self {
-        let context = source as *const nsStyleContext as *mut nsStyleContext;
-        let hint = unsafe { Gecko_CalcStyleDifference(context, new_style.as_borrowed_opt().unwrap()) };
-        GeckoRestyleDamage(hint)
-    }
-
-    fn rebuild_and_reflow() -> Self {
-        GeckoRestyleDamage(nsChangeHint::nsChangeHint_ReconstructFrame)
-    }
-}
-
-impl BitOr for GeckoRestyleDamage {
-    type Output = Self;
-
-    fn bitor(self, other: Self) -> Self {
-        use std::mem;
-        GeckoRestyleDamage(unsafe { mem::transmute(self.0 as u32 | other.0 as u32) })
-    }
-}
-
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
     fn is_element(&self) -> bool {
@@ -358,7 +324,6 @@ lazy_static! {
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
-    type ConcreteRestyleDamage = GeckoRestyleDamage;
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
@@ -400,7 +365,7 @@ impl<'le> TElement for GeckoElement<'le> {
         // drive the post-traversal. This will go away soon.
         unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
 
-        unsafe { Gecko_StoreStyleDifference(self.as_node().0, damage.0) }
+        unsafe { Gecko_StoreStyleDifference(self.as_node().0, damage.as_change_hint()) }
     }
 
     fn existing_style_for_restyle_damage<'a>(&'a self,
@@ -691,8 +656,6 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 }
 
 impl<'le> ElementExt for GeckoElement<'le> {
-    type Snapshot = GeckoElementSnapshot;
-
     #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)

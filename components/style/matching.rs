@@ -17,7 +17,7 @@ use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
-use selector_impl::{TheSelectorImpl, PseudoElement};
+use selector_impl::{PseudoElement, RestyleDamage, TheSelectorImpl};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
@@ -373,14 +373,14 @@ impl StyleSharingCandidateCache {
 }
 
 /// The results of attempting to share a style.
-pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
+pub enum StyleSharingResult {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the
     /// LRU cache that was hit and the damage that was done, and the restyle
     /// result the original result of the candidate's styling, that is, whether
     /// it should stop the traversal or not.
-    StyleWasShared(usize, ConcreteRestyleDamage),
+    StyleWasShared(usize, RestyleDamage),
 }
 
 // Callers need to pass several boolean flags to cascade_node_pseudo_element.
@@ -565,7 +565,7 @@ pub trait MatchMethods : TElement {
                                         &mut StyleSharingCandidateCache,
                                       shared_context: &SharedStyleContext,
                                       data: &mut AtomicRefMut<ElementData>)
-                                      -> StyleSharingResult<Self::ConcreteRestyleDamage> {
+                                      -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare
         }
@@ -591,12 +591,8 @@ pub trait MatchMethods : TElement {
                     // replaced content, or similar stuff!
                     let damage =
                         match self.existing_style_for_restyle_damage(data.previous_styles().map(|x| &x.primary), None) {
-                            Some(ref source) => {
-                                Self::ConcreteRestyleDamage::compute(source, &shared_style)
-                            }
-                            None => {
-                                Self::ConcreteRestyleDamage::rebuild_and_reflow()
-                            }
+                            Some(ref source) => RestyleDamage::compute(source, &shared_style),
+                            None => RestyleDamage::rebuild_and_reflow(),
                         };
 
                     data.finish_styling(ElementStyles::new(shared_style, rule_node));
@@ -678,13 +674,10 @@ pub trait MatchMethods : TElement {
                               old_style: Option<&Arc<ComputedValues>>,
                               new_style: &Arc<ComputedValues>,
                               pseudo: Option<&PseudoElement>)
-                              -> Self::ConcreteRestyleDamage
+                              -> RestyleDamage
     {
         match self.existing_style_for_restyle_damage(old_style, pseudo) {
-            Some(ref source) => {
-                Self::ConcreteRestyleDamage::compute(source,
-                                                     new_style)
-            }
+            Some(ref source) => RestyleDamage::compute(source, new_style),
             None => {
                 // If there's no style source, two things can happen:
                 //
@@ -710,7 +703,7 @@ pub trait MatchMethods : TElement {
                 // stick without the assertions.
                 debug_assert!(pseudo.is_none() ||
                               new_style.get_box().clone_display() != display::T::none);
-                Self::ConcreteRestyleDamage::rebuild_and_reflow()
+                RestyleDamage::rebuild_and_reflow()
             }
         }
     }
@@ -783,7 +776,7 @@ pub trait MatchMethods : TElement {
                                                    new_pseudos: &mut PseudoStyles,
                                                    context: &Ctx,
                                                    applicable_declarations: &mut ApplicableDeclarations)
-                                                   -> Self::ConcreteRestyleDamage
+                                                   -> RestyleDamage
         where Ctx: StyleContext<'a>
     {
         // Here we optimise the case of the style changing but both the
@@ -800,9 +793,9 @@ pub trait MatchMethods : TElement {
             // otherwise, we don't do anything.
             let damage = match old_display {
                 Some(display) if display == this_display => {
-                    Self::ConcreteRestyleDamage::empty()
+                    RestyleDamage::empty()
                 }
-                _ => Self::ConcreteRestyleDamage::rebuild_and_reflow()
+                _ => RestyleDamage::rebuild_and_reflow()
             };
 
             debug!("Short-circuiting traversal: {:?} {:?} {:?}",
@@ -820,8 +813,7 @@ pub trait MatchMethods : TElement {
             return damage;
         }
 
-        let rebuild_and_reflow =
-            Self::ConcreteRestyleDamage::rebuild_and_reflow();
+        let rebuild_and_reflow = RestyleDamage::rebuild_and_reflow();
 
         debug_assert!(new_pseudos.is_empty());
         <Self as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {

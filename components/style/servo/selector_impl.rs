@@ -384,8 +384,6 @@ impl MatchAttrGeneric for ServoElementSnapshot {
 }
 
 impl<E: Element<Impl=TheSelectorImpl>> ElementExt for E {
-    type Snapshot = ServoElementSnapshot;
-
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
