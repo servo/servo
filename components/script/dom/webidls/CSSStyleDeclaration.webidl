@@ -103,6 +103,31 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-top-width;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndStyle;
+
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString content;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString color;

@@ -893,6 +893,7 @@ pub mod style_structs {
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
+    use logical_geometry::WritingMode;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -923,24 +924,27 @@ pub mod style_structs {
 
         impl ${style_struct.name} {
             % for longhand in style_struct.longhands:
-                #[allow(non_snake_case)]
-                #[inline]
-                pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
-                    self.${longhand.ident} = v;
-                }
-                #[allow(non_snake_case)]
-                #[inline]
-                pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
-                    self.${longhand.ident} = other.${longhand.ident}.clone();
-                }
-                % if longhand.need_clone:
+                % if longhand.logical:
+                    ${helpers.logical_setter(name=longhand.name)}
+                % else:
                     #[allow(non_snake_case)]
                     #[inline]
-                    pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-                        self.${longhand.ident}.clone()
+                    pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
+                        self.${longhand.ident} = v;
                     }
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
+                        self.${longhand.ident} = other.${longhand.ident}.clone();
+                    }
+                    % if longhand.need_clone:
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+                            self.${longhand.ident}.clone()
+                        }
+                    % endif
                 % endif
-
                 % if longhand.need_index:
                     #[allow(non_snake_case)]
                     pub fn ${longhand.ident}_count(&self) -> usize {
@@ -1560,7 +1564,9 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                     PropertyDeclaration::Position(_) |
                     PropertyDeclaration::Float(_) |
                     PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
-                    PropertyDeclaration::WritingMode(_)
+                    PropertyDeclaration::WritingMode(_) |
+                    PropertyDeclaration::Direction(_) |
+                    PropertyDeclaration::TextOrientation(_)
                 );
                 if
                     % if category_to_cascade_now == "early":
@@ -1580,6 +1586,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                                  &mut cascade_info,
                                                  &mut error_reporter);
             }
+            % if category_to_cascade_now == "early":
+                let mode = get_writing_mode(context.style.get_inheritedbox());
+                context.style.set_writing_mode(mode);
+            % endif
         % endfor
     });
 
@@ -1686,8 +1696,6 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         style.mutate_font().compute_font_hash();
     }
 
-    let mode = get_writing_mode(style.get_inheritedbox());
-    style.set_writing_mode(mode);
     style
 }
 
