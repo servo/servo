@@ -159,9 +159,9 @@ pub struct InlineBlockSplit {
     pub flow: FlowRef,
 }
 
-/// Flushes the given accumulator to the new split and makes a new accumulator to hold any
-/// subsequent fragments.
 impl InlineBlockSplit {
+    /// Flushes the given accumulator to the new split and makes a new accumulator to hold any
+    /// subsequent fragments.
     fn new<ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>(fragment_accumulator: &mut InlineFragmentsAccumulator,
                                                                node: &ConcreteThreadSafeLayoutNode,
                                                                style_context: &SharedStyleContext,
@@ -218,8 +218,14 @@ struct InlineFragmentsAccumulator {
     /// The list of fragments.
     fragments: IntermediateInlineFragments,
 
-    /// Whether we've created a range to enclose all the fragments. This will be Some() if the
-    /// outer node is an inline and None otherwise.
+    /// Information about the inline box directly enclosing the fragments being gathered, if any.
+    ///
+    /// `inline::InlineFragmentNodeInfo` also stores flags indicating whether a fragment is the
+    /// first and/or last of the corresponding inline box. This `InlineFragmentsAccumulator` may
+    /// represent only one side of an {ib} split, so we store these flags as if it represented only
+    /// one fragment. `to_intermediate_inline_fragments` later splits this hypothetical fragment
+    /// into pieces, leaving the `FIRST_FRAGMENT_OF_ELEMENT` and `LAST_FRAGMENT_OF_ELEMENT` flags,
+    /// if present, on the first and last fragments of the output.
     enclosing_node: Option<InlineFragmentNodeInfo>,
 
     /// Restyle damage to use for fragments created in this node.
@@ -284,10 +290,10 @@ impl InlineFragmentsAccumulator {
                 fragment.add_inline_context_style(enclosing_node);
             }
 
-            enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT);
-
             // Control characters are later discarded in transform_text, so they don't affect the
             // is_first/is_last styles above.
+            enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT);
+
             if let Some((start, end)) = bidi_control_chars {
                 fragments.fragments.push_front(
                     control_chars_to_fragment(&enclosing_node, start, restyle_damage));
