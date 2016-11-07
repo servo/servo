@@ -1768,6 +1768,155 @@ fn test_http_to_https_considered_cross_origin_for_referrer_header_logic() {
 }
 
 #[test]
+fn test_referrer_with_strictorigin_policy_http_to_https() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "http://mozilla.com";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_no_referrer_with_strictorigin_policy_https_to_http() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_not_included(&origin_info, request_url);
+}
+
+#[test]
+fn test_referrer_with_strictorigin_policy_http_to_http() {
+    let request_url = "http://mozilla.com/";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictorigin_policy_https_to_https() {
+    let request_url = "https://mozilla.com/";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "https://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictoriginwhencrossorigin_policy_https_to_https_same_origin() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "https://mozilla.com/some/path";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictoriginwhencrossorigin_policy_https_to_https_cross_origin() {
+    let request_url = "https://servo.mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "https://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_http_cross_orig() {
+    let request_url = "http://servo.mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_http_same_orig() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/some/path";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_https_cross_orig() {
+    let request_url = "https://servo.mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_https_same_orig() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
 fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";

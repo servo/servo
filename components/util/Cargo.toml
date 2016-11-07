@@ -22,7 +22,7 @@ getopts = "0.2.11"
 heapsize = "0.3.0"
 lazy_static = "0.2"
 log = "0.3.5"
-num_cpus = "0.2.2"
+num_cpus = "1.1.0"
 rustc-serialize = "0.3"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
