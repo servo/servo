@@ -85,9 +85,7 @@ fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
     // this is a Listening server because of handle_threads()
     let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 1).unwrap();
-    let port = server.socket.port().to_string();
-    let mut url_string = "http://localhost:".to_owned();
-    url_string.push_str(&port);
+    let url_string = format!("http://localhost:{}", server.socket.port());
     let url = Url::parse(&url_string).unwrap();
     (server, url)
 }
