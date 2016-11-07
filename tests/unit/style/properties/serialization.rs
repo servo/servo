@@ -1006,4 +1006,39 @@ mod shorthand_serialization {
             );
         }
     }
+
+    mod scroll_snap_type {
+        pub use super::*;
+        use style::properties::longhands::scroll_snap_type_x::computed_value::T as ScrollSnapTypeXValue;
+        use style::properties::longhands::scroll_snap_type_y::computed_value::T as ScrollSnapTypeYValue;
+
+        #[test]
+        fn should_serialize_to_empty_string_if_sub_types_not_equal() {
+            let mut properties = Vec::new();
+
+            let none_x = DeclaredValue::Value(ScrollSnapTypeXValue::none);
+            properties.push(PropertyDeclaration::ScrollSnapTypeX(none_x));
+
+            let mandatory_y = DeclaredValue::Value(ScrollSnapTypeYValue::mandatory);
+            properties.push(PropertyDeclaration::ScrollSnapTypeY(mandatory_y));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "scroll-snap-type: ;");
+        }
+
+        #[test]
+        fn should_serialize_to_single_value_if_sub_types_are_equal() {
+            let mut properties = Vec::new();
+
+            let none_x = DeclaredValue::Value(ScrollSnapTypeXValue::none);
+            properties.push(PropertyDeclaration::ScrollSnapTypeX(none_x));
+
+            let none_y = DeclaredValue::Value(ScrollSnapTypeYValue::none);
+            properties.push(PropertyDeclaration::ScrollSnapTypeY(none_y));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "scroll-snap-type: none;");
+        }
+
+    }
 }
