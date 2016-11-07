@@ -1017,7 +1017,6 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                                            request_id.as_ref().map(Deref::deref), is_xhr);
 
     let pipeline_id = request.pipeline_id.get();
-    let mut response = Response::new();
     let (res, msg) = match wrapped_response {
         Ok(wrapped_response) => wrapped_response,
         Err(error) => {
@@ -1031,6 +1030,7 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         }
     };
 
+    let mut response = Response::new();
     response.url = Some(url.clone());
     response.status = Some(res.response.status);
     response.raw_status = Some((res.response.status_raw().0,
