@@ -111,6 +111,7 @@ pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
 mod serviceworker_manager;
+pub mod serviceworkerjob;
 mod task_source;
 pub mod textinput;
 mod timers;

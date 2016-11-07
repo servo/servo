@@ -48,7 +48,6 @@ use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
-use dom::serviceworkerjob::{Job, JobQueue, AsyncJobHandler, RunJobHandler};
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
 use dom::servoparser::html::{ParseContext, parse_html};
@@ -91,6 +90,7 @@ use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeDat
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
+use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, RunJobHandler};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
@@ -524,11 +524,11 @@ impl ScriptThread {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn schedule_job(job: Job, reg: &ServiceWorkerRegistration) {
+    pub fn schedule_job(job: Job, global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let job_queue = &mut *script_thread.job_queue_map.borrow_mut();
-            job_queue.schedule_job(job, reg, &script_thread);
+            job_queue.schedule_job(job, global, &script_thread);
         });
     }
 
@@ -1498,14 +1498,20 @@ impl ScriptThread {
         let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
-    pub fn finish_job(&self, scope_url: &Url) {
+    pub fn finish_job(&self, scope_url: &Url, global: &GlobalScope) {
         let job_queue = &mut *self.job_queue_map.borrow_mut();
-        job_queue.finish_job(scope_url);
+        job_queue.finish_job(scope_url, global, &self);
     }
 
     pub fn invoke_run_job(&self, run_job_handler: Box<RunJobHandler>) {
         let job_queue = &mut *self.job_queue_map.borrow_mut();
         job_queue.run_job(run_job_handler, self);
+    }
+
+    pub fn invoke_job_update(&self, job:&Job, global: &GlobalScope) {
+        let job_queue = &mut *self.job_queue_map.borrow_mut();
+        job_queue.update(global, self);
+        // TODO update_algorithm, followed by Run Service Worker algorithm.
     }
 
     fn handle_get_registration(&self, scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {

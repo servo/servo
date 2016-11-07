@@ -201,11 +201,10 @@ impl Promise {
 
     #[allow(unsafe_code)]
     pub fn is_settled(&self) -> bool {
-        let mut _state = PromiseState::Pending;
-        unsafe { _state = GetPromiseState(self.promise_obj()); }
-        return match _state {
+        let state = unsafe { GetPromiseState(self.promise_obj()) };
+        match state {
             PromiseState::Rejected | PromiseState::Fulfilled => true,
-            PromiseState::Pending => false
+            _ => false
         }
     }
 

@@ -17,7 +17,7 @@ use uuid::Uuid;
 pub struct Client {
     reflector_: Reflector,
     active_worker: MutNullableHeap<JS<ServiceWorker>>,
-    url: USVString,
+    url: Url,
     frame_type: FrameType,
     #[ignore_heap_size_of = "Defined in uuid"]
     id: Uuid
@@ -28,7 +28,7 @@ impl Client {
         Client {
             reflector_: Reflector::new(),
             active_worker: Default::default(),
-            url: USVString(url.as_str().to_owned()),
+            url: url,
             frame_type: FrameType::None,
             id: Uuid::new_v4()
         }
@@ -41,8 +41,7 @@ impl Client {
     }
 
     pub fn creation_url(&self) -> Url {
-        let USVString(ref url_str) = self.url;
-        Url::parse(url_str).unwrap()
+        self.url.clone()
     }
 
     pub fn get_controller(&self) -> Option<Root<ServiceWorker>> {
@@ -57,7 +56,7 @@ impl Client {
 impl ClientMethods for Client {
     // https://w3c.github.io/ServiceWorker/#client-url-attribute
     fn Url(&self) -> USVString {
-        self.url.clone()
+        USVString(self.url.as_str().to_owned())
     }
 
     // https://w3c.github.io/ServiceWorker/#client-frametype
