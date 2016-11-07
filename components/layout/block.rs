@@ -48,10 +48,10 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use model::{specified, specified_or_none};
-use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use script_layout_interface::restyle_damage::REPOSITION;
 use sequential;
+use serde::{Serialize, Serializer};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -65,7 +65,7 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use util::clamp;
 
 /// Information specific to floated blocks.
-#[derive(Clone, RustcEncodable)]
+#[derive(Clone, Serialize)]
 pub struct FloatedBlockInfo {
     /// The amount of inline size that is available for the float.
     pub containing_inline_size: Au,
@@ -502,7 +502,7 @@ pub enum FormattingContextType {
 }
 
 // A block formatting context.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -526,9 +526,9 @@ bitflags! {
     }
 }
 
-impl Encodable for BlockFlowFlags {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        self.bits().encode(e)
+impl Serialize for BlockFlowFlags {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        self.bits().serialize(serializer)
     }
 }
 

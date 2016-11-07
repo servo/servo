@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use flow::Flow;
+use flow::{Flow, FlowClass};
 use flow_ref::FlowRef;
+use serde::{Serialize, Serializer};
+use serde_json::{to_value, Value};
+use serde_json::builder::ObjectBuilder;
 use std::collections::{LinkedList, linked_list};
 use std::sync::Arc;
 
@@ -18,6 +21,33 @@ use std::sync::Arc;
 /// iterating over flows) unless you are *very* sure of what you are doing.
 pub struct FlowList {
     flows: LinkedList<FlowRef>,
+}
+
+impl Serialize for FlowList {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        let mut state = try!(serializer.serialize_seq(Some(self.len())));
+        for f in self.iter() {
+            let flow_val = ObjectBuilder::new()
+                .insert("class", f.class())
+                .insert("data", match f.class() {
+                    FlowClass::Block => to_value(f.as_block()),
+                    FlowClass::Inline => to_value(f.as_inline()),
+                    FlowClass::Table => to_value(f.as_table()),
+                    FlowClass::TableWrapper => to_value(f.as_table_wrapper()),
+                    FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()),
+                    FlowClass::TableRow => to_value(f.as_table_row()),
+                    FlowClass::TableCell => to_value(f.as_table_cell()),
+                    FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
+                    FlowClass::Multicol | FlowClass::MulticolColumn | FlowClass::Flex => {
+                        Value::Null // Not implemented yet
+                    }
+                })
+                .build();
+
+            try!(serializer.serialize_seq_elt(&mut state, flow_val));
+        }
+        serializer.serialize_seq_end(state)
+    }
 }
 
 pub struct MutFlowListIterator<'a> {

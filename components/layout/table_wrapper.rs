@@ -39,14 +39,14 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
 
-#[derive(Copy, Clone, RustcEncodable, Debug)]
+#[derive(Copy, Clone, Serialize, Debug)]
 pub enum TableLayout {
     Fixed,
     Auto
 }
 
 /// A table wrapper flow based on a block formatting context.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct TableWrapperFlow {
     pub block_flow: BlockFlow,
 

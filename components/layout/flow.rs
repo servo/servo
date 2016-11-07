@@ -41,9 +41,9 @@ use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
-use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW};
 use script_layout_interface::restyle_damage::{REPAINT, REPOSITION, RestyleDamage};
+use serde::{Serialize, Serializer};
 use std::{fmt, mem, raw};
 use std::iter::Zip;
 use std::slice::IterMut;
@@ -551,7 +551,7 @@ pub trait MutableOwnedFlowUtils {
                                             absolute_descendants: &mut AbsoluteDescendants);
 }
 
-#[derive(Copy, Clone, RustcEncodable, PartialEq, Debug)]
+#[derive(Copy, Clone, Serialize, PartialEq, Debug)]
 pub enum FlowClass {
     Block,
     Inline,
@@ -821,7 +821,7 @@ impl EarlyAbsolutePositionInfo {
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows) that is computed during final position assignment.
-#[derive(RustcEncodable, Copy, Clone)]
+#[derive(Serialize, Copy, Clone)]
 pub struct LateAbsolutePositionInfo {
     /// The position of the absolute containing block relative to the nearest ancestor stacking
     /// context. If the absolute containing block establishes the stacking context for this flow,
@@ -978,44 +978,17 @@ impl fmt::Debug for BaseFlow {
     }
 }
 
-impl Encodable for BaseFlow {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_struct("base", 5, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)));
-            try!(e.emit_struct_field("stacking_relative_position",
-                                     1,
-                                     |e| self.stacking_relative_position.encode(e)));
-            try!(e.emit_struct_field("intrinsic_inline_sizes",
-                                     2,
-                                     |e| self.intrinsic_inline_sizes.encode(e)));
-            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)));
-            e.emit_struct_field("children", 4, |e| {
-                e.emit_seq(self.children.len(), |e| {
-                    for (i, c) in self.children.iter().enumerate() {
-                        try!(e.emit_seq_elt(i, |e| {
-                            try!(e.emit_struct("flow", 2, |e| {
-                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)));
-                                e.emit_struct_field("data", 1, |e| {
-                                    match c.class() {
-                                        FlowClass::Block => c.as_block().encode(e),
-                                        FlowClass::Inline => c.as_inline().encode(e),
-                                        FlowClass::Table => c.as_table().encode(e),
-                                        FlowClass::TableWrapper => c.as_table_wrapper().encode(e),
-                                        FlowClass::TableRowGroup => c.as_table_rowgroup().encode(e),
-                                        FlowClass::TableRow => c.as_table_row().encode(e),
-                                        FlowClass::TableCell => c.as_table_cell().encode(e),
-                                        _ => { Ok(()) }     // TODO: Support captions
-                                    }
-                                })
-                            }));
-                            Ok(())
-                        }));
-                    }
-                    Ok(())
-                })
-
-            })
-        })
+impl Serialize for BaseFlow {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        let mut state = try!(serializer.serialize_struct("base", 5));
+        try!(serializer.serialize_struct_elt(&mut state, "id", self.debug_id()));
+        try!(serializer.serialize_struct_elt(&mut state, "stacking_relative_position",
+                                             &self.stacking_relative_position));
+        try!(serializer.serialize_struct_elt(&mut state, "intrinsic_inline_sizes",
+                                             &self.intrinsic_inline_sizes));
+        try!(serializer.serialize_struct_elt(&mut state, "position", &self.position));
+        try!(serializer.serialize_struct_elt(&mut state, "children", &self.children));
+        serializer.serialize_struct_end(state)
     }
 }
 

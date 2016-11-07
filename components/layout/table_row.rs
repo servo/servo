@@ -20,8 +20,8 @@ use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
-use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
+use serde::{Serialize, Serializer};
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
@@ -65,14 +65,14 @@ pub struct TableRowFlow {
     pub collapsed_border_spacing: CollapsedBorderSpacingForRow,
 }
 
-impl Encodable for TableRowFlow {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        self.block_flow.encode(e)
+impl Serialize for TableRowFlow {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        self.block_flow.serialize(serializer)
     }
 }
 
 /// Information about the column inline size and span for each cell.
-#[derive(RustcEncodable, Copy, Clone)]
+#[derive(Serialize, Copy, Clone)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
     pub column_size: ColumnIntrinsicInlineSize,
@@ -559,8 +559,8 @@ pub struct CollapsedBorder {
     pub provenance: CollapsedBorderProvenance,
 }
 
-impl Encodable for CollapsedBorder {
-    fn encode<S: Encoder>(&self, _: &mut S) -> Result<(), S::Error> {
+impl Serialize for CollapsedBorder {
+    fn serialize<S: Serializer>(&self, _: &mut S) -> Result<(), S::Error> {
         Ok(())
     }
 }
@@ -572,7 +572,7 @@ impl Encodable for CollapsedBorder {
 // FIXME(#8586): FromTableRow, FromTableRowGroup, FromTableColumn,
 // FromTableColumnGroup are unused
 #[allow(dead_code)]
-#[derive(Copy, Clone, Debug, PartialEq, RustcEncodable)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
 pub enum CollapsedBorderProvenance {
     FromPreviousTableCell = 6,
     FromNextTableCell = 5,
