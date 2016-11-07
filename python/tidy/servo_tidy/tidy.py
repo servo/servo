@@ -27,6 +27,7 @@ CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
+    "check-ordered-json-keys": [],
     "ignore": {
         "files": [
             "./.",   # ignore hidden files
@@ -636,9 +637,23 @@ def check_for_possible_duplicate_json_keys(key_value_pairs):
     seen_keys = set()
     for key in keys:
         if key in seen_keys:
-            raise KeyError(key)
+            raise KeyError("Duplicated Key (%s)" % key)
 
         seen_keys.add(key)
+
+
+def check_for_alphabetical_sorted_json_keys(key_value_pairs):
+    for a, b in zip(key_value_pairs[:-1], key_value_pairs[1:]):
+        if a[0] > b[0]:
+            raise KeyError("Unordered key (found %s before %s)" % (a[0], b[0]))
+
+
+def check_json_requirements(filename):
+    def check_fn(key_value_pairs):
+        check_for_possible_duplicate_json_keys(key_value_pairs)
+        if filename in config["check-ordered-json-keys"]:
+            check_for_alphabetical_sorted_json_keys(key_value_pairs)
+    return check_fn
 
 
 def check_json(filename, contents):
@@ -646,13 +661,13 @@ def check_json(filename, contents):
         raise StopIteration
 
     try:
-        json.loads(contents, object_pairs_hook=check_for_possible_duplicate_json_keys)
+        json.loads(contents, object_pairs_hook=check_json_requirements(filename))
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
         yield (line_no, e.message)
     except KeyError as e:
-        yield (None, "Duplicated Key (%s)" % e.message)
+        yield (None, e.message)
 
 
 def check_spec(file_name, lines):
