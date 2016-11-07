@@ -1243,7 +1243,8 @@ impl ScriptThread {
         let mut reports = vec![];
 
         for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url().as_str();
+            let url = document.url();
+            let current_url = url.as_str();
 
             for child in document.upcast::<Node>().traverse_preorder() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);
