@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
@@ -105,10 +105,10 @@ impl BluetoothRemoteGATTDescriptor {
         }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
+            BluetoothMethodMsg::WriteValue(self.get_instance_id(), value.clone(), sender)).unwrap();
         let result = receiver.recv().unwrap();
         match result {
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(*self.value.borrow_mut() = Some(ByteString::new(value))),
             Err(error) => {
                 Err(Error::from(error))
             },

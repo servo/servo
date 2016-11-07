@@ -96,7 +96,6 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
-pub mod bluetooth_blacklist;
 mod body;
 pub mod clipboard_provider;
 mod devtools;

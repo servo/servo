@@ -2,30 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::{BluetoothError, BluetoothMethodMsg};
+use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods, BluetoothRequestDeviceFilter};
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
-use dom::bindings::error::Error::{self, Security, Type};
+use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
+use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
+use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
+use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ToJSValConvertible;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
-const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
 // A device name can never be longer than 29 bytes.
@@ -43,12 +47,20 @@ const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each othe
 #[dom_struct]
 pub struct Bluetooth {
     reflector_: Reflector,
+    device_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothDevice>>>>,
+    service_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>>,
+    characteristic_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>>,
+    descriptor_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>>,
 }
 
 impl Bluetooth {
     pub fn new_inherited() -> Bluetooth {
         Bluetooth {
             reflector_: Reflector::new(),
+            device_instance_map: DOMRefCell::new(HashMap::new()),
+            service_instance_map: DOMRefCell::new(HashMap::new()),
+            characteristic_instance_map: DOMRefCell::new(HashMap::new()),
+            descriptor_instance_map: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -56,6 +68,19 @@ impl Bluetooth {
         reflect_dom_object(box Bluetooth::new_inherited(),
                            global,
                            BluetoothBinding::Wrap)
+    }
+
+    pub fn get_service_map(&self) -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>> {
+        &self.service_instance_map
+    }
+
+    pub fn get_characteristic_map(&self)
+            -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>> {
+        &self.characteristic_instance_map
+    }
+
+    pub fn get_descriptor_map(&self) -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>> {
+        &self.descriptor_instance_map
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
@@ -103,15 +128,21 @@ impl Bluetooth {
         // Step 12-13.
         match device {
             Ok(device) => {
-                let global = self.global();
-                let ad_data = BluetoothAdvertisingData::new(&global,
+                let mut device_instance_map = self.device_instance_map.borrow_mut();
+                if let Some(existing_device) = device_instance_map.get(&device.id.clone()) {
+                    return Ok(existing_device.get());
+                }
+                let ad_data = BluetoothAdvertisingData::new(&self.global(),
                                                             device.appearance,
                                                             device.tx_power,
                                                             device.rssi);
-                Ok(BluetoothDevice::new(&global,
-                                        DOMString::from(device.id),
-                                        device.name.map(DOMString::from),
-                                        &ad_data))
+                let bt_device = BluetoothDevice::new(&self.global(),
+                                                     DOMString::from(device.id.clone()),
+                                                     device.name.map(DOMString::from),
+                                                     &ad_data,
+                                                     &self);
+                device_instance_map.insert(device.id, MutHeap::new(&bt_device));
+                Ok(bt_device)
             },
             Err(error) => {
                 Err(Error::from(error))
@@ -213,13 +244,13 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
             if name.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+                return Err(NotFound);
             }
 
             // Step 2.4.4.2.
-            name.to_string()
+            Some(name.to_string())
         },
-        None => String::new(),
+        None => None,
     };
 
     // Step 2.4.5.
@@ -233,7 +264,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
             if name_prefix.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+                return Err(NotFound);
             }
 
             // Step 2.4.5.2.
@@ -289,6 +320,7 @@ impl From<BluetoothError> for Error {
             BluetoothError::NotFound => Error::NotFound,
             BluetoothError::NotSupported => Error::NotSupported,
             BluetoothError::Security => Error::Security,
+            BluetoothError::InvalidState => Error::InvalidState,
         }
     }
 }

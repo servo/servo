@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::error::Error::{self, Security};
+use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -72,17 +72,27 @@ impl BluetoothRemoteGATTServer {
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
         }
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
         let service = receiver.recv().unwrap();
         match service {
             Ok(service) => {
-                Ok(BluetoothRemoteGATTService::new(&self.global(),
-                                                   &self.device.get(),
-                                                   DOMString::from(service.uuid),
-                                                   service.is_primary,
-                                                   service.instance_id))
+                let context = self.device.get().get_context();
+                let mut service_map = context.get_service_map().borrow_mut();
+                if let Some(existing_service) = service_map.get(&service.instance_id) {
+                    return Ok(existing_service.get());
+                }
+                let bt_service = BluetoothRemoteGATTService::new(&self.global(),
+                                                                 &self.device.get(),
+                                                                 DOMString::from(service.uuid),
+                                                                 service.is_primary,
+                                                                 service.instance_id.clone());
+                service_map.insert(service.instance_id, MutHeap::new(&bt_service));
+                Ok(bt_service)
             },
             Err(error) => {
                 Err(Error::from(error))
@@ -103,19 +113,35 @@ impl BluetoothRemoteGATTServer {
                 }
             }
         };
+        if !self.Device().Gatt().Connected() {
+            return Err(Network)
+        }
+        let mut services = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
         let services_vec = receiver.recv().unwrap();
         match services_vec {
             Ok(service_vec) => {
-                Ok(service_vec.into_iter()
-                              .map(|service| BluetoothRemoteGATTService::new(&self.global(),
-                                                                             &self.device.get(),
-                                                                             DOMString::from(service.uuid),
-                                                                             service.is_primary,
-                                                                             service.instance_id))
-                              .collect())
+                let context = self.device.get().get_context();
+                let mut service_map = context.get_service_map().borrow_mut();
+                for service in service_vec {
+                    let bt_service = match service_map.get(&service.instance_id) {
+                        Some(existing_service) => existing_service.get(),
+                        None => {
+                            BluetoothRemoteGATTService::new(&self.global(),
+                                                            &self.device.get(),
+                                                            DOMString::from(service.uuid),
+                                                            service.is_primary,
+                                                            service.instance_id.clone())
+                        },
+                    };
+                    if !service_map.contains_key(&service.instance_id) {
+                        service_map.insert(service.instance_id, MutHeap::new(&bt_service));
+                    }
+                    services.push(bt_service);
+                }
+                Ok(services)
             },
             Err(error) => {
                 Err(Error::from(error))

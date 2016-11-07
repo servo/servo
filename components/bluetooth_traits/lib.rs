@@ -5,9 +5,12 @@
 #![feature(proc_macro)]
 
 extern crate ipc_channel;
+extern crate regex;
 #[macro_use]
 extern crate serde_derive;
+extern crate util;
 
+pub mod blacklist;
 pub mod scanfilter;
 
 use ipc_channel::ipc::IpcSender;
@@ -20,6 +23,7 @@ pub enum BluetoothError {
     NotFound,
     NotSupported,
     Security,
+    InvalidState,
 }
 
 #[derive(Deserialize, Serialize)]

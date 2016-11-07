@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMet
 use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::bluetooth::Bluetooth;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
 use dom::globalscope::GlobalScope;
@@ -19,12 +20,14 @@ pub struct BluetoothDevice {
     name: Option<DOMString>,
     ad_data: MutHeap<JS<BluetoothAdvertisingData>>,
     gatt: MutNullableHeap<JS<BluetoothRemoteGATTServer>>,
+    context: MutHeap<JS<Bluetooth>>,
 }
 
 impl BluetoothDevice {
     pub fn new_inherited(id: DOMString,
                          name: Option<DOMString>,
-                         ad_data: &BluetoothAdvertisingData)
+                         ad_data: &BluetoothAdvertisingData,
+                         context: &Bluetooth)
                          -> BluetoothDevice {
         BluetoothDevice {
             reflector_: Reflector::new(),
@@ -32,19 +35,26 @@ impl BluetoothDevice {
             name: name,
             ad_data: MutHeap::new(ad_data),
             gatt: Default::default(),
+            context: MutHeap::new(context),
         }
     }
 
     pub fn new(global: &GlobalScope,
                id: DOMString,
                name: Option<DOMString>,
-               adData: &BluetoothAdvertisingData)
+               adData: &BluetoothAdvertisingData,
+               context: &Bluetooth)
                -> Root<BluetoothDevice> {
         reflect_dom_object(box BluetoothDevice::new_inherited(id,
                                                               name,
-                                                              adData),
+                                                              adData,
+                                                              context),
                            global,
                            BluetoothDeviceBinding::Wrap)
+    }
+
+    pub fn get_context(&self) -> Root<Bluetooth> {
+        self.context.get()
     }
 }
 
