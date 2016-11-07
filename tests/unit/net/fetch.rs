@@ -12,7 +12,7 @@ use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHea
 use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowMethods, AccessControlMaxAge};
 use hyper::header::{AccessControlRequestHeaders, AccessControlRequestMethod, Date, UserAgent};
 use hyper::header::{CacheControl, ContentLanguage, ContentLength, ContentType, Expires, LastModified};
-use hyper::header::{Encoding, Location, Pragma, SetCookie, qitem};
+use hyper::header::{Encoding, Location, Pragma, Quality, QualityItem, SetCookie, qitem};
 use hyper::header::{Headers, Host, HttpDate, Referer as HyperReferer};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -776,7 +776,12 @@ fn test_fetch_with_devtools() {
     let mut en_us: LanguageTag = Default::default();
     en_us.language = Some("en".to_owned());
     en_us.region = Some("US".to_owned());
-    headers.set(AcceptLanguage(vec![qitem(en_us)]));
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
 
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 

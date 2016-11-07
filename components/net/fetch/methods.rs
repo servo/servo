@@ -8,7 +8,7 @@ use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CORSCache;
 use filemanager_thread::{FileManager, UIProvider};
-use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
+use http_loader::{HttpState, set_default_accept_encoding, set_default_accept_language, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use http_loader::{auth_from_cache, determine_request_referrer, set_cookies_from_headers};
 use http_loader::{send_response_to_devtools, send_request_to_devtools, LoadErrorType};
@@ -120,9 +120,7 @@ pub fn fetch_with_cors_cache<UI: 'static + UIProvider>(request: Rc<Request>,
     }
 
     // Step 4
-    if !request.headers.borrow().has::<AcceptLanguage>() {
-        request.headers.borrow_mut().set(AcceptLanguage(vec![qitem("en-US".parse().unwrap())]));
-    }
+    set_default_accept_language(&mut request.headers.borrow_mut());
 
     // Step 5
     // TODO: Figure out what a Priority object is
