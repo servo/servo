@@ -66,6 +66,6 @@ void main(void) {
             break;
     }
 
-    ClipInfo clip = fetch_clip(prim.clip_index);
+    ClipData clip = fetch_clip(prim.clip_index);
     write_clip(clip);
 }
