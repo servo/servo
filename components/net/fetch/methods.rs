@@ -687,7 +687,7 @@ fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         Some(&Location(ref location)) => location.clone(),
         _ => return Response::network_error(NetworkError::Internal("Location header parsing failure".into()))
     };
-    let response_url = response.actual_response().url.as_ref().unwrap();
+    let response_url = response.actual_response().url().unwrap();
     let location_url = response_url.join(&*location);
     let location_url = match location_url {
         Ok(url) => url,

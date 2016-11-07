@@ -79,7 +79,7 @@ pub enum ResponseMsg {
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
-    pub url: Option<Url>,
+    url: Option<Url>,
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -134,6 +134,10 @@ impl Response {
             internal_response: None,
             return_internal: Cell::new(true)
         }
+    }
+
+    pub fn url(&self) -> Option<&Url> {
+        self.url.as_ref()
     }
 
     pub fn is_network_error(&self) -> bool {
