@@ -10,8 +10,7 @@ function runTest(config,qualifier) {
                             videoCapabilities: [ { contentType: config.videoType } ],
                             sessionTypes: [ 'persistent-license' ] };
 
-
-    async_test( function( test ) {
+    async_test( function(test) {
 
         var _video = config.video,
             _mediaKeys,
@@ -25,14 +24,13 @@ function runTest(config,qualifier) {
         }
 
         function onMessage(event) {
-            assert_equals( event.target, _mediaKeySession );
-            assert_true( event instanceof window.MediaKeyMessageEvent );
-            assert_equals( event.type, 'message');
+            assert_equals(event.target, _mediaKeySession);
+            assert_true(event instanceof window.MediaKeyMessageEvent);
+            assert_equals(event.type, 'message');
 
-            config.messagehandler( event.messageType, event.message )
-            .then( function( response ) {
-                _mediaKeySession.update( response ).catch(onFailure);
-            });
+            config.messagehandler(event.messageType, event.message).then(function(response) {
+                return _mediaKeySession.update(response);
+            }).catch(onFailure);
         }
 
         function onEncrypted(event) {
@@ -49,8 +47,8 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 1 ) && !_startedReleaseSequence ) {
-                _video.removeEventListener('timeupdate', onTimeupdate );
+            if (_video.currentTime > ( config.duration || 1 ) && !_startedReleaseSequence) {
+                _video.removeEventListener('timeupdate', onTimeupdate);
                 _video.pause();
                 _video.removeAttribute('src');
                 _video.load();
@@ -70,27 +68,27 @@ function runTest(config,qualifier) {
         function onClosed() {
             // Try and reload and check this fails
             var mediaKeySession = _mediaKeys.createSession( 'persistent-license' );
-            mediaKeySession.load( _sessionId ).then( test.step_func(function( success ) {
+            mediaKeySession.load(_sessionId).then( test.step_func(function(success) {
                 assert_false( success, "Load of removed session shouold fail" );
                 test.done();
             })).catch(onFailure);
         }
 
-        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ]).then(function(access) {
+        navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function(access) {
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
             _mediaKeys = mediaKeys;
             return _video.setMediaKeys(_mediaKeys);
-            return;
         }).then(function() {
-            _mediaKeySession = _mediaKeys.createSession( 'persistent-license' );
+            _mediaKeySession = _mediaKeys.createSession('persistent-license');
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
-        }).then(function() {
             return testmediasource(config);
         }).then(function(source) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
+            return source.done;
+        }).then(function(){
             _video.play();
         }).catch(onFailure);
     }, testname);

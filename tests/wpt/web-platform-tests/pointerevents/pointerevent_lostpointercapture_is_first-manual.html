@@ -16,7 +16,7 @@
             This test checks if lostpointercapture is handled asynchronously and prior to all subsequent events.
             Complete the following actions:
             <ol>
-                <li>Press and hold left mouse button over "Set Capture" button. "gotpointercapture" should be logged inside of the black rectangle
+                <li>Press and hold left mouse button over "Set Capture" button and move a little. "gotpointercapture" should be logged inside of the black rectangle
                 <li>"lostpointercapture" should be logged inside of the black rectangle after pointerup
             </ol>
         </h4>
@@ -28,6 +28,9 @@
             var detected_pointertypes = {};
             var detected_pointerEvents = new Array();
             var pointerdown_event = null;
+            var firstPointermoveReceived = false; // To handle the first pointermove right after gotpointercapture which gotpointercapture was sent right before it.
+            var firstPointeroverReceived = false; // To handle the first pointerover right after gotpointercapture which gotpointercapture was sent right before it.
+            var firstPointerenterReceived = false; // To handle the first pointeenter right after gotpointercapture which gotpointercapture was sent right before it.
 
             var test_pointerEvent = async_test("lostpointercapture is dispatched prior to subsequent events"); // set up test harness
 
@@ -97,9 +100,20 @@
                             test_pointerEvent.done(); // complete test
                         }
                         else {
-                            if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId && event.type != "pointerup") {
-                                detected_pointerEvents.push(event.type);
-                                eventRcvd = true;
+                            if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId) {
+                                if (event.type == "pointermove" && !firstPointermoveReceived) {
+                                  firstPointermoveReceived = true;
+                                }
+                                else if (event.type == "pointerenter" && !firstPointerenterReceived) {
+                                  firstPointerenterReceived = true;
+                                }
+                                else if (event.type == "pointerover" && !firstPointeroverReceived) {
+                                  firstPointeroverReceived = true;
+                                }
+                                else if (event.type != "pointerup") {
+                                    detected_pointerEvents.push(event.type);
+                                    eventRcvd = true;
+                                }
                             }
                         }
                     });

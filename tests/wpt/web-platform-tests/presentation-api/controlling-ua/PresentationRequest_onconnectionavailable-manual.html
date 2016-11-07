@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>PresentationRequest.onconnectionavailable (manual test)</title>
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="https://w3c.github.io/presentation-api/#starting-a-presentation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>Click the button below and select the available presentation display, to start the manual test.</p>
+<button id="presentBtn">Start Presentation Test</button>
+
+
+<script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
+    // ----------
+    // DOM Object
+    // ----------
+    var presentBtn = document.getElementById("presentBtn");
+
+    // ------------
+    // Request init
+    // ------------
+    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
+            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate,
+            request = new PresentationRequest(validPresURL);
+
+    // --------------------------------------------------------------------------
+    // Start New PresentationRequest.onconnectionavailable Test (success) - begin
+    // --------------------------------------------------------------------------
+    var startPresentation = function () {
+        promise_test(function (t) {
+            // Note: During starting a presentation, the connectionavailable event is fired (step 20)
+            //       after the promise P is resolved (step 19).
+            return new Promise(function(resolve, reject) {
+                request.onconnectionavailable = function (evt) {
+                    resolve(evt.connection);
+                };
+                // This test fails if request.onconnectionavailable is not invoked although the presentation is started successfully
+                // or the presentation fails to be started
+                request.start().then(function() {
+                    t.step_timeout(function() { assert_unreached('The connectionavailable event was not fired.'); }, 5000);
+                }, reject);
+            }).then(function(connection) {
+                // Check the initial state of a presentation connection
+                assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
+
+                // Check, if the connection ID is set
+                assert_true(!!connection.id, 'The connection ID is set.');
+
+                // Check the type of the connection.id
+                assert_true(typeof connection.id === 'string', 'The connection ID is a string.');
+
+                // Check the instance of the connection
+                assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+            });
+        }, 'The connectionavailable event was fired successfully.');
+    }
+    presentBtn.onclick = startPresentation;
+    // ------------------------------------------------------------------------
+    // Start New PresentationRequest.onconnectionavailable Test (success) - end
+    // ------------------------------------------------------------------------
+</script>
+

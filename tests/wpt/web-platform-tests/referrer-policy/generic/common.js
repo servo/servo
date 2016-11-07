@@ -33,20 +33,30 @@ function appendIframeToBody(url, attributes) {
   return iframe;
 }
 
-function loadImage(src, callback, attributes) {
-  var image = new Image();
+function loadImageInWindow(src, callback, attributes, w) {
+  var image = new w.Image();
   image.crossOrigin = "Anonymous";
   image.onload = function() {
     callback(image);
   }
-  image.src = src;
+
   // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
   if (attributes) {
     for (var attr in attributes) {
       image[attr] = attributes[attr];
     }
   }
-  document.body.appendChild(image)
+
+  image.src = src;
+  w.document.body.appendChild(image)
+}
+
+function extractImageData(img) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext('2d');
+    context.drawImage(img, 0, 0);
+    var imgData = context.getImageData(0, 0, img.clientWidth, img.clientHeight);
+    return imgData.data;
 }
 
 function decodeImageData(rgba) {
@@ -71,16 +81,6 @@ function decodeImageData(rgba) {
   var string_data = (new TextDecoder("ascii")).decode(rgb);
 
   return JSON.parse(string_data);
-}
-
-function decodeImage(url, callback, referrer_policy) {
-  loadImage(url, function(img) {
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext('2d');
-    context.drawImage(img, 0, 0);
-    var imgData = context.getImageData(0, 0, img.clientWidth, img.clientHeight);
-    callback(decodeImageData(imgData.data))
-  }, referrer_policy);
 }
 
 function normalizePort(targetPort) {
@@ -112,9 +112,22 @@ function queryIframe(url, callback, referrer_policy) {
 }
 
 function queryImage(url, callback, referrer_policy) {
-  decodeImage(url, function(server_data) {
-    callback(wrapResult(url, server_data), url);
-  }, referrer_policy)
+  // For images, we'll test both images in a top-level document as well as
+  // images in a `srcdoc` frame to ensure that the latter has the same referrer
+  // as the former.
+  var i = document.createElement('iframe');
+  i.srcdoc = "Hello, world.";
+  i.onload = function () {
+    loadImageInWindow(url, function (img) {
+      var srcdocData = decodeImageData(extractImageData(img));
+      loadImageInWindow(url, function (img) {
+        var topLevelData = decodeImageData(extractImageData(img));
+        assert_equals(srcdocData.referrer, topLevelData.referrer, "Referrer inside 'srcdoc' should be the same as embedder's referrer.");
+        callback(wrapResult(url, topLevelData), url);
+      }, referrer_policy, window);
+    }, referrer_policy, i.contentWindow);
+  };
+  document.body.appendChild(i);
 }
 
 function queryXhr(url, callback) {

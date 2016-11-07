@@ -4,6 +4,7 @@
   "description": "Web Annotations: <ul> <li>Should include certain properties (keys)</li> <li>May include additional keys</li> <li>should have Annotation key values that conform to model recommended constraints</li> </ul> Note: failing an assertion indicates that a recommended or optional feature has not been implemented or has not been implemented correctly.",
   "testType": "manual",
   "ref": "https://www.w3.org/TR/annotation-model/#other-properties",
+  "skipFailures": [ "should", "may" ],
   "assertions": [
     "annotations/3.3.1-annotationSingleCreatorImplemented.json",
     "annotations/3.3.1-annotationCreatedImplemented.json",

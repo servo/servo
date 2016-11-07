@@ -18,12 +18,8 @@
     // -----------------------------------
     // Start New Presentation Test - begin
     // -----------------------------------
-    promise_test(function () {
-        return request.start()
-                .catch(function (error) {
-                    assert_true(error instanceof InvalidAccessError);
-                });
-
+    promise_test(function (t) {
+      promise_rejects(t, 'InvalidAccessError', request.start());
     }, "The presentation could not start, because a user gesture is required.");
     // ----------------------------------
     // Launch New Presentation Test - end

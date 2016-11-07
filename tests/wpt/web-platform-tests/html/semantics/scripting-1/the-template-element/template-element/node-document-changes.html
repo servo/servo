@@ -14,7 +14,6 @@
 <div id="log"></div>
 <script type="text/javascript">
 
-
 test(function() {
     var doc1 = newHTMLDocument();
     var template = doc1.createElement('template');
@@ -34,7 +33,6 @@ test(function() {
 
 }, 'Changing of template element\'s node document. ' +
     'Test that ownerDocument of an empty template and its content changes');
-
 
 test(function() {
     var doc1 = newHTMLDocument();
@@ -62,7 +60,6 @@ test(function() {
 
 }, 'Changing of template element\'s node document. ' +
     'Test that ownerDocument of a not empty template and its content changes');
-
 
 test(function() {
     var doc1 = newHTMLDocument();
@@ -109,7 +106,6 @@ test(function() {
 }, 'Changing of template element\'s node document. ' +
     'Test that ownerDocument of nested template and its content changes');
 
-
 testInIFrame('../resources/template-contents.html', function(context) {
     var doc1 = context.iframes[0].contentDocument;
 
@@ -130,7 +126,6 @@ testInIFrame('../resources/template-contents.html', function(context) {
 
 }, 'Changing of template element\'s node document. ' +
     'Test document loaded from a file');
-
 
 testInIFrame('../resources/template-contents.html', function(context) {
     var doc1 = context.iframes[0].contentDocument;
@@ -161,7 +156,6 @@ testInIFrame('../resources/template-contents.html', function(context) {
 }, 'Changing of template element\'s node document. ' +
     'Adobt template element into a document that has a browsing context');
 
-
 testInIFrame('../resources/template-contents.html', function(context) {
     var doc1 = context.iframes[0].contentDocument;
 
@@ -172,7 +166,6 @@ testInIFrame('../resources/template-contents.html', function(context) {
     var doc2 = document;
 
     doc2.body.appendChild(template);
-
 
     assert_not_equals(template.ownerDocument, doc1,
             'Template node owner document should be changed');

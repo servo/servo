@@ -63,16 +63,22 @@ function request(method, url, headers, content) {
         resp.text = d;
         // we have it; what is it?
         var type = xhr.getResponseHeader('Content-Type');
-        resp.type = type.split(';')[0];
-        if (resp.type === MEDIA_TYPE) {
-          try {
-            d = JSON.parse(d);
-            resp.body = d;
+        if (type) {
+          resp.type = type.split(';')[0];
+          if (resp.type === MEDIA_TYPE) {
+            try {
+              d = JSON.parse(d);
+              resp.body = d;
+            }
+            catch(err) {
+              resp.body = null;
+            }
           }
-          catch(err) {
-            resp.body = null;
-          }
+        } else {
+          resp.type = null;
+          resp.body = null;
         }
+
       }
       resolve(resp);
     };
@@ -167,6 +173,9 @@ function makePromiseTests( thennable, criteria ) {
 }
 
 function runTests( container_url, annotation_url ) {
+  // trim whitespace from incoming variables
+  container_url = container_url.trim();
+  annotation_url = annotation_url.trim();
 
   // Section 4 has a requirement that the URL end in a slash, so...
   // ensure the url has a length
@@ -323,7 +332,7 @@ function runTests( container_url, annotation_url ) {
   // SHOULD tests
 
   test(function() {
-    assert_equals("https", container_url.toLowerCase().substr(0,5), "Server is not using HTTPS");
+    assert_equals(container_url.toLowerCase().substr(0,5), "https", "Server is not using HTTPS");
     }, "Annotation server SHOULD use HTTPS rather than HTTP");
 
   var thePrefRequest = request("GET", container_url,

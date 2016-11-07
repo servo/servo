@@ -81,13 +81,13 @@ enum PresentationConnectionClosedReason {
     "wentaway"
 };
 
-[Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
-interface PresentationConnectionClosedEvent : Event {
+[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict)]
+interface PresentationConnectionCloseEvent : Event {
     readonly attribute PresentationConnectionClosedReason reason;
     readonly attribute DOMString                          message;
 };
 
-dictionary PresentationConnectionClosedEventInit : EventInit {
+dictionary PresentationConnectionCloseEventInit : EventInit {
     required PresentationConnectionClosedReason reason;
     		 DOMString                          message = "";
 };

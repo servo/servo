@@ -55,7 +55,7 @@ function addTest(fun, desc) { testList.push([fun, desc]); }
 addTest(function() {
   // Note: we do not check location.host as its default port semantics are hard to reflect statically
   assert_equals(location.hostname, host_info.ORIGINAL_HOST, 'Need to run the top-level test from domain ' + host_info.ORIGINAL_HOST);
-  assert_equals(location.port, host_info.HTTP_PORT, 'Need to run the top-level test from port ' + host_info.HTTP_PORT);
+  assert_equals(get_port(location), host_info.HTTP_PORT, 'Need to run the top-level test from port ' + host_info.HTTP_PORT);
   assert_equals(B.parent, window, "window.parent works same-origin");
   assert_equals(C.parent, window, "window.parent works cross-origin");
   assert_equals(B.location.pathname, path, "location.href works same-origin");

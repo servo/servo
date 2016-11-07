@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Encrypted Media Extensions: Test Clear Key handling of non-ASCII responses for update()</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/clearkey-update-non-ascii-input.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+        var contentItem = content['mp4-basic'],
+            config = {
+                keysystem: 'org.w3.clearkey',
+                content: contentItem,
+                initDataType: "keyids"
+            };
+        runTest(config);
+    </script>
+  </body>
+</html>

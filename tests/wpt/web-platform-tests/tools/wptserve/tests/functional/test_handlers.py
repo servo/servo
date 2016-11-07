@@ -18,6 +18,7 @@ class TestFileHandler(TestUsingServer):
     def test_headers(self):
         resp = self.request("/with_headers.txt")
         self.assertEqual(200, resp.getcode())
+        self.assertEqual("text/html", resp.info()["Content-Type"])
         self.assertEqual("PASS", resp.info()["Custom-Header"])
         # This will fail if it isn't a valid uuid
         uuid.UUID(resp.info()["Another-Header"])

@@ -90,7 +90,9 @@ test(function() {
 
   assert_equals(list[Symbol.iterator], Array.prototype[Symbol.iterator]);
   assert_equals(list.keys, Array.prototype.keys);
-  assert_equals(list.values, Array.prototype.values);
+  if (Array.prototype.values) {
+    assert_equals(list.values, Array.prototype.values);
+  }
   assert_equals(list.entries, Array.prototype.entries);
   assert_equals(list.forEach, Array.prototype.forEach);
 }, "Iterator behavior of Node.childNodes");

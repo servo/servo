@@ -1,4 +1,3 @@
-import imp
 import os
 from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
@@ -57,7 +56,7 @@ class SourceFile(object):
 
         self.type_flag = None
         if "-" in self.name:
-            self.type_flag = self.name.rsplit("-", 1)[1]
+            self.type_flag = self.name.rsplit("-", 1)[1].split(".")[0]
 
         self.meta_flags = self.name.split(".")[1:]
 
@@ -97,7 +96,7 @@ class SourceFile(object):
         if self.contents is not None:
             file_obj = ContextManagerBytesIO(self.contents)
         elif self.use_committed:
-            git = vcs.get_git_func(os.path.dirname(__file__))
+            git = vcs.get_git_func(os.path.dirname(self.tests_root))
             blob = git("show", "HEAD:%s" % self.rel_path)
             file_obj = ContextManagerBytesIO(blob)
         else:
@@ -328,11 +327,11 @@ class SourceFile(object):
         elif self.name_is_multi_global:
             rv = [
                 TestharnessTest(self, replace_end(self.url, ".any.js", ".any.html")),
-                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.worker")),
+                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.worker.html")),
             ]
 
         elif self.name_is_worker:
-            rv = [TestharnessTest(self, replace_end(self.url, ".worker.js", ".worker"))]
+            rv = [TestharnessTest(self, replace_end(self.url, ".worker.js", ".worker.html"))]
 
         elif self.name_is_webdriver:
             rv = [WebdriverSpecTest(self, self.url)]

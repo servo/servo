@@ -36,6 +36,7 @@
         var keysystem = getSupportedKeySystem(),
             contentitem = content['mp4-multikey'],
             handler = new MessageHandler( keysystem, contentitem ),
+            proprietaryInitDatas = getProprietaryInitDatas(contentitem),
             config = {  video:              document.getElementById('videoelement'),
                         keysystem:          keysystem,
                         messagehandler:     handler.messagehandler,
@@ -44,7 +45,8 @@
                         audioType:          contentitem.audio.type,
                         videoType:          contentitem.video.type,
                         initDataType:       contentitem.initDataType,
-                        initData:           getProprietaryInitDatas(contentitem).initDatas.map( base64DecodeToUnit8Array ),
+                        initData:           proprietaryInitDatas.initDatas.map( base64DecodeToUnit8Array ),
+                        variantIds:         proprietaryInitDatas.variantIds,
                         testcase:           'multikey video' };
 
         runTest(config);

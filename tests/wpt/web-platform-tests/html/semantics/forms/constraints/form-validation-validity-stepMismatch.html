@@ -16,9 +16,9 @@
       types: ["date"],
       testData: [
         {conditions: {step: "", value: "2000-01-01"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 1 * 86400000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 1 * 86400000, value: "1970-01-02"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 1 * 86400000, value: "1970-01-03"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2, value: "1970-01-03"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2, value: "1970-01-02"}, expected: true, name: "[target] The value must mismatch the step"}
       ]
     },
     {
@@ -26,9 +26,9 @@
       types: ["month"],
       testData: [
         {conditions: {step: "", value: "2000-01"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 1 * 1, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 1 * 1, value: "1970-03"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 1 * 1, value: "1970-04"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2, value: "1970-03"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2, value: "1970-04"}, expected: true, name: "[target] The value must mismatch the step"}
       ]
     },
     {
@@ -36,9 +36,9 @@
       types: ["week"],
       testData: [
         {conditions: {step: "", value: "1970-W01"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 1 * 604800000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 1 * 604800000, value: "1970-W03"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 1 * 604800000, value: "1970-W04"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2, value: "1970-W03"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2, value: "1970-W04"}, expected: true, name: "[target] The value must mismatch the step"}
       ]
     },
     {
@@ -46,9 +46,9 @@
       types: ["time"],
       testData: [
         {conditions: {step: "", value: "12:00:00"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 60 * 1000, value: "12:02:00"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 60 * 1000, value: "12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2 * 60, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 60, value: "12:02:00"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 60, value: "12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
       ]
     },
     {
@@ -56,9 +56,9 @@
       types: ["datetime-local"],
       testData: [
         {conditions: {step: "", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The step attribute is not set"},
-        {conditions: {step: 2 * 60 * 1000, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
-        {conditions: {step: 2 * 60 * 1000, value: "1970-01-01T12:02:00"}, expected: false, name: "[target] The value must match the step"},
-        {conditions: {step: 2 * 60 * 1000, value: "1970-01-01T12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
+        {conditions: {step: 2 * 60, value: ""}, expected: false, name: "[target] The value attibute is empty string"},
+        {conditions: {step: 2 * 60, value: "1970-01-01T12:02:00"}, expected: false, name: "[target] The value must match the step"},
+        {conditions: {step: 2 * 60, value: "1970-01-01T12:03:00"}, expected: true, name: "[target] The value must mismatch the step"}
       ]
     },
     {

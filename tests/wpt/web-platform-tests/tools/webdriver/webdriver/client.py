@@ -4,6 +4,7 @@
 
 import urlparse
 
+import error
 import transport
 
 
@@ -76,15 +77,26 @@ class Window(object):
     @property
     @command
     def size(self):
-        return self.session.send_command("GET", "window/size")
+        resp = self.session.send_command("GET", "window/size")
+        return (resp["width"], resp["height"])
 
     @size.setter
     @command
-    def size(self, (height, width)):
-        body = {"width": width,
-                "height": height}
+    def size(self, (width, height)):
+        body = {"width": width, "height": height}
+        self.session.send_command("POST", "window/size", body)
 
-        return self.session.send_command("POST", "window/size", body)
+    @property
+    @command
+    def position(self):
+        resp = self.session.send_command("GET", "window/position")
+        return (resp["x"], resp["y"])
+
+    @position.setter
+    @command
+    def position(self, (x, y)):
+        body = {"x": x, "y": y}
+        self.session.send_command("POST", "window/position", body)
 
     @property
     @command
@@ -134,9 +146,34 @@ class Cookies(object):
         self.session.send_command("POST", "cookie/%s" % name, {}, key="value")
 
 
+class UserPrompt(object):
+    def __init__(self, session):
+        self.session = session
+
+    @command
+    def dismiss(self):
+        self.session.send_command("POST", "alert/dismiss")
+
+    @command
+    def accept(self):
+        self.session.send_command("POST", "alert/accept")
+
+    @property
+    @command
+    def text(self):
+        return self.session.send_command("GET", "alert/text", key="value")
+
+    @text.setter
+    @command
+    def text(self, value):
+        body = {"value": list(value)}
+        self.session.send_command("POST", "alert/text", body=body)
+
+
 class Session(object):
-    def __init__(self, host, port, url_prefix="", desired_capabilities=None,
-                 required_capabilities=None, timeout=60, extension=None):
+    def __init__(self, host, port, url_prefix="/", desired_capabilities=None,
+                 required_capabilities=None, timeout=transport.HTTP_TIMEOUT,
+                 extension=None):
         self.transport = transport.HTTPWireProtocol(
             host, port, url_prefix, timeout=timeout)
         self.desired_capabilities = desired_capabilities
@@ -149,6 +186,21 @@ class Session(object):
         self.extension = None
         self.extension_cls = extension
 
+        self.timeouts = Timeouts(self)
+        self.window = Window(self)
+        self.find = Find(self)
+        self.alert = UserPrompt(self)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self.end()
+
+    def __del__(self):
+        self.end()
+
     def start(self):
         if self.session_id is not None:
             return
@@ -160,14 +212,12 @@ class Session(object):
             caps["desiredCapabilities"] = self.desired_capabilities
         if self.required_capabilities is not None:
             caps["requiredCapabilities"] = self.required_capabilities
-        body["capabilities"] = caps
+        #body["capabilities"] = caps
+        body = caps
 
         resp = self.transport.send("POST", "session", body=body)
         self.session_id = resp["sessionId"]
 
-        self.timeouts = Timeouts(self)
-        self.window = Window(self)
-        self.find = Find(self)
         if self.extension_cls:
             self.extension = self.extension_cls(self)
 
@@ -185,20 +235,10 @@ class Session(object):
         self.window = None
         self.find = None
         self.extension = None
-        self.transport.disconnect()
-
-    def __enter__(self):
-        resp = self.start()
-        if resp.error:
-            raise Exception(resp)
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        resp = self.end()
-        if resp.error:
-            raise Exception(resp)
 
     def send_command(self, method, url, body=None, key=None):
+        if self.session_id is None:
+            raise error.SessionNotCreatedException()
         url = urlparse.urljoin("session/%s/" % self.session_id, url)
         return self.transport.send(method, url, body, key=key)
 

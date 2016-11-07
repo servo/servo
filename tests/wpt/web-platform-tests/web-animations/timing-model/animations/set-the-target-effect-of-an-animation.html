@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Setting the target effect tests</title>
+<link rel='help' href='https://w3c.github.io/web-animations/#setting-the-target-effect'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../testcommon.js'></script>
+<body>
+<div id='log'></div>
+<script>
+'use strict';
+
+promise_test(function(t) {
+  var anim = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                  100 * MS_PER_SEC);
+  assert_equals(anim.playState, 'pending');
+
+  var retPromise = anim.ready.then(function() {
+    assert_unreached('ready promise is fulfilled');
+  }).catch(function(err) {
+    assert_equals(err.name, 'AbortError',
+                  'ready promise is rejected with AbortError');
+  });
+
+  anim.effect = null;
+  assert_equals(anim.playState, 'paused');
+
+  return retPromise;
+}, 'If new effect is null and old effect is not null, we reset the pending ' +
+   'tasks and ready promise is rejected');
+
+promise_test(function(t) {
+  var anim = new Animation();
+  anim.pause();
+  assert_equals(anim.playState, 'pending');
+
+  anim.effect = new KeyframeEffectReadOnly(createDiv(t),
+                                           { marginLeft: [ '0px', '100px' ] },
+                                           100 * MS_PER_SEC);
+  assert_equals(anim.playState, 'pending');
+
+  return anim.ready.then(function() {
+    assert_equals(anim.playState, 'paused');
+  });
+}, 'If animation has a pending pause task, reschedule that task to run ' +
+   'as soon as animation is ready.');
+
+promise_test(function(t) {
+  var anim = new Animation();
+  anim.play();
+  assert_equals(anim.playState, 'pending');
+
+  anim.effect = new KeyframeEffectReadOnly(createDiv(t),
+                                           { marginLeft: [ '0px', '100px' ] },
+                                           100 * MS_PER_SEC);
+  assert_equals(anim.playState, 'pending');
+
+  return anim.ready.then(function() {
+    assert_equals(anim.playState, 'running');
+  });
+}, 'If animation has a pending play task, reschedule that task to run ' +
+   'as soon as animation is ready to play new effect.');
+
+promise_test(function(t) {
+  var animA = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
+  var animB = new Animation();
+
+  return animA.ready.then(function() {
+    animB.effect = animA.effect;
+    assert_equals(animA.effect, null);
+    assert_equals(animA.playState, 'finished');
+  });
+}, 'When setting the effect of an animation to the effect of an existing ' +
+   'animation, the existing animation\'s target effect should be set to null.');
+
+test(function(t) {
+  var animA = createDiv(t).animate({ marginLeft: [ '0px', '100px' ] },
+                                   100 * MS_PER_SEC);
+  var animB = new Animation();
+  var effect = animA.effect;
+  animA.currentTime = 50 * MS_PER_SEC;
+  animB.currentTime = 20 * MS_PER_SEC;
+  assert_equals(effect.getComputedTiming().progress, 0.5,
+                'Original timing comes from first animation');
+  animB.effect = effect;
+  assert_equals(effect.getComputedTiming().progress, 0.2,
+                'After setting the effect on a different animation, ' +
+                'it uses the new animation\'s timing');
+}, 'After setting the target effect of animation to the target effect of an ' +
+   'existing animation, the target effect\'s timing is updated to reflect ' +
+   'the current time of the new animation.');
+
+</script>
+</body>

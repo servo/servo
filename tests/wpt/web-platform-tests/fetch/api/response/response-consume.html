@@ -63,24 +63,29 @@
      });
     }
 
-    function checkResponseBody(body, bodyType, checkFunction) {
+    function checkResponseBody(body, bodyType, bodyConsumingType, checkFunction) {
       promise_test(function(test) {
         var response = new Response(body, { "headers": [["Content-Type", "text/PLAIN"]] });
         assert_false(response.bodyUsed, "bodyUsed is false at init");
         return checkFunction(response, body);
-      }, "Consume response's body as " + bodyType);
+      }, "Consume " + bodyType + " response's body as " + bodyConsumingType);
     }
 
     var formData = new FormData();
     formData.append("name", "value");
     var textData = JSON.stringify("This is response's body");
     var blob = new Blob([textData], { "type" : "text/plain" });
+    var urlSearchParamsData = "name=value";
+    var urlSearchParams = new URLSearchParams(urlSearchParamsData);
 
-    checkResponseBody(textData, "text", checkBodyText);
-    checkResponseBody(textData, "blob", function(response, body) { checkBodyBlob(response, body, true); });
-    checkResponseBody(textData, "arrayBuffer", checkBodyArrayBuffer);
-    checkResponseBody(textData, "json", checkBodyJSON);
-    checkResponseBody(formData, "formData", checkBodyFormData);
+    checkResponseBody(textData, "text", "text", checkBodyText);
+    checkResponseBody(textData, "text", "blob", function(response, body) { return checkBodyBlob(response, body, true); });
+    checkResponseBody(textData, "text", "arrayBuffer", checkBodyArrayBuffer);
+    checkResponseBody(textData, "text", "json", checkBodyJSON);
+    checkResponseBody(formData, "formdata", "formData", checkBodyFormData);
+    checkResponseBody(urlSearchParams, "URLSearchParams", "text", function(response) { return checkBodyText(response, urlSearchParamsData); });
+    checkResponseBody(urlSearchParams, "URLSearchParams", "blob", function(response, body) { return checkBodyBlob(response, urlSearchParamsData, false); });
+    checkResponseBody(urlSearchParams, "URLSearchParams", "arrayBuffer", function(response) { return checkBodyArrayBuffer(response, urlSearchParamsData); });
 
     function checkBlobResponseBody(blobBody, blobData, bodyType, checkFunction) {
       promise_test(function(test) {

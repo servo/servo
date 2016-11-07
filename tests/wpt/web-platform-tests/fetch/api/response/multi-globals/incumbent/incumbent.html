@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Incumbent page used as a test helper</title>
+
+<iframe src="../current/current.html" id="c"></iframe>
+<iframe src="../relevant/relevant.html" id="r"></iframe>
+
+<script>
+'use strict';
+
+const current = document.querySelector('#c').contentWindow;
+const relevant = document.querySelector('#r').contentWindow;
+
+window.createRedirectResponse = (...args) => {
+    return current.Response.redirect.call(relevant.Response, ...args);
+};
+
+</script>

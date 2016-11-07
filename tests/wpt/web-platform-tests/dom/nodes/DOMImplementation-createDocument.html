@@ -140,7 +140,7 @@ test(function() {
         assert_equals(doc.URL, "about:blank")
         assert_equals(doc.documentURI, "about:blank")
         assert_equals(doc.createElement("DIV").localName, "DIV");
-      }, "createDocument test " + i + ": metadata for " +
+      }, "createDocument test: metadata for " +
       [namespace, qualifiedName, doctype].map(my_format_value))
 
       test(function() {
@@ -148,7 +148,7 @@ test(function() {
         assert_equals(doc.characterSet, "UTF-8", "characterSet");
         assert_equals(doc.charset, "UTF-8", "charset");
         assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
-      }, "createDocument test " + i + ": characterSet aliases for " +
+      }, "createDocument test: characterSet aliases for " +
       [namespace, qualifiedName, doctype].map(my_format_value))
     }
   })

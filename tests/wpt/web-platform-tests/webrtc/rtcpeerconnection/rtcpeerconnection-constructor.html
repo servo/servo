@@ -1,0 +1,156 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection constructor</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  assert_equals(RTCPeerConnection.length, 0);
+}, 'RTCPeerConnection.length');
+
+// These are used for string and number dictionary members to see if they are
+// being accessed at all.
+const toStringThrows = { toString: function() { throw new Error; } };
+const toNumberThrows = Symbol();
+
+// Test the first argument of the constructor. The key is the argument itself,
+// and the value is the first argument for assert_throws, or false if no
+// exception should be thrown.
+const testArgs = {
+  // No argument or equivalent.
+  '': false,
+  'null': false,
+  'undefined': false,
+  '{}': false,
+
+  // iceServers
+  '{ iceServers: null }': new TypeError,
+  '{ iceServers: undefined }': false,
+  '{ iceServers: [] }': false,
+  '{ iceServers: [{}] }': new TypeError,
+  '{ iceServers: [null] }': new TypeError,
+  '{ iceServers: [undefined] }': new TypeError,
+  '{ iceServers: [{ urls: "stun:stun1.example.net" }] }': false,
+  '{ iceServers: [{ urls: [] }] }': false,
+  '{ iceServers: [{ urls: ["stun:stun1.example.net"] }] }': false,
+  '{ iceServers: [{ urls: ["stun:stun1.example.net", "stun:stun2.example.net"] }] }': false,
+  // username and password required for turn: and turns:
+  '{ iceServers: [{ urls: "turns:turn.example.org", username: "user", credential: "cred" }] }': false,
+  '{ iceServers: [{ urls: "turn:turn.example.net", username: "user", credential: "cred" }] }': false,
+  '{ iceServers: [{ urls: "turns:turn.example.org", username: "", credential: "" }] }': false,
+  '{ iceServers: [{ urls: "turn:turn.example.net", username: "", credential: "" }] }': false,
+  '{ iceServers: [{ urls: ["turns:turn.example.org", "turn:turn.example.net"], username: "user", credential: "cred" }] }': false,
+  '{ iceServers: [{ urls: "stun:stun1.example.net", credentialType: "password" }] }': false,
+  '{ iceServers: [{ urls: "stun:stun1.example.net", credentialType: "token" }] }': false,
+  '{ iceServers: [{ urls: "turn:turn.example.net" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "turn:turn.example.net", username: "user" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "turn:turn.example.net", credential: "cred" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "turns:turn.example.org" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "turns:turn.example.org", username: "user" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "turns:turn.example.org", credential: "cred" }] }': 'InvalidAccessError',
+  '{ iceServers: [{ urls: "relative-url" }] }': 'SyntaxError',
+  '{ iceServers: [{ urls: "http://example.com" }] }': 'SyntaxError',
+  // credentialType
+  '{ iceServers: [{ urls: [] }] }': false,
+  '{ iceServers: [{ urls: [], credentialType: "password" }] }': false,
+  '{ iceServers: [{ urls: [], credentialType: "token" }] }': false,
+  '{ iceServers: [{ urls: [], credentialType: "invalid" }] }': new TypeError,
+  // Blink and Gecko fall back to url, but it's not in the spec.
+  '{ iceServers: [{ url: "stun:stun1.example.net" }] }': new TypeError,
+
+  // iceTransportPolicy
+  '{ iceTransportPolicy: null }': new TypeError,
+  '{ iceTransportPolicy: undefined }': false,
+  '{ iceTransportPolicy: "relay" }': false,
+  '{ iceTransportPolicy: "all" }': false,
+  '{ iceTransportPolicy: "invalid" }': new TypeError,
+  // "none" is in Blink and Gecko's IDL, but not in the spec.
+  '{ iceTransportPolicy: "none" }': new TypeError,
+  // iceTransportPolicy is called iceTransports in Blink.
+  '{ iceTransports: "invalid" }': false,
+  '{ iceTransports: "none" }': false,
+
+  // bundlePolicy
+  '{ bundlePolicy: null }': new TypeError,
+  '{ bundlePolicy: undefined }': false,
+  '{ bundlePolicy: "balanced" }': false,
+  '{ bundlePolicy: "max-compat" }': false,
+  '{ bundlePolicy: "max-bundle" }': false,
+  '{ bundlePolicy: "invalid" }': new TypeError,
+
+  // rtcpMuxPolicy
+  '{ rtcpMuxPolicy: null }': new TypeError,
+  '{ rtcpMuxPolicy: undefined }': false,
+  '{ rtcpMuxPolicy: "negotiate" }': false,
+  '{ rtcpMuxPolicy: "require" }': false,
+  '{ rtcpMuxPolicy: "invalid" }': new TypeError,
+
+  // peerIdentity
+  '{ peerIdentity: toStringThrows }': new Error,
+
+  // certificates
+  '{ certificates: null }': new TypeError,
+  '{ certificates: undefined }': false,
+  '{ certificates: [] }': false,
+  '{ certificates: [null] }': new TypeError,
+  '{ certificates: [undefined] }': new TypeError,
+
+  // iceCandidatePoolSize
+  '{ iceCandidatePoolSize: toNumberThrows }': new TypeError,
+}
+
+for (const arg in testArgs) {
+  const expr = 'new RTCPeerConnection(' + arg + ')';
+  test(function() {
+    const throws = testArgs[arg];
+    if (throws) {
+      assert_throws(throws, function() {
+        eval(expr);
+      });
+    } else {
+      eval(expr);
+    }
+  }, expr);
+}
+
+promise_test(function() {
+  return RTCPeerConnection.generateCertificate({ name: "ECDSA", namedCurve: "P-256" })
+      .then(certificate => new RTCPeerConnection({ certificates: [certificate] }));
+}, 'new RTCPeerConnection({ certificates: [certificate] })');
+
+promise_test(function() {
+  return RTCPeerConnection.generateCertificate({ name: "ECDSA", namedCurve: "P-256", expires: 0 })
+      .then(certificate => {
+        assert_less_than_equal(certificate.expires, Date.now());
+        assert_throws('InvalidAccessError', function() {
+          new RTCPeerConnection({ certificates: [certificate] });
+        });
+      });
+}, 'new RTCPeerConnection({ certificates: [expiredCertificate] })');
+
+// The initial values of attributes of RTCPeerConnection.
+const initialState = {
+  'localDescription': null,
+  'currentLocalDescription': null,
+  'pendingLocalDescription': null,
+  'remoteDescription': null,
+  'currentRemoteDescription': null,
+  'pendingRemoteDescription': null,
+  'signalingState': 'stable',
+  'iceGatheringState': 'new',
+  'iceConnectionState': 'new',
+  'connectionState': 'new',
+  'canTrickleIceCandidates': null,
+  // TODO: defaultIceServers
+};
+
+for (const attr in initialState) {
+  test(function() {
+    // Use one RTCPeerConnection instance for all initial value tests.
+    if (!window.pc) {
+      window.pc = new RTCPeerConnection;
+    }
+    assert_equals(pc[attr], initialState[attr]);
+  }, attr + ' initial value');
+}
+</script>

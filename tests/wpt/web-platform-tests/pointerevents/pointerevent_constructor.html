@@ -30,6 +30,8 @@
             var testHeight = 5;
             var testTiltX = -45;
             var testTiltY = 30;
+            var testButton = 0;
+            var testButtons = 1;
             var testPressure = 0.4;
             var testIsPrimary = true;
 
@@ -40,6 +42,8 @@
                     ["custom cancelable", event.cancelable, testCancelable],
                     ["custom pointerId", event.pointerId, testPointerId],
                     ["custom pointerType", event.pointerType, testPointerType],
+                    ["custom button", event.button, testButton],
+                    ["custom buttons", event.buttons, testButtons],
                     ["custom width", event.width, testWidth],
                     ["custom height", event.height, testHeight],
                     ["custom clientX", event.clientX, testClientX],
@@ -80,6 +84,8 @@
                 clientY: testClientY,
                 tiltX: testTiltX,
                 tiltY: testTiltY,
+                button: testButton,
+                buttons: testButtons,
                 pressure: testPressure,
                 isPrimary: testIsPrimary
                 });

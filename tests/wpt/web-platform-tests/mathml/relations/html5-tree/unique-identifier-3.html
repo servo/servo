@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Unique Identifier</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2"/>
+<link rel="match" href="unique-identifier-3-ref.html"/>
+<meta name="assert" content="Verify that the id attribute affects CSS selectors.">
+<style>
+  #fail { display: none; }
+  #pass { background: green; }
+</style>
+</head>
+<body>
+
+  <p>Test passes if you see the text "PASS".</p>
+  <math>
+    <mtext id="fail" style="background: red; color: white;">FAIL</mtext>
+    <mtext id="pass" style="color: white;">PASS</mtext>
+  </math>
+
+</body>
+</html>

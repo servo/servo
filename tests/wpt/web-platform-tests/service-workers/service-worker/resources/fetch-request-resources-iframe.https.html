@@ -47,5 +47,21 @@ function load_css_image_set(url, type) {
   div.style[type] = '-webkit-image-set(url(' + url + ') 1x)';
 }
 
+function load_script_with_integrity(url, integrity) {
+  var script = document.createElement('script');
+  script.src = url;
+  script.integrity = integrity;
+  document.body.appendChild(script);
+}
+
+function load_css_with_integrity(url, integrity) {
+  var link = document.createElement('link');
+  link.rel = 'stylesheet'
+  link.href = url;
+  link.type = 'text/css';
+  link.integrity = integrity;
+  document.body.appendChild(link);
+}
+
 </script>
 </body>

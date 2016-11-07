@@ -12,7 +12,9 @@ setup(function() {
         tests[type] = {
             "entry": async_test("window.performance.getEntriesByName() and window.performance.getEntriesByNameType() return same data (" + type + ")"),
             "simple_attrs": async_test("PerformanceEntry has correct name, initiatorType, startTime, and duration (" + type + ")"),
-            "timing_attrs": async_test("PerformanceEntry has correct order of timing attributes (" + type + ")")
+            "timing_attrs": async_test("PerformanceEntry has correct order of timing attributes (" + type + ")"),
+            "network_attrs": async_test("PerformanceEntry has correct network transfer attributes (" + type + ")"),
+            "protocol": async_test("PerformanceEntry has correct protocol attribute (" + type + ")")
         };
     }
 });
@@ -44,6 +46,8 @@ onload = function()
     var type;
     var startTime;
     var element;
+    var encodedBodySize;
+    var decodedBodySize;
     for (var i in initiatorTypes) {
         startTime = window.performance.now();
         type = initiatorTypes[i];
@@ -56,32 +60,45 @@ onload = function()
         case "iframe":
             url = resolve("resources/resource_timing_test0.html");
             element.src = url;
+            encodedBodySize = 215;
+            decodedBodySize = 215;
             break;
         case "img":
             url = resolve("resources/resource_timing_test0.png");
             element.src = url;
+            encodedBodySize = 249;
+            decodedBodySize = 249;
             break;
         case "link":
             element.rel = "stylesheet";
             url = resolve("resources/resource_timing_test0.css");
             element.href = url;
+            encodedBodySize = 44;
+            decodedBodySize = 44;
             break;
         case "script":
             element.type = "text/javascript";
             url = resolve("resources/resource_timing_test0.js");
             element.src = url;
+            encodedBodySize = 133;
+            decodedBodySize = 133;
             break;
         case "xmlhttprequest":
             var xmlhttp = new XMLHttpRequest();
-            url = resolve("resources/resource_timing_test0.xml");
+            url = resolve("resources/gzip_xml.py");
             xmlhttp.open('GET', url, true);
             xmlhttp.send();
+            encodedBodySize = 112;
+            decodedBodySize = 125;
             break;
         }
 
         expected_entry = {name:url,
                           startTime: startTime,
-                          initiatorType: type};
+                          initiatorType: type,
+                          encodedBodySize: encodedBodySize,
+                          decodedBodySize: decodedBodySize
+                         };
 
         switch (type) {
         case "link":
@@ -108,6 +125,8 @@ onload = function()
 };
 
 function poll_for_stylesheet_load(expected_entry) {
+    var t = tests[expected_entry.initiatorType];
+
     function inner() {
         for(var i=0; i<document.styleSheets.length; i++) {
             var sheet = document.styleSheets[i];
@@ -120,14 +139,14 @@ function poll_for_stylesheet_load(expected_entry) {
                     hasRules = false;
                 }
                 if (hasRules) {
-                    setTimeout(function() {
+                    t["entry"].step_timeout(function() {
                         resource_load(expected_entry);
                     }, 200);
                     return;
                 }
             }
         }
-        setTimeout(inner, 100);
+        t["entry"].step_timeout(inner, 100);
     }
     inner();
 }
@@ -180,6 +199,24 @@ function resource_load(expected)
         assert_greater_than_equal(actual.requestStart, actual.connectEnd, "requestStart after connectEnd");
         assert_greater_than_equal(actual.responseStart, actual.requestStart, "responseStart after requestStart");
         assert_greater_than_equal(actual.responseEnd, actual.responseStart, "responseEnd after responseStart");
+        this.done();
+    });
+
+    t["network_attrs"].step(function test() {
+        var actual = window.performance.getEntriesByName(expected.name)[0];
+        assert_equals(actual.encodedBodySize, expected.encodedBodySize, "encodedBodySize size");
+        assert_equals(actual.decodedBodySize, expected.decodedBodySize, "decodedBodySize size");
+
+        // Transfer size will vary from browser to browser based on default headers, etc. This
+        // test verifies that transferSize for uncached resources is greater than on-the-wire
+        // body size.
+        assert_greater_than(actual.transferSize, actual.encodedBodySize, "transferSize size");
+        this.done();
+    });
+
+    t["protocol"].step(function() {
+        var actual = window.performance.getEntriesByName(expected.name)[0];
+        assert_equals(actual.nextHopProtocol, "http/1.1", "expected protocol");
         this.done();
     });
 

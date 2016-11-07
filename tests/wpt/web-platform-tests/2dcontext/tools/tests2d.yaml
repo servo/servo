@@ -6197,6 +6197,18 @@
     @assert pixel 90,45 == 0,255,0,255;
   expected: green
 
+- name: 2d.path.lineTo.nonfinite.details
+  desc: lineTo() with Infinity/NaN for first arg still converts the second arg
+  testing:
+    - 2d.nonfinite
+  code: |
+    for (var arg1 of [Infinity, -Infinity, NaN]) {
+      var converted = false;
+      ctx.lineTo(arg1, { valueOf: function() { converted = true; return 0; } });
+      @assert converted;
+    }
+  expected: clear
+
 - name: 2d.path.quadraticCurveTo.ensuresubpath.1
   desc: If there is no subpath, the first control point is added (and nothing is drawn up to it)
   testing:
