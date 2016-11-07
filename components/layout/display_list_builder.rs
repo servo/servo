@@ -1436,16 +1436,16 @@ impl FragmentDisplayListBuilding for Fragment {
                         self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     let display_item = match canvas_data {
-                        CanvasData::Pixels(canvas_data) => {
+                        CanvasData::Image(canvas_data) => {
                             DisplayItem::Image(box ImageDisplayItem {
                                 base: base,
-                                image_data: Some(Arc::new(canvas_data.image_data)),
                                 webrender_image: WebRenderImageInfo {
                                     width: computed_width as u32,
                                     height: computed_height as u32,
                                     format: PixelFormat::RGBA8,
                                     key: Some(canvas_data.image_key),
                                 },
+                                image_data: None,
                                 stretch_size: stacking_relative_content_box.size,
                                 tile_spacing: Size2D::zero(),
                                 image_rendering: image_rendering::T::auto,
