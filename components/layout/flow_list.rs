@@ -30,14 +30,14 @@ impl Serialize for FlowList {
             let flow_val = ObjectBuilder::new()
                 .insert("class", f.class())
                 .insert("data", match f.class() {
-                    FlowClass::Block         => to_value(f.as_block()),
-                    FlowClass::Inline        => to_value(f.as_inline()),
-                    FlowClass::Table         => to_value(f.as_table()),
-                    FlowClass::TableWrapper  => to_value(f.as_table_wrapper()),
+                    FlowClass::Block => to_value(f.as_block()),
+                    FlowClass::Inline => to_value(f.as_inline()),
+                    FlowClass::Table => to_value(f.as_table()),
+                    FlowClass::TableWrapper => to_value(f.as_table_wrapper()),
                     FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()),
-                    FlowClass::TableRow      => to_value(f.as_table_row()),
-                    FlowClass::TableCell     => to_value(f.as_table_cell()),
-                    FlowClass::Flex          => to_value(f.as_flex()),
+                    FlowClass::TableRow => to_value(f.as_table_row()),
+                    FlowClass::TableCell => to_value(f.as_table_cell()),
+                    FlowClass::Flex => to_value(f.as_flex()),
                     FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
                     FlowClass::Multicol | FlowClass::MulticolColumn => {
                         Value::Null // Not implemented yet

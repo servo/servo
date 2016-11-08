@@ -68,8 +68,13 @@
                 </div>
             </div>
             <div id="toolbar">
+              <a href="#" id="prev_trace">< Prev step</a>
+              |
+              <a href="#" id="next_trace">Next step ></a>
+              <br>
               <input type="checkbox" name="show_unchanged" id="show_unchanged" />
               <label for="show_unchanged">Show unchanged code</label>
+              <br>
               <a href="#top">Back to top</a>
             </div>
         </div>
@@ -181,6 +186,7 @@
                 $('#trace-tree').treeview({data: tree, levels: 3});
                 $('#trace-tree').on('nodeSelected', function(event, node) {
                     $("#flow-diffs").empty();
+                    $('#trace-tree').treeview(true).revealNode(node);
 
                     for (var key in node.pre) {
                         var flow_left = node.pre[key];
@@ -222,12 +228,29 @@
                     update_flow_tree_bgcolor(node.flow_tree, node_color_hash);
                     $('#flow-tree').treeview({data: [node.flow_tree], levels: 100, enableLinks: true, emptyIcon: "glyphicon glyphicon-unchecked hidden-glyphicon"});
                 });
+
+                $('#trace-tree').treeview(true).selectNode(0);
             }
 
             function register_toggle_unchanaged_code_handler() {
               var show_unchange_box = document.getElementById("show_unchanged");
               show_unchange_box.addEventListener("change", function(evt){
                   jsondiffpatch.formatters.html.showUnchanged(show_unchange_box.checked, null, 800);
+              });
+            }
+
+            function register_prev_next_trace_node() {
+              var prev_btn = document.getElementById("prev_trace");
+              var next_btn = document.getElementById("next_trace");
+              prev_btn.addEventListener("click", function(evt){
+                var node_id = $("#trace-tree").treeview(true).getSelected()[0].nodeId;
+                // We deliberatly choose to ignore the node_id out of bound case,
+                // since it won't break the UI usability
+                $("#trace-tree").treeview(true).selectNode(node_id - 1);
+              });
+              next_btn.addEventListener("click", function(evt){
+                var node_id = $("#trace-tree").treeview(true).getSelected()[0].nodeId;
+                $("#trace-tree").treeview(true).selectNode(node_id + 1);
               });
             }
 
@@ -246,6 +269,7 @@
                     return false;
                 };
                 register_toggle_unchanaged_code_handler();
+                register_prev_next_trace_node();
             });
         </script>
     </body>

@@ -24,4 +24,6 @@
   right: 1em;
   padding: 1em;
   border-radius: 1em;
+  font-weight: bold;
+  text-align: right;
 }
