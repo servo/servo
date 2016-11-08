@@ -623,32 +623,35 @@ fn test_redirected_request_to_devtools() {
 
 #[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
-    struct Factory;
+    let post_handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.method, Method::Get);
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut post_server, post_url) = make_server(post_handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let post_redirect_url = post_url.clone();
+    let pre_handler = move |request: HyperRequest, mut response: HyperResponse| {
+        assert_eq!(request.method, Method::Post);
+        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut pre_server, pre_url) = make_server(pre_handler);
 
-        fn create(&self, url: Url, method: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                assert_eq!(Method::Post, method);
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
-            } else {
-                assert_eq!(Method::Get, method);
-                Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
-            }
-        }
-    }
+    let request = Request::from_init(RequestInit {
+        url: pre_url.clone(),
+        method: Method::Post,
+        destination: Destination::Document,
+        origin: pre_url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = pre_server.close();
+    let _ = post_server.close();
 
-    load_data.method = Method::Post;
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data, &ui_provider, &http_state, None, &Factory,
-                 DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    assert!(response.to_actual().status.unwrap().is_success());
 }
 
 #[test]
