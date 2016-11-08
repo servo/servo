@@ -41,6 +41,7 @@ use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, Opaqu
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::ScrollRootId;
@@ -484,7 +485,7 @@ pub enum BlockType {
     FloatNonReplaced,
     InlineBlockReplaced,
     InlineBlockNonReplaced,
-    FlexItem,
+    InlineFlexItem,
 }
 
 #[derive(Clone, PartialEq)]
@@ -520,8 +521,6 @@ bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
         const IS_ROOT = 0b0000_0001,
-        #[doc = "Whether this block flow is a child of a flex container."]
-        const IS_FLEX = 0b0001_0000,
     }
 }
 
@@ -561,8 +560,8 @@ impl BlockFlow {
             } else {
                 BlockType::AbsoluteNonReplaced
             }
-        } else if self.is_flex() {
-            BlockType::FlexItem
+        } else if self.is_inline_flex_item() {
+            BlockType::InlineFlexItem
         } else if self.base.flags.is_float() {
             if self.is_replaced_content() {
                 BlockType::FloatReplaced
@@ -638,8 +637,8 @@ impl BlockFlow {
                                                               shared_context,
                                                               containing_block_inline_size);
             }
-            BlockType::FlexItem => {
-                let inline_size_computer = FlexItem;
+            BlockType::InlineFlexItem => {
+                let inline_size_computer = InlineFlexItem;
                 inline_size_computer.compute_used_inline_size(self,
                                                               shared_context,
                                                               containing_block_inline_size);
@@ -1506,7 +1505,7 @@ impl BlockFlow {
         }
 
         // If you remove the might_have_floats_in conditional, this will go off.
-        debug_assert!(!self.is_flex());
+        debug_assert!(!self.is_inline_flex_item());
 
         // Compute the available space for us, based on the actual floats.
         let rect = self.base.floats.available_rect(Au(0),
@@ -1778,12 +1777,12 @@ impl BlockFlow {
         padding.block_start.is_definitely_zero() && padding.block_end.is_definitely_zero()
     }
 
-    pub fn mark_as_flex(&mut self) {
-        self.flags.insert(IS_FLEX)
+    pub fn is_inline_flex_item(&self) -> bool {
+        self.fragment.flags.contains(IS_INLINE_FLEX_ITEM)
     }
 
-    pub fn is_flex(&self) -> bool {
-        self.flags.contains(IS_FLEX)
+    pub fn is_block_flex_item(&self) -> bool {
+        self.fragment.flags.contains(IS_BLOCK_FLEX_ITEM)
     }
 }
 
@@ -2589,7 +2588,7 @@ pub struct FloatNonReplaced;
 pub struct FloatReplaced;
 pub struct InlineBlockNonReplaced;
 pub struct InlineBlockReplaced;
-pub struct FlexItem;
+pub struct InlineFlexItem;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
@@ -3080,7 +3079,7 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
     }
 }
 
-impl ISizeAndMarginsComputer for FlexItem {
+impl ISizeAndMarginsComputer for InlineFlexItem {
     // Replace the default method directly to prevent recalculating and setting margins again
     // which has already been set by its parent.
     fn compute_used_inline_size(&self,
