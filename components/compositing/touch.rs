@@ -8,7 +8,7 @@ use gfx_traits::DevicePixel;
 use script_traits::{EventResult, TouchId};
 use self::TouchState::*;
 
-/// Minimum number of ScreenPx to begin touch scrolling.
+/// Minimum number of `ScreenPx` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
 
 pub struct TouchHandler {

@@ -7,7 +7,7 @@ use cssparser::CssStringWriter;
 use std::fmt::{self, Write};
 use url::Url;
 
-/// The real ToCss trait can't be implemented for types in crates that don't
+/// The real `ToCss` trait can't be implemented for types in crates that don't
 /// depend on each other.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.

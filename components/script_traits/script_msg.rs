@@ -45,7 +45,7 @@ pub enum EventResult {
 
 /// A log entry reported to the constellation
 /// We don't report all log entries, just serious ones.
-/// We need a separate type for this because LogLevel isn't serializable.
+/// We need a separate type for this because `LogLevel` isn't serializable.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum LogEntry {
     /// Panic, with a reason and backtrace
