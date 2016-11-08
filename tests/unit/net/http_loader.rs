@@ -547,43 +547,27 @@ fn test_request_and_response_data_with_network_messages() {
     assert_eq!(devhttpresponse, httpresponse);
 }
 
-struct HttpTestNoPipeline;
-impl LoadOrigin for HttpTestNoPipeline {
-    fn referrer_url(&self) -> Option<Url> {
-        None
-    }
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
-    }
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        None
-    }
-}
-
 #[test]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Host { hostname: "foo.bar".to_owned(), port: None });
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: None,
+        .. RequestInit::default()
+    });
+    let (devtools_chan, devtools_port) = mpsc::channel();
+    let response = fetch_sync(request, Some(devtools_chan));
+    assert!(response.status.unwrap().is_success());
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let mut headers = Headers::new();
-            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
-            Ok(MockRequest::new(
-                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
-            )
-        }
-    }
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let url = Url::parse("https://mozilla.com").unwrap();
-    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTestNoPipeline);
-    let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
-                 DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    let _ = server.close();
 
     // notification received from devtools
     assert!(devtools_port.try_recv().is_err());
