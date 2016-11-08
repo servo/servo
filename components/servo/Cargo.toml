@@ -77,7 +77,3 @@ android_glue = "0.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
-
-[replace]
-"webrender:0.8.0" = { path = '/Users/sam/servo/servo_fork/webrender/webrender/' }
-"webrender_traits:0.8.0" = { path = '/Users/sam/servo/servo_fork/webrender/webrender_traits/' }
