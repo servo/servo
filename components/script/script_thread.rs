@@ -91,7 +91,7 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::option::Option;
 use std::ptr;
@@ -604,12 +604,6 @@ impl ScriptThread {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
         }))
-    }
-
-    // TODO: This method is only needed for storage, and can be removed
-    // once storage event dispatch is moved to the constellation.
-    pub fn borrow_documents(&self) -> Ref<Documents> {
-        self.documents.borrow()
     }
 
     /// Creates a new script thread.
@@ -1588,14 +1582,12 @@ impl ScriptThread {
     /// Notify a window of a storage event
     fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: Url,
                             key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
-        let window = match self.root_browsing_context().find(pipeline_id) {
-            Some(browsing_context) => browsing_context.active_window(),
+        let storage = match self.documents.borrow().find_window(pipeline_id) {
             None => return warn!("Storage event sent to closed pipeline {}.", pipeline_id),
-        };
-
-        let storage = match storage_type {
-            StorageType::Local => window.LocalStorage(),
-            StorageType::Session => window.SessionStorage(),
+            Some(window) => match storage_type {
+                StorageType::Local => window.LocalStorage(),
+                StorageType::Session => window.SessionStorage(),
+            },
         };
 
         storage.queue_storage_event(url, key, old_value, new_value);
