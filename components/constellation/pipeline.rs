@@ -167,7 +167,7 @@ impl Pipeline {
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (Rc::new(ScriptChan::new(script_chan)), Some((script_port, pipeline_port)))
+                (ScriptChan::new(script_chan), Some((script_port, pipeline_port)))
             }
         };
 

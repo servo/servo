@@ -1526,7 +1526,7 @@ impl ScriptThread {
         debug!("Exiting script thread.");
 
         while let Some(pipeline_id) = self.incomplete_loads.borrow().iter().next().map(|load| load.pipeline_id)
-            .or_else(|| self.documents.borrow().iter().next().map(|doc| doc.global().pipeline_id()))
+            .or_else(|| self.documents.borrow().iter().next().map(|(pipeline_id, _)| pipeline_id))
         {
             self.handle_exit_pipeline_msg(pipeline_id);
         }

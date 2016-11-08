@@ -382,8 +382,8 @@ impl ScriptChan {
     pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), IOError> {
         self.chan.send(msg)
     }
-    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> ScriptChan {
-        ScriptChan { chan: chan, dont_send_or_sync: PhantomData }
+    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> Rc<ScriptChan> {
+        Rc::new(ScriptChan { chan: chan, dont_send_or_sync: PhantomData })
     }
     pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
         self.chan.clone()
