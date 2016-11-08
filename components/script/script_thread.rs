@@ -1525,9 +1525,11 @@ impl ScriptThread {
     fn handle_exit_script_thread_msg(&self) {
         debug!("Exiting script thread.");
 
-        while let Some(pipeline_id) = self.incomplete_loads.borrow().iter().next().map(|load| load.pipeline_id)
-            .or_else(|| self.documents.borrow().iter().next().map(|(pipeline_id, _)| pipeline_id))
-        {
+        let mut pipeline_ids = Vec::new();
+        pipeline_ids.extend(self.incomplete_loads.borrow().iter().next().map(|load| load.pipeline_id));
+        pipeline_ids.extend(self.documents.borrow().iter().next().map(|(pipeline_id, _)| pipeline_id));
+
+        for pipeline_id in pipeline_ids {
             self.handle_exit_pipeline_msg(pipeline_id);
         }
 
