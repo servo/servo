@@ -24,7 +24,7 @@ use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
-use dom::validitystate::{ValidityState, ValidationFlags};
+use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;

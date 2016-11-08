@@ -38,7 +38,6 @@ bitflags!{
         const STEP_MISMATCH    = 0b0010000000,
         const BAD_INPUT        = 0b0100000000,
         const CUSTOM_ERROR     = 0b1000000000,
-        const VALID            = 0b0000000000,
     }
 }
 

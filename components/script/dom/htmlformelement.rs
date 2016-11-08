@@ -478,10 +478,8 @@ impl HTMLFormElement {
                 if !validatable.is_instance_validatable() {
                     continue;
                 }
-                let mut validate_flags: ValidationFlags = ValidationFlags::empty();
-                // Need match and insert ValidationFlags later
-                validatable.validate(validate_flags);
-                // Invoke validata here that returns true if the form element validates, false otherwise
+                // pass empty flags initially and set appropriate flags according to the type of element called
+                validatable.validate(ValidationFlags::empty());
             }
         }
         // FIXME(#3553): This is an incorrect way of getting controls owned by the

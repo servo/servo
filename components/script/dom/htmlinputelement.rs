@@ -31,7 +31,7 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
-use dom::validitystate::{ValidityState, ValidationFlags};
+use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
@@ -1146,22 +1146,11 @@ impl FormControl for HTMLInputElement {}
 
 impl Validatable for HTMLInputElement {
     fn is_instance_validatable(&self) -> bool {
-        match self.input_type.get() {
-            InputType::InputSubmit => {},
-            InputType::InputText => {},
-            InputType::InputReset => {},
-            InputType::InputButton => {},
-            InputType::InputFile => {},
-            InputType::InputImage => {},
-            InputType::InputCheckbox => {},
-            InputType::InputRadio => {},
-            InputType::InputPassword => {},
-        }
+        // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
         true
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
+    fn validate(&self, _validate_flags: ValidationFlags) -> bool {
+        // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
         true
     }
 }
