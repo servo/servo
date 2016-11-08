@@ -309,27 +309,6 @@ impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
     }
 }
 
-struct AssertMustHaveBodyRequest {
-    expected_body: Option<Vec<u8>>,
-    t: ResponseType
-}
-
-impl AssertMustHaveBodyRequest {
-    fn new(t: ResponseType, expected_body: Option<Vec<u8>>) -> Self {
-        AssertMustHaveBodyRequest { expected_body: expected_body, t: t }
-    }
-}
-
-impl HttpRequest for AssertMustHaveBodyRequest {
-    type R = MockResponse;
-
-    fn send(self, body: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        assert_eq!(self.expected_body, *body);
-
-        response_for_request_type(self.t)
-    }
-}
-
 pub fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
@@ -715,45 +694,37 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
 #[test]
 fn test_load_doesnt_send_request_body_on_any_redirect() {
-    struct Factory;
+    let post_handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.method, Method::Get);
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut post_server, post_url) = make_server(post_handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = AssertMustHaveBodyRequest;
+    let post_redirect_url = post_url.clone();
+    let pre_handler = move |mut request: HyperRequest, mut response: HyperResponse| {
+        let data = read_response(&mut request);
+        assert_eq!(data, "Body on POST!");
+        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut pre_server, pre_url) = make_server(pre_handler);
 
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<AssertMustHaveBodyRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                Ok(
-                    AssertMustHaveBodyRequest::new(
-                        ResponseType::Redirect("http://mozilla.org".to_owned()),
-                        Some(<[_]>::to_vec("Body on POST!".as_bytes()))
-                    )
-                )
-            } else {
-                Ok(
-                    AssertMustHaveBodyRequest::new(
-                        ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())),
-                        None
-                    )
-                )
-            }
-        }
-    }
+    let request = Request::from_init(RequestInit {
+        url: pre_url.clone(),
+        body: Some(b"Body on POST!".to_vec()),
+        method: Method::Post,
+        destination: Destination::Document,
+        origin: pre_url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = pre_server.close();
+    let _ = post_server.close();
 
-    load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(
-        &load_data, &ui_provider, &http_state,
-        None,
-        &Factory,
-        DEFAULT_USER_AGENT.into(),
-        &CancellationListener::new(None),
-        None);
+    assert!(response.to_actual().status.unwrap().is_success());
 }
 
 #[test]
