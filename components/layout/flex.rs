@@ -395,6 +395,10 @@ impl FlexFlow {
         }
     }
 
+    pub fn main_mode(&self) -> Direction {
+        self.main_mode
+    }
+
     /// Returns a line start after the last item that is already in a line.
     /// Note that when the container main size is infinite(i.e. A column flexbox with auto height),
     /// we do not need to do flex resolving and this can be considered as a fast-path, so the
@@ -613,8 +617,6 @@ impl FlexFlow {
                 //
                 // TODO(#2265, pcwalton): Do this in the cascade instead.
                 block.base.flags.set_text_align(containing_block_text_align);
-                // FIXME(stshine): should this be done during construction?
-                block.mark_as_flex();
 
                 let margin = block.fragment.style().logical_margin();
                 let auto_len =
@@ -808,6 +810,14 @@ impl FlexFlow {
 impl Flow for FlexFlow {
     fn class(&self) -> FlowClass {
         FlowClass::Flex
+    }
+
+    fn as_mut_flex(&mut self) -> &mut FlexFlow {
+        self
+    }
+
+    fn as_flex(&self) -> &FlexFlow {
+        self
     }
 
     fn as_block(&self) -> &BlockFlow {

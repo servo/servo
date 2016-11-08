@@ -25,6 +25,7 @@ use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo, SvgFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
+use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::WhitespaceStrippingResult;
@@ -33,6 +34,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};
+use model::Direction;
 use multicol::{MulticolColumnFlow, MulticolFlow};
 use parallel;
 use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
@@ -1928,9 +1930,16 @@ impl Legalizer {
                                                      &[PseudoElement::ServoAnonymousBlock],
                                                      SpecificFragmentInfo::Generic,
                                                      BlockFlow::from_fragment);
-                flow::mut_base(FlowRef::deref_mut(&mut
-                                                   block_wrapper)).flags
-                                                                  .insert(MARGINS_CANNOT_COLLAPSE);
+                {
+                    let flag = if parent.as_flex().main_mode() == Direction::Inline {
+                        IS_INLINE_FLEX_ITEM
+                    } else {
+                        IS_BLOCK_FLEX_ITEM
+                    };
+                    let mut block = FlowRef::deref_mut(&mut block_wrapper).as_mut_block();
+                    block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
+                    block.fragment.flags.insert(flag);
+                }
                 block_wrapper.add_new_child((*child).clone());
                 block_wrapper.finish();
                 parent.add_new_child(block_wrapper);
@@ -1938,7 +1947,16 @@ impl Legalizer {
             }
 
             (FlowClass::Flex, _) => {
-                flow::mut_base(FlowRef::deref_mut(child)).flags.insert(MARGINS_CANNOT_COLLAPSE);
+                {
+                    let flag = if parent.as_flex().main_mode() == Direction::Inline {
+                        IS_INLINE_FLEX_ITEM
+                    } else {
+                        IS_BLOCK_FLEX_ITEM
+                    };
+                    let mut block = FlowRef::deref_mut(child).as_mut_block();
+                    block.base.flags.insert(MARGINS_CANNOT_COLLAPSE);
+                    block.fragment.flags.insert(flag);
+                }
                 parent.add_new_child((*child).clone());
                 true
             }
