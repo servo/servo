@@ -2168,11 +2168,14 @@ fn shut_down_layout(window: &Window) {
         let _ = response_port.recv();
     }
 
+    // The browsing context is cleared by window.clear_js_runtime(), so we need to save a copy
+    let browsing_context = window.browsing_context();
+
     // Drop our references to the JSContext and DOM objects.
     window.clear_js_runtime();
 
     // Sever the connection between the global and the DOM tree
-    window.browsing_context().unset_active_document();
+    browsing_context.unset_active_document();
 
     // Destroy the layout thread. If there were node leaks, layout will now crash safely.
     chan.send(message::Msg::ExitNow).ok();
