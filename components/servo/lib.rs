@@ -166,6 +166,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),
                 renderer_kind: renderer_kind,
+                enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
             })
         };
 
