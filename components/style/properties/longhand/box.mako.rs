@@ -23,7 +23,6 @@
         """.split()
         if product == "gecko":
             values += "-moz-box -moz-inline-box".split()
-        experimental_values = set("flex".split())
     %>
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
@@ -61,12 +60,6 @@
         match_ignore_ascii_case! { try!(input.expect_ident()),
             % for value in values:
                 "${value}" => {
-                    % if value in experimental_values and product == "servo":
-                        if !::util::prefs::PREFS.get("layout.${value}.enabled")
-                            .as_boolean().unwrap_or(false) {
-                            return Err(())
-                        }
-                    % endif
                     Ok(computed_value::T::${to_rust_ident(value)})
                 },
             % endfor
