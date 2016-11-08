@@ -31,6 +31,10 @@ environment:
   - TARGET: nightly-x86_64-pc-windows-msvc
   - TARGET: nightly-x86_64-pc-windows-gnu
 
+matrix:
+  allow_failures:
+    - TARGET: nightly-x86_64-pc-windows-gnu
+
 branches:
   only:
     - master
