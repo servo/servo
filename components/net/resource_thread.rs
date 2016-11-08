@@ -586,7 +586,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
             };
-            fetch(Rc::new(request), &mut target, context);
+            fetch(Rc::new(request), &mut target, &context);
         })
     }
 
