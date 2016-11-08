@@ -1164,7 +1164,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             let this_delta = match scroll_event.scroll_location {
                 ScrollLocation::Delta(delta) => delta,
-                _ => {
+                ScrollLocation::Start | ScrollLocation::End => {
                     // If this is an event which is scrolling to the start or end of the page,
                     // disregard other pending events and exit the loop.
                     last_combined_event = Some(scroll_event);
@@ -1176,7 +1176,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 if combined_event.phase != scroll_event.phase {
                     let combined_delta = match combined_event.scroll_location {
                         ScrollLocation::Delta(delta) => delta,
-                        _ => {
+                        ScrollLocation::Start | ScrollLocation::End => {
                             // If this is an event which is scrolling to the start or end of the page,
                             // disregard other pending events and exit the loop.
                             last_combined_event = Some(scroll_event);
@@ -1241,7 +1241,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
                                            ScrollLocation::Delta(calculated_delta)
                 },
-                sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location.
+                // Leave ScrollLocation unchanged if it is Start or End location.
+                sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
