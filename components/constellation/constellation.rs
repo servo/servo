@@ -1063,7 +1063,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let msg = ConstellationControlMsg::DispatchStorageEvent(
                     pipeline.id, storage, url.clone(), key.clone(), old_value.clone(), new_value.clone()
                 );
-                let _ = pipeline.script_chan.send(msg);
+                if let Err(err) = pipeline.script_chan.send(msg) {
+                    warn!("Failed to broadcast storage event to pipeline {} ({:?}).", pipeline.id, err);
+                }
             }
         }
     }
