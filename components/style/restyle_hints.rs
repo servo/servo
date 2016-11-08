@@ -8,7 +8,7 @@ use Atom;
 use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_impl::{AttrValue, ElementExt, NonTSPseudoClass, TheSelectorImpl};
+use selector_impl::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, TheSelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{MatchingReason, StyleRelations};
 use selectors::matching::matches_complex_selector;
@@ -85,7 +85,7 @@ struct ElementWrapper<'a, E>
     where E: ElementExt
 {
     element: E,
-    snapshot: Option<&'a E::Snapshot>,
+    snapshot: Option<&'a Snapshot>,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
@@ -95,7 +95,7 @@ impl<'a, E> ElementWrapper<'a, E>
         ElementWrapper { element: el, snapshot: None }
     }
 
-    pub fn new_with_snapshot(el: E, snapshot: &'a E::Snapshot) -> ElementWrapper<'a, E> {
+    pub fn new_with_snapshot(el: E, snapshot: &'a Snapshot) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: Some(snapshot) }
     }
 }
@@ -424,7 +424,7 @@ impl DependencySet {
     }
 
     pub fn compute_hint<E>(&self, el: &E,
-                           snapshot: &E::Snapshot,
+                           snapshot: &Snapshot,
                            current_state: ElementState)
                            -> RestyleHint
         where E: ElementExt + Clone

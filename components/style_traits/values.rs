@@ -2,6 +2,60 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
+use cssparser::CssStringWriter;
+use std::fmt::{self, Write};
+use url::Url;
+
+/// The real ToCss trait can't be implemented for types in crates that don't
+/// depend on each other.
+pub trait ToCss {
+    /// Serialize `self` in CSS syntax, writing to `dest`.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
+
+    /// Serialize `self` in CSS syntax and return a string.
+    ///
+    /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
+    #[inline]
+    fn to_css_string(&self) -> String {
+        let mut s = String::new();
+        self.to_css(&mut s).unwrap();
+        s
+    }
+}
+
+impl ToCss for Au {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}px", self.to_f64_px())
+    }
+}
+
+impl ToCss for Url {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("url(\""));
+        try!(write!(CssStringWriter::new(dest), "{}", self));
+        try!(dest.write_str("\")"));
+        Ok(())
+    }
+}
+
+macro_rules! impl_to_css_for_predefined_type {
+    ($name: ty) => {
+        impl<'a> ToCss for $name {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                ::cssparser::ToCss::to_css(self, dest)
+            }
+        }
+    };
+}
+
+impl_to_css_for_predefined_type!(f32);
+impl_to_css_for_predefined_type!(i32);
+impl_to_css_for_predefined_type!(u32);
+impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
+impl_to_css_for_predefined_type!(::cssparser::RGBA);
+impl_to_css_for_predefined_type!(::cssparser::Color);
+
 #[macro_export]
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
@@ -50,7 +104,7 @@ macro_rules! __define_css_keyword_enum__actual {
             }
         }
 
-        impl ::cssparser::ToCss for $name {
+        impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
                 where W: ::std::fmt::Write {
                     match *self {
@@ -60,7 +114,6 @@ macro_rules! __define_css_keyword_enum__actual {
         }
     }
 }
-
 
 pub mod specified {
     use app_units::Au;

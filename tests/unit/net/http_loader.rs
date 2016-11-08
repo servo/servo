@@ -7,6 +7,7 @@ use cookie_rs::Cookie as CookiePair;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use fetch_sync;
 use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
@@ -17,19 +18,22 @@ use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
+use make_server;
 use msg::constellation_msg::{PipelineId, TEST_PIPELINE_ID};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
-use net::http_loader::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
-use net::http_loader::{HttpResponse, LoadErrorType};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
+use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
+use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
 use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
+use net_traits::request::{Request, RequestInit, Destination};
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
-use std::sync::{Arc, RwLock, mpsc};
+use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use url::Url;
@@ -229,20 +233,6 @@ impl HttpRequest for MockRequest {
     }
 }
 
-struct AssertMustHaveHeadersRequestFactory {
-    expected_headers: Headers,
-    body: Vec<u8>
-}
-
-impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
-    type R = MockRequest;
-
-    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
-        assert_eq!(headers, self.expected_headers);
-        Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
-    }
-}
-
 struct AssertAuthHeaderRequestFactory {
     expected_headers: Headers,
     body: Vec<u8>
@@ -373,14 +363,12 @@ pub fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg
 
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
-    let url = Url::parse("http://mozilla.com").unwrap();
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = None;
-    load_data.method = Method::Get;
+    let expected_headers = Arc::new(Mutex::new(None));
+    let expected_headers_clone = expected_headers.clone();
+    let handler = move |request: HyperRequest, _: HyperResponse| {
+        assert_eq!(request.headers, expected_headers_clone.lock().unwrap().take().unwrap());
+    };
+    let (mut server, url) = make_server(handler);
 
     let mut headers = Headers::new();
 
@@ -388,7 +376,12 @@ fn test_check_default_headers_loaded_in_every_request() {
                                     qitem(Encoding::Deflate),
                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
 
-    headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+    let hostname = match url.host_str() {
+        Some(hostname) => hostname.to_owned(),
+        _ => panic!()
+    };
+
+    headers.set(Host { hostname: hostname, port: url.port() });
 
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
@@ -408,25 +401,37 @@ fn test_check_default_headers_loaded_in_every_request() {
         QualityItem::new(en, Quality(500)),
     ]));
 
-    headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
+    headers.set(UserAgent(::DEFAULT_USER_AGENT.to_owned()));
+
+    *expected_headers.lock().unwrap() = Some(headers.clone());
 
     // Testing for method.GET
-    let _ = load(&load_data, &ui_provider, &http_state, None,
-                 &AssertMustHaveHeadersRequestFactory {
-                     expected_headers: headers.clone(),
-                     body: <[_]>::to_vec(&[])
-                 }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+    assert!(response.status.unwrap().is_success());
 
     // Testing for method.POST
-    load_data.method = Method::Post;
-
     headers.set(ContentLength(0 as u64));
+    *expected_headers.lock().unwrap() = Some(headers.clone());
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+    assert!(response.status.unwrap().is_success());
 
-    let _ = load(&load_data, &ui_provider, &http_state, None,
-                 &AssertMustHaveHeadersRequestFactory {
-                     expected_headers: headers,
-                     body: <[_]>::to_vec(&[])
-                 }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    let _ = server.close();
 }
 
 #[test]
@@ -1757,6 +1762,155 @@ fn test_http_to_https_considered_cross_origin_for_referrer_header_logic() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://mozilla.com/some/path";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictorigin_policy_http_to_https() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "http://mozilla.com";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_no_referrer_with_strictorigin_policy_https_to_http() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_not_included(&origin_info, request_url);
+}
+
+#[test]
+fn test_referrer_with_strictorigin_policy_http_to_http() {
+    let request_url = "http://mozilla.com/";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictorigin_policy_https_to_https() {
+    let request_url = "https://mozilla.com/";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOrigin);
+    let expected_referrer = "https://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictoriginwhencrossorigin_policy_https_to_https_same_origin() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "https://mozilla.com/some/path";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_with_strictoriginwhencrossorigin_policy_https_to_https_cross_origin() {
+    let request_url = "https://servo.mozilla.com";
+    let referrer_url = "https://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "https://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_http_cross_orig() {
+    let request_url = "http://servo.mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_http_same_orig() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/some/path";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_https_cross_orig() {
+    let request_url = "https://servo.mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
+    let expected_referrer = "http://mozilla.com/";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referrer_set_with_strictoriginwhencrossorigin_policy_http_to_https_same_orig() {
+    let request_url = "https://mozilla.com";
+    let referrer_url = "http://mozilla.com/some/path";
+    let referrer_policy = Some(ReferrerPolicy::StrictOriginWhenCrossOrigin);
     let expected_referrer = "http://mozilla.com/";
 
     let origin_info = LoadOriginInfo {

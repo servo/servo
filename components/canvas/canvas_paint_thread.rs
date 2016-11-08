@@ -12,7 +12,6 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::ipc::IpcSharedMemory;
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
@@ -195,6 +194,13 @@ impl<'a> CanvasPaintThread<'a> {
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size),
                         }
                     },
+                    CanvasMsg::FromScript(message) => {
+                        match message {
+                            FromScriptMsg::SendPixels(chan) => {
+                                painter.send_pixels(chan)
+                            }
+                        }
+                    }
                     CanvasMsg::FromLayout(message) => {
                         match message {
                             FromLayoutMsg::SendData(chan) => {
@@ -539,6 +545,12 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget = CanvasPaintThread::create(size);
     }
 
+    fn send_pixels(&mut self, chan: IpcSender<Option<Vec<u8>>>) {
+        self.drawtarget.snapshot().get_data_surface().with_data(|element| {
+            chan.send(Some(element.into())).unwrap();
+        })
+    }
+
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
@@ -548,11 +560,10 @@ impl<'a> CanvasPaintThread<'a> {
                                             webrender_traits::ImageFormat::RGBA8,
                                             element.into());
 
-            let pixel_data = CanvasPixelData {
-                image_data: IpcSharedMemory::from_bytes(element),
+            let data = CanvasImageData {
                 image_key: self.webrender_image_key,
             };
-            chan.send(CanvasData::Pixels(pixel_data)).unwrap();
+            chan.send(CanvasData::Image(data)).unwrap();
         })
     }
 

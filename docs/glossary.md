@@ -16,7 +16,7 @@ The thread that controls a collection of related web content. This could be thou
 
 ### Display list ###
 
-TODO
+A list of concrete rendering instructions. The display list is post-layout, so all items have stacking-context-relative pixel positions, and z-index has already been applied, so items later in the display list will always be on top of items earlier in it.
 
 ### Layout thread ###
 

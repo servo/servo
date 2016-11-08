@@ -23,7 +23,7 @@ void main(void) {
     vLocalPos = vi.local_clamped_pos;
 #endif
 
-    ClipInfo clip = fetch_clip(prim.clip_index);
+    ClipData clip = fetch_clip(prim.clip_index);
     write_clip(clip);
 
     // vUv will contain how many times this image has wrapped around the image size.

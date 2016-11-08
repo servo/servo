@@ -11,5 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 ipc-channel = "0.5"
+regex = "0.1.43"
 serde = "0.8"
 serde_derive = "0.8"
+util = {path = "../util"}

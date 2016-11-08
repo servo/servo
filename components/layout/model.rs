@@ -301,7 +301,7 @@ pub enum MarginCollapseState {
 }
 
 /// Intrinsic inline-sizes, which consist of minimum and preferred.
-#[derive(RustcEncodable, Copy, Clone)]
+#[derive(Serialize, Copy, Clone)]
 pub struct IntrinsicISizes {
     /// The *minimum inline-size* of the content.
     pub minimum_inline_size: Au,

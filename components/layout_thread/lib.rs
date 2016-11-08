@@ -50,7 +50,8 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode, WebRenderImageInfo};
+use gfx::display_list::{ClippingRegion, OpaqueNode};
+use gfx::display_list::WebRenderImageInfo;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -87,8 +88,6 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
-use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
-use script_layout_interface::restyle_damage::STORE_OVERFLOW;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
@@ -111,6 +110,7 @@ use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::parser::ParserContextExtraData;
 use style::selector_matching::Stylist;
+use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::thread_state;
 use style::timer::Timer;
@@ -906,8 +906,8 @@ impl LayoutThread {
                 match (data.goal, display_list_needed) {
                     (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
                         let mut build_state =
-                             sequential::build_display_list_for_subtree(layout_root,
-                                                                        shared_layout_context);
+                            sequential::build_display_list_for_subtree(layout_root,
+                                                                       shared_layout_context);
 
                         debug!("Done building display list.");
 
@@ -1169,6 +1169,16 @@ impl LayoutThread {
         if opts::get().dump_style_tree {
             node.dump_style();
         }
+
+        if opts::get().dump_rule_tree {
+            shared_layout_context.style_context.stylist.rule_tree.dump_stdout();
+        }
+
+        // GC The rule tree.
+        //
+        // FIXME(emilio): The whole point of the free list is not always freeing
+        // the list, find a good heuristic here for that.
+        unsafe { shared_layout_context.style_context.stylist.rule_tree.gc() }
 
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,

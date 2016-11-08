@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::chrome_loader::resolve_chrome_url;
+use net::test::resolve_chrome_url;
 use url::Url;
 
 fn c(s: &str) -> Result<Url, ()> {

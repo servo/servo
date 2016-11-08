@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::ToCss;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -20,6 +19,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::{Shorthand, Importance, PropertyDeclarationBlock};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
 use style::selector_impl::PseudoElement;
+use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]

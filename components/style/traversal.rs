@@ -294,7 +294,7 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
                           &mut applicable_declarations);
 
     unsafe {
-        element.cascade_node(context, data, parent, &applicable_declarations);
+        element.cascade_node(context, data, parent, applicable_declarations);
     }
 }
 
@@ -357,7 +357,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
                 // Perform the CSS cascade.
                 unsafe {
                     element.cascade_node(context, data, element.parent_element(),
-                                         &applicable_declarations);
+                                         applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.

@@ -28,11 +28,10 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
-use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
-use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use serde::{Serialize, Serializer};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -47,6 +46,8 @@ use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::selector_impl::RestyleDamage;
+use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
@@ -133,13 +134,13 @@ pub struct Fragment {
     pub stacking_context_id: StackingContextId,
 }
 
-impl Encodable for Fragment {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_struct("fragment", 3, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id.encode(e)));
-            try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)));
-            e.emit_struct_field("margin", 2, |e| self.margin.encode(e))
-        })
+impl Serialize for Fragment {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        let mut state = try!(serializer.serialize_struct("fragment", 3));
+        try!(serializer.serialize_struct_elt(&mut state, "id", &self.debug_id));
+        try!(serializer.serialize_struct_elt(&mut state, "border_box", &self.border_box));
+        try!(serializer.serialize_struct_elt(&mut state, "margin", &self.margin));
+        serializer.serialize_struct_end(state)
     }
 }
 
@@ -503,7 +504,7 @@ impl ImageFragmentInfo {
                                           absolute_anchor_origin,
                                           image_size);
             *tile_spacing = Au(0);
-            *size = image_size;;
+            *size = image_size;
             return;
         }
 
@@ -2594,8 +2595,6 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
-        // and `overflow_y: scroll`. This needs multiple layers per stacking context.
         match (self.style().get_box().position,
                self.style().get_position().z_index,
                self.style().get_box().overflow_x,
@@ -2614,11 +2613,7 @@ impl Fragment {
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
             (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) |
-            (_, _, overflow_x::T::auto, _) |
-            (_, _, overflow_x::T::scroll, _) |
-            (_, _, _, overflow_x::T::auto) |
-            (_, _, _, overflow_x::T::scroll) => true,
+            (position::T::relative, _, _, _) => true,
             (position::T::static_, _, _, _) => false
         }
     }
@@ -3162,16 +3157,15 @@ impl fmt::Display for DebugId {
 }
 
 #[cfg(not(debug_assertions))]
-impl Encodable for DebugId {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_str(&format!("{:p}", &self))
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        serializer.serialize_str(&format!("{:p}", &self))
     }
 }
 
 #[cfg(debug_assertions)]
-impl Encodable for DebugId {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_u16(self.0)
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        serializer.serialize_u16(self.0)
     }
 }
-

@@ -11,6 +11,7 @@ use std::sync::Arc;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
 use style::selector_matching::{Rule, SelectorMap};
+use style::stylesheets::StyleRule;
 use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.
@@ -18,18 +19,26 @@ use style::thread_state;
 fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
     css_selectors.iter().enumerate().map(|(i, selectors)| {
         let context = ParserContext::new();
-        parse_selector_list(&context, &mut Parser::new(*selectors))
-        .unwrap().into_iter().map(|s| {
+        let selectors =
+            parse_selector_list(&context, &mut Parser::new(*selectors)).unwrap();
+
+        let rule = Arc::new(RwLock::new(StyleRule {
+            selectors: selectors,
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
+                declarations: vec![
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::block)),
+                     Importance::Normal),
+                ],
+                important_count: 0,
+            })),
+        }));
+
+        let guard = rule.read();
+        guard.selectors.iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                declarations: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::Display(DeclaredValue::Value(
-                            longhands::display::SpecifiedValue::block)),
-                         Importance::Normal),
-                    ],
-                    important_count: 0,
-                })),
+                style_rule: rule.clone(),
                 specificity: s.specificity,
                 source_order: i,
             }

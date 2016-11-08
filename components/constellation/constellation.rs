@@ -10,13 +10,14 @@
 //! `LayoutThread`, and `PaintThread`.
 
 use backtrace::Backtrace;
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
+use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -113,11 +114,14 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
 
+    /// A channel through which messages can be sent to the debugger.
+    debugger_chan: Option<debugger::Sender>,
+
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel through which messages can be sent to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// Sender to Service Worker Manager thread
     swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
@@ -190,10 +194,12 @@ pub struct Constellation<Message, LTF, STF> {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+    /// A channel to the debugger, if applicable.
+    pub debugger_chan: Option<debugger::Sender>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -482,6 +488,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
                 compositor_proxy: state.compositor_proxy,
+                debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
@@ -1025,6 +1032,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.shutting_down { return; }
         self.shutting_down = true;
 
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
         // TODO: exit before the root frame is initialized?
         debug!("Removing root frame.");
         let root_frame_id = self.root_frame_id;
@@ -1068,6 +1077,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             warn!("Exit resource thread failed ({})", e);
         }
 
+        if let Some(ref chan) = self.debugger_chan {
+            debugger::shutdown_server(chan);
+        }
+
         if let Some(ref chan) = self.devtools_chan {
             debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
@@ -1082,7 +1095,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
+        if let Err(e) = self.bluetooth_thread.send(BluetoothRequest::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
 

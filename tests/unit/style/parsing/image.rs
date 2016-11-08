@@ -7,6 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style::values::specified::image::*;
+use style_traits::ToCss;
 use url::Url;
 
 #[test]

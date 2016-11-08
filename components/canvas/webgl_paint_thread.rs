@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasCommonMsg, CanvasData, CanvasMsg, CanvasPixelData};
-use canvas_traits::{FromLayoutMsg, byte_swap};
+use canvas_traits::{CanvasCommonMsg, CanvasData, CanvasMsg, CanvasImageData};
+use canvas_traits::{FromLayoutMsg, FromScriptMsg, byte_swap};
 use euclid::size::Size2D;
 use gleam::gl;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
 use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
 use std::borrow::ToOwned;
@@ -173,6 +173,15 @@ impl WebGLPaintThread {
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size).unwrap(),
                         }
                     },
+                    CanvasMsg::FromScript(message) => {
+                        match message {
+                            FromScriptMsg::SendPixels(chan) =>{
+                                // Read the comment on
+                                // HTMLCanvasElement::fetch_all_data.
+                                chan.send(None).unwrap();
+                            }
+                        }
+                    }
                     CanvasMsg::FromLayout(message) => {
                         match message {
                             FromLayoutMsg::SendData(chan) =>
@@ -218,12 +227,11 @@ impl WebGLPaintThread {
                                            webrender_traits::ImageFormat::RGBA8,
                                            pixels.clone());
 
-                let pixel_data = CanvasPixelData {
-                    image_data: IpcSharedMemory::from_bytes(&pixels[..]),
+                let image_data = CanvasImageData {
                     image_key: image_key,
                 };
 
-                chan.send(CanvasData::Pixels(pixel_data)).unwrap();
+                chan.send(CanvasData::Image(image_data)).unwrap();
             }
             WebGLPaintTaskData::WebRender(_, id) => {
                 chan.send(CanvasData::WebGL(id)).unwrap();

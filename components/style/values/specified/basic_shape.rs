@@ -7,10 +7,11 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::{Parser, ToCss};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
+use style_traits::ToCss;
 use url::Url;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
@@ -39,7 +40,6 @@ impl<T> Default for ShapeSource<T> {
 
 impl<T: ToCss> ToCss for ShapeSource<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
             ShapeSource::Url(ref url, _) => url.to_css(dest),
             ShapeSource::Shape(ref shape, Some(ref reference)) => {

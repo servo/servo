@@ -17,7 +17,6 @@ use properties::longhands::animation_iteration_count::computed_value::AnimationI
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use selector_matching::ApplicableDeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use timer::Timer;
@@ -385,23 +384,26 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                     style_from_cascade: &ComputedValues)
                                     -> ComputedValues {
     match step.value {
-        // TODO: avoiding this spurious clone might involve having to create
-        // an Arc in the below (more common case).
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations { block: ref declarations } => {
-            let declaration_block = ApplicableDeclarationBlock {
-                mixed_declarations: declarations.clone(),
-                importance: Importance::Normal,
-                source_order: 0,
-                specificity: ::std::u32::MAX,
+            let guard = declarations.read();
+
+            // No !important in keyframes.
+            debug_assert!(guard.declarations.iter()
+                            .all(|&(_, importance)| importance == Importance::Normal));
+
+            let iter = || {
+                guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
             };
-            let (computed, _) = properties::cascade(context.viewport_size,
-                                                    &[declaration_block],
-                                                    Some(previous_style),
-                                                    None,
-                                                    None,
-                                                    context.error_reporter.clone(),
-                                                    CascadeFlags::empty());
+
+            let computed =
+                properties::apply_declarations(context.viewport_size,
+                                               /* is_root = */ false,
+                                               iter,
+                                               previous_style,
+                                               /* cascade_info = */ None,
+                                               context.error_reporter.clone(),
+                                               CascadeFlags::empty());
             computed
         }
     }

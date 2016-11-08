@@ -9,7 +9,7 @@ use app_units::Au;
 use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
-use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
+use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 use selector_matching::Stylist;
 use std::cell::RefCell;
@@ -66,7 +66,6 @@ pub struct SharedStyleContext {
 }
 
 pub struct LocalStyleContext {
-    pub applicable_declarations_cache: RefCell<ApplicableDeclarationsCache>,
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
@@ -76,7 +75,6 @@ pub struct LocalStyleContext {
 impl LocalStyleContext {
     pub fn new(local_context_creation_data: &LocalStyleContextCreationInfo) -> Self {
         LocalStyleContext {
-            applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
             style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
         }

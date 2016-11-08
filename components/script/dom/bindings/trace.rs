@@ -92,9 +92,9 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
-use style::media_queries::MediaQueryList;
+use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
-use style::selector_impl::{ElementSnapshot, PseudoElement};
+use style::selector_impl::{PseudoElement, Snapshot};
 use style::values::specified::Length;
 use time::Duration;
 use url::Origin as UrlOrigin;
@@ -346,7 +346,7 @@ no_jsmanaged_fields!(DOMString);
 no_jsmanaged_fields!(Mime);
 no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
-no_jsmanaged_fields!(ElementSnapshot);
+no_jsmanaged_fields!(Snapshot);
 no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(Request);
 no_jsmanaged_fields!(SharedRt);
@@ -369,7 +369,7 @@ no_jsmanaged_fields!(WebGLProgramId);
 no_jsmanaged_fields!(WebGLRenderbufferId);
 no_jsmanaged_fields!(WebGLShaderId);
 no_jsmanaged_fields!(WebGLTextureId);
-no_jsmanaged_fields!(MediaQueryList);
+no_jsmanaged_fields!(MediaList);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

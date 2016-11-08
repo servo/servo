@@ -10,6 +10,7 @@ name = "net_traits"
 path = "lib.rs"
 
 [dependencies]
+bluetooth_traits = {path = "../bluetooth_traits"}
 util = {path = "../util"}
 msg = {path = "../msg"}
 ipc-channel = "0.5"

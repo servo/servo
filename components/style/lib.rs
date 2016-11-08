@@ -114,10 +114,11 @@ pub mod parallel;
 pub mod parser;
 pub mod refcell;
 pub mod restyle_hints;
+pub mod rule_tree;
 pub mod selector_impl;
 pub mod selector_matching;
+#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
-#[cfg(feature = "servo")] pub mod servo_selector_impl;
 pub mod sink;
 pub mod str;
 pub mod stylesheets;
@@ -131,9 +132,9 @@ pub mod values;
 pub mod viewport;
 pub mod workqueue;
 
-use cssparser::ToCss;
 use std::fmt;
 use std::sync::Arc;
+use style_traits::ToCss;
 
 #[cfg(feature = "gecko")] pub use gecko_string_cache as string_cache;
 #[cfg(feature = "gecko")] pub use gecko_string_cache::Atom;

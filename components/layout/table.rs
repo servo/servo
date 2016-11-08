@@ -21,7 +21,6 @@ use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
-use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp;
 use std::fmt;
 use std::sync::Arc;
@@ -29,6 +28,7 @@ use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
+use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
@@ -38,7 +38,7 @@ use table_wrapper::TableLayout;
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
 /// not table fragment per CSS 2.1 § 10.5.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
@@ -578,7 +578,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 /// maximum of 100 pixels and 20% of the table), the preceding constraint means that we must
 /// potentially store both a specified width *and* a specified percentage, so that the inline-size
 /// assignment phase of layout will know which one to pick.
-#[derive(Clone, RustcEncodable, Debug, Copy)]
+#[derive(Clone, Serialize, Debug, Copy)]
 pub struct ColumnIntrinsicInlineSize {
     /// The preferred intrinsic inline size.
     pub preferred: Au,
@@ -615,7 +615,7 @@ impl ColumnIntrinsicInlineSize {
 ///
 /// TODO(pcwalton): There will probably be some `border-collapse`-related info in here too
 /// eventually.
-#[derive(RustcEncodable, Clone, Copy, Debug)]
+#[derive(Serialize, Clone, Copy, Debug)]
 pub struct ColumnComputedInlineSize {
     /// The computed size of this inline column.
     pub size: Au,

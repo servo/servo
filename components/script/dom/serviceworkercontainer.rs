@@ -15,7 +15,6 @@ use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use script_thread::ScriptThread;
-use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::default::Default;
 use std::rc::Rc;
@@ -46,7 +45,7 @@ pub trait Controllable {
 impl Controllable for ServiceWorkerContainer {
     fn set_controller(&self, active_worker: &ServiceWorker) {
         self.controller.set(Some(active_worker));
-        self.upcast::<EventTarget>().fire_event(Atom::from("controllerchange"));
+        self.upcast::<EventTarget>().fire_event(atom!("controllerchange"));
     }
 }
 

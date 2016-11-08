@@ -47,26 +47,33 @@ extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;
 
-pub mod about_loader;
-pub mod blob_loader;
-pub mod chrome_loader;
-pub mod connector;
-pub mod content_blocker;
+mod about_loader;
+mod blob_loader;
+mod chrome_loader;
+mod connector;
+mod content_blocker;
 pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;
-pub mod file_loader;
+mod file_loader;
 pub mod filemanager_thread;
 pub mod hsts;
-pub mod http_loader;
+mod http_loader;
 pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod resource_thread;
-pub mod storage_thread;
-pub mod websocket_loader;
+mod storage_thread;
+mod websocket_loader;
 
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
     pub mod methods;
+}
+
+/// A module for re-exports of items used in unit tests.
+pub mod test {
+    pub use chrome_loader::resolve_chrome_url;
+    pub use http_loader::{HttpRequest, HttpRequestFactory, HttpResponse, HttpState};
+    pub use http_loader::{LoadError, LoadErrorType, UIProvider, load};
 }

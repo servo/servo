@@ -18,11 +18,9 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
 <%helpers:longhand name="border-spacing" animatable="False">
     use app_units::Au;
-    use values::LocalToCss;
-    use values::HasViewportPercentage;
-
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         use app_units::Au;

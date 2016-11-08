@@ -15,6 +15,7 @@ bluetooth_traits = { path = "../bluetooth_traits" }
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
+debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.10.1"
 gfx = {path = "../gfx"}

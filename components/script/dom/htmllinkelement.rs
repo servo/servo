@@ -42,7 +42,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use style::attr::AttrValue;
-use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, Origin};
@@ -297,7 +297,7 @@ impl HTMLLinkElement {
 struct StylesheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLLinkElement>,
-    media: Option<MediaQueryList>,
+    media: Option<MediaList>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.

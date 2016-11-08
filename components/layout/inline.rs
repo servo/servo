@@ -24,8 +24,6 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
-use script_layout_interface::restyle_damage::{REPOSITION, RESOLVE_GENERATED_CONTENT};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
 use std::cmp::max;
@@ -37,6 +35,7 @@ use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi;
 
@@ -65,7 +64,7 @@ use unicode_bidi;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(RustcEncodable, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -207,7 +206,7 @@ impl Line {
 }
 
 int_range_index! {
-    #[derive(RustcEncodable)]
+    #[derive(Serialize)]
     #[doc = "The index of a fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(isize)
 }
@@ -791,7 +790,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[derive(RustcEncodable, Clone)]
+#[derive(Serialize, Clone)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -828,7 +827,7 @@ impl InlineFragments {
 }
 
 /// Flows for inline layout.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -1780,7 +1779,7 @@ fn inline_contexts_are_equal(inline_context_a: &Option<InlineFragmentContext>,
 ///
 /// Descent is not included in this structure because it can be computed from the fragment's
 /// border/content box and the ascent.
-#[derive(Clone, Copy, Debug, RustcEncodable)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct InlineMetrics {
     /// The amount of space above the baseline needed for this fragment.
     pub space_above_baseline: Au,
@@ -1831,7 +1830,7 @@ enum LineFlushMode {
     Flush,
 }
 
-#[derive(Copy, Clone, Debug, RustcEncodable)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub struct LineMetrics {
     pub space_above_baseline: Au,
     pub space_below_baseline: Au,

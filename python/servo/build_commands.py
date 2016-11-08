@@ -153,8 +153,13 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
+    @CommandArgument('--with-debug-assertions',
+                     default=None,
+                     action='store_true',
+                     help='Enable debug assertions in release')
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None):
+              features=None, android=None, verbose=False, debug_mozjs=False, params=None,
+              with_debug_assertions=False):
         if android is None:
             android = self.config["build"]["android"]
         features = features or self.servo_features()
@@ -217,10 +222,7 @@ class MachCommands(CommandBase):
         build_start = time()
         env = self.build_env(target=target, is_build=True)
 
-        # TODO: If this ends up making it, we should probably add a
-        # --release-with-debug-assertions option or similar, so it's easier to
-        # build locally.
-        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+        if with_debug_assertions:
             env["RUSTFLAGS"] = "-C debug_assertions"
 
         if android:
@@ -339,7 +341,12 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
-    def build_cef(self, jobs=None, verbose=False, release=False):
+    @CommandArgument('--with-debug-assertions',
+                     default=None,
+                     action='store_true',
+                     help='Enable debug assertions in release')
+    def build_cef(self, jobs=None, verbose=False, release=False,
+                  with_debug_assertions=False):
         self.ensure_bootstrapped()
 
         ret = None
@@ -358,10 +365,7 @@ class MachCommands(CommandBase):
         build_start = time()
         env = self.build_env(is_build=True)
 
-        # TODO: If this ends up making it, we should probably add a
-        # --release-with-debug-assertions option or similar, so it's easier to
-        # build locally.
-        if env.get("SERVO_ENABLE_DEBUG_ASSERTIONS", None):
+        if with_debug_assertions:
             env["RUSTFLAGS"] = "-C debug_assertions"
 
         with cd(path.join("ports", "cef")):

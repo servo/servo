@@ -64,7 +64,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use bluetooth::BluetoothThreadFactory;
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use compositing::{CompositorProxy, IOCompositor};
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
@@ -128,9 +128,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
                                                                 opts.time_profiler_trace_path.clone());
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
-        if let Some(port) = opts.debugger_port {
+        let debugger_chan = opts.debugger_port.map(|port| {
             debugger::start_server(port)
-        }
+        });
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });
@@ -166,6 +166,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),
                 renderer_kind: renderer_kind,
+                enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
             })
         };
 
@@ -176,6 +177,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
+                                                                    debugger_chan,
                                                                     devtools_chan,
                                                                     supports_clipboard,
                                                                     webrender_api_sender.clone());
@@ -240,11 +242,12 @@ fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
+                        debugger_chan: Option<debugger::Sender>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
                         webrender_api_sender: webrender_traits::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
-    let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
+    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
         new_resource_threads(opts.user_agent,
@@ -260,6 +263,7 @@ fn create_constellation(opts: opts::Opts,
 
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
+        debugger_chan: debugger_chan,
         devtools_chan: devtools_chan,
         bluetooth_thread: bluetooth_thread,
         image_cache_thread: image_cache_thread,

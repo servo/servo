@@ -48,10 +48,8 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use model::{specified, specified_or_none};
-use rustc_serialize::{Encodable, Encoder};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
-use script_layout_interface::restyle_damage::REPOSITION;
 use sequential;
+use serde::{Serialize, Serializer};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -60,12 +58,13 @@ use style::computed_values::{position, text_align};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::clamp;
 
 /// Information specific to floated blocks.
-#[derive(Clone, RustcEncodable)]
+#[derive(Clone, Serialize)]
 pub struct FloatedBlockInfo {
     /// The amount of inline size that is available for the float.
     pub containing_inline_size: Au,
@@ -502,7 +501,7 @@ pub enum FormattingContextType {
 }
 
 // A block formatting context.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -526,9 +525,9 @@ bitflags! {
     }
 }
 
-impl Encodable for BlockFlowFlags {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        self.bits().encode(e)
+impl Serialize for BlockFlowFlags {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        self.bits().serialize(serializer)
     }
 }
 
@@ -1942,17 +1941,6 @@ impl Flow for BlockFlow {
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
-            // scroll layers.
-            match (self.fragment.style().get_box().overflow_x,
-                   self.fragment.style().get_box().overflow_y.0) {
-                (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
-                (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
-                    self.base.clip = ClippingRegion::max();
-                }
-                _ => {}
-            }
-
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
 

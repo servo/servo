@@ -8,22 +8,22 @@
 
 use Atom;
 use app_units::Au;
-use cssparser::{Delimiter, Parser, ToCss, Token};
+use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use serialize_comma_separated_list;
 use std::fmt::{self, Write};
-use style_traits::ViewportPx;
+use style_traits::{ToCss, ViewportPx};
 use values::specified;
 
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct MediaQueryList {
+pub struct MediaList {
     pub media_queries: Vec<MediaQuery>
 }
 
-impl ToCss for MediaQueryList {
+impl ToCss for MediaList {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
@@ -252,7 +252,7 @@ impl MediaQuery {
     }
 }
 
-pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
+pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     let queries = if input.is_exhausted() {
         vec![MediaQuery::new(None, MediaQueryType::All, vec!())]
     } else {
@@ -271,10 +271,10 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
         }
         media_queries
     };
-    MediaQueryList { media_queries: queries }
+    MediaList { media_queries: queries }
 }
 
-impl MediaQueryList {
+impl MediaList {
     pub fn evaluate(&self, device: &Device) -> bool {
         let viewport_size = device.au_viewport_size();
 

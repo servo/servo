@@ -30,7 +30,7 @@ use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
 /// A table formatting context.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct TableCellFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,
@@ -297,7 +297,7 @@ impl fmt::Debug for TableCellFlow {
     }
 }
 
-#[derive(Copy, Clone, Debug, RustcEncodable)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub struct CollapsedBordersForCell {
     pub inline_start_border: CollapsedBorder,
     pub inline_end_border: CollapsedBorder,

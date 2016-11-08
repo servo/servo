@@ -105,8 +105,6 @@ pub enum Msg {
     NewFavicon(Url),
     /// <head> tag finished parsing
     HeadParsed,
-    /// Collect memory reports and send them back to the given mem::ReportsChan.
-    CollectMemoryReports(mem::ReportsChan),
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
     /// Get Window Informations size and position
@@ -154,7 +152,6 @@ impl Debug for Msg {
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
             Msg::HeadParsed => write!(f, "HeadParsed"),
-            Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
             Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),

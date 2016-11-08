@@ -4,6 +4,7 @@
 
 use parsing::parse;
 use style::values::specified::position::*;
+use style_traits::ToCss;
 
 #[test]
 fn test_position() {

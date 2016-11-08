@@ -15,8 +15,8 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx_traits::ScrollRootId;
-use script_layout_interface::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use style::context::StyleContext;
+use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 use util::opts;
 

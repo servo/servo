@@ -54,9 +54,9 @@
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if product == "gecko" or not gecko_only:
-            use cssparser::ToCss;
             use std::fmt;
             use values::HasViewportPercentage;
+            use style_traits::ToCss;
 
             impl HasViewportPercentage for SpecifiedValue {
                 fn has_viewport_percentage(&self) -> bool {
@@ -324,6 +324,7 @@
     <%def name="inner_body()">
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
+            use style_traits::ToCss;
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
@@ -370,8 +371,8 @@
         use values::NoViewportPercentage;
         impl NoViewportPercentage for SpecifiedValue {}
         pub mod computed_value {
-            use cssparser::ToCss;
             use std::fmt;
+            use style_traits::ToCss;
 
             #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -438,10 +439,11 @@
     % if shorthand:
     pub mod ${shorthand.ident} {
         #[allow(unused_imports)]
-        use cssparser::{Parser, ToCss};
+        use cssparser::Parser;
         use parser::ParserContext;
         use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
         use std::fmt;
+        use style_traits::ToCss;
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
