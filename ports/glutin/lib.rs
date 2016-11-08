@@ -22,6 +22,8 @@ extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
 extern crate style_traits;
+extern crate webrender_traits;
+
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
 #[cfg(target_os = "windows")] extern crate gdi32;
