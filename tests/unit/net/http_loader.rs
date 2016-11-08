@@ -686,38 +686,31 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
 #[test]
 fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_content_encoding_gzip() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(ContentEncoding(vec![Encoding::Gzip]));
+        let mut e = GzEncoder::new(Vec::new(), Compression::Default);
+        e.write(b"Yay!").unwrap();
+        let encoded_content = e.finish().unwrap();
+        response.send(&encoded_content).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let mut e = GzEncoder::new(Vec::new(), Compression::Default);
-            e.write(b"Yay!").unwrap();
-            let encoded_content = e.finish().unwrap();
+    let _ = server.close();
 
-            let mut headers = Headers::new();
-            headers.set(ContentEncoding(vec![Encoding::Gzip]));
-            Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
-        }
-    }
-
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let mut response = load(
-        &load_data,
-        &ui_provider, &http_state,
-        None, &Factory,
-        DEFAULT_USER_AGENT.into(),
-        &CancellationListener::new(None),
-        None)
-        .unwrap();
-
-    assert_eq!(read_response(&mut response), "Yay!");
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Yay!".to_vec()));
 }
 
 #[test]
