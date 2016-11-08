@@ -9,6 +9,7 @@ use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use gfx_traits::{DevicePixel};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
@@ -16,6 +17,10 @@ use servo_geometry::ScreenPx;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::Cursor;
+
+use url::Url;
+use util::geometry::ScreenPx;
+use webrender_traits::{ScrollLocation};
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -62,7 +67,7 @@ pub enum WindowEvent {
     Touch(TouchEventType, TouchId, TypedPoint2D<f32, DevicePixel>),
     /// Sent when the user scrolls. The first point is the delta and the second point is the
     /// origin.
-    Scroll(TypedPoint2D<f32, DevicePixel>, TypedPoint2D<i32, DevicePixel>, TouchEventType),
+    Scroll(ScrollLocation, TypedPoint2D<i32, DevicePixel>, TouchEventType),
     /// Sent when the user zooms.
     Zoom(f32),
     /// Simulated "pinch zoom" gesture for non-touch platforms (e.g. ctrl-scrollwheel).
