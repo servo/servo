@@ -80,17 +80,28 @@
         <script src="js/formatters.min.js"></script>
 
         <script>
+            function get_base(trace_node) {
+                if (typeof(trace_node.data.base) == "undefined" && typeof(trace_node.data.block_flow) != "undefined") {
+                  return trace_node.data.block_flow.base;
+                }
+                else {
+                  return trace_node.data.base;
+                }
+            }
+
             function create_flow_tree(trace_node) {
+                var base = get_base(trace_node);
+
                 var node = {
-                    text: trace_node.class + " (" + trace_node.data.base.id + ")",
-                    id: trace_node.data.base.id,
+                    text: trace_node.class + " (" + base.id + ")",
+                    id: base.id,
                     icon: "dummy",
-                    href: "#diff-" + trace_node.data.base.id
+                    href: "#diff-" + base.id
                 };
 
                 var children = [];
-                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
-                    children.push(create_flow_tree(trace_node.data.base.children[i]));
+                for (var i=0 ; i < base.children.length ; ++i) {
+                    children.push(create_flow_tree(base.children[i]));
                 }
 
                 if (children.length > 0) {
@@ -101,13 +112,14 @@
             }
 
             function create_flow_hash(trace_node, flow_hash) {
-                flow_hash[trace_node.data.base.id] = trace_node;
+                var base = get_base(trace_node);
+                flow_hash[base.id] = trace_node;
 
-                for (var i=0 ; i < trace_node.data.base.children.length ; ++i) {
-                    create_flow_hash(trace_node.data.base.children[i], flow_hash);
+                for (var i=0 ; i < base.children.length ; ++i) {
+                    create_flow_hash(base.children[i], flow_hash);
                 }
 
-                delete trace_node.data.base.children;
+                delete base.children;
             }
 
             function flatten_trace(trace_node) {
@@ -176,6 +188,10 @@
                                 }
                                 if (obj.id !== undefined) {
                                     return obj.id;
+                                }
+                                if (obj.index !== undefined) {
+                                    // FlexItem and FlexLine
+                                    return obj.index;
                                 }
                                 return JSON.stringify(obj);
                             }
