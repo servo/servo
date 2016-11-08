@@ -11,7 +11,7 @@ use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
 use keyframes::{Keyframe, parse_keyframe_list};
-use media_queries::{Device, MediaQueryList, parse_media_query_list};
+use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
@@ -46,7 +46,7 @@ pub struct Stylesheet {
     /// cascading order)
     pub rules: Vec<CSSRule>,
     /// List of media associated with the Stylesheet, if any.
-    pub media: Option<MediaQueryList>,
+    pub media: Option<MediaList>,
     pub origin: Origin,
     pub dirty_on_viewport_size_change: bool,
 }
@@ -77,7 +77,7 @@ impl CSSRule {
     ///
     /// Note that only some types of rules can contain rules. An empty slice is used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
-    where F: FnMut(&[CSSRule], Option<&MediaQueryList>) -> R {
+    where F: FnMut(&[CSSRule], Option<&MediaList>) -> R {
         match *self {
             CSSRule::Namespace(_) |
             CSSRule::Style(_) |
@@ -111,7 +111,7 @@ pub struct KeyframesRule {
 
 #[derive(Debug)]
 pub struct MediaRule {
-    pub media_queries: Arc<RwLock<MediaQueryList>>,
+    pub media_queries: Arc<RwLock<MediaList>>,
     pub rules: Vec<CSSRule>,
 }
 
@@ -187,15 +187,15 @@ impl Stylesheet {
         }
     }
 
-    /// Set the MediaQueryList associated with the style-sheet.
-    pub fn set_media(&mut self, media: Option<MediaQueryList>) {
+    /// Set the MediaList associated with the style-sheet.
+    pub fn set_media(&mut self, media: Option<MediaList>) {
         self.media = media;
     }
 
     /// Returns whether the style-sheet applies for the current device depending
-    /// on the associated MediaQueryList.
+    /// on the associated MediaList.
     ///
-    /// Always true if no associated MediaQueryList exists.
+    /// Always true if no associated MediaList exists.
     pub fn is_effective_for_device(&self, device: &Device) -> bool {
         self.media.as_ref().map_or(true, |ref media| media.evaluate(device))
     }
@@ -287,7 +287,7 @@ enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
     /// A @media rule prelude, with its media queries.
-    Media(Arc<RwLock<MediaQueryList>>),
+    Media(Arc<RwLock<MediaList>>),
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
