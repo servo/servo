@@ -2595,8 +2595,6 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
-        // and `overflow_y: scroll`. This needs multiple layers per stacking context.
         match (self.style().get_box().position,
                self.style().get_position().z_index,
                self.style().get_box().overflow_x,
@@ -2615,11 +2613,7 @@ impl Fragment {
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
             (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) |
-            (_, _, overflow_x::T::auto, _) |
-            (_, _, overflow_x::T::scroll, _) |
-            (_, _, _, overflow_x::T::auto) |
-            (_, _, _, overflow_x::T::scroll) => true,
+            (position::T::relative, _, _, _) => true,
             (position::T::static_, _, _, _) => false
         }
     }

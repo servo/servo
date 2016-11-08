@@ -5016,6 +5016,30 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/stacking_order_overflow_auto.html": [
+          {
+            "path": "css/stacking_order_overflow_auto.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_order_overflow_auto.html"
+          }
+        ],
+        "css/stacking_order_overflow_scroll.html": [
+          {
+            "path": "css/stacking_order_overflow_scroll.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_order_overflow_scroll.html"
+          }
+        ],
         "css/style_is_in_doc.html": [
           {
             "path": "css/style_is_in_doc.html",
@@ -19846,6 +19870,30 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/stacking_order_overflow_auto.html": [
+        {
+          "path": "css/stacking_order_overflow_auto.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_order_overflow_auto.html"
+        }
+      ],
+      "css/stacking_order_overflow_scroll.html": [
+        {
+          "path": "css/stacking_order_overflow_scroll.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_order_overflow_scroll.html"
         }
       ],
       "css/style_is_in_doc.html": [

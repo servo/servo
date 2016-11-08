@@ -22,6 +22,6 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 #endif
 
-    ClipInfo clip = fetch_clip(prim.clip_index);
+    ClipData clip = fetch_clip(prim.clip_index);
     write_clip(clip);
 }

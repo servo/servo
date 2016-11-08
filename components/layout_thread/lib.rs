@@ -50,7 +50,8 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode, WebRenderImageInfo};
+use gfx::display_list::{ClippingRegion, OpaqueNode};
+use gfx::display_list::WebRenderImageInfo;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -905,8 +906,8 @@ impl LayoutThread {
                 match (data.goal, display_list_needed) {
                     (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
                         let mut build_state =
-                             sequential::build_display_list_for_subtree(layout_root,
-                                                                        shared_layout_context);
+                            sequential::build_display_list_for_subtree(layout_root,
+                                                                       shared_layout_context);
 
                         debug!("Done building display list.");
 

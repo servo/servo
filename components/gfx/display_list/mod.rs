@@ -81,7 +81,15 @@ impl DisplayList {
                                                    scroll_offsets,
                                                    result);
                 }
-                &DisplayItem::PopStackingContext(_) => return,
+                &DisplayItem::PushScrollRoot(ref item) => {
+                    self.hit_test_scroll_root(traversal,
+                                              &item.scroll_root,
+                                              *translated_point,
+                                              client_point,
+                                              scroll_offsets,
+                                              result);
+                }
+                &DisplayItem::PopStackingContext(_) | &DisplayItem::PopScrollRoot(_) => return,
                 _ => {
                     if let Some(meta) = item.hit_test(*translated_point) {
                         result.push(meta);
@@ -89,6 +97,26 @@ impl DisplayList {
                 }
             }
         }
+    }
+
+    fn hit_test_scroll_root<'a>(&self,
+                                traversal: &mut DisplayListTraversal<'a>,
+                                scroll_root: &ScrollRoot,
+                                mut translated_point: Point2D<Au>,
+                                client_point: &Point2D<Au>,
+                                scroll_offsets: &ScrollOffsetMap,
+                                result: &mut Vec<DisplayItemMetadata>) {
+        // Adjust the translated point to account for the scroll offset if
+        // necessary. This can only happen when WebRender is in use.
+        //
+        // We don't perform this adjustment on the root stacking context because
+        // the DOM-side code has already translated the point for us (e.g. in
+        // `Window::hit_test_query()`) by now.
+        if let Some(scroll_offset) = scroll_offsets.get(&scroll_root.id) {
+            translated_point.x -= Au::from_f32_px(scroll_offset.x);
+            translated_point.y -= Au::from_f32_px(scroll_offset.y);
+        }
+        self.hit_test_contents(traversal, &translated_point, client_point, scroll_offsets, result);
     }
 
     fn hit_test_stacking_context<'a>(&self,
@@ -102,7 +130,7 @@ impl DisplayList {
         // stacking context isn't fixed.  If it's fixed, we need to use the client point anyway.
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
         let is_fixed = stacking_context.scroll_policy == ScrollPolicy::FixedPosition;
-        let mut translated_point = if is_fixed {
+        let translated_point = if is_fixed {
             *client_point
         } else {
             let point = *translated_point - stacking_context.bounds.origin;
@@ -111,21 +139,6 @@ impl DisplayList {
                                                                          point.y.to_f32_px()));
             Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
         };
-
-        // Adjust the translated point to account for the scroll offset if
-        // necessary. This can only happen when WebRender is in use.
-        //
-        // We don't perform this adjustment on the root stacking context because
-        // the DOM-side code has already translated the point for us (e.g. in
-        // `Window::hit_test_query()`) by now.
-        if !is_fixed && stacking_context.id != StackingContextId::root() {
-            if let Some(scroll_root_id) = stacking_context.overflow_scroll_id {
-                if let Some(scroll_offset) = scroll_offsets.get(&scroll_root_id) {
-                    translated_point.x -= Au::from_f32_px(scroll_offset.x);
-                    translated_point.y -= Au::from_f32_px(scroll_offset.y);
-                }
-            }
-        }
 
         self.hit_test_contents(traversal, &translated_point, client_point, scroll_offsets, result);
     }
@@ -138,9 +151,10 @@ impl DisplayList {
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
         print_tree.new_level("Items".to_owned());
         for item in &self.list {
-            print_tree.add_item(format!("{:?} StackingContext: {:?}",
+            print_tree.add_item(format!("{:?} StackingContext: {:?} ScrollRoot: {:?}",
                                         item,
-                                        item.base().stacking_context_id));
+                                        item.base().stacking_context_id,
+                                        item.scroll_root_id()));
         }
         print_tree.end_level();
     }
@@ -250,6 +264,7 @@ pub enum StackingContextType {
     Real,
     PseudoPositioned,
     PseudoFloat,
+    PseudoScrollingArea,
 }
 
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
@@ -291,8 +306,8 @@ pub struct StackingContext {
     /// Children of this StackingContext.
     pub children: Vec<StackingContext>,
 
-    /// If this StackingContext scrolls its overflow area, this will contain the id.
-    pub overflow_scroll_id: Option<ScrollRootId>,
+    /// The id of the parent scrolling area that contains this StackingContext.
+    pub parent_scroll_id: ScrollRootId,
 }
 
 impl StackingContext {
@@ -309,7 +324,7 @@ impl StackingContext {
                perspective: Matrix4D<f32>,
                establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
-               scroll_root_id: Option<ScrollRootId>)
+               parent_scroll_id: ScrollRootId)
                -> StackingContext {
         StackingContext {
             id: id,
@@ -324,7 +339,7 @@ impl StackingContext {
             establishes_3d_context: establishes_3d_context,
             scroll_policy: scroll_policy,
             children: Vec::new(),
-            overflow_scroll_id: scroll_root_id,
+            parent_scroll_id: parent_scroll_id,
         }
     }
 
@@ -341,7 +356,7 @@ impl StackingContext {
                              Matrix4D::identity(),
                              true,
                              ScrollPolicy::Scrollable,
-                             None)
+                             ScrollRootId::root())
     }
 
     pub fn add_child(&mut self, mut child: StackingContext) {
@@ -453,20 +468,39 @@ impl fmt::Debug for StackingContext {
             "Pseudo-StackingContext"
         };
 
-        let scrollable_string = if self.overflow_scroll_id.is_some() {
-            " (scrolls overflow area)"
-        } else {
-            ""
-        };
-
-        write!(f, "{}{} at {:?} with overflow {:?}: {:?}",
+        write!(f, "{} at {:?} with overflow {:?}: {:?}",
                type_string,
-               scrollable_string,
                self.bounds,
                self.overflow,
                self.id)
     }
 }
+
+/// Defines a stacking context.
+#[derive(Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
+pub struct ScrollRoot {
+    /// The unique ID of this ScrollRoot.
+    pub id: ScrollRootId,
+
+    /// The unique ID of the parent of this ScrollRoot.
+    pub parent_id: ScrollRootId,
+
+    /// The position of this scroll root's frame in the parent stacking context.
+    pub clip: Rect<Au>,
+
+    /// The size of the contents that can be scrolled inside of the scroll root.
+    pub size: Size2D<Au>,
+}
+
+impl ScrollRoot {
+    pub fn to_push(&self) -> DisplayItem {
+        DisplayItem::PushScrollRoot(box PushScrollRootItem {
+            base: BaseDisplayItem::empty(),
+            scroll_root: self.clone(),
+        })
+    }
+}
+
 
 /// One drawing command in the list.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
@@ -482,6 +516,8 @@ pub enum DisplayItem {
     Iframe(Box<IframeDisplayItem>),
     PushStackingContext(Box<PushStackingContextItem>),
     PopStackingContext(Box<PopStackingContextItem>),
+    PushScrollRoot(Box<PushScrollRootItem>),
+    PopScrollRoot(Box<BaseDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -501,6 +537,9 @@ pub struct BaseDisplayItem {
 
     /// The id of the stacking context this item belongs to.
     pub stacking_context_id: StackingContextId,
+
+    /// The id of the scroll root this item belongs to.
+    pub scroll_root_id: ScrollRootId,
 }
 
 impl BaseDisplayItem {
@@ -509,7 +548,8 @@ impl BaseDisplayItem {
                metadata: DisplayItemMetadata,
                clip: &ClippingRegion,
                section: DisplayListSection,
-               stacking_context_id: StackingContextId)
+               stacking_context_id: StackingContextId,
+               scroll_root_id: ScrollRootId)
                -> BaseDisplayItem {
         // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
         // The painting backend may want to optimize out clipping regions and this makes it easier
@@ -524,6 +564,7 @@ impl BaseDisplayItem {
             },
             section: section,
             stacking_context_id: stacking_context_id,
+            scroll_root_id: scroll_root_id,
         }
     }
 
@@ -538,6 +579,7 @@ impl BaseDisplayItem {
             clip: ClippingRegion::max(),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
+            scroll_root_id: ScrollRootId::root(),
         }
     }
 }
@@ -981,6 +1023,15 @@ pub struct PopStackingContextItem {
     pub stacking_context_id: StackingContextId,
 }
 
+/// Starts a group of items inside a particular scroll root.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct PushScrollRootItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// The scroll root that this item starts.
+    pub scroll_root: ScrollRoot,
+}
 
 /// How a box shadow should be clipped.
 #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
@@ -1009,7 +1060,13 @@ impl DisplayItem {
             DisplayItem::Iframe(ref iframe) => &iframe.base,
             DisplayItem::PushStackingContext(ref stacking_context) => &stacking_context.base,
             DisplayItem::PopStackingContext(ref item) => &item.base,
+            DisplayItem::PushScrollRoot(ref item) => &item.base,
+            DisplayItem::PopScrollRoot(ref base) => &base,
         }
+    }
+
+    pub fn scroll_root_id(&self) -> ScrollRootId {
+        self.base().scroll_root_id
     }
 
     pub fn stacking_context_id(&self) -> StackingContextId {
@@ -1090,6 +1147,14 @@ impl fmt::Debug for DisplayItem {
             return write!(f, "PopStackingContext({:?}", item.stacking_context_id);
         }
 
+        if let DisplayItem::PushScrollRoot(ref item) = *self {
+            return write!(f, "PushScrollRoot({:?}", item.scroll_root);
+        }
+
+        if let DisplayItem::PopScrollRoot(_) = *self {
+            return write!(f, "PopScrollRoot");
+        }
+
         write!(f, "{} @ {:?} {:?}",
             match *self {
                 DisplayItem::SolidColor(ref solid_color) =>
@@ -1106,8 +1171,10 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::Line(_) => "Line".to_owned(),
                 DisplayItem::BoxShadow(_) => "BoxShadow".to_owned(),
                 DisplayItem::Iframe(_) => "Iframe".to_owned(),
-                DisplayItem::PushStackingContext(_) => "".to_owned(),
-                DisplayItem::PopStackingContext(_) => "".to_owned(),
+                DisplayItem::PushStackingContext(_) |
+                DisplayItem::PopStackingContext(_) |
+                DisplayItem::PushScrollRoot(_) |
+                DisplayItem::PopScrollRoot(_) => "".to_owned(),
             },
             self.bounds(),
             self.base().clip

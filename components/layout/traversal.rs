@@ -271,33 +271,33 @@ pub struct BuildDisplayList<'a> {
 impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut Flow) {
+        let new_stacking_context =
+            flow::base(flow).stacking_context_id != self.state.stacking_context_id();
+        if new_stacking_context {
+            self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
+        }
+
+        let new_scroll_root =
+            flow::base(flow).scroll_root_id != self.state.scroll_root_id();
+        if new_scroll_root {
+            self.state.push_scroll_root_id(flow::base(flow).scroll_root_id);
+        }
+
         if self.should_process() {
-            let new_stacking_context =
-                flow::base(flow).stacking_context_id != self.state.stacking_context_id();
-            if new_stacking_context {
-                self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
-            }
-
-            let new_scroll_root =
-                flow::base(flow).scroll_root_id != self.state.scroll_root_id();
-            if new_scroll_root {
-                self.state.push_scroll_root_id(flow::base(flow).scroll_root_id);
-            }
-
             flow.build_display_list(&mut self.state);
             flow::mut_base(flow).restyle_damage.remove(REPAINT);
-
-            if new_stacking_context {
-                self.state.pop_stacking_context_id();
-            }
-
-            if new_scroll_root {
-                self.state.pop_scroll_root_id();
-            }
         }
 
         for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);
+        }
+
+        if new_stacking_context {
+            self.state.pop_stacking_context_id();
+        }
+
+        if new_scroll_root {
+            self.state.pop_scroll_root_id();
         }
     }
 

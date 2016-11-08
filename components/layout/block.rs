@@ -1941,17 +1941,6 @@ impl Flow for BlockFlow {
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
-            // scroll layers.
-            match (self.fragment.style().get_box().overflow_x,
-                   self.fragment.style().get_box().overflow_y.0) {
-                (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
-                (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
-                    self.base.clip = ClippingRegion::max();
-                }
-                _ => {}
-            }
-
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
 

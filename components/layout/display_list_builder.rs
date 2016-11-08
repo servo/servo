@@ -15,6 +15,7 @@ use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
 use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
+use euclid::point::TypedPoint2D;
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -25,7 +26,7 @@ use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, Cl
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageDisplayItem};
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
-use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
+use gfx::display_list::{SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
 use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
@@ -42,8 +43,8 @@ use std::mem;
 use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style};
-use style::computed_values::{cursor, image_rendering, overflow_x, pointer_events, position};
-use style::computed_values::{transform, transform_style, visibility};
+use style::computed_values::{cursor, image_rendering, overflow_x};
+use style::computed_values::{pointer_events, position, transform, transform_style, visibility};
 use style::computed_values::_servo_overflow_clip_box as overflow_clip_box;
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
@@ -95,6 +96,7 @@ pub struct DisplayListBuildState<'a> {
     pub shared_layout_context: &'a SharedLayoutContext,
     pub root_stacking_context: StackingContext,
     pub items: HashMap<StackingContextId, Vec<DisplayItem>>,
+    pub scroll_roots: HashMap<ScrollRootId, ScrollRoot>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
     pub scroll_root_id_stack: Vec<ScrollRootId>,
 }
@@ -107,6 +109,7 @@ impl<'a> DisplayListBuildState<'a> {
             shared_layout_context: shared_layout_context,
             root_stacking_context: StackingContext::root(),
             items: HashMap::new(),
+            scroll_roots: HashMap::new(),
             stacking_context_id_stack: vec!(stacking_context_id),
             scroll_root_id_stack: vec!(ScrollRootId::root()),
         }
@@ -115,6 +118,11 @@ impl<'a> DisplayListBuildState<'a> {
     fn add_display_item(&mut self, display_item: DisplayItem) {
         let items = self.items.entry(display_item.stacking_context_id()).or_insert(Vec::new());
         items.push(display_item);
+    }
+
+    fn add_scroll_root(&mut self, scroll_root: ScrollRoot) {
+        debug_assert!(!self.scroll_roots.contains_key(&scroll_root.id));
+        self.scroll_roots.insert(scroll_root.id, scroll_root);
     }
 
     pub fn stacking_context_id(&self) -> StackingContextId {
@@ -126,12 +134,17 @@ impl<'a> DisplayListBuildState<'a> {
     }
 
     pub fn pop_stacking_context_id(&mut self) {
-        self.stacking_context_id_stack.pop();
         assert!(!self.stacking_context_id_stack.is_empty());
+        self.stacking_context_id_stack.pop();
     }
 
-    pub fn scroll_root_id(&mut self) -> ScrollRootId {
+    pub fn scroll_root_id(&self) -> ScrollRootId {
         self.scroll_root_id_stack.last().unwrap().clone()
+    }
+
+    pub fn parent_scroll_root_id(&self) -> ScrollRootId {
+        debug_assert!(self.scroll_root_id_stack.len() > 1);
+        self.scroll_root_id_stack[self.scroll_root_id_stack.len() - 2]
     }
 
     pub fn push_scroll_root_id(&mut self, id: ScrollRootId) {
@@ -157,14 +170,18 @@ impl<'a> DisplayListBuildState<'a> {
                              },
                              &clip,
                              section,
-                             self.stacking_context_id())
+                             self.stacking_context_id(),
+                             self.scroll_root_id())
     }
 
     pub fn to_display_list(mut self) -> DisplayList {
+        let mut scroll_root_stack = Vec::new();
+        scroll_root_stack.push(ScrollRootId::root());
+
         let mut list = Vec::new();
         let root_context = mem::replace(&mut self.root_stacking_context, StackingContext::root());
 
-        self.to_display_list_for_stacking_context(&mut list, root_context);
+        self.to_display_list_for_stacking_context(&mut list, root_context, &mut scroll_root_stack);
 
         DisplayList {
             list: list,
@@ -173,7 +190,8 @@ impl<'a> DisplayListBuildState<'a> {
 
     fn to_display_list_for_stacking_context(&mut self,
                                             list: &mut Vec<DisplayItem>,
-                                            mut stacking_context: StackingContext) {
+                                            mut stacking_context: StackingContext,
+                                            scroll_root_stack: &mut Vec<ScrollRootId>) {
         let mut child_items = self.items.remove(&stacking_context.id).unwrap_or(Vec::new());
         child_items.sort_by(|a, b| a.base().section.cmp(&b.base().section));
         child_items.reverse();
@@ -186,63 +204,114 @@ impl<'a> DisplayListBuildState<'a> {
         if !real_stacking_context {
             self.to_display_list_for_items(list,
                                            child_items,
-                                           child_stacking_contexts);
+                                           child_stacking_contexts,
+                                           scroll_root_stack);
             return;
         }
+
+        let mut scroll_root_stack = Vec::new();
+        scroll_root_stack.push(stacking_context.parent_scroll_id);
 
         let (push_item, pop_item) = stacking_context.to_display_list_items();
         list.push(push_item);
         self.to_display_list_for_items(list,
                                        child_items,
-                                       child_stacking_contexts);
+                                       child_stacking_contexts,
+                                       &mut scroll_root_stack);
         list.push(pop_item);
     }
 
     fn to_display_list_for_items(&mut self,
                                  list: &mut Vec<DisplayItem>,
                                  mut child_items: Vec<DisplayItem>,
-                                 child_stacking_contexts: Vec<StackingContext>) {
+                                 child_stacking_contexts: Vec<StackingContext>,
+                                 scroll_root_stack: &mut Vec<ScrollRootId>) {
         // Properly order display items that make up a stacking context. "Steps" here
         // refer to the steps in CSS 2.1 Appendix E.
         // Steps 1 and 2: Borders and background for the root.
         while child_items.last().map_or(false,
              |child| child.section() == DisplayListSection::BackgroundAndBorders) {
-            list.push(child_items.pop().unwrap());
+            let item = child_items.pop().unwrap();
+            self.switch_scroll_roots(list, item.scroll_root_id(), scroll_root_stack);
+            list.push(item);
         }
 
         // Step 3: Positioned descendants with negative z-indices.
         let mut child_stacking_contexts = child_stacking_contexts.into_iter().peekable();
         while child_stacking_contexts.peek().map_or(false, |child| child.z_index < 0) {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.switch_scroll_roots(list, context.parent_scroll_id, scroll_root_stack);
+            self.to_display_list_for_stacking_context(list, context, scroll_root_stack);
         }
 
         // Step 4: Block backgrounds and borders.
         while child_items.last().map_or(false,
              |child| child.section() == DisplayListSection::BlockBackgroundsAndBorders) {
-            list.push(child_items.pop().unwrap());
+            let item = child_items.pop().unwrap();
+            self.switch_scroll_roots(list, item.scroll_root_id(), scroll_root_stack);
+            list.push(item);
         }
 
         // Step 5: Floats.
         while child_stacking_contexts.peek().map_or(false,
             |child| child.context_type == StackingContextType::PseudoFloat) {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.switch_scroll_roots(list, context.parent_scroll_id, scroll_root_stack);
+            self.to_display_list_for_stacking_context(list, context, scroll_root_stack);
         }
 
         // Step 6 & 7: Content and inlines that generate stacking contexts.
         while child_items.last().map_or(false,
              |child| child.section() == DisplayListSection::Content) {
-            list.push(child_items.pop().unwrap());
+            let item = child_items.pop().unwrap();
+            self.switch_scroll_roots(list, item.scroll_root_id(), scroll_root_stack);
+            list.push(item);
         }
 
         // Step 8 & 9: Positioned descendants with nonnegative, numeric z-indices.
         for child in child_stacking_contexts {
-            self.to_display_list_for_stacking_context(list, child);
+            self.switch_scroll_roots(list, child.parent_scroll_id, scroll_root_stack);
+            self.to_display_list_for_stacking_context(list, child, scroll_root_stack);
         }
 
         // Step 10: Outlines.
-        list.extend(child_items);
+        for item in child_items.drain(..) {
+            self.switch_scroll_roots(list, item.scroll_root_id(), scroll_root_stack);
+            list.push(item);
+        }
+
+        for _ in scroll_root_stack.drain(1..) {
+            list.push(DisplayItem::PopScrollRoot(Box::new(BaseDisplayItem::empty())));
+        }
+    }
+
+    fn switch_scroll_roots(&self,
+                           list: &mut Vec<DisplayItem>,
+                           new_id: ScrollRootId,
+                           scroll_root_stack: &mut Vec<ScrollRootId>) {
+        if new_id == *scroll_root_stack.last().unwrap() {
+            return;
+        }
+
+        if new_id == *scroll_root_stack.first().unwrap() {
+            for _ in scroll_root_stack.drain(1..) {
+                list.push(DisplayItem::PopScrollRoot(Box::new(BaseDisplayItem::empty())));
+            }
+            return;
+        }
+
+        // We never want to reach the root of the ScrollRoot tree without encountering the
+        // containing scroll root of this StackingContext. If this does happen we've tried to
+        // switch to a ScrollRoot that does not contain our current stacking context or isn't
+        // itself a direct child of our current stacking context. This should never happen
+        // due to CSS stacking rules.
+        debug_assert!(new_id != ScrollRootId::root());
+
+        let scroll_root = self.scroll_roots.get(&new_id).unwrap();
+        self.switch_scroll_roots(list, scroll_root.parent_id, scroll_root_stack);
+
+        scroll_root_stack.push(new_id);
+        list.push(scroll_root.to_push());
     }
 }
 
@@ -419,7 +488,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode,
-                               scroll_root_id: Option<ScrollRootId>)
+                               parent_scroll_id: ScrollRootId)
                                -> StackingContext;
 
     /// Returns the 4D matrix representing this fragment's transform.
@@ -1476,9 +1545,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode,
-                               scroll_root_id: Option<ScrollRootId>)
+                               parent_scroll_id: ScrollRootId)
                                -> StackingContext {
-        let scrolls_overflow_area = mode == StackingContextCreationMode::ScrollWrapper;
         let border_box =
              self.stacking_relative_border_box(&base_flow.stacking_relative_position,
                                                &base_flow.early_absolute_position_info
@@ -1486,16 +1554,12 @@ impl FragmentDisplayListBuilding for Fragment {
                                                base_flow.early_absolute_position_info
                                                           .relative_containing_block_mode,
                                                CoordinateSystem::Parent);
-        let overflow = if scrolls_overflow_area {
-            Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
-        } else {
-            // First, compute the offset of our border box (including relative positioning)
-            // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
-            let border_box_offset =
-                border_box.translate(&-base_flow.stacking_relative_position).origin;
-            // Then, using that, compute our overflow region relative to our border box.
-            base_flow.overflow.paint.translate(&-border_box_offset)
-        };
+        // First, compute the offset of our border box (including relative positioning)
+        // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
+        let border_box_offset =
+            border_box.translate(&-base_flow.stacking_relative_position).origin;
+        // Then, using that, compute our overflow region relative to our border box.
+        let overflow = base_flow.overflow.paint.translate(&-border_box_offset);
 
         let transform = self.transform_matrix(&border_box);
         let perspective = match self.style().get_effects().perspective {
@@ -1531,8 +1595,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let transform_style = self.style().get_used_transform_style();
-        let establishes_3d_context = scrolls_overflow_area ||
-            transform_style == transform_style::T::flat;
+        let establishes_3d_context = transform_style == transform_style::T::flat;
 
         let context_type = match mode {
             StackingContextCreationMode::PseudoFloat => StackingContextType::PseudoFloat,
@@ -1551,7 +1614,7 @@ impl FragmentDisplayListBuilding for Fragment {
                              perspective,
                              establishes_3d_context,
                              scroll_policy,
-                             scroll_root_id)
+                             parent_scroll_id)
     }
 
     fn adjust_clipping_region_for_children(&self,
@@ -1829,18 +1892,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn collect_stacking_contexts_for_block(&mut self,
                                            parent: &mut StackingContext,
                                            parent_scroll_root_id: ScrollRootId) {
-        let block_stacking_context_type = self.block_stacking_context_type();
-        if block_stacking_context_type == BlockStackingContextType::NonstackingContext {
-            self.base.stacking_context_id = parent.id;
-            self.base.collect_stacking_contexts_for_children(parent, parent_scroll_root_id);
-            return;
-        }
-
-        let stacking_context_id = StackingContextId::new_of_type(self.fragment.node.id() as usize,
-                                                                 self.fragment.fragment_type());
-
-        let has_scrolling_overflow = self.has_scrolling_overflow();
-        let scroll_root_id = if has_scrolling_overflow {
+        let scroll_root_id = if self.has_scrolling_overflow() {
             ScrollRootId::new_of_type(self.fragment.node.id() as usize,
                                       self.fragment.fragment_type())
         } else {
@@ -1848,7 +1900,15 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
         self.base.scroll_root_id = scroll_root_id;
 
+        let block_stacking_context_type = self.block_stacking_context_type();
+        if block_stacking_context_type == BlockStackingContextType::NonstackingContext {
+            self.base.stacking_context_id = parent.id;
+            self.base.collect_stacking_contexts_for_children(parent, scroll_root_id);
+            return;
+        }
 
+        let stacking_context_id = StackingContextId::new_of_type(self.fragment.node.id() as usize,
+                                                                 self.fragment.fragment_type());
         self.base.stacking_context_id = stacking_context_id;
 
         if block_stacking_context_type == BlockStackingContextType::PseudoStackingContext {
@@ -1864,7 +1924,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                                         &self.base,
                                                                         ScrollPolicy::Scrollable,
                                                                         creation_mode,
-                                                                        None);
+                                                                        parent_scroll_root_id);
             self.base.collect_stacking_contexts_for_children(&mut new_context, scroll_root_id);
             let new_children: Vec<StackingContext> = new_context.children.drain(..).collect();
 
@@ -1888,20 +1948,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-        let (creation_mode, internal_id) = if has_scrolling_overflow {
-            (StackingContextCreationMode::ScrollWrapper, Some(self.base.scroll_root_id))
-        } else {
-            (StackingContextCreationMode::Normal, None)
-        };
-
         let mut stacking_context = self.fragment.create_stacking_context(
             stacking_context_id,
             &self.base,
             scroll_policy,
-            creation_mode,
-            internal_id);
+            StackingContextCreationMode::Normal,
+            parent_scroll_root_id);
         self.base.collect_stacking_contexts_for_children(&mut stacking_context, scroll_root_id);
-
         parent.add_child(stacking_context);
     }
 
@@ -1920,6 +1973,28 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else {
             DisplayListSection::BlockBackgroundsAndBorders
         };
+
+        if self.has_scrolling_overflow() {
+            let size = self.base.overflow.scroll.size;
+            let mut clip = self.fragment.stacking_relative_border_box(
+                &self.base.stacking_relative_position,
+                &self.base.early_absolute_position_info.relative_containing_block_size,
+                self.base.early_absolute_position_info.relative_containing_block_mode,
+                CoordinateSystem::Parent);
+            if establishes_stacking_context {
+                clip = Rect::new(TypedPoint2D::zero(), clip.size);
+            }
+
+            let parent_id = state.parent_scroll_root_id();
+            state.add_scroll_root(
+                ScrollRoot {
+                    id: self.base.scroll_root_id,
+                    parent_id: parent_id,
+                    clip: clip,
+                    size: size,
+                }
+            );
+        }
 
         // Add the box that starts the block context.
         self.fragment
@@ -2025,7 +2100,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                         &self.base,
                         ScrollPolicy::Scrollable,
                         StackingContextCreationMode::Normal,
-                        None));
+                        parent_scroll_root_id));
                 }
                 _ => fragment.stacking_context_id = parent.id,
             }
@@ -2229,7 +2304,6 @@ pub enum BorderPaintingMode<'a> {
 #[derive(Copy, Clone, PartialEq)]
 pub enum StackingContextCreationMode {
     Normal,
-    ScrollWrapper,
     PseudoPositioned,
     PseudoFloat,
 }

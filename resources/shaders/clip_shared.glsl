@@ -9,7 +9,7 @@ flat varying vec4 vClipMaskUvRect;
 flat varying vec4 vClipMaskLocalRect;
 
 #ifdef WR_VERTEX_SHADER
-void write_clip(ClipInfo clip) {
+void write_clip(ClipData clip) {
     vClipRect = vec4(clip.rect.rect.xy, clip.rect.rect.xy + clip.rect.rect.zw);
     vClipRadius = vec4(clip.top_left.outer_inner_radius.x,
                        clip.top_right.outer_inner_radius.x,
@@ -17,8 +17,8 @@ void write_clip(ClipInfo clip) {
                        clip.bottom_left.outer_inner_radius.x);
     //TODO: interpolate the final mask UV
     vec2 texture_size = textureSize(sMask, 0);
-    vClipMaskUvRect = clip.mask_info.uv_rect / texture_size.xyxy;
-    vClipMaskLocalRect = clip.mask_info.local_rect; //TODO: transform
+    vClipMaskUvRect = clip.mask_data.uv_rect / texture_size.xyxy;
+    vClipMaskLocalRect = clip.mask_data.local_rect; //TODO: transform
 }
 #endif
 

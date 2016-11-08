@@ -211,6 +211,11 @@ impl ScrollRootId {
     pub fn fragment_type(&self) -> FragmentType {
         FragmentType::from_usize(self.0 & 3)
     }
+
+    #[inline]
+    pub fn to_stacking_context_id(&self) -> StackingContextId {
+        StackingContextId(self.0)
+    }
 }
 
 /// The type of fragment that a stacking context represents.
