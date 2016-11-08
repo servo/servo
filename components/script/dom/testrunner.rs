@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use dom::bindings::codegen::Bindings::TestRunnerBinding;
 use dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use dom::bindings::error::{Error, ErrorResult};
@@ -31,7 +31,7 @@ impl TestRunner {
                            TestRunnerBinding::Wrap)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 }
@@ -40,7 +40,7 @@ impl TestRunnerMethods for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread().send(BluetoothMethodMsg::Test(String::from(dataSetName), sender)).unwrap();
+        self.get_bluetooth_thread().send(BluetoothRequest::Test(String::from(dataSetName), sender)).unwrap();
         match receiver.recv().unwrap().into() {
             Ok(()) => {
                 Ok(())

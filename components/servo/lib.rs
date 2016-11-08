@@ -64,7 +64,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use bluetooth::BluetoothThreadFactory;
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use compositing::{CompositorProxy, IOCompositor};
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
@@ -247,7 +247,7 @@ fn create_constellation(opts: opts::Opts,
                         supports_clipboard: bool,
                         webrender_api_sender: webrender_traits::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
-    let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
+    let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
         new_resource_threads(opts.user_agent,
