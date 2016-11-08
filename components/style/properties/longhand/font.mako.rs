@@ -349,6 +349,55 @@ ${helpers.single_keyword("font-variant",
     }
 </%helpers:longhand>
 
+// https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop
+// FIXME: This prop should be animatable
+<%helpers:longhand products="none" name="font-size-adjust" animatable="False">
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::Number;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        None,
+        Number(Number),
+    }
+
+    pub mod computed_value {
+        use style_traits::ToCss;
+        use std::fmt;
+
+        pub use super::SpecifiedValue as T;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::None => dest.write_str("none"),
+                    T::Number(number) => number.to_css(dest),
+                }
+            }
+        }
+    }
+
+    #[inline] pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::None
+    }
+
+    /// none | <number>
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use values::specified::Number;
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(SpecifiedValue::None);
+        }
+
+        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(input))))
+    }
+</%helpers:longhand>
+
 <%helpers:longhand products="gecko" name="font-synthesis" animatable="False">
     use std::fmt;
     use style_traits::ToCss;
