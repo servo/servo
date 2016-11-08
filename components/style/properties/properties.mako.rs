@@ -1249,7 +1249,7 @@ impl ComputedValues {
             if effects.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if let Either::First(ref _length) = effects.perspective {
+            if effects.perspective.as_length().is_some() {
                 return transform_style::T::flat;
             }
         }

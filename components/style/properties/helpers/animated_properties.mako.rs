@@ -682,8 +682,8 @@ impl Interpolate for BoxShadow {
 
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) =>
+        match (self.as_length(), other.as_length()) {
+            (Some(length), Some(other)) =>
                 length.interpolate(&other, progress).map(Either::First),
             _ => Err(()),
         }

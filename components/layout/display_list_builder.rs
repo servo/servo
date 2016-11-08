@@ -52,7 +52,7 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::{self, ServoComputedValues};
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
-use style::values::{Either, RGBA, computed};
+use style::values::{RGBA, computed};
 use style::values::computed::{Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
@@ -1561,8 +1561,8 @@ impl FragmentDisplayListBuilding for Fragment {
         let overflow = base_flow.overflow.paint.translate(&-border_box_offset);
 
         let transform = self.transform_matrix(&border_box);
-        let perspective = match self.style().get_effects().perspective {
-            Either::First(length) => {
+        let perspective = match self.style().get_effects().perspective.as_length() {
+            Some(length) => {
                 let perspective_origin = self.style().get_effects().perspective_origin;
                 let perspective_origin =
                     Point2D::new(model::specified(perspective_origin.horizontal,
@@ -1580,10 +1580,8 @@ impl FragmentDisplayListBuilding for Fragment {
                 let perspective_matrix = create_perspective_matrix(length);
 
                 pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
-            }
-            Either::Second(_none) => {
-                Matrix4D::identity()
-            }
+            },
+            None => Matrix4D::identity(),
         };
 
         // Create the filter pipeline.

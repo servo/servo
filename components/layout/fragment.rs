@@ -49,7 +49,6 @@ use style::properties::ServoComputedValues;
 use style::selector_impl::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::Either;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
@@ -2580,7 +2579,7 @@ impl Fragment {
 
         // TODO(mrobinson): Determine if this is necessary, since blocks with
         // transformations already create stacking contexts.
-        if let Either::First(ref _length) = self.style().get_effects().perspective {
+        if self.style().get_effects().perspective.as_length().is_some() {
             return true
         }
 

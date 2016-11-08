@@ -66,13 +66,6 @@ macro_rules! impl_specified_for_computed {
     };
 }
 
-pub mod computed;
-pub mod specified;
-
-pub type CSSFloat = f32;
-
-pub const FONT_MEDIUM_PX: i32 = 16;
-
 pub trait HasViewportPercentage {
     fn has_viewport_percentage(&self) -> bool;
 }
@@ -160,3 +153,37 @@ impl<A: CssType, B: CssType> Either<A, B> {
         }
     }
 }
+
+macro_rules! impl_either_type_getter {
+    ($name: ident, $ty: ty, $variant: path) => {
+        impl<T: CssType> Either<$ty, T> {
+            pub fn $name(&self) -> Option<&$ty> {
+                match *self {
+                    $variant(ref v) => Some(v),
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_either_type_viewport_percent {
+    ($name: ty, $variant: path) => {
+        impl HasViewportPercentage for $name {
+            fn has_viewport_percentage(&self) -> bool {
+                match *self {
+                    $variant(ref length) => length.has_viewport_percentage(),
+                    _ => false,
+                }
+            }
+        }
+    };
+}
+
+
+pub mod computed;
+pub mod specified;
+
+pub type CSSFloat = f32;
+
+pub const FONT_MEDIUM_PX: i32 = 16;

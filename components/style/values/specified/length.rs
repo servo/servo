@@ -13,7 +13,7 @@ use std::ops::Mul;
 use style_traits::{FromCss, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, computed};
+use values::{CSSFloat, CssType, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, computed};
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -916,14 +916,8 @@ impl LengthOrPercentageOrNone {
 
 pub type LengthOrNone = Either<Length, None_>;
 
-impl HasViewportPercentage for LengthOrNone {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            Either::First(ref length) => length.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
+impl_either_type_getter!(as_length, Length, Either::First);
+impl_either_type_viewport_percent!(LengthOrNone, Either::First);
 
 impl LengthOrNone {
     #[inline]
