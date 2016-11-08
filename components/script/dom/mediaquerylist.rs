@@ -19,8 +19,7 @@ use euclid::scale_factor::ScaleFactor;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;
-use style;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::{Device, MediaList, MediaType};
 use style_traits::{PagePx, ToCss, ViewportPx};
 
 pub enum MediaQueryListMatchState {
@@ -32,13 +31,12 @@ pub enum MediaQueryListMatchState {
 pub struct MediaQueryList {
     eventtarget: EventTarget,
     document: JS<Document>,
-    media_query_list: style::media_queries::MediaQueryList,
+    media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>
 }
 
 impl MediaQueryList {
-    fn new_inherited(document: &Document,
-                     media_query_list: style::media_queries::MediaQueryList) -> MediaQueryList {
+    fn new_inherited(document: &Document, media_query_list: MediaList) -> MediaQueryList {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
             document: JS::from_ref(document),
@@ -47,8 +45,7 @@ impl MediaQueryList {
         }
     }
 
-    pub fn new(document: &Document,
-               media_query_list: style::media_queries::MediaQueryList) -> Root<MediaQueryList> {
+    pub fn new(document: &Document, media_query_list: MediaList) -> Root<MediaQueryList> {
         reflect_dom_object(box MediaQueryList::new_inherited(document, media_query_list),
                            document.window(),
                            MediaQueryListBinding::Wrap)
