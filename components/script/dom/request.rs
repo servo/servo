@@ -361,7 +361,8 @@ impl Request {
                     try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
                 }
             },
-            Some(_) => try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))),
+            Some(HeadersInit::Headers(_)) => try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))),
+            _ => {},
         }
 
         // Step 32
