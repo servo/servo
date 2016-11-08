@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-<%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES %>
+<%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES %>
 
 <%def name="longhand(name, **kwargs)">
     <%call expr="raw_longhand(name, **kwargs)">
@@ -615,18 +615,34 @@
 <%def name="logical_setter_helper(name)">
     <%
         side = None
-        maybe_side = [side for side in LOGICAL_SIDES if side in name]
+        size = None
+        maybe_side = [s for s in LOGICAL_SIDES if s in name]
+        maybe_size = [s for s in LOGICAL_SIZES if s in name]
         if len(maybe_side) == 1:
             side = maybe_side[0]
+        elif len(maybe_size) == 1:
+            size = maybe_size[0]
     %>
     % if side is not None:
         use logical_geometry::PhysicalSide;
         match wm.${to_rust_ident(side)}_physical_side() {
             % for phy_side in PHYSICAL_SIDES:
                 PhysicalSide::${phy_side.title()} => {
-                    ${caller.inner(side_ident=to_rust_ident(name.replace(side, phy_side)))}
+                    ${caller.inner(physical_ident=to_rust_ident(name.replace(side, phy_side)))}
                 }
             % endfor
+        }
+    % elif size is not None:
+        <%
+            # (horizontal, vertical)
+            physical_size = ("height", "width")
+            if size == "inline-size":
+                physical_size = ("width", "height")
+        %>
+        if wm.is_vertical() {
+            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[1])))}
+        } else {
+            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[0])))}
         }
     % else:
         <% raise Exception("Don't know what to do with logical property %s" % name) %>
@@ -639,15 +655,15 @@
                                  v: longhands::${to_rust_ident(name)}::computed_value::T,
                                  wm: WritingMode) {
         <%self:logical_setter_helper name="${name}">
-            <%def name="inner(side_ident)">
-                self.set_${side_ident}(v)
+            <%def name="inner(physical_ident)">
+                self.set_${physical_ident}(v)
             </%def>
         </%self:logical_setter_helper>
     }
     pub fn copy_${to_rust_ident(name)}_from(&mut self, other: &Self, wm: WritingMode) {
         <%self:logical_setter_helper name="${name}">
-            <%def name="inner(side_ident)">
-                self.copy_${side_ident}_from(other)
+            <%def name="inner(physical_ident)">
+                self.copy_${physical_ident}_from(other)
             </%def>
         </%self:logical_setter_helper>
     }
@@ -655,8 +671,8 @@
         pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
             -> longhands::${to_rust_ident(name)}::computed_value::T {
         <%self:logical_setter_helper name="${name}">
-            <%def name="inner(side_ident)">
-                self.clone_${side_ident}()
+            <%def name="inner(physical_ident)">
+                self.clone_${physical_ident}()
             </%def>
         </%self:logical_setter_helper>
         }

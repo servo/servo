@@ -6,8 +6,12 @@ import re
 
 PHYSICAL_SIDES = ["top", "left", "bottom", "right"]
 LOGICAL_SIDES = ["block-start", "block-end", "inline-start", "inline-end"]
+PHYSICAL_SIZES = ["width", "height"]
+LOGICAL_SIZES = ["block-size", "inline-size"]
+
 # bool is True when logical
 ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side in LOGICAL_SIDES]
+ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
 
 
 def to_rust_ident(name):

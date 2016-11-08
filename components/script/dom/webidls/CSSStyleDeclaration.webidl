@@ -333,6 +333,18 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-width;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString blockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString inlineSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxBlockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxInlineSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minBlockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minInlineSize;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString zIndex;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString z-index;
