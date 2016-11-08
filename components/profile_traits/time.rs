@@ -22,7 +22,7 @@ pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
 impl ProfilerChan {
     pub fn send(&self, msg: ProfilerMsg) {
-        self.0.send(msg).unwrap();
+        let _ = self.0.send(msg);
     }
 }
 
