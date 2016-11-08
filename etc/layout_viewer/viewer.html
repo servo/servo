@@ -67,6 +67,11 @@
                     </div>
                 </div>
             </div>
+            <div id="toolbar">
+              <input type="checkbox" name="show_unchanged" id="show_unchanged" />
+              <label for="show_unchanged">Show unchanged code</label>
+              <a href="#top">Back to top</a>
+            </div>
         </div>
 
         <!-- jQuery -->
@@ -219,6 +224,13 @@
                 });
             }
 
+            function register_toggle_unchanaged_code_handler() {
+              var show_unchange_box = document.getElementById("show_unchanged");
+              show_unchange_box.addEventListener("change", function(evt){
+                  jsondiffpatch.formatters.html.showUnchanged(show_unchange_box.checked, null, 800);
+              });
+            }
+
             $( document ).ready(function() {
                 var upload = document.getElementsByTagName('input')[0];
                 upload.onchange = function (e) {
@@ -233,6 +245,7 @@
                     reader.readAsText(file);
                     return false;
                 };
+                register_toggle_unchanaged_code_handler();
             });
         </script>
     </body>
