@@ -11,7 +11,6 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use webrender_traits::{ScrollLocation};
 #[cfg(target_os = "windows")]
 use gdi32;
 use gleam::gl;
@@ -43,6 +42,13 @@ use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
+
+use util::geometry::ScreenPx;
+use util::opts;
+use util::prefs::PREFS;
+use util::resource_files;
+use webrender_traits::ScrollLocation;
+
 #[cfg(target_os = "windows")]
 use winapi;
 
@@ -1067,10 +1073,12 @@ impl WindowMethods for Window {
             }
 
             (NONE, None, Key::Up) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, 3.0 * LINE_HEIGHT)), TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                                   TouchEventType::Move);
             }
             (NONE, None, Key::Down) => {
-                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, -3.0 * LINE_HEIGHT)), TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                                   TouchEventType::Move);
             }
             (NONE, None, Key::Left) => {
                 self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);

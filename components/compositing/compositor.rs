@@ -1037,7 +1037,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
-                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(delta.to_untyped()), point),                    None => error!("Point cast failed."),
+                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(delta.to_untyped()),
+                                                               point),
+                    None => error!("Point cast failed."),
                 }
             }
             TouchAction::Zoom(magnification, scroll_delta) => {
@@ -1172,9 +1174,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         let scaled_delta = (delta / self.scale).to_untyped();
                         let calculated_delta = (TypedPoint2D::from_untyped(&scaled_delta) / self.scale).to_untyped();
                         let cursor =
-                        (combined_event.cursor.to_f32() / self.scale).to_untyped();
+                            (combined_event.cursor.to_f32() / self.scale).to_untyped();
                         let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
-
                         self.webrender_api.scroll(ScrollLocation::Delta(calculated_delta), cursor, combined_event.phase);
                         last_combined_event = None
                     }
@@ -1225,7 +1226,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&delta);
                             ScrollLocation::Delta(calculated_delta)
                         },
-                        sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location. 
+                        sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location.
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
