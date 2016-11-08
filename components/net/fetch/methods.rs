@@ -1015,88 +1015,8 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                                            request_id.as_ref().map(Deref::deref), is_xhr);
 
     let pipeline_id = request.pipeline_id.get();
-    let mut response = Response::new();
-    match wrapped_response {
-        Ok((res, msg)) => {
-            response.url = Some(url.clone());
-            response.status = Some(res.response.status);
-            response.raw_status = Some((res.response.status_raw().0,
-                                        res.response.status_raw().1.as_bytes().to_vec()));
-            response.headers = res.response.headers.clone();
-            response.referrer = request.referrer.borrow().to_url().cloned();
-
-            let res_body = response.body.clone();
-
-            // We're about to spawn a thread to be waited on here
-            *done_chan = Some(channel());
-            let meta = match response.metadata().expect("Response metadata should exist at this stage") {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
-            };
-            let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
-            let devtools_sender = context.devtools_chan.clone();
-            let meta_status = meta.status.clone();
-            let meta_headers = meta.headers.clone();
-            spawn_named(format!("fetch worker thread"), move || {
-                match StreamedResponse::from_http_response(box res, meta) {
-                    Ok(mut res) => {
-                        *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-
-                        if let Some(ref sender) = devtools_sender {
-                            if let Some(m) = msg {
-                                send_request_to_devtools(m, &sender);
-                            }
-
-                            // --- Tell devtools that we got a response
-                            // Send an HttpResponse message to devtools with the corresponding request_id
-                            if let Some(pipeline_id) = pipeline_id {
-                                send_response_to_devtools(
-                                    &sender, request_id.unwrap(),
-                                    meta_headers.map(Serde::into_inner),
-                                    meta_status,
-                                    pipeline_id);
-                            }
-                        }
-
-                        loop {
-                            match read_block(&mut res) {
-                                Ok(ReadResult::Payload(chunk)) => {
-                                    if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-                                        body.extend_from_slice(&chunk);
-                                        if let Some(ref sender) = done_sender {
-                                            let _ = sender.send(Data::Payload(chunk));
-                                        }
-                                    }
-                                },
-                                Ok(ReadResult::EOF) | Err(_) => {
-                                    let mut empty_vec = Vec::new();
-                                    let completed_body = match *res_body.lock().unwrap() {
-                                        ResponseBody::Receiving(ref mut body) => {
-                                            // avoid cloning the body
-                                            swap(body, &mut empty_vec);
-                                            empty_vec
-                                        },
-                                        _ => empty_vec,
-                                    };
-                                    *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
-                                    if let Some(ref sender) = done_sender {
-                                        let _ = sender.send(Data::Done);
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Err(_) => {
-                        // XXXManishearth we should propagate this error somehow
-                        *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
-                        if let Some(ref sender) = done_sender {
-                            let _ = sender.send(Data::Done);
-                        }
-                    }
-                }
-            });
-        },
+    let (res, msg) = match wrapped_response {
+        Ok(wrapped_response) => wrapped_response,
         Err(error) => {
             let error = match error.error {
                 LoadErrorType::ConnectionAborted { .. } => unreachable!(),
@@ -1107,6 +1027,86 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
             return Response::network_error(error);
         }
     };
+
+    let mut response = Response::new();
+    response.url = Some(url.clone());
+    response.status = Some(res.response.status);
+    response.raw_status = Some((res.response.status_raw().0,
+                                res.response.status_raw().1.as_bytes().to_vec()));
+    response.headers = res.response.headers.clone();
+    response.referrer = request.referrer.borrow().to_url().cloned();
+
+    let res_body = response.body.clone();
+
+    // We're about to spawn a thread to be waited on here
+    *done_chan = Some(channel());
+    let meta = match response.metadata().expect("Response metadata should exist at this stage") {
+        FetchMetadata::Unfiltered(m) => m,
+        FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+    };
+    let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
+    let devtools_sender = context.devtools_chan.clone();
+    let meta_status = meta.status.clone();
+    let meta_headers = meta.headers.clone();
+    spawn_named(format!("fetch worker thread"), move || {
+        match StreamedResponse::from_http_response(box res, meta) {
+            Ok(mut res) => {
+                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+
+                if let Some(ref sender) = devtools_sender {
+                    if let Some(m) = msg {
+                        send_request_to_devtools(m, &sender);
+                    }
+
+                    // --- Tell devtools that we got a response
+                    // Send an HttpResponse message to devtools with the corresponding request_id
+                    if let Some(pipeline_id) = pipeline_id {
+                        send_response_to_devtools(
+                            &sender, request_id.unwrap(),
+                            meta_headers.map(Serde::into_inner),
+                            meta_status,
+                            pipeline_id);
+                    }
+                }
+
+                loop {
+                    match read_block(&mut res) {
+                        Ok(ReadResult::Payload(chunk)) => {
+                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                                body.extend_from_slice(&chunk);
+                                if let Some(ref sender) = done_sender {
+                                    let _ = sender.send(Data::Payload(chunk));
+                                }
+                            }
+                        },
+                        Ok(ReadResult::EOF) | Err(_) => {
+                            let mut empty_vec = Vec::new();
+                            let completed_body = match *res_body.lock().unwrap() {
+                                ResponseBody::Receiving(ref mut body) => {
+                                    // avoid cloning the body
+                                    swap(body, &mut empty_vec);
+                                    empty_vec
+                                },
+                                _ => empty_vec,
+                            };
+                            *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
+                            if let Some(ref sender) = done_sender {
+                                let _ = sender.send(Data::Done);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(_) => {
+                // XXXManishearth we should propagate this error somehow
+                *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                if let Some(ref sender) = done_sender {
+                    let _ = sender.send(Data::Done);
+                }
+            }
+        }
+    });
 
         // TODO these substeps aren't possible yet
         // Substep 1
