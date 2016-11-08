@@ -12,7 +12,7 @@ use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
-use hyper::header::{AcceptLanguage, Authorization, Basic};
+use hyper::header::{AcceptLanguage, Authorization, Basic, Date};
 use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, Referer, SetCookie, qitem};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
@@ -458,31 +458,29 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
 
 #[test]
 fn test_request_and_response_data_with_network_messages() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Host { hostname: "foo.bar".to_owned(), port: None });
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
-
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let mut headers = Headers::new();
-            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
-            Ok(MockRequest::new(
-                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
-            )
-        }
-    }
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let url = Url::parse("https://mozilla.com").unwrap();
-    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
-    load_data.headers = request_headers.clone();
-    let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
-                 DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        headers: request_headers,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let (devtools_chan, devtools_port) = mpsc::channel();
+    let response = fetch_sync(request, Some(devtools_chan));
+    assert!(response.status.unwrap().is_success());
+
+    let _ = server.close();
 
     // notification received from devtools
     let devhttprequest = expect_devtools_http_request(&devtools_port);
@@ -497,7 +495,7 @@ fn test_request_and_response_data_with_network_messages() {
                                    qitem(Encoding::EncodingExt("br".to_owned()))
                                    ]));
 
-    headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+    headers.set(Host { hostname: url.host_str().unwrap().to_owned() , port: url.port() });
 
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
@@ -517,7 +515,7 @@ fn test_request_and_response_data_with_network_messages() {
         QualityItem::new(en, Quality(500)),
     ]));
 
-    headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
+    headers.set(UserAgent(::DEFAULT_USER_AGENT.to_owned()));
 
     let httprequest = DevtoolsHttpRequest {
         url: url,
@@ -536,6 +534,7 @@ fn test_request_and_response_data_with_network_messages() {
     let mut response_headers = Headers::new();
     response_headers.set(ContentLength(content.len() as u64));
     response_headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+    response_headers.set(devhttpresponse.headers.as_ref().unwrap().get::<Date>().unwrap().clone());
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
