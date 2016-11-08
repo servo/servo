@@ -7,7 +7,7 @@
 interface HTMLHyperlinkElementUtils {
 //  stringifier attribute USVString href;
              attribute USVString href;
-//           attribute USVString origin;
+    readonly attribute USVString origin;
              attribute USVString protocol;
              attribute USVString username;
              attribute USVString password;

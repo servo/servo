@@ -284,6 +284,23 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.set_url();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin
+    fn Origin(&self) -> USVString {
+        // Step 1.
+        self.reinitialize_url();
+
+        USVString(match *self.url.borrow() {
+            None => {
+                // Step 2.
+                "".to_owned()
+            },
+            Some(ref url) => {
+                // Step 3.
+                url.origin().unicode_serialization()
+            },
+        })
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-password
     fn Password(&self) -> USVString {
         // Step 1.
