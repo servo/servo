@@ -11,7 +11,7 @@ path = "lib.rs"
 plugin = true
 
 [dependencies.clippy_lints]
-version = "0.0.77"
+version = "0.0.98"
 optional = true
 
 [features]
