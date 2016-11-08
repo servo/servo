@@ -38,13 +38,13 @@ use url::Url;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: Url
 }
 
-#[derive(Deserialize, HeapSizeOf, Serialize, Clone)]
+#[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
 pub struct CSSError {
     pub filename: String,
     pub line: usize,
@@ -54,6 +54,7 @@ pub struct CSSError {
 
 /// Messages to instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
+#[derive(Debug)]
 pub enum DevtoolsControlMsg {
     /// Messages from threads in the chrome process (resource/constellation/devtools)
     FromChrome(ChromeToDevtoolsControlMsg),
@@ -62,6 +63,7 @@ pub enum DevtoolsControlMsg {
 }
 
 /// Events that the devtools server must act upon.
+#[derive(Debug)]
 pub enum ChromeToDevtoolsControlMsg {
     /// A new client has connected to the server.
     AddClient(TcpStream),
@@ -72,7 +74,7 @@ pub enum ChromeToDevtoolsControlMsg {
     NetworkEvent(String, NetworkEvent),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 /// Events that the devtools server must act upon.
 pub enum ScriptToDevtoolsControlMsg {
     /// A new global object was created, associated with a particular pipeline.
@@ -92,7 +94,7 @@ pub enum ScriptToDevtoolsControlMsg {
 
 /// Serialized JS return values
 /// TODO: generalize this beyond the EvaluateJS message?
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum EvaluateJSReply {
     VoidValue,
     NullValue,
@@ -102,14 +104,14 @@ pub enum EvaluateJSReply {
     ActorValue { class: String, uuid: String },
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AttrInfo {
     pub namespace: String,
     pub name: String,
     pub value: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NodeInfo {
     pub uniqueId: String,
     pub baseURI: String,
@@ -137,7 +139,7 @@ pub struct StartedTimelineMarker {
     start_stack: Option<Vec<()>>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TimelineMarker {
     pub name: String,
     pub start_time: PreciseTime,
@@ -146,14 +148,14 @@ pub struct TimelineMarker {
     pub end_stack: Option<Vec<()>>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum TimelineMarkerType {
     Reflow,
     DOMEvent,
 }
 
 /// The properties of a DOM node as computed by layout.
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ComputedNodeLayout {
     pub display: String,
     pub position: String,
@@ -180,7 +182,7 @@ pub struct ComputedNodeLayout {
     pub height: f32,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AutoMargins {
     pub top: bool,
     pub right: bool,
@@ -190,7 +192,7 @@ pub struct AutoMargins {
 
 /// Messages to process in a particular script thread, as instructed by a devtools client.
 /// TODO: better error handling, e.g. if pipeline id lookup fails?
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.
     EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
@@ -219,13 +221,13 @@ pub enum DevtoolScriptControlMsg {
     Reload(PipelineId),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Modification {
     pub attributeName: String,
     pub newValue: Option<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum LogLevel {
     Log,
     Debug,
@@ -234,7 +236,7 @@ pub enum LogLevel {
     Error,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ConsoleMessage {
     pub message: String,
     pub logLevel: LogLevel,
@@ -251,7 +253,7 @@ bitflags! {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct PageError {
     #[serde(rename = "_type")]
     pub type_: String,
@@ -269,7 +271,7 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ConsoleAPI {
     #[serde(rename = "_type")]
     pub type_: String,
@@ -282,7 +284,7 @@ pub struct ConsoleAPI {
     pub arguments: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum CachedConsoleMessage {
     PageError(PageError),
     ConsoleAPI(ConsoleAPI),
@@ -310,6 +312,7 @@ pub struct HttpResponse {
     pub pipeline_id: PipelineId,
 }
 
+#[derive(Debug)]
 pub enum NetworkEvent {
     HttpRequest(HttpRequest),
     HttpResponse(HttpResponse),
@@ -343,7 +346,7 @@ impl StartedTimelineMarker {
 /// library, which definitely can't have any dependencies on `serde`. But `serde` can't implement
 /// `Deserialize` and `Serialize` itself, because `time::PreciseTime` is opaque! A Catch-22. So I'm
 /// duplicating the definition here.
-#[derive(Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub struct PreciseTime(u64);
 
 impl PreciseTime {
