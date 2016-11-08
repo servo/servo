@@ -17,7 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -343,7 +343,7 @@ pub struct ScriptThread {
     /// there are many iframes.
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,

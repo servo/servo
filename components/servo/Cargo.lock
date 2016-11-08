@@ -1571,6 +1571,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "bluetooth_traits 0.0.1",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -15,10 +15,9 @@ extern crate uuid;
 
 pub mod test;
 
-use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothCharacteristicsMsg};
-use bluetooth_traits::{BluetoothDescriptorMsg, BluetoothDescriptorsMsg};
-use bluetooth_traits::{BluetoothDeviceMsg, BluetoothError, BluetoothMethodMsg};
-use bluetooth_traits::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
+use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothServiceMsg};
+use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse};
+use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blacklist::{uuid_is_blacklisted, Blacklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
@@ -85,8 +84,8 @@ pub trait BluetoothThreadFactory {
     fn new() -> Self;
 }
 
-impl BluetoothThreadFactory for IpcSender<BluetoothMethodMsg> {
-    fn new() -> IpcSender<BluetoothMethodMsg> {
+impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
+    fn new() -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
         let adapter = BluetoothAdapter::init().ok();
         spawn_named("BluetoothThread".to_owned(), move || {
@@ -167,7 +166,7 @@ fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {
 }
 
 pub struct BluetoothManager {
-    receiver: IpcReceiver<BluetoothMethodMsg>,
+    receiver: IpcReceiver<BluetoothRequest>,
     adapter: Option<BluetoothAdapter>,
     address_to_id: HashMap<String, String>,
     service_to_device: HashMap<String, String>,
@@ -181,7 +180,7 @@ pub struct BluetoothManager {
 }
 
 impl BluetoothManager {
-    pub fn new(receiver: IpcReceiver<BluetoothMethodMsg>, adapter: Option<BluetoothAdapter>) -> BluetoothManager {
+    pub fn new(receiver: IpcReceiver<BluetoothRequest>, adapter: Option<BluetoothAdapter>) -> BluetoothManager {
         BluetoothManager {
             receiver: receiver,
             adapter: adapter,
@@ -200,49 +199,49 @@ impl BluetoothManager {
     fn start(&mut self) {
         while let Ok(msg) = self.receiver.recv() {
             match msg {
-                BluetoothMethodMsg::RequestDevice(options, sender) => {
+                BluetoothRequest::RequestDevice(options, sender) => {
                     self.request_device(options, sender)
                 },
-                BluetoothMethodMsg::GATTServerConnect(device_id, sender) => {
+                BluetoothRequest::GATTServerConnect(device_id, sender) => {
                     self.gatt_server_connect(device_id, sender)
                 },
-                BluetoothMethodMsg::GATTServerDisconnect(device_id, sender) => {
+                BluetoothRequest::GATTServerDisconnect(device_id, sender) => {
                     self.gatt_server_disconnect(device_id, sender)
                 },
-                BluetoothMethodMsg::GetPrimaryService(device_id, uuid, sender) => {
+                BluetoothRequest::GetPrimaryService(device_id, uuid, sender) => {
                     self.get_primary_service(device_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetPrimaryServices(device_id, uuid, sender) => {
+                BluetoothRequest::GetPrimaryServices(device_id, uuid, sender) => {
                     self.get_primary_services(device_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetIncludedService(service_id, uuid, sender) => {
+                BluetoothRequest::GetIncludedService(service_id, uuid, sender) => {
                     self.get_included_service(service_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetIncludedServices(service_id, uuid, sender) => {
+                BluetoothRequest::GetIncludedServices(service_id, uuid, sender) => {
                     self.get_included_services(service_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetCharacteristic(service_id, uuid, sender) => {
+                BluetoothRequest::GetCharacteristic(service_id, uuid, sender) => {
                     self.get_characteristic(service_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetCharacteristics(service_id, uuid, sender) => {
+                BluetoothRequest::GetCharacteristics(service_id, uuid, sender) => {
                     self.get_characteristics(service_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetDescriptor(characteristic_id, uuid, sender) => {
+                BluetoothRequest::GetDescriptor(characteristic_id, uuid, sender) => {
                     self.get_descriptor(characteristic_id, uuid, sender)
                 },
-                BluetoothMethodMsg::GetDescriptors(characteristic_id, uuid, sender) => {
+                BluetoothRequest::GetDescriptors(characteristic_id, uuid, sender) => {
                     self.get_descriptors(characteristic_id, uuid, sender)
                 },
-                BluetoothMethodMsg::ReadValue(id, sender) => {
+                BluetoothRequest::ReadValue(id, sender) => {
                     self.read_value(id, sender)
                 },
-                BluetoothMethodMsg::WriteValue(id, value, sender) => {
+                BluetoothRequest::WriteValue(id, value, sender) => {
                     self.write_value(id, value, sender)
                 },
-                BluetoothMethodMsg::Test(data_set_name, sender) => {
+                BluetoothRequest::Test(data_set_name, sender) => {
                     self.test(data_set_name, sender)
                 }
-                BluetoothMethodMsg::Exit => {
+                BluetoothRequest::Exit => {
                     break
                 },
             }
@@ -527,7 +526,7 @@ impl BluetoothManager {
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_device(&mut self,
                       options: RequestDeviceoptions,
-                      sender: IpcSender<BluetoothResult<BluetoothDeviceMsg>>) {
+                      sender: IpcSender<BluetoothResponseResult>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
         if let Ok(ref session) = adapter.create_discovery_session() {
             if session.start_discovery().is_ok() {
@@ -561,31 +560,30 @@ impl BluetoothManager {
             }
             self.allowed_services.insert(device_id.clone(), services);
             if let Some(device) = self.get_device(&mut adapter, &device_id) {
-                let message = Ok(BluetoothDeviceMsg {
-                                     id: device_id,
-                                     name: device.get_name().ok(),
-                                     appearance: device.get_appearance().ok(),
-                                     tx_power: device.get_tx_power().ok().map(|p| p as i8),
-                                     rssi: device.get_rssi().ok().map(|p| p as i8),
-                                 });
-                return drop(sender.send(message));
+                let message = BluetoothDeviceMsg {
+                    id: device_id,
+                    name: device.get_name().ok(),
+                    appearance: device.get_appearance().ok(),
+                    tx_power: device.get_tx_power().ok().map(|p| p as i8),
+                    rssi: device.get_rssi().ok().map(|p| p as i8),
+                };
+                return drop(sender.send(Ok(BluetoothResponse::RequestDevice(message))));
             }
         }
         return drop(sender.send(Err(BluetoothError::NotFound)));
     }
 
-    fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothResult<bool>>) {
+    fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothResponseResult>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
-
         match self.get_device(&mut adapter, &device_id) {
             Some(d) => {
                 if d.is_connected().unwrap_or(false) {
-                    return drop(sender.send(Ok(true)));
+                    return drop(sender.send(Ok(BluetoothResponse::GATTServerConnect(true))));
                 }
                 let _ = d.connect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
                     match d.is_connected().unwrap_or(false) {
-                        true => return drop(sender.send(Ok(true))),
+                        true => return drop(sender.send(Ok(BluetoothResponse::GATTServerConnect(true)))),
                         false => {
                             if is_mock_adapter(&adapter) {
                                 break;
@@ -624,7 +622,7 @@ impl BluetoothManager {
     fn get_primary_service(&mut self,
                            device_id: String,
                            uuid: String,
-                           sender: IpcSender<BluetoothResult<BluetoothServiceMsg>>) {
+                           sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_devices.contains_key(&device_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -639,11 +637,15 @@ impl BluetoothManager {
         for service in services {
             if service.is_primary().unwrap_or(false) {
                 if let Ok(uuid) = service.get_uuid() {
-                    return drop(sender.send(Ok(BluetoothServiceMsg {
-                                                   uuid: uuid,
-                                                   is_primary: true,
-                                                   instance_id: service.get_id(),
-                                               })));
+                    return drop(sender.send(
+                        Ok(BluetoothResponse::GetPrimaryService(
+                            BluetoothServiceMsg {
+                                uuid: uuid,
+                                is_primary: true,
+                                instance_id: service.get_id(),
+                            }
+                        ))
+                    ));
                 }
             }
         }
@@ -653,7 +655,7 @@ impl BluetoothManager {
     fn get_primary_services(&mut self,
                             device_id: String,
                             uuid: Option<String>,
-                            sender: IpcSender<BluetoothResult<BluetoothServicesMsg>>) {
+                            sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_devices.contains_key(&device_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -674,11 +676,13 @@ impl BluetoothManager {
         for service in services {
             if service.is_primary().unwrap_or(false) {
                 if let Ok(uuid) = service.get_uuid() {
-                    services_vec.push(BluetoothServiceMsg {
-                                          uuid: uuid,
-                                          is_primary: true,
-                                          instance_id: service.get_id(),
-                                      });
+                    services_vec.push(
+                        BluetoothServiceMsg {
+                            uuid: uuid,
+                            is_primary: true,
+                            instance_id: service.get_id(),
+                        }
+                    );
                 }
             }
         }
@@ -690,20 +694,17 @@ impl BluetoothManager {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
 
-        let _ = sender.send(Ok(services_vec));
+        return drop(sender.send(Ok(BluetoothResponse::GetPrimaryServices(services_vec))));
     }
 
     fn get_included_service(&mut self,
                             service_id: String,
                             uuid: String,
-                            sender: IpcSender<BluetoothResult<BluetoothServiceMsg>>) {
+                            sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_services.contains_key(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
-        let mut adapter = match self.get_or_create_adapter() {
-            Some(a) => a,
-            None => return drop(sender.send(Err(BluetoothError::NotFound))),
-        };
+        let mut adapter = get_adapter_or_return_error!(self, sender);
         let device = match self.device_from_service_id(&service_id) {
             Some(device) => device,
             None => return drop(sender.send(Err(BluetoothError::NotFound))),
@@ -716,11 +717,15 @@ impl BluetoothManager {
         for service in services {
             if let Ok(service_uuid) = service.get_uuid() {
                 if uuid == service_uuid {
-                    return drop(sender.send(Ok(BluetoothServiceMsg {
-                                                   uuid: uuid,
-                                                   is_primary: service.is_primary().unwrap_or(false),
-                                                   instance_id: service.get_id(),
-                                               })));
+                    return drop(sender.send(
+                        Ok(BluetoothResponse::GetIncludedService(
+                            BluetoothServiceMsg {
+                                uuid: uuid,
+                                is_primary: service.is_primary().unwrap_or(false),
+                                instance_id: service.get_id(),
+                           }
+                       ))
+                    ));
                 }
             }
         }
@@ -730,14 +735,11 @@ impl BluetoothManager {
     fn get_included_services(&mut self,
                              service_id: String,
                              uuid: Option<String>,
-                             sender: IpcSender<BluetoothResult<BluetoothServicesMsg>>) {
+                             sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_services.contains_key(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
-        let mut adapter = match self.get_or_create_adapter() {
-            Some(a) => a,
-            None => return drop(sender.send(Err(BluetoothError::NotFound))),
-        };
+        let mut adapter = get_adapter_or_return_error!(self, sender);
         let device = match self.device_from_service_id(&service_id) {
             Some(device) => device,
             None => return drop(sender.send(Err(BluetoothError::NotFound))),
@@ -750,11 +752,13 @@ impl BluetoothManager {
         let mut services_vec = vec!();
         for service in services {
             if let Ok(service_uuid) = service.get_uuid() {
-                services_vec.push(BluetoothServiceMsg {
-                                      uuid: service_uuid,
-                                      is_primary: service.is_primary().unwrap_or(false),
-                                      instance_id: service.get_id(),
-                                  });
+                services_vec.push(
+                    BluetoothServiceMsg {
+                        uuid: service_uuid,
+                        is_primary: service.is_primary().unwrap_or(false),
+                        instance_id: service.get_id(),
+                    }
+                );
             }
         }
         if let Some(uuid) = uuid {
@@ -765,13 +769,13 @@ impl BluetoothManager {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
 
-        let _ = sender.send(Ok(services_vec));
+        return drop(sender.send(Ok(BluetoothResponse::GetIncludedServices(services_vec))));
     }
 
     fn get_characteristic(&mut self,
                           service_id: String,
                           uuid: String,
-                          sender: IpcSender<BluetoothResult<BluetoothCharacteristicMsg>>) {
+                          sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_services.contains_key(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -783,20 +787,20 @@ impl BluetoothManager {
         for characteristic in characteristics {
             if let Ok(uuid) = characteristic.get_uuid() {
                 let properties = self.get_characteristic_properties(&characteristic);
-                let message = Ok(BluetoothCharacteristicMsg {
-                                     uuid: uuid,
-                                     instance_id: characteristic.get_id(),
-                                     broadcast: properties.contains(BROADCAST),
-                                     read: properties.contains(READ),
-                                     write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
-                                     write: properties.contains(WRITE),
-                                     notify: properties.contains(NOTIFY),
-                                     indicate: properties.contains(INDICATE),
-                                     authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
-                                     reliable_write: properties.contains(RELIABLE_WRITE),
-                                     writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
-                                 });
-                return drop(sender.send(message));
+                let message = BluetoothCharacteristicMsg {
+                    uuid: uuid,
+                    instance_id: characteristic.get_id(),
+                    broadcast: properties.contains(BROADCAST),
+                    read: properties.contains(READ),
+                    write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
+                    write: properties.contains(WRITE),
+                    notify: properties.contains(NOTIFY),
+                    indicate: properties.contains(INDICATE),
+                    authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
+                    reliable_write: properties.contains(RELIABLE_WRITE),
+                    writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
+                };
+                return drop(sender.send(Ok(BluetoothResponse::GetCharacteristic(message))));
             }
         }
         return drop(sender.send(Err(BluetoothError::NotFound)));
@@ -805,7 +809,7 @@ impl BluetoothManager {
     fn get_characteristics(&mut self,
                            service_id: String,
                            uuid: Option<String>,
-                           sender: IpcSender<BluetoothResult<BluetoothCharacteristicsMsg>>) {
+                           sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_services.contains_key(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -822,19 +826,20 @@ impl BluetoothManager {
             if let Ok(uuid) = characteristic.get_uuid() {
                 let properties = self.get_characteristic_properties(&characteristic);
                 characteristics_vec.push(
-                                BluetoothCharacteristicMsg {
-                                    uuid: uuid,
-                                    instance_id: characteristic.get_id(),
-                                    broadcast: properties.contains(BROADCAST),
-                                    read: properties.contains(READ),
-                                    write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
-                                    write: properties.contains(WRITE),
-                                    notify: properties.contains(NOTIFY),
-                                    indicate: properties.contains(INDICATE),
-                                    authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
-                                    reliable_write: properties.contains(RELIABLE_WRITE),
-                                    writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
-                                });
+                    BluetoothCharacteristicMsg {
+                        uuid: uuid,
+                        instance_id: characteristic.get_id(),
+                        broadcast: properties.contains(BROADCAST),
+                        read: properties.contains(READ),
+                        write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
+                        write: properties.contains(WRITE),
+                        notify: properties.contains(NOTIFY),
+                        indicate: properties.contains(INDICATE),
+                        authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
+                        reliable_write: properties.contains(RELIABLE_WRITE),
+                        writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
+                    }
+                );
             }
         }
         characteristics_vec.retain(|c| !uuid_is_blacklisted(&c.uuid, Blacklist::All));
@@ -842,13 +847,13 @@ impl BluetoothManager {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
 
-        let _ = sender.send(Ok(characteristics_vec));
+        return drop(sender.send(Ok(BluetoothResponse::GetCharacteristics(characteristics_vec))));
     }
 
     fn get_descriptor(&mut self,
                       characteristic_id: String,
                       uuid: String,
-                      sender: IpcSender<BluetoothResult<BluetoothDescriptorMsg>>) {
+                      sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_characteristics.contains_key(&characteristic_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -859,10 +864,14 @@ impl BluetoothManager {
         }
         for descriptor in descriptors {
             if let Ok(uuid) = descriptor.get_uuid() {
-                return drop(sender.send(Ok(BluetoothDescriptorMsg {
-                                               uuid: uuid,
-                                               instance_id: descriptor.get_id(),
-                                           })));
+                return drop(sender.send(
+                    Ok(BluetoothResponse::GetDescriptor(
+                        BluetoothDescriptorMsg {
+                            uuid: uuid,
+                            instance_id: descriptor.get_id(),
+                        }
+                    ))
+                ));
             }
         }
         return drop(sender.send(Err(BluetoothError::NotFound)));
@@ -871,7 +880,7 @@ impl BluetoothManager {
     fn get_descriptors(&mut self,
                        characteristic_id: String,
                        uuid: Option<String>,
-                       sender: IpcSender<BluetoothResult<BluetoothDescriptorsMsg>>) {
+                       sender: IpcSender<BluetoothResponseResult>) {
         if !self.cached_characteristics.contains_key(&characteristic_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
@@ -886,20 +895,22 @@ impl BluetoothManager {
         let mut descriptors_vec = vec!();
         for descriptor in descriptors {
             if let Ok(uuid) = descriptor.get_uuid() {
-                descriptors_vec.push(BluetoothDescriptorMsg {
-                                         uuid: uuid,
-                                         instance_id: descriptor.get_id(),
-                                     });
+                descriptors_vec.push(
+                    BluetoothDescriptorMsg {
+                        uuid: uuid,
+                        instance_id: descriptor.get_id(),
+                    }
+                );
             }
         }
         descriptors_vec.retain(|d| !uuid_is_blacklisted(&d.uuid, Blacklist::All));
         if descriptors_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
-        let _ = sender.send(Ok(descriptors_vec));
+        return drop(sender.send(Ok(BluetoothResponse::GetDescriptors(descriptors_vec))));
     }
 
-    fn read_value(&mut self, id: String, sender: IpcSender<BluetoothResult<Vec<u8>>>) {
+    fn read_value(&mut self, id: String, sender: IpcSender<BluetoothResponseResult>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
         let mut value = self.get_gatt_characteristic(&mut adapter, &id)
                             .map(|c| c.read_value().unwrap_or(vec![]));
@@ -907,10 +918,13 @@ impl BluetoothManager {
             value = self.get_gatt_descriptor(&mut adapter, &id)
                         .map(|d| d.read_value().unwrap_or(vec![]));
         }
-        let _ = sender.send(value.ok_or(BluetoothError::InvalidState));
+        match value {
+            Some(v) => return drop(sender.send(Ok(BluetoothResponse::ReadValue(v)))),
+            None => return drop(sender.send(Err(BluetoothError::InvalidState))),
+        }
     }
 
-    fn write_value(&mut self, id: String, value: Vec<u8>, sender: IpcSender<BluetoothResult<bool>>) {
+    fn write_value(&mut self, id: String, value: Vec<u8>, sender: IpcSender<BluetoothResponseResult>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
         let mut result = self.get_gatt_characteristic(&mut adapter, &id)
                              .map(|c| c.write_value(value.clone()));
@@ -918,13 +932,12 @@ impl BluetoothManager {
             result = self.get_gatt_descriptor(&mut adapter, &id)
                          .map(|d| d.write_value(value.clone()));
         }
-        let message = match result {
+        match result {
             Some(v) => match v {
-                Ok(_) => Ok(true),
+                Ok(_) => return drop(sender.send(Ok(BluetoothResponse::WriteValue(value)))),
                 Err(_) => return drop(sender.send(Err(BluetoothError::NotSupported))),
             },
             None => return drop(sender.send(Err(BluetoothError::InvalidState))),
-        };
-        let _ = sender.send(message);
+        }
     }
 }
