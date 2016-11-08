@@ -127,6 +127,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-style;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString content;
 
@@ -267,6 +275,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-right;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginTop;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-top;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBottom;
@@ -277,6 +293,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-right;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingTop;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-top;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outline;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineColor;
