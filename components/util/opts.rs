@@ -109,6 +109,11 @@ pub struct Opts {
     /// font for layout tests.
     pub enable_text_antialiasing: bool,
 
+    /// If set with --enable-subpixel, use subpixel antialiasing for glyphs. In the future
+    /// this will likely become the default, but for now it's opt-in while we work
+    /// out any bugs and improve the implementation.
+    pub enable_subpixel_text_antialiasing: bool,
+
     /// If set with --disable-canvas-aa, disable antialiasing on the HTML canvas element.
     /// Like --disable-text-aa, this is useful for reftests where pixel perfect results are required.
     pub enable_canvas_antialiasing: bool,
@@ -241,6 +246,9 @@ pub struct DebugOptions {
     /// Disable antialiasing of rendered text.
     pub disable_text_aa: bool,
 
+    /// Enable subpixel antialiasing of rendered text.
+    pub enable_subpixel_aa: bool,
+
     /// Disable antialiasing of rendered text on the HTML canvas element.
     pub disable_canvas_aa: bool,
 
@@ -343,6 +351,7 @@ impl DebugOptions {
                 "help" => debug_options.help = true,
                 "bubble-widths" => debug_options.bubble_widths = true,
                 "disable-text-aa" => debug_options.disable_text_aa = true,
+                "enable-subpixel-aa" => debug_options.enable_subpixel_aa = true,
                 "disable-canvas-aa" => debug_options.disable_text_aa = true,
                 "dump-style-tree" => debug_options.dump_style_tree = true,
                 "dump-rule-tree" => debug_options.dump_rule_tree = true,
@@ -516,6 +525,7 @@ pub fn default_opts() -> Opts {
         show_debug_parallel_layout: false,
         paint_flashing: false,
         enable_text_antialiasing: false,
+        enable_subpixel_text_antialiasing: false,
         enable_canvas_antialiasing: false,
         trace_layout: false,
         debugger_port: None,
@@ -830,6 +840,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         show_debug_parallel_layout: debug_options.show_parallel_layout,
         paint_flashing: debug_options.paint_flashing,
         enable_text_antialiasing: !debug_options.disable_text_aa,
+        enable_subpixel_text_antialiasing: debug_options.enable_subpixel_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
         dump_rule_tree: debug_options.dump_rule_tree,
