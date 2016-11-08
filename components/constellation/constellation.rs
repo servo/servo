@@ -1636,12 +1636,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    pipeline_id: PipelineId,
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
-        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         // If the pipeline lookup fails, it is because we have torn down the pipeline,
         // so it is reasonable to silently ignore the event.
+        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
         match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => pipeline.trigger_mozbrowser_event(frame_id, event),
             None => warn!("Pipeline {:?} handling mozbrowser event after closure.", parent_pipeline_id),
@@ -2219,6 +2219,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Close a frame (and all children)
     fn close_frame(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
+        debug!("Closing frame {:?}.", frame_id);
         // Store information about the pipelines to be closed. Then close the
         // pipelines, before removing ourself from the frames hash map. This
         // ordering is vital - so that if close_pipeline() ends up closing
@@ -2254,10 +2255,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
             parent_pipeline.remove_child(frame_id);
         }
+        debug!("Closed frame {:?}.", frame_id);
     }
 
     // Close all pipelines at and beneath a given frame
     fn close_pipeline(&mut self, pipeline_id: PipelineId, exit_mode: ExitPipelineMode) {
+        debug!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the frames to be closed. Then close the
         // frames, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_frames() ends up closing
@@ -2297,6 +2300,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             ExitPipelineMode::Normal => pipeline.exit(),
             ExitPipelineMode::Force => pipeline.force_exit(),
         }
+        debug!("Closed pipeline {:?}.", pipeline_id);
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set

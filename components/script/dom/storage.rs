@@ -13,7 +13,6 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::storageevent::StorageEvent;
-use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -193,14 +192,16 @@ impl Runnable for StorageEventRunnable {
             Some(&storage)
         );
 
-        let root_context = script_thread.root_browsing_context();
-        for it_context in root_context.iter() {
-            let it_window = it_context.active_window();
-            assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
-            // TODO: Such a Document object is not necessarily fully active, but events fired on such
-            // objects are ignored by the event loop until the Document becomes fully active again.
-            if global.pipeline_id() != it_window.upcast::<GlobalScope>().pipeline_id() {
-                storage_event.upcast::<Event>().fire(it_window.upcast());
+        // TODO: This is only iterating over documents in the current script
+        // thread, so we are not firing events to other script threads.
+        // NOTE: once that is fixed, we can remove borrow_documents from ScriptThread.
+        for (id, document) in script_thread.borrow_documents().iter() {
+            if ev_url.origin() == document.window().get_url().origin() {
+                // TODO: Such a Document object is not necessarily fully active, but events fired on such
+                // objects are ignored by the event loop until the Document becomes fully active again.
+                if global.pipeline_id() != id {
+                    storage_event.upcast::<Event>().fire(document.window().upcast());
+                }
             }
         }
     }
