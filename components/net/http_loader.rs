@@ -413,7 +413,7 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-fn set_default_accept_language(headers: &mut Headers) {
+pub fn set_default_accept_language(headers: &mut Headers) {
     if headers.has::<AcceptLanguage>() {
         return;
     }
