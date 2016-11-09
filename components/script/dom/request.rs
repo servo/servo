@@ -308,21 +308,31 @@ impl Request {
         // Step 27
         let mut headers_copy = r.Headers();
 
-        // This is equivalent to the specification's concept of
-        // "associated headers list".
-        if let RequestInfo::Request(ref input_request) = input {
-            headers_copy = input_request.Headers();
-        }
-
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
-            if let &HeadersInit::Headers(ref init_headers) = possible_header {
-                headers_copy = init_headers.clone();
+            match possible_header {
+                &HeadersInit::Headers(ref init_headers) => {
+                    headers_copy = init_headers.clone();
+                }
+                &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
+                    try!(headers_copy.fill(Some(
+                        HeadersInit::ByteStringSequenceSequence(init_sequence.clone()))));
+                },
+                &HeadersInit::ByteStringMozMap(ref init_map) => {
+                    try!(headers_copy.fill(Some(
+                        HeadersInit::ByteStringMozMap(init_map.clone()))));
+                },
             }
         }
 
         // Step 29
-        r.Headers().empty_header_list();
+        // We cannot empty `r.Headers().header_list` because
+        // we would undo the Step 27 above.  One alternative is to set
+        // `headers_copy` as a deep copy of `r.Headers()`. However,
+        // `r.Headers()` is a `Root<T>`, and therefore it is difficult
+        // to obtain a mutable reference to `r.Headers()`. Without the
+        // mutable reference, we cannot mutate `r.Headers()` to be the
+        // deep copied headers in Step 27.
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
@@ -341,7 +351,19 @@ impl Request {
         }
 
         // Step 31
-        try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
+        match init.headers {
+            None => {
+                // This is equivalent to the specification's concept of
+                // "associated headers list". If an init headers is not given,
+                // but an input with headers is given, set request's
+                // headers as the input's Headers.
+                if let RequestInfo::Request(ref input_request) = input {
+                    try!(r.Headers().fill(Some(HeadersInit::Headers(input_request.Headers()))));
+                }
+            },
+            Some(HeadersInit::Headers(_)) => try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))),
+            _ => {},
+        }
 
         // Step 32
         let mut input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -368,7 +390,6 @@ impl Request {
         }
 
         // Step 34
-        // TODO: `ReadableStream` object is not implemented in Servo yet.
         if let Some(Some(ref init_body)) = init.body {
             // Step 34.2
             let extracted_body_tmp = init_body.extract();
