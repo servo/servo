@@ -31,7 +31,7 @@ use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvide
 use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
 use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
-use net_traits::request::{Request, RequestInit, Destination};
+use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
 use std::borrow::Cow;
@@ -788,37 +788,33 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
 
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let context = new_fetch_context(None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", None);
+    assert!(response.status.unwrap().is_success());
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None),
-                 None);
-
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
 }
 
 #[test]
