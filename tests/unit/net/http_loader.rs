@@ -24,6 +24,7 @@ use make_server;
 use msg::constellation_msg::{PipelineId, TEST_PIPELINE_ID};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
+use net::fetch::methods::fetch;
 use net::hsts::HstsEntry;
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
@@ -32,8 +33,10 @@ use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
 use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
 use net_traits::request::{Request, RequestInit, Destination};
 use net_traits::response::ResponseBody;
+use new_fetch_context;
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -731,35 +734,28 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
 
 #[test]
 fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(StrictTransportSecurity::excluding_subdomains(31536000));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let context = new_fetch_context(None);
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    let _ = server.close();
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None),
-                 None);
-
-    assert_eq!(http_state.hsts_list.read().unwrap().is_host_secure("mozilla.com"), false);
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(context.state.hsts_list.read().unwrap().is_host_secure(url.host_str().unwrap()), false);
 }
 
 #[test]
