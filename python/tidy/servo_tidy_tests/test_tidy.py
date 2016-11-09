@@ -190,12 +190,11 @@ class CheckTidiness(unittest.TestCase):
 
     def test_file_list(self):
         base_path='./python/tidy/servo_tidy_tests/test_ignored'
-        file_list = tidy.get_file_list(base_path, only_changed_files=False,
-                                       exclude_dirs=[])
+        file_list = tidy.FileList(base_path, only_changed_files=False, exclude_dirs=[])
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs'), os.path.join(base_path, 'whee', 'foo', 'bar.rs')], lst)
-        file_list = tidy.get_file_list(base_path, only_changed_files=False,
-                                       exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
+        file_list = tidy.FileList(base_path, only_changed_files=False,
+                                  exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
 
