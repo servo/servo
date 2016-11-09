@@ -17,10 +17,11 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::globalscope::GlobalScope;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
-use html5ever::tokenizer::Tokenizer as H5ETokenizer;
+use html5ever::tokenizer::{Tokenizer as H5ETokenizer, TokenizerResult};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever::tree_builder::Tracer as HtmlTracer;
 use html5ever::tree_builder::TreeBuilder as HtmlTreeBuilder;
@@ -247,8 +248,14 @@ impl HtmlTokenizer {
         self.run();
     }
 
+    #[allow(unrooted_must_root)]
     fn run(&mut self) {
-        self.inner.feed(&mut self.input_buffer);
+        while let TokenizerResult::Script(script) = self.inner.feed(&mut self.input_buffer) {
+            let script = Root::from_ref(script.downcast::<HTMLScriptElement>().unwrap());
+            if !script.prepare() {
+                break;
+            }
+        }
     }
 
     fn end(&mut self) {

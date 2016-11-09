@@ -37,7 +37,7 @@ fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
-html5ever = {version = "0.9.0", features = ["heap_size", "unstable"]}
+html5ever = {version = "0.10.1", features = ["heap_size", "unstable"]}
 html5ever-atoms = {version = "0.1", features = ["heap_size"]}
 hyper = "0.9.9"
 hyper_serde = "0.1.4"
