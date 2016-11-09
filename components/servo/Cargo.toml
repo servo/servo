@@ -25,6 +25,7 @@ max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 testing = ["style/testing"]
+clippy = ["plugins/clippy"]
 
 [profile.release]
 opt-level = 3
@@ -69,6 +70,7 @@ log = "0.3"
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
+plugins = {path = "../plugins", optional = true}
 profile = {path = "../profile"}
 profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}
