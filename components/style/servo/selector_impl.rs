@@ -99,6 +99,7 @@ pub enum NonTSPseudoClass {
     ReadOnly,
     PlaceholderShown,
     Target,
+    Fullscreen,
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -110,6 +111,7 @@ impl ToCss for NonTSPseudoClass {
             Visited => ":visited",
             Active => ":active",
             Focus => ":focus",
+            Fullscreen => ":fullscreen",
             Hover => ":hover",
             Enabled => ":enabled",
             Disabled => ":disabled",
@@ -131,6 +133,7 @@ impl NonTSPseudoClass {
         match *self {
             Active => IN_ACTIVE_STATE,
             Focus => IN_FOCUS_STATE,
+            Fullscreen => IN_FULLSCREEN_STATE,
             Hover => IN_HOVER_STATE,
             Enabled => IN_ENABLED_STATE,
             Disabled => IN_DISABLED_STATE,
@@ -183,6 +186,7 @@ impl SelectorImpl for ServoSelectorImpl {
             "visited" => Visited,
             "active" => Active,
             "focus" => Focus,
+            "fullscreen" => Fullscreen,
             "hover" => Hover,
             "enabled" => Enabled,
             "disabled" => Disabled,
