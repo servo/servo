@@ -34,4 +34,9 @@ pip install "treeherder-client>=3.0.0"
 mkdir -p servo
 mkdir -p output
 ./git_log_to_json.sh > servo/revision.json && \
-./test_all.sh --servo
+
+if [[ "${1}" = "--submit" ]]; then
+  ./test_all.sh --servo --submit
+else
+  ./test_all.sh --servo
+fi

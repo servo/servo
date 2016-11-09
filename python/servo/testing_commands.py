@@ -161,12 +161,17 @@ class MachCommands(CommandBase):
     @Command('test-perf',
              description='Run the page load performance test',
              category='testing')
-    def test_perf(self):
+    @CommandArgument('--submit', default=False, action="store_true",
+                     help="submit the data to perfherder")
+    def test_perf(self, submit=False):
         self.set_software_rendering_env(True)
 
         self.ensure_bootstrapped()
         env = self.build_env()
-        return call(["bash", "test_perf.sh"],
+        cmd = ["bash", "test_perf.sh"]
+        if submit:
+            cmd += ["--submit"]
+        return call(cmd,
                     env=env,
                     cwd=path.join("etc", "ci", "performance"))
 
