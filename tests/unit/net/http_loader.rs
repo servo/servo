@@ -24,6 +24,7 @@ use make_server;
 use msg::constellation_msg::{PipelineId, TEST_PIPELINE_ID};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
+use net::fetch::methods::fetch;
 use net::hsts::HstsEntry;
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
@@ -31,8 +32,11 @@ use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
 use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
 use net_traits::request::{Request, RequestInit, Destination};
+use net_traits::response::ResponseBody;
+use new_fetch_context;
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -305,27 +309,6 @@ impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
         }
 
         Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
-    }
-}
-
-struct AssertMustHaveBodyRequest {
-    expected_body: Option<Vec<u8>>,
-    t: ResponseType
-}
-
-impl AssertMustHaveBodyRequest {
-    fn new(t: ResponseType, expected_body: Option<Vec<u8>>) -> Self {
-        AssertMustHaveBodyRequest { expected_body: expected_body, t: t }
-    }
-}
-
-impl HttpRequest for AssertMustHaveBodyRequest {
-    type R = MockResponse;
-
-    fn send(self, body: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        assert_eq!(self.expected_body, *body);
-
-        response_for_request_type(self.t)
     }
 }
 
@@ -623,179 +606,156 @@ fn test_redirected_request_to_devtools() {
 
 #[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
-    struct Factory;
+    let post_handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.method, Method::Get);
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut post_server, post_url) = make_server(post_handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let post_redirect_url = post_url.clone();
+    let pre_handler = move |request: HyperRequest, mut response: HyperResponse| {
+        assert_eq!(request.method, Method::Post);
+        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut pre_server, pre_url) = make_server(pre_handler);
 
-        fn create(&self, url: Url, method: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                assert_eq!(Method::Post, method);
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
-            } else {
-                assert_eq!(Method::Get, method);
-                Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
-            }
-        }
-    }
+    let request = Request::from_init(RequestInit {
+        url: pre_url.clone(),
+        method: Method::Post,
+        destination: Destination::Document,
+        origin: pre_url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = pre_server.close();
+    let _ = post_server.close();
 
-    load_data.method = Method::Post;
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data, &ui_provider, &http_state, None, &Factory,
-                 DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    assert!(response.to_actual().status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(ContentEncoding(vec![Encoding::Deflate]));
+        let mut e = DeflateEncoder::new(Vec::new(), Compression::Default);
+        e.write(b"Yay!").unwrap();
+        let encoded_content = e.finish().unwrap();
+        response.send(&encoded_content).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let mut e = DeflateEncoder::new(Vec::new(), Compression::Default);
-            e.write(b"Yay!").unwrap();
-            let encoded_content = e.finish().unwrap();
+    let _ = server.close();
 
-            let mut headers = Headers::new();
-            headers.set(ContentEncoding(vec![Encoding::Deflate]));
-            Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
-        }
-    }
-
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let mut response = load(
-        &load_data, &ui_provider, &http_state, None,
-        &Factory,
-        DEFAULT_USER_AGENT.into(),
-        &CancellationListener::new(None),
-        None)
-        .unwrap();
-
-    assert_eq!(read_response(&mut response), "Yay!");
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Yay!".to_vec()));
 }
 
 #[test]
 fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_content_encoding_gzip() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(ContentEncoding(vec![Encoding::Gzip]));
+        let mut e = GzEncoder::new(Vec::new(), Compression::Default);
+        e.write(b"Yay!").unwrap();
+        let encoded_content = e.finish().unwrap();
+        response.send(&encoded_content).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let mut e = GzEncoder::new(Vec::new(), Compression::Default);
-            e.write(b"Yay!").unwrap();
-            let encoded_content = e.finish().unwrap();
+    let _ = server.close();
 
-            let mut headers = Headers::new();
-            headers.set(ContentEncoding(vec![Encoding::Gzip]));
-            Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
-        }
-    }
-
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let mut response = load(
-        &load_data,
-        &ui_provider, &http_state,
-        None, &Factory,
-        DEFAULT_USER_AGENT.into(),
-        &CancellationListener::new(None),
-        None)
-        .unwrap();
-
-    assert_eq!(read_response(&mut response), "Yay!");
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Yay!".to_vec()));
 }
 
 #[test]
 fn test_load_doesnt_send_request_body_on_any_redirect() {
-    struct Factory;
+    let post_handler = move |mut request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.method, Method::Get);
+        let data = read_response(&mut request);
+        assert_eq!(data, "");
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut post_server, post_url) = make_server(post_handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = AssertMustHaveBodyRequest;
+    let post_redirect_url = post_url.clone();
+    let pre_handler = move |mut request: HyperRequest, mut response: HyperResponse| {
+        let data = read_response(&mut request);
+        assert_eq!(data, "Body on POST!");
+        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut pre_server, pre_url) = make_server(pre_handler);
 
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<AssertMustHaveBodyRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                Ok(
-                    AssertMustHaveBodyRequest::new(
-                        ResponseType::Redirect("http://mozilla.org".to_owned()),
-                        Some(<[_]>::to_vec("Body on POST!".as_bytes()))
-                    )
-                )
-            } else {
-                Ok(
-                    AssertMustHaveBodyRequest::new(
-                        ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())),
-                        None
-                    )
-                )
-            }
-        }
-    }
+    let request = Request::from_init(RequestInit {
+        url: pre_url.clone(),
+        body: Some(b"Body on POST!".to_vec()),
+        method: Method::Post,
+        destination: Destination::Document,
+        origin: pre_url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = pre_server.close();
+    let _ = post_server.close();
 
-    load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(
-        &load_data, &ui_provider, &http_state,
-        None,
-        &Factory,
-        DEFAULT_USER_AGENT.into(),
-        &CancellationListener::new(None),
-        None);
+    assert!(response.to_actual().status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(StrictTransportSecurity::excluding_subdomains(31536000));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let context = new_fetch_context(None);
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    let _ = server.close();
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None),
-                 None);
-
-    assert_eq!(http_state.hsts_list.read().unwrap().is_host_secure("mozilla.com"), false);
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(context.state.hsts_list.read().unwrap().is_host_secure(url.host_str().unwrap()), false);
 }
 
 #[test]
