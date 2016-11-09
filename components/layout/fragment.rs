@@ -123,6 +123,9 @@ pub struct Fragment {
     /// The pseudo-element that this fragment represents.
     pub pseudo: PseudoElementType<()>,
 
+    /// Various flags for this fragment.
+    pub flags: FragmentFlags,
+
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     /// This ID should not be considered stable across multiple layouts or fragment
     /// manipulations.
@@ -917,6 +920,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -945,6 +949,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -969,6 +974,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: self.pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -996,6 +1002,7 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
+            flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -3108,6 +3115,16 @@ impl Overflow {
     pub fn translate(&mut self, point: &Point2D<Au>) {
         self.scroll = self.scroll.translate(point);
         self.paint = self.paint.translate(point);
+    }
+}
+
+bitflags! {
+    pub flags FragmentFlags: u8 {
+        // TODO(stshine): find a better name since these flags can also be used for grid item.
+        /// Whether this fragment represents a child in a row flex container.
+        const IS_INLINE_FLEX_ITEM = 0b0000_0001,
+        /// Whether this fragment represents a child in a column flex container.
+        const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
     }
 }
 
