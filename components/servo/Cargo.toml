@@ -62,7 +62,7 @@ euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
-ipc-channel = "0.5"
+ipc-channel = "0.6"
 layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
 libc = "0.2"
