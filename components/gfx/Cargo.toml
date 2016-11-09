@@ -53,15 +53,12 @@ core-foundation = "0.2"
 core-graphics = "0.4"
 core-text = "2.0"
 
-[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
-freetype = {git = "https://github.com/servo/rust-freetype"}
-
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+freetype = {git = "https://github.com/servo/rust-freetype"}
 servo-fontconfig = "0.2.1"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
 simd = {git = "https://github.com/huonw/simd"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-winapi = "0.2"
-gdi32-sys = "0.2"
+dwrote = {git = "https://github.com/vvuk/dwrote-rs"}
