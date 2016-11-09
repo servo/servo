@@ -86,6 +86,8 @@ pub enum ProfilerCategory {
     ScriptWorkerEvent = 0x74,
     ScriptServiceWorkerEvent = 0x75,
     ScriptParseXML = 0x76,
+    ScriptEnterFullscreen = 0x77,
+    ScriptExitFullscreen = 0x78,
     ApplicationHeartbeat = 0x90,
 }
 

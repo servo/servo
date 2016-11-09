@@ -39683,6 +39683,36 @@
             "timeout": "long",
             "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
           }
+        ],
+        "cssom-view/MediaQueryList-with-empty-string.html": [
+          {
+            "path": "cssom-view/MediaQueryList-with-empty-string.html",
+            "url": "/cssom-view/MediaQueryList-with-empty-string.html"
+          }
+        ],
+        "html/semantics/forms/the-form-element/form-action-url.html": [
+          {
+            "path": "html/semantics/forms/the-form-element/form-action-url.html",
+            "url": "/html/semantics/forms/the-form-element/form-action-url.html"
+          }
+        ],
+        "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html": [
+          {
+            "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
+            "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
+          }
+        ],
+        "html/semantics/forms/the-select-element/selected-index.html": [
+          {
+            "path": "html/semantics/forms/the-select-element/selected-index.html",
+            "url": "/html/semantics/forms/the-select-element/selected-index.html"
+          }
+        ],
+        "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html": [
+          {
+            "path": "html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html",
+            "url": "/html/webappapis/scripting/events/uncompiled_event_handler_with_scripting_disabled.html"
+          }
         ]
       }
     },
