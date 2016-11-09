@@ -5496,18 +5496,6 @@
             "url": "/_mozilla/css/text_node_opacity.html"
           }
         ],
-        "css/text_overflow_a.html": [
-          {
-            "path": "css/text_overflow_a.html",
-            "references": [
-              [
-                "/_mozilla/css/text_overflow_ref.html",
-                "!="
-              ]
-            ],
-            "url": "/_mozilla/css/text_overflow_a.html"
-          }
-        ],
         "css/text_overflow_basic_a.html": [
           {
             "path": "css/text_overflow_basic_a.html",
@@ -5518,6 +5506,30 @@
               ]
             ],
             "url": "/_mozilla/css/text_overflow_basic_a.html"
+          }
+        ],
+        "css/text_overflow_ellipsis.html": [
+          {
+            "path": "css/text_overflow_ellipsis.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_ellipsis.html"
+          }
+        ],
+        "css/text_overflow_string.html": [
+          {
+            "path": "css/text_overflow_string.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_string.html"
           }
         ],
         "css/text_shadow_blur_a.html": [
@@ -20364,18 +20376,6 @@
           "url": "/_mozilla/css/text_node_opacity.html"
         }
       ],
-      "css/text_overflow_a.html": [
-        {
-          "path": "css/text_overflow_a.html",
-          "references": [
-            [
-              "/_mozilla/css/text_overflow_ref.html",
-              "!="
-            ]
-          ],
-          "url": "/_mozilla/css/text_overflow_a.html"
-        }
-      ],
       "css/text_overflow_basic_a.html": [
         {
           "path": "css/text_overflow_basic_a.html",
@@ -20386,6 +20386,30 @@
             ]
           ],
           "url": "/_mozilla/css/text_overflow_basic_a.html"
+        }
+      ],
+      "css/text_overflow_ellipsis.html": [
+        {
+          "path": "css/text_overflow_ellipsis.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_ellipsis.html"
+        }
+      ],
+      "css/text_overflow_string.html": [
+        {
+          "path": "css/text_overflow_string.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_string.html"
         }
       ],
       "css/text_shadow_blur_a.html": [
