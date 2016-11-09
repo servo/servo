@@ -57,7 +57,7 @@ then
     # results appear on the same date. Use the correct result when Perfherder
     # allows us to change the date.
     python3 submit_to_perfherder.py \
-            "${output:-}" "${engine}" "${PERF_FILE}" servo/revision.json
+            "${engine}" "${PERF_FILE}" servo/revision.json
 fi
 
 echo "Stopping the local server"

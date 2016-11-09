@@ -166,12 +166,23 @@ class MachCommands(CommandBase):
     @Command('test-perf',
              description='Run the page load performance test',
              category='testing')
-    def test_perf(self):
+    @CommandArgument('--submit', default=False, action="store_true",
+                     help="submit the data to perfherder")
+    def test_perf(self, submit=False):
         self.set_software_rendering_env(True)
 
         self.ensure_bootstrapped()
         env = self.build_env()
-        return call(["bash", "test_perf.sh"],
+        cmd = ["bash", "test_perf.sh"]
+        if submit:
+            if not ("TREEHERDER_CLIENT_ID" in os.environ and
+                    "TREEHERDER_CLIENT_SECRET" in os.environ):
+                print("Please set the environment variable \"TREEHERDER_CLIENT_ID\""
+                      " and \"TREEHERDER_CLIENT_SECRET\" to submit the performance"
+                      " test result to perfherder")
+                return 1
+            cmd += ["--submit"]
+        return call(cmd,
                     env=env,
                     cwd=path.join("etc", "ci", "performance"))
 
