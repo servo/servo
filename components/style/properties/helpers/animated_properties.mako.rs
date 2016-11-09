@@ -22,6 +22,7 @@ use std::cmp;
 use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
+use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
@@ -682,8 +683,8 @@ impl Interpolate for BoxShadow {
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (LengthOrNone::Length(ref len), LengthOrNone::Length(ref other)) =>
-                len.interpolate(&other, progress).map(LengthOrNone::Length),
+            (Either::First(ref length), Either::First(ref other)) =>
+                length.interpolate(&other, progress).map(Either::First),
             _ => Err(()),
         }
     }

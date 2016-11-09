@@ -13,7 +13,7 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, computed};
+use values::{CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, computed};
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -908,55 +908,12 @@ impl LengthOrPercentageOrNone {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum LengthOrNone {
-    Length(Length),
-    None,
-}
+pub type LengthOrNone = Either<Length, None_>;
 
-impl HasViewportPercentage for LengthOrNone {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrNone::Length(ref length) => length.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
-
-impl ToCss for LengthOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrNone::Length(length) => length.to_css(dest),
-            LengthOrNone::None => dest.write_str("none"),
-        }
-    }
-}
 impl LengthOrNone {
-    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
-                      -> Result<LengthOrNone, ()>
-    {
-        match try!(input.next()) {
-            Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                Length::parse_dimension(value.value, unit).map(LengthOrNone::Length),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrNone::Length(Length::Absolute(Au(0)))),
-            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length(input, context)
-                }).map(LengthOrNone::Length),
-            Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
-                Ok(LengthOrNone::None),
-            _ => Err(())
-        }
-    }
-    #[inline]
-    pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
-        LengthOrNone::parse_internal(input, AllowedNumericType::All)
-    }
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrNone, ()> {
-        LengthOrNone::parse_internal(input, AllowedNumericType::NonNegative)
+        Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
     }
 }
 
