@@ -119,7 +119,7 @@ fn test_fetch_blob() {
 
 
     let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
-    let fetch_response = fetch(Rc::new(request), &mut None, context);
+    let fetch_response = fetch(Rc::new(request), &mut None, &context);
 
     assert!(!fetch_response.is_network_error());
 
@@ -231,9 +231,9 @@ fn test_cors_preflight_cache_fetch() {
     let wrapped_request1 = Rc::new(request);
 
     let fetch_response0 = fetch_with_cors_cache(wrapped_request0.clone(), &mut cache,
-                                                &mut None, new_fetch_context(None));
+                                                &mut None, &new_fetch_context(None));
     let fetch_response1 = fetch_with_cors_cache(wrapped_request1.clone(), &mut cache,
-                                                &mut None, new_fetch_context(None));
+                                                &mut None, &new_fetch_context(None));
     let _ = server.close();
 
     assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
