@@ -110,6 +110,11 @@ partial interface Element {
   attribute DOMString outerHTML;
 };
 
+// https://fullscreen.spec.whatwg.org/#api
+partial interface Element {
+  Promise<void> requestFullscreen();
+};
+
 Element implements ChildNode;
 Element implements NonDocumentTypeChildNode;
 Element implements ParentNode;

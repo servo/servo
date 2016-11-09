@@ -37753,10 +37753,10 @@
             "url": "/cookies/path/match.html"
           }
         ],
-        "cssom-view/MediaQueryList-with-empty-string.html": [
+        "fullscreen/model/remove-single.html": [
           {
-            "path": "cssom-view/MediaQueryList-with-empty-string.html",
-            "url": "/cssom-view/MediaQueryList-with-empty-string.html"
+            "path": "fullscreen/model/remove-single.html",
+            "url": "/fullscreen/model/remove-single.html"
           }
         ],
         "html/semantics/forms/the-form-element/form-action-url.html": [

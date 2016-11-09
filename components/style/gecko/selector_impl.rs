@@ -118,6 +118,7 @@ pub enum NonTSPseudoClass {
     Indeterminate,
     ReadWrite,
     ReadOnly,
+    Fullscreen,
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -136,6 +137,7 @@ impl ToCss for NonTSPseudoClass {
             Indeterminate => ":indeterminate",
             ReadWrite => ":read-write",
             ReadOnly => ":read-only",
+            Fullscreen => ":fullscreen",
         })
     }
 }
@@ -156,6 +158,7 @@ impl NonTSPseudoClass {
 
             AnyLink |
             Link |
+            Fullscreen |
             Visited => ElementState::empty(),
         }
     }
@@ -199,6 +202,7 @@ impl SelectorImpl for GeckoSelectorImpl {
             "indeterminate" => Indeterminate,
             "read-write" => ReadWrite,
             "read-only" => ReadOnly,
+            "fullscreen" => Fullscreen,
             _ => return Err(())
         };
 
