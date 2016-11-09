@@ -53,6 +53,7 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -365,6 +366,30 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// A script channel, that closes the script thread down when it is dropped
+pub struct ScriptChan {
+    chan: IpcSender<ConstellationControlMsg>,
+    dont_send_or_sync: PhantomData<Rc<()>>,
+}
+
+impl Drop for ScriptChan {
+    fn drop(&mut self) {
+        let _ = self.chan.send(ConstellationControlMsg::ExitScriptThread);
+    }
+}
+
+impl ScriptChan {
+    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), IOError> {
+        self.chan.send(msg)
+    }
+    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> Rc<ScriptChan> {
+        Rc::new(ScriptChan { chan: chan, dont_send_or_sync: PhantomData })
+    }
+    pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
+        self.chan.clone()
+    }
+}
+
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
 pub struct FromScriptLogger {
@@ -561,7 +586,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     parent_info: Option<(PipelineId, FrameType)>,
                     old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
-                    script_channel: Option<IpcSender<ConstellationControlMsg>>,
+                    script_channel: Option<Rc<ScriptChan>>,
                     load_data: LoadData,
                     is_private: bool) {
         if self.shutting_down { return; }
