@@ -590,7 +590,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // https://github.com/whatwg/xhr/issues/71
             destination: Destination::None,
             synchronous: self.sync.get(),
-            mode: RequestMode::CORSMode,
+            mode: RequestMode::CorsMode,
             use_cors_preflight: has_handlers,
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,

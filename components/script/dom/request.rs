@@ -114,7 +114,7 @@ impl Request {
                                                             url,
                                                             false);
                 // Step 5.5
-                fallback_mode = Some(NetTraitsRequestMode::CORSMode);
+                fallback_mode = Some(NetTraitsRequestMode::CorsMode);
                 // Step 5.6
                 fallback_credentials = Some(NetTraitsRequestCredentials::Omit);
             }
@@ -325,7 +325,7 @@ impl Request {
         r.Headers().empty_header_list();
 
         // Step 30
-        if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
+        if r.request.borrow().mode == NetTraitsRequestMode::NoCors {
             let borrowed_request = r.request.borrow();
             // Step 30.1
             if !is_cors_safelisted_method(&borrowed_request.method.borrow()) {
@@ -793,8 +793,8 @@ impl Into<NetTraitsRequestMode> for RequestMode {
         match self {
             RequestMode::Navigate => NetTraitsRequestMode::Navigate,
             RequestMode::Same_origin => NetTraitsRequestMode::SameOrigin,
-            RequestMode::No_cors => NetTraitsRequestMode::NoCORS,
-            RequestMode::Cors => NetTraitsRequestMode::CORSMode,
+            RequestMode::No_cors => NetTraitsRequestMode::NoCors,
+            RequestMode::Cors => NetTraitsRequestMode::CorsMode,
         }
     }
 }
@@ -804,8 +804,8 @@ impl Into<RequestMode> for NetTraitsRequestMode {
         match self {
             NetTraitsRequestMode::Navigate => RequestMode::Navigate,
             NetTraitsRequestMode::SameOrigin => RequestMode::Same_origin,
-            NetTraitsRequestMode::NoCORS => RequestMode::No_cors,
-            NetTraitsRequestMode::CORSMode => RequestMode::Cors,
+            NetTraitsRequestMode::NoCors => RequestMode::No_cors,
+            NetTraitsRequestMode::CorsMode => RequestMode::Cors,
         }
     }
 }
