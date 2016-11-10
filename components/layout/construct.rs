@@ -34,7 +34,6 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};
-use model::Direction;
 use multicol::{MulticolColumnFlow, MulticolFlow};
 use parallel;
 use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
@@ -49,6 +48,7 @@ use style::computed_values::{caption_side, display, empty_cells, float, list_sty
 use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
+use style::logical_geometry::Direction;
 use style::properties::{self, ServoComputedValues};
 use style::selector_impl::{PseudoElement, RestyleDamage};
 use style::selector_matching::Stylist;

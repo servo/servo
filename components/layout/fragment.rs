@@ -23,7 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -44,7 +44,7 @@ use style::computed_values::{transform_style, vertical_align, white_space, word_
 use style::computed_values::content::ContentItem;
 use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
-use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
+use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_impl::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;

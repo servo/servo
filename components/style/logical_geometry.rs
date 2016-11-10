@@ -213,6 +213,13 @@ impl Debug for DebugWritingMode {
 }
 
 
+// Used to specify the logical direction.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Direction {
+    Inline,
+    Block
+}
+
 /// A 2D size in flow-relative dimensions
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(Serialize))]
@@ -761,6 +768,16 @@ impl<T: Copy + Add<T, Output=T>> LogicalMargin<T> {
     #[inline]
     pub fn block_start_end(&self) -> T {
         self.block_start + self.block_end
+    }
+
+    #[inline]
+    pub fn start_end(&self, direction: Direction) -> T {
+        match direction {
+            Direction::Inline =>
+                self.inline_start + self.inline_end,
+            Direction::Block =>
+                self.block_start + self.block_end
+        }
     }
 
     #[inline]
