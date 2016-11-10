@@ -819,34 +819,40 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<CookieHeader>(),
+                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let context = new_fetch_context(None);
 
     {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-        let cookie_url = url.clone();
+        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &cookie_url,
+            &url,
             CookieSource::HTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut cookie = Headers::new();
-    cookie.set(CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: cookie,
-                     body: <[_]>::to_vec(&*load_data.data.unwrap())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    let _ = server.close();
+
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
