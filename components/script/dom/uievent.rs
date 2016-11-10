@@ -12,7 +12,6 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use servo_atoms::Atom;
 use std::cell::Cell;
@@ -52,12 +51,12 @@ impl UIEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Root<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
-        let event = UIEvent::new(global.as_window(),
+        let event = UIEvent::new(window,
                                  type_,
                                  bubbles, cancelable,
                                  init.view.r(), init.detail);

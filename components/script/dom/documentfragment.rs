@@ -12,10 +12,10 @@ use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
-use dom::globalscope::GlobalScope;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::window::Window;
 use servo_atoms::Atom;
 
 // https://dom.spec.whatwg.org/#documentfragment
@@ -38,8 +38,8 @@ impl DocumentFragment {
                            DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<DocumentFragment>> {
-        let document = global.as_window().Document();
+    pub fn Constructor(window: &Window) -> Fallible<Root<DocumentFragment>> {
+        let document = window.Document();
 
         Ok(DocumentFragment::new(&document))
     }

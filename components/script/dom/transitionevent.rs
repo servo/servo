@@ -13,6 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -46,9 +47,10 @@ impl TransitionEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &TransitionEventInit) -> Fallible<Root<TransitionEvent>> {
+        let global = window.upcast::<GlobalScope>();
         Ok(TransitionEvent::new(global, Atom::from(type_), init))
     }
 }

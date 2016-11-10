@@ -53,12 +53,12 @@ impl FocusEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &FocusEventBinding::FocusEventInit) -> Fallible<Root<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.cancelable);
-        let event = FocusEvent::new(global.as_window(),
+        let event = FocusEvent::new(window,
                                     type_,
                                     bubbles,
                                     cancelable,

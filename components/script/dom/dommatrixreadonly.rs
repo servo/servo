@@ -8,11 +8,13 @@ use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{DOMMatrixReadOn
 use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use dom::bindings::error;
 use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{reflect_dom_object, Reflectable, Reflector};
 use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use euclid::{Matrix4D, Point4D, Radians};
 use std::cell::{Cell, Ref};
 use std::f64;
@@ -40,12 +42,14 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Self>> {
+    pub fn Constructor(window: &Window) -> Fallible<Root<Self>> {
+        let global = window.upcast::<GlobalScope>();
         Ok(Self::new(global, true, Matrix4D::identity()))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<Root<Self>> {
+    pub fn Constructor_(window: &Window, entries: Vec<f64>) -> Fallible<Root<Self>> {
+        let global = window.upcast::<GlobalScope>();
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)

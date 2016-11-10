@@ -11,6 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use servo_atoms::Atom;
 
@@ -41,9 +42,10 @@ impl ExtendableEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
                        type_: DOMString,
                        init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
+        let global = worker.upcast::<GlobalScope>();
         Ok(ExtendableEvent::new(global,
                                 Atom::from(type_),
                                 init.parent.bubbles,

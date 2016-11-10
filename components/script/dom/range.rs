@@ -22,11 +22,11 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::element::Element;
-use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
+use dom::window::Window;
 use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};
@@ -70,8 +70,8 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Range>> {
-        let document = global.as_window().Document();
+    pub fn Constructor(window: &Window) -> Fallible<Root<Range>> {
+        let document = window.Document();
         Ok(Range::new_with_doc(&document))
     }
 

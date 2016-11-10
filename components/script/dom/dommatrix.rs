@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
 use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use euclid::Matrix4D;
 
 
@@ -32,12 +33,13 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Self>> {
-        Self::Constructor_(global, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+    pub fn Constructor(window: &Window) -> Fallible<Root<Self>> {
+        Self::Constructor_(window, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
-    pub fn Constructor_(global: &GlobalScope, entries: Vec<f64>) -> Fallible<Root<Self>> {
+    pub fn Constructor_(window: &Window, entries: Vec<f64>) -> Fallible<Root<Self>> {
+        let global = window.upcast::<GlobalScope>();
         entries_to_matrix(&entries[..])
             .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
