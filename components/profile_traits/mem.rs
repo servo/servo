@@ -19,7 +19,9 @@ pub trait OpaqueSender<T> {
 
 impl<T> OpaqueSender<T> for Sender<T> {
     fn send(&self, message: T) {
-        let _ = Sender::send(self, message);
+        if let Err(e) = Sender::send(self, message) {
+            warn!("Error communicating with the target thread from the profiler: {}", e);
+        }
     }
 }
 
@@ -31,9 +33,11 @@ pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 impl ProfilerChan {
     /// Send `msg` on this `IpcSender`.
     ///
-    /// Panics if the send fails.
+    /// Warns if the send fails.
     pub fn send(&self, msg: ProfilerMsg) {
-        self.0.send(msg).unwrap();
+        if let Err(e) = self.0.send(msg) {
+            warn!("Error communicating with the memory profiler thread: {}", e);
+        }
     }
 
     /// Runs `f()` with memory profiling.
