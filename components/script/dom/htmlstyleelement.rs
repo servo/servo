@@ -65,8 +65,7 @@ impl HTMLStyleElement {
         let mut sheet = Stylesheet::from_str(&data, url, Origin::Author, win.css_error_reporter(),
                                              ParserContextExtraData::default());
         let mut css_parser = CssParser::new(&mq_str);
-        let media = parse_media_query_list(&mut css_parser);
-        sheet.set_media(Some(media));
+        sheet.set_media(parse_media_query_list(&mut css_parser));
         let sheet = Arc::new(sheet);
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();

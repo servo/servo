@@ -59,11 +59,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
 #[test]
 fn test_mq_empty() {
     test_media_rule("@media { }", |list, css| {
-        assert!(list.media_queries.len() == 1, css.to_owned());
-        let q = &list.media_queries[0];
-        assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::All, css.to_owned());
-        assert!(q.expressions.len() == 0, css.to_owned());
+        assert!(list.media_queries.len() == 0, css.to_owned());
     });
 }
 
