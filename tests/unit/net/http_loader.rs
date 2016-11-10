@@ -1091,30 +1091,29 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
-    let mut accept_headers = Headers::new();
-    accept_headers.set(Accept(vec![
-        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
-        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
-    ]));
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<Accept>(), Some(&Accept(vec![
+            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+        ])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let _ = server.close();
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
