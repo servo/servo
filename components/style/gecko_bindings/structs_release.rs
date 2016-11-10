@@ -5506,7 +5506,7 @@ pub struct FragmentOrElement_nsDOMSlots {
     /**
      * Holds any SMIL override style declaration for this element.
      */
-    pub mSMILOverrideStyleDeclaration: RefPtr<Declaration>,
+    pub mSMILOverrideStyleDeclaration: RefPtr<DeclarationBlock>,
     /**
      * An object implementing nsIDOMMozNamedAttrMap for this content (attributes)
      * @see FragmentOrElement::GetAttributes
@@ -7368,6 +7368,14 @@ fn bindgen_test_layout_nsAttrName() {
     assert_eq!(::std::mem::align_of::<nsAttrName>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DeclarationBlock {
+    pub _address: u8,
+}
+impl Clone for DeclarationBlock {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct URLValue {
     pub _base: URLValueData,
@@ -7514,14 +7522,6 @@ pub struct nsDOMStringMap {
     pub _address: u8,
 }
 impl Clone for nsDOMStringMap {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct Declaration {
-    pub _address: u8,
-}
-impl Clone for Declaration {
     fn clone(&self) -> Self { *self }
 }
 /**
@@ -8861,7 +8861,7 @@ pub enum nsCSSPropertyID {
     eCSSProperty_flex_grow = 106,
     eCSSProperty_flex_shrink = 107,
     eCSSProperty_flex_wrap = 108,
-    eCSSProperty_float = 109,
+    eCSSProperty_float_ = 109,
     eCSSProperty_float_edge = 110,
     eCSSProperty_flood_color = 111,
     eCSSProperty_flood_opacity = 112,
