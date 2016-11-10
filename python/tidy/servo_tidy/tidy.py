@@ -14,7 +14,6 @@ import itertools
 import json
 import os
 import re
-import site
 import StringIO
 import subprocess
 import sys
@@ -30,6 +29,7 @@ config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-ordered-json-keys": [],
+    "lint-scripts": [],
     "ignore": {
         "files": [
             "./.",   # ignore hidden files
@@ -870,26 +870,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_wpt_files(suite, only_changed_files, progress):
-    wpt_dir = os.path.join(".", "tests", "wpt", suite, "")
-    file_iter = FileList(os.path.join(wpt_dir), only_changed_files=only_changed_files, progress=progress)
-    print '\nRunning the WPT lint...'
-    for f in file_iter:
-        if filter_file(f):
-            yield f[len(wpt_dir):]
-
-
-def check_wpt_lint_errors(suite, files):
-    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    if os.path.isdir(wpt_working_dir):
-        site.addsitedir(wpt_working_dir)
-        from tools.lint import lint
-        file_dir = os.path.abspath(os.path.join(".", "tests", "wpt", suite))
-        returncode = lint.lint(file_dir, files, output_json=False)
-        if returncode:
-            yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
-
-
 def get_dep_toml_files(only_changed_files=False):
     if not only_changed_files:
         print '\nRunning the dependency licensing lint...'
@@ -973,13 +953,10 @@ def scan(only_changed_files=False, progress=True):
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
-    # wpt lint checks
-    wpt_lint_errors = [
-        check_wpt_lint_errors(suite, get_wpt_files(suite, only_changed_files, progress))
-        for suite in ["web-platform-tests", os.path.join("mozilla", "tests")]
-    ]
+    # other lint checks
+    lint_errors = run_lint_scripts(only_changed_files, progress)
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, *wpt_lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, lint_errors)
 
     error = None
     for error in errors:
