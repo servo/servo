@@ -9,6 +9,7 @@
 
 import contextlib
 import fnmatch
+import imp
 import itertools
 import json
 import os
@@ -909,6 +910,54 @@ def check_dep_license_errors(filenames, progress=True):
                     ok_licensed |= (license_line in line)
             if not ok_licensed:
                 yield (filename, 0, "dependency should contain a valid license.")
+
+
+class LintRunner(object):
+    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True):
+        self.only_changed_files = only_changed_files
+        self.exclude_dirs = exclude_dirs
+        self.progress = progress
+        self.path = lint_path
+
+    def check(self):
+        if not os.path.exists(self.path):
+            yield (self.path, 0, "file does not exist")
+            return
+        if not self.path.endswith('.py'):
+            yield (self.path, 0, "lint should be a python script")
+            return
+        dir_name, filename = os.path.split(self.path)
+        sys.path.append(dir_name)
+        module = imp.load_source(filename[:-3], self.path)
+        if hasattr(module, 'Lint'):
+            if issubclass(module.Lint, LintRunner):
+                lint = module.Lint(self.path, self.only_changed_files, self.exclude_dirs, self.progress)
+                for error in lint.run():
+                    if not hasattr(error, '__iter__'):
+                        yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
+                        return
+                    yield error
+            else:
+                yield (self.path, 1, "class 'Lint' should inherit from 'LintRunner'")
+        else:
+            yield (self.path, 1, "script should contain a class named 'Lint'")
+        sys.path.remove(dir_name)
+
+    def get_files(self, path, **kwargs):
+        args = ['only_changed_files', 'exclude_dirs', 'progress']
+        kwargs = {k: kwargs.get(k, getattr(self, k)) for k in args}
+        return FileList(path, **kwargs)
+
+    def run(self):
+        yield (self.path, 0, "class 'Lint' should implement 'run' method")
+
+
+def run_lint_scripts(only_changed_files=False, progress=True):
+    runner = LintRunner(only_changed_files=only_changed_files, progress=progress)
+    for path in config['lint-scripts']:
+        runner.path = path
+        for error in runner.check():
+            yield error
 
 
 def scan(only_changed_files=False, progress=True):
