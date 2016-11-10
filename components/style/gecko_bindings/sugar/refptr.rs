@@ -156,12 +156,20 @@ impl<T: RefCounted> structs::RefPtr<T> {
     ///
     /// Both `self` and `other` must be valid, but can be null
     pub unsafe fn set(&mut self, other: &Self) {
+        self.clear();
+        if !other.mRawPtr.is_null() {
+            *self = other.to_safe().forget();
+        }
+    }
+
+    /// Clear an instance of the structs::RefPtr<T>, by releasing
+    /// it and setting its contents to null
+    ///
+    /// `self` must be valid, but can be null
+    pub unsafe fn clear(&mut self) {
         if !self.mRawPtr.is_null() {
             (*self.mRawPtr).release();
             self.mRawPtr = ptr::null_mut();
-        }
-        if !other.mRawPtr.is_null() {
-            *self = other.to_safe().forget();
         }
     }
 
@@ -233,5 +241,8 @@ impl_threadsafe_refcount!(::gecko_bindings::bindings::ThreadSafeURIHolder,
 impl_threadsafe_refcount!(::gecko_bindings::structs::nsStyleQuoteValues,
                           Gecko_AddRefQuoteValuesArbitraryThread,
                           Gecko_ReleaseQuoteValuesArbitraryThread);
+impl_threadsafe_refcount!(::gecko_bindings::structs::nsCSSValueSharedList,
+                          Gecko_AddRefCSSValueSharedListArbitraryThread,
+                          Gecko_ReleaseCSSValueSharedListArbitraryThread);
 pub type GeckoArcPrincipal = RefPtr<::gecko_bindings::bindings::ThreadSafePrincipalHolder>;
 pub type GeckoArcURI = RefPtr<::gecko_bindings::bindings::ThreadSafeURIHolder>;

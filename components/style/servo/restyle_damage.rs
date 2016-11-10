@@ -232,7 +232,7 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_position.top, get_position.left,
         get_position.right, get_position.bottom,
         get_effects.opacity,
-        get_effects.transform, get_effects.transform_style, get_effects.transform_origin,
+        get_box.transform, get_effects.transform_style, get_effects.transform_origin,
         get_effects.perspective, get_effects.perspective_origin
     ]) || add_if_not_equal!(old, new, damage,
                             [REPAINT], [
