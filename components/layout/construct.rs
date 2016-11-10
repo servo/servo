@@ -30,7 +30,7 @@ use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::WhitespaceStrippingResult;
 use gfx::display_list::OpaqueNode;
-use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};
@@ -161,6 +161,32 @@ pub struct InlineBlockSplit {
     pub flow: FlowRef,
 }
 
+impl InlineBlockSplit {
+    /// Flushes the given accumulator to the new split and makes a new accumulator to hold any
+    /// subsequent fragments.
+    fn new<ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>(fragment_accumulator: &mut InlineFragmentsAccumulator,
+                                                               node: &ConcreteThreadSafeLayoutNode,
+                                                               style_context: &SharedStyleContext,
+                                                               flow: FlowRef)
+                                                               -> InlineBlockSplit {
+        fragment_accumulator.enclosing_node.as_mut().expect(
+            "enclosing_node is None; Are {ib} splits being generated outside of an inline node?"
+        ).flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+
+        let split = InlineBlockSplit {
+            predecessors: mem::replace(
+                fragment_accumulator,
+                InlineFragmentsAccumulator::from_inline_node(
+                    node, style_context)).to_intermediate_inline_fragments(),
+            flow: flow,
+        };
+
+        fragment_accumulator.enclosing_node.as_mut().unwrap().flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+
+        split
+    }
+}
+
 /// Holds inline fragments and absolute descendants.
 #[derive(Clone)]
 pub struct IntermediateInlineFragments {
@@ -194,8 +220,14 @@ struct InlineFragmentsAccumulator {
     /// The list of fragments.
     fragments: IntermediateInlineFragments,
 
-    /// Whether we've created a range to enclose all the fragments. This will be Some() if the
-    /// outer node is an inline and None otherwise.
+    /// Information about the inline box directly enclosing the fragments being gathered, if any.
+    ///
+    /// `inline::InlineFragmentNodeInfo` also stores flags indicating whether a fragment is the
+    /// first and/or last of the corresponding inline box. This `InlineFragmentsAccumulator` may
+    /// represent only one side of an {ib} split, so we store these flags as if it represented only
+    /// one fragment. `to_intermediate_inline_fragments` later splits this hypothetical fragment
+    /// into pieces, leaving the `FIRST_FRAGMENT_OF_ELEMENT` and `LAST_FRAGMENT_OF_ELEMENT` flags,
+    /// if present, on the first and last fragments of the output.
     enclosing_node: Option<InlineFragmentNodeInfo>,
 
     /// Restyle damage to use for fragments created in this node.
@@ -224,7 +256,7 @@ impl InlineFragmentsAccumulator {
                 pseudo: node.get_pseudo_element_type().strip(),
                 style: node.style(style_context),
                 selected_style: node.selected_style(),
-                flags: InlineFragmentNodeFlags::empty(),
+                flags: FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT,
             }),
             bidi_control_chars: None,
             restyle_damage: node.restyle_damage(),
@@ -247,21 +279,23 @@ impl InlineFragmentsAccumulator {
             bidi_control_chars,
             restyle_damage,
         } = self;
-        if let Some(enclosing_node) = enclosing_node {
+        if let Some(mut enclosing_node) = enclosing_node {
             let fragment_count = fragments.fragments.len();
             for (index, fragment) in fragments.fragments.iter_mut().enumerate() {
                 let mut enclosing_node = enclosing_node.clone();
-                if index == 0 {
-                    enclosing_node.flags.insert(FIRST_FRAGMENT_OF_ELEMENT)
+                if index != 0 {
+                    enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT)
                 }
-                if index == fragment_count - 1 {
-                    enclosing_node.flags.insert(LAST_FRAGMENT_OF_ELEMENT)
+                if index != fragment_count - 1 {
+                    enclosing_node.flags.remove(LAST_FRAGMENT_OF_ELEMENT)
                 }
                 fragment.add_inline_context_style(enclosing_node);
             }
 
             // Control characters are later discarded in transform_text, so they don't affect the
             // is_first/is_last styles above.
+            enclosing_node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT);
+
             if let Some((start, end)) = bidi_control_chars {
                 fragments.fragments.push_front(
                     control_chars_to_fragment(&enclosing_node, start, restyle_damage));
@@ -717,14 +751,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             } = split;
             fragment_accumulator.push_all(predecessors);
 
-            let split = InlineBlockSplit {
-                predecessors: mem::replace(
-                    fragment_accumulator,
-                    InlineFragmentsAccumulator::from_inline_node(
-                        node, self.style_context())).to_intermediate_inline_fragments(),
-                flow: kid_flow,
-            };
-            opt_inline_block_splits.push_back(split)
+            opt_inline_block_splits.push_back(
+                InlineBlockSplit::new(fragment_accumulator, node, self.style_context(), kid_flow));
         }
     }
 
@@ -751,17 +779,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 ConstructionResult::None => {}
                 ConstructionResult::Flow(flow, kid_abs_descendants) => {
                     if !flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                        // {ib} split. Flush the accumulator to our new split and make a new
-                        // accumulator to hold any subsequent fragments we come across.
-                        let split = InlineBlockSplit {
-                            predecessors:
-                                mem::replace(
-                                    &mut fragment_accumulator,
-                                    InlineFragmentsAccumulator::from_inline_node(
-                                        node, self.style_context())).to_intermediate_inline_fragments(),
-                            flow: flow,
-                        };
-                        opt_inline_block_splits.push_back(split);
+                        opt_inline_block_splits.push_back(InlineBlockSplit::new(
+                            &mut fragment_accumulator, node, self.style_context(), flow));
                         abs_descendants.push_descendants(kid_abs_descendants);
                     } else {
                         // Push the absolutely-positioned kid as an inline containing block.
