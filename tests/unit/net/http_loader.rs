@@ -1037,25 +1037,28 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
 #[test]
 fn test_load_sets_content_length_to_length_of_request_body() {
-    let content = "This is a request body";
+    let content = b"This is a request body";
+    let content_length = ContentLength(content.len() as u64);
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<ContentLength>(), Some(&content_length));
+        response.send(content).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        body: Some(content.to_vec()),
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
+    let _ = server.close();
 
-    let mut content_len_headers = Headers::new();
-    content_len_headers.set(ContentLength(content.as_bytes().len() as u64));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data.clone(), &ui_provider, &http_state,
-                 None, &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: content_len_headers,
-                     body: <[_]>::to_vec(&*load_data.data.unwrap())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
