@@ -17,7 +17,7 @@ use url::Url;
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
-    CORS,
+    Cors,
     Default,
     Error(NetworkError),
     Opaque,
@@ -202,7 +202,7 @@ impl Response {
                 response.headers = headers;
             },
 
-            ResponseType::CORS => {
+            ResponseType::Cors => {
                 let access = old_headers.get::<AccessControlExposeHeaders>();
                 let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 

@@ -32,7 +32,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::request::{CORSSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
@@ -220,7 +220,7 @@ impl PreInvoke for ScriptContext {}
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: Url,
-                          cors_setting: Option<CORSSettings>,
+                          cors_setting: Option<CorsSettings>,
                           character_encoding: EncodingRef) {
     let doc = document_from_node(script);
 
@@ -232,13 +232,13 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
         mode: match cors_setting {
-            Some(_) => RequestMode::CORSMode,
-            None => RequestMode::NoCORS,
+            Some(_) => RequestMode::CorsMode,
+            None => RequestMode::NoCors,
         },
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 3-4
         credentials_mode: match cors_setting {
-            Some(CORSSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
         },
         origin: doc.url().clone(),
@@ -359,8 +359,8 @@ impl HTMLScriptElement {
 
         // Step 14.
         let cors_setting = match self.GetCrossOrigin() {
-            Some(ref s) if *s == "anonymous" => Some(CORSSettings::Anonymous),
-            Some(ref s) if *s == "use-credentials" => Some(CORSSettings::UseCredentials),
+            Some(ref s) if *s == "anonymous" => Some(CorsSettings::Anonymous),
+            Some(ref s) if *s == "use-credentials" => Some(CorsSettings::UseCredentials),
             None => None,
             _ => unreachable!()
         };

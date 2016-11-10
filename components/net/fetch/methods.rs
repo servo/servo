@@ -6,7 +6,7 @@ use blob_loader::load_blob_sync;
 use connector::create_http_connector;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
-use fetch::cors_cache::CORSCache;
+use fetch::cors_cache::CorsCache;
 use filemanager_thread::{FileManager, UIProvider};
 use http_loader::{HttpState, set_default_accept_encoding, set_default_accept_language, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
@@ -65,11 +65,11 @@ pub fn fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                                        target: &mut Target,
                                        context: &FetchContext<UI>)
                                        -> Response {
-    fetch_with_cors_cache(request, &mut CORSCache::new(), target, context)
+    fetch_with_cors_cache(request, &mut CorsCache::new(), target, context)
 }
 
 pub fn fetch_with_cors_cache<UI: 'static + UIProvider>(request: Rc<Request>,
-                                                       cache: &mut CORSCache,
+                                                       cache: &mut CorsCache,
                                                        target: &mut Target,
                                                        context: &FetchContext<UI>)
                                                        -> Response {
@@ -136,7 +136,7 @@ pub fn fetch_with_cors_cache<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                        cache: &mut CORSCache,
+                                        cache: &mut CorsCache,
                                         cors_flag: bool,
                                         recursive_flag: bool,
                                         target: &mut Target,
@@ -213,7 +213,7 @@ fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
 
-            } else if request.mode == RequestMode::NoCORS {
+            } else if request.mode == RequestMode::NoCors {
                 request.response_tainting.set(ResponseTainting::Opaque);
                 basic_fetch(request.clone(), cache, target, done_chan, context)
 
@@ -224,7 +224,7 @@ fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                 (request.unsafe_request &&
                  (!is_simple_method(&request.method.borrow()) ||
                   request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
-                request.response_tainting.set(ResponseTainting::CORSTainting);
+                request.response_tainting.set(ResponseTainting::CorsTainting);
                 request.redirect_mode.set(RedirectMode::Error);
                 let response = http_fetch(request.clone(), cache, true, true, false,
                                           target, done_chan, context);
@@ -234,7 +234,7 @@ fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                 response
 
             } else {
-                request.response_tainting.set(ResponseTainting::CORSTainting);
+                request.response_tainting.set(ResponseTainting::CorsTainting);
                 http_fetch(request.clone(), cache, true, false, false, target, done_chan, context)
             }
         }
@@ -250,7 +250,7 @@ fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
     let response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
-            ResponseTainting::CORSTainting => ResponseType::CORS,
+            ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
         response.to_filtered(response_type)
@@ -400,7 +400,7 @@ fn main_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
 fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                         cache: &mut CORSCache,
+                                         cache: &mut CorsCache,
                                          target: &mut Target,
                                          done_chan: &mut DoneChannel,
                                          context: &FetchContext<UI>)
@@ -492,7 +492,7 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                        cache: &mut CORSCache,
+                                        cache: &mut CorsCache,
                                         cors_flag: bool,
                                         cors_preflight_flag: bool,
                                         authentication_fetch_flag: bool,
@@ -519,7 +519,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
             // Substep 3
             if (res.response_type == ResponseType::Opaque &&
-                request.mode != RequestMode::NoCORS) ||
+                request.mode != RequestMode::NoCors) ||
                (res.response_type == ResponseType::OpaqueRedirect &&
                 request.redirect_mode.get() != RedirectMode::Manual) ||
                (res.url_list.borrow().len() > 1 &&
@@ -667,7 +667,7 @@ fn http_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                                 cache: &mut CORSCache,
+                                                 cache: &mut CorsCache,
                                                  response: Response,
                                                  cors_flag: bool,
                                                  target: &mut Target,
@@ -713,7 +713,7 @@ fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
     };
     let has_credentials = has_credentials(&location_url);
 
-    if request.mode == RequestMode::CORSMode && !same_origin && has_credentials {
+    if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
         return Response::network_error(NetworkError::Internal("Cross-origin credentials check failed".into()));
     }
 
@@ -1158,7 +1158,7 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
 fn cors_preflight_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
-                                                  cache: &mut CORSCache,
+                                                  cache: &mut CorsCache,
                                                   context: &FetchContext<UI>)
                                                   -> Response {
     // Step 1

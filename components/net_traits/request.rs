@@ -57,8 +57,8 @@ pub enum Referrer {
 pub enum RequestMode {
     Navigate,
     SameOrigin,
-    NoCORS,
-    CORSMode
+    NoCors,
+    CorsMode
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -92,7 +92,7 @@ pub enum RedirectMode {
 #[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ResponseTainting {
     Basic,
-    CORSTainting,
+    CorsTainting,
     Opaque
 }
 
@@ -106,7 +106,7 @@ pub enum Window {
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
 #[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
-pub enum CORSSettings {
+pub enum CorsSettings {
     Anonymous,
     UseCredentials
 }
@@ -151,7 +151,7 @@ impl Default for RequestInit {
             type_: Type::None,
             destination: Destination::None,
             synchronous: false,
-            mode: RequestMode::NoCORS,
+            mode: RequestMode::NoCors,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
@@ -232,7 +232,7 @@ impl Request {
             referrer_policy: Cell::new(None),
             pipeline_id: Cell::new(pipeline_id),
             synchronous: false,
-            mode: RequestMode::NoCORS,
+            mode: RequestMode::NoCors,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
