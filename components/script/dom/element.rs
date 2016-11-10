@@ -1230,7 +1230,9 @@ impl Element {
         if !self.is_connected() {
             return false
         }
-        return true
+        // allow fullscreen
+        let document = document_from_node(self);
+        document.get_allow_fullscreen()
     }
 }
 
@@ -2111,10 +2113,8 @@ impl VirtualMethods for Element {
             let doc = document_from_node(self);
             doc.unregister_named_element(self, value.clone());
             let fullscreen = doc.GetFullscreenElement();
-            if let Some(ref fullscreen) = fullscreen {
-                if fullscreen.r() == self {
-                    doc.exit_fullscreen();
-                }
+            if fullscreen.r() == Some(self) {
+                doc.exit_fullscreen();
             }
         }
     }
@@ -2675,7 +2675,7 @@ impl TagName {
     }
 }
 
-pub struct  ElementPerformFullscreenEnter {
+pub struct ElementPerformFullscreenEnter {
     element: Trusted<Element>,
     promise: TrustedPromise,
     error: bool,
@@ -2727,7 +2727,7 @@ impl Runnable for ElementPerformFullscreenEnter {
     }
 }
 
-pub struct  ElementPerformFullscreenExit {
+pub struct ElementPerformFullscreenExit {
     element: Trusted<Element>,
     promise: TrustedPromise,
 }

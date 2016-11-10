@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementVisib
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -491,16 +492,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
-    fn AllowFullscreen(&self) -> bool {
-        let doc = document_from_node(self);
-        doc.get_allow_fullscreen()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
-    fn SetAllowFullscreen(&self, value: bool) {
-        let doc = document_from_node(self);
-        doc.set_allow_fullscreen(value);
-    }
+    make_bool_getter!(AllowFullscreen, "allowfullscreen");
+    make_bool_setter!(SetAllowFullscreen, "allowfullscreen");
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
