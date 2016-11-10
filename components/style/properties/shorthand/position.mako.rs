@@ -56,6 +56,7 @@
 
 // https://drafts.csswg.org/css-flexbox/#flex-property
 <%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis">
+    use parser::Parse;
     use app_units::Au;
     use values::specified::{Number, Length, LengthOrPercentageOrAutoOrContent};
 

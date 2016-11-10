@@ -67,7 +67,7 @@
 
             pub mod single_value {
                 use cssparser::Parser;
-                use parser::{ParserContext, ParserContextExtraData};
+                use parser::{Parse, ParserContext, ParserContextExtraData};
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
@@ -175,13 +175,12 @@
         #![allow(unused_imports)]
         % if not property.derived_from:
             use cssparser::Parser;
-            use parser::{ParserContext, ParserContextExtraData};
+            use parser::{Parse, ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
-        use parser::Parse;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
         use properties::{ComputedValues, PropertyDeclaration};

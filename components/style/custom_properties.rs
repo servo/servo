@@ -8,6 +8,7 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType};
+use parser::Parse;
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -111,15 +112,17 @@ impl ComputedValue {
     }
 }
 
-pub fn parse(input: &mut Parser) -> Result<SpecifiedValue, ()> {
-    let mut references = Some(HashSet::new());
-    let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
-    Ok(SpecifiedValue {
-        css: css.into_owned(),
-        first_token_type: first,
-        last_token_type: last,
-        references: references.unwrap(),
-    })
+impl Parse for SpecifiedValue {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        let mut references = Some(HashSet::new());
+        let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
+        Ok(SpecifiedValue {
+            css: css.into_owned(),
+            first_token_type: first,
+            last_token_type: last,
+            references: references.unwrap(),
+        })
+    }
 }
 
 /// Parse the value of a non-custom property that contains `var()` references.

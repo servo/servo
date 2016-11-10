@@ -5,7 +5,7 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
@@ -36,8 +36,9 @@ pub struct CSSColor {
     pub parsed: cssparser::Color,
     pub authored: Option<String>,
 }
-impl CSSColor {
-    pub fn parse(input: &mut Parser) -> Result<CSSColor, ()> {
+
+impl Parse for CSSColor {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned()),
@@ -192,9 +193,11 @@ impl BorderRadiusSize {
     pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
         BorderRadiusSize(Size2D::new(radius, radius))
     }
+}
 
+impl Parse for BorderRadiusSize {
     #[inline]
-    pub fn parse(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let first = try!(LengthOrPercentage::parse_non_negative(input));
         let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
         Ok(BorderRadiusSize(Size2D::new(first, second)))
@@ -236,9 +239,9 @@ const RAD_PER_DEG: CSSFloat = PI / 180.0;
 const RAD_PER_GRAD: CSSFloat = PI / 200.0;
 const RAD_PER_TURN: CSSFloat = PI * 2.0;
 
-impl Angle {
+impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
-    pub fn parse(input: &mut Parser) -> Result<Angle, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
             Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
@@ -248,7 +251,9 @@ impl Angle {
             _ => Err(())
         }
     }
+}
 
+impl Angle {
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
         match_ignore_ascii_case! { unit,
             "deg" => Ok(Angle(value * RAD_PER_DEG)),
@@ -399,8 +404,12 @@ impl Time {
             Err(())
         }
     }
+}
 
-    pub fn parse(input: &mut Parser) -> Result<Time, ()> {
+impl ComputedValueAsSpecified for Time {}
+
+impl Parse for Time {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match input.next() {
             Ok(Token::Dimension(ref value, ref unit)) => {
                 Time::parse_dimension(value.value, &unit)
@@ -412,8 +421,6 @@ impl Time {
         }
     }
 }
-
-impl ComputedValueAsSpecified for Time {}
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -427,11 +434,13 @@ pub struct Number(pub CSSFloat);
 
 impl NoViewportPercentage for Number {}
 
-impl Number {
-    pub fn parse(input: &mut Parser) -> Result<Number, ()> {
+impl Parse for Number {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Number)
     }
+}
 
+impl Number {
     fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
         match parse_number(input) {
             Ok(value) if value < min => Err(()),
@@ -472,8 +481,8 @@ pub struct Opacity(pub CSSFloat);
 
 impl NoViewportPercentage for Opacity {}
 
-impl Opacity {
-    pub fn parse(input: &mut Parser) -> Result<Opacity, ()> {
+impl Parse for Opacity {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Opacity)
     }
 }
