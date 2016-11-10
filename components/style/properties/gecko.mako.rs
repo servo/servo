@@ -962,7 +962,8 @@ fn static_assert() {
 
 <% skip_box_longhands= """display overflow-y vertical-align
                           -moz-binding page-break-before page-break-after
-                          scroll-snap-points-x scroll-snap-points-y transform""" %>
+                          scroll-snap-points-x scroll-snap-points-y transform
+                          scroll-snap-type-y""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1204,6 +1205,22 @@ fn static_assert() {
     pub fn copy_transform_from(&mut self, other: &Self) {
         unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
     }
+
+    pub fn set_scroll_snap_type_y(&mut self, v: longhands::scroll_snap_type_y::computed_value::T) {
+        use properties::longhands::scroll_snap_type_y::computed_value::SpecifiedValue;
+        use gecko_bindings::structs::{NS_STYLE_SCROLL_SNAP_TYPE_NONE,
+                                      NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY,
+                                      NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY};
+
+        self.gecko.mScrollSnapTypeY = match *v {
+            SpecifiedValue::none => NS_STYLE_SCROLL_SNAP_TYPE_NONE,
+            SpecifiedValue::mandatory => NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY,
+            SpecifiedValue::proximity => NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY,
+        };
+    }
+
+    ${impl_simple_copy('scroll_snap_type_y', 'mScrollSnapTypeY')}
+
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
