@@ -28,5 +28,5 @@ void main(void) {
     vec2 st = vTextureOffset + ((position_in_tile / vStretchSize) * vTextureSize);
     alpha = alpha * float(all(bvec2(step(position_in_tile, vStretchSize))));
 
-    oFragColor = texture(sDiffuse, st) * vec4(1, 1, 1, alpha);
+    oFragColor = texture(sColor0, st) * vec4(1, 1, 1, alpha);
 }
