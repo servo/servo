@@ -38,6 +38,7 @@ use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use url::Url;
@@ -1207,6 +1208,52 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     assert_eq!(response.get_network_error(),
                Some(&NetworkError::Internal("Too many redirects".to_owned())));
+}
+
+#[test]
+fn test_load_succeeds_with_a_redirect_loop() {
+    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a_clone = url_b_for_a.clone();
+    let handled_a = AtomicBool::new(false);
+    let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
+        if !handled_a.swap(true, Ordering::SeqCst) {
+            response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+            *response.status_mut() = StatusCode::MovedPermanently;
+            response.send(b"").unwrap();
+        } else {
+            response.send(b"Success").unwrap();
+        }
+    };
+    let (mut server_a, url_a) = make_server(handler_a);
+
+    let url_a_for_b = url_a.clone();
+    let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_b, url_b) = make_server(handler_b);
+
+    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
+
+    let request = Request::from_init(RequestInit {
+        url: url_a.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url_a.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+
+    let _ = server_a.close();
+    let _ = server_b.close();
+
+    let response = response.to_actual();
+    assert_eq!(*response.url_list.borrow(),
+               [url_a.clone(), url_b, url_a]);
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Success".to_vec()));
 }
 
 #[test]
