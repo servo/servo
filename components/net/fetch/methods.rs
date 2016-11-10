@@ -409,9 +409,7 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
     match url.scheme() {
         "about" if url.path() == "blank" => {
-            let mut response = Response::new();
-            // https://github.com/whatwg/fetch/issues/312
-            response.url = Some(url);
+            let mut response = Response::new(url);
             response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
@@ -425,9 +423,7 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
             if *request.method.borrow() == Method::Get {
                 match decode(&url) {
                     Ok((mime, bytes)) => {
-                        let mut response = Response::new();
-                        // https://github.com/whatwg/fetch/issues/312
-                        response.url = Some(url.clone());
+                        let mut response = Response::new(url);
                         *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                         response.headers.set(ContentType(mime));
                         response
@@ -449,9 +445,7 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
                                 let _ = file.read_to_end(&mut bytes);
                                 let mime = guess_mime_type(file_path);
 
-                                let mut response = Response::new();
-                                // https://github.com/whatwg/fetch/issues/312
-                                response.url = Some(url.clone());
+                                let mut response = Response::new(url);
                                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                                 response.headers.set(ContentType(mime));
                                 response
@@ -475,8 +469,7 @@ fn basic_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
 
             match load_blob_sync(url.clone(), context.filemanager.clone()) {
                 Ok((headers, bytes)) => {
-                    let mut response = Response::new();
-                    response.url = Some(url.clone());
+                    let mut response = Response::new(url);
                     response.headers = headers;
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response
@@ -694,7 +687,7 @@ fn http_redirect_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         Some(&Location(ref location)) => location.clone(),
         _ => return Response::network_error(NetworkError::Internal("Location header parsing failure".into()))
     };
-    let response_url = response.actual_response().url.as_ref().unwrap();
+    let response_url = response.actual_response().url().unwrap();
     let location_url = response_url.join(&*location);
     let location_url = match location_url {
         Ok(url) => url,
@@ -1028,8 +1021,7 @@ fn http_network_fetch<UI: 'static + UIProvider>(request: Rc<Request>,
         }
     };
 
-    let mut response = Response::new();
-    response.url = Some(url.clone());
+    let mut response = Response::new(url.clone());
     response.status = Some(res.response.status);
     response.raw_status = Some((res.response.status_raw().0,
                                 res.response.status_raw().1.as_bytes().to_vec()));
