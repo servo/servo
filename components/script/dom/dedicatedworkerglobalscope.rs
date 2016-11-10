@@ -26,7 +26,7 @@ use js::jsapi::{HandleValue, JS_SetInterruptCallback};
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::FrameId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
 use rand::random;
@@ -158,9 +158,14 @@ impl DedicatedWorkerGlobalScope {
                             closing: Arc<AtomicBool>) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
+        let top_level_frame_id = FrameId::installed();
+
         spawn_named(name, move || {
             thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
-            PipelineId::install(init.pipeline_id);
+
+            if let Some(top_level_frame_id) = top_level_frame_id {
+                FrameId::install(top_level_frame_id);
+            }
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);

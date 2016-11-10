@@ -15,8 +15,8 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -131,8 +131,8 @@ pub enum ScriptMsg {
     ResizeTo(Size2D<u32>),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
-    /// A log entry, with the pipeline id and thread name
-    LogEntry(Option<PipelineId>, Option<String>, LogEntry),
+    /// A log entry, with the top-level frame id and thread name
+    LogEntry(Option<FrameId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
     /// Send messages from postMessage calls from serviceworker

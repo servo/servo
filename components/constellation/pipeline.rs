@@ -82,6 +82,8 @@ pub struct InitialPipelineState {
     pub id: PipelineId,
     /// The ID of the frame that contains this Pipeline.
     pub frame_id: FrameId,
+    /// The ID of the top-level frame that contains this Pipeline.
+    pub top_level_frame_id: FrameId,
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
@@ -204,6 +206,7 @@ impl Pipeline {
             let unprivileged_pipeline_content = UnprivilegedPipelineContent {
                 id: state.id,
                 frame_id: state.frame_id,
+                top_level_frame_id: state.top_level_frame_id,
                 parent_info: state.parent_info,
                 constellation_chan: state.constellation_chan,
                 scheduler_chan: state.scheduler_chan,
@@ -381,6 +384,7 @@ impl Pipeline {
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     frame_id: FrameId,
+    top_level_frame_id: FrameId,
     parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -416,6 +420,7 @@ impl UnprivilegedPipelineContent {
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             frame_id: self.frame_id,
+            top_level_frame_id: self.top_level_frame_id,
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
@@ -433,6 +438,7 @@ impl UnprivilegedPipelineContent {
         }, self.load_data.clone());
 
         LTF::create(self.id,
+                    Some(self.top_level_frame_id),
                     self.load_data.url,
                     self.parent_info.is_some(),
                     layout_pair,
