@@ -1010,35 +1010,45 @@ mod shorthand_serialization {
     mod scroll_snap_type {
         pub use super::*;
         use style::properties::longhands::scroll_snap_type_x::computed_value::T as ScrollSnapTypeXValue;
-        use style::properties::longhands::scroll_snap_type_y::computed_value::T as ScrollSnapTypeYValue;
 
         #[test]
         fn should_serialize_to_empty_string_if_sub_types_not_equal() {
-            let mut properties = Vec::new();
+            let declarations = vec![
+                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)), Importance::Normal),
+                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::none)), Importance::Normal)
+            ];
 
-            let none_x = DeclaredValue::Value(ScrollSnapTypeXValue::none);
-            properties.push(PropertyDeclaration::ScrollSnapTypeX(none_x));
+            let block = PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0
+            };
 
-            let mandatory_y = DeclaredValue::Value(ScrollSnapTypeYValue::mandatory);
-            properties.push(PropertyDeclaration::ScrollSnapTypeY(mandatory_y));
+            let mut s = String::new();
 
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "scroll-snap-type: ;");
+            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+
+            assert_eq!(x.is_ok(), true);
+            assert_eq!(s, "scroll-snap-type: ;");
         }
 
         #[test]
         fn should_serialize_to_single_value_if_sub_types_are_equal() {
-            let mut properties = Vec::new();
+            let declarations = vec![
+                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)), Importance::Normal),
+                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)), Importance::Normal)
+            ];
 
-            let none_x = DeclaredValue::Value(ScrollSnapTypeXValue::none);
-            properties.push(PropertyDeclaration::ScrollSnapTypeX(none_x));
+            let block = PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0
+            };
 
-            let none_y = DeclaredValue::Value(ScrollSnapTypeYValue::none);
-            properties.push(PropertyDeclaration::ScrollSnapTypeY(none_y));
+            let mut s = String::new();
 
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "scroll-snap-type: none;");
+            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+
+            assert_eq!(x.is_ok(), true);
+            assert_eq!(s, "scroll-snap-type: mandatory;");
         }
-
     }
 }
