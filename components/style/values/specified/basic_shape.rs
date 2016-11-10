@@ -12,12 +12,11 @@ use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
 use style_traits::ToCss;
-use url::Url;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::UrlExtraData;
 use values::specified::position::{Keyword, Position};
+use values::specified::url::SpecifiedUrl;
 
 /// A shape source, for some reference box
 ///
@@ -26,7 +25,7 @@ use values::specified::position::{Keyword, Position};
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ShapeSource<T> {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     Shape(BasicShape, Option<T>),
     Box(T),
     None,
@@ -41,7 +40,7 @@ impl<T> Default for ShapeSource<T> {
 impl<T: ToCss> ToCss for ShapeSource<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            ShapeSource::Url(ref url, _) => url.to_css(dest),
+            ShapeSource::Url(ref url) => url.to_css(dest),
             ShapeSource::Shape(ref shape, Some(ref reference)) => {
                 try!(shape.to_css(dest));
                 try!(dest.write_str(" "));
@@ -59,13 +58,8 @@ impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(_) = input.try(|input| input.expect_ident_matching("none")) {
             Ok(ShapeSource::None)
-        } else if let Ok(url) = input.try(|input| input.expect_url()) {
-            match UrlExtraData::make_from(context) {
-                Some(extra_data) => {
-                    Ok(ShapeSource::Url(context.parse_url(&url), extra_data))
-                },
-                None => Err(()),
-            }
+        } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+            Ok(ShapeSource::Url(url))
         } else {
             fn parse_component<U: Parse>(input: &mut Parser, component: &mut Option<U>) -> bool {
                 if component.is_some() {
@@ -98,8 +92,8 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            ShapeSource::Url(ref url, ref data) => {
-                computed_basic_shape::ShapeSource::Url(url.clone(), data.clone())
+            ShapeSource::Url(ref url) => {
+                computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx))
             }
             ShapeSource::Shape(ref shape, ref reference) => {
                 computed_basic_shape::ShapeSource::Shape(
@@ -116,8 +110,8 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            computed_basic_shape::ShapeSource::Url(ref url, ref data) => {
-                ShapeSource::Url(url.clone(), data.clone())
+            computed_basic_shape::ShapeSource::Url(ref url) => {
+                ShapeSource::Url(SpecifiedUrl::from_computed_value(url))
             }
             computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
                 ShapeSource::Shape(

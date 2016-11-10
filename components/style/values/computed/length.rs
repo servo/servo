@@ -12,7 +12,7 @@ use values::{CSSFloat, Either, None_, specified};
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use values::specified::{Angle, BorderStyle, Time, UrlExtraData, UrlOrNone};
+pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
