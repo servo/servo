@@ -282,16 +282,11 @@ impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
     }
 }
 
-fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: &str) {
+fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: Option<&str>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let url = Url::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
-
-    if let Some(cookie_list) = cookies {
-        assert_eq!(cookie.to_owned(), cookie_list);
-    } else {
-        assert_eq!(cookie.len(), 0);
-    }
+    assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
 }
 
 struct AssertMustNotIncludeHeadersRequestFactory {
@@ -811,7 +806,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "");
+    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", None);
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
@@ -823,7 +818,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
                  &CancellationListener::new(None),
                  None);
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "mozillaIs=theBest");
+    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", Some("mozillaIs=theBest"));
 }
 
 #[test]
@@ -990,7 +985,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
                  DEFAULT_USER_AGENT.into(),
                  &CancellationListener::new(None), None);
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "");
+    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", None);
 }
 
 #[test]
@@ -1015,7 +1010,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
     let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "https://mozilla.com", "mozillaIs=theBest");
+    assert_cookie_for_domain(http_state.cookie_jar.clone(), "https://mozilla.com", Some("mozillaIs=theBest"));
 
     let _ = load(
         &load_data.clone(), &ui_provider, &http_state, None,
