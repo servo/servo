@@ -269,8 +269,6 @@ pub struct Document {
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableHeap<JS<Element>>,
-    /// Allow fullscreen.
-    allow_fullscreen: Cell<bool>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1854,7 +1852,6 @@ impl Document {
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
             fullscreen_element: MutNullableHeap::new(None),
-            allow_fullscreen: Cell::new(false),
         }
     }
 
@@ -2052,10 +2049,6 @@ impl Document {
         if !pending.fullscreen_element_ready_check() {
             error = true;
         }
-        // allow fullscreen
-        if !self.get_allow_fullscreen() {
-            error = true;
-        }
         // TODO fullscreen is supported
         // TODO This algorithm is allowed to request fullscreen.
 
@@ -2115,15 +2108,11 @@ impl Document {
         self.fullscreen_element.set(element);
     }
 
-    pub fn set_allow_fullscreen(&self, value: bool) {
-        self.allow_fullscreen.set(value);
-    }
-
     pub fn get_allow_fullscreen(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#allowed-to-use
         match self.browsing_context() {
             // Step 1
-            None => true,
+            None => false,
             Some(_) => {
                 // Step 2
                 let window = self.window();
@@ -2131,7 +2120,7 @@ impl Document {
                     true
                 } else {
                     // Step 3
-                    self.allow_fullscreen.get()
+                    window.GetFrameElement().map(|el| el.has_attribute(&local_name!("allowfullscreen"))).unwrap_or(false)
                 }
             }
         }
