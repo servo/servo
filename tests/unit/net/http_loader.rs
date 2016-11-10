@@ -30,7 +30,7 @@ use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
 use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
-use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
+use net_traits::{CustomResponse, LoadOrigin, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
@@ -1173,33 +1173,40 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
 #[test]
 fn test_load_errors_when_there_a_redirect_loop() {
-    struct Factory;
+    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a_clone = url_b_for_a.clone();
+    let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_a, url_a) = make_server(handler_a);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let url_a_for_b = url_a.clone();
+    let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_b, url_b) = make_server(handler_b);
 
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
-            } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.com".to_owned())))
-            } else {
-                panic!("unexpected host {:?}", url)
-            }
-        }
-    }
+    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let request = Request::from_init(RequestInit {
+        url: url_a.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url_a.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server_a.close();
+    let _ = server_b.close();
 
-    match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None) {
-        Err(ref load_err) if load_err.error == LoadErrorType::RedirectLoop => (),
-        _ => panic!("expected max redirects to fail")
-    }
+    assert_eq!(response.get_network_error(),
+               Some(&NetworkError::Internal("Too many redirects".to_owned())));
 }
 
 #[test]
