@@ -102,15 +102,18 @@ impl VirtualMethods for HTMLAnchorElement {
     }
 
     fn handle_event(&self, event: &Event) {
-        if event.type_() == atom!("keydown") {
-            if let Some(keyevent) =
-                event.downcast::<KeyboardEvent>() {
-                    match keyevent.get_key() {
-                        Some(Key::Enter) => {
-                            follow_hyperlink(self.upcast::<Element>(), Some(String::new()), None);
-                        },
-                        _ => ()
-                    }
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
+        }
+
+        if let Some(key_event) = event.downcast::<KeyboardEvent>() {
+            if event.type_() == atom!("keydown") {
+                match key_event.get_key() {
+                    Some(Key::Enter) => {
+                        follow_hyperlink(self.upcast::<Element>(), Some(String::new()), None);
+                    },
+                    _ => ()
+                }
             }
         }
     }

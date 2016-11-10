@@ -2229,6 +2229,9 @@ impl VirtualMethods for Element {
             return;
         }
 
+        let doc = document_from_node(self);
+        doc.remove_focusable_element(self);
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             let doc = document_from_node(self);
             doc.unregister_named_element(self, value.clone());

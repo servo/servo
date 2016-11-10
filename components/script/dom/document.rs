@@ -241,7 +241,7 @@ pub struct Document {
     load_event_end: Cell<u64>,
     /// Vector to store focusable elements
     focus_list: DOMRefCell<Vec<JS<Element>>>,
-    focus_list_index: Cell<u64>,
+    focus_list_index: Cell<usize>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -503,6 +503,28 @@ impl Document {
     /// Add a focusable element to this document's ordering focus list.
     pub fn add_focusable_element(&self, element: &Element) {
         self.focus_list.borrow_mut().push(JS::from_ref(element));
+    }
+
+    /// Removes a focusable element from this document's ordering focus list.
+    pub fn remove_focusable_element(&self, element: &Element) {
+        if self.focus_list.borrow().len() > 0 {
+
+            let mut index = 0;
+
+            for item in self.focus_list.borrow().iter() {
+                if &**item == element {
+                    break;
+                }
+
+                index += 1;
+            }
+
+            let mut list = self.focus_list.borrow_mut();
+
+            if index < list.len() {
+                list.remove(index);
+            }
+        }
     }
 
     /// Associate an element present in this document with the provided id.
@@ -1670,25 +1692,20 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#sequential-focus-navigation
-    fn sequential_focus_navigation(&self, event: &Event, key: Key) {
+    fn sequential_focus_navigation(&self, event: &KeyboardEvent) {
         // Step 1
         // Step 2
         // TODO: Implement the sequential focus navigation starting point.
         // This can be used to change the starting point for navigation.
 
+        let modifier = event.get_key_modifiers();
+
         // Step 3
         let direction =
-            if key == Key::Tab {
-                let modifier = event.downcast::<KeyboardEvent>()
-                                    .unwrap().get_key_modifiers();
-
-                if modifier.is_empty() {
-                    NavigationDirection::Forward
-                } else {
-                    NavigationDirection::Backward
-                }
+            if modifier.is_empty() {
+                NavigationDirection::Forward
             } else {
-                return
+                NavigationDirection::Backward
             };
 
         // TODO: Step 4
@@ -1697,34 +1714,38 @@ impl Document {
         let candidate = self.sequential_search(direction);
 
         // Step 6
-        self.request_focus(&self.focus_list.borrow()[candidate]);
+        self.request_focus(&candidate);
     }
 
-    fn sequential_search(&self, direction: NavigationDirection) -> usize {
+    // https://html.spec.whatwg.org/multipage/interaction.html#sequential-navigation-search-algorithm
+    // TODO: Use the starting point and selection mechanism for searching
+    fn sequential_search(&self, direction: NavigationDirection) -> Root<Element> {
         let list = self.focus_list.borrow();
         let ref current_index = self.focus_list_index;
-        let focus_state = list[current_index.get() as usize].focus_state();
+        let focus_state = list[current_index.get()].focus_state();
 
         if focus_state {
             match direction {
                 NavigationDirection::Forward => {
-                    current_index.set(current_index.get() + 1);
-
-                    if current_index.get() == (list.len() as u64) {
+                    if current_index.get() != list.len() - 1 {
+                        current_index.set(current_index.get() + 1);
+                    }
+                    else {
                         current_index.set(0);
                     }
                 },
                 NavigationDirection::Backward => {
-                    current_index.set(current_index.get() - 1);
-
-                    if current_index.get() >= (list.len() as u64) {
-                        current_index.set((list.len() as u64) - 1);
+                    if current_index.get() != 0 {
+                        current_index.set(current_index.get() - 1);
+                    }
+                    else {
+                        current_index.set(list.len() - 1);
                     }
                 },
             }
         }
 
-        current_index.get() as usize
+        Root::from_ref(&*list[current_index.get()])
     }
 }
 
@@ -2053,15 +2074,16 @@ impl VirtualMethods for Document {
     }
 
     fn handle_event(&self, event: &Event) {
-        if event.type_() == atom!("keydown") {
-            let key_event = event.downcast::<KeyboardEvent>().unwrap();
-            let key = key_event.get_key().unwrap();
+        if let Some(key_event) = event.downcast::<KeyboardEvent>() {
+            if event.type_() == atom!("keydown") {
+                let key = key_event.get_key().unwrap();
 
-            match key {
-                Key::Tab => {
-                    self.sequential_focus_navigation(event, Key::Tab);
-                },
-                _ => (),
+                match key {
+                    Key::Tab => {
+                        self.sequential_focus_navigation(key_event);
+                    },
+                    _ => (),
+                }
             }
         }
     }
