@@ -1146,26 +1146,29 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
-    let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
-                                                    qitem(Encoding::Deflate),
-                                                    qitem(Encoding::EncodingExt("br".to_owned()))]));
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&AcceptEncoding(vec![
+            qitem(Encoding::Gzip),
+            qitem(Encoding::Deflate),
+            qitem(Encoding::EncodingExt("br".to_owned()))
+        ])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_encoding_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
