@@ -27,7 +27,6 @@ use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
-use html5ever::tree_builder::NextParserState;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -275,10 +274,12 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
 
 impl HTMLScriptElement {
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script
-    pub fn prepare(&self) -> NextParserState {
+    ///
+    /// Returns true if tokenization should continue, false otherwise.
+    pub fn prepare(&self) -> bool {
         // Step 1.
         if self.already_started.get() {
-            return NextParserState::Continue;
+            return true;
         }
 
         // Step 2.
@@ -296,17 +297,17 @@ impl HTMLScriptElement {
         // Step 4.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
-            return NextParserState::Continue;
+            return true;
         }
 
         // Step 5.
         if !self.upcast::<Node>().is_in_doc() {
-            return NextParserState::Continue;
+            return true;
         }
 
         // Step 6.
         if !self.is_javascript() {
-            return NextParserState::Continue;
+            return true;
         }
 
         // Step 7.
@@ -321,12 +322,12 @@ impl HTMLScriptElement {
         // Step 9.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*self.parser_document != &*doc {
-            return NextParserState::Continue;
+            return true;
         }
 
         // Step 10.
         if !doc.is_scripting_enabled() {
-            return NextParserState::Continue;
+            return true;
         }
 
         // TODO(#4577): Step 11: CSP.
@@ -339,13 +340,13 @@ impl HTMLScriptElement {
                 let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
-                    return NextParserState::Continue;
+                    return true;
                 }
 
                 let event_value = event_attribute.value().to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
-                    return NextParserState::Continue;
+                    return true;
                 }
             },
             (_, _) => (),
@@ -380,7 +381,7 @@ impl HTMLScriptElement {
                 // Step 18.2.
                 if src.is_empty() {
                     self.queue_error_event();
-                    return NextParserState::Continue;
+                    return true;
                 }
 
                 // Step 18.4-18.5.
@@ -388,7 +389,7 @@ impl HTMLScriptElement {
                     Err(_) => {
                         warn!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
-                        return NextParserState::Continue;
+                        return true;
                     }
                     Ok(url) => url,
                 };
@@ -411,7 +412,7 @@ impl HTMLScriptElement {
            !async {
             doc.add_deferred_script(self);
             // Second part implemented in Document::process_deferred_scripts.
-            return NextParserState::Continue;
+            return true;
         // Step 20.b: classic, has src, was parser-inserted, is not async.
         } else if is_external &&
                   was_parser_inserted &&
@@ -442,7 +443,7 @@ impl HTMLScriptElement {
             self.ready_to_be_parser_executed.set(true);
             *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.execute();
-            return NextParserState::Continue;
+            return true;
         }
 
         // TODO: make this suspension happen automatically.
@@ -451,7 +452,7 @@ impl HTMLScriptElement {
                 parser.suspend();
             }
         }
-        NextParserState::Suspend
+        false
     }
 
     pub fn is_ready_to_be_executed(&self) -> bool {

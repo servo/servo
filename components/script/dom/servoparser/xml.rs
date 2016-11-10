@@ -16,7 +16,6 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
-use html5ever;
 use html5ever_atoms::{Prefix, QualName};
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
@@ -113,8 +112,8 @@ impl<'a> TreeSink for Sink {
         let script = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             return match script.prepare() {
-                html5ever::tree_builder::NextParserState::Continue => NextParserState::Continue,
-                html5ever::tree_builder::NextParserState::Suspend => NextParserState::Suspend
+                true => NextParserState::Continue,
+                false => NextParserState::Suspend,
             };
         }
         NextParserState::Continue
