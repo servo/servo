@@ -937,33 +937,36 @@ fn test_load_sends_cookie_if_nonhttp() {
 
 #[test]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
+        pair.httponly = true;
+        response.headers_mut().set(SetCookie(vec![pair]));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let context = new_fetch_context(None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; HttpOnly;".to_vec()]);
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 
-    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    let mut cookie_jar = context.state.cookie_jar.write().unwrap();
     assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
 }
 
