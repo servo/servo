@@ -2,17 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use servo_atoms::Atom;
-use serde;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::collections::HashMap;
-use std::io;
-use std::ops::Deref;
-use std::sync::Mutex;
-use webrender_traits::NativeFontHandle;
-use dwrote::{Font};
 use platform::windows::font_list::{descriptor_from_atom, font_from_atom};
+use servo_atoms::Atom;
+use std::io;
+use webrender_traits::NativeFontHandle;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FontTemplateData {

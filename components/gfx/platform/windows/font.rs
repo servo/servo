@@ -7,16 +7,16 @@
 // renderer moves to a sandboxed process.
 
 use app_units::Au;
+use dwrote::{Font, FontFace};
+use dwrote::{FontWeight, FontStretch, FontStyle};
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
-use platform::font_template::{FontTemplateData};
-use platform::windows::font_list::{font_from_atom};
-use platform::windows::font_context::{FontContextHandle};
+use platform::font_template::FontTemplateData;
+use platform::windows::font_context::FontContextHandle;
+use platform::windows::font_list::font_from_atom;
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
-use dwrote::{Font, FontFace};
-use dwrote::{FontWeight, FontStretch, FontStyle};
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 { pt / 72. * 96. }
@@ -179,7 +179,7 @@ impl FontHandleMethods for FontHandle {
         // anything that we calculate and don't just pull out of self.face.metrics
         // is pulled out here for clarity
         let leading = dm.ascent - dm.capHeight;
-        
+
         let metrics = FontMetrics {
             underline_size:   au_from_du(dm.underlineThickness as i32),
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
