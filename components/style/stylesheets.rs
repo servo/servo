@@ -45,8 +45,8 @@ pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Vec<CSSRule>,
-    /// List of media associated with the Stylesheet, if any.
-    pub media: Option<MediaList>,
+    /// List of media associated with the Stylesheet.
+    pub media: MediaList,
     pub origin: Origin,
     pub dirty_on_viewport_size_change: bool,
 }
@@ -181,14 +181,14 @@ impl Stylesheet {
         Stylesheet {
             origin: origin,
             rules: rules,
-            media: None,
+            media: Default::default(),
             dirty_on_viewport_size_change:
                 input.seen_viewport_percentages(),
         }
     }
 
     /// Set the MediaList associated with the style-sheet.
-    pub fn set_media(&mut self, media: Option<MediaList>) {
+    pub fn set_media(&mut self, media: MediaList) {
         self.media = media;
     }
 
@@ -197,7 +197,7 @@ impl Stylesheet {
     ///
     /// Always true if no associated MediaList exists.
     pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        self.media.as_ref().map_or(true, |ref media| media.evaluate(device))
+        self.media.evaluate(device)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
