@@ -3168,7 +3168,7 @@ class CGCallGenerator(CGThing):
 
         if isFallible:
             if static:
-                glob = "&global"
+                glob = "global.upcast::<GlobalScope>()"
             else:
                 glob = "&this.global()"
 
@@ -5245,12 +5245,18 @@ class CGClassConstructHook(CGAbstractExternMethod):
             assert constructor
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
         self.constructor = constructor
+        self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = CGGeneric("""\
-let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());
-let args = CallArgs::from_vp(vp, argc);
-""")
+        preamble = """let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"""
+        if len(self.exposureSet) == 1:
+            globalName = list(self.exposureSet)[0]
+            downcast = """let global = global.downcast::<dom::{}::{}>().unwrap();\n"""
+            downcast = downcast.format(globalName.lower(),
+                                       MakeNativeName(globalName))
+            preamble += downcast
+        preamble += """let args = CallArgs::from_vp(vp, argc);\n"""
+        preamble = CGGeneric(preamble)
         name = self.constructor.identifier.name
         nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
         callGenerator = CGMethodCall(["&global"], nativeName, True,
@@ -5581,6 +5587,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::error::throw_dom_exception',
         'dom::bindings::guard::Condition',
         'dom::bindings::guard::Guard',
+        'dom::bindings::inheritance::Castable',
         'dom::bindings::proxyhandler',
         'dom::bindings::proxyhandler::ensure_expando_object',
         'dom::bindings::proxyhandler::fill_property_descriptor',

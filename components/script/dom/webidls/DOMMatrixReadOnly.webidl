@@ -13,7 +13,7 @@
 [Constructor,
 // Constructor(DOMString transformList)
 Constructor(sequence<unrestricted double> numberSequence),
-// Exposed=(Window,Worker)
+Exposed=(Window,Worker)
 ]
 interface DOMMatrixReadOnly {
 
