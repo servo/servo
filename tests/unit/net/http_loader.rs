@@ -899,34 +899,40 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<CookieHeader>(),
+                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let context = new_fetch_context(None);
 
     {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-        let cookie_url = url.clone();
+        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &cookie_url,
+            &url,
             CookieSource::NonHTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let mut headers = Headers::new();
-    headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+    let _ = server.close();
 
-    let _ = load(
-        &load_data.clone(), &ui_provider, &http_state, None,
-        &AssertMustIncludeHeadersRequestFactory {
-            expected_headers: headers,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
