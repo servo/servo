@@ -1118,25 +1118,30 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
 #[test]
 fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
+    let accept_encoding = AcceptEncoding(vec![qitem(Encoding::Chunked)]);
+    let expected_accept_encoding = accept_encoding.clone();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&expected_accept_encoding));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
+    accept_encoding_headers.set(accept_encoding);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        headers: accept_encoding_headers,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
+    let _ = server.close();
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_encoding_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
