@@ -277,10 +277,31 @@ PrimitiveInstance fetch_instance(int index) {
     return pi;
 }
 
+struct BlurCommand {
+    int task_id;
+    int src_task_id;
+    int dir;
+};
+
+BlurCommand fetch_blur(int index) {
+    BlurCommand blur;
+
+    int offset = index * 1;
+
+    ivec4 data0 = int_data[offset + 0];
+
+    blur.task_id = data0.x;
+    blur.src_task_id = data0.y;
+    blur.dir = data0.z;
+
+    return blur;
+}
+
 struct CachePrimitiveInstance {
     int global_prim_index;
     int specific_prim_index;
     int render_task_index;
+    int sub_index;
 };
 
 CachePrimitiveInstance fetch_cache_instance(int index) {
@@ -293,6 +314,7 @@ CachePrimitiveInstance fetch_cache_instance(int index) {
     cpi.global_prim_index = data0.x;
     cpi.specific_prim_index = data0.y;
     cpi.render_task_index = data0.z;
+    cpi.sub_index = data0.w;
 
     return cpi;
 }

@@ -23,7 +23,7 @@ void main(void) {
 #endif
 
     // vUv will contain how many times this image has wrapped around the image size.
-    vec2 texture_size = vec2(textureSize(sDiffuse, 0));
+    vec2 texture_size = vec2(textureSize(sColor0, 0));
     vec2 st0 = image.st_rect.xy / texture_size;
     vec2 st1 = image.st_rect.zw / texture_size;
 
