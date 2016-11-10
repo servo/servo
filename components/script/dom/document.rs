@@ -1884,11 +1884,10 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Document>> {
-        let win = global.as_window();
-        let doc = win.Document();
+    pub fn Constructor(window: &Window) -> Fallible<Root<Document>> {
+        let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
-        Ok(Document::new(win,
+        Ok(Document::new(window,
                          None,
                          None,
                          IsHTMLDocument::NonHTMLDocument,

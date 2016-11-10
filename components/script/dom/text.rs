@@ -14,8 +14,8 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::globalscope::GlobalScope;
 use dom::node::Node;
+use dom::window::Window;
 
 /// An HTML text node.
 #[dom_struct]
@@ -35,8 +35,8 @@ impl Text {
                            document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, text: DOMString) -> Fallible<Root<Text>> {
-        let document = global.as_window().Document();
+    pub fn Constructor(window: &Window, text: DOMString) -> Fallible<Root<Text>> {
+        let document = window.Document();
         Ok(Text::new(text, &document))
     }
 }
