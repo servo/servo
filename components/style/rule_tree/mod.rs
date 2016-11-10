@@ -200,21 +200,26 @@ impl RuleNode {
     unsafe fn remove_from_child_list(&self) {
         debug!("Remove from child list: {:?}, parent: {:?}",
                self as *const RuleNode, self.parent.as_ref().map(|p| p.ptr()));
-        let prev_sibling = self.prev_sibling.swap(ptr::null_mut(), Ordering::SeqCst);
-        let next_sibling = self.next_sibling.swap(ptr::null_mut(), Ordering::SeqCst);
+        // NB: The other siblings we use in this function can also be dead, so
+        // we can't use `get` here, since it asserts.
+        let prev_sibling = self.prev_sibling.swap(ptr::null_mut(), Ordering::Relaxed);
+        let next_sibling = self.next_sibling.swap(ptr::null_mut(), Ordering::Relaxed);
 
-        if prev_sibling != ptr::null_mut() {
-            let really_previous = WeakRuleNode { ptr: prev_sibling };
-            really_previous.upgrade()
-                .get().next_sibling.store(next_sibling, Ordering::SeqCst);
+        // Store the `next` pointer as appropriate, either in the previous
+        // sibling, or in the parent otherwise.
+        if prev_sibling == ptr::null_mut() {
+            let parent = self.parent.as_ref().unwrap();
+            parent.get().first_child.store(next_sibling, Ordering::Relaxed);
         } else {
-            self.parent.as_ref().unwrap()
-                .get().first_child.store(ptr::null_mut(), Ordering::SeqCst);
+            let previous = &*prev_sibling;
+            previous.next_sibling.store(next_sibling, Ordering::Relaxed);
         }
 
+        // Store the previous sibling pointer in the next sibling if present,
+        // otherwise we're done.
         if next_sibling != ptr::null_mut() {
-            let really_next = WeakRuleNode { ptr: next_sibling };
-            really_next.upgrade().get().prev_sibling.store(prev_sibling, Ordering::SeqCst);
+            let next = &*next_sibling;
+            next.prev_sibling.store(prev_sibling, Ordering::Relaxed);
         }
     }
 
