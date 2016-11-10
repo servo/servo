@@ -165,6 +165,22 @@ pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
+    let url = Url::parse("about:blank").unwrap();
+    let extra_data = ParserContextExtraData::default();
+    let origin = match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+    };
+    let sheet = Arc::new(Stylesheet::from_str("", url, origin, Box::new(StdoutErrorReporter),
+                                              extra_data));
+    unsafe {
+        transmute(sheet)
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString,
                                                  mode: SheetParsingMode,
                                                  base_url: *const nsACString,
