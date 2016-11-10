@@ -61,6 +61,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         referrer_url: from_referrer_to_referrer_url(&request),
         referrer_policy: request.referrer_policy.get(),
         pipeline_id: request.pipeline_id.get(),
+        redirect_mode: request.redirect_mode.get(),
     }
 }
 

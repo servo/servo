@@ -81,7 +81,7 @@ pub enum CacheMode {
 }
 
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum RedirectMode {
     Follow,
     Error,
@@ -137,6 +137,7 @@ pub struct RequestInit {
     pub referrer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
+    pub redirect_mode: RedirectMode,
 }
 
 impl Default for RequestInit {
@@ -158,6 +159,7 @@ impl Default for RequestInit {
             referrer_url: None,
             referrer_policy: None,
             pipeline_id: None,
+            redirect_mode: RedirectMode::Follow,
         }
     }
 }
@@ -266,6 +268,7 @@ impl Request {
         };
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
+        req.redirect_mode.set(init.redirect_mode);
         req
     }
 
