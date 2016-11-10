@@ -1063,28 +1063,30 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
 #[test]
 fn test_load_uses_explicit_accept_from_headers_in_load_data() {
-    let text_html = qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]));
+    let accept = Accept(vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]))]);
+    let expected_accept = accept.clone();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<Accept>(), Some(&expected_accept));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
     let mut accept_headers = Headers::new();
-    accept_headers.set(Accept(vec![text_html.clone()]));
+    accept_headers.set(accept);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        headers: accept_headers,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = server.close();
 
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set(Accept(vec![text_html.clone()]));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
