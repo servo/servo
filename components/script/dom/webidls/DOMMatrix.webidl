@@ -12,8 +12,8 @@
 
 [Constructor,
 // Constructor(DOMString transformList),
-Constructor(sequence<unrestricted double> numberSequence)
-// Exposed=(Window,Worker)
+Constructor(sequence<unrestricted double> numberSequence),
+Exposed=(Window,Worker)
 ]
 interface DOMMatrix : DOMMatrixReadOnly {
 

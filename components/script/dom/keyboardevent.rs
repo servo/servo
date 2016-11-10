@@ -12,7 +12,6 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
@@ -101,10 +100,10 @@ impl KeyboardEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Root<KeyboardEvent>> {
-        let event = KeyboardEvent::new(global.as_window(),
+        let event = KeyboardEvent::new(window,
                                        type_,
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,

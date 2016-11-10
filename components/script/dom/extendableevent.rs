@@ -10,7 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use servo_atoms::Atom;
 
@@ -28,12 +28,12 @@ impl ExtendableEvent {
             extensions_allowed: true
         }
     }
-    pub fn new(global: &GlobalScope,
+    pub fn new(worker: &ServiceWorkerGlobalScope,
                type_: Atom,
                bubbles: bool,
                cancelable: bool)
                -> Root<ExtendableEvent> {
-        let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), global, ExtendableEventBinding::Wrap);
+        let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), worker, ExtendableEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -41,10 +41,10 @@ impl ExtendableEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
                        type_: DOMString,
                        init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
-        Ok(ExtendableEvent::new(global,
+        Ok(ExtendableEvent::new(worker,
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable))

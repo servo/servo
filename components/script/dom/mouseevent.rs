@@ -12,7 +12,6 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
@@ -82,12 +81,12 @@ impl MouseEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Root<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.parent.parent.cancelable);
-        let event = MouseEvent::new(global.as_window(),
+        let event = MouseEvent::new(window,
                                     type_,
                                     bubbles,
                                     cancelable,

@@ -13,6 +13,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
 use dom::globalscope::GlobalScope;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
@@ -46,10 +47,11 @@ impl ExtendableMessageEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(worker: &ServiceWorkerGlobalScope,
                        type_: DOMString,
                        init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
                        -> Fallible<Root<ExtendableMessageEvent>> {
+        let global = worker.upcast::<GlobalScope>();
         rooted!(in(global.get_cx()) let data = init.data);
         let ev = ExtendableMessageEvent::new(global,
                                              Atom::from(type_),

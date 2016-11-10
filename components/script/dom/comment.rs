@@ -9,8 +9,8 @@ use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::globalscope::GlobalScope;
 use dom::node::Node;
+use dom::window::Window;
 
 /// An HTML comment.
 #[dom_struct]
@@ -31,8 +31,8 @@ impl Comment {
                            CommentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, data: DOMString) -> Fallible<Root<Comment>> {
-        let document = global.as_window().Document();
+    pub fn Constructor(window: &Window, data: DOMString) -> Fallible<Root<Comment>> {
+        let document = window.Document();
         Ok(Comment::new(data, &document))
     }
 }
