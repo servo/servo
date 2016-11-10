@@ -359,8 +359,7 @@ impl FetchResponseListener for StylesheetContext {
                                                    Some(environment_encoding), Origin::Author,
                                                    win.css_error_reporter(),
                                                    ParserContextExtraData::default());
-            let media = self.media.take().unwrap();
-            sheet.set_media(Some(media));
+            sheet.set_media(self.media.take().unwrap());
             let sheet = Arc::new(sheet);
 
             let win = window_from_node(&*elem);
