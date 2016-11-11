@@ -293,8 +293,11 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
                           None,
                           &mut applicable_declarations);
 
+    let rule_node = element.compute_rule_node(context, &mut applicable_declarations.normal);
+
     unsafe {
-        element.cascade_node(context, data, parent, applicable_declarations);
+        element.cascade_node(context, data, parent, rule_node, &mut applicable_declarations.per_pseudo,
+                             applicable_declarations.normal_shareable);
     }
 }
 
@@ -356,8 +359,11 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
+                    let rule_node = element.compute_rule_node(context, &mut applicable_declarations.normal);
                     element.cascade_node(context, data, element.parent_element(),
-                                         applicable_declarations);
+                                         rule_node,
+                                         &mut applicable_declarations.per_pseudo,
+                                         applicable_declarations.normal_shareable);
                 }
 
                 // Add ourselves to the LRU cache.
