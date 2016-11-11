@@ -8,7 +8,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::ElementData;
 use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
-use matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
+use matching::{MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
@@ -285,16 +285,14 @@ fn ensure_element_styled_internal<'a, E, C>(element: E,
     // Note that we could add the bloom filter's complexity here, but that's
     // probably not necessary since we're likely to be matching only a few
     // nodes, at best.
-    let mut applicable_declarations = ApplicableDeclarations::new();
     let data = prepare_for_styling(element, element.get_data().unwrap());
-    let stylist = &context.shared_context().stylist;
-
-    element.match_element(&**stylist,
-                          None,
-                          &mut applicable_declarations);
-
+    let match_results = element.match_element(context, None);
     unsafe {
-        element.cascade_node(context, data, parent, applicable_declarations);
+        let shareable = match_results.primary_is_shareable();
+        element.cascade_node(context, data, parent,
+                             match_results.primary,
+                             match_results.per_pseudo,
+                             shareable);
     }
 }
 
@@ -330,34 +328,29 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
         // Otherwise, match and cascade selectors.
         match sharing_result {
             StyleSharingResult::CannotShare => {
-                let mut applicable_declarations = ApplicableDeclarations::new();
-
-                let relations;
+                let match_results;
                 let shareable_element = {
                     if opts::get().style_sharing_stats {
                         STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
                     }
 
                     // Perform the CSS selector matching.
-                    let stylist = &context.shared_context().stylist;
-
-                    relations = element.match_element(&**stylist,
-                                                      Some(&*bf),
-                                                      &mut applicable_declarations);
-
-                    debug!("Result of selector matching: {:?}", relations);
-
-                    if relations_are_shareable(&relations) {
+                    match_results = element.match_element(context, Some(&*bf));
+                    if match_results.primary_is_shareable() {
                         Some(element)
                     } else {
                         None
                     }
                 };
+                let relations = match_results.relations;
 
                 // Perform the CSS cascade.
                 unsafe {
+                    let shareable = match_results.primary_is_shareable();
                     element.cascade_node(context, data, element.parent_element(),
-                                         applicable_declarations);
+                                         match_results.primary,
+                                         match_results.per_pseudo,
+                                         shareable);
                 }
 
                 // Add ourselves to the LRU cache.
