@@ -39,7 +39,7 @@ pub enum Origin {
     User,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CSSRules(pub Arc<Vec<CSSRule>>);
 
 impl From<Vec<CSSRule>> for CSSRules {
@@ -67,7 +67,7 @@ pub struct UserAgentStylesheets {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CSSRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013

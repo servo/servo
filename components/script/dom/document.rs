@@ -32,6 +32,7 @@ use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::browsingcontext::BrowsingContext;
 use dom::closeevent::CloseEvent;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -152,10 +153,11 @@ enum ParserBlockedByScript {
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
-struct StylesheetInDocument {
+pub struct StylesheetInDocument {
     node: JS<Node>,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: Arc<Stylesheet>,
+    pub stylesheet: Arc<Stylesheet>,
+    pub dom_stylesheet: MutNullableHeap<JS<CSSStyleSheet>>,
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -1910,33 +1912,43 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
+    // Ensure that the stylesheets vector is populated
+    fn ensure_stylesheets(&self) {
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        if stylesheets.is_none() {
+            *stylesheets = Some(self.upcast::<Node>()
+                .traverse_preorder()
+                .filter_map(|node| {
+                    if let Some(node) = node.downcast::<HTMLStyleElement>() {
+                        node.get_stylesheet()
+                    } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
+                        node.get_stylesheet()
+                    } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
+                        node.get_stylesheet()
+                    } else {
+                        None
+                    }.map(|stylesheet| StylesheetInDocument {
+                        node: JS::from_ref(&*node),
+                        stylesheet: stylesheet,
+                        dom_stylesheet: MutNullableHeap::new(None),
+                    })
+                })
+                .collect());
+        };
+    }
+
     /// Returns the list of stylesheets associated with nodes in the document.
     pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
-        {
-            let mut stylesheets = self.stylesheets.borrow_mut();
-            if stylesheets.is_none() {
-                *stylesheets = Some(self.upcast::<Node>()
-                    .traverse_preorder()
-                    .filter_map(|node| {
-                        if let Some(node) = node.downcast::<HTMLStyleElement>() {
-                            node.get_stylesheet()
-                        } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
-                            node.get_stylesheet()
-                        } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
-                            node.get_stylesheet()
-                        } else {
-                            None
-                        }.map(|stylesheet| StylesheetInDocument {
-                            node: JS::from_ref(&*node),
-                            stylesheet: stylesheet
-                        })
-                    })
-                    .collect());
-            };
-        }
+        self.ensure_stylesheets();
         self.stylesheets.borrow().as_ref().unwrap().iter()
                         .map(|s| s.stylesheet.clone())
                         .collect()
+    }
+    
+    pub fn with_style_sheets_in_document<F, T>(&self, mut f: F) -> T
+            where F: FnMut(&[StylesheetInDocument]) -> T {
+        self.ensure_stylesheets();
+        f(&self.stylesheets.borrow().as_ref().unwrap())
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document

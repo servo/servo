@@ -4,8 +4,10 @@
 
 use dom::bindings::codegen::Bindings::StyleSheetListBinding;
 use dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
@@ -35,13 +37,30 @@ impl StyleSheetList {
 impl StyleSheetListMethods for StyleSheetList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
-       self.document.stylesheets().len() as u32
+       self.document.with_style_sheets_in_document(|s| s.len() as u32)
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
-    fn Item(&self, _index: u32) -> Option<Root<StyleSheet>> {
-        None
-        //TODO Create a new StyleSheet object and return it
+    fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
+        // XXXManishearth this is wrong; if a stylesheet is inserted
+        // the list in the document is invalidated and we'll rerun this
+        // initialization. The CSSOM StyleSheet object should be cached
+        // on the node.
+        //
+        // XXXManishearth this also doesn't handle the origin clean flag
+        // and is a cors vulnerability
+        self.document.with_style_sheets_in_document(|sheets| {
+            sheets.get(index as usize)
+                  .map(|sheet| {
+                Root::upcast(sheet.dom_stylesheet.or_init(|| {
+                    CSSStyleSheet::new(self.document.window(),
+                                       "text/css".into(),
+                                       None, // todo handle location
+                                       None, // todo handle title
+                                       sheet.stylesheet.clone())
+                }))
+            })
+        })
     }
 
     // check-tidy: no specs after this line
