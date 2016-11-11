@@ -7,6 +7,7 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
+use app_units::Au;
 use cssparser::{Parser, Token};
 use parser::Parse;
 use std::fmt;
@@ -290,9 +291,9 @@ impl ToComputedValue for Position {
             Keyword::Right => {
                 if let Some(x) = self.horiz_position {
                     let (length, percentage) = match x {
-                        LengthOrPercentage::Percentage(Percentage(y)) => (None, Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (Some(-y.to_computed_value(context)), Some(1.0)),
-                        _ => (None, None),
+                        LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
+                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
                         length: length,
@@ -316,9 +317,9 @@ impl ToComputedValue for Position {
             Keyword::Bottom => {
                 if let Some(x) = self.vert_position {
                     let (length, percentage) = match x {
-                        LengthOrPercentage::Percentage(Percentage(y)) => (None, Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (Some(-y.to_computed_value(context)), Some(1.0)),
-                        _ => (None, None),
+                        LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
+                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
                         length: length,

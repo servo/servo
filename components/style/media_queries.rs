@@ -10,10 +10,10 @@ use Atom;
 use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
-use properties::longhands;
 use serialize_comma_separated_list;
 use std::fmt::{self, Write};
 use style_traits::{ToCss, ViewportPx};
+use values::computed::{self, ToComputedValue};
 use values::specified;
 
 
@@ -49,28 +49,11 @@ impl Range<specified::Length> {
     fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
-        let initial_font_size = longhands::font_size::get_initial_value();
-        let compute_width = |&width| {
-            match width {
-                specified::Length::Absolute(value) => value,
-                specified::Length::FontRelative(value)
-                    => value.to_computed_value(initial_font_size, initial_font_size),
-                specified::Length::ViewportPercentage(value)
-                    => value.to_computed_value(viewport_size),
-                specified::Length::Calc(val, range)
-                    => range.clamp(
-                        val.compute_from_viewport_and_font_size(viewport_size,
-                                                                initial_font_size,
-                                                                initial_font_size)
-                           .length()),
-                specified::Length::ServoCharacterWidth(..)
-                    => unreachable!(),
-            }
-        };
+        let context = computed::Context::initial(viewport_size, false);
 
         match *self {
-            Range::Min(ref width) => Range::Min(compute_width(width)),
-            Range::Max(ref width) => Range::Max(compute_width(width)),
+            Range::Min(ref width) => Range::Min(width.to_computed_value(&context)),
+            Range::Max(ref width) => Range::Max(width.to_computed_value(&context)),
             //Range::Eq(ref width) => Range::Eq(compute_width(width))
         }
     }

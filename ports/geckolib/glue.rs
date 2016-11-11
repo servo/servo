@@ -148,6 +148,7 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
                                       previous_style,
                                       None,
                                       Box::new(StdoutErrorReporter),
+                                      None,
                                       CascadeFlags::empty());
     Arc::new(computed).into_strong()
 }
