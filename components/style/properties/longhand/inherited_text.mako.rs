@@ -936,6 +936,111 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="text-emphasis-position" animatable="False" products="none">
+    use std::fmt;
+    use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
+    use style_traits::ToCss;
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum VerticalValue {
+        Right,
+        Left
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum HorizontalValue {
+        Over,
+        Under
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Value(HorizontalValue, VerticalValue)
+    }
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub fn get_initial_value() -> computed_value::T {
+        SpecifiedValue::Value(HorizontalValue::Over, VerticalValue::Right)
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("over")).is_ok() {
+            if input.try(|input| input.expect_ident_matching("right")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Over, VerticalValue::Right))
+            } else if input.try(|input| input.expect_ident_matching("left")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Over, VerticalValue::Left))
+            } else {
+                Err(())
+            }
+        } else if input.try(|input| input.expect_ident_matching("under")).is_ok() {
+            if input.try(|input| input.expect_ident_matching("right")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Under, VerticalValue::Right))
+            } else if input.try(|input| input.expect_ident_matching("left")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Under, VerticalValue::Left))
+            } else {
+                Err(())
+            }
+        } else if input.try(|input| input.expect_ident_matching("right")).is_ok() {
+            if input.try(|input| input.expect_ident_matching("over")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Over, VerticalValue::Right))
+            } else if input.try(|input| input.expect_ident_matching("under")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Under, VerticalValue::Right))
+            } else {
+                Err(())
+            }
+        } else if input.try(|input| input.expect_ident_matching("left")).is_ok() {
+            if input.try(|input| input.expect_ident_matching("over")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Over, VerticalValue::Left))
+            } else if input.try(|input| input.expect_ident_matching("under")).is_ok() {
+                Ok(SpecifiedValue::Value(HorizontalValue::Under, VerticalValue::Left))
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
+        }
+    }
+
+    impl ToCss for HorizontalValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                HorizontalValue::Over => dest.write_str("over"),
+                HorizontalValue::Under => dest.write_str("under")
+            }
+        }
+    }
+
+    impl ToCss for VerticalValue {
+        fn to_css<W>(&self, dest:&mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                VerticalValue::Right => dest.write_str(" right"),
+                VerticalValue::Left => dest.write_str(" left")
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Value(ref horizontal, ref vertical) => {
+                    try!(horizontal.to_css(dest));
+                    vertical.to_css(dest)
+                }
+            }
+        }
+    }
+</%helpers:longhand>
+
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
