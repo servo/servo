@@ -48,3 +48,33 @@ fn text_emphasis_style_longhand_should_parse_properly() {
     let devanagari_string_struct = SpecifiedValue::String("षि".to_string());
     assert_eq!(devanagari_string, devanagari_string_struct);
 }
+
+#[test]
+fn test_text_emphasis_position() {
+    use style::properties::longhands::text_emphasis_position;
+    use style::properties::longhands::text_emphasis_position::{HorizontalValue, VerticalValue, SpecifiedValue};
+
+    let over_right = parse_longhand!(text_emphasis_position, "over right");
+    assert_eq!(over_right, SpecifiedValue(HorizontalValue::Over, VerticalValue::Right));
+
+    let over_left = parse_longhand!(text_emphasis_position, "over left");
+    assert_eq!(over_left, SpecifiedValue(HorizontalValue::Over, VerticalValue::Left));
+
+    let under_right = parse_longhand!(text_emphasis_position, "under right");
+    assert_eq!(under_right, SpecifiedValue(HorizontalValue::Under, VerticalValue::Right));
+
+    let under_left = parse_longhand!(text_emphasis_position, "under left");
+    assert_eq!(under_left, SpecifiedValue(HorizontalValue::Under, VerticalValue::Left));
+
+    let right_over = parse_longhand!(text_emphasis_position, "right over");
+    assert_eq!(right_over, SpecifiedValue(HorizontalValue::Over, VerticalValue::Right));
+
+    let left_over = parse_longhand!(text_emphasis_position, "left over");
+    assert_eq!(left_over, SpecifiedValue(HorizontalValue::Over, VerticalValue::Left));
+
+    let right_under = parse_longhand!(text_emphasis_position, "right under");
+    assert_eq!(right_under, SpecifiedValue(HorizontalValue::Under, VerticalValue::Right));
+
+    let left_under = parse_longhand!(text_emphasis_position, "left under");
+    assert_eq!(left_under, SpecifiedValue(HorizontalValue::Under, VerticalValue::Left));
+}

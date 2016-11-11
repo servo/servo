@@ -936,6 +936,54 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="text-emphasis-position" animatable="False" products="none">
+    use std::fmt;
+    use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
+    use style_traits::ToCss;
+
+    define_css_keyword_enum!(HorizontalValue:
+                             "over" => Over,
+                             "under" => Under);
+    define_css_keyword_enum!(VerticalValue:
+                             "right" => Right,
+                             "left" => Left);
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub HorizontalValue, pub VerticalValue);
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    pub fn get_initial_value() -> computed_value::T {
+        SpecifiedValue(HorizontalValue::Over, VerticalValue::Right)
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+       if let Ok(horizontal) = input.try(|input| HorizontalValue::parse(input)) {
+            let vertical = try!(VerticalValue::parse(input));
+            Ok(SpecifiedValue(horizontal, vertical))
+        } else {
+            let vertical = try!(VerticalValue::parse(input));
+            let horizontal = try!(HorizontalValue::parse(input));
+            Ok(SpecifiedValue(horizontal, vertical))
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let SpecifiedValue(horizontal, vertical) = *self;
+            try!(horizontal.to_css(dest));
+            vertical.to_css(dest)
+        }
+    }
+</%helpers:longhand>
+
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
