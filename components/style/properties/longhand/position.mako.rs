@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
+<% from data import ALL_SIZES %>
 
 <% data.new_style_struct("Position", inherited=False) %>
 
@@ -133,41 +134,28 @@ ${helpers.predefined_type("flex-basis",
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
                           animatable=False)}
 
-${helpers.predefined_type("width",
-                          "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative",
-                          animatable=True)}
+% for (size, logical) in ALL_SIZES:
+    // width, height, block-size, inline-size
+    ${helpers.predefined_type("%s" % size,
+                              "LengthOrPercentageOrAuto",
+                              "computed::LengthOrPercentageOrAuto::Auto",
+                              "parse_non_negative",
+                              animatable=True, logical = logical)}
 
-${helpers.predefined_type("height",
-                          "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative",
-                          animatable=True)}
+    // min-width, min-height, min-block-size, min-inline-size
+    ${helpers.predefined_type("min-%s" % size,
+                              "LengthOrPercentage",
+                              "computed::LengthOrPercentage::Length(Au(0))",
+                              "parse_non_negative",
+                              animatable=True, logical = logical)}
 
-${helpers.predefined_type("min-width",
-                          "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative",
-                          animatable=True)}
-
-${helpers.predefined_type("max-width",
-                          "LengthOrPercentageOrNone",
-                          "computed::LengthOrPercentageOrNone::None",
-                          "parse_non_negative",
-                          animatable=True)}
-
-${helpers.predefined_type("min-height",
-                          "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative",
-                          animatable=True)}
-
-${helpers.predefined_type("max-height",
-                          "LengthOrPercentageOrNone",
-                          "computed::LengthOrPercentageOrNone::None",
-                          "parse_non_negative",
-                          animatable=True)}
+    // max-width, max-height, max-block-size, max-inline-size
+    ${helpers.predefined_type("max-%s" % size,
+                              "LengthOrPercentageOrNone",
+                              "computed::LengthOrPercentageOrNone::None",
+                              "parse_non_negative",
+                              animatable=True, logical = logical)}
+% endfor
 
 ${helpers.single_keyword("box-sizing",
                          "content-box border-box",

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import to_rust_ident %>
+<% from data import to_rust_ident, ALL_SIDES %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
@@ -83,7 +83,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     if any { Ok((color, style, width)) } else { Err(()) }
 }
 
-% for side in ["top", "right", "bottom", "left"]:
+% for side in map(lambda x: x[0], ALL_SIDES):
     <%helpers:shorthand name="border-${side}" sub_properties="${' '.join(
         'border-%s-%s' % (side, prop)
         for prop in ['color', 'style', 'width']
@@ -92,9 +92,9 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(Longhands {
-            border_${side}_color: color,
-            border_${side}_style: style,
-            border_${side}_width: width
+            border_${to_rust_ident(side)}_color: color,
+            border_${to_rust_ident(side)}_style: style,
+            border_${to_rust_ident(side)}_width: width
         })
     }
 
@@ -102,9 +102,9 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             super::serialize_directional_border(
                 dest,
-                self.border_${side}_width,
-                self.border_${side}_style,
-                self.border_${side}_color
+                self.border_${to_rust_ident(side)}_width,
+                self.border_${to_rust_ident(side)}_style,
+                self.border_${to_rust_ident(side)}_color
             )
         }
     }

@@ -8,6 +8,7 @@
     from data import to_rust_ident
     from data import Keyword
 %>
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
 use custom_properties::ComputedValuesMap;
@@ -401,6 +402,10 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
+<%def name="impl_logical(name, need_clone=False, **kwargs)">
+    ${helpers.logical_setter(name, need_clone)}
+</%def>
+
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
@@ -496,7 +501,10 @@ impl Debug for ${style_struct.gecko_struct_name} {
                     need_clone=longhand.need_clone)
 
         # get the method and pass additional keyword or type-specific arguments
-        if longhand.keyword:
+        if longhand.logical:
+            method = impl_logical
+            args.update(name=longhand.name)
+        elif longhand.keyword:
             method = impl_keyword
             args.update(keyword=longhand.keyword)
             if "font" in longhand.ident:
@@ -510,7 +518,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
 
     picked_longhands, stub_longhands = [], []
     for x in longhands:
-        if (x.keyword or x.predefined_type in predefined_types) and x.name not in force_stub:
+        if (x.keyword or x.predefined_type in predefined_types or x.logical) and x.name not in force_stub:
             picked_longhands.append(x)
         else:
             stub_longhands.append(x)

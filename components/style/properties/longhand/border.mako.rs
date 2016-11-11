@@ -3,26 +3,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Method %>
+<% from data import Method, PHYSICAL_SIDES, ALL_SIDES %>
 
 <% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
                                               "bool") for side in ["top", "right", "bottom", "left"]]) %>
 
-% for side in ["top", "right", "bottom", "left"]:
-    ${helpers.predefined_type("border-%s-color" % side, "CSSColor",
+% for side in ALL_SIDES:
+    ${helpers.predefined_type("border-%s-color" % side[0], "CSSColor",
                               "::cssparser::Color::CurrentColor",
-                              animatable=True)}
+                              animatable=True, logical = side[1])}
 % endfor
 
-% for side in ["top", "right", "bottom", "left"]:
-    ${helpers.predefined_type("border-%s-style" % side, "BorderStyle",
+% for side in ALL_SIDES:
+    ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
-                              need_clone=True, animatable=False)}
+                              need_clone=True, animatable=False, logical = side[1])}
 % endfor
 
-% for side in ["top", "right", "bottom", "left"]:
-    <%helpers:longhand name="border-${side}-width" animatable="True">
+% for side in ALL_SIDES:
+    <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}">
         use app_units::Au;
         use std::fmt;
         use style_traits::ToCss;
