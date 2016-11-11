@@ -48,3 +48,34 @@ fn text_emphasis_style_longhand_should_parse_properly() {
     let devanagari_string_struct = SpecifiedValue::String("षि".to_string());
     assert_eq!(devanagari_string, devanagari_string_struct);
 }
+
+#[test]
+fn test_text_emphasis_position() {
+    use style::properties::longhands::text_emphasis_position;
+    use style::properties::longhands::text_emphasis_position::{HorizontalWritingModeValue, VerticalWritingModeValue };
+    use style::properties::longhands::text_emphasis_position::SpecifiedValue;
+
+    let over_right = parse_longhand!(text_emphasis_position, "over right");
+    assert_eq!(over_right, SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right));
+
+    let over_left = parse_longhand!(text_emphasis_position, "over left");
+    assert_eq!(over_left, SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Left));
+
+    let under_right = parse_longhand!(text_emphasis_position, "under right");
+    assert_eq!(under_right, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Right));
+
+    let under_left = parse_longhand!(text_emphasis_position, "under left");
+    assert_eq!(under_left, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Left));
+
+    let right_over = parse_longhand!(text_emphasis_position, "right over");
+    assert_eq!(right_over, SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right));
+
+    let left_over = parse_longhand!(text_emphasis_position, "left over");
+    assert_eq!(left_over, SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Left));
+
+    let right_under = parse_longhand!(text_emphasis_position, "right under");
+    assert_eq!(right_under, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Right));
+
+    let left_under = parse_longhand!(text_emphasis_position, "left under");
+    assert_eq!(left_under, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Left));
+}
