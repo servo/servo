@@ -5,7 +5,7 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
@@ -481,8 +481,8 @@ pub struct Opacity(pub CSSFloat);
 
 impl NoViewportPercentage for Opacity {}
 
-impl Parser for Opacity {
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+impl Parse for Opacity {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Opacity)
     }
 }

@@ -149,6 +149,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}">
     use values::specified::basic_shape::BorderRadius;
+    use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let _ignored = context;

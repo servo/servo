@@ -847,7 +847,7 @@ impl LengthOrPercentageOrAuto {
 
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::All)
     }
 }
@@ -956,7 +956,7 @@ impl ToCss for LengthOrPercentageOrAutoOrContent {
 }
 
 impl Parse for LengthOrPercentageOrAutoOrContent {
-    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let context = AllowedNumericType::NonNegative;
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>

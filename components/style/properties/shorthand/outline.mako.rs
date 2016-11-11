@@ -7,6 +7,7 @@
 <%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width">
     use properties::longhands::outline_width;
     use values::specified;
+    use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let _unused = context;

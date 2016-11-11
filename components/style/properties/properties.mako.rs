@@ -27,7 +27,7 @@ use euclid::size::Size2D;
 use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
-use parser::{ParserContext, ParserContextExtraData};
+use parser::{Parse, ParserContext, ParserContextExtraData};
 use style_traits::ToCss;
 use stylesheets::Origin;
 #[cfg(feature = "servo")] use values::Either;
@@ -49,7 +49,7 @@ pub mod declaration_block;
 
 pub mod longhands {
     use cssparser::Parser;
-    use parser::ParserContext;
+    use parser::{Parse, ParserContext};
     use values::specified;
 
     <%include file="/longhand/background.mako.rs" />
@@ -79,7 +79,7 @@ pub mod longhands {
 
 pub mod shorthands {
     use cssparser::Parser;
-    use parser::ParserContext;
+    use parser::{Parse, ParserContext};
     use values::specified;
 
     pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
@@ -344,8 +344,8 @@ pub enum CSSWideKeyword {
     UnsetKeyword,
 }
 
-impl CSSWideKeyword {
-    pub fn parse(input: &mut Parser) -> Result<CSSWideKeyword, ()> {
+impl Parse for CSSWideKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "initial" => Ok(CSSWideKeyword::InitialKeyword),
             "inherit" => Ok(CSSWideKeyword::InheritKeyword),
@@ -736,7 +736,7 @@ impl PropertyDeclaration {
                 Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
                 Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
                 Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
-                Err(()) => match ::custom_properties::parse(input) {
+                Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                     Ok(value) => DeclaredValue::Value(value),
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
