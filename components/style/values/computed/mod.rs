@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use euclid::size::Size2D;
+use font_metrics::FontMetricsProvider;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
@@ -28,9 +29,11 @@ pub struct Context<'a> {
     pub viewport_size: Size2D<Au>,
     pub inherited_style: &'a ComputedValues,
 
-    /// Values access through this need to be in the properties "computed early":
-    /// color, text-decoration, font-size, display, position, float, border-*-style, outline-style
+    /// Values access through this need to be in the properties "computed
+    /// early": color, text-decoration, font-size, display, position, float,
+    /// border-*-style, outline-style, font-family, writing-mode...
     pub style: ComputedValues,
+    pub font_metrics_provider: Option<&'a FontMetricsProvider>,
 }
 
 impl<'a> Context<'a> {
@@ -39,6 +42,20 @@ impl<'a> Context<'a> {
     pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
     pub fn style(&self) -> &ComputedValues { &self.style }
     pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
+
+    /// Creates a dummy computed context for use in multiple places, like
+    /// evaluating media queries.
+    pub fn initial(viewport_size: Size2D<Au>, is_root_element: bool) -> Self {
+        let initial_style = ComputedValues::initial_values();
+        // FIXME: Enforce a font metrics provider.
+        Context {
+            is_root_element: is_root_element,
+            viewport_size: viewport_size,
+            inherited_style: initial_style,
+            style: initial_style.clone(),
+            font_metrics_provider: None,
+        }
+    }
 }
 
 pub trait ToComputedValue {
@@ -99,8 +116,7 @@ impl ToComputedValue for specified::Length {
             specified::Length::Absolute(length) => length,
             specified::Length::Calc(calc, range) => range.clamp(calc.to_computed_value(context).length()),
             specified::Length::FontRelative(length) =>
-                length.to_computed_value(context.style().get_font().clone_font_size(),
-                                         context.style().root_font_size()),
+                length.to_computed_value(context, /* use inherited */ false),
             specified::Length::ViewportPercentage(length) =>
                 length.to_computed_value(context.viewport_size()),
             specified::Length::ServoCharacterWidth(length) =>

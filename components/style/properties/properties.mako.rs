@@ -25,6 +25,7 @@ use url::Url;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use computed_values;
+use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData};
@@ -1460,6 +1461,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                        inherited_style,
                        cascade_info,
                        error_reporter,
+                       None,
                        flags)
 }
 
@@ -1471,6 +1473,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                     inherited_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    font_metrics_provider: Option<<&FontMetricsProvider>,
                                     flags: CascadeFlags)
                                     -> ComputedValues
     where F: Fn() -> I, I: Iterator<Item = &'a PropertyDeclaration>
@@ -1524,6 +1527,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
         style: starting_style,
+        font_metrics_provider: font_metrics_provider,
     };
 
     // Set computed values, overwriting earlier declarations for the same
@@ -1558,6 +1562,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 // classification is correct.
                 let is_early_property = matches!(*declaration,
                     PropertyDeclaration::FontSize(_) |
+                    PropertyDeclaration::FontFamily(_) |
                     PropertyDeclaration::Color(_) |
                     PropertyDeclaration::Position(_) |
                     PropertyDeclaration::Float(_) |
