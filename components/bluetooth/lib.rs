@@ -567,6 +567,7 @@ impl BluetoothManager {
     fn request_device(&mut self,
                       options: RequestDeviceoptions,
                       sender: IpcSender<BluetoothResponseResult>) {
+        // Step 6.
         let mut adapter = get_adapter_or_return_error!(self, sender);
         if let Ok(ref session) = adapter.create_discovery_session() {
             if session.start_discovery().is_ok() {
@@ -577,18 +578,20 @@ impl BluetoothManager {
             let _ = session.stop_discovery();
         }
 
-        // Step 6.
-        // Note: There is no requiredServiceUUIDS, we scan for all devices.
+        // Step 7.
+        // Note: There are no requiredServiceUUIDS, we scan for all devices.
         let mut matched_devices = self.get_and_cache_devices(&mut adapter);
 
-        // Step 7.
+        // Step 8.
         if !options.is_accepting_all_devices() {
             matched_devices = matched_devices.into_iter()
                                              .filter(|d| matches_filters(d, options.get_filters()))
                                              .collect();
         }
 
-        // Step 8.
+        // Step 9.
+        // TODO: After the permission API implementation
+        //       https://w3c.github.io/permissions/#prompt-the-user-to-choose
         if let Some(address) = self.select_device(matched_devices, &adapter) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),
@@ -610,7 +613,9 @@ impl BluetoothManager {
                 return drop(sender.send(Ok(BluetoothResponse::RequestDevice(message))));
             }
         }
+        // TODO: Step 10-11: Implement the permission API.
         return drop(sender.send(Err(BluetoothError::NotFound)));
+        // Step 12: Missing, because it is optional.
     }
 
     fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothResponseResult>) {
