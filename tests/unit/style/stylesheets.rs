@@ -256,7 +256,7 @@ fn test_parse_stylesheet() {
                 ]
             })))
 
-        ],
+        ].into(),
     };
 
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));

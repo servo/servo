@@ -30,6 +30,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -43,6 +44,9 @@ use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -76,8 +80,10 @@ use std::default::Default;
 use std::iter;
 use std::mem;
 use std::ops::Range;
+use std::sync::Arc;
 use style::dom::OpaqueNode;
 use style::selector_impl::ServoSelectorImpl;
+use style::stylesheets::Stylesheet;
 use style::thread_state;
 use url::Url;
 use uuid::Uuid;
@@ -900,6 +906,30 @@ impl Node {
 
         element.upcast::<Node>().remove_self();
         Ok(())
+    }
+
+    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+        if let Some(node) = self.downcast::<HTMLStyleElement>() {
+            node.get_stylesheet()
+        } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
+            node.get_stylesheet()
+        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
+            node.get_stylesheet()
+        } else {
+            None
+        }
+    }
+
+    pub fn get_cssom_stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+        if let Some(node) = self.downcast::<HTMLStyleElement>() {
+            node.get_cssom_stylesheet()
+        } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
+            node.get_cssom_stylesheet()
+        } else if let Some(node) = self.downcast::<HTMLMetaElement>() {
+            node.get_cssom_stylesheet()
+        } else {
+            None
+        }
     }
 }
 

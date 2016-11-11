@@ -35,13 +35,18 @@ impl StyleSheetList {
 impl StyleSheetListMethods for StyleSheetList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
-       self.document.stylesheets().len() as u32
+       self.document.with_style_sheets_in_document(|s| s.len() as u32)
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
-    fn Item(&self, _index: u32) -> Option<Root<StyleSheet>> {
-        None
-        //TODO Create a new StyleSheet object and return it
+    fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
+        // XXXManishearth this  doesn't handle the origin clean flag
+        // and is a cors vulnerability
+        self.document.with_style_sheets_in_document(|sheets| {
+            sheets.get(index as usize)
+                  .and_then(|sheet| sheet.node.get_cssom_stylesheet())
+                  .map(Root::upcast)
+        })
     }
 
     // check-tidy: no specs after this line
