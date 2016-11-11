@@ -59,10 +59,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
-use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
@@ -152,10 +149,10 @@ enum ParserBlockedByScript {
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
-struct StylesheetInDocument {
-    node: JS<Node>,
+pub struct StylesheetInDocument {
+    pub node: JS<Node>,
     #[ignore_heap_size_of = "Arc"]
-    stylesheet: Arc<Stylesheet>,
+    pub stylesheet: Arc<Stylesheet>,
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -189,6 +186,7 @@ pub struct Document {
     stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
+    stylesheet_list: MutNullableHeap<JS<StyleSheetList>>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
@@ -1811,6 +1809,7 @@ impl Document {
             applets: Default::default(),
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
+            stylesheet_list: MutNullableHeap::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
@@ -1910,33 +1909,35 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
+    // Ensure that the stylesheets vector is populated
+    fn ensure_stylesheets(&self) {
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        if stylesheets.is_none() {
+            *stylesheets = Some(self.upcast::<Node>()
+                .traverse_preorder()
+                .filter_map(|node| {
+                    node.get_stylesheet()
+                        .map(|stylesheet| StylesheetInDocument {
+                        node: JS::from_ref(&*node),
+                        stylesheet: stylesheet,
+                    })
+                })
+                .collect());
+        };
+    }
+
     /// Returns the list of stylesheets associated with nodes in the document.
     pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
-        {
-            let mut stylesheets = self.stylesheets.borrow_mut();
-            if stylesheets.is_none() {
-                *stylesheets = Some(self.upcast::<Node>()
-                    .traverse_preorder()
-                    .filter_map(|node| {
-                        if let Some(node) = node.downcast::<HTMLStyleElement>() {
-                            node.get_stylesheet()
-                        } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
-                            node.get_stylesheet()
-                        } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
-                            node.get_stylesheet()
-                        } else {
-                            None
-                        }.map(|stylesheet| StylesheetInDocument {
-                            node: JS::from_ref(&*node),
-                            stylesheet: stylesheet
-                        })
-                    })
-                    .collect());
-            };
-        }
+        self.ensure_stylesheets();
         self.stylesheets.borrow().as_ref().unwrap().iter()
                         .map(|s| s.stylesheet.clone())
                         .collect()
+    }
+
+    pub fn with_style_sheets_in_document<F, T>(&self, mut f: F) -> T
+            where F: FnMut(&[StylesheetInDocument]) -> T {
+        self.ensure_stylesheets();
+        f(&self.stylesheets.borrow().as_ref().unwrap())
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
@@ -2038,7 +2039,7 @@ impl Element {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
-        StyleSheetList::new(&self.window, JS::from_ref(&self))
+        self.stylesheet_list.or_init(|| StyleSheetList::new(&self.window, JS::from_ref(&self)))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-implementation

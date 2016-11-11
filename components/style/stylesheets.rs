@@ -7,6 +7,7 @@
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
 use cssparser::{AtRuleType, RuleListParser, Token};
+use cssparser::ToCss as ParserToCss;
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
@@ -18,7 +19,9 @@ use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_impl::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
 use std::cell::Cell;
+use std::fmt;
 use std::sync::Arc;
+use style_traits::ToCss;
 use url::Url;
 use viewport::ViewportRule;
 
@@ -39,7 +42,7 @@ pub enum Origin {
     User,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CssRules(pub Arc<Vec<CssRule>>);
 
 impl From<Vec<CssRule>> for CssRules {
@@ -67,7 +70,7 @@ pub struct UserAgentStylesheets {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
@@ -127,6 +130,41 @@ pub struct MediaRule {
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
     pub block: Arc<RwLock<PropertyDeclarationBlock>>,
+}
+
+impl StyleRule {
+    /// Serialize the group of selectors for this rule.
+    ///
+    /// https://drafts.csswg.org/cssom/#serialize-a-group-of-selectors
+    pub fn selectors_to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut iter = self.selectors.iter();
+        try!(iter.next().unwrap().to_css(dest));
+        for selector in iter {
+            try!(write!(dest, ", "));
+            try!(selector.to_css(dest));
+        }
+        Ok(())
+    }
+}
+
+impl ToCss for StyleRule {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        // Step 1
+        try!(self.selectors_to_css(dest));
+        // Step 2
+        try!(dest.write_str(" { "));
+        // Step 3
+        let declaration_block = self.block.read();
+        try!(declaration_block.to_css(dest));
+        // Step 4
+        if declaration_block.declarations.len() > 0 {
+            try!(write!(dest, " "));
+        }
+        // Step 5
+        try!(dest.write_str("}"));
+        Ok(())
+    }
 }
 
 
