@@ -1813,7 +1813,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
         let mut transform = Matrix4D::identity();
-        let operations = match self.style.get_effects().transform.0 {
+        let operations = match self.style.get_box().transform.0 {
             None => return transform,
             Some(ref operations) => operations,
         };
@@ -2036,7 +2036,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
 
         // Account for `transform`, if applicable.
-        if self.fragment.style.get_effects().transform.0.is_none() {
+        if self.fragment.style.get_box().transform.0.is_none() {
             return
         }
         let transform = match self.fragment

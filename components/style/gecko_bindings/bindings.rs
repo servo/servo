@@ -26,6 +26,10 @@ pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
 pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlockStrong;
 pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
+pub type nsCSSValueBorrowed<'a> = &'a nsCSSValue;
+pub type nsCSSValueBorrowedOrNull<'a> = Option<&'a nsCSSValue>;
+pub type nsCSSValueBorrowedMut<'a> = &'a mut nsCSSValue;
+pub type nsCSSValueBorrowedMutOrNull<'a> = Option<&'a mut nsCSSValue>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
@@ -50,7 +54,11 @@ use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleClipPath;
+use gecko_bindings::structs::nscoord;
+use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSShadowArray;
+use gecko_bindings::structs::nsCSSValue;
+use gecko_bindings::structs::nsCSSValueSharedList;
 use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
@@ -611,6 +619,49 @@ extern "C" {
 extern "C" {
     pub fn Gecko_ReleaseQuoteValuesArbitraryThread(aPtr:
                                                        *mut nsStyleQuoteValues);
+}
+extern "C" {
+    pub fn Gecko_NewCSSValueSharedList(len: u32) -> *mut nsCSSValueSharedList;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetAbsoluteLength(css_value: nsCSSValueBorrowedMut,
+                                            len: nscoord);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetNumber(css_value: nsCSSValueBorrowedMut,
+                                    number: f32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetKeyword(css_value: nsCSSValueBorrowedMut,
+                                     keyword: nsCSSKeyword);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetPercentage(css_value: nsCSSValueBorrowedMut,
+                                        percent: f32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetAngle(css_value: nsCSSValueBorrowedMut,
+                                   radians: f32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetCalc(css_value: nsCSSValueBorrowedMut,
+                                  calc: nsStyleCoord_CalcValue);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetFunction(css_value: nsCSSValueBorrowedMut,
+                                   len: i32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
+                                       index: i32) -> nsCSSValueBorrowedMut;
+}
+extern "C" {
+    pub fn Gecko_AddRefCSSValueSharedListArbitraryThread(aPtr:
+                                                             *mut nsCSSValueSharedList);
+}
+extern "C" {
+    pub fn Gecko_ReleaseCSSValueSharedListArbitraryThread(aPtr:
+                                                              *mut nsCSSValueSharedList);
 }
 extern "C" {
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);

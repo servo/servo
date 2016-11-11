@@ -2584,7 +2584,7 @@ impl Fragment {
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return true
         }
 
@@ -2638,7 +2638,7 @@ impl Fragment {
             _ => return self.style().get_position().z_index.number_or_zero(),
         }
 
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return self.style().get_position().z_index.number_or_zero();
         }
 

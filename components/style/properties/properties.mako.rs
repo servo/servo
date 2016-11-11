@@ -1237,6 +1237,7 @@ impl ComputedValues {
         use computed_values::transform_style;
 
         let effects = self.get_effects();
+        let box_ = self.get_box();
 
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         if effects.opacity < 1.0 ||
@@ -1247,7 +1248,7 @@ impl ComputedValues {
         }
 
         if effects.transform_style == transform_style::T::auto {
-            if effects.transform.0.is_some() {
+            if box_.transform.0.is_some() {
                 return transform_style::T::flat;
             }
             if let Either::First(ref _length) = effects.perspective {
@@ -1261,7 +1262,7 @@ impl ComputedValues {
 
     pub fn transform_requires_layer(&self) -> bool {
         // Check if the transform matrix is 2D or 3D
-        if let Some(ref transform_list) = self.get_effects().transform.0 {
+        if let Some(ref transform_list) = self.get_box().transform.0 {
             for transform in transform_list {
                 match *transform {
                     computed_values::transform::ComputedOperation::Perspective(..) => {
