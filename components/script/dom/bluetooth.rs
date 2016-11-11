@@ -134,14 +134,54 @@ impl Bluetooth {
                                  optional_services: &Option<Vec<BluetoothServiceUUID>>) {
         // TODO: Step 1: Triggered by user activation.
 
-        // Step 2.
-        let option = match convert_request_device_options(filters, optional_services) {
-            Ok(o) => o,
-            Err(e) => {
-                p.reject_error(p.global().get_cx(), e);
+        // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
+        let mut uuid_filters = vec!();
+
+        if let &Some(ref filters) = filters {
+            // Step 2.1.
+            if filters.is_empty()  {
+                p.reject_error(p.global().get_cx(), Type(FILTER_EMPTY_ERROR.to_owned()));
                 return;
             }
-        };
+
+            // Step 2.3: There is no requiredServiceUUIDS, we scan for all devices.
+
+            // Step 2.4.
+            for filter in filters {
+                // Step 2.4.8.
+                match canonicalize_filter(&filter) {
+                    Ok(f) => uuid_filters.push(f),
+                    Err(e) => {
+                        p.reject_error(p.global().get_cx(), e);
+                        return;
+                    },
+                }
+            }
+        }
+
+        let mut optional_services_uuids = vec!();
+        if let &Some(ref opt_services) = optional_services {
+            for opt_service in opt_services {
+                // Step 2.5 - 2.6.
+                let uuid = match BluetoothUUID::service(opt_service.clone()) {
+                    Ok(u) => u.to_string(),
+                    Err(e) => {
+                        p.reject_error(p.global().get_cx(), e);
+                        return;
+                    },
+                };
+
+                // Step 2.7.
+                // Note: What we are doing here is adding the not blacklisted UUIDs to the result vector,
+                // insted of removing them from an already filled vector.
+                if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
+                    optional_services_uuids.push(uuid);
+                }
+            }
+        }
+
+        let option = RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
+                                               ServiceUUIDSequence::new(optional_services_uuids));
 
         // TODO: Step 3-5: Implement the permission API.
 
@@ -172,48 +212,6 @@ pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
     action_sender
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn convert_request_device_options(filters: &Option<Vec<BluetoothLEScanFilterInit>>,
-                                  optional_services: &Option<Vec<BluetoothServiceUUID>>)
-                                  -> Fallible<RequestDeviceoptions> {
-    // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
-    let mut uuid_filters = vec!();
-
-    if let &Some(ref filters) = filters {
-        // Step 2.1.
-        if filters.is_empty()  {
-            return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
-        }
-
-        // Step 2.3: There is no requiredServiceUUIDS, we scan for all devices.
-
-        // Step 2.4.
-        for filter in filters {
-            // Step 2.4.8.
-            uuid_filters.push(try!(canonicalize_filter(&filter)));
-        }
-    }
-
-    let mut optional_services_uuids = vec!();
-    if let &Some(ref opt_services) = optional_services {
-        for opt_service in opt_services {
-            // Step 2.5 - 2.6.
-            let uuid = try!(BluetoothUUID::service(opt_service.clone())).to_string();
-
-            // Step 2.7.
-            // Note: What we are doing here is adding the not blocklisted UUIDs to the result vector,
-            // insted of removing them from an already filled vector.
-            if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                optional_services_uuids.push(uuid);
-            }
-        }
-    }
-
-    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
-                                 ServiceUUIDSequence::new(optional_services_uuids)))
-}
-
-// https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
 fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<BluetoothScanfilter> {
     // Step 2.4.1.
     if filter.services.is_none() &&
