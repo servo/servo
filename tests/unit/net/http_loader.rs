@@ -30,14 +30,15 @@ use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
 use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
-use net_traits::{CustomResponse, LoadOrigin, Metadata, ReferrerPolicy};
-use net_traits::request::{Request, RequestInit, Destination};
+use net_traits::{CustomResponse, LoadOrigin, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use url::Url;
@@ -788,69 +789,71 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
 
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let context = new_fetch_context(None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", None);
+    assert!(response.status.unwrap().is_success());
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None),
-                 None);
-
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
 }
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<CookieHeader>(),
+                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let context = new_fetch_context(None);
 
     {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-        let cookie_url = url.clone();
+        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &cookie_url,
+            &url,
             CookieSource::HTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut cookie = Headers::new();
-    cookie.set(CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: cookie,
-                     body: <[_]>::to_vec(&*load_data.data.unwrap())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    let _ = server.close();
+
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
@@ -897,95 +900,108 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<CookieHeader>(),
+                   Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let context = new_fetch_context(None);
 
     {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-        let cookie_url = url.clone();
+        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &cookie_url,
+            &url,
             CookieSource::NonHTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let mut headers = Headers::new();
-    headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+    let _ = server.close();
 
-    let _ = load(
-        &load_data.clone(), &ui_provider, &http_state, None,
-        &AssertMustIncludeHeadersRequestFactory {
-            expected_headers: headers,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
+        pair.httponly = true;
+        response.headers_mut().set(SetCookie(vec![pair]));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let context = new_fetch_context(None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; HttpOnly;".to_vec()]);
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 
-    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), Some("mozillaIs=theBest"));
+    let mut cookie_jar = context.state.cookie_jar.write().unwrap();
     assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
 }
 
 #[test]
 fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
-    struct Factory;
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        let mut pair = CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned());
+        pair.secure = true;
+        response.headers_mut().set(SetCookie(vec![pair]));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let context = new_fetch_context(None);
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            let content = <[_]>::to_vec("Yay!".as_bytes());
-            let mut headers = Headers::new();
-            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; Secure;".to_vec()]);
-            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
-        }
-    }
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let load_data = LoadData::new(LoadContext::Browsing, Url::parse("http://mozilla.com").unwrap(), &HttpTest);
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &Factory,
-                 DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    let _ = server.close();
 
-    assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", None);
+    assert!(response.status.unwrap().is_success());
+
+    assert_cookie_for_domain(context.state.cookie_jar.clone(), url.as_str(), None);
 }
 
 #[test]
@@ -1022,157 +1038,222 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
 #[test]
 fn test_load_sets_content_length_to_length_of_request_body() {
-    let content = "This is a request body";
+    let content = b"This is a request body";
+    let content_length = ContentLength(content.len() as u64);
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<ContentLength>(), Some(&content_length));
+        response.send(content).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        body: Some(content.to_vec()),
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
+    let _ = server.close();
 
-    let mut content_len_headers = Headers::new();
-    content_len_headers.set(ContentLength(content.as_bytes().len() as u64));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data.clone(), &ui_provider, &http_state,
-                 None, &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: content_len_headers,
-                     body: <[_]>::to_vec(&*load_data.data.unwrap())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_uses_explicit_accept_from_headers_in_load_data() {
-    let text_html = qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]));
+    let accept = Accept(vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]))]);
+    let expected_accept = accept.clone();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<Accept>(), Some(&expected_accept));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
     let mut accept_headers = Headers::new();
-    accept_headers.set(Accept(vec![text_html.clone()]));
+    accept_headers.set(accept);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        headers: accept_headers,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let _ = server.close();
 
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set(Accept(vec![text_html.clone()]));
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
-    let mut accept_headers = Headers::new();
-    accept_headers.set(Accept(vec![
-        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
-        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
-    ]));
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<Accept>(), Some(&Accept(vec![
+            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+        ])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let _ = server.close();
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
+    let accept_encoding = AcceptEncoding(vec![qitem(Encoding::Chunked)]);
+    let expected_accept_encoding = accept_encoding.clone();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&expected_accept_encoding));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
+    accept_encoding_headers.set(accept_encoding);
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        headers: accept_encoding_headers,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
+    let _ = server.close();
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_encoding_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
-    let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
-                                                    qitem(Encoding::Deflate),
-                                                    qitem(Encoding::EncodingExt("br".to_owned()))]));
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&AcceptEncoding(vec![
+            qitem(Encoding::Gzip),
+            qitem(Encoding::Deflate),
+            qitem(Encoding::EncodingExt("br".to_owned()))
+        ])));
+        response.send(b"Yay!").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let _ = server.close();
 
-    let _ = load(&load_data,
-                 &ui_provider, &http_state,
-                 None,
-                 &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: accept_encoding_headers,
-                     body: <[_]>::to_vec("Yay!".as_bytes())
-                 }, DEFAULT_USER_AGENT.into(),
-                 &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
 fn test_load_errors_when_there_a_redirect_loop() {
-    struct Factory;
+    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a_clone = url_b_for_a.clone();
+    let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_a, url_a) = make_server(handler_a);
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let url_a_for_b = url_a.clone();
+    let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_b, url_b) = make_server(handler_b);
 
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
-            } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.com".to_owned())))
-            } else {
-                panic!("unexpected host {:?}", url)
-            }
+    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
+
+    let request = Request::from_init(RequestInit {
+        url: url_a.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url_a.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+
+    let _ = server_a.close();
+    let _ = server_b.close();
+
+    assert_eq!(response.get_network_error(),
+               Some(&NetworkError::Internal("Too many redirects".to_owned())));
+}
+
+#[test]
+fn test_load_succeeds_with_a_redirect_loop() {
+    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a_clone = url_b_for_a.clone();
+    let handled_a = AtomicBool::new(false);
+    let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
+        if !handled_a.swap(true, Ordering::SeqCst) {
+            response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+            *response.status_mut() = StatusCode::MovedPermanently;
+            response.send(b"").unwrap();
+        } else {
+            response.send(b"Success").unwrap();
         }
-    }
+    };
+    let (mut server_a, url_a) = make_server(handler_a);
 
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let url_a_for_b = url_a.clone();
+    let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
+        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        *response.status_mut() = StatusCode::MovedPermanently;
+        response.send(b"").unwrap();
+    };
+    let (mut server_b, url_b) = make_server(handler_b);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    *url_b_for_a.lock().unwrap() = Some(url_b.clone());
 
-    match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None) {
-        Err(ref load_err) if load_err.error == LoadErrorType::RedirectLoop => (),
-        _ => panic!("expected max redirects to fail")
-    }
+    let request = Request::from_init(RequestInit {
+        url: url_a.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url_a.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
+
+    let _ = server_a.close();
+    let _ = server_b.close();
+
+    let response = response.to_actual();
+    assert_eq!(*response.url_list.borrow(),
+               [url_a.clone(), url_b, url_a]);
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Success".to_vec()));
 }
 
 #[test]
