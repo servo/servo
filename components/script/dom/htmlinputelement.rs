@@ -35,7 +35,6 @@ use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
-use msg::constellation_msg::Key;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
@@ -1097,18 +1096,10 @@ impl VirtualMethods for HTMLInputElement {
                     let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                     match action {
                         TriggerDefaultAction => {
-                            if let Some(key) = keyevent.get_key() {
-                                match key {
-                                    Key::Enter | Key::KpEnter =>
-                                        self.implicit_submission(keyevent.CtrlKey(),
-                                                                 keyevent.ShiftKey(),
-                                                                 keyevent.AltKey(),
-                                                                 keyevent.MetaKey()),
-                                    // Issue #12071: Tab should not submit forms
-                                    // TODO(3982): Implement form keyboard navigation
-                                    _ => (),
-                                }
-                            };
+                            self.implicit_submission(keyevent.CtrlKey(),
+                                                     keyevent.ShiftKey(),
+                                                     keyevent.AltKey(),
+                                                     keyevent.MetaKey());
                         },
                         DispatchInput => {
                             self.value_changed.set(true);
