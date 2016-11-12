@@ -1206,20 +1206,9 @@ fn static_assert() {
         unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
     }
 
-    pub fn set_scroll_snap_type_y(&mut self, v: longhands::scroll_snap_type_y::computed_value::T) {
-        use properties::longhands::scroll_snap_type_y::computed_value::SpecifiedValue;
-        use gecko_bindings::structs::{NS_STYLE_SCROLL_SNAP_TYPE_NONE,
-                                      NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY,
-                                      NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY};
+    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
 
-        self.gecko.mScrollSnapTypeY = match *v {
-            SpecifiedValue::none => NS_STYLE_SCROLL_SNAP_TYPE_NONE,
-            SpecifiedValue::mandatory => NS_STYLE_SCROLL_SNAP_TYPE_MANDATORY,
-            SpecifiedValue::proximity => NS_STYLE_SCROLL_SNAP_TYPE_PROXIMITY,
-        };
-    }
-
-    ${impl_simple_copy('scroll_snap_type_y', 'mScrollSnapTypeY')}
+    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=False)}
 
 </%self:impl_trait>
 
