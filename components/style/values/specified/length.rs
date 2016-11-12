@@ -840,12 +840,15 @@ impl LengthOrPercentageOrAuto {
         }
     }
     #[inline]
-    pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::All)
-    }
-    #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
         LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::NonNegative)
+    }
+}
+
+impl Parse for LengthOrPercentageOrAuto {
+    #[inline]
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::All)
     }
 }
 
@@ -899,12 +902,15 @@ impl LengthOrPercentageOrNone {
         }
     }
     #[inline]
-    pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
-        LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::All)
-    }
-    #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
         LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::NonNegative)
+    }
+}
+
+impl Parse for LengthOrPercentageOrNone {
+    #[inline]
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::All)
     }
 }
 
@@ -949,8 +955,8 @@ impl ToCss for LengthOrPercentageOrAutoOrContent {
     }
 }
 
-impl LengthOrPercentageOrAutoOrContent {
-    pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAutoOrContent, ()> {
+impl Parse for LengthOrPercentageOrAutoOrContent {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let context = AllowedNumericType::NonNegative;
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>

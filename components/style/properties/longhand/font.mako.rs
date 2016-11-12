@@ -496,6 +496,7 @@ ${helpers.single_keyword("font-variant-position",
 
     pub mod computed_value {
         use cssparser::Parser;
+        use parser::Parse;
         use std::fmt;
         use style_traits::ToCss;
 
@@ -542,10 +543,10 @@ ${helpers.single_keyword("font-variant-position",
             }
         }
 
-        impl FeatureTagValue {
+        impl Parse for FeatureTagValue {
             /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
             /// <string> [ on | off | <integer> ]
-            pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
+            fn parse(input: &mut Parser) -> Result<Self, ()> {
                 let tag = try!(input.expect_string());
 
                 // allowed strings of length 4 containing chars: <U+20, U+7E>
