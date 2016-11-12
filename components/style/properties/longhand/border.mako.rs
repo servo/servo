@@ -107,6 +107,11 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         computed_value::T(None)
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(None)
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -141,7 +146,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::LengthOrNumber;
+    use values::specified::{LengthOrNumber, Number};
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -194,6 +199,14 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                           computed::LengthOrNumber::Number(0.0),
                           computed::LengthOrNumber::Number(0.0),
                           computed::LengthOrNumber::Number(0.0))
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(vec![LengthOrNumber::Number(Number(0.0)),
+                            LengthOrNumber::Number(Number(0.0)),
+                            LengthOrNumber::Number(Number(0.0)),
+                            LengthOrNumber::Number(Number(0.0))])
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -299,6 +312,11 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T(RepeatKeyword::Stretch, RepeatKeyword::Stretch)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(RepeatKeyword::Stretch, Some(RepeatKeyword::Stretch))
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -447,6 +465,14 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                           computed_value::SingleComputedValue::Number(1.0),
                           computed_value::SingleComputedValue::Number(1.0),
                           computed_value::SingleComputedValue::Number(1.0))
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(vec![SingleSpecifiedValue::Number(Number(1.0)),
+                            SingleSpecifiedValue::Number(Number(1.0)),
+                            SingleSpecifiedValue::Number(Number(1.0)),
+                            SingleSpecifiedValue::Number(Number(1.0))])
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -636,6 +662,17 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                           computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
                           computed_value::PercentageOrNumber::Percentage(Percentage(1.0)),
                           computed_value::PercentageOrNumber::Percentage(Percentage(1.0))],
+            fill: false,
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue {
+            corners: vec![PercentageOrNumber::Percentage(Percentage(1.0)),
+                          PercentageOrNumber::Percentage(Percentage(1.0)),
+                          PercentageOrNumber::Percentage(Percentage(1.0)),
+                          PercentageOrNumber::Percentage(Percentage(1.0))],
             fill: false,
         }
     }
