@@ -262,8 +262,8 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
         context: context,
-        script_chan: doc.window().networking_task_source(),
-        wrapper: Some(doc.window().get_runnable_wrapper()),
+        task_source: doc.window().networking_task_source(),
+        wrapper: Some(doc.window().get_runnable_wrapper())
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {

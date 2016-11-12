@@ -148,14 +148,14 @@ pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
         promise: &Rc<Promise>,
         receiver: &T) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let chan = receiver.global().networking_task_source();
+    let task_source = receiver.global().networking_task_source();
     let context = Arc::new(Mutex::new(BluetoothContext {
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
     }));
     let listener = NetworkListener {
         context: context,
-        script_chan: chan,
+        task_source: task_source,
         wrapper: None,
     };
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {

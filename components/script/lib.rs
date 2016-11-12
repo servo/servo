@@ -48,6 +48,7 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate html5ever;
 #[macro_use] extern crate html5ever_atoms;
+#[macro_use]
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image;

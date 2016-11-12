@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
 use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
-use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -62,12 +62,13 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         referrer_policy: request.referrer_policy.get(),
         pipeline_id: request.pipeline_id.get(),
         redirect_mode: request.redirect_mode.get(),
+        ..NetTraitsRequestInit::default()
     }
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(global: &GlobalScope, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: &RequestInit) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
@@ -96,8 +97,8 @@ pub fn Fetch(global: &GlobalScope, input: RequestOrUSVString, init: &RequestInit
     }));
     let listener = NetworkListener {
         context: fetch_context,
-        script_chan: global.networking_task_source(),
-        wrapper: None,
+        task_source: global.networking_task_source(),
+        wrapper: Some(global.get_runnable_wrapper())
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {

@@ -22,6 +22,7 @@ test_interfaces([
   "DOMException",
   "ErrorEvent",
   "Event",
+  "EventSource",
   "EventTarget",
   "File",
   "FileList",
