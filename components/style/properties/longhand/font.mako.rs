@@ -496,6 +496,7 @@ ${helpers.single_keyword("font-variant-position",
 
     pub mod computed_value {
         use cssparser::Parser;
+        use parser::Parse;
         use std::fmt;
         use style_traits::ToCss;
 
