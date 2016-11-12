@@ -570,7 +570,7 @@ dependencies = [
 [[package]]
 name = "dwrote"
 version = "0.1.0"
-source = "git+https://github.com/vvuk/dwrote-rs#2bf7d4792d15fccb50f1e247e4be9c2c7b893f2b"
+source = "git+https://github.com/vvuk/dwrote-rs#7112cf6e4bb9f645217dacb5d7470178da13a544"
 dependencies = [
  "dwrite-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
