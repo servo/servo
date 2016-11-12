@@ -62,6 +62,7 @@ macro_rules! parse_longhand {
 }
 
 mod basic_shape;
+mod border;
 mod font;
 mod image;
 mod inherited_text;
