@@ -170,6 +170,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             })
         };
 
+        // Important that this call is done in a single-threaded fashion, we
+        // can't defer it after `create_constellation` has started.
+        script::init();
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -183,7 +187,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
-        script::init(sw_senders);
+        script::init_service_workers(sw_senders);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -339,7 +343,8 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
-    script::init(sw_senders);
+    script::init();
+    script::init_service_workers(sw_senders);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
