@@ -649,7 +649,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     for debug_string in opt_match.opt_strs("Z") {
         if let Err(e) = debug_options.extend(debug_string) {
-            return args_fail(&format!("error: unrecognized debug option: {}", e));
+            args_fail(&format!("error: unrecognized debug option: {}", e));
         }
     }
 
