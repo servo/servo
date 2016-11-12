@@ -24,7 +24,8 @@ fn expand_string(input: &str) -> String {
     });
 
     let name = &type_.ident;
-    let (impl_generics, ty_generics, mut where_clause) = type_.generics.split_for_impl();
+    let (impl_generics, ty_generics, where_clause) = type_.generics.split_for_impl();
+    let mut where_clause = where_clause.clone();
     for param in &type_.generics.ty_params {
         where_clause.predicates.push(syn::WherePredicate::BoundPredicate(syn::WhereBoundPredicate {
             bound_lifetimes: Vec::new(),
@@ -40,8 +41,6 @@ fn expand_string(input: &str) -> String {
     }
 
     let tokens = quote! {
-        #type_
-
         impl #impl_generics ::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
             #[inline]
             #[allow(unused_variables, unused_imports)]

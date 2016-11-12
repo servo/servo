@@ -90,7 +90,8 @@ impl LateLintPass for UnrootedPass {
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields() {
-                if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.id), false) {
+                let def_id = cx.tcx.map.local_def_id(field.id);
+                if is_unrooted_ty(cx, cx.tcx.item_type(def_id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
                 }
@@ -105,7 +106,8 @@ impl LateLintPass for UnrootedPass {
             match var.node.data {
                 hir::VariantData::Tuple(ref fields, _) => {
                     for ref field in fields {
-                        if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.id), false) {
+                        let def_id = cx.tcx.map.local_def_id(field.id);
+                        if is_unrooted_ty(cx, cx.tcx.item_type(def_id), false) {
                             cx.span_lint(UNROOTED_MUST_ROOT, field.ty.span,
                                          "Type must be rooted, use #[must_root] on \
                                           the enum definition to propagate")
@@ -118,17 +120,18 @@ impl LateLintPass for UnrootedPass {
     }
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
-                block: &hir::Block, span: codemap::Span, id: ast::NodeId) {
+                body: &hir::Expr, span: codemap::Span, id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
             visit::FnKind::Method(n, _, _, _) => {
-                n.as_str() == "new" || n.as_str().starts_with("new_")
+                &*n.as_str() == "new" || n.as_str().starts_with("new_")
             }
             visit::FnKind::Closure(_) => return,
         };
 
         if !in_derive_expn(cx, span) {
-            let ty = cx.tcx.node_id_to_type(id);
+            let def_id = cx.tcx.map.local_def_id(id);
+            let ty = cx.tcx.item_type(def_id);
 
             for (arg, ty) in decl.inputs.iter().zip(ty.fn_args().0.iter()) {
                 if is_unrooted_ty(cx, ty, false) {
@@ -147,7 +150,7 @@ impl LateLintPass for UnrootedPass {
             cx: cx,
             in_new_function: in_new_function,
         };
-        visit::walk_block(&mut visitor, block);
+        visit::walk_expr(&mut visitor, body);
     }
 }
 
@@ -161,7 +164,7 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
         let cx = self.cx;
 
         fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
-            let ty = cx.tcx.expr_ty(&*subexpr);
+            let ty = cx.tcx.tables().expr_ty(&subexpr);
             if is_unrooted_ty(cx, ty, in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,
                              subexpr.span,
@@ -194,8 +197,8 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
     fn visit_pat(&mut self, pat: &'a hir::Pat) {
         let cx = self.cx;
 
-        if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _) = pat.node {
-            let ty = cx.tcx.pat_ty(pat);
+        if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _, _) = pat.node {
+            let ty = cx.tcx.tables().pat_ty(pat);
             if is_unrooted_ty(cx, ty, self.in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,
                             pat.span,
@@ -207,9 +210,9 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
     }
 
     fn visit_fn(&mut self, kind: visit::FnKind<'a>, decl: &'a hir::FnDecl,
-                block: &'a hir::Block, span: codemap::Span, id: ast::NodeId) {
+                body: &'a hir::Expr, span: codemap::Span, id: ast::NodeId) {
         if let visit::FnKind::Closure(_) = kind {
-            visit::walk_fn(self, kind, decl, block, span, id);
+            visit::walk_fn(self, kind, decl, body, span, id);
         }
     }
 
