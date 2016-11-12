@@ -39,12 +39,20 @@ pub enum Origin {
     User,
 }
 
+#[derive(Debug)]
+pub struct CSSRules(pub Arc<Vec<CSSRule>>);
+
+impl From<Vec<CSSRule>> for CSSRules {
+    fn from(other: Vec<CSSRule>) -> Self {
+        CSSRules(Arc::new(other))
+    }
+}
 
 #[derive(Debug)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: Vec<CSSRule>,
+    pub rules: CSSRules,
     /// List of media associated with the Stylesheet.
     pub media: MediaList,
     pub origin: Origin,
@@ -89,7 +97,7 @@ impl CSSRule {
             CSSRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
-                f(&media_rule.rules, Some(&mq))
+                f(&media_rule.rules.0, Some(&mq))
             }
         }
     }
@@ -112,7 +120,7 @@ pub struct KeyframesRule {
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
-    pub rules: Vec<CSSRule>,
+    pub rules: CSSRules,
 }
 
 #[derive(Debug)]
@@ -180,7 +188,7 @@ impl Stylesheet {
 
         Stylesheet {
             origin: origin,
-            rules: rules,
+            rules: rules.into(),
             media: Default::default(),
             dirty_on_viewport_size_change:
                 input.seen_viewport_percentages(),
@@ -208,7 +216,7 @@ impl Stylesheet {
     /// examined.
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CSSRule) {
-        effective_rules(&self.rules, device, &mut f);
+        effective_rules(&self.rules.0, device, &mut f);
     }
 }
 
@@ -251,7 +259,7 @@ rule_filter! {
     effective_keyframes_rules(Keyframes => KeyframesRule),
 }
 
-fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule> {
+fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> CSSRules {
     let mut iter = RuleListParser::new_for_nested_rule(input,
                                                        NestedRuleParser { context: context });
     let mut rules = Vec::new();
@@ -265,7 +273,7 @@ fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRul
             }
         }
     }
-    rules
+    rules.into()
 }
 
 
