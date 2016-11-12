@@ -380,7 +380,7 @@ impl Stylist {
                             return true
                         }
                     }
-                    mq_eval_changed(rules, before, after)
+                    mq_eval_changed(&rules, before, after)
                 }) {
                     return true
                 }
@@ -388,7 +388,7 @@ impl Stylist {
             false
         }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            mq_eval_changed(&stylesheet.rules, &self.device, &device)
+            mq_eval_changed(&stylesheet.rules.0, &self.device, &device)
         });
 
         self.device = device;
