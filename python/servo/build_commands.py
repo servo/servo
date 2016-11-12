@@ -360,7 +360,7 @@ class MachCommands(CommandBase):
 
         servo_features = self.servo_features()
         if servo_features:
-            opts += ["--features", "%s" % ' '.join("servo/" + x for x in servo_features)]
+            opts += ["--features", "%s" % ' '.join(servo_features)]
 
         build_start = time()
         env = self.build_env(is_build=True)
