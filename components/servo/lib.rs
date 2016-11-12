@@ -89,6 +89,7 @@ use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
 use std::borrow::Cow;
 use std::cmp::max;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use url::Url;
@@ -243,7 +244,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 }
 
 fn create_constellation(user_agent: Cow<'static, str>,
-                        config_dir: Option<String>,
+                        config_dir: Option<PathBuf>,
                         url: Option<Url>,
                         compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
@@ -259,7 +260,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
         new_resource_threads(user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
-                             config_dir.map(Into::into));
+                             config_dir);
     let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
                                                     webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
