@@ -42,7 +42,7 @@ impl Default for MediaList {
 pub enum Range<T> {
     Min(T),
     Max(T),
-    //Eq(T),    // FIXME: Implement parsing support for equality then re-enable this.
+    Eq(T),    // FIXME: Implement parsing support for equality then re-enable this.
 }
 
 impl Range<specified::Length> {
@@ -71,7 +71,7 @@ impl Range<specified::Length> {
         match *self {
             Range::Min(ref width) => Range::Min(compute_width(width)),
             Range::Max(ref width) => Range::Max(compute_width(width)),
-            //Range::Eq(ref width) => Range::Eq(compute_width(width))
+            Range::Eq(ref width) => Range::Eq(compute_width(width))
         }
     }
 }
@@ -81,7 +81,7 @@ impl<T: Ord> Range<T> {
         match *self {
             Range::Min(ref width) => { value >= *width },
             Range::Max(ref width) => { value <= *width },
-            //Range::Eq(ref width) => { value == *width },
+            Range::Eq(ref width) => { value == *width },
         }
     }
 }
@@ -146,6 +146,7 @@ impl ToCss for MediaQuery {
             let (mm, l) = match e {
                 Expression::Width(Range::Min(ref l)) => ("min", l),
                 Expression::Width(Range::Max(ref l)) => ("max", l),
+                Expression::Width(Range::Eq(ref l)) => ("eq", l),
             };
             try!(write!(dest, "{}-width: ", mm));
             try!(l.to_css(dest));
@@ -211,6 +212,9 @@ impl Expression {
                 },
                 "max-width" => {
                     Ok(Expression::Width(Range::Max(try!(specified::Length::parse_non_negative(input)))))
+                },
+                "width" => {
+                    Ok(Expression::Width(Range::Eq(try!(specified::Length::parse_non_negative(input)))))
                 },
                 _ => Err(())
             }
