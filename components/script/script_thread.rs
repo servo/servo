@@ -90,7 +90,7 @@ use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeDat
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, RunJobHandler};
+use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -400,7 +400,7 @@ pub struct ScriptThread {
     /// A map to store service worker registrations for a given origin
     registration_map: DOMRefCell<HashMap<Url, JS<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
-    job_queue_map: DOMRefCell<JobQueue>,
+    job_queue_map: Rc<JobQueue>,
     /// A handle to the image cache thread.
     image_cache_thread: ImageCacheThread,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -584,7 +584,7 @@ impl ScriptThread {
     pub fn schedule_job(job: Job, global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            let job_queue = &mut *script_thread.job_queue_map.borrow_mut();
+            let job_queue = &*script_thread.job_queue_map;
             job_queue.schedule_job(job, global, &script_thread);
         });
     }
@@ -658,7 +658,7 @@ impl ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
             incomplete_loads: DOMRefCell::new(vec!()),
             registration_map: DOMRefCell::new(HashMap::new()),
-            job_queue_map: DOMRefCell::new(JobQueue::new()),
+            job_queue_map: Rc::new(JobQueue::new()),
 
             image_cache_thread: state.image_cache_thread,
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
@@ -1467,7 +1467,12 @@ impl ScriptThread {
         }
     }
 
-    fn handle_serviceworker_registration(&self,
+    pub fn handle_get_registration(&self, scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        maybe_registration_ref.get(scope_url).map(|ref x| Root::from_ref(&***x))
+    }
+
+    pub fn handle_serviceworker_registration(&self,
                                          scope: Url,
                                          registration: &ServiceWorkerRegistration,
                                          pipeline_id: PipelineId) {
@@ -1494,8 +1499,28 @@ impl ScriptThread {
         }
     }
 
-    pub fn queue_run_job(&self, run_job_handler: Box<RunJobHandler>, global: &GlobalScope) {
+    pub fn queue_run_job(&self, run_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
         let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
+    }
+
+    pub fn invoke_run_job(&self, run_job_handler: Box<AsyncJobHandler>) {
+        let job_queue = &*self.job_queue_map;
+        job_queue.run_job(run_job_handler, self);
+    }
+
+    pub fn queue_register_job(&self, run_job_handler: Box<AsyncJobHandler>) {
+        let global = &*run_job_handler.global.root();
+        let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
+    }
+
+    pub fn invoke_register_job(&self, run_job_handler: Box<AsyncJobHandler>) {
+        let job_queue = &*self.job_queue_map;
+        let queue_ref = &*job_queue.0.borrow();
+        let first_job = {
+            let job_vec = queue_ref.get(&run_job_handler.scope_url);
+            job_vec.unwrap().first().unwrap()
+        };
+        job_queue.run_register(&first_job, run_job_handler, self);
     }
 
     pub fn queue_async_job(&self, async_job_handler: Box<AsyncJobHandler>) {
@@ -1503,26 +1528,22 @@ impl ScriptThread {
         let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
-    pub fn finish_job(&self, scope_url: &Url, global: &GlobalScope) {
-        let job_queue = &mut *self.job_queue_map.borrow_mut();
+    pub fn queue_finish_job(&self, finish_job_handler: Box<FinishJobHandler>, global: &GlobalScope) {
+        let _ = self.dom_manipulation_task_source.queue(finish_job_handler, global);
+    }
+
+    pub fn invoke_finish_job(&self, finish_job_handler: Box<FinishJobHandler>) {
+        let job_queue = &*self.job_queue_map;
+        let global = &*finish_job_handler.global.root();
+        let scope_url = (*finish_job_handler).scope_url;
         job_queue.finish_job(scope_url, global, &self);
     }
 
-    pub fn invoke_run_job(&self, run_job_handler: Box<RunJobHandler>) {
-        let job_queue = &mut *self.job_queue_map.borrow_mut();
-        job_queue.run_job(run_job_handler, self);
-    }
-
     pub fn invoke_job_update(&self, job:&Job, global: &GlobalScope) {
-        let job_queue = &mut *self.job_queue_map.borrow_mut();
-        job_queue.update(global, self);
-        // TODO update_algorithm, followed by Run Service Worker algorithm.
+        let job_queue = &*self.job_queue_map;
+        job_queue.update(job, global, self);
     }
 
-    fn handle_get_registration(&self, scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
-        let ref maybe_registration_ref = *self.registration_map.borrow();
-        maybe_registration_ref.get(scope_url).map(|ref x| Root::from_ref(&***x))
-    }
 
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {

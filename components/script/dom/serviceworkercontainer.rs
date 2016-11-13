@@ -16,7 +16,6 @@ use dom::promise::Promise;
 use dom::serviceworker::ServiceWorker;
 use script_thread::ScriptThread;
 use serviceworkerjob::{Job, JobType};
-use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::default::Default;
 use std::rc::Rc;
@@ -42,21 +41,6 @@ impl ServiceWorkerContainer {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);
         reflect_dom_object(box container, global, Wrap)
-    }
-}
-
-pub trait Controllable {
-    fn set_controller(&self, active_worker: &ServiceWorker);
-}
-// TODO remove this trait usage
-// Setting the controller attribute to an active worker needs to happen at a much later stage,
-// probably during activate algorithm. Since we are passing the client with
-// schedule_job (which can be used to set controller), we may not need
-// this trait then.
-impl Controllable for ServiceWorkerContainer {
-    fn set_controller(&self, active_worker: &ServiceWorker) {
-        (&*self.client).set_controller(active_worker);
-        self.upcast::<EventTarget>().fire_event(atom!("controllerchange"));
     }
 }
 
@@ -128,10 +112,9 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
             return promise;
         }
 
-        let global = self.global();
         // B: Step 8
         let job = Job::create_job(JobType::Register, scope, script_url, promise.clone(), &*self.client);
-        ScriptThread::schedule_job(job, &*global);
+        ScriptThread::schedule_job(job, &*self.global());
         promise
     }
 }
