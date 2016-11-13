@@ -10,7 +10,6 @@ use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
-use dom::serviceworkercontainer::Controllable;
 use dom::workerglobalscope::prepare_workerscope_init;
 use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
 use std::cell::Cell;
@@ -40,11 +39,9 @@ impl ServiceWorkerRegistration {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
                script_url: Url,
-               scope: Url
-               /*container: &Controllable*/) -> Root<ServiceWorkerRegistration> {
+               scope: Url) -> Root<ServiceWorkerRegistration> {
         let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
-        //container.set_controller(&*active_worker.clone());
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)
     }
 
