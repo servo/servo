@@ -173,11 +173,11 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 pub fn init() {
     unsafe {
         proxyhandler::init();
-    }
 
-    // Create the global vtables used by the (generated) DOM
-    // bindings to implement JS proxies.
-    RegisterBindings::RegisterProxyHandlers();
+        // Create the global vtables used by the (generated) DOM
+        // bindings to implement JS proxies.
+        RegisterBindings::RegisterProxyHandlers();
+    }
 
     perform_platform_specific_initialization();
 }
