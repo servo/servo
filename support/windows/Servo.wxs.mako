@@ -115,20 +115,6 @@
                     DiskId="1"/>
             </Component>
 
-            <Directory Id="EtcDir" Name="etc">
-              <Directory Id="FontsDir" Name="fonts">
-                <Component Id="FontsDir"
-                           Guid="8d37ee61-9237-438d-b976-f163bd6b0578"
-                           Win64="yes">
-                  <File Id="ServoFontsConfig"
-                        KeyPath="yes"
-                        Name="fonts.conf"
-                        Source="${windowize(top_path)}\support\windows\fonts.conf"
-                        DiskId="1"/>
-                </Component>
-              </Directory>
-            </Directory>
-
             ${include_directory(path.join(top_path, "resources"), "resources")}
             ${include_directory(browserhtml_path, "browserhtml")}
           </Directory>
@@ -151,7 +137,6 @@
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="Servo"/>
-      <ComponentRef Id="FontsDir"/>
       % for c in components:
       <ComponentRef Id="${c}"/>
       % endfor
