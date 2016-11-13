@@ -31,10 +31,10 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
-use style::computed_values::{text_overflow, vertical_align, white_space};
+use style::computed_values::{vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::{longhands, ServoComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi;
@@ -684,21 +684,30 @@ impl LineBreaker {
         }
 
         // Determine if an ellipsis will be necessary to account for `text-overflow`.
-        let mut need_ellipsis = false;
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
-        match (fragment.style().get_text().text_overflow,
-               fragment.style().get_box().overflow_x) {
-            (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
-            (text_overflow::T::ellipsis, _) => {
-                need_ellipsis = fragment.margin_box_inline_size() > available_inline_size;
-            }
-        }
 
-        if !need_ellipsis {
-            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
-        } else {
-            let ellipsis = fragment.transform_into_ellipsis(layout_context);
+        let ellipsis = match (&fragment.style().get_text().text_overflow.first,
+            fragment.style().get_box().overflow_x) {
+            (&longhands::text_overflow::Side::Clip, _) | (_, overflow_x::T::visible) => None,
+            (&longhands::text_overflow::Side::Ellipsis, _) => {
+                if fragment.margin_box_inline_size() > available_inline_size {
+                    Some("…".to_string())
+                } else {
+                    None
+                }
+            },
+            (&longhands::text_overflow::Side::String(ref string), _) => {
+                if fragment.margin_box_inline_size() > available_inline_size {
+                    Some(string.to_string())
+                } else {
+                    None
+                }
+            }
+        };
+
+        if let Some(string) = ellipsis {
+            let ellipsis = fragment.transform_into_ellipsis(layout_context, string);
             if let Some(truncation_info) =
                     fragment.truncate_to_inline_size(available_inline_size -
                                                      ellipsis.margin_box_inline_size()) {
@@ -707,6 +716,8 @@ impl LineBreaker {
                 self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
             }
             self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
+        } else {
+            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
         }
 
         if line_flush_mode == LineFlushMode::Flush {

@@ -50,7 +50,7 @@ install:
   - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
   - if %BUILD_ENV%==gnu  bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
   - if %BUILD_ENV%==gnu  bash -lc "pacman --noconfirm -Sy"
-  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg"
+  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg"
   - if %BUILD_ENV%==gnu  bash -lc "easy_install-2.7 pip virtualenv"
   - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
   - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"

@@ -9,17 +9,18 @@
 
 import contextlib
 import fnmatch
+import imp
 import itertools
 import json
 import os
 import re
-import site
 import StringIO
 import subprocess
 import sys
-from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 import colorama
 import toml
+
+from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 
@@ -28,6 +29,7 @@ config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-ordered-json-keys": [],
+    "lint-scripts": [],
     "ignore": {
         "files": [
             "./.",   # ignore hidden files
@@ -86,7 +88,8 @@ def is_iter_empty(iterator):
         return False, iterator
 
 
-# A simple wrapper for iterators to show progress (note that it's inefficient for giant iterators)
+# A simple wrapper for iterators to show progress
+# (Note that it's inefficient for giant iterators, since it iterates once to get the upper bound)
 def progress_wrapper(iterator):
     list_of_stuff = list(iterator)
     total_files, progress = len(list_of_stuff), 0
@@ -95,6 +98,49 @@ def progress_wrapper(iterator):
         sys.stdout.write('\r  Progress: %s%% (%d/%d)' % (progress, idx + 1, total_files))
         sys.stdout.flush()
         yield thing
+
+
+class FileList(object):
+    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
+        self.directory = directory
+        self.excluded = exclude_dirs
+        iterator = self._git_changed_files() if only_changed_files else \
+            self._filter_excluded() if exclude_dirs else self._default_walk()
+        # Raise `StopIteration` if the iterator is empty
+        obj = next(iterator)
+        self.generator = itertools.chain((obj,), iterator)
+        if progress:
+            self.generator = progress_wrapper(self.generator)
+
+    def _default_walk(self):
+        for root, _, files in os.walk(self.directory):
+            for f in files:
+                yield os.path.join(root, f)
+
+    def _git_changed_files(self):
+        args = ["git", "log", "-n1", "--merges", "--format=%H"]
+        last_merge = subprocess.check_output(args).strip()
+        args = ["git", "diff", "--name-only", last_merge, self.directory]
+        file_list = subprocess.check_output(args)
+
+        for f in file_list.splitlines():
+            if sys.platform == 'win32':
+                os.path.join(*f.split('/'))
+            if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
+                yield os.path.join('.', f)
+
+    def _filter_excluded(self):
+        for root, dirs, files in os.walk(self.directory, topdown=True):
+            # modify 'dirs' in-place so that we don't do unnecessary traversals in excluded directories
+            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in self.excluded)]
+            for rel_path in files:
+                yield os.path.join(root, rel_path)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return next(self.generator)
 
 
 def filter_file(file_name):
@@ -107,13 +153,8 @@ def filter_file(file_name):
 
 
 def filter_files(start_dir, only_changed_files, progress):
-    file_iter = get_file_list(start_dir, only_changed_files, config["ignore"]["directories"])
-    (has_element, file_iter) = is_iter_empty(file_iter)
-    if not has_element:
-        raise StopIteration
-    if progress:
-        file_iter = progress_wrapper(file_iter)
-
+    file_iter = FileList(start_dir, only_changed_files=only_changed_files,
+                         exclude_dirs=config["ignore"]["directories"], progress=progress)
     for file_name in file_iter:
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
@@ -829,31 +870,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_wpt_files(suite, only_changed_files, progress):
-    wpt_dir = os.path.join(".", "tests", "wpt", suite, "")
-    file_iter = get_file_list(os.path.join(wpt_dir), only_changed_files)
-    (has_element, file_iter) = is_iter_empty(file_iter)
-    if not has_element:
-        raise StopIteration
-    print '\nRunning the WPT lint...'
-    if progress:
-        file_iter = progress_wrapper(file_iter)
-    for f in file_iter:
-        if filter_file(f):
-            yield f[len(wpt_dir):]
-
-
-def check_wpt_lint_errors(suite, files):
-    wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    if os.path.isdir(wpt_working_dir):
-        site.addsitedir(wpt_working_dir)
-        from tools.lint import lint
-        file_dir = os.path.abspath(os.path.join(".", "tests", "wpt", suite))
-        returncode = lint.lint(file_dir, files, output_json=False)
-        if returncode:
-            yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
-
-
 def get_dep_toml_files(only_changed_files=False):
     if not only_changed_files:
         print '\nRunning the dependency licensing lint...'
@@ -876,27 +892,52 @@ def check_dep_license_errors(filenames, progress=True):
                 yield (filename, 0, "dependency should contain a valid license.")
 
 
-def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
-    if only_changed_files:
-        # only check tracked files that have been changed since the last merge
-        args = ["git", "log", "-n1", "--author=bors-servo", "--format=%H"]
-        last_merge = subprocess.check_output(args).strip()
-        args = ["git", "diff", "--name-only", last_merge, directory]
-        file_list = subprocess.check_output(args)
-        for f in file_list.splitlines():
-            f = os.path.join(*f.split("/")) if sys.platform == "win32" else f
-            if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in exclude_dirs):
-                yield os.path.join('.', f)
-    elif exclude_dirs:
-        for root, dirs, files in os.walk(directory, topdown=True):
-            # modify 'dirs' in-place so that we don't do unwanted traversals in excluded directories
-            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in exclude_dirs)]
-            for rel_path in files:
-                yield os.path.join(root, rel_path)
-    else:
-        for root, _, files in os.walk(directory):
-            for f in files:
-                yield os.path.join(root, f)
+class LintRunner(object):
+    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True):
+        self.only_changed_files = only_changed_files
+        self.exclude_dirs = exclude_dirs
+        self.progress = progress
+        self.path = lint_path
+
+    def check(self):
+        if not os.path.exists(self.path):
+            yield (self.path, 0, "file does not exist")
+            return
+        if not self.path.endswith('.py'):
+            yield (self.path, 0, "lint should be a python script")
+            return
+        dir_name, filename = os.path.split(self.path)
+        sys.path.append(dir_name)
+        module = imp.load_source(filename[:-3], self.path)
+        if hasattr(module, 'Lint'):
+            if issubclass(module.Lint, LintRunner):
+                lint = module.Lint(self.path, self.only_changed_files, self.exclude_dirs, self.progress)
+                for error in lint.run():
+                    if not hasattr(error, '__iter__'):
+                        yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
+                        return
+                    yield error
+            else:
+                yield (self.path, 1, "class 'Lint' should inherit from 'LintRunner'")
+        else:
+            yield (self.path, 1, "script should contain a class named 'Lint'")
+        sys.path.remove(dir_name)
+
+    def get_files(self, path, **kwargs):
+        args = ['only_changed_files', 'exclude_dirs', 'progress']
+        kwargs = {k: kwargs.get(k, getattr(self, k)) for k in args}
+        return FileList(path, **kwargs)
+
+    def run(self):
+        yield (self.path, 0, "class 'Lint' should implement 'run' method")
+
+
+def run_lint_scripts(only_changed_files=False, progress=True):
+    runner = LintRunner(only_changed_files=only_changed_files, progress=progress)
+    for path in config['lint-scripts']:
+        runner.path = path
+        for error in runner.check():
+            yield error
 
 
 def scan(only_changed_files=False, progress=True):
@@ -912,13 +953,10 @@ def scan(only_changed_files=False, progress=True):
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
-    # wpt lint checks
-    wpt_lint_errors = [
-        check_wpt_lint_errors(suite, get_wpt_files(suite, only_changed_files, progress))
-        for suite in ["web-platform-tests", os.path.join("mozilla", "tests")]
-    ]
+    # other lint checks
+    lint_errors = run_lint_scripts(only_changed_files, progress)
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, *wpt_lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, lint_errors)
 
     error = None
     for error in errors:

@@ -7,24 +7,24 @@ use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
-use values::{CSSFloat, specified};
+use values::{CSSFloat, Either, None_, specified};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use values::specified::{Angle, BorderStyle, Time, UrlExtraData, UrlOrNone};
+pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CalcLengthOrPercentage {
-    pub length: Option<Au>,
+    pub length: Au,
     pub percentage: Option<CSSFloat>,
 }
 
 impl CalcLengthOrPercentage {
     #[inline]
     pub fn length(&self) -> Au {
-        self.length.unwrap_or(Au(0))
+        self.length
     }
 
     #[inline]
@@ -38,13 +38,13 @@ impl From<LengthOrPercentage> for CalcLengthOrPercentage {
         match len {
             LengthOrPercentage::Percentage(this) => {
                 CalcLengthOrPercentage {
-                    length: None,
+                    length: Au(0),
                     percentage: Some(this),
                 }
             }
             LengthOrPercentage::Length(this) => {
                 CalcLengthOrPercentage {
-                    length: Some(this),
+                    length: this,
                     percentage: None,
                 }
             }
@@ -60,13 +60,13 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
         match len {
             LengthOrPercentageOrAuto::Percentage(this) => {
                 Some(CalcLengthOrPercentage {
-                    length: None,
+                    length: Au(0),
                     percentage: Some(this),
                 })
             }
             LengthOrPercentageOrAuto::Length(this) => {
                 Some(CalcLengthOrPercentage {
-                    length: Some(this),
+                    length: this,
                     percentage: None,
                 })
             }
@@ -83,10 +83,9 @@ impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
 impl ToCss for CalcLengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match (self.length, self.percentage) {
-            (None, Some(p)) => write!(dest, "{}%", p * 100.),
-            (Some(l), None) => write!(dest, "{}px", Au::to_px(l)),
-            (Some(l), Some(p)) => write!(dest, "calc({}px + {}%)", Au::to_px(l), p * 100.),
-            _ => unreachable!()
+            (l, Some(p)) if l == Au(0) => write!(dest, "{}%", p * 100.),
+            (l, Some(p)) => write!(dest, "calc({}px + {}%)", Au::to_px(l), p * 100.),
+            (l, None) => write!(dest, "{}px", Au::to_px(l)),
         }
     }
 }
@@ -95,16 +94,34 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
-        self.compute_from_viewport_and_font_size(context.viewport_size(),
-                                                 context.style().get_font().clone_font_size(),
-                                                 context.style().root_font_size())
+        let mut length = Au(0);
 
+        if let Some(absolute) = self.absolute {
+            length += absolute;
+        }
+
+        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
+            if let Some(val) = *val {
+                length += val.to_computed_value(context.viewport_size());
+            }
+        }
+
+        for val in &[self.ch, self.em, self.ex, self.rem] {
+            if let Some(val) = *val {
+                length += val.to_computed_value(context, /* use inherited */ false);
+            }
+        }
+
+        CalcLengthOrPercentage {
+            length: length,
+            percentage: self.percentage.map(|p| p.0),
+        }
     }
 
     #[inline]
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
-            absolute: computed.length,
+            absolute: Some(computed.length),
             percentage: computed.percentage.map(specified::Percentage),
             ..Default::default()
         }
@@ -452,61 +469,7 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 
-#[derive(PartialEq, Clone, Copy)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum LengthOrNone {
-    Length(Au),
-    None,
-}
-
-impl fmt::Debug for LengthOrNone {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrNone::Length(length) => write!(f, "{:?}", length),
-            LengthOrNone::None => write!(f, "none"),
-        }
-    }
-}
-
-impl ToComputedValue for specified::LengthOrNone {
-    type ComputedValue = LengthOrNone;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> LengthOrNone {
-        match *self {
-            specified::LengthOrNone::Length(specified::Length::Calc(calc, range)) => {
-                LengthOrNone::Length(range.clamp(calc.to_computed_value(context).length()))
-            }
-            specified::LengthOrNone::Length(value) => {
-                LengthOrNone::Length(value.to_computed_value(context))
-            }
-            specified::LengthOrNone::None => {
-                LengthOrNone::None
-            }
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &LengthOrNone) -> Self {
-        match *computed {
-            LengthOrNone::Length(au) => {
-                specified::LengthOrNone::Length(ToComputedValue::from_computed_value(&au))
-            }
-            LengthOrNone::None => {
-                specified::LengthOrNone::None
-            }
-        }
-    }
-}
-
-impl ToCss for LengthOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrNone::Length(length) => length.to_css(dest),
-            LengthOrNone::None => dest.write_str("none"),
-        }
-    }
-}
+pub type LengthOrNone = Either<Length, None_>;
 
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

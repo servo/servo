@@ -5,11 +5,8 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-#[cfg(feature = "gecko")]
-use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use parser::ParserContext;
-#[cfg(feature = "gecko")]
-use parser::ParserContextExtraData;
+use parser::{Parse, ParserContext};
+use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
 use std::fmt;
@@ -17,7 +14,6 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
-use url::Url;
 
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -30,6 +26,7 @@ pub mod basic_shape;
 pub mod image;
 pub mod length;
 pub mod position;
+pub mod url;
 
 impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
@@ -39,8 +36,9 @@ pub struct CSSColor {
     pub parsed: cssparser::Color,
     pub authored: Option<String>,
 }
-impl CSSColor {
-    pub fn parse(input: &mut Parser) -> Result<CSSColor, ()> {
+
+impl Parse for CSSColor {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned()),
@@ -82,7 +80,6 @@ impl ToCss for CSSRGBA {
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct SimplifiedSumNode {
@@ -196,9 +193,11 @@ impl BorderRadiusSize {
     pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
         BorderRadiusSize(Size2D::new(radius, radius))
     }
+}
 
+impl Parse for BorderRadiusSize {
     #[inline]
-    pub fn parse(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let first = try!(LengthOrPercentage::parse_non_negative(input));
         let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
         Ok(BorderRadiusSize(Size2D::new(first, second)))
@@ -240,9 +239,9 @@ const RAD_PER_DEG: CSSFloat = PI / 180.0;
 const RAD_PER_GRAD: CSSFloat = PI / 200.0;
 const RAD_PER_TURN: CSSFloat = PI * 2.0;
 
-impl Angle {
+impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
-    pub fn parse(input: &mut Parser) -> Result<Angle, ()> {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
             Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
@@ -252,7 +251,9 @@ impl Angle {
             _ => Err(())
         }
     }
+}
 
+impl Angle {
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
         match_ignore_ascii_case! { unit,
             "deg" => Ok(Angle(value * RAD_PER_DEG)),
@@ -260,42 +261,6 @@ impl Angle {
             "turn" => Ok(Angle(value * RAD_PER_TURN)),
             "rad" => Ok(Angle(value)),
              _ => Err(())
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct UrlExtraData {
-    #[cfg(feature = "gecko")]
-    pub base: GeckoArcURI,
-    #[cfg(feature = "gecko")]
-    pub referrer: GeckoArcURI,
-    #[cfg(feature = "gecko")]
-    pub principal: GeckoArcPrincipal,
-}
-
-impl UrlExtraData {
-    #[cfg(feature = "servo")]
-    pub fn make_from(_: &ParserContext) -> Option<UrlExtraData> {
-        Some(UrlExtraData { })
-    }
-
-    #[cfg(feature = "gecko")]
-    pub fn make_from(context: &ParserContext) -> Option<UrlExtraData> {
-        match context.extra_data {
-            ParserContextExtraData {
-                base: Some(ref base),
-                referrer: Some(ref referrer),
-                principal: Some(ref principal),
-            } => {
-                Some(UrlExtraData {
-                    base: base.clone(),
-                    referrer: referrer.clone(),
-                    principal: principal.clone(),
-                })
-            },
-            _ => None,
         }
     }
 }
@@ -439,8 +404,12 @@ impl Time {
             Err(())
         }
     }
+}
 
-    pub fn parse(input: &mut Parser) -> Result<Time, ()> {
+impl ComputedValueAsSpecified for Time {}
+
+impl Parse for Time {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match input.next() {
             Ok(Token::Dimension(ref value, ref unit)) => {
                 Time::parse_dimension(value.value, &unit)
@@ -452,8 +421,6 @@ impl Time {
         }
     }
 }
-
-impl ComputedValueAsSpecified for Time {}
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -467,11 +434,13 @@ pub struct Number(pub CSSFloat);
 
 impl NoViewportPercentage for Number {}
 
-impl Number {
-    pub fn parse(input: &mut Parser) -> Result<Number, ()> {
+impl Parse for Number {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Number)
     }
+}
 
+impl Number {
     fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
         match parse_number(input) {
             Ok(value) if value < min => Err(()),
@@ -512,8 +481,8 @@ pub struct Opacity(pub CSSFloat);
 
 impl NoViewportPercentage for Opacity {}
 
-impl Opacity {
-    pub fn parse(input: &mut Parser) -> Result<Opacity, ()> {
+impl Parse for Opacity {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Opacity)
     }
 }
@@ -547,7 +516,7 @@ impl ToCss for Opacity {
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum UrlOrNone {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     None,
 }
 
@@ -557,13 +526,8 @@ impl NoViewportPercentage for UrlOrNone {}
 impl ToCss for UrlOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            UrlOrNone::Url(ref url, _) => {
-                url.to_css(dest)
-            }
-            UrlOrNone::None => {
-                try!(dest.write_str("none"));
-                Ok(())
-            }
+            UrlOrNone::Url(ref url) => url.to_css(dest),
+            UrlOrNone::None => dest.write_str("none"),
         }
     }
 }
@@ -574,17 +538,6 @@ impl UrlOrNone {
             return Ok(UrlOrNone::None);
         }
 
-        let url = context.parse_url(&*try!(input.expect_url()));
-        match UrlExtraData::make_from(context) {
-            Some(extra_data) => {
-                Ok(UrlOrNone::Url(url, extra_data))
-            },
-            _ => {
-                // FIXME(heycam) should ensure we always have a principal, etc., when parsing
-                // style attributes and re-parsing due to CSS Variables.
-                println!("stylo: skipping UrlOrNone declaration without ParserContextExtraData");
-                Err(())
-            },
-        }
+        Ok(UrlOrNone::Url(try!(SpecifiedUrl::parse(context, input))))
     }
 }

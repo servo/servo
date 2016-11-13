@@ -103,6 +103,39 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-top-width;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStartStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEndStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStartStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-color;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndColor;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndWidth;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end-style;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEndStyle;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString border-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString borderInlineEnd;
+
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString content;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString color;
@@ -242,6 +275,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-right;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginTop;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-top;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString margin-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString marginInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBottom;
@@ -252,6 +293,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-right;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingTop;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-top;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString padding-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString paddingInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outline;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString outlineColor;
@@ -284,6 +333,18 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-width;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxWidth;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-width;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString blockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString inlineSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxBlockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString max-inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString maxInlineSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-block-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minBlockSize;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString min-inline-size;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minInlineSize;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString zIndex;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString z-index;

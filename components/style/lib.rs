@@ -103,6 +103,7 @@ pub mod dom;
 pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;
+pub mod font_metrics;
 #[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko;
 #[cfg(feature = "gecko")] #[allow(unsafe_code)] pub mod gecko_bindings;
 pub mod keyframes;

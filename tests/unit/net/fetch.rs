@@ -20,7 +20,7 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net::fetch::cors_cache::CORSCache;
+use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{fetch, fetch_with_cors_cache};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
@@ -119,7 +119,7 @@ fn test_fetch_blob() {
 
 
     let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
-    let fetch_response = fetch(Rc::new(request), &mut None, context);
+    let fetch_response = fetch(Rc::new(request), &mut None, &context);
 
     assert!(!fetch_response.is_network_error());
 
@@ -189,7 +189,7 @@ fn test_cors_preflight_fetch() {
     *request.referrer.borrow_mut() = Referrer::ReferrerUrl(target_url);
     *request.referrer_policy.get_mut() = Some(ReferrerPolicy::Origin);
     request.use_cors_preflight = true;
-    request.mode = RequestMode::CORSMode;
+    request.mode = RequestMode::CorsMode;
     let fetch_response = fetch_sync(request, None);
     let _ = server.close();
 
@@ -206,7 +206,7 @@ fn test_cors_preflight_cache_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
-    let mut cache = CORSCache::new();
+    let mut cache = CorsCache::new();
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
@@ -226,14 +226,14 @@ fn test_cors_preflight_cache_fetch() {
     let mut request = Request::new(url.clone(), Some(origin.clone()), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.use_cors_preflight = true;
-    request.mode = RequestMode::CORSMode;
+    request.mode = RequestMode::CorsMode;
     let wrapped_request0 = Rc::new(request.clone());
     let wrapped_request1 = Rc::new(request);
 
     let fetch_response0 = fetch_with_cors_cache(wrapped_request0.clone(), &mut cache,
-                                                &mut None, new_fetch_context(None));
+                                                &mut None, &new_fetch_context(None));
     let fetch_response1 = fetch_with_cors_cache(wrapped_request1.clone(), &mut cache,
-                                                &mut None, new_fetch_context(None));
+                                                &mut None, &new_fetch_context(None));
     let _ = server.close();
 
     assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
@@ -278,7 +278,7 @@ fn test_cors_preflight_fetch_network_error() {
     *request.method.borrow_mut() = Method::Extension("CHICKEN".to_owned());
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.use_cors_preflight = true;
-    request.mode = RequestMode::CORSMode;
+    request.mode = RequestMode::CorsMode;
     let fetch_response = fetch_sync(request, None);
     let _ = server.close();
 
@@ -345,12 +345,12 @@ fn test_fetch_response_is_cors_filtered() {
     let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
-    request.mode = RequestMode::CORSMode;
+    request.mode = RequestMode::CorsMode;
     let fetch_response = fetch_sync(request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
-    assert_eq!(fetch_response.response_type, ResponseType::CORS);
+    assert_eq!(fetch_response.response_type, ResponseType::Cors);
 
     let headers = fetch_response.headers;
     assert!(headers.has::<CacheControl>());
@@ -383,8 +383,8 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
 
+    assert!(fetch_response.url().is_none());
     assert!(fetch_response.url_list.into_inner().len() == 0);
-    assert!(fetch_response.url.is_none());
     // this also asserts that status message is "the empty byte sequence"
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
@@ -630,7 +630,7 @@ fn test_fetch_redirect_updates_method() {
 
 fn response_is_done(response: &Response) -> bool {
     let response_complete = match response.response_type {
-        ResponseType::Default | ResponseType::Basic | ResponseType::CORS => {
+        ResponseType::Default | ResponseType::Basic | ResponseType::Cors => {
             (*response.body.lock().unwrap()).is_done()
         }
         // if the internal response cannot have a body, it shouldn't block the "done" state

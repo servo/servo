@@ -30,6 +30,7 @@ use block::{BlockFlow, FormattingContextType};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Size2D};
+use flex::FlexFlow;
 use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
@@ -84,6 +85,16 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn as_mut_block(&mut self) -> &mut BlockFlow {
         debug!("called as_mut_block() on a flow of type {:?}", self.class());
         panic!("called as_mut_block() on a non-block flow")
+    }
+
+    /// If this is a flex flow, returns the underlying object. Fails otherwise.
+    fn as_flex(&self) -> &FlexFlow {
+        panic!("called as_flex() on a non-flex flow")
+    }
+
+    /// If this is a flex flow, returns the underlying object, borrowed mutably. Fails otherwise.
+    fn as_mut_flex(&mut self) -> &mut FlexFlow {
+        panic!("called as_mut_flex() on a non-flex flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.

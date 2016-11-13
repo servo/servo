@@ -188,14 +188,36 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual(msg, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_lint_runner(self):
+        test_path = base_path + 'lints/'
+        runner = tidy.LintRunner(only_changed_files=False, progress=False)
+        runner.path = test_path + 'some-fictional-file'
+        self.assertEqual([(runner.path, 0, "file does not exist")], list(runner.check()))
+        runner.path = test_path + 'not_script'
+        self.assertEqual([(runner.path, 0, "lint should be a python script")],
+                         list(runner.check()))
+        runner.path = test_path + 'not_inherited.py'
+        self.assertEqual([(runner.path, 1, "class 'Lint' should inherit from 'LintRunner'")],
+                         list(runner.check()))
+        runner.path = test_path + 'no_lint.py'
+        self.assertEqual([(runner.path, 1, "script should contain a class named 'Lint'")],
+                         list(runner.check()))
+        runner.path = test_path + 'no_run.py'
+        self.assertEqual([(runner.path, 0, "class 'Lint' should implement 'run' method")],
+                         list(runner.check()))
+        runner.path = test_path + 'invalid_error_tuple.py'
+        self.assertEqual([(runner.path, 1, "errors should be a tuple of (path, line, reason)")],
+                         list(runner.check()))
+        runner.path = test_path + 'proper_file.py'
+        self.assertEqual([('path', 0, "foobar")], list(runner.check()))
+
     def test_file_list(self):
         base_path='./python/tidy/servo_tidy_tests/test_ignored'
-        file_list = tidy.get_file_list(base_path, only_changed_files=False,
-                                       exclude_dirs=[])
+        file_list = tidy.FileList(base_path, only_changed_files=False, exclude_dirs=[])
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs'), os.path.join(base_path, 'whee', 'foo', 'bar.rs')], lst)
-        file_list = tidy.get_file_list(base_path, only_changed_files=False,
-                                       exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
+        file_list = tidy.FileList(base_path, only_changed_files=False,
+                                  exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
 

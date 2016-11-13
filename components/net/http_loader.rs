@@ -835,9 +835,11 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                     request_body.clone(), pipeline_id, time::now(),
                     connect_end - connect_start, send_end - send_start, is_xhr))
             } else {
+                debug!("Not notifying devtools (no pipeline_id)");
                 None
             }
         } else {
+            debug!("Not notifying devtools (no request_id)");
             None
         };
 

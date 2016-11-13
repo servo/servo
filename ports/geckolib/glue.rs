@@ -148,6 +148,7 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
                                       previous_style,
                                       None,
                                       Box::new(StdoutErrorReporter),
+                                      None,
                                       CascadeFlags::empty());
     Arc::new(computed).into_strong()
 }
@@ -161,6 +162,22 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
     if let Some(element) = GeckoNode(node).as_element() {
         element.clear_data();
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
+    let url = Url::parse("about:blank").unwrap();
+    let extra_data = ParserContextExtraData::default();
+    let origin = match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+    };
+    let sheet = Arc::new(Stylesheet::from_str("", url, origin, Box::new(StdoutErrorReporter),
+                                              extra_data));
+    unsafe {
+        transmute(sheet)
     }
 }
 

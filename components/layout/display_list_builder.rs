@@ -52,9 +52,8 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::{self, ServoComputedValues};
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
-use style::values::RGBA;
-use style::values::computed;
-use style::values::computed::{Gradient, GradientKind, LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::{self, Either, RGBA, computed};
+use style::values::computed::{Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
@@ -613,14 +612,16 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                         style);
                     }
                 }
-                Some(computed::Image::Url(ref image_url, ref _extra_data)) => {
-                    self.build_display_list_for_background_image(state,
-                                                                 style,
-                                                                 display_list_section,
-                                                                 &bounds,
-                                                                 &clip,
-                                                                 image_url,
-                                                                 i);
+                Some(computed::Image::Url(ref image_url)) => {
+                    if let Some(url) = image_url.url() {
+                        self.build_display_list_for_background_image(state,
+                                                                     style,
+                                                                     display_list_section,
+                                                                     &bounds,
+                                                                     &clip,
+                                                                     url,
+                                                                     i);
+                    }
                 }
             }
         }
@@ -1563,7 +1564,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let transform = self.transform_matrix(&border_box);
         let perspective = match self.style().get_effects().perspective {
-            LengthOrNone::Length(d) => {
+            Either::First(length) => {
                 let perspective_origin = self.style().get_effects().perspective_origin;
                 let perspective_origin =
                     Point2D::new(model::specified(perspective_origin.horizontal,
@@ -1578,11 +1579,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                   -perspective_origin.y,
                                                                   0.0);
 
-                let perspective_matrix = create_perspective_matrix(d);
+                let perspective_matrix = create_perspective_matrix(length);
 
                 pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
             }
-            LengthOrNone::None => {
+            Either::Second(values::None_) => {
                 Matrix4D::identity()
             }
         };
@@ -1812,7 +1813,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
         let mut transform = Matrix4D::identity();
-        let operations = match self.style.get_effects().transform.0 {
+        let operations = match self.style.get_box().transform.0 {
             None => return transform,
             Some(ref operations) => operations,
         };
@@ -2035,7 +2036,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
 
         // Account for `transform`, if applicable.
-        if self.fragment.style.get_effects().transform.0.is_none() {
+        if self.fragment.style.get_box().transform.0.is_none() {
             return
         }
         let transform = match self.fragment

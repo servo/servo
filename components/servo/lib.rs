@@ -87,9 +87,12 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use std::borrow::Cow;
 use std::cmp::max;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use url::Url;
 use util::opts;
 use util::prefs::PREFS;
 use util::resource_files::resources_dir_path;
@@ -170,10 +173,16 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             })
         };
 
+        // Important that this call is done in a single-threaded fashion, we
+        // can't defer it after `create_constellation` has started.
+        script::init();
+
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
-        let (constellation_chan, sw_senders) = create_constellation(opts.clone(),
+        let (constellation_chan, sw_senders) = create_constellation(opts.user_agent.clone(),
+                                                                    opts.config_dir.clone(),
+                                                                    opts.url.clone(),
                                                                     compositor_proxy.clone_compositor_proxy(),
                                                                     time_profiler_chan.clone(),
                                                                     mem_profiler_chan.clone(),
@@ -183,7 +192,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
-        script::init(sw_senders);
+        script::init_service_workers(sw_senders);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -238,7 +247,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     }
 }
 
-fn create_constellation(opts: opts::Opts,
+fn create_constellation(user_agent: Cow<'static, str>,
+                        config_dir: Option<PathBuf>,
+                        url: Option<Url>,
                         compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
@@ -250,10 +261,10 @@ fn create_constellation(opts: opts::Opts,
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
-        new_resource_threads(opts.user_agent,
+        new_resource_threads(user_agent,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
-                             opts.config_dir.map(Into::into));
+                             config_dir);
     let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
                                                     webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
@@ -280,7 +291,7 @@ fn create_constellation(opts: opts::Opts,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
-    if let Some(url) = opts.url {
+    if let Some(url) = url {
         constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
     };
 
@@ -339,7 +350,8 @@ pub fn run_content_process(token: String) {
 
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
-    script::init(sw_senders);
+    script::init();
+    script::init_service_workers(sw_senders);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,

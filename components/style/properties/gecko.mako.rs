@@ -8,9 +8,11 @@
     from data import to_rust_ident
     from data import Keyword
 %>
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
 use custom_properties::ComputedValuesMap;
+use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
@@ -400,6 +402,10 @@ def set_gecko_property(ffi_name, expr):
     % endif
 </%def>
 
+<%def name="impl_logical(name, need_clone=False, **kwargs)">
+    ${helpers.logical_setter(name, need_clone)}
+</%def>
+
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
@@ -495,7 +501,10 @@ impl Debug for ${style_struct.gecko_struct_name} {
                     need_clone=longhand.need_clone)
 
         # get the method and pass additional keyword or type-specific arguments
-        if longhand.keyword:
+        if longhand.logical:
+            method = impl_logical
+            args.update(name=longhand.name)
+        elif longhand.keyword:
             method = impl_keyword
             args.update(keyword=longhand.keyword)
             if "font" in longhand.ident:
@@ -509,7 +518,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
 
     picked_longhands, stub_longhands = [], []
     for x in longhands:
-        if (x.keyword or x.predefined_type in predefined_types) and x.name not in force_stub:
+        if (x.keyword or x.predefined_type in predefined_types or x.logical) and x.name not in force_stub:
             picked_longhands.append(x)
         else:
             stub_longhands.append(x)
@@ -907,6 +916,14 @@ fn static_assert() {
         }
     }
 
+    pub fn font_family_count(&self) -> usize {
+        0
+    }
+
+    pub fn font_family_at(&self, _: usize) -> longhands::font_family::computed_value::FontFamily {
+        unimplemented!()
+    }
+
     pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
     }
@@ -961,7 +978,7 @@ fn static_assert() {
 
 <% skip_box_longhands= """display overflow-y vertical-align
                           -moz-binding page-break-before page-break-after
-                          scroll-snap-points-x scroll-snap-points-y""" %>
+                          scroll-snap-points-x scroll-snap-points-y transform""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1036,11 +1053,13 @@ fn static_assert() {
         use properties::longhands::_moz_binding::computed_value::T as BindingValue;
         match v {
             BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
-            BindingValue::Url(ref url, ref extra_data) => {
+            BindingValue::Url(ref url) => {
+                let extra_data = url.extra_data();
+                let (ptr, len) = url.as_slice_components();
                 unsafe {
                     Gecko_SetMozBinding(&mut self.gecko,
-                                        url.as_str().as_ptr(),
-                                        url.as_str().len() as u32,
+                                        ptr,
+                                        len as u32,
                                         extra_data.base.get(),
                                         extra_data.referrer.get(),
                                         extra_data.principal.get());
@@ -1105,6 +1124,102 @@ fn static_assert() {
 
     ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
 
+    <%def name="transform_function_arm(name, keyword, items)">
+        <%
+            pattern = None
+            if name == "matrix":
+                # m11, m12, m13, ..
+                indices = [str(i) + str(j) for i in range(1, 5) for j in range(1, 5)]
+                # m11: number1, m12: number2, ..
+                single_patterns = ["m%s: number%s" % (index, i + 1) for (i, index) in enumerate(indices)]
+                pattern = "ComputedMatrix { %s }" % ", ".join(single_patterns)
+            else:
+                # Generate contents of pattern from items
+                pattern = ", ".join([b + str(a+1) for (a,b) in enumerate(items)])
+
+            # First %s substituted with the call to GetArrayItem, the second
+            # %s substituted with the corresponding variable
+            css_value_setters = {
+                "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
+                "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
+                "lop" : "set_lop(%s, %s)",
+                "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.0)",
+                "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
+            }
+        %>
+        ComputedOperation::${name.title()}(${pattern}) => {
+            bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
+            bindings::Gecko_CSSValue_SetKeyword(
+                bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
+                eCSSKeyword_${keyword}
+            );
+            % for index, item in enumerate(items):
+                ${css_value_setters[item] % (
+                    "bindings::Gecko_CSSValue_GetArrayItem(gecko_value, %d)" % (index + 1),
+                    item + str(index + 1)
+                )};
+            % endfor
+        }
+    </%def>
+    pub fn set_transform(&mut self, other: longhands::transform::computed_value::T) {
+        use gecko_bindings::structs::nsCSSKeyword::*;
+        use gecko_bindings::sugar::refptr::RefPtr;
+        use properties::longhands::transform::computed_value::ComputedMatrix;
+        use properties::longhands::transform::computed_value::ComputedOperation;
+        use values::computed::LengthOrPercentage;
+
+        unsafe fn set_lop(value: &mut structs::nsCSSValue, lop: LengthOrPercentage) {
+            match lop {
+                LengthOrPercentage::Length(au) => {
+                    bindings::Gecko_CSSValue_SetAbsoluteLength(value, au.0)
+                }
+                LengthOrPercentage::Percentage(pc) => {
+                    bindings::Gecko_CSSValue_SetPercentage(value, pc)
+                }
+                LengthOrPercentage::Calc(calc) => {
+                    bindings::Gecko_CSSValue_SetCalc(value, calc.into())
+                }
+            }
+        }
+
+        let vec = if let Some(v) = other.0 {
+            v
+        } else {
+            unsafe {
+                self.gecko.mSpecifiedTransform.clear();
+            }
+            return;
+        };
+
+        let list = unsafe {
+            RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(vec.len() as u32))
+        };
+
+        let mut cur = list.mHead;
+        let mut iter = vec.into_iter();
+        while !cur.is_null() {
+            let gecko_value = unsafe { &mut (*cur).mValue };
+            let servo = iter.next().expect("Gecko_NewCSSValueSharedList should create a shared \
+                                            value list of the same length as the transform vector");
+            unsafe {
+                match servo {
+                    ${transform_function_arm("matrix", "matrix3d", ["number"] * 16)}
+                    ${transform_function_arm("skew", "skew", ["angle"] * 2)}
+                    ${transform_function_arm("translate", "translate3d", ["lop", "lop", "length"])}
+                    ${transform_function_arm("scale", "scale3d", ["number"] * 3)}
+                    ${transform_function_arm("rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                    ${transform_function_arm("perspective", "perspective", ["length"])}
+                }
+                cur = (*cur).mNext;
+            }
+        }
+        debug_assert!(iter.next().is_none());
+        unsafe { self.gecko.mSpecifiedTransform.set_move(list) };
+    }
+
+    pub fn copy_transform_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
+    }
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
@@ -1441,11 +1556,13 @@ fn static_assert() {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            UrlOrNone::Url(ref url, ref extra_data) => {
+            UrlOrNone::Url(ref url) => {
+                let (ptr, len) = url.as_slice_components();
+                let extra_data = url.extra_data();
                 unsafe {
                     Gecko_SetListStyleImage(&mut self.gecko,
-                                            url.as_str().as_ptr(),
-                                            url.as_str().len() as u32,
+                                            ptr,
+                                            len as u32,
                                             extra_data.base.get(),
                                             extra_data.referrer.get(),
                                             extra_data.principal.get());
@@ -1605,7 +1722,6 @@ fn static_assert() {
             Gecko_CopyFiltersFrom(&other.gecko as *const _ as *mut _, &mut self.gecko);
         }
     }
-
 </%self:impl_trait>
 
 

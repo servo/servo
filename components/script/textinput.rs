@@ -544,7 +544,6 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.adjust_vertical(28, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            (None, Key::Tab) => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
     }

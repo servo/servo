@@ -25,11 +25,13 @@ use url::Url;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use computed_values;
+use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
-use parser::{ParserContext, ParserContextExtraData};
+use parser::{Parse, ParserContext, ParserContextExtraData};
 use style_traits::ToCss;
 use stylesheets::Origin;
+#[cfg(feature = "servo")] use values::Either;
 use values::{HasViewportPercentage, computed};
 use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
@@ -48,7 +50,7 @@ pub mod declaration_block;
 
 pub mod longhands {
     use cssparser::Parser;
-    use parser::ParserContext;
+    use parser::{Parse, ParserContext};
     use values::specified;
 
     <%include file="/longhand/background.mako.rs" />
@@ -78,7 +80,7 @@ pub mod longhands {
 
 pub mod shorthands {
     use cssparser::Parser;
-    use parser::ParserContext;
+    use parser::{Parse, ParserContext};
     use values::specified;
 
     pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
@@ -343,8 +345,8 @@ pub enum CSSWideKeyword {
     UnsetKeyword,
 }
 
-impl CSSWideKeyword {
-    pub fn parse(input: &mut Parser) -> Result<CSSWideKeyword, ()> {
+impl Parse for CSSWideKeyword {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "initial" => Ok(CSSWideKeyword::InitialKeyword),
             "inherit" => Ok(CSSWideKeyword::InheritKeyword),
@@ -735,7 +737,7 @@ impl PropertyDeclaration {
                 Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
                 Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
                 Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
-                Err(()) => match ::custom_properties::parse(input) {
+                Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                     Ok(value) => DeclaredValue::Value(value),
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
@@ -893,6 +895,7 @@ pub mod style_structs {
     use fnv::FnvHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
+    use logical_geometry::WritingMode;
 
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
@@ -923,24 +926,27 @@ pub mod style_structs {
 
         impl ${style_struct.name} {
             % for longhand in style_struct.longhands:
-                #[allow(non_snake_case)]
-                #[inline]
-                pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
-                    self.${longhand.ident} = v;
-                }
-                #[allow(non_snake_case)]
-                #[inline]
-                pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
-                    self.${longhand.ident} = other.${longhand.ident}.clone();
-                }
-                % if longhand.need_clone:
+                % if longhand.logical:
+                    ${helpers.logical_setter(name=longhand.name)}
+                % else:
                     #[allow(non_snake_case)]
                     #[inline]
-                    pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-                        self.${longhand.ident}.clone()
+                    pub fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
+                        self.${longhand.ident} = v;
                     }
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    pub fn copy_${longhand.ident}_from(&mut self, other: &Self) {
+                        self.${longhand.ident} = other.${longhand.ident}.clone();
+                    }
+                    % if longhand.need_clone:
+                        #[allow(non_snake_case)]
+                        #[inline]
+                        pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+                            self.${longhand.ident}.clone()
+                        }
+                    % endif
                 % endif
-
                 % if longhand.need_index:
                     #[allow(non_snake_case)]
                     pub fn ${longhand.ident}_count(&self) -> usize {
@@ -1236,6 +1242,7 @@ impl ComputedValues {
         use computed_values::transform_style;
 
         let effects = self.get_effects();
+        let box_ = self.get_box();
 
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         if effects.opacity < 1.0 ||
@@ -1246,10 +1253,10 @@ impl ComputedValues {
         }
 
         if effects.transform_style == transform_style::T::auto {
-            if effects.transform.0.is_some() {
+            if box_.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if effects.perspective != computed::LengthOrNone::None {
+            if let Either::First(ref _length) = effects.perspective {
                 return transform_style::T::flat;
             }
         }
@@ -1260,7 +1267,7 @@ impl ComputedValues {
 
     pub fn transform_requires_layer(&self) -> bool {
         // Check if the transform matrix is 2D or 3D
-        if let Some(ref transform_list) = self.get_effects().transform.0 {
+        if let Some(ref transform_list) = self.get_box().transform.0 {
             for transform in transform_list {
                 match *transform {
                     computed_values::transform::ComputedOperation::Perspective(..) => {
@@ -1458,6 +1465,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                        inherited_style,
                        cascade_info,
                        error_reporter,
+                       None,
                        flags)
 }
 
@@ -1469,6 +1477,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                     inherited_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    font_metrics_provider: Option<<&FontMetricsProvider>,
                                     flags: CascadeFlags)
                                     -> ComputedValues
     where F: Fn() -> I, I: Iterator<Item = &'a PropertyDeclaration>
@@ -1522,6 +1531,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
         style: starting_style,
+        font_metrics_provider: font_metrics_provider,
     };
 
     // Set computed values, overwriting earlier declarations for the same
@@ -1556,11 +1566,14 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 // classification is correct.
                 let is_early_property = matches!(*declaration,
                     PropertyDeclaration::FontSize(_) |
+                    PropertyDeclaration::FontFamily(_) |
                     PropertyDeclaration::Color(_) |
                     PropertyDeclaration::Position(_) |
                     PropertyDeclaration::Float(_) |
                     PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
-                    PropertyDeclaration::WritingMode(_)
+                    PropertyDeclaration::WritingMode(_) |
+                    PropertyDeclaration::Direction(_) |
+                    PropertyDeclaration::TextOrientation(_)
                 );
                 if
                     % if category_to_cascade_now == "early":
@@ -1580,6 +1593,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                                  &mut cascade_info,
                                                  &mut error_reporter);
             }
+            % if category_to_cascade_now == "early":
+                let mode = get_writing_mode(context.style.get_inheritedbox());
+                context.style.set_writing_mode(mode);
+            % endif
         % endfor
     });
 
@@ -1686,8 +1703,6 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         style.mutate_font().compute_font_hash();
     }
 
-    let mode = get_writing_mode(style.get_inheritedbox());
-    style.set_writing_mode(mode);
     style
 }
 

@@ -18,7 +18,7 @@ use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
 use selector_impl::{PseudoElement, RestyleDamage, TheSelectorImpl};
-use selector_matching::{ApplicableDeclarationBlock, Stylist};
+use selector_matching::ApplicableDeclarationBlock;
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
@@ -50,29 +50,19 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     flags
 }
 
-pub struct ApplicableDeclarations {
-    pub normal: Vec<ApplicableDeclarationBlock>,
-    pub per_pseudo: HashMap<PseudoElement,
-                            Vec<ApplicableDeclarationBlock>,
-                            BuildHasherDefault<::fnv::FnvHasher>>,
-
-    /// Whether the `normal` declarations are shareable with other nodes.
-    pub normal_shareable: bool,
+type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
+                               BuildHasherDefault<::fnv::FnvHasher>>;
+pub struct MatchResults {
+    pub primary: StrongRuleNode,
+    pub relations: StyleRelations,
+    pub per_pseudo: PseudoRuleNodes,
 }
 
-impl ApplicableDeclarations {
-    pub fn new() -> Self {
-        let mut applicable_declarations = ApplicableDeclarations {
-            normal: Vec::with_capacity(16),
-            per_pseudo: HashMap::with_hasher(Default::default()),
-            normal_shareable: false,
-        };
-
-        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            applicable_declarations.per_pseudo.insert(pseudo, vec![]);
-        });
-
-        applicable_declarations
+impl MatchResults {
+    /// Returns true if the primary rule node is shareable with other nodes.
+    pub fn primary_is_shareable(&self) -> bool {
+        use traversal::relations_are_shareable;
+        relations_are_shareable(&self.relations)
     }
 }
 
@@ -401,17 +391,12 @@ trait PrivateMatchMethods: TElement {
                                             context: &Ctx,
                                             parent_style: Option<&Arc<ComputedValues>>,
                                             old_style: Option<&Arc<ComputedValues>>,
-                                            applicable_declarations: &mut Vec<ApplicableDeclarationBlock>,
+                                            rule_node: &StrongRuleNode,
                                             booleans: CascadeBooleans)
-                                            -> (Arc<ComputedValues>, StrongRuleNode)
+                                            -> Arc<ComputedValues>
         where Ctx: StyleContext<'a>
     {
         let shared_context = context.shared_context();
-        let rule_node =
-            shared_context.stylist.rule_tree
-                          .insert_ordered_rules(
-                              applicable_declarations.drain(..).map(|d| (d.source, d.importance)));
-
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
         if booleans.shareable {
@@ -421,7 +406,7 @@ trait PrivateMatchMethods: TElement {
         let this_style = match parent_style {
             Some(ref parent_style) => {
                 cascade(shared_context.viewport_size,
-                        &rule_node,
+                        rule_node,
                         Some(&***parent_style),
                         Some(&mut cascade_info),
                         shared_context.error_reporter.clone(),
@@ -429,7 +414,7 @@ trait PrivateMatchMethods: TElement {
             }
             None => {
                 cascade(shared_context.viewport_size,
-                        &rule_node,
+                        rule_node,
                         None,
                         Some(&mut cascade_info),
                         shared_context.error_reporter.clone(),
@@ -461,7 +446,7 @@ trait PrivateMatchMethods: TElement {
             }
         }
 
-        (this_style, rule_node)
+        this_style
     }
 
     fn update_animations_for_cascade(&self,
@@ -516,45 +501,63 @@ trait PrivateMatchMethods: TElement {
     }
 }
 
+fn compute_rule_node<'a, Ctx>(context: &Ctx,
+                              applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
+                              -> StrongRuleNode
+    where Ctx: StyleContext<'a>
+{
+    let shared_context = context.shared_context();
+    let rules = applicable_declarations.drain(..).map(|d| (d.source, d.importance));
+    let rule_node = shared_context.stylist.rule_tree.insert_ordered_rules(rules);
+    rule_node
+}
+
 impl<E: TElement> PrivateMatchMethods for E {}
 
 pub trait MatchMethods : TElement {
-    fn match_element(&self,
-                     stylist: &Stylist,
-                     parent_bf: Option<&BloomFilter>,
-                     mut applicable_declarations: &mut ApplicableDeclarations)
-                     -> StyleRelations {
-        use traversal::relations_are_shareable;
-
+    fn match_element<'a, Ctx>(&self, context: &Ctx, parent_bf: Option<&BloomFilter>)
+                              -> MatchResults
+        where Ctx: StyleContext<'a>
+    {
+        let mut applicable_declarations: Vec<ApplicableDeclarationBlock> = Vec::with_capacity(16);
+        let stylist = &context.shared_context().stylist;
         let style_attribute = self.style_attribute();
 
-        let mut relations =
+        // Compute the primary rule node.
+        let mut primary_relations =
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
-                                                 &mut applicable_declarations.normal,
+                                                 &mut applicable_declarations,
                                                  MatchingReason::ForStyling);
+        let primary_rule_node = compute_rule_node(context, &mut applicable_declarations);
 
-        applicable_declarations.normal_shareable = relations_are_shareable(&relations);
-
+        // Compute the pseudo rule nodes.
+        let mut per_pseudo: PseudoRuleNodes = HashMap::with_hasher(Default::default());
         TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            stylist.push_applicable_declarations(self,
-                                                 parent_bf,
-                                                 None,
+            debug_assert!(applicable_declarations.is_empty());
+            stylist.push_applicable_declarations(self, parent_bf, None,
                                                  Some(&pseudo.clone()),
-                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]),
+                                                 &mut applicable_declarations,
                                                  MatchingReason::ForStyling);
+
+            if !applicable_declarations.is_empty() {
+                let rule_node = compute_rule_node(context, &mut applicable_declarations);
+                per_pseudo.insert(pseudo, rule_node);
+            }
         });
 
-        let has_pseudos =
-            applicable_declarations.per_pseudo.values().any(|v| !v.is_empty());
-
-        if has_pseudos {
-            relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+        // If we have any pseudo elements, indicate so in the primary StyleRelations.
+        if !per_pseudo.is_empty() {
+            primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
         }
 
-        relations
+        MatchResults {
+            primary: primary_rule_node,
+            relations: primary_relations,
+            per_pseudo: per_pseudo,
+        }
     }
 
     /// Attempts to share a style with another node. This method is unsafe because it depends on
@@ -712,7 +715,9 @@ pub trait MatchMethods : TElement {
                                     context: &Ctx,
                                     mut data: AtomicRefMut<ElementData>,
                                     parent: Option<Self>,
-                                    mut applicable_declarations: ApplicableDeclarations)
+                                    primary_rule_node: StrongRuleNode,
+                                    pseudo_rule_nodes: PseudoRuleNodes,
+                                    primary_is_shareable: bool)
         where Ctx: StyleContext<'a>
     {
         // Get our parent's style.
@@ -722,8 +727,6 @@ pub trait MatchMethods : TElement {
         let mut new_styles;
 
         let damage = {
-            let shareable = applicable_declarations.normal_shareable;
-
             let (old_primary, old_pseudos) = match data.previous_styles_mut() {
                 None => (None, None),
                 Some(previous) => {
@@ -735,17 +738,17 @@ pub trait MatchMethods : TElement {
                 }
             };
 
-            let (new_style, rule_node) =
+            let new_style =
                 self.cascade_node_pseudo_element(context,
                                                  parent_style,
                                                  old_primary,
-                                                 &mut applicable_declarations.normal,
+                                                 &primary_rule_node,
                                                  CascadeBooleans {
-                                                     shareable: shareable,
+                                                     shareable: primary_is_shareable,
                                                      animate: true,
                                                  });
 
-            new_styles = ElementStyles::new(new_style, rule_node);
+            new_styles = ElementStyles::new(new_style, primary_rule_node);
 
             let damage =
                 self.compute_damage_and_cascade_pseudos(old_primary,
@@ -753,7 +756,7 @@ pub trait MatchMethods : TElement {
                                                         &new_styles.primary,
                                                         &mut new_styles.pseudos,
                                                         context,
-                                                        &mut applicable_declarations);
+                                                        pseudo_rule_nodes);
 
             self.as_node().set_can_be_fragmented(parent.map_or(false, |p| {
                 p.as_node().can_be_fragmented() ||
@@ -775,7 +778,7 @@ pub trait MatchMethods : TElement {
                                                    new_primary: &Arc<ComputedValues>,
                                                    new_pseudos: &mut PseudoStyles,
                                                    context: &Ctx,
-                                                   applicable_declarations: &mut ApplicableDeclarations)
+                                                   mut pseudo_rule_nodes: PseudoRuleNodes)
                                                    -> RestyleDamage
         where Ctx: StyleContext<'a>
     {
@@ -817,17 +820,15 @@ pub trait MatchMethods : TElement {
 
         debug_assert!(new_pseudos.is_empty());
         <Self as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
-            let mut applicable_declarations_for_this_pseudo =
-                applicable_declarations.per_pseudo.get_mut(&pseudo).unwrap();
-
-            let has_declarations =
-                !applicable_declarations_for_this_pseudo.is_empty();
+            let maybe_rule_node = pseudo_rule_nodes.remove(&pseudo);
 
             // Grab the old pseudo style for analysis.
             let mut maybe_old_pseudo_style_and_rule_node =
                 old_pseudos.as_mut().and_then(|x| x.remove(&pseudo));
 
-            if has_declarations {
+            if maybe_rule_node.is_some() {
+                let new_rule_node = maybe_rule_node.unwrap();
+
                 // We have declarations, so we need to cascade. Compute parameters.
                 let animate = <Self as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
                 if animate {
@@ -839,10 +840,10 @@ pub trait MatchMethods : TElement {
                     }
                 }
 
-                let (new_pseudo_style, new_rule_node) =
+                let new_pseudo_style =
                     self.cascade_node_pseudo_element(context, Some(new_primary),
                                                      maybe_old_pseudo_style_and_rule_node.as_ref().map(|s| &s.0),
-                                                     &mut applicable_declarations_for_this_pseudo,
+                                                     &new_rule_node,
                                                      CascadeBooleans {
                                                          shareable: false,
                                                          animate: animate,

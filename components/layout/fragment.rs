@@ -23,7 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -44,12 +44,13 @@ use style::computed_values::{transform_style, vertical_align, white_space, word_
 use style::computed_values::content::ContentItem;
 use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
-use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
+use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_impl::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::Either;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
@@ -122,6 +123,9 @@ pub struct Fragment {
 
     /// The pseudo-element that this fragment represents.
     pub pseudo: PseudoElementType<()>,
+
+    /// Various flags for this fragment.
+    pub flags: FragmentFlags,
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     /// This ID should not be considered stable across multiple layouts or fragment
@@ -917,6 +921,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -945,6 +950,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -969,6 +975,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: self.pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -996,6 +1003,7 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
+            flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -1029,12 +1037,15 @@ impl Fragment {
     }
 
     /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
-    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
+    pub fn transform_into_ellipsis(&self,
+                                   layout_context: &LayoutContext,
+                                   text_overflow_string: String)
+                                   -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
+                    box UnscannedTextFragmentInfo::new(text_overflow_string, None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
@@ -2573,13 +2584,13 @@ impl Fragment {
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return true
         }
 
         // TODO(mrobinson): Determine if this is necessary, since blocks with
         // transformations already create stacking contexts.
-        if self.style().get_effects().perspective != LengthOrNone::None {
+        if let Either::First(ref _length) = self.style().get_effects().perspective {
             return true
         }
 
@@ -2627,7 +2638,7 @@ impl Fragment {
             _ => return self.style().get_position().z_index.number_or_zero(),
         }
 
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return self.style().get_position().z_index.number_or_zero();
         }
 
@@ -3108,6 +3119,16 @@ impl Overflow {
     pub fn translate(&mut self, point: &Point2D<Au>) {
         self.scroll = self.scroll.translate(point);
         self.paint = self.paint.translate(point);
+    }
+}
+
+bitflags! {
+    pub flags FragmentFlags: u8 {
+        // TODO(stshine): find a better name since these flags can also be used for grid item.
+        /// Whether this fragment represents a child in a row flex container.
+        const IS_INLINE_FLEX_ITEM = 0b0000_0001,
+        /// Whether this fragment represents a child in a column flex container.
+        const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
     }
 }
 

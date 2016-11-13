@@ -22,4 +22,3 @@ heapsize_derive = {version = "0.1", optional = true}
 rustc-serialize = "0.3"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
-url = "1.2"

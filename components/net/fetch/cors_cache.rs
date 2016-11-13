@@ -42,7 +42,7 @@ impl HeaderOrMethod {
 
 /// An entry in the CORS cache
 #[derive(Clone, Debug)]
-pub struct CORSCacheEntry {
+pub struct CorsCacheEntry {
     pub origin: Origin,
     pub url: Url,
     pub max_age: u32,
@@ -51,10 +51,10 @@ pub struct CORSCacheEntry {
     created: Timespec
 }
 
-impl CORSCacheEntry {
+impl CorsCacheEntry {
     fn new(origin: Origin, url: Url, max_age: u32, credentials: bool,
-            header_or_method: HeaderOrMethod) -> CORSCacheEntry {
-        CORSCacheEntry {
+            header_or_method: HeaderOrMethod) -> CorsCacheEntry {
+        CorsCacheEntry {
             origin: origin,
             url: url,
             max_age: max_age,
@@ -65,7 +65,7 @@ impl CORSCacheEntry {
     }
 }
 
-fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &Request) -> bool {
+fn match_headers(cors_cache: &CorsCacheEntry, cors_req: &Request) -> bool {
     cors_cache.origin == *cors_req.origin.borrow() &&
         cors_cache.url == cors_req.current_url() &&
         (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include)
@@ -73,43 +73,43 @@ fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &Request) -> bool {
 
 /// A simple, vector-based CORS Cache
 #[derive(Clone)]
-pub struct CORSCache(Vec<CORSCacheEntry>);
+pub struct CorsCache(Vec<CorsCacheEntry>);
 
-impl CORSCache {
-    pub fn new() -> CORSCache {
-        CORSCache(vec![])
+impl CorsCache {
+    pub fn new() -> CorsCache {
+        CorsCache(vec![])
     }
 
     fn find_entry_by_header<'a>(&'a mut self, request: &Request,
-                                header_name: &str) -> Option<&'a mut CORSCacheEntry> {
+                                header_name: &str) -> Option<&'a mut CorsCacheEntry> {
         self.cleanup();
         self.0.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_header(header_name))
     }
 
     fn find_entry_by_method<'a>(&'a mut self, request: &Request,
-                                method: Method) -> Option<&'a mut CORSCacheEntry> {
-        // we can take the method from CORSRequest itself
+                                method: Method) -> Option<&'a mut CorsCacheEntry> {
+        // we can take the method from CorSRequest itself
         self.cleanup();
         self.0.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
     }
 
     /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
     pub fn clear(&mut self, request: &Request) {
-        let CORSCache(buf) = self.clone();
-        let new_buf: Vec<CORSCacheEntry> =
+        let CorsCache(buf) = self.clone();
+        let new_buf: Vec<CorsCacheEntry> =
             buf.into_iter().filter(|e| e.origin == *request.origin.borrow() &&
                                        request.current_url() == e.url).collect();
-        *self = CORSCache(new_buf);
+        *self = CorsCache(new_buf);
     }
 
     /// Remove old entries
     pub fn cleanup(&mut self) {
-        let CORSCache(buf) = self.clone();
+        let CorsCache(buf) = self.clone();
         let now = time::now().to_timespec();
-        let new_buf: Vec<CORSCacheEntry> = buf.into_iter()
+        let new_buf: Vec<CorsCacheEntry> = buf.into_iter()
                                               .filter(|e| now.sec < e.created.sec + e.max_age as i64)
                                               .collect();
-        *self = CORSCache(new_buf);
+        *self = CorsCache(new_buf);
     }
 
     /// Returns true if an entry with a
@@ -127,7 +127,7 @@ impl CORSCache {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CORSCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                self.insert(CorsCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
                                                 request.credentials_mode == CredentialsMode::Include,
                                                 HeaderOrMethod::HeaderData(header_name.to_owned())));
                 false
@@ -149,7 +149,7 @@ impl CORSCache {
         match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CORSCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                self.insert(CorsCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
                                                 request.credentials_mode == CredentialsMode::Include,
                                                 HeaderOrMethod::MethodData(method)));
                 false
@@ -158,7 +158,7 @@ impl CORSCache {
     }
 
     /// Insert an entry
-    pub fn insert(&mut self, entry: CORSCacheEntry) {
+    pub fn insert(&mut self, entry: CorsCacheEntry) {
         self.cleanup();
         self.0.push(entry);
     }

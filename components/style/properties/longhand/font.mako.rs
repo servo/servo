@@ -8,7 +8,7 @@
 <% data.new_style_struct("Font",
                          inherited=True,
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
-<%helpers:longhand name="font-family" animatable="False">
+<%helpers:longhand name="font-family" animatable="False" need_index="True">
     use self::computed_value::FontFamily;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
@@ -21,6 +21,7 @@
         use std::fmt;
         use Atom;
         use style_traits::ToCss;
+        pub use self::FontFamily as SingleComputedValue;
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -28,8 +29,8 @@
             FamilyName(Atom),
             Generic(Atom),
         }
-        impl FontFamily {
 
+        impl FontFamily {
             #[inline]
             pub fn atom(&self) -> &Atom {
                 match *self {
@@ -67,11 +68,13 @@
                 FontFamily::FamilyName(input)
             }
         }
+
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 self.atom().with_str(|s| dest.write_str(s))
             }
         }
+
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 let mut iter = self.0.iter();
@@ -83,6 +86,7 @@
                 Ok(())
             }
         }
+
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<FontFamily>);
@@ -307,8 +311,7 @@ ${helpers.single_keyword("font-variant",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match self.0 {
                 LengthOrPercentage::Length(Length::FontRelative(value)) => {
-                    value.to_computed_value(context.inherited_style().get_font().clone_font_size(),
-                                            context.style().root_font_size())
+                    value.to_computed_value(context, /* use inherited */ true)
                 }
                 LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())
@@ -346,6 +349,55 @@ ${helpers.single_keyword("font-variant",
                 .map(specified::LengthOrPercentage::Length)
         })
         .map(SpecifiedValue)
+    }
+</%helpers:longhand>
+
+// https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop
+// FIXME: This prop should be animatable
+<%helpers:longhand products="none" name="font-size-adjust" animatable="False">
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    use values::specified::Number;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        None,
+        Number(Number),
+    }
+
+    pub mod computed_value {
+        use style_traits::ToCss;
+        use std::fmt;
+
+        pub use super::SpecifiedValue as T;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    T::None => dest.write_str("none"),
+                    T::Number(number) => number.to_css(dest),
+                }
+            }
+        }
+    }
+
+    #[inline] pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::None
+    }
+
+    /// none | <number>
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use values::specified::Number;
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(SpecifiedValue::None);
+        }
+
+        Ok(SpecifiedValue::Number(try!(Number::parse_non_negative(input))))
     }
 </%helpers:longhand>
 
@@ -447,6 +499,7 @@ ${helpers.single_keyword("font-variant-position",
 
     pub mod computed_value {
         use cssparser::Parser;
+        use parser::Parse;
         use std::fmt;
         use style_traits::ToCss;
 
@@ -493,10 +546,10 @@ ${helpers.single_keyword("font-variant-position",
             }
         }
 
-        impl FeatureTagValue {
+        impl Parse for FeatureTagValue {
             /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
             /// <string> [ on | off | <integer> ]
-            pub fn parse(input: &mut Parser) -> Result<FeatureTagValue, ()> {
+            fn parse(input: &mut Parser) -> Result<Self, ()> {
                 let tag = try!(input.expect_string());
 
                 // allowed strings of length 4 containing chars: <U+20, U+7E>

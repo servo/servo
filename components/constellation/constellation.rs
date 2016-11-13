@@ -53,6 +53,7 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -365,6 +366,30 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// A script channel, that closes the script thread down when it is dropped
+pub struct ScriptChan {
+    chan: IpcSender<ConstellationControlMsg>,
+    dont_send_or_sync: PhantomData<Rc<()>>,
+}
+
+impl Drop for ScriptChan {
+    fn drop(&mut self) {
+        let _ = self.chan.send(ConstellationControlMsg::ExitScriptThread);
+    }
+}
+
+impl ScriptChan {
+    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), IOError> {
+        self.chan.send(msg)
+    }
+    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> Rc<ScriptChan> {
+        Rc::new(ScriptChan { chan: chan, dont_send_or_sync: PhantomData })
+    }
+    pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
+        self.chan.clone()
+    }
+}
+
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
 pub struct FromScriptLogger {
@@ -561,7 +586,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     parent_info: Option<(PipelineId, FrameType)>,
                     old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
-                    script_channel: Option<IpcSender<ConstellationControlMsg>>,
+                    script_channel: Option<Rc<ScriptChan>>,
                     load_data: LoadData,
                     is_private: bool) {
         if self.shutting_down { return; }
@@ -1636,12 +1661,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    pipeline_id: PipelineId,
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
-        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         // If the pipeline lookup fails, it is because we have torn down the pipeline,
         // so it is reasonable to silently ignore the event.
+        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
         match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => pipeline.trigger_mozbrowser_event(frame_id, event),
             None => warn!("Pipeline {:?} handling mozbrowser event after closure.", parent_pipeline_id),
@@ -2219,6 +2244,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Close a frame (and all children)
     fn close_frame(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
+        debug!("Closing frame {:?}.", frame_id);
         // Store information about the pipelines to be closed. Then close the
         // pipelines, before removing ourself from the frames hash map. This
         // ordering is vital - so that if close_pipeline() ends up closing
@@ -2254,10 +2280,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
             parent_pipeline.remove_child(frame_id);
         }
+        debug!("Closed frame {:?}.", frame_id);
     }
 
     // Close all pipelines at and beneath a given frame
     fn close_pipeline(&mut self, pipeline_id: PipelineId, exit_mode: ExitPipelineMode) {
+        debug!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the frames to be closed. Then close the
         // frames, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_frames() ends up closing
@@ -2297,6 +2325,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             ExitPipelineMode::Normal => pipeline.exit(),
             ExitPipelineMode::Force => pipeline.force_exit(),
         }
+        debug!("Closed pipeline {:?}.", pipeline_id);
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set

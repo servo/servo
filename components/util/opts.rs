@@ -215,7 +215,7 @@ pub struct Opts {
     pub use_msaa: bool,
 
     /// Directory for a default config directory
-    pub config_dir: Option<String>,
+    pub config_dir: Option<PathBuf>,
 
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
@@ -857,7 +857,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         enable_vsync: !debug_options.disable_vsync,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
-        config_dir: opt_match.opt_str("config-dir"),
+        config_dir: opt_match.opt_str("config-dir").map(Into::into),
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
         webrender_debug: debug_options.webrender_debug,

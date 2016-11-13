@@ -5,9 +5,9 @@
 void main(void)
 {
 #ifdef SERVO_ES2
-    float alpha = texture(sDiffuse, vColorTexCoord.xy).a;
+    float alpha = texture(sColor0, vColorTexCoord.xy).a;
 #else
-    float alpha = texture(sDiffuse, vColorTexCoord.xy).r;
+    float alpha = texture(sColor0, vColorTexCoord.xy).r;
 #endif
     oFragColor = vec4(vColor.xyz, vColor.w * alpha);
 }

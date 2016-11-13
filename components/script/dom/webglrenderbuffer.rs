@@ -20,6 +20,7 @@ pub struct WebGLRenderbuffer {
     id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
+    size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -36,6 +37,7 @@ impl WebGLRenderbuffer {
             is_deleted: Cell::new(false),
             renderer: renderer,
             internal_format: Cell::new(None),
+            size: Cell::new(None),
         }
     }
 
@@ -62,6 +64,10 @@ impl WebGLRenderbuffer {
 impl WebGLRenderbuffer {
     pub fn id(&self) -> WebGLRenderbufferId {
         self.id
+    }
+
+    pub fn size(&self) -> Option<(i32, i32)> {
+        self.size.get()
     }
 
     pub fn bind(&self, target: u32) {
@@ -105,6 +111,8 @@ impl WebGLRenderbuffer {
         let msg = CanvasMsg::WebGL(WebGLCommand::RenderbufferStorage(constants::RENDERBUFFER,
                                                                      internal_format, width, height));
         self.renderer.send(msg).unwrap();
+
+        self.size.set(Some((width, height)));
 
         Ok(())
     }

@@ -4,9 +4,9 @@
 
 void main(void) {
 #ifdef WR_FEATURE_SUBPIXEL_AA
-    oFragColor = texture(sDiffuse, vUv);
+    oFragColor = texture(sColor0, vUv);
 #else
-    float a = texture(sDiffuse, vUv).a;
+    float a = texture(sColor0, vUv).a;
 #ifdef WR_FEATURE_TRANSFORM
     float alpha = 0.0;
     init_transform_fs(vLocalPos, vLocalRect, alpha);

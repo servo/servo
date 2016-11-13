@@ -6,6 +6,7 @@ use bluetooth_traits::BluetoothRequest;
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
 use compositing::compositor_thread::Msg as CompositorMsg;
+use constellation::ScriptChan;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
@@ -30,6 +31,7 @@ use std::env;
 use std::ffi::OsStr;
 use std::io::Error as IOError;
 use std::process;
+use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
 use url::Url;
@@ -50,7 +52,7 @@ pub struct Pipeline {
     /// The ID of the frame that contains this Pipeline.
     pub frame_id: FrameId,
     pub parent_info: Option<(PipelineId, FrameType)>,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub script_chan: Rc<ScriptChan>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: IpcSender<LayoutControlMsg>,
     /// A channel to the compositor.
@@ -113,7 +115,7 @@ pub struct InitialPipelineState {
     pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
     /// A channel to the script thread, if applicable. If this is `Some`,
     /// then `parent_info` must also be `Some`.
-    pub script_chan: Option<IpcSender<ConstellationControlMsg>>,
+    pub script_chan: Option<Rc<ScriptChan>>,
     /// Information about the page to load.
     pub load_data: LoadData,
     /// The ID of the pipeline namespace for this script thread.
@@ -165,7 +167,7 @@ impl Pipeline {
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (script_chan, Some((script_port, pipeline_port)))
+                (ScriptChan::new(script_chan), Some((script_port, pipeline_port)))
             }
         };
 
@@ -215,7 +217,7 @@ impl Pipeline {
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: window_size,
                 layout_to_constellation_chan: state.layout_to_constellation_chan,
-                script_chan: script_chan.clone(),
+                script_chan: script_chan.sender(),
                 load_data: state.load_data.clone(),
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
@@ -258,7 +260,7 @@ impl Pipeline {
     fn new(id: PipelineId,
            frame_id: FrameId,
            parent_info: Option<(PipelineId, FrameType)>,
-           script_chan: IpcSender<ConstellationControlMsg>,
+           script_chan: Rc<ScriptChan>,
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            is_private: bool,
@@ -329,7 +331,7 @@ impl Pipeline {
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
-            script_chan: self.script_chan.clone(),
+            script_chan: self.script_chan.sender(),
             layout_chan: self.layout_chan.clone(),
         }
     }
