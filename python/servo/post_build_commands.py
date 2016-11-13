@@ -59,6 +59,10 @@ class PostBuildCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
+        # Make --debugger imply --debug
+        if debugger:
+            debug = True
+
         if android is None:
             android = self.config["build"]["android"]
 

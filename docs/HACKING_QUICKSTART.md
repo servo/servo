@@ -260,6 +260,10 @@ If you need to create a new test file, it should be located in `tests/wpt/mozill
 ./mach test-wpt --manifest-update
 ```
 
+### Debugging a test
+
+See the [debugging guide](./debugging.md) to get started in how to debug Servo.
+
 ## Documentation:
 
 - Servo's directory structure: [ORGANIZATION.md](./ORGANIZATION.md)

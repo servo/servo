@@ -17,7 +17,7 @@ gecko = ["nsstring_vendor"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "url/heap_size", "plugins", "parking_lot/nightly"]
+         "url/heap_size", "plugins"]
 testing = []
 
 [dependencies]

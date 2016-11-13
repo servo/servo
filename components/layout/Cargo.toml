@@ -27,7 +27,7 @@ log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.2.2"
-parking_lot = {version = "0.3.3", features = ["nightly"]}
+parking_lot = "0.3.3"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
