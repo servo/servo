@@ -418,7 +418,7 @@ impl Interpolate for CalcLengthOrPercentage {
         }
 
         Ok(CalcLengthOrPercentage {
-            length: try!(interpolate_half(self.length, other.length, progress)),
+            length: try!(self.length.interpolate(&other.length, progress)),
             percentage: try!(interpolate_half(self.percentage, other.percentage, progress)),
         })
     }

@@ -5,6 +5,7 @@
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::size::Size2D;
+use font_metrics::FontMetrics;
 use parser::Parse;
 use std::ascii::AsciiExt;
 use std::cmp;
@@ -13,7 +14,8 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, computed};
+use values::{CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_};
+use values::computed::Context;
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -40,18 +42,78 @@ impl ToCss for FontRelativeLength {
 }
 
 impl FontRelativeLength {
-    pub fn to_computed_value(&self,
-                             reference_font_size: Au,
-                             root_font_size: Au)
-                             -> Au
-    {
+    pub fn find_first_available_font_metrics(context: &Context) -> Option<FontMetrics> {
+        use font_metrics::FontMetricsQueryResult::*;
+        if let Some(ref metrics_provider) = context.font_metrics_provider {
+            for family in context.style().get_font().font_family_iter() {
+                if let Available(metrics) = metrics_provider.query(family.atom()) {
+                    return metrics;
+                }
+            }
+        }
+
+        None
+    }
+
+    // NB: The use_inherited flag is used to special-case the computation of
+    // font-family.
+    pub fn to_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
+        let reference_font_size = if use_inherited {
+            context.inherited_style().get_font().clone_font_size()
+        } else {
+            context.style().get_font().clone_font_size()
+        };
+
+        let root_font_size = context.style().root_font_size;
         match *self {
             FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
-            FontRelativeLength::Ex(length) | FontRelativeLength::Ch(length) => {
-                // https://github.com/servo/servo/issues/7462
-                let em_factor = 0.5;
-                reference_font_size.scale_by(length * em_factor)
+            FontRelativeLength::Ex(length) => {
+                match Self::find_first_available_font_metrics(context) {
+                    Some(metrics) => metrics.x_height,
+                    // https://drafts.csswg.org/css-values/#ex
+                    //
+                    //     In the cases where it is impossible or impractical to
+                    //     determine the x-height, a value of 0.5em must be
+                    //     assumed.
+                    //
+                    None => reference_font_size.scale_by(0.5 * length),
+                }
             },
+            FontRelativeLength::Ch(length) => {
+                let wm = context.style().writing_mode;
+
+                // TODO(emilio, #14144): Compute this properly once we support
+                // all the relevant writing-mode related properties, this should
+                // be equivalent to "is the text in the block direction?".
+                let vertical = wm.is_vertical();
+
+                match Self::find_first_available_font_metrics(context) {
+                    Some(metrics) => {
+                        if vertical {
+                            metrics.zero_advance_measure.height
+                        } else {
+                            metrics.zero_advance_measure.width
+                        }
+                    }
+                    // https://drafts.csswg.org/css-values/#ch
+                    //
+                    //     In the cases where it is impossible or impractical to
+                    //     determine the measure of the “0” glyph, it must be
+                    //     assumed to be 0.5em wide by 1em tall. Thus, the ch
+                    //     unit falls back to 0.5em in the general case, and to
+                    //     1em when it would be typeset upright (i.e.
+                    //     writing-mode is vertical-rl or vertical-lr and
+                    //     text-orientation is upright).
+                    //
+                    None => {
+                        if vertical {
+                            reference_font_size.scale_by(length)
+                        } else {
+                            reference_font_size.scale_by(0.5 * length)
+                        }
+                    }
+                }
+            }
             FontRelativeLength::Rem(length) => root_font_size.scale_by(length)
         }
     }
@@ -610,38 +672,6 @@ impl CalcLengthOrPercentage {
             (Some(angle), None) => Ok(Angle(angle)),
             (None, Some(value)) if value == 0. => Ok(Angle(0.)),
             _ => Err(())
-        }
-    }
-
-    pub fn compute_from_viewport_and_font_size(&self,
-                                               viewport_size: Size2D<Au>,
-                                               font_size: Au,
-                                               root_font_size: Au)
-                                               -> computed::CalcLengthOrPercentage
-    {
-        let mut length = None;
-
-        if let Some(absolute) = self.absolute {
-            length = Some(length.unwrap_or(Au(0)) + absolute);
-        }
-
-        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
-            if let Some(val) = *val {
-                length = Some(length.unwrap_or(Au(0)) +
-                    val.to_computed_value(viewport_size));
-            }
-        }
-
-        for val in &[self.ch, self.em, self.ex, self.rem] {
-            if let Some(val) = *val {
-                length = Some(length.unwrap_or(Au(0)) + val.to_computed_value(
-                    font_size, root_font_size));
-            }
-        }
-
-        computed::CalcLengthOrPercentage {
-            length: length,
-            percentage: self.percentage.map(|p| p.0),
         }
     }
 }

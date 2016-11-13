@@ -916,6 +916,14 @@ fn static_assert() {
         }
     }
 
+    pub fn font_family_count(&self) -> usize {
+        0
+    }
+
+    pub fn font_family_at(&self, _: usize) -> longhands::font_family::computed_value::FontFamily {
+        unimplemented!()
+    }
+
     pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
     }
