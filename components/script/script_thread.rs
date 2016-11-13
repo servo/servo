@@ -1503,23 +1503,26 @@ impl ScriptThread {
         job_queue.run_job(run_job_handler, self);
     }
 
-    pub fn queue_register_job(&self, run_job_handler: Box<AsyncJobHandler>) {
-        let global = &*run_job_handler.global.root();
-        let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
+    pub fn invoke_promise_job(&self, promise_job_handler: Box<AsyncJobHandler>) {
+        let job_queue = &*self.job_queue_map;
+        job_queue.settle_promise_job(promise_job_handler, self);
     }
 
-    pub fn invoke_register_job(&self, run_job_handler: Box<AsyncJobHandler>) {
+    pub fn queue_register_job(&self, reg_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
+        let _ = self.dom_manipulation_task_source.queue(reg_job_handler, global);
+    }
+
+    pub fn invoke_register_job(&self, reg_job_handler: Box<AsyncJobHandler>) {
         let job_queue = &*self.job_queue_map;
         let queue_ref = &*job_queue.0.borrow();
         let first_job = {
-            let job_vec = queue_ref.get(&run_job_handler.scope_url);
+            let job_vec = queue_ref.get(&reg_job_handler.scope_url);
             job_vec.unwrap().first().unwrap()
         };
-        job_queue.run_register(&first_job, run_job_handler, self);
+        job_queue.run_register(&first_job, reg_job_handler, self);
     }
 
-    pub fn queue_async_job(&self, async_job_handler: Box<AsyncJobHandler>) {
-        let global = async_job_handler.global.root();
+    pub fn queue_async_job(&self, async_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
         let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
@@ -1538,7 +1541,6 @@ impl ScriptThread {
         let job_queue = &*self.job_queue_map;
         job_queue.update(job, global, self);
     }
-
 
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
