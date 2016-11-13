@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parsing::parse;
+use style::parser::Parse;
 use style::values::specified::position::*;
+use style_traits::ToCss;
 
 #[test]
 fn test_position() {

@@ -31,12 +31,12 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "computed_value::T::N
                           animatable="False")}
 
 <%helpers:longhand name="quotes" animatable="False">
+    use cssparser::Token;
     use std::borrow::Cow;
     use std::fmt;
-    use values::NoViewportPercentage;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-
-    use cssparser::{ToCss, Token};
+    use values::NoViewportPercentage;
 
     pub use self::computed_value::T as SpecifiedValue;
 

@@ -23,16 +23,15 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
-use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
-use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use serde::{Serialize, Serializer};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -45,10 +44,13 @@ use style::computed_values::{transform_style, vertical_align, white_space, word_
 use style::computed_values::content::ContentItem;
 use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
-use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
+use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
+use style::selector_impl::RestyleDamage;
+use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::Either;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
@@ -122,6 +124,9 @@ pub struct Fragment {
     /// The pseudo-element that this fragment represents.
     pub pseudo: PseudoElementType<()>,
 
+    /// Various flags for this fragment.
+    pub flags: FragmentFlags,
+
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     /// This ID should not be considered stable across multiple layouts or fragment
     /// manipulations.
@@ -133,13 +138,13 @@ pub struct Fragment {
     pub stacking_context_id: StackingContextId,
 }
 
-impl Encodable for Fragment {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_struct("fragment", 3, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id.encode(e)));
-            try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)));
-            e.emit_struct_field("margin", 2, |e| self.margin.encode(e))
-        })
+impl Serialize for Fragment {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        let mut state = try!(serializer.serialize_struct("fragment", 3));
+        try!(serializer.serialize_struct_elt(&mut state, "id", &self.debug_id));
+        try!(serializer.serialize_struct_elt(&mut state, "border_box", &self.border_box));
+        try!(serializer.serialize_struct_elt(&mut state, "margin", &self.margin));
+        serializer.serialize_struct_end(state)
     }
 }
 
@@ -503,7 +508,7 @@ impl ImageFragmentInfo {
                                           absolute_anchor_origin,
                                           image_size);
             *tile_spacing = Au(0);
-            *size = image_size;;
+            *size = image_size;
             return;
         }
 
@@ -916,6 +921,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -944,6 +950,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -968,6 +975,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: self.pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -995,6 +1003,7 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
+            flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -1028,12 +1037,15 @@ impl Fragment {
     }
 
     /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
-    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
+    pub fn transform_into_ellipsis(&self,
+                                   layout_context: &LayoutContext,
+                                   text_overflow_string: String)
+                                   -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
                 SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
+                    box UnscannedTextFragmentInfo::new(text_overflow_string, None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
@@ -2572,13 +2584,13 @@ impl Fragment {
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return true
         }
 
         // TODO(mrobinson): Determine if this is necessary, since blocks with
         // transformations already create stacking contexts.
-        if self.style().get_effects().perspective != LengthOrNone::None {
+        if let Either::First(ref _length) = self.style().get_effects().perspective {
             return true
         }
 
@@ -2594,8 +2606,6 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
-        // and `overflow_y: scroll`. This needs multiple layers per stacking context.
         match (self.style().get_box().position,
                self.style().get_position().z_index,
                self.style().get_box().overflow_x,
@@ -2614,11 +2624,7 @@ impl Fragment {
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
             (position::T::fixed, _, _, _) |
-            (position::T::relative, _, _, _) |
-            (_, _, overflow_x::T::auto, _) |
-            (_, _, overflow_x::T::scroll, _) |
-            (_, _, _, overflow_x::T::auto) |
-            (_, _, _, overflow_x::T::scroll) => true,
+            (position::T::relative, _, _, _) => true,
             (position::T::static_, _, _, _) => false
         }
     }
@@ -2632,7 +2638,7 @@ impl Fragment {
             _ => return self.style().get_position().z_index.number_or_zero(),
         }
 
-        if self.style().get_effects().transform.0.is_some() {
+        if self.style().get_box().transform.0.is_some() {
             return self.style().get_position().z_index.number_or_zero();
         }
 
@@ -3116,6 +3122,16 @@ impl Overflow {
     }
 }
 
+bitflags! {
+    pub flags FragmentFlags: u8 {
+        // TODO(stshine): find a better name since these flags can also be used for grid item.
+        /// Whether this fragment represents a child in a row flex container.
+        const IS_INLINE_FLEX_ITEM = 0b0000_0001,
+        /// Whether this fragment represents a child in a column flex container.
+        const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
+    }
+}
+
 /// Specified distances from the margin edge of a block to its content in the inline direction.
 /// These are returned by `guess_inline_content_edge_offsets()` and are used in the float placement
 /// speculation logic.
@@ -3162,16 +3178,15 @@ impl fmt::Display for DebugId {
 }
 
 #[cfg(not(debug_assertions))]
-impl Encodable for DebugId {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_str(&format!("{:p}", &self))
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        serializer.serialize_str(&format!("{:p}", &self))
     }
 }
 
 #[cfg(debug_assertions)]
-impl Encodable for DebugId {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_u16(self.0)
+impl Serialize for DebugId {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        serializer.serialize_u16(self.0)
     }
 }
-

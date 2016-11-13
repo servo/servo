@@ -10,13 +10,14 @@ use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use gfx::display_list::OpaqueNode;
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{LayoutElement, LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{StylingMode, TElement, TNode};
+use style::selector_impl::RestyleDamage;
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use style::traversal::{DomTraversalContext, put_thread_local_bloom_filter};
 use style::traversal::{recalc_style_at, remove_from_bloom_filter};
 use style::traversal::take_thread_local_bloom_filter;
@@ -270,33 +271,33 @@ pub struct BuildDisplayList<'a> {
 impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut Flow) {
+        let new_stacking_context =
+            flow::base(flow).stacking_context_id != self.state.stacking_context_id();
+        if new_stacking_context {
+            self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
+        }
+
+        let new_scroll_root =
+            flow::base(flow).scroll_root_id != self.state.scroll_root_id();
+        if new_scroll_root {
+            self.state.push_scroll_root_id(flow::base(flow).scroll_root_id);
+        }
+
         if self.should_process() {
-            let new_stacking_context =
-                flow::base(flow).stacking_context_id != self.state.stacking_context_id();
-            if new_stacking_context {
-                self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
-            }
-
-            let new_scroll_root =
-                flow::base(flow).scroll_root_id != self.state.scroll_root_id();
-            if new_scroll_root {
-                self.state.push_scroll_root_id(flow::base(flow).scroll_root_id);
-            }
-
             flow.build_display_list(&mut self.state);
             flow::mut_base(flow).restyle_damage.remove(REPAINT);
-
-            if new_stacking_context {
-                self.state.pop_stacking_context_id();
-            }
-
-            if new_scroll_root {
-                self.state.pop_scroll_root_id();
-            }
         }
 
         for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);
+        }
+
+        if new_stacking_context {
+            self.state.pop_stacking_context_id();
+        }
+
+        if new_scroll_root {
+            self.state.pop_scroll_root_id();
         }
     }
 

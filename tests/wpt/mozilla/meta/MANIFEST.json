@@ -5016,6 +5016,30 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/stacking_order_overflow_auto.html": [
+          {
+            "path": "css/stacking_order_overflow_auto.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_order_overflow_auto.html"
+          }
+        ],
+        "css/stacking_order_overflow_scroll.html": [
+          {
+            "path": "css/stacking_order_overflow_scroll.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_order_overflow_scroll.html"
+          }
+        ],
         "css/style_is_in_doc.html": [
           {
             "path": "css/style_is_in_doc.html",
@@ -5472,18 +5496,6 @@
             "url": "/_mozilla/css/text_node_opacity.html"
           }
         ],
-        "css/text_overflow_a.html": [
-          {
-            "path": "css/text_overflow_a.html",
-            "references": [
-              [
-                "/_mozilla/css/text_overflow_ref.html",
-                "!="
-              ]
-            ],
-            "url": "/_mozilla/css/text_overflow_a.html"
-          }
-        ],
         "css/text_overflow_basic_a.html": [
           {
             "path": "css/text_overflow_basic_a.html",
@@ -5494,6 +5506,30 @@
               ]
             ],
             "url": "/_mozilla/css/text_overflow_basic_a.html"
+          }
+        ],
+        "css/text_overflow_ellipsis.html": [
+          {
+            "path": "css/text_overflow_ellipsis.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_ellipsis.html"
+          }
+        ],
+        "css/text_overflow_string.html": [
+          {
+            "path": "css/text_overflow_string.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_string.html"
           }
         ],
         "css/text_shadow_blur_a.html": [
@@ -7434,12 +7470,6 @@
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html",
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/wrong-service-in-services-member.html"
-          }
-        ],
-        "mozilla/bluetooth/requestDevice/correct-uuids.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/correct-uuids.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/correct-uuids.html"
           }
         ],
         "mozilla/bluetooth/requestDevice/discovery-succeeds.html": [
@@ -19854,6 +19884,30 @@
           "url": "/_mozilla/css/stacking_context_rtl.html"
         }
       ],
+      "css/stacking_order_overflow_auto.html": [
+        {
+          "path": "css/stacking_order_overflow_auto.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_order_overflow_auto.html"
+        }
+      ],
+      "css/stacking_order_overflow_scroll.html": [
+        {
+          "path": "css/stacking_order_overflow_scroll.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_order_overflow_scroll.html"
+        }
+      ],
       "css/style_is_in_doc.html": [
         {
           "path": "css/style_is_in_doc.html",
@@ -20322,18 +20376,6 @@
           "url": "/_mozilla/css/text_node_opacity.html"
         }
       ],
-      "css/text_overflow_a.html": [
-        {
-          "path": "css/text_overflow_a.html",
-          "references": [
-            [
-              "/_mozilla/css/text_overflow_ref.html",
-              "!="
-            ]
-          ],
-          "url": "/_mozilla/css/text_overflow_a.html"
-        }
-      ],
       "css/text_overflow_basic_a.html": [
         {
           "path": "css/text_overflow_basic_a.html",
@@ -20344,6 +20386,30 @@
             ]
           ],
           "url": "/_mozilla/css/text_overflow_basic_a.html"
+        }
+      ],
+      "css/text_overflow_ellipsis.html": [
+        {
+          "path": "css/text_overflow_ellipsis.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_ellipsis.html"
+        }
+      ],
+      "css/text_overflow_string.html": [
+        {
+          "path": "css/text_overflow_string.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_string.html"
         }
       ],
       "css/text_shadow_blur_a.html": [

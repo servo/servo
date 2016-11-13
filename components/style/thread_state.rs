@@ -24,6 +24,10 @@ bitflags! {
 
 macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl ThreadState {
+        pub fn is_worker(self) -> bool {
+            self.contains(IN_WORKER)
+        }
+
         $(
             #[cfg(debug_assertions)]
             pub fn $fun(self) -> bool {

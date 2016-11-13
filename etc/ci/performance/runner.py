@@ -24,9 +24,6 @@ def parse_manifest(text):
 
 
 def execute_test(url, command, timeout):
-    print("Running test:")
-    print(' '.join(command))
-    print("Timeout:{}".format(timeout))
     try:
         return subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.CalledProcessError as e:
@@ -35,7 +32,7 @@ def execute_test(url, command, timeout):
         print("You may want to re-run the test manually:\n{}"
               .format(' '.join(command)))
     except subprocess.TimeoutExpired:
-        print("Test timeout: {}".format(url))
+        print("Test FAILED due to timeout: {}".format(url))
     return ""
 
 
@@ -43,6 +40,7 @@ def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     return ["../../../target/release/servo", url,
             "--userscripts", ua_script_path,
+            "--headless",
             "-x", "-o", "output.png"]
 
 
@@ -246,9 +244,12 @@ def main():
                                                         args.runs,
                                                         testcase))
                 log = execute_test(testcase, command, args.timeout)
+                print("Finished")
                 result = parse_log(log, testcase)
                 # TODO: Record and analyze other performance.timing properties
                 results += result
+            print("To reproduce the above test, run the following command:")
+            print("    {0}\n".format(' '.join(command)))
 
         print(format_result_summary(results))
         save_result_json(results, args.output_file, testcases, args.runs)

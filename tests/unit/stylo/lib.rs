@@ -11,6 +11,7 @@ extern crate libc;
 #[macro_use] extern crate log;
 extern crate parking_lot;
 extern crate style;
+extern crate style_traits;
 extern crate url;
 
 mod sanity_checks;

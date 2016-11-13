@@ -21,7 +21,7 @@ use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFrameb
 #[derive(JSTraceable, Clone, HeapSizeOf)]
 enum WebGLFramebufferAttachment {
     Renderbuffer(JS<WebGLRenderbuffer>),
-    Texture(JS<WebGLTexture>),
+    Texture { texture: JS<WebGLTexture>, level: i32 },
 }
 
 impl HeapGCValue for WebGLFramebufferAttachment {}
@@ -33,6 +33,7 @@ pub struct WebGLFramebuffer {
     /// target can only be gl::FRAMEBUFFER at the moment
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -55,6 +56,7 @@ impl WebGLFramebuffer {
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             renderer: renderer,
+            size: Cell::new(None),
             status: Cell::new(constants::FRAMEBUFFER_UNSUPPORTED),
             color: DOMRefCell::new(None),
             depth: DOMRefCell::new(None),
@@ -110,11 +112,20 @@ impl WebGLFramebuffer {
         self.is_deleted.get()
     }
 
+    pub fn size(&self) -> Option<(i32, i32)> {
+        self.size.get()
+    }
+
     fn update_status(&self) {
-        let has_c = self.color.borrow().is_some();
-        let has_z = self.depth.borrow().is_some();
-        let has_s = self.stencil.borrow().is_some();
-        let has_zs = self.depthstencil.borrow().is_some();
+        let c = self.color.borrow();
+        let z = self.depth.borrow();
+        let s = self.stencil.borrow();
+        let zs = self.depthstencil.borrow();
+        let has_c = c.is_some();
+        let has_z = z.is_some();
+        let has_s = s.is_some();
+        let has_zs = zs.is_some();
+        let attachments = [&*c, &*z, &*s, &*zs];
 
         // From the WebGL spec, 6.6 ("Framebuffer Object Attachments"):
         //
@@ -134,6 +145,33 @@ impl WebGLFramebuffer {
             self.status.set(constants::FRAMEBUFFER_UNSUPPORTED);
             return;
         }
+
+        let mut fb_size = None;
+        for attachment in &attachments {
+            // Get the size of this attachment.
+            let size = match **attachment {
+                Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb)) => {
+                    att_rb.size()
+                }
+                Some(WebGLFramebufferAttachment::Texture { texture: ref att_tex, level } ) => {
+                    let info = att_tex.image_info_at_face(0, level as u32);
+                    Some((info.width() as i32, info.height() as i32))
+                }
+                None => None,
+            };
+
+            // Make sure that, if we've found any other attachment,
+            // that the size matches.
+            if size.is_some() {
+                if fb_size.is_some() && size != fb_size {
+                    self.status.set(constants::FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
+                    return;
+                } else {
+                    fb_size = size;
+                }
+            }
+        }
+        self.size.set(fb_size);
 
         if has_c || has_z || has_zs || has_s {
             self.status.set(constants::FRAMEBUFFER_COMPLETE);
@@ -190,8 +228,6 @@ impl WebGLFramebuffer {
             // Note, from the GLES 2.0.25 spec, page 113:
             //      "If texture is zero, then textarget and level are ignored."
             Some(texture) => {
-                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture(JS::from_ref(texture)));
-
                 // From the GLES 2.0.25 spec, page 113:
                 //
                 //     "level specifies the mipmap level of the texture image
@@ -231,12 +267,16 @@ impl WebGLFramebuffer {
                     _ => return Err(WebGLError::InvalidOperation),
                 }
 
+                *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
+                    texture: JS::from_ref(texture),
+                    level: level }
+                );
+
                 Some(texture.id())
             }
 
             _ => {
                 *binding.borrow_mut() = None;
-                self.update_status();
                 None
             }
         };
@@ -251,7 +291,9 @@ impl WebGLFramebuffer {
         Ok(())
     }
 
-    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+    fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
+        where F: FnMut(&DOMRefCell<Option<WebGLFramebufferAttachment>>)
+    {
         let attachments = [&self.color,
                            &self.depth,
                            &self.stencil,
@@ -267,13 +309,14 @@ impl WebGLFramebuffer {
             };
 
             if matched {
-                *attachment.borrow_mut() = None;
-                self.update_status();
+                closure(attachment);
             }
         }
     }
 
-    pub fn detach_texture(&self, texture: &WebGLTexture) {
+    fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
+        where F: FnMut(&DOMRefCell<Option<WebGLFramebufferAttachment>>)
+    {
         let attachments = [&self.color,
                            &self.depth,
                            &self.stencil,
@@ -282,16 +325,42 @@ impl WebGLFramebuffer {
         for attachment in &attachments {
             let matched = {
                 match *attachment.borrow() {
-                    Some(WebGLFramebufferAttachment::Texture(ref att_texture))
+                    Some(WebGLFramebufferAttachment::Texture { texture: ref att_texture, .. })
                         if texture.id() == att_texture.id() => true,
                     _ => false,
                 }
             };
 
             if matched {
-                *attachment.borrow_mut() = None;
+                closure(attachment);
             }
         }
+    }
+
+    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+        self.with_matching_renderbuffers(rb, |att| {
+            *att.borrow_mut() = None;
+            self.update_status();
+        });
+    }
+
+    pub fn detach_texture(&self, texture: &WebGLTexture) {
+        self.with_matching_textures(texture, |att| {
+            *att.borrow_mut() = None;
+            self.update_status();
+        });
+    }
+
+    pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+        self.with_matching_renderbuffers(rb, |_att| {
+            self.update_status();
+        });
+    }
+
+    pub fn invalidate_texture(&self, texture: &WebGLTexture) {
+        self.with_matching_textures(texture, |_att| {
+            self.update_status();
+        });
     }
 
     pub fn target(&self) -> Option<u32> {

@@ -1,10 +1,17 @@
 [configs]
 skip-check-length = false
 skip-check-licenses = false
+check-ordered-json-keys = [
+  "./resources/prefs.json",
+  "./resources/package-prefs.json",
+]
+lint-scripts = [
+  "./python/servo/lints/wpt_lint.py",
+]
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = ["lazy_static"]
+packages = ["bitflags", "lazy_static", "semver"]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Generated and upstream code combined with our own. Could use cleanup

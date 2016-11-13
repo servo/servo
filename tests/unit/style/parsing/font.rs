@@ -9,6 +9,7 @@ use style::properties::longhands::font_feature_settings;
 use style::properties::longhands::font_feature_settings::computed_value;
 use style::properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
 use style::stylesheets::Origin;
+use style_traits::ToCss;
 use url::Url;
 
 #[test]
@@ -100,7 +101,7 @@ fn font_language_override_should_parse_properly() {
 #[test]
 #[should_panic]
 fn font_language_override_should_fail_on_empty_str() {
-    use style::properties::longhands::font_language_override::{self, SpecifiedValue};
+    use style::properties::longhands::font_language_override;
 
     parse_longhand!(font_language_override, "");
 }

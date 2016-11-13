@@ -17,7 +17,7 @@ use gfx::display_list::StackingContext;
 use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
-use rustc_serialize::{Encodable, Encoder};
+use serde::{Serialize, Serializer};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
@@ -55,9 +55,9 @@ pub struct TableRowGroupFlow {
     pub collapsed_block_direction_border_widths_for_table: Vec<Au>,
 }
 
-impl Encodable for TableRowGroupFlow {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        self.block_flow.encode(e)
+impl Serialize for TableRowGroupFlow {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        self.block_flow.serialize(serializer)
     }
 }
 

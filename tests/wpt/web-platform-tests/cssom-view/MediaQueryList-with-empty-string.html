@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>cssom-view - MediaQueryList with empty string</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function () {
+    var mql = window.matchMedia('');
+    assert_equals(mql.media, '', "This should be an empty media query list");
+    assert_equals(mql.matches, true, "Empty media query list should evaluate to true");
+});
+</script>

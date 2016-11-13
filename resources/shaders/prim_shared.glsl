@@ -277,10 +277,31 @@ PrimitiveInstance fetch_instance(int index) {
     return pi;
 }
 
+struct BlurCommand {
+    int task_id;
+    int src_task_id;
+    int dir;
+};
+
+BlurCommand fetch_blur(int index) {
+    BlurCommand blur;
+
+    int offset = index * 1;
+
+    ivec4 data0 = int_data[offset + 0];
+
+    blur.task_id = data0.x;
+    blur.src_task_id = data0.y;
+    blur.dir = data0.z;
+
+    return blur;
+}
+
 struct CachePrimitiveInstance {
     int global_prim_index;
     int specific_prim_index;
     int render_task_index;
+    int sub_index;
 };
 
 CachePrimitiveInstance fetch_cache_instance(int index) {
@@ -293,6 +314,7 @@ CachePrimitiveInstance fetch_cache_instance(int index) {
     cpi.global_prim_index = data0.x;
     cpi.specific_prim_index = data0.y;
     cpi.render_task_index = data0.z;
+    cpi.sub_index = data0.w;
 
     return cpi;
 }
@@ -347,13 +369,13 @@ ClipRect fetch_clip_rect(int index) {
     return rect;
 }
 
-struct ImageMaskInfo {
+struct ImageMaskData {
     vec4 uv_rect;
     vec4 local_rect;
 };
 
-ImageMaskInfo fetch_mask_info(int index) {
-    ImageMaskInfo info;
+ImageMaskData fetch_mask_data(int index) {
+    ImageMaskData info;
 
     ivec2 uv = get_fetch_uv_2(index);
 
@@ -379,24 +401,24 @@ ClipCorner fetch_clip_corner(int index) {
     return corner;
 }
 
-struct ClipInfo {
+struct ClipData {
     ClipRect rect;
     ClipCorner top_left;
     ClipCorner top_right;
     ClipCorner bottom_left;
     ClipCorner bottom_right;
-    ImageMaskInfo mask_info;
+    ImageMaskData mask_data;
 };
 
-ClipInfo fetch_clip(int index) {
-    ClipInfo clip;
+ClipData fetch_clip(int index) {
+    ClipData clip;
 
     clip.rect = fetch_clip_rect(index + 0);
     clip.top_left = fetch_clip_corner(index + 1);
     clip.top_right = fetch_clip_corner(index + 2);
     clip.bottom_left = fetch_clip_corner(index + 3);
     clip.bottom_right = fetch_clip_corner(index + 4);
-    clip.mask_info = fetch_mask_info(index + 5);
+    clip.mask_data = fetch_mask_data(index + 5);
 
     return clip;
 }

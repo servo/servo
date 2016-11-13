@@ -30,7 +30,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tendril::StrTendril;
 use html5ever::tokenizer::{Tokenizer as H5ETokenizer, TokenizerOpts};
-use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode};
+use html5ever::tree_builder::{NodeOrText, QuirksMode};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts, TreeSink};
 use html5ever_atoms::QualName;
 use msg::constellation_msg::PipelineId;
@@ -151,14 +151,6 @@ impl<'a> TreeSink for Sink {
     fn mark_script_already_started(&mut self, node: JS<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
         script.map(|script| script.set_already_started(true));
-    }
-
-    fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
-        let script = node.downcast::<HTMLScriptElement>();
-        if let Some(script) = script {
-            return script.prepare();
-        }
-        NextParserState::Continue
     }
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {

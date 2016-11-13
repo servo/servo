@@ -10,6 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
+cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 euclid = "0.10.1"
 hyper = "0.9.9"
 image = "0.10"
@@ -24,5 +25,4 @@ script_traits = {path = "../script_traits"}
 url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 uuid = { version = "0.3.1", features = ["v4"] }
-webdriver = "0.14"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+webdriver = "0.15"

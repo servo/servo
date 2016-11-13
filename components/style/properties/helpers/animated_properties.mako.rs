@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::{Color as CSSParserColor, Parser, RGBA, ToCss};
+use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
 use properties::PropertyDeclaration;
 use properties::longhands;
@@ -20,7 +20,9 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp;
 use std::fmt;
+use style_traits::ToCss;
 use super::ComputedValues;
+use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
@@ -416,7 +418,7 @@ impl Interpolate for CalcLengthOrPercentage {
         }
 
         Ok(CalcLengthOrPercentage {
-            length: try!(interpolate_half(self.length, other.length, progress)),
+            length: try!(self.length.interpolate(&other.length, progress)),
             percentage: try!(interpolate_half(self.percentage, other.percentage, progress)),
         })
     }
@@ -681,8 +683,8 @@ impl Interpolate for BoxShadow {
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
         match (*self, *other) {
-            (LengthOrNone::Length(ref len), LengthOrNone::Length(ref other)) =>
-                len.interpolate(&other, progress).map(LengthOrNone::Length),
+            (Either::First(ref length), Either::First(ref other)) =>
+                length.interpolate(&other, progress).map(Either::First),
             _ => Err(()),
         }
     }

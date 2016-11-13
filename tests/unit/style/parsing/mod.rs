@@ -21,12 +21,12 @@ macro_rules! assert_roundtrip {
     ($fun:expr, $input:expr, $output:expr) => {
         let parsed = $crate::parsing::parse($fun, $input)
                         .expect(&format!("Failed to parse {}", $input));
-        let serialized = ::cssparser::ToCss::to_css_string(&parsed);
+        let serialized = ToCss::to_css_string(&parsed);
         assert_eq!(serialized, $output);
 
         let re_parsed = $crate::parsing::parse($fun, &serialized)
                         .expect(&format!("Failed to parse serialization {}", $input));
-        let re_serialized = ::cssparser::ToCss::to_css_string(&re_parsed);
+        let re_serialized = ToCss::to_css_string(&re_parsed);
         assert_eq!(serialized, re_serialized);
     }
 }
@@ -41,13 +41,13 @@ macro_rules! assert_roundtrip_with_context {
         let mut parser = Parser::new($input);
         let parsed = $fun(&context, &mut parser)
                      .expect(&format!("Failed to parse {}", $input));
-        let serialized = ::cssparser::ToCss::to_css_string(&parsed);
+        let serialized = ToCss::to_css_string(&parsed);
         assert_eq!(serialized, $output);
 
         let mut parser = Parser::new(&serialized);
         let re_parsed = $fun(&context, &mut parser)
                         .expect(&format!("Failed to parse {}", $input));
-        let re_serialized = ::cssparser::ToCss::to_css_string(&re_parsed);
+        let re_serialized = ToCss::to_css_string(&re_parsed);
         assert_eq!(serialized, re_serialized);
     }
 }

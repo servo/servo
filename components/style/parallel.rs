@@ -33,7 +33,8 @@ pub fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
         queue: &mut WorkQueue<SharedContext, WorkQueueData>,
         callback: F,
         shared: &SharedContext)
-        where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedContext, To>) {
+    where To: 'static + Send, F: FnOnce(&mut WorkQueue<SharedContext, To>)
+{
     let queue: &mut WorkQueue<SharedContext, To> = unsafe {
         mem::transmute(queue)
     };
@@ -73,7 +74,8 @@ pub fn traverse_dom<N, C>(root: N,
 #[inline(always)]
 fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
                       proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-                      where N: TNode, C: DomTraversalContext<N> {
+    where N: TNode, C: DomTraversalContext<N>
+{
     let context = C::new(proxy.user_data(), unsafe_nodes.1);
 
     let mut discovered_child_nodes = vec![];

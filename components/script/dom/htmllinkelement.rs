@@ -42,7 +42,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use style::attr::AttrValue;
-use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, Origin};
@@ -243,8 +243,8 @@ impl HTMLLinkElement {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: document.window().networking_task_source(),
-            wrapper: Some(document.window().get_runnable_wrapper()),
+            task_source: document.window().networking_task_source(),
+            wrapper: Some(document.window().get_runnable_wrapper())
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -297,7 +297,7 @@ impl HTMLLinkElement {
 struct StylesheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLLinkElement>,
-    media: Option<MediaQueryList>,
+    media: Option<MediaList>,
     /// The response body received to date.
     data: Vec<u8>,
     /// The response metadata received to date.
@@ -359,8 +359,7 @@ impl FetchResponseListener for StylesheetContext {
                                                    Some(environment_encoding), Origin::Author,
                                                    win.css_error_reporter(),
                                                    ParserContextExtraData::default());
-            let media = self.media.take().unwrap();
-            sheet.set_media(Some(media));
+            sheet.set_media(self.media.take().unwrap());
             let sheet = Arc::new(sheet);
 
             let win = window_from_node(&*elem);

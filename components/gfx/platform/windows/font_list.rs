@@ -2,73 +2,70 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use gdi32;
-use std::ffi::OsString;
-use std::os::windows::ffi::OsStringExt;
-use std::ptr;
-use winapi::{LOGFONTW, LPARAM, OUT_TT_ONLY_PRECIS, VOID};
-use winapi::{c_int, DWORD, LF_FACESIZE};
+use dwrote::{Font, FontDescriptor, FontCollection};
+use servo_atoms::Atom;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::atomic::{Ordering, AtomicUsize};
+
+lazy_static! {
+    static ref FONT_ATOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
+    static ref FONT_ATOM_MAP: Mutex<HashMap<Atom, FontDescriptor>> = Mutex::new(HashMap::new());
+}
 
 pub static SANS_SERIF_FONT_FAMILY: &'static str = "Arial";
 
 pub fn system_default_family(_: &str) -> Option<String> {
-    None
+    Some("Verdana".to_owned())
 }
 
 pub fn last_resort_font_families() -> Vec<String> {
     vec!("Arial".to_owned())
 }
 
-unsafe extern "system" fn enum_font_callback(lpelfe: *const LOGFONTW,
-                                             _: *const VOID,
-                                             _: DWORD,
-                                             lparam: LPARAM) -> c_int {
-    let name = (*lpelfe).lfFaceName;
-    let term_pos = name.iter().position(|c| *c == 0).unwrap();
-    let name = OsString::from_wide(&name[0..term_pos]).into_string().unwrap();
-
-    let fonts = lparam as *mut Vec<String>;
-    let fonts = &mut *fonts;
-    fonts.push(name);
-
-    1
-}
-
 pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
-    let mut fonts = Vec::new();
-
-    let mut config = LOGFONTW {
-        lfHeight: 0,
-        lfWidth: 0,
-        lfEscapement: 0,
-        lfOrientation: 0,
-        lfWeight: 0,
-        lfItalic: 0,
-        lfUnderline: 0,
-        lfStrikeOut: 0,
-        lfCharSet: 0,
-        lfOutPrecision: OUT_TT_ONLY_PRECIS as u8,
-        lfClipPrecision: 0,
-        lfQuality: 0,
-        lfPitchAndFamily: 0,
-        lfFaceName: [0; LF_FACESIZE],
-    };
-
-    unsafe {
-        let hdc = gdi32::CreateCompatibleDC(ptr::null_mut());
-        gdi32::EnumFontFamiliesExW(hdc,
-                                   &mut config,
-                                   Some(enum_font_callback),
-                                   &mut fonts as *mut Vec<String> as LPARAM,
-                                   0);
-        gdi32::DeleteDC(hdc);
-    }
-
-    for family in fonts {
-        callback(family);
+    let system_fc = FontCollection::system();
+    for family in system_fc.families_iter() {
+        callback(family.name());
     }
 }
+
+// for_each_variation is supposed to return a string that can be
+// atomized and then uniquely used to return back to this font.
+// Some platforms use the full postscript name (MacOS X), or
+// a font filename.
+//
+// For windows we're going to use just a basic integer value that
+// we'll stringify, and then put them all in a HashMap with
+// the actual FontDescriptor there.
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
-    callback(family_name.to_owned());
+    let system_fc = FontCollection::system();
+    if let Some(family) = system_fc.get_font_family_by_name(family_name) {
+        let count = family.get_font_count();
+        for i in 0..count {
+            let font = family.get_font(i);
+            let index = FONT_ATOM_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let index_str = format!("{}", index);
+            let atom = Atom::from(index_str.clone());
+
+            {
+                let descriptor = font.to_descriptor();
+                let mut fonts = FONT_ATOM_MAP.lock().unwrap();
+                fonts.insert(atom, descriptor);
+            }
+
+            callback(index_str);
+        }
+    }
+}
+
+pub fn descriptor_from_atom(ident: &Atom) -> FontDescriptor {
+    let fonts = FONT_ATOM_MAP.lock().unwrap();
+    fonts.get(ident).unwrap().clone()
+}
+
+pub fn font_from_atom(ident: &Atom) -> Font {
+    let fonts = FONT_ATOM_MAP.lock().unwrap();
+    FontCollection::system().get_font_from_descriptor(fonts.get(ident).unwrap()).unwrap()
 }

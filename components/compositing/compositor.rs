@@ -17,11 +17,9 @@ use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
 use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
-use profile_traits::mem::{self, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
@@ -184,9 +182,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
 
-    /// The channel on which messages can be sent to the memory profiler.
-    mem_profiler_chan: mem::ProfilerChan,
-
     /// Touch input state machine
     touch_handler: TouchHandler,
 
@@ -312,10 +307,6 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
     }
 }
 
-fn reporter_name() -> String {
-    "compositor-reporter".to_owned()
-}
-
 struct RenderNotifier {
     compositor_proxy: Box<CompositorProxy>,
     constellation_chan: Sender<ConstellationMsg>,
@@ -368,23 +359,6 @@ impl webrender_traits::RenderDispatcher for CompositorThreadDispatcher {
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
-        // Register this thread as a memory reporter, via its own channel.
-        let (reporter_sender, reporter_receiver) = ipc::channel()
-            .expect("Compositor reporter chan");
-        let compositor_proxy_for_memory_reporter = state.sender.clone_compositor_proxy();
-        ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-            match reporter_request.to::<ReporterRequest>() {
-                Err(e) => error!("Cast to ReporterRequest failed ({}).", e),
-                Ok(reporter_request) => {
-                    let msg = Msg::CollectMemoryReports(reporter_request.reports_channel);
-                    compositor_proxy_for_memory_reporter.send(msg);
-                },
-            }
-        });
-        let reporter = Reporter(reporter_sender);
-        state.mem_profiler_chan.send(
-            mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
-
         let window_size = window.framebuffer_size();
         let scale_factor = window.scale_factor();
         let composite_target = match opts::get().output_file {
@@ -419,7 +393,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             frame_tree_id: FrameTreeId(0),
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
-            mem_profiler_chan: state.mem_profiler_chan,
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
             scroll_in_progress: false,
@@ -461,8 +434,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             warn!("Sending exit message to constellation failed ({}).", e);
         }
 
-        self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
-
         self.shutdown_state = ShutdownState::ShuttingDown;
     }
 
@@ -481,7 +452,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             },
             Err(_) => {},
         }
-        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
         self.delayed_composition_timer.shutdown();
 
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
@@ -634,11 +604,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
                 self.window.head_parsed();
-            }
-
-            (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
-                let reports = vec![];
-                reports_chan.send(reports);
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {

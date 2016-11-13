@@ -5348,8 +5348,6 @@ cfg_if! {
             pub static nsCSSProps_marker_end: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps10marker_midE"]
             pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
-            #[link_name = "_ZN10nsCSSProps13marker_offsetE"]
-            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps12marker_startE"]
             pub static nsCSSProps_marker_start: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps4maskE"]
@@ -10987,8 +10985,6 @@ cfg_if! {
             pub static nsCSSProps_marker_end: *mut nsICSSProperty;
             #[link_name = "?marker_mid@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
-            #[link_name = "?marker_offset@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
-            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
             #[link_name = "?marker_start@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_marker_start: *mut nsICSSProperty;
             #[link_name = "?mask@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
@@ -16626,8 +16622,6 @@ cfg_if! {
             pub static nsCSSProps_marker_end: *mut nsICSSProperty;
             #[link_name = "\x01?marker_mid@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_marker_mid: *mut nsICSSProperty;
-            #[link_name = "\x01?marker_offset@nsCSSProps@@2PAVnsICSSProperty@@A"]
-            pub static nsCSSProps_marker_offset: *mut nsICSSProperty;
             #[link_name = "\x01?marker_start@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_marker_start: *mut nsICSSProperty;
             #[link_name = "\x01?mask@nsCSSProps@@2PAVnsICSSProperty@@A"]
@@ -22268,8 +22262,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_end as *mut _) } };
 ("marker-mid") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_mid as *mut _) } };
-("marker-offset") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_offset as *mut _) } };
 ("marker-start") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_marker_start as *mut _) } };
 ("mask") =>

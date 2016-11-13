@@ -7,9 +7,11 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use cssparser::{Parser, ToCss, Token};
+use app_units::Au;
+use cssparser::{Parser, Token};
 use parser::Parse;
 use std::fmt;
+use style_traits::ToCss;
 use values::HasViewportPercentage;
 use values::computed::{CalcLengthOrPercentage, Context};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, ToComputedValue};
@@ -168,7 +170,18 @@ impl Position {
         })
     }
 
-    pub fn parse(input: &mut Parser) -> Result<Position, ()> {
+    pub fn center() -> Position {
+        Position {
+            horiz_keyword: Some(Keyword::Center),
+            horiz_position: None,
+            vert_keyword: Some(Keyword::Center),
+            vert_position: None,
+        }
+    }
+}
+
+impl Parse for Position {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let first = try!(PositionComponent::parse(input));
         let second = input.try(PositionComponent::parse)
             .unwrap_or(PositionComponent::Keyword(Keyword::Center));
@@ -213,15 +226,6 @@ impl Position {
                     Position::new(None, None, Some(first), Some(second))
                 }
             }
-        }
-    }
-
-    pub fn center() -> Position {
-        Position {
-            horiz_keyword: Some(Keyword::Center),
-            horiz_position: None,
-            vert_keyword: Some(Keyword::Center),
-            vert_position: None,
         }
     }
 }
@@ -287,9 +291,9 @@ impl ToComputedValue for Position {
             Keyword::Right => {
                 if let Some(x) = self.horiz_position {
                     let (length, percentage) = match x {
-                        LengthOrPercentage::Percentage(Percentage(y)) => (None, Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (Some(-y.to_computed_value(context)), Some(1.0)),
-                        _ => (None, None),
+                        LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
+                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
                         length: length,
@@ -313,9 +317,9 @@ impl ToComputedValue for Position {
             Keyword::Bottom => {
                 if let Some(x) = self.vert_position {
                     let (length, percentage) = match x {
-                        LengthOrPercentage::Percentage(Percentage(y)) => (None, Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (Some(-y.to_computed_value(context)), Some(1.0)),
-                        _ => (None, None),
+                        LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
+                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
                         length: length,
@@ -361,30 +365,33 @@ impl HasViewportPercentage for PositionComponent {
 }
 
 impl PositionComponent {
-    pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
-        input.try(LengthOrPercentage::parse)
-        .map(PositionComponent::Length)
-        .or_else(|()| {
-            match try!(input.next()) {
-                Token::Ident(value) => {
-                    match_ignore_ascii_case! { value,
-                        "center" => Ok(PositionComponent::Keyword(Keyword::Center)),
-                        "left" => Ok(PositionComponent::Keyword(Keyword::Left)),
-                        "right" => Ok(PositionComponent::Keyword(Keyword::Right)),
-                        "top" => Ok(PositionComponent::Keyword(Keyword::Top)),
-                        "bottom" => Ok(PositionComponent::Keyword(Keyword::Bottom)),
-                        _ => Err(())
-                    }
-                },
-                _ => Err(())
-            }
-        })
-    }
     #[inline]
     pub fn to_length_or_percentage(self) -> LengthOrPercentage {
         match self {
             PositionComponent::Length(value) => value,
             PositionComponent::Keyword(keyword) => keyword.to_length_or_percentage(),
         }
+    }
+}
+
+impl Parse for PositionComponent {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        input.try(LengthOrPercentage::parse)
+            .map(PositionComponent::Length)
+            .or_else(|()| {
+                match try!(input.next()) {
+                    Token::Ident(value) => {
+                        match_ignore_ascii_case! { value,
+                                                   "center" => Ok(PositionComponent::Keyword(Keyword::Center)),
+                                                   "left" => Ok(PositionComponent::Keyword(Keyword::Left)),
+                                                   "right" => Ok(PositionComponent::Keyword(Keyword::Right)),
+                                                   "top" => Ok(PositionComponent::Keyword(Keyword::Top)),
+                                                   "bottom" => Ok(PositionComponent::Keyword(Keyword::Bottom)),
+                                                   _ => Err(())
+                        }
+                    },
+                    _ => Err(())
+                }
+            })
     }
 }

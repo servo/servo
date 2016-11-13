@@ -54,7 +54,7 @@ fn test_parse_stylesheet() {
                                           ParserContextExtraData::default());
     let expected = Stylesheet {
         origin: Origin::UserAgent,
-        media: None,
+        media: Default::default(),
         dirty_on_viewport_size_change: false,
         rules: vec![
             CSSRule::Namespace(Arc::new(RwLock::new(NamespaceRule {

@@ -35,15 +35,17 @@ extern crate util;
 
 use devtools_traits::DevtoolsControlMsg;
 use filemanager_thread::{TestProvider, TEST_PROVIDER};
+use hyper::server::{Handler, Listening, Server};
 use net::fetch::methods::{FetchContext, fetch};
 use net::filemanager_thread::FileManager;
-use net::http_loader::HttpState;
+use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::thread;
+use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -72,10 +74,18 @@ impl FetchTaskTarget for FetchResponseCollector {
 
 fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
     thread::spawn(move || {
-        fetch(Rc::new(request), &mut Some(target), new_fetch_context(dc));
+        fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
     });
 }
 
 fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch(Rc::new(request), &mut None, new_fetch_context(dc))
+    fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
+}
+
+fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
+    // this is a Listening server because of handle_threads()
+    let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 1).unwrap();
+    let url_string = format!("http://localhost:{}", server.socket.port());
+    let url = Url::parse(&url_string).unwrap();
+    (server, url)
 }

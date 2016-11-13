@@ -9,12 +9,11 @@
 
 use cssparser::Color as CSSColor;
 use std::fmt;
-use url::Url;
-use values::LocalToCss;
+use style_traits::ToCss;
 use values::computed::{Context, Length, LengthOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified;
-use values::specified::{AngleOrCorner, SizeKeyword, UrlExtraData};
+use values::specified::{self, AngleOrCorner, SizeKeyword};
+use values::specified::url::SpecifiedUrl;
 
 
 impl ToComputedValue for specified::Image {
@@ -23,8 +22,8 @@ impl ToComputedValue for specified::Image {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Image {
         match *self {
-            specified::Image::Url(ref url, ref extra_data) => {
-                Image::Url(url.clone(), extra_data.clone())
+            specified::Image::Url(ref url_value) => {
+                Image::Url(url_value.clone())
             },
             specified::Image::Gradient(ref gradient) => {
                 Image::Gradient(gradient.to_computed_value(context))
@@ -35,8 +34,8 @@ impl ToComputedValue for specified::Image {
     #[inline]
     fn from_computed_value(computed: &Image) -> Self {
         match *computed {
-            Image::Url(ref url, ref extra_data) => {
-                specified::Image::Url(url.clone(), extra_data.clone())
+            Image::Url(ref url_value) => {
+                specified::Image::Url(url_value.clone())
             },
             Image::Gradient(ref linear_gradient) => {
                 specified::Image::Gradient(
@@ -52,14 +51,14 @@ impl ToComputedValue for specified::Image {
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Image {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     Gradient(Gradient),
 }
 
 impl fmt::Debug for Image {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Image::Url(ref url, ref _extra_data) => write!(f, "url(\"{}\")", url),
+            Image::Url(ref url) => url.to_css(f),
             Image::Gradient(ref grad) => {
                 if grad.repeating {
                     let _ = write!(f, "repeating-");
@@ -73,13 +72,10 @@ impl fmt::Debug for Image {
     }
 }
 
-impl ::cssparser::ToCss for Image {
+impl ToCss for Image {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
-            Image::Url(ref url, _) => {
-                url.to_css(dest)
-            }
+            Image::Url(ref url) => url.to_css(dest),
             Image::Gradient(ref gradient) => gradient.to_css(dest)
         }
     }
@@ -98,7 +94,7 @@ pub struct Gradient {
     pub gradient_kind: GradientKind,
 }
 
-impl ::cssparser::ToCss for Gradient {
+impl ToCss for Gradient {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         if self.repeating {
             try!(dest.write_str("repeating-"));
@@ -224,7 +220,7 @@ pub struct ColorStop {
     pub position: Option<LengthOrPercentage>,
 }
 
-impl ::cssparser::ToCss for ColorStop {
+impl ToCss for ColorStop {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.color.to_css(dest));
         if let Some(position) = self.position {
@@ -279,7 +275,7 @@ pub enum EndingShape {
     Ellipse(LengthOrPercentageOrKeyword),
 }
 
-impl ::cssparser::ToCss for EndingShape {
+impl ToCss for EndingShape {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             EndingShape::Circle(ref length) => {
@@ -344,7 +340,7 @@ pub enum LengthOrKeyword {
     Keyword(SizeKeyword),
 }
 
-impl ::cssparser::ToCss for LengthOrKeyword {
+impl ToCss for LengthOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrKeyword::Length(ref length) => length.to_css(dest),
@@ -402,7 +398,7 @@ pub enum LengthOrPercentageOrKeyword {
     Keyword(SizeKeyword),
 }
 
-impl ::cssparser::ToCss for LengthOrPercentageOrKeyword {
+impl ToCss for LengthOrPercentageOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {

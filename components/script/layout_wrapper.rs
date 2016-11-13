@@ -46,7 +46,6 @@ use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::restyle_damage::RestyleDamage;
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutElement, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
@@ -66,7 +65,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl, Snapshot};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -382,7 +381,7 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
         self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, ElementSnapshot)> {
+    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, Snapshot)> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
@@ -435,7 +434,6 @@ impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type ConcreteDocument = ServoLayoutDocument<'le>;
-    type ConcreteRestyleDamage = RestyleDamage;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())

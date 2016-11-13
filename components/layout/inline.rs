@@ -24,8 +24,6 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
-use script_layout_interface::restyle_damage::{REPOSITION, RESOLVE_GENERATED_CONTENT};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::{fmt, i32, isize, mem};
 use std::cmp::max;
@@ -33,10 +31,11 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
-use style::computed_values::{text_overflow, vertical_align, white_space};
+use style::computed_values::{vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ServoComputedValues;
+use style::properties::{longhands, ServoComputedValues};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi;
 
@@ -65,7 +64,7 @@ use unicode_bidi;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(RustcEncodable, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -207,7 +206,7 @@ impl Line {
 }
 
 int_range_index! {
-    #[derive(RustcEncodable)]
+    #[derive(Serialize)]
     #[doc = "The index of a fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(isize)
 }
@@ -685,21 +684,30 @@ impl LineBreaker {
         }
 
         // Determine if an ellipsis will be necessary to account for `text-overflow`.
-        let mut need_ellipsis = false;
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
-        match (fragment.style().get_text().text_overflow,
-               fragment.style().get_box().overflow_x) {
-            (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
-            (text_overflow::T::ellipsis, _) => {
-                need_ellipsis = fragment.margin_box_inline_size() > available_inline_size;
-            }
-        }
 
-        if !need_ellipsis {
-            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
-        } else {
-            let ellipsis = fragment.transform_into_ellipsis(layout_context);
+        let ellipsis = match (&fragment.style().get_text().text_overflow.first,
+            fragment.style().get_box().overflow_x) {
+            (&longhands::text_overflow::Side::Clip, _) | (_, overflow_x::T::visible) => None,
+            (&longhands::text_overflow::Side::Ellipsis, _) => {
+                if fragment.margin_box_inline_size() > available_inline_size {
+                    Some("…".to_string())
+                } else {
+                    None
+                }
+            },
+            (&longhands::text_overflow::Side::String(ref string), _) => {
+                if fragment.margin_box_inline_size() > available_inline_size {
+                    Some(string.to_string())
+                } else {
+                    None
+                }
+            }
+        };
+
+        if let Some(string) = ellipsis {
+            let ellipsis = fragment.transform_into_ellipsis(layout_context, string);
             if let Some(truncation_info) =
                     fragment.truncate_to_inline_size(available_inline_size -
                                                      ellipsis.margin_box_inline_size()) {
@@ -708,6 +716,8 @@ impl LineBreaker {
                 self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
             }
             self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
+        } else {
+            self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
         }
 
         if line_flush_mode == LineFlushMode::Flush {
@@ -791,7 +801,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[derive(RustcEncodable, Clone)]
+#[derive(Serialize, Clone)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -828,7 +838,7 @@ impl InlineFragments {
 }
 
 /// Flows for inline layout.
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -1780,7 +1790,7 @@ fn inline_contexts_are_equal(inline_context_a: &Option<InlineFragmentContext>,
 ///
 /// Descent is not included in this structure because it can be computed from the fragment's
 /// border/content box and the ascent.
-#[derive(Clone, Copy, Debug, RustcEncodable)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct InlineMetrics {
     /// The amount of space above the baseline needed for this fragment.
     pub space_above_baseline: Au,
@@ -1831,7 +1841,7 @@ enum LineFlushMode {
     Flush,
 }
 
-#[derive(Copy, Clone, Debug, RustcEncodable)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub struct LineMetrics {
     pub space_above_baseline: Au,
     pub space_below_baseline: Au,

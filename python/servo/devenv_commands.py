@@ -105,7 +105,7 @@ class MachCommands(CommandBase):
         '--json', '-j', action="store_true",
         help='Outputs')
     def clippy(self, package=None, json=False):
-        params = ["--features=script/plugins/clippy"]
+        params = ["--features=clippy"]
         if package:
             params += ["-p", package]
         if json:

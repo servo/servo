@@ -19,7 +19,7 @@ pub trait OpaqueSender<T> {
 
 impl<T> OpaqueSender<T> for Sender<T> {
     fn send(&self, message: T) {
-        Sender::send(self, message).unwrap();
+        let _ = Sender::send(self, message);
     }
 }
 

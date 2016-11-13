@@ -31,7 +31,7 @@ use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
 use webrender_traits::{WebGLCommand, WebGLContextId};
@@ -47,6 +47,7 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
     FromLayout(FromLayoutMsg),
+    FromScript(FromScriptMsg),
     WebGL(WebGLCommand),
 }
 
@@ -58,19 +59,23 @@ pub enum CanvasCommonMsg {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum CanvasData {
-    Pixels(CanvasPixelData),
+    Image(CanvasImageData),
     WebGL(WebGLContextId),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct CanvasPixelData {
-    pub image_data: IpcSharedMemory,
+pub struct CanvasImageData {
     pub image_key: webrender_traits::ImageKey,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
     SendData(IpcSender<CanvasData>),
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum FromScriptMsg {
+    SendPixels(IpcSender<Option<Vec<u8>>>),
 }
 
 #[derive(Clone, Deserialize, Serialize)]

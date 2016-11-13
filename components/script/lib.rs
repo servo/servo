@@ -48,6 +48,7 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate html5ever;
 #[macro_use] extern crate html5ever_atoms;
+#[macro_use]
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image;
@@ -96,7 +97,6 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
-pub mod bluetooth_blacklist;
 mod body;
 pub mod clipboard_provider;
 mod devtools;
@@ -164,14 +164,16 @@ fn perform_platform_specific_initialization() {
 #[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
+pub fn init_service_workers(sw_senders: SWManagerSenders) {
+    // Spawn the service worker manager passing the constellation sender
+    ServiceWorkerManager::spawn_manager(sw_senders);
+}
+
 #[allow(unsafe_code)]
-pub fn init(sw_senders: SWManagerSenders) {
+pub fn init() {
     unsafe {
         proxyhandler::init();
     }
-
-    // Spawn the service worker manager passing the constellation sender
-    ServiceWorkerManager::spawn_manager(sw_senders);
 
     // Create the global vtables used by the (generated) DOM
     // bindings to implement JS proxies.

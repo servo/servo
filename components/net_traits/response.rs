@@ -17,7 +17,7 @@ use url::Url;
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
-    CORS,
+    Cors,
     Default,
     Error(NetworkError),
     Opaque,
@@ -25,7 +25,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -61,7 +61,7 @@ pub enum CacheState {
 }
 
 /// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
-#[derive(Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, HeapSizeOf, Deserialize, Serialize)]
 pub enum HttpsState {
     None,
     Deprecated,
@@ -75,11 +75,11 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone, HeapSizeOf)]
+#[derive(Debug, Clone, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
-    pub url: Option<Url>,
+    url: Option<Url>,
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -100,11 +100,11 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new() -> Response {
+    pub fn new(url: Url) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
-            url: None,
+            url: Some(url),
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             raw_status: Some((200, b"OK".to_vec())),
@@ -134,6 +134,10 @@ impl Response {
             internal_response: None,
             return_internal: Cell::new(true)
         }
+    }
+
+    pub fn url(&self) -> Option<&Url> {
+        self.url.as_ref()
     }
 
     pub fn is_network_error(&self) -> bool {
@@ -198,7 +202,7 @@ impl Response {
                 response.headers = headers;
             },
 
-            ResponseType::CORS => {
+            ResponseType::Cors => {
                 let access = old_headers.get::<AccessControlExposeHeaders>();
                 let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 

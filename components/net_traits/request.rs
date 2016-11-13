@@ -57,8 +57,8 @@ pub enum Referrer {
 pub enum RequestMode {
     Navigate,
     SameOrigin,
-    NoCORS,
-    CORSMode
+    NoCors,
+    CorsMode
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -70,7 +70,7 @@ pub enum CredentialsMode {
 }
 
 /// [Cache mode](https://fetch.spec.whatwg.org/#concept-request-cache-mode)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum CacheMode {
     Default,
     NoStore,
@@ -81,7 +81,7 @@ pub enum CacheMode {
 }
 
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum RedirectMode {
     Follow,
     Error,
@@ -92,7 +92,7 @@ pub enum RedirectMode {
 #[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ResponseTainting {
     Basic,
-    CORSTainting,
+    CorsTainting,
     Opaque
 }
 
@@ -106,19 +106,21 @@ pub enum Window {
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
 #[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
-pub enum CORSSettings {
+pub enum CorsSettings {
     Anonymous,
     UseCredentials
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
 pub struct RequestInit {
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
     pub url: Url,
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
@@ -127,6 +129,7 @@ pub struct RequestInit {
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
+    pub cache_mode: CacheMode,
     pub use_cors_preflight: bool,
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
@@ -137,6 +140,7 @@ pub struct RequestInit {
     pub referrer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
+    pub redirect_mode: RedirectMode,
 }
 
 impl Default for RequestInit {
@@ -150,7 +154,8 @@ impl Default for RequestInit {
             type_: Type::None,
             destination: Destination::None,
             synchronous: false,
-            mode: RequestMode::NoCORS,
+            mode: RequestMode::NoCors,
+            cache_mode: CacheMode::Default,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
@@ -158,6 +163,7 @@ impl Default for RequestInit {
             referrer_url: None,
             referrer_policy: None,
             pipeline_id: None,
+            redirect_mode: RedirectMode::Follow,
         }
     }
 }
@@ -230,7 +236,7 @@ impl Request {
             referrer_policy: Cell::new(None),
             pipeline_id: Cell::new(pipeline_id),
             synchronous: false,
-            mode: RequestMode::NoCORS,
+            mode: RequestMode::NoCors,
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
@@ -259,6 +265,7 @@ impl Request {
         req.use_cors_preflight = init.use_cors_preflight;
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
+        req.cache_mode.set(init.cache_mode);
         *req.referrer.borrow_mut() = if let Some(url) = init.referrer_url {
             Referrer::ReferrerUrl(url)
         } else {
@@ -266,6 +273,7 @@ impl Request {
         };
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
+        req.redirect_mode.set(init.redirect_mode);
         req
     }
 

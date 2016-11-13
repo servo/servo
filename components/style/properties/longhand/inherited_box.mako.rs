@@ -56,8 +56,8 @@ ${helpers.single_keyword("image-rendering",
                    derived_from="display"
                    products="servo"
                    animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 

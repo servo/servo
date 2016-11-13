@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-<%! from data import Keyword, to_rust_ident, to_camel_case %>
+<%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES %>
 
 <%def name="longhand(name, **kwargs)">
     <%call expr="raw_longhand(name, **kwargs)">
@@ -54,9 +54,9 @@
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if product == "gecko" or not gecko_only:
-            use cssparser::ToCss;
             use std::fmt;
             use values::HasViewportPercentage;
+            use style_traits::ToCss;
 
             impl HasViewportPercentage for SpecifiedValue {
                 fn has_viewport_percentage(&self) -> bool {
@@ -67,7 +67,7 @@
 
             pub mod single_value {
                 use cssparser::Parser;
-                use parser::{ParserContext, ParserContextExtraData};
+                use parser::{Parse, ParserContext, ParserContextExtraData};
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
@@ -175,13 +175,12 @@
         #![allow(unused_imports)]
         % if not property.derived_from:
             use cssparser::Parser;
-            use parser::{ParserContext, ParserContextExtraData};
+            use parser::{Parse, ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
-        #[allow(unused_imports)]
+        use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
-        use parser::Parse;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
         use properties::{ComputedValues, PropertyDeclaration};
@@ -221,15 +220,19 @@
                             cascade_info.on_cascade_property(&declaration,
                                                              &value);
                         }
+                        % if property.logical:
+                            let wm = context.style.writing_mode;
+                        % endif
+                        <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
                                 % if property.has_uncacheable_values:
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .set_${property.ident}(computed, cacheable);
+                                                      .set_${property.ident}(computed, cacheable ${maybe_wm});
                                 % else:
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .set_${property.ident}(computed);
+                                                      .set_${property.ident}(computed ${maybe_wm});
                                 % endif
                             }
                             DeclaredValue::WithVariables { .. } => unreachable!(),
@@ -239,7 +242,7 @@
                                 let initial_struct = ComputedValues::initial_values()
                                                       .get_${data.current_style_struct.name_lower}();
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .copy_${property.ident}_from(initial_struct);
+                                                      .copy_${property.ident}_from(initial_struct ${maybe_wm});
                             },
                             DeclaredValue::Inherit => {
                                 // This is a bit slow, but this is rare so it shouldn't
@@ -250,7 +253,7 @@
                                 let inherited_struct =
                                     inherited_style.get_${data.current_style_struct.name_lower}();
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                       .copy_${property.ident}_from(inherited_struct);
+                                       .copy_${property.ident}_from(inherited_struct ${maybe_wm});
                             }
                         }
                     }, error_reporter);
@@ -324,6 +327,7 @@
     <%def name="inner_body()">
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
+            use style_traits::ToCss;
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
@@ -370,8 +374,8 @@
         use values::NoViewportPercentage;
         impl NoViewportPercentage for SpecifiedValue {}
         pub mod computed_value {
-            use cssparser::ToCss;
             use std::fmt;
+            use style_traits::ToCss;
 
             #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -438,10 +442,11 @@
     % if shorthand:
     pub mod ${shorthand.ident} {
         #[allow(unused_imports)]
-        use cssparser::{Parser, ToCss};
+        use cssparser::Parser;
         use parser::ParserContext;
         use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
         use std::fmt;
+        use style_traits::ToCss;
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -604,4 +609,70 @@
             }
         }
     </%self:shorthand>
+</%def>
+
+<%def name="logical_setter_helper(name)">
+    <%
+        side = None
+        size = None
+        maybe_side = [s for s in LOGICAL_SIDES if s in name]
+        maybe_size = [s for s in LOGICAL_SIZES if s in name]
+        if len(maybe_side) == 1:
+            side = maybe_side[0]
+        elif len(maybe_size) == 1:
+            size = maybe_size[0]
+    %>
+    % if side is not None:
+        use logical_geometry::PhysicalSide;
+        match wm.${to_rust_ident(side)}_physical_side() {
+            % for phy_side in PHYSICAL_SIDES:
+                PhysicalSide::${phy_side.title()} => {
+                    ${caller.inner(physical_ident=to_rust_ident(name.replace(side, phy_side)))}
+                }
+            % endfor
+        }
+    % elif size is not None:
+        <%
+            # (horizontal, vertical)
+            physical_size = ("height", "width")
+            if size == "inline-size":
+                physical_size = ("width", "height")
+        %>
+        if wm.is_vertical() {
+            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[1])))}
+        } else {
+            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[0])))}
+        }
+    % else:
+        <% raise Exception("Don't know what to do with logical property %s" % name) %>
+    % endif
+</%def>
+
+<%def name="logical_setter(name, need_clone=False)">
+    pub fn set_${to_rust_ident(name)}(&mut self,
+                                 v: longhands::${to_rust_ident(name)}::computed_value::T,
+                                 wm: WritingMode) {
+        <%self:logical_setter_helper name="${name}">
+            <%def name="inner(physical_ident)">
+                self.set_${physical_ident}(v)
+            </%def>
+        </%self:logical_setter_helper>
+    }
+    pub fn copy_${to_rust_ident(name)}_from(&mut self, other: &Self, wm: WritingMode) {
+        <%self:logical_setter_helper name="${name}">
+            <%def name="inner(physical_ident)">
+                self.copy_${physical_ident}_from(other)
+            </%def>
+        </%self:logical_setter_helper>
+    }
+    % if need_clone:
+        pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
+            -> longhands::${to_rust_ident(name)}::computed_value::T {
+        <%self:logical_setter_helper name="${name}">
+            <%def name="inner(physical_ident)">
+                self.clone_${physical_ident}()
+            </%def>
+        </%self:logical_setter_helper>
+        }
+    % endif
 </%def>

@@ -323,7 +323,11 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Res
     let format = convert_format(image.format);
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&*image.bytes);
-    image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
+    image.id = Some(webrender_api.add_image(image.width,
+                                            image.height,
+                                            None,
+                                            format,
+                                            bytes));
     Ok(Arc::new(image))
 }
 
@@ -478,7 +482,11 @@ impl ImageCache {
                 let format = convert_format(image.format);
                 let mut bytes = Vec::new();
                 bytes.extend_from_slice(&*image.bytes);
-                image.id = Some(self.webrender_api.add_image(image.width, image.height, format, bytes));
+                image.id = Some(self.webrender_api.add_image(image.width,
+                                                             image.height,
+                                                             None,
+                                                             format,
+                                                             bytes));
             }
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }

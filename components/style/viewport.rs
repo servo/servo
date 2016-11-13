@@ -9,7 +9,6 @@
 
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
-use cssparser::ToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use media_queries::Device;
@@ -20,7 +19,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
-use style_traits::ViewportPx;
+use style_traits::{ToCss, ViewportPx};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -634,6 +633,7 @@ impl MaybeNew for ViewportConstraints {
             viewport_size: initial_viewport,
             inherited_style: ComputedValues::initial_values(),
             style: ComputedValues::initial_values().clone(),
+            font_metrics_provider: None, // TODO: Should have!
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

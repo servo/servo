@@ -301,7 +301,7 @@ pub enum MarginCollapseState {
 }
 
 /// Intrinsic inline-sizes, which consist of minimum and preferred.
-#[derive(RustcEncodable, Copy, Clone)]
+#[derive(Serialize, Copy, Clone)]
 pub struct IntrinsicISizes {
     /// The *minimum inline-size* of the content.
     pub minimum_inline_size: Au,
@@ -502,13 +502,6 @@ impl ToGfxMatrix for ComputedMatrix {
             self.m31 as f32, self.m32 as f32, self.m33 as f32, self.m34 as f32,
             self.m41 as f32, self.m42 as f32, self.m43 as f32, self.m44 as f32)
     }
-}
-
-// Used to specify the logical direction.
-#[derive(Debug, Clone, Copy)]
-pub enum Direction {
-    Inline,
-    Block
 }
 
 // https://drafts.csswg.org/css2/visudet.html#min-max-widths

@@ -10,13 +10,14 @@
 //! `LayoutThread`, and `PaintThread`.
 
 use backtrace::Backtrace;
-use bluetooth_traits::BluetoothMethodMsg;
+use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
+use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -52,6 +53,7 @@ use std::iter::once;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -113,11 +115,14 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
 
+    /// A channel through which messages can be sent to the debugger.
+    debugger_chan: Option<debugger::Sender>,
+
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel through which messages can be sent to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// Sender to Service Worker Manager thread
     swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
@@ -190,10 +195,12 @@ pub struct Constellation<Message, LTF, STF> {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+    /// A channel to the debugger, if applicable.
+    pub debugger_chan: Option<debugger::Sender>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    pub bluetooth_thread: IpcSender<BluetoothRequest>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -359,6 +366,30 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// A script channel, that closes the script thread down when it is dropped
+pub struct ScriptChan {
+    chan: IpcSender<ConstellationControlMsg>,
+    dont_send_or_sync: PhantomData<Rc<()>>,
+}
+
+impl Drop for ScriptChan {
+    fn drop(&mut self) {
+        let _ = self.chan.send(ConstellationControlMsg::ExitScriptThread);
+    }
+}
+
+impl ScriptChan {
+    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), IOError> {
+        self.chan.send(msg)
+    }
+    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> Rc<ScriptChan> {
+        Rc::new(ScriptChan { chan: chan, dont_send_or_sync: PhantomData })
+    }
+    pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
+        self.chan.clone()
+    }
+}
+
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
 pub struct FromScriptLogger {
@@ -482,6 +513,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
                 compositor_proxy: state.compositor_proxy,
+                debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
@@ -554,7 +586,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     parent_info: Option<(PipelineId, FrameType)>,
                     old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
-                    script_channel: Option<IpcSender<ConstellationControlMsg>>,
+                    script_channel: Option<Rc<ScriptChan>>,
                     load_data: LoadData,
                     is_private: bool) {
         if self.shutting_down { return; }
@@ -1025,6 +1057,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.shutting_down { return; }
         self.shutting_down = true;
 
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
         // TODO: exit before the root frame is initialized?
         debug!("Removing root frame.");
         let root_frame_id = self.root_frame_id;
@@ -1068,6 +1102,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             warn!("Exit resource thread failed ({})", e);
         }
 
+        if let Some(ref chan) = self.debugger_chan {
+            debugger::shutdown_server(chan);
+        }
+
         if let Some(ref chan) = self.devtools_chan {
             debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
@@ -1082,7 +1120,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
+        if let Err(e) = self.bluetooth_thread.send(BluetoothRequest::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
 
@@ -1623,12 +1661,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    pipeline_id: PipelineId,
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
-        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         // If the pipeline lookup fails, it is because we have torn down the pipeline,
         // so it is reasonable to silently ignore the event.
+        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
         match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => pipeline.trigger_mozbrowser_event(frame_id, event),
             None => warn!("Pipeline {:?} handling mozbrowser event after closure.", parent_pipeline_id),
@@ -2206,6 +2244,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Close a frame (and all children)
     fn close_frame(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
+        debug!("Closing frame {:?}.", frame_id);
         // Store information about the pipelines to be closed. Then close the
         // pipelines, before removing ourself from the frames hash map. This
         // ordering is vital - so that if close_pipeline() ends up closing
@@ -2241,10 +2280,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
             parent_pipeline.remove_child(frame_id);
         }
+        debug!("Closed frame {:?}.", frame_id);
     }
 
     // Close all pipelines at and beneath a given frame
     fn close_pipeline(&mut self, pipeline_id: PipelineId, exit_mode: ExitPipelineMode) {
+        debug!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the frames to be closed. Then close the
         // frames, before removing ourself from the pipelines hash map. This
         // ordering is vital - so that if close_frames() ends up closing
@@ -2284,6 +2325,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             ExitPipelineMode::Normal => pipeline.exit(),
             ExitPipelineMode::Force => pipeline.force_exit(),
         }
+        debug!("Closed pipeline {:?}.", pipeline_id);
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set

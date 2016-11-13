@@ -283,6 +283,16 @@ impl WebGLRenderingContext {
             .unwrap();
     }
 
+    fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
+        match self.bound_framebuffer.get() {
+            Some(fb) => return fb.size(),
+
+            // The window system framebuffer is bound
+            None => return Some((self.DrawingBufferWidth(),
+                                 self.DrawingBufferHeight())),
+        }
+    }
+
     fn validate_stencil_actions(&self, action: u32) -> bool {
         match action {
             0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
@@ -465,7 +475,11 @@ impl WebGLRenderingContext {
 
         self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
-            .unwrap()
+            .unwrap();
+
+        if let Some(fb) = self.bound_framebuffer.get() {
+            fb.invalidate_texture(&*texture);
+        }
     }
 
     fn tex_sub_image_2d(&self,
@@ -645,6 +659,26 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return object_binding_to_js_or_null!(cx, &self.bound_texture_2d),
             constants::TEXTURE_BINDING_CUBE_MAP =>
                 return object_binding_to_js_or_null!(cx, &self.bound_texture_cube_map),
+
+            // In readPixels we currently support RGBA/UBYTE only.  If
+            // we wanted to support other formats, we could ask the
+            // driver, but we would need to check for
+            // GL_OES_read_format support (assuming an underlying GLES
+            // driver. Desktop is happy to format convert for us).
+            constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
+                if !self.validate_framebuffer_complete() {
+                    return NullValue();
+                } else {
+                    return Int32Value(constants::RGBA as i32);
+                }
+            }
+            constants::IMPLEMENTATION_COLOR_READ_TYPE => {
+                if !self.validate_framebuffer_complete() {
+                    return NullValue();
+                } else {
+                    return Int32Value(constants::UNSIGNED_BYTE as i32);
+                }
+            }
             _ => {}
         }
 
@@ -1773,6 +1807,80 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return Ok(self.webgl_error(InvalidOperation)),
         }
 
+        // From the WebGL specification, 5.14.12 Reading back pixels
+        //
+        //     "Only two combinations of format and type are
+        //      accepted. The first is format RGBA and type
+        //      UNSIGNED_BYTE. The second is an implementation-chosen
+        //      format. The values of format and type for this format
+        //      may be determined by calling getParameter with the
+        //      symbolic constants IMPLEMENTATION_COLOR_READ_FORMAT
+        //      and IMPLEMENTATION_COLOR_READ_TYPE, respectively. The
+        //      implementation-chosen format may vary depending on the
+        //      format of the currently bound rendering
+        //      surface. Unsupported combinations of format and type
+        //      will generate an INVALID_OPERATION error."
+        //
+        // To avoid having to support general format packing math, we
+        // always report RGBA/UNSIGNED_BYTE as our only supported
+        // format.
+        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+            return Ok(self.webgl_error(InvalidOperation));
+        }
+        let cpp = 4;
+
+        //     "If pixels is non-null, but is not large enough to
+        //      retrieve all of the pixels in the specified rectangle
+        //      taking into account pixel store modes, an
+        //      INVALID_OPERATION error is generated."
+        let stride = match width.checked_mul(cpp) {
+            Some(stride) => stride,
+            _ => return Ok(self.webgl_error(InvalidOperation)),
+        };
+
+        match height.checked_mul(stride) {
+            Some(size) if size <= data.len() as i32 => {}
+            _ => return Ok(self.webgl_error(InvalidOperation)),
+        }
+
+        //     "For any pixel lying outside the frame buffer, the
+        //      corresponding destination buffer range remains
+        //      untouched; see Reading Pixels Outside the
+        //      Framebuffer."
+        let mut x = x;
+        let mut y = y;
+        let mut width = width;
+        let mut height = height;
+        let mut dst_offset = 0;
+
+        if x < 0 {
+            dst_offset += cpp * -x;
+            width += x;
+            x = 0;
+        }
+
+        if y < 0 {
+            dst_offset += stride * -y;
+            height += y;
+            y = 0;
+        }
+
+        if width < 0 || height < 0 {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        match self.get_current_framebuffer_size() {
+            Some((fb_width, fb_height)) => {
+                if x + width > fb_width {
+                    width = fb_width - x;
+                }
+                if y + height > fb_height {
+                    height = fb_height - y;
+                }
+            }
+            _ => return Ok(self.webgl_error(InvalidOperation)),
+        };
+
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender)))
@@ -1780,12 +1888,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let result = receiver.recv().unwrap();
 
-        if result.len() > data.len() {
-            return Ok(self.webgl_error(InvalidOperation));
-        }
-
-        for i in 0..result.len() {
-            data[i] = result[i]
+        for i in 0..height {
+            for j in 0..(width * cpp) {
+                data[(dst_offset + i * stride + j) as usize] =
+                    result[(i * width * cpp + j) as usize];
+            }
         }
 
         Ok(())
@@ -2621,7 +2728,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         match self.bound_renderbuffer.get() {
-            Some(rb) => handle_potential_webgl_error!(self, rb.storage(internal_format, width, height)),
+            Some(rb) => {
+                handle_potential_webgl_error!(self, rb.storage(internal_format, width, height));
+                if let Some(fb) = self.bound_framebuffer.get() {
+                    fb.invalidate_renderbuffer(&*rb);
+                }
+            }
             None => self.webgl_error(InvalidOperation),
         };
 

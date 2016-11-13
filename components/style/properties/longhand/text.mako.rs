@@ -12,14 +12,11 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-% if product == "servo":
-    ${helpers.single_keyword("text-overflow", "clip ellipsis", animatable=False)}
-% else:
 <%helpers:longhand name="text-overflow" animatable="False">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::computed::ComputedValueAsSpecified;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
@@ -93,7 +90,6 @@
         }
     }
 </%helpers:longhand>
-% endif
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
@@ -104,10 +100,10 @@ ${helpers.single_keyword("unicode-bidi",
                    custom_cascade="${product == 'servo'}"
                    animatable="False"
                    disable_when_testing="True">
-    use cssparser::ToCss;
     use std::fmt;
-    use values::computed::ComputedValueAsSpecified;
+    use style_traits::ToCss;
     use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}

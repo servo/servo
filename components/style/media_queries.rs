@@ -8,26 +8,32 @@
 
 use Atom;
 use app_units::Au;
-use cssparser::{Delimiter, Parser, ToCss, Token};
+use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
-use properties::longhands;
 use serialize_comma_separated_list;
 use std::fmt::{self, Write};
-use style_traits::ViewportPx;
+use style_traits::{ToCss, ViewportPx};
+use values::computed::{self, ToComputedValue};
 use values::specified;
 
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct MediaQueryList {
+pub struct MediaList {
     pub media_queries: Vec<MediaQuery>
 }
 
-impl ToCss for MediaQueryList {
+impl ToCss for MediaList {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
         serialize_comma_separated_list(dest, &self.media_queries)
+    }
+}
+
+impl Default for MediaList {
+    fn default() -> MediaList {
+        MediaList { media_queries: vec![] }
     }
 }
 
@@ -43,28 +49,11 @@ impl Range<specified::Length> {
     fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
-        let initial_font_size = longhands::font_size::get_initial_value();
-        let compute_width = |&width| {
-            match width {
-                specified::Length::Absolute(value) => value,
-                specified::Length::FontRelative(value)
-                    => value.to_computed_value(initial_font_size, initial_font_size),
-                specified::Length::ViewportPercentage(value)
-                    => value.to_computed_value(viewport_size),
-                specified::Length::Calc(val, range)
-                    => range.clamp(
-                        val.compute_from_viewport_and_font_size(viewport_size,
-                                                                initial_font_size,
-                                                                initial_font_size)
-                           .length()),
-                specified::Length::ServoCharacterWidth(..)
-                    => unreachable!(),
-            }
-        };
+        let context = computed::Context::initial(viewport_size, false);
 
         match *self {
-            Range::Min(ref width) => Range::Min(compute_width(width)),
-            Range::Max(ref width) => Range::Max(compute_width(width)),
+            Range::Min(ref width) => Range::Min(width.to_computed_value(&context)),
+            Range::Max(ref width) => Range::Max(width.to_computed_value(&context)),
             //Range::Eq(ref width) => Range::Eq(compute_width(width))
         }
     }
@@ -252,9 +241,9 @@ impl MediaQuery {
     }
 }
 
-pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
-    let queries = if input.is_exhausted() {
-        vec![MediaQuery::new(None, MediaQueryType::All, vec!())]
+pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
+    if input.is_exhausted() {
+        Default::default()
     } else {
         let mut media_queries = vec![];
         loop {
@@ -269,17 +258,17 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
                 Err(()) => break,
             }
         }
-        media_queries
-    };
-    MediaQueryList { media_queries: queries }
+        MediaList { media_queries: media_queries }
+    }
 }
 
-impl MediaQueryList {
+impl MediaList {
     pub fn evaluate(&self, device: &Device) -> bool {
         let viewport_size = device.au_viewport_size();
 
-        // Check if any queries match (OR condition)
-        self.media_queries.iter().any(|mq| {
+        // Check if it is an empty media query list or any queries match (OR condition)
+        // https://drafts.csswg.org/mediaqueries-4/#mq-list
+        self.media_queries.is_empty() || self.media_queries.iter().any(|mq| {
             // Check if media matches. Unknown media never matches.
             let media_match = match mq.media_type {
                 MediaQueryType::MediaType(MediaType::Unknown(_)) => false,

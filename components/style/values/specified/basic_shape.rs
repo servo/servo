@@ -7,16 +7,16 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use cssparser::{Parser, ToCss};
+use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
-use url::Url;
+use style_traits::ToCss;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::UrlExtraData;
 use values::specified::position::{Keyword, Position};
+use values::specified::url::SpecifiedUrl;
 
 /// A shape source, for some reference box
 ///
@@ -25,7 +25,7 @@ use values::specified::position::{Keyword, Position};
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ShapeSource<T> {
-    Url(Url, UrlExtraData),
+    Url(SpecifiedUrl),
     Shape(BasicShape, Option<T>),
     Box(T),
     None,
@@ -39,9 +39,8 @@ impl<T> Default for ShapeSource<T> {
 
 impl<T: ToCss> ToCss for ShapeSource<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use values::LocalToCss;
         match *self {
-            ShapeSource::Url(ref url, _) => url.to_css(dest),
+            ShapeSource::Url(ref url) => url.to_css(dest),
             ShapeSource::Shape(ref shape, Some(ref reference)) => {
                 try!(shape.to_css(dest));
                 try!(dest.write_str(" "));
@@ -59,13 +58,8 @@ impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(_) = input.try(|input| input.expect_ident_matching("none")) {
             Ok(ShapeSource::None)
-        } else if let Ok(url) = input.try(|input| input.expect_url()) {
-            match UrlExtraData::make_from(context) {
-                Some(extra_data) => {
-                    Ok(ShapeSource::Url(context.parse_url(&url), extra_data))
-                },
-                None => Err(()),
-            }
+        } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
+            Ok(ShapeSource::Url(url))
         } else {
             fn parse_component<U: Parse>(input: &mut Parser, component: &mut Option<U>) -> bool {
                 if component.is_some() {
@@ -98,8 +92,8 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            ShapeSource::Url(ref url, ref data) => {
-                computed_basic_shape::ShapeSource::Url(url.clone(), data.clone())
+            ShapeSource::Url(ref url) => {
+                computed_basic_shape::ShapeSource::Url(url.to_computed_value(cx))
             }
             ShapeSource::Shape(ref shape, ref reference) => {
                 computed_basic_shape::ShapeSource::Shape(
@@ -116,8 +110,8 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         match *computed {
-            computed_basic_shape::ShapeSource::Url(ref url, ref data) => {
-                ShapeSource::Url(url.clone(), data.clone())
+            computed_basic_shape::ShapeSource::Url(ref url) => {
+                ShapeSource::Url(SpecifiedUrl::from_computed_value(url))
             }
             computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
                 ShapeSource::Shape(
@@ -219,14 +213,6 @@ pub struct InsetRect {
 }
 
 impl InsetRect {
-    pub fn parse(input: &mut Parser) -> Result<InsetRect, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
-            "inset" => {
-                Ok(try!(input.parse_nested_block(InsetRect::parse_function_arguments)))
-            },
-            _ => Err(())
-        }
-    }
     pub fn parse_function_arguments(input: &mut Parser) -> Result<InsetRect, ()> {
         let (t, r, b, l) = try!(parse_four_sides(input, LengthOrPercentage::parse));
         let mut rect = InsetRect {
@@ -240,6 +226,17 @@ impl InsetRect {
             rect.round = Some(try!(BorderRadius::parse(input)));
         }
         Ok(rect)
+    }
+}
+
+impl Parse for InsetRect {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+                                   "inset" => {
+                                       Ok(try!(input.parse_nested_block(InsetRect::parse_function_arguments)))
+                                   },
+                                   _ => Err(())
+        }
     }
 }
 
@@ -380,14 +377,6 @@ pub struct Circle {
 }
 
 impl Circle {
-    pub fn parse(input: &mut Parser) -> Result<Circle, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
-            "circle" => {
-                Ok(try!(input.parse_nested_block(Circle::parse_function_arguments)))
-            },
-            _ => Err(())
-        }
-    }
     pub fn parse_function_arguments(input: &mut Parser) -> Result<Circle, ()> {
         let radius = input.try(ShapeRadius::parse).ok().unwrap_or_else(Default::default);
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
@@ -405,6 +394,17 @@ impl Circle {
             radius: radius,
             position: position,
         })
+    }
+}
+
+impl Parse for Circle {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+                                   "circle" => {
+                                       Ok(try!(input.parse_nested_block(Circle::parse_function_arguments)))
+                                   },
+                                   _ => Err(())
+        }
     }
 }
 
@@ -452,14 +452,6 @@ pub struct Ellipse {
 
 
 impl Ellipse {
-    pub fn parse(input: &mut Parser) -> Result<Ellipse, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
-            "ellipse" => {
-                Ok(try!(input.parse_nested_block(Ellipse::parse_function_arguments)))
-            },
-            _ => Err(())
-        }
-    }
     pub fn parse_function_arguments(input: &mut Parser) -> Result<Ellipse, ()> {
         let (a, b) = input.try(|input| -> Result<_, ()> {
             Ok((try!(ShapeRadius::parse(input)), try!(ShapeRadius::parse(input))))
@@ -480,6 +472,17 @@ impl Ellipse {
             semiaxis_y: b,
             position: position,
         })
+    }
+}
+
+impl Parse for Ellipse {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+                                   "ellipse" => {
+                                       Ok(try!(input.parse_nested_block(Ellipse::parse_function_arguments)))
+                                   },
+                                   _ => Err(())
+        }
     }
 }
 
@@ -530,14 +533,6 @@ pub struct Polygon {
 }
 
 impl Polygon {
-    pub fn parse(input: &mut Parser) -> Result<Polygon, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
-            "polygon" => {
-                Ok(try!(input.parse_nested_block(Polygon::parse_function_arguments)))
-            },
-            _ => Err(())
-        }
-    }
     pub fn parse_function_arguments(input: &mut Parser) -> Result<Polygon, ()> {
         let fill = input.try(|input| {
             let fill = FillRule::parse(input);
@@ -553,6 +548,17 @@ impl Polygon {
             fill: fill,
             coordinates: buf,
         })
+    }
+}
+
+impl Parse for Polygon {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+                                   "polygon" => {
+                                       Ok(try!(input.parse_nested_block(Polygon::parse_function_arguments)))
+                                   },
+                                   _ => Err(())
+        }
     }
 }
 
@@ -622,8 +628,8 @@ impl Default for ShapeRadius {
     }
 }
 
-impl ShapeRadius {
-    pub fn parse(input: &mut Parser) -> Result<ShapeRadius, ()> {
+impl Parse for ShapeRadius {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         input.try(LengthOrPercentage::parse).map(ShapeRadius::Length)
                                             .or_else(|_| {
             match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -709,8 +715,8 @@ impl ToCss for BorderRadius {
     }
 }
 
-impl BorderRadius {
-    pub fn parse(input: &mut Parser) -> Result<BorderRadius, ()> {
+impl Parse for BorderRadius {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
         let widths = try!(parse_one_set_of_border_values(input));
         let heights = if input.try(|input| input.expect_delim('/')).is_ok() {
             try!(parse_one_set_of_border_values(input))
@@ -787,8 +793,8 @@ pub enum FillRule {
 
 impl ComputedValueAsSpecified for FillRule {}
 
-impl FillRule {
-    pub fn parse(input: &mut Parser) -> Result<FillRule, ()> {
+impl Parse for FillRule {
+    fn parse(input: &mut Parser) -> Result<FillRule, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "nonzero" => Ok(FillRule::NonZero),
             "evenodd" => Ok(FillRule::EvenOdd),

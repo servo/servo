@@ -9,6 +9,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate bluetooth_traits;
 extern crate cookie as cookie_rs;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
@@ -32,6 +33,7 @@ extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;
 
+use bluetooth_traits::{BluetoothResponseListener, BluetoothResponseResult};
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
@@ -125,6 +127,10 @@ pub enum ReferrerPolicy {
     OriginWhenCrossOrigin,
     /// "unsafe-url"
     UnsafeUrl,
+    /// "strict-origin"
+    StrictOrigin,
+    /// "strict-origin-when-cross-origin"
+    StrictOriginWhenCrossOrigin,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -146,7 +152,7 @@ pub struct LoadData {
     /// Unused in fetch
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
-    pub cors: Option<ResourceCORSData>,
+    pub cors: Option<ResourceCorsData>,
     pub pipeline_id: Option<PipelineId>,
     // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
     pub credentials_flag: bool,
@@ -284,6 +290,13 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
         }
+    }
+}
+
+impl<T: BluetoothResponseListener> Action<T> for BluetoothResponseResult {
+    /// Execute the default action on a provided listener.
+    fn process(self, listener: &mut T) {
+        listener.response(self)
     }
 }
 
@@ -459,7 +472,7 @@ pub struct LoadResponse {
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
-pub struct ResourceCORSData {
+pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
     /// Origin of CORS Request

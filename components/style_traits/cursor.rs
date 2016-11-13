@@ -4,7 +4,7 @@
 
 //! A list of common mouse cursors per CSS3-UI § 8.1.1.
 
-use cssparser::ToCss;
+use super::ToCss;
 
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {

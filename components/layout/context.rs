@@ -53,9 +53,6 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
-            if shared_layout_context.style_context.screen_size_changed {
-                context.style_context.applicable_declarations_cache.borrow_mut().evict_all();
-            }
             context
         } else {
             let font_cache_thread = shared_layout_context.font_cache_thread.lock().unwrap().clone();

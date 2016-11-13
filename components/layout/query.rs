@@ -34,7 +34,7 @@ use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
 use style::selector_matching::Stylist;
-use style::values::LocalToCss;
+use style_traits::ToCss;
 use style_traits::cursor::Cursor;
 use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
 

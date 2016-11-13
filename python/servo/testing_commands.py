@@ -162,6 +162,8 @@ class MachCommands(CommandBase):
              description='Run the page load performance test',
              category='testing')
     def test_perf(self):
+        self.set_software_rendering_env(True)
+
         self.ensure_bootstrapped()
         env = self.build_env()
         return call(["bash", "test_perf.sh"],
@@ -406,47 +408,21 @@ class MachCommands(CommandBase):
     def run_test_list_or_dispatch(self, requested_paths, correct_suite, correct_function, **kwargs):
         if not requested_paths:
             return correct_function(**kwargs)
-        else:
-            # Paths specified on command line. Ensure they can be handled, re-dispatch otherwise.
-            all_handled = True
-            for test_path in requested_paths:
-                suite = self.suite_for_path(test_path)
-                if suite is not None and correct_suite != suite:
-                    all_handled = False
-                    print("Warning: %s is not a %s test. Delegating to test-%s." % (test_path, correct_suite, suite))
-            if all_handled:
-                return correct_function(**kwargs)
-            else:
-                # Dispatch each test to the correct suite via test()
-                Registrar.dispatch("test", context=self.context, params=requested_paths)
+        # Paths specified on command line. Ensure they can be handled, re-dispatch otherwise.
+        all_handled = True
+        for test_path in requested_paths:
+            suite = self.suite_for_path(test_path)
+            if suite is not None and correct_suite != suite:
+                all_handled = False
+                print("Warning: %s is not a %s test. Delegating to test-%s." % (test_path, correct_suite, suite))
+        if all_handled:
+            return correct_function(**kwargs)
+        # Dispatch each test to the correct suite via test()
+        Registrar.dispatch("test", context=self.context, params=requested_paths)
 
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
-        # On Linux and mac, find the OSMesa software rendering library and
-        # add it to the dynamic linker search path.
-        if sys.platform.startswith('linux'):
-            try:
-                args = [self.get_binary_path(kwargs["release"], not kwargs["release"])]
-                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]), "out", "lib", "gallium")
-                os.environ["LD_LIBRARY_PATH"] = osmesa_path
-                os.environ["GALLIUM_DRIVER"] = "softpipe"
-            except BuildNotFound:
-                # This can occur when cross compiling (e.g. arm64), in which case
-                # we won't run the tests anyway so can safely ignore this step.
-                pass
-        if sys.platform.startswith('darwin'):
-            try:
-                args = [self.get_binary_path(kwargs["release"], not kwargs["release"])]
-                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
-                                        "out", "src", "gallium", "targets", "osmesa", ".libs")
-                glapi_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
-                                       "out", "src", "mapi", "shared-glapi", ".libs")
-                os.environ["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
-                os.environ["GALLIUM_DRIVER"] = "softpipe"
-            except BuildNotFound:
-                # This can occur when cross compiling (e.g. arm64), in which case
-                # we won't run the tests anyway so can safely ignore this step.
-                pass
+        self.set_software_rendering_env(kwargs['release'])
 
         os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
@@ -657,6 +633,33 @@ class MachCommands(CommandBase):
 
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
+
+    def set_software_rendering_env(self, use_release):
+        # On Linux and mac, find the OSMesa software rendering library and
+        # add it to the dynamic linker search path.
+        if sys.platform.startswith('linux'):
+            try:
+                args = [self.get_binary_path(use_release, not use_release)]
+                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]), "out", "lib", "gallium")
+                os.environ["LD_LIBRARY_PATH"] = osmesa_path
+                os.environ["GALLIUM_DRIVER"] = "softpipe"
+            except BuildNotFound:
+                # This can occur when cross compiling (e.g. arm64), in which case
+                # we won't run the tests anyway so can safely ignore this step.
+                pass
+        elif sys.platform.startswith('darwin'):
+            try:
+                args = [self.get_binary_path(use_release, not use_release)]
+                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
+                                        "out", "src", "gallium", "targets", "osmesa", ".libs")
+                glapi_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
+                                       "out", "src", "mapi", "shared-glapi", ".libs")
+                os.environ["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
+                os.environ["GALLIUM_DRIVER"] = "softpipe"
+            except BuildNotFound:
+                # This can occur when cross compiling (e.g. arm64), in which case
+                # we won't run the tests anyway so can safely ignore this step.
+                pass
 
 
 def create_parser_create():

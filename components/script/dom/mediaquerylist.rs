@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::ToCss;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -20,9 +19,8 @@ use euclid::scale_factor::ScaleFactor;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;
-use style;
-use style::media_queries::{Device, MediaType};
-use style_traits::{PagePx, ViewportPx};
+use style::media_queries::{Device, MediaList, MediaType};
+use style_traits::{PagePx, ToCss, ViewportPx};
 
 pub enum MediaQueryListMatchState {
     Same(bool),
@@ -33,13 +31,12 @@ pub enum MediaQueryListMatchState {
 pub struct MediaQueryList {
     eventtarget: EventTarget,
     document: JS<Document>,
-    media_query_list: style::media_queries::MediaQueryList,
+    media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>
 }
 
 impl MediaQueryList {
-    fn new_inherited(document: &Document,
-                     media_query_list: style::media_queries::MediaQueryList) -> MediaQueryList {
+    fn new_inherited(document: &Document, media_query_list: MediaList) -> MediaQueryList {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
             document: JS::from_ref(document),
@@ -48,8 +45,7 @@ impl MediaQueryList {
         }
     }
 
-    pub fn new(document: &Document,
-               media_query_list: style::media_queries::MediaQueryList) -> Root<MediaQueryList> {
+    pub fn new(document: &Document, media_query_list: MediaList) -> Root<MediaQueryList> {
         reflect_dom_object(box MediaQueryList::new_inherited(document, media_query_list),
                            document.window(),
                            MediaQueryListBinding::Wrap)
@@ -126,7 +122,6 @@ pub struct WeakMediaQueryListVec {
     cell: DOMRefCell<WeakRefVec<MediaQueryList>>,
 }
 
-#[allow(unsafe_code)]
 impl WeakMediaQueryListVec {
     /// Create a new vector of weak references to MediaQueryList
     pub fn new() -> Self {
@@ -148,7 +143,6 @@ impl WeakMediaQueryListVec {
     }
 }
 
-#[allow(unsafe_code)]
 impl JSTraceable for WeakMediaQueryListVec {
     fn trace(&self, _: *mut JSTracer) {
         self.cell.borrow_mut().retain_alive()
