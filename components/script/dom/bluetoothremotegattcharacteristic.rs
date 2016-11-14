@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
@@ -110,7 +110,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 return p;
             }
         };
-        if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+        if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
             p.reject_error(p_cx, Security);
             return p;
         }
@@ -141,7 +141,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 }
             };
             if let Some(ref uuid) = uuid {
-                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                     p.reject_error(p_cx, Security);
                     return p;
                 }
@@ -167,7 +167,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     fn ReadValue(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
-        if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Reads) {
+        if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
             p.reject_error(p_cx, Security);
             return p;
         }
@@ -190,7 +190,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
-        if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Writes) {
+        if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
             p.reject_error(p_cx, Security);
             return p;
         }

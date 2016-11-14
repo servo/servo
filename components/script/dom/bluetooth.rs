@@ -4,7 +4,7 @@
 
 use bluetooth_traits::{BluetoothError, BluetoothRequest};
 use bluetooth_traits::{BluetoothResponse, BluetoothResponseListener, BluetoothResponseResult};
-use bluetooth_traits::blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
@@ -193,9 +193,9 @@ fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFil
             let uuid = try!(BluetoothUUID::service(opt_service.clone())).to_string();
 
             // Step 2.7.
-            // Note: What we are doing here is adding the not blacklisted UUIDs to the result vector,
-            // instead of removing them from an already filled vector.
-            if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+            // Note: What we are doing here is adding the not blocklisted UUIDs to the result vector,
+            // insted of removing them from an already filled vector.
+            if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                 optional_services_uuids.push(uuid);
             }
         }
@@ -234,7 +234,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
                 let uuid = try!(BluetoothUUID::service(service.clone())).to_string();
 
                 // Step 2.4.3.4.
-                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                     return Err(Security)
                 }
 
@@ -295,7 +295,7 @@ fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter) -> Fallible<Blueto
             let uuid = try!(BluetoothUUID::service(service_data_uuid.clone())).to_string();
 
             // Step 2.4.7.3.
-            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+            if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                 return Err(Security)
             }
 

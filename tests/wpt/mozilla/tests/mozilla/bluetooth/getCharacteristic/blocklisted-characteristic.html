@@ -5,12 +5,12 @@
 <script>
 'use strict';
 promise_test(t => {
-    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
     return window.navigator.bluetooth.requestDevice({
         filters: [{services: [device_information.name]}]
     })
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(device_information.name))
     .then(service => promise_rejects(t, 'SecurityError', service.getCharacteristic(serial_number_string.name)));
-}, 'Serial Number String characteristic is blacklisted.');
+}, 'Serial Number String characteristic is blocklisted.');
 </script>

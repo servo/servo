@@ -6,14 +6,14 @@
 'use strict';
 promise_test(t => {
     let expected = 'SecurityError';
-    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
     return window.navigator.bluetooth.requestDevice({
-        filters: [{services: [blacklist_test_service_uuid]}],
+        filters: [{services: [blocklist_test_service_uuid]}],
         optionalServices: [human_interface_device.name]
     })
     .then(device => device.gatt.connect())
     .then(gattServer => Promise.all([
           promise_rejects(t, expected, gattServer.getPrimaryService(human_interface_device.name)),
           promise_rejects(t, expected, gattServer.getPrimaryServices(human_interface_device.name))]));
-}, 'Blacklisted UUID in optionalServices is removed and access not granted.');
+}, 'Blocklisted UUID in optionalServices is removed and access not granted.');
 </script>

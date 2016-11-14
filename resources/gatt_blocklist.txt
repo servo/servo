@@ -1,5 +1,5 @@
 # Source:
-# https://github.com/WebBluetoothCG/registries/blob/master/gatt_blacklist.txt
+# https://github.com/WebBluetoothCG/registries/blob/master/gatt_blocklist.txt
 # License:
 # https://github.com/WebBluetoothCG/registries/blob/master/LICENSE
 
@@ -40,7 +40,7 @@ f000ffc0-0451-4000-b000-000000000000
 # Block access to standardized unique identifiers, for privacy reasons.
 00002a25-0000-1000-8000-00805f9b34fb
 
-# Blacklisted characteristic used to test readValue function.
+# Blocklisted characteristic used to test readValue function.
 bad1c9a2-9a5b-4015-8b60-1579bbbf2135 exclude-reads
 
 
@@ -55,8 +55,8 @@ bad1c9a2-9a5b-4015-8b60-1579bbbf2135 exclude-reads
 # Writing to this would let a web page interfere with the broadcasted services.
 00002903-0000-1000-8000-00805f9b34fb exclude-writes
 
-# Blacklisted descriptor used to test.
+# Blocklisted descriptor used to test.
 07711111-6104-0970-7011-1107105110aaa
 
-# Blacklisted descriptor used to test.
+# Blocklisted descriptor used to test.
 aaaaaaaa-aaaa-1181-0510-810819516110 exclude-reads

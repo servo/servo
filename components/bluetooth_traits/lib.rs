@@ -10,7 +10,7 @@ extern crate regex;
 extern crate serde_derive;
 extern crate util;
 
-pub mod blacklist;
+pub mod blocklist;
 pub mod scanfilter;
 
 use ipc_channel::ipc::IpcSender;

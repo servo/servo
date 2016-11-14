@@ -5,9 +5,9 @@
 <script>
 'use strict';
 promise_test(t => {
-    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
     return promise_rejects(
         t, 'SecurityError', window.navigator.bluetooth.requestDevice({filters: [{services: [human_interface_device.name]}]}),
-        'Requesting blacklisted service rejects.');
-}, 'Reject with SecurityError if requesting a blacklisted service.');
+        'Requesting blocklisted service rejects.');
+}, 'Reject with SecurityError if requesting a blocklisted service.');
 </script>

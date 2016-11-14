@@ -5,17 +5,17 @@
 <script>
 'use strict';
 promise_test(t => {
-    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
     return window.navigator.bluetooth.requestDevice({
-        filters: [{services: [blacklist_test_service_uuid]}]
+        filters: [{services: [blocklist_test_service_uuid]}]
     })
     .then(device => device.gatt.connect())
-    .then(gattServer => gattServer.getPrimaryService(blacklist_test_service_uuid))
-    .then(service => service.getCharacteristic(blacklist_exclude_reads_characteristic_uuid))
+    .then(gattServer => gattServer.getPrimaryService(blocklist_test_service_uuid))
+    .then(service => service.getCharacteristic(blocklist_exclude_reads_characteristic_uuid))
     .then(characteristic => characteristic.getDescriptors())
     .then(descriptors => {
         assert_equals(descriptors.length, 1);
-        assert_equals(descriptors[0].uuid, blacklist_exclude_reads_descriptor_uuid);
+        assert_equals(descriptors[0].uuid, blocklist_exclude_reads_descriptor_uuid);
     });
-}, 'The descriptors are blacklisted.');
+}, 'The descriptors are blocklisted.');
 </script>

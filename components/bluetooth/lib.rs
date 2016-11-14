@@ -18,7 +18,7 @@ pub mod test;
 use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothServiceMsg};
 use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse};
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
-use bluetooth_traits::blacklist::{uuid_is_blacklisted, Blacklist};
+use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
@@ -686,7 +686,7 @@ impl BluetoothManager {
                 }
             }
         }
-        services_vec.retain(|s| !uuid_is_blacklisted(&s.uuid, Blacklist::All) &&
+        services_vec.retain(|s| !uuid_is_blocklisted(&s.uuid, Blocklist::All) &&
                                 self.allowed_services
                                     .get(&device_id)
                                     .map_or(false, |uuids| uuids.contains(&s.uuid)));
@@ -764,7 +764,7 @@ impl BluetoothManager {
         if let Some(uuid) = uuid {
             services_vec.retain(|ref s| s.uuid == uuid);
         }
-        services_vec.retain(|s| !uuid_is_blacklisted(&s.uuid, Blacklist::All));
+        services_vec.retain(|s| !uuid_is_blocklisted(&s.uuid, Blocklist::All));
         if services_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
@@ -842,7 +842,7 @@ impl BluetoothManager {
                 );
             }
         }
-        characteristics_vec.retain(|c| !uuid_is_blacklisted(&c.uuid, Blacklist::All));
+        characteristics_vec.retain(|c| !uuid_is_blocklisted(&c.uuid, Blocklist::All));
         if characteristics_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
@@ -903,7 +903,7 @@ impl BluetoothManager {
                 );
             }
         }
-        descriptors_vec.retain(|d| !uuid_is_blacklisted(&d.uuid, Blacklist::All));
+        descriptors_vec.retain(|d| !uuid_is_blocklisted(&d.uuid, Blocklist::All));
         if descriptors_vec.is_empty() {
             return drop(sender.send(Err(BluetoothError::NotFound)));
         }
