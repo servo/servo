@@ -11,7 +11,7 @@ use net_traits::CookieSource;
 use std::cmp::Ordering;
 use url::Url;
 
-#[derive(Clone, RustcDecodable, RustcEncodable)]
+#[derive(Clone, Debug, RustcDecodable, RustcEncodable)]
 pub struct CookieStorage {
     version: u32,
     cookies: Vec<Cookie>
