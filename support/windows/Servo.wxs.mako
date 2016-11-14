@@ -113,69 +113,7 @@
                     Name="libfontconfig-1.dll"
                     Source="C:\msys64\mingw64\bin\libfontconfig-1.dll"
                     DiskId="1"/>
-              <File Id="AVCodecDll"
-                    Name="avcodec-57.dll"
-                    Source="C:\msys64\mingw64\bin\avcodec-57.dll"
-                    DiskId="1"/>
-              <File Id="AVDeviceDll"
-                    Name="avdevice-57.dll"
-                    Source="C:\msys64\mingw64\bin\avdevice-57.dll"
-                    DiskId="1"/>
-              <File Id="AVFilterDll"
-                    Name="avfilter-6.dll"
-                    Source="C:\msys64\mingw64\bin\avfilter-6.dll"
-                    DiskId="1"/>
-              <File Id="AVFormatDll"
-                    Name="avformat-57.dll"
-                    Source="c:\msys64\mingw64\bin\avformat-57.DLL"
-                    DiskId="1"/>
-              <File Id="AVUtilDll"
-                    Name="avutil-55.dll"
-                    Source="C:\msys64\mingw64\bin\avutil-55.dll"
-                    DiskId="1"/>
-              <File Id="LibRTMPDll"
-                    Name="librtmp-1.dll"
-                    Source="C:\msys64\mingw64\bin\librtmp-1.dll"
-                    DiskId="1"/>
-              <File Id="LibBluRayDll"
-                    Name="libbluray-1.dll"
-                    Source="C:\msys64\mingw64\bin\libbluray-1.dll"
-                    DiskId="1"/>
-              <File Id="LibModPlugDll"
-                    Name="libmodplug-1.dll"
-                    Source="c:\msys64\mingw64\bin\libmodplug-1.dll"
-                    DiskId="1"/>
-              <File Id="LibCeltDll"
-                    Name="libcelt0-2.dll"
-                    Source="C:\msys64\mingw64\bin\libcelt0-2.dll"
-                    DiskId="1"/>
-              <File Id="PostprocDll"
-                    Name="postproc-54.dll"
-                    Source="c:\msys64\mingw64\bin\postproc-54.DLL"
-                    DiskId="1"/>
-              <File Id="SWResampleDll"
-                    Name="swresample-2.dll"
-                    Source="c:\msys64\mingw64\bin\swresample-2.DLL"
-                    DiskId="1"/>
-              <File Id="SWScaleDll"
-                    Name="swscale-4.dll"
-                    Source="c:\msys64\mingw64\bin\swscale-4.DLL"
-                    DiskId="1"/>
             </Component>
-
-            <Directory Id="EtcDir" Name="etc">
-              <Directory Id="FontsDir" Name="fonts">
-                <Component Id="FontsDir"
-                           Guid="8d37ee61-9237-438d-b976-f163bd6b0578"
-                           Win64="yes">
-                  <File Id="ServoFontsConfig"
-                        KeyPath="yes"
-                        Name="fonts.conf"
-                        Source="${windowize(top_path)}\support\windows\fonts.conf"
-                        DiskId="1"/>
-                </Component>
-              </Directory>
-            </Directory>
 
             ${include_directory(path.join(top_path, "resources"), "resources")}
             ${include_directory(browserhtml_path, "browserhtml")}
@@ -199,7 +137,6 @@
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="Servo"/>
-      <ComponentRef Id="FontsDir"/>
       % for c in components:
       <ComponentRef Id="${c}"/>
       % endfor
