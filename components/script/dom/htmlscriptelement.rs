@@ -595,6 +595,10 @@ impl HTMLScriptElement {
         is_js
     }
 
+    pub fn set_parser_inserted(&self, parser_inserted: bool) {
+        self.parser_inserted.set(parser_inserted);
+    }
+
     pub fn set_already_started(&self, already_started: bool) {
         self.already_started.set(already_started);
     }

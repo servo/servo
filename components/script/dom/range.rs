@@ -903,9 +903,9 @@ impl RangeMethods for Range {
         let node = self.StartContainer();
         let element = match node.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
-            NodeTypeId::Element(_) => Some(node),
+            NodeTypeId::Element(_) => Some(Root::downcast::<Element>(node).unwrap()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentNode(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentElement(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::DocumentType => unreachable!(),
         };
@@ -928,6 +928,7 @@ impl RangeMethods for Range {
         for node in fragment_node.upcast::<Node>().traverse_preorder() {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
                 script.set_already_started(false);
+                script.set_parser_inserted(false);
             }
         }
 
