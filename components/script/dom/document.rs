@@ -477,7 +477,7 @@ impl Document {
     }
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
-        node.force_dirty_ancestors(damage);
+        node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
@@ -1990,12 +1990,12 @@ impl Document {
         self.id_map.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
     }
 
-    fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
+    pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
         let map = self.pending_restyles.borrow_mut();
         RefMut::map(map, |m| m.entry(JS::from_ref(el)).or_insert_with(PendingRestyle::new))
     }
 
-    fn ensure_snapshot(&self, el: &Element) -> RefMut<Snapshot> {
+    pub fn ensure_snapshot(&self, el: &Element) -> RefMut<Snapshot> {
         let mut entry = self.ensure_pending_restyle(el);
         if entry.snapshot.is_none() {
             entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));

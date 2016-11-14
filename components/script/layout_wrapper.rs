@@ -529,6 +529,35 @@ impl<'le> ServoLayoutElement<'le> {
             self.get_style_and_layout_data().map(|d| &**d.ptr)
         }
     }
+
+    pub unsafe fn note_dirty_descendant(&self) {
+        use ::selectors::Element;
+
+        let mut current = Some(*self);
+        while let Some(el) = current {
+            // FIXME(bholley): Ideally we'd have the invariant that any element
+            // with has_dirty_descendants also has the bit set on all its ancestors.
+            // However, there are currently some corner-cases where we get that wrong.
+            // I have in-flight patches to fix all this stuff up, so we just always
+            // propagate this bit for now.
+            el.set_dirty_descendants();
+            current = el.parent_element();
+        }
+
+        debug_assert!(self.dirty_descendants_bit_is_propagated());
+    }
+
+    fn dirty_descendants_bit_is_propagated(&self) -> bool {
+        use ::selectors::Element;
+
+        let mut current = Some(*self);
+        while let Some(el) = current {
+            if !el.has_dirty_descendants() { return false; }
+            current = el.parent_element();
+        }
+
+        true
+    }
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {

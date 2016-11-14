@@ -446,10 +446,6 @@ impl Node {
         self.set_flag(HAS_DIRTY_DESCENDANTS, state)
     }
 
-    pub fn force_dirty_ancestors(&self, damage: NodeDamage) {
-        self.dirty_impl(damage, true)
-    }
-
     pub fn rev_version(&self) {
         // The new version counter is 1 plus the max of the node's current version counter,
         // its descendants version, and the document's version. Normally, this will just be
@@ -464,30 +460,18 @@ impl Node {
     }
 
     pub fn dirty(&self, damage: NodeDamage) {
-        self.dirty_impl(damage, false)
-    }
-
-    pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
-        // 0. Set version counter
         self.rev_version();
-
-        // 1. Dirty self.
-        match damage {
-            NodeDamage::NodeStyleDamaged => {}
-            NodeDamage::OtherNodeDamage => self.set_has_changed(true),
+        if !self.is_in_doc() {
+            return;
         }
 
-        if self.is_dirty() && !force_ancestors {
-            return
-        }
-
-        self.set_flag(IS_DIRTY, true);
-
-        // 4. Dirty ancestors.
-        for ancestor in self.ancestors() {
-            if !force_ancestors && ancestor.has_dirty_descendants() { break }
-            ancestor.set_has_dirty_descendants(true);
-        }
+        match self.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
+                self.parent_node.get().unwrap().downcast::<Element>().unwrap().restyle(damage),
+            NodeTypeId::Element(_) =>
+                self.downcast::<Element>().unwrap().restyle(damage),
+            _ => {},
+        };
     }
 
     /// The maximum version number of this node's descendants, including itself
