@@ -17,8 +17,8 @@ interface BluetoothRemoteGATTCharacteristic {
   //Promise<DataView> readValue();
   Promise<void> writeValue(sequence<octet> value);
   //Promise<void> writeValue(BufferSource value);
-  //Promise<void> startNotifications();
-  //Promise<void> stopNotifications();
+  Promise<BluetoothRemoteGATTCharacteristic> startNotifications();
+  Promise<BluetoothRemoteGATTCharacteristic> stopNotifications();
 };
 
 //BluetootRemoteGATTCharacteristic implements EventTarget;

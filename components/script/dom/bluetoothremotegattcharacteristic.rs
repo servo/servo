@@ -214,6 +214,47 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
         return p;
     }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
+    fn StartNotifications(&self) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        let p_cx = p.global().get_cx();
+        // Step 1.
+        if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
+            p.reject_error(p_cx, Security);
+            return p;
+        }
+        // Step 3.
+        if !(self.Properties().Notify() ||
+             self.Properties().Indicate()) {
+            p.reject_error(p_cx, NotSupported);
+            return p;
+        }
+        // Step 6.
+        if !self.Service().Device().Gatt().Connected() {
+            p.reject_error(p_cx, Network);
+            return p;
+        }
+        let sender = response_async(&p, self);
+        self.get_bluetooth_thread().send(
+            BluetoothRequest::EnableNotification(self.get_instance_id(),
+                                                 true,
+                                                 sender)).unwrap();
+        return p;
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
+    fn StopNotifications(&self) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+        let sender = response_async(&p, self);
+        self.get_bluetooth_thread().send(
+            BluetoothRequest::EnableNotification(self.get_instance_id(),
+                                                 false,
+                                                 sender)).unwrap();
+        return p;
+    }
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
@@ -262,6 +303,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 let value = ByteString::new(result);
                 *self.value.borrow_mut() = Some(value.clone());
                 promise.resolve_native(promise_cx, &value);
+            },
+            BluetoothResponse::EnableNotification(_result) => {
+                promise.resolve_native(promise_cx, self);
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
