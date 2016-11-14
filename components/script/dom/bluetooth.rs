@@ -194,7 +194,7 @@ fn convert_request_device_options(filters: &Option<Vec<BluetoothRequestDeviceFil
 
             // Step 2.7.
             // Note: What we are doing here is adding the not blacklisted UUIDs to the result vector,
-            // insted of removing them from an already filled vector.
+            // instead of removing them from an already filled vector.
             if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
                 optional_services_uuids.push(uuid);
             }
@@ -337,11 +337,7 @@ impl BluetoothMethods for Bluetooth {
             return p;
         }
         // Step 2.
-        if !option.acceptAllDevices {
-            self.request_bluetooth_devices(&p, &option.filters, &option.optionalServices);
-        } else {
-            self.request_bluetooth_devices(&p, &None, &option.optionalServices);
-        }
+        self.request_bluetooth_devices(&p, &option.filters, &option.optionalServices);
         // TODO(#4282): Step 3-5: Reject and resolve promise.
         return p;
     }
