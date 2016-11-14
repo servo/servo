@@ -42,7 +42,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use url::Url;
-use util::prefs::{self, PREFS};
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
@@ -1254,45 +1253,6 @@ fn test_load_succeeds_with_a_redirect_loop() {
                [url_a.clone(), url_b, url_a]);
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Success".to_vec()));
-}
-
-#[test]
-fn test_load_errors_when_there_is_too_many_redirects() {
-    struct Factory;
-
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
-
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(ResponseType::Redirect(format!("{}/1", url))))
-            } else {
-                panic!("unexpected host {:?}", url)
-            }
-        }
-    }
-
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    let redirect_limit = 13.;
-    PREFS.set("network.http.redirection-limit",
-              prefs::PrefValue::Number(redirect_limit));
-
-    match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None) {
-        Err(LoadError { error: LoadErrorType::MaxRedirects(num_redirects),
-                        url, .. }) => {
-            assert_eq!(num_redirects, redirect_limit as u32);
-            assert_eq!(url.domain().unwrap(), "mozilla.com");
-        }
-        _ => panic!("expected max redirects to fail")
-    }
-
-    PREFS.reset("network.http.redirection-limit");
 }
 
 #[test]
