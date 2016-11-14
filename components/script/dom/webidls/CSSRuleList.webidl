@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/cssom/#cssrulelist
 // [LegacyArrayClass]
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSRuleList {
   getter CSSRule? item(unsigned long index);
   readonly attribute unsigned long length;

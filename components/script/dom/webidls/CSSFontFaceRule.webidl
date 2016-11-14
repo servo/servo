@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/css-fonts/#cssfontfacerule
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSFontFaceRule : CSSRule {
   // attribute DOMString family;
   // attribute DOMString src;

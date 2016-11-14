@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom/#the-cssstylerule-interface
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSStyleRule : CSSRule {
   // attribute DOMString selectorText;
   // [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
