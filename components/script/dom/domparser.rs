@@ -18,8 +18,7 @@ use dom::bindings::str::DOMString;
 use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::globalscope::GlobalScope;
-use dom::servoparser::html::{ParseContext, parse_html};
-use dom::servoparser::xml::{self, parse_xml};
+use dom::servoparser::ServoParser;
 use dom::window::Window;
 
 #[dom_struct]
@@ -70,7 +69,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                parse_html(&document, s, url, ParseContext::Owner(None));
+                ServoParser::parse_html_document(&document, s, url, None);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
@@ -86,7 +85,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                parse_xml(&document, s, url, xml::ParseContext::Owner(None));
+                ServoParser::parse_xml_document(&document, s, url, None);
                 Ok(document)
             }
         }
