@@ -1084,11 +1084,8 @@ impl LayoutThread {
                         // NB: The dirty bit is propagated down the tree.
                         unsafe { node.set_dirty(); }
 
-                        let mut current = node.parent_node().and_then(|n| n.as_element());
-                        while let Some(el) = current {
-                            if el.has_dirty_descendants() { break; }
-                            unsafe { el.set_dirty_descendants(); }
-                            current = el.parent_element();
+                        if let Some(p) = node.parent_node().and_then(|n| n.as_element()) {
+                            unsafe { p.note_dirty_descendant() };
                         }
 
                         next = iter.next_skipping_children();
@@ -1120,8 +1117,16 @@ impl LayoutThread {
         let restyles = document.drain_pending_restyles();
         if !needs_dirtying {
             for (el, restyle) in restyles {
+                // Propagate the descendant bit up the ancestors. Do this before
+                // the restyle calculation so that we can also do it for new
+                // unstyled nodes, which the descendants bit helps us find.
+                if let Some(parent) = el.parent_element() {
+                    unsafe { parent.note_dirty_descendant() };
+                }
+
                 if el.get_data().is_none() {
-                    // If we haven't styled this node yet, we can ignore the restyle.
+                    // If we haven't styled this node yet, we don't need to track
+                    // a restyle.
                     continue;
                 }
 
@@ -1142,15 +1147,6 @@ impl LayoutThread {
                 if !restyle.damage.is_empty() {
                     let mut d = el.mutate_layout_data().unwrap();
                     d.base.restyle_damage |= restyle.damage;
-                }
-
-                // Propagate the descendant bit up the ancestors.
-                if !hint.is_empty() || !restyle.damage.is_empty() {
-                    let curr = el;
-                    while let Some(curr) = curr.parent_element() {
-                        if curr.has_dirty_descendants() { break }
-                        unsafe { curr.set_dirty_descendants(); }
-                    }
                 }
             }
         }
