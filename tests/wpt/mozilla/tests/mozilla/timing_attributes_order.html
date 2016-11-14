@@ -1,0 +1,84 @@
+<html>
+	<head>
+        <meta charset="utf-8" />
+        <title>window.performance.timing attribute ordering on a simple navigation</title>
+        <link rel="author" title="Mozilla" href="http://www.mozilla.org/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+		<script src="/resources/testharness.js"></script>
+		<script src="/resources/testharnessreport.js"></script>
+		<script src="resources/webperftestharness.js"></script>
+
+		<script>
+            setup({explicit_done: true});
+            test_namespace('timing');
+
+            var step = 1;
+            function onload_test()
+            {
+                if (step === 1 && window.performance === undefined)
+                {
+                    // avoid script errors
+                    done();
+                    return;
+                }
+
+                var navigation_frame = document.getElementById("frameContext").contentWindow;
+                performanceNamespace = navigation_frame.performance;
+                switch (step)
+                {
+                    case 1:
+                    {
+                        navigation_frame.location.href = 'resources/blank_page_green.html';
+                        step++;
+                        break;
+                    }
+					case 2:
+                    {
+                        //
+                        // Tests
+
+                        // navigiation must be non-0
+                        test_timing_greater_than('navigationStart', 0);
+
+                        // validate attribute ordering
+                        test_timing_order('responseStart', 'requestStart');
+                        test_timing_order('responseEnd', 'responseStart');
+                        test_timing_order('domInteractive', 'responseEnd');
+                        test_timing_order('domContentLoadedEventStart', 'domInteractive');
+                        test_timing_order('domContentLoadedEventEnd', 'domContentLoadedEventStart');
+                        test_timing_order('domComplete', 'domContentLoadedEventEnd');
+                        test_timing_order('loadEventStart', 'domContentLoadedEventEnd');
+                        test_timing_order('loadEventEnd', 'loadEventStart');
+
+                        step++;
+                        done();
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+		</script>
+	</head>
+	<body>
+		<h1>Description</h1>
+		<p>This test validates the ordering of the window.performance.timing attributes.</p>
+
+		<p>This page should be loaded with a yellow background frame below which contains an unload event handler.</p>
+
+		<p>After the page loads, the frame is navigated to a new blank page with a green background.  At this point, the navigation timeline is verified</p>
+
+		<p>This test passes if all of the checks to the frame.window.performance.timing attributes are correct throughout the navigation scenario and the frame below ends with a green background.  Otherwise, this test fails.</p>
+
+		<h1>Setup</h1>
+
+		<div id="log"></div>
+		<br />
+		<iframe id="frameContext"
+			onload="/* Need to make sure we don't examine loadEventEnd
+			until after the load event has finished firing */
+			setTimeout(onload_test, 0);"
+			src="resources/blank_page_unload.html"
+			style="width: 250px; height: 250px;"></iframe>
+	</body>
+</html>

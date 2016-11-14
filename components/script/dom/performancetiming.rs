@@ -85,8 +85,23 @@ impl PerformanceTimingMethods for PerformanceTiming {
     fn LoadEventEnd(&self) -> u64 {
         self.document.get_load_event_end()
     }
-}
 
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-requestStart
+    fn RequestStart(&self) -> u64 {
+        self.document.get_request_start()
+    }
+
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-responseStart
+    fn ResponseStart(&self) -> u64 {
+        self.document.get_response_start()
+    }
+
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-responseEnd
+    fn ResponseEnd(&self) -> u64 {
+        self.document.get_response_end()
+    }
+
+}
 
 impl PerformanceTiming {
     pub fn navigation_start_precise(&self) -> f64 {
