@@ -36,7 +36,7 @@ use dom::bindings::js::LayoutJS;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
@@ -62,7 +62,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
-use style::dom::{TRestyleDamage, UnsafeNode};
+use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl};
@@ -259,12 +259,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.get_jsmanaged().take_style_and_layout_data()
     }
 
-    fn has_changed(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_CHANGED) }
-    }
-
     unsafe fn clear_dirty_bits(&self) {
-        self.node.set_flag(HAS_CHANGED, false);
         self.node.set_flag(IS_DIRTY, false);
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
     }
@@ -335,8 +330,8 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{:?}: changed={} dirty={} dirty_descendants={}",
-                self.script_type_id(), self.has_changed(),
+        format!("{:?}: dirty={} dirty_descendants={}",
+                self.script_type_id(),
                 self.as_element().map_or(false, |el| el.deprecated_dirty_bit_is_set()),
                 self.as_element().map_or(false, |el| el.has_dirty_descendants()))
     }
@@ -453,7 +448,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
+        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage |= damage;
     }
 
     #[inline]
@@ -879,9 +874,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        if self.node.has_changed() {
-            RestyleDamage::rebuild_and_reflow()
-        } else if self.is_text_node() {
+        if self.is_text_node() {
             let parent = self.node.parent_node().unwrap().as_element().unwrap();
             let parent_data = parent.get_partial_layout_data().unwrap().borrow();
             parent_data.restyle_damage
