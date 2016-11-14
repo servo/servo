@@ -5,7 +5,7 @@
 use app_units::Au;
 use std::fmt;
 
-/// The real ToCss trait can't be implemented for types in crates that don't
+/// The real `ToCss` trait can't be implemented for types in crates that don't
 /// depend on each other.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.

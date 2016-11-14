@@ -124,8 +124,8 @@ pub enum LayoutControlMsg {
     GetWebFontLoadState(IpcSender<bool>),
 }
 
-/// Similar to net::resource_thread::LoadData
-/// can be passed to LoadUrl to load a page with GET/POST
+/// Similar to `net::resource_thread::LoadData`
+/// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
@@ -367,7 +367,7 @@ pub enum CompositorEvent {
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
 
-/// Touchpad pressure phase for TouchpadPressureEvent.
+/// Touchpad pressure phase for `TouchpadPressureEvent`.
 #[derive(Copy, Clone, HeapSizeOf, PartialEq, Deserialize, Serialize)]
 pub enum TouchpadPressurePhase {
     /// Pressure before a regular click.
@@ -386,8 +386,8 @@ pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
                              pub MsDuration);
 
 /// Notifies the script thread to fire due timers.
-/// TimerSource must be FromWindow when dispatched to ScriptThread and
-/// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
+/// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
+/// must be `FromWorker` when dispatched to a `DedicatedGlobalWorkerScope`
 #[derive(Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
@@ -400,7 +400,7 @@ pub enum TimerSource {
     FromWorker,
 }
 
-/// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
+/// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf, Deserialize, Serialize)]
 pub struct TimerEventId(pub u32);
 
