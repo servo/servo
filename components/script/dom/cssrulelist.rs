@@ -25,7 +25,7 @@ pub struct CSSRuleList {
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(sheet: &CSSStyleSheet, rules: CssRules) -> CSSRuleList {
-        let dom_rules = rules.0.iter().map(|_| MutNullableHeap::new(None)).collect();
+        let dom_rules = rules.0.read().iter().map(|_| MutNullableHeap::new(None)).collect();
         CSSRuleList {
             reflector_: Reflector::new(),
             sheet: JS::from_ref(sheet),
@@ -49,7 +49,7 @@ impl CSSRuleListMethods for CSSRuleList {
             rule.or_init(|| {
                 CSSRule::new_specific(self.global().as_window(),
                                      &self.sheet,
-                                     self.rules.0[idx as usize].clone())
+                                     self.rules.0.read()[idx as usize].clone())
             })
         })
     }
