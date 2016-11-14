@@ -43,11 +43,11 @@ pub enum Origin {
 }
 
 #[derive(Debug, Clone)]
-pub struct CssRules(pub Arc<Vec<CssRule>>);
+pub struct CssRules(pub Arc<RwLock<Vec<CssRule>>>);
 
 impl From<Vec<CssRule>> for CssRules {
     fn from(other: Vec<CssRule>) -> Self {
-        CssRules(Arc::new(other))
+        CssRules(Arc::new(RwLock::new(other)))
     }
 }
 
@@ -100,7 +100,8 @@ impl CssRule {
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
-                f(&media_rule.rules.0, Some(&mq))
+                let rules = media_rule.rules.0.read();
+                f(&rules, Some(&mq))
             }
         }
     }
@@ -254,7 +255,7 @@ impl Stylesheet {
     /// examined.
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.0, device, &mut f);
+        effective_rules(&self.rules.0.read(), device, &mut f);
     }
 }
 
