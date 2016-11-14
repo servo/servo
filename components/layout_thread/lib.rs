@@ -103,7 +103,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};

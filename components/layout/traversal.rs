@@ -10,7 +10,7 @@ use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use gfx::display_list::OpaqueNode;
-use script_layout_interface::wrapper_traits::{LayoutElement, LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
@@ -32,7 +32,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
 #[allow(unsafe_code)]
 impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     where N: LayoutNode + TNode,
-          N::ConcreteElement: LayoutElement
+          N::ConcreteElement: TElement
 
 {
     type SharedContext = SharedLayoutContext;

@@ -46,7 +46,7 @@ use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutElement, LayoutNode};
+use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -61,7 +61,7 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
+use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
@@ -112,6 +112,10 @@ impl<'ln> ServoLayoutNode<'ln> {
             self.node.type_id_for_layout()
         }
     }
+
+    pub fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
+    }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
@@ -128,7 +132,6 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
-    type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
@@ -175,10 +178,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
-    }
-
-    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -369,34 +368,29 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> TDocument for ServoLayoutDocument<'ld> {
-    type ConcreteNode = ServoLayoutNode<'ld>;
-    type ConcreteElement = ServoLayoutElement<'ld>;
-
+impl<'ld> ServoLayoutDocument<'ld> {
     fn as_node(&self) -> ServoLayoutNode<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
 
-    fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
+    pub fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
         self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, Snapshot)> {
+    pub fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, Snapshot)> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
 
-    fn needs_paint_from_layout(&self) {
+    pub fn needs_paint_from_layout(&self) {
         unsafe { self.document.needs_paint_from_layout(); }
     }
 
-    fn will_paint(&self) {
+    pub fn will_paint(&self) {
         unsafe { self.document.will_paint(); }
     }
-}
 
-impl<'ld> ServoLayoutDocument<'ld> {
-    fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
+    pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
             chain: PhantomData,
@@ -433,7 +427,6 @@ impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
 
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
-    type ConcreteDocument = ServoLayoutDocument<'le>;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
@@ -1068,8 +1061,6 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.element.get_data()
     }
 }
-
-impl<'le> LayoutElement for ServoLayoutElement<'le> {}
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
 /// pseudo-elements.

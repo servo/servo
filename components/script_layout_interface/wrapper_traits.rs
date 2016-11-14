@@ -18,7 +18,7 @@ use style::atomic_refcell::AtomicRefCell;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TElement, TNode};
+use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
@@ -274,9 +274,6 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait LayoutElement: Clone + Copy + Sized + Debug + GetLayoutData + TElement {
-}
-
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    ::selectors::Element<Impl=ServoSelectorImpl> +
                                    GetLayoutData +
@@ -435,5 +432,4 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                        .get(&other.style_pseudo_element()).unwrap().0.clone(),
         }
     }
-
 }
