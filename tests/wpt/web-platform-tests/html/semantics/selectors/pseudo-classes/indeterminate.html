@@ -24,7 +24,7 @@
   testSelectorIdsMatch(":indeterminate", ["radio4", "radio5", "progress1"], "dynamically check a radio input in a radio button group");
 
   document.getElementById("radio4").click();
-  testSelectorIdsMatch(":indeterminate", ["checkbox1", "progress2"], "click on radio4 which is in the indeterminate state");
+  testSelectorIdsMatch(":indeterminate", ["progress1"], "click on radio4 which is in the indeterminate state");
 
   document.getElementById("progress1").setAttribute("value", "20");
   testSelectorIdsMatch(":indeterminate", [], "adding a value to progress1 should put it in a determinate state");

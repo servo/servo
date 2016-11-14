@@ -26,6 +26,7 @@
         abort_flag = true
         client.abort()
         assert_array_equals(result, expected)
+        assert_equals(client.readyState, 1) // abort() should only set state to UNSENT when DONE
       })
     </script>
   </body>

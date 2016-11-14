@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>list owner is calculated to be nearest ancestor ul if it exists</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<link rel="match" href="grouping-li-reftest-list-owner-ul-ref.html">
+
+<style>
+  li {
+    list-style-type: decimal;
+  }
+</style>
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>1. A
+2. B
+3. C
+4. D
+5. E
+     1. F
+     2. G
+6. H
+     1. I
+     2. J
+          1. K
+          2. L</pre>
+
+<hr>
+
+<ul>
+  <li>A</li>
+  <li>B</li>
+  <div>
+    <li>C</li>
+    <span>
+      <li>D</li>
+      <li>E</li>
+    </span>
+    <ul>
+      <li>F</li>
+      <li>G</li>
+    </ul>
+  </div>
+  <li>H</li>
+  <ul>
+    <li>I</li>
+    <li>
+      J
+      <ul>
+        <li>K</li>
+        <li>L</li>
+      </ul>
+    </li>
+  </ul>
+</ul>

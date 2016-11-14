@@ -11,24 +11,32 @@
 "use strict";
 
 test(function(t) {
-  var timeline = new DocumentTimeline(0);
+  var timeline = new DocumentTimeline();
 
   assert_times_equal(timeline.currentTime, document.timeline.currentTime);
-}, 'zero origin time');
+}, 'An origin time of zero is used when none is supplied');
 
 test(function(t) {
-  var timeline = new DocumentTimeline(10 * MS_PER_SEC);
+  var timeline = new DocumentTimeline({ originTime: 0 });
+  assert_times_equal(timeline.currentTime, document.timeline.currentTime);
+}, 'A zero origin time produces a document timeline with a current time ' +
+   'identical to the default document timeline');
+
+test(function(t) {
+  var timeline = new DocumentTimeline({ originTime: 10 * MS_PER_SEC });
 
   assert_times_equal(timeline.currentTime,
                      (document.timeline.currentTime - 10 * MS_PER_SEC));
-}, 'positive origin time');
+}, 'A positive origin time makes the document timeline\'s current time lag ' +
+   'behind the default document timeline');
 
 test(function(t) {
-  var timeline = new DocumentTimeline(-10 * MS_PER_SEC);
+  var timeline = new DocumentTimeline({ originTime: -10 * MS_PER_SEC });
 
   assert_times_equal(timeline.currentTime,
                 (document.timeline.currentTime + 10 * MS_PER_SEC));
-}, 'negative origin time');
+}, 'A negative origin time makes the document timeline\'s current time run ' +
+   'ahead of the default document timeline');
 
 </script>
 </body>

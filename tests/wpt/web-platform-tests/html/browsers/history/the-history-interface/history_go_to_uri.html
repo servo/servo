@@ -1,0 +1,32 @@
+<!doctype html>
+<title>history.go() negative tests</title>
+<link rel="author" title="John Jansen" href="mailto:johnjan@microsoft.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#dom-history-go">
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t = async_test(undefined, {timeout:5000});
+  started = false;
+  gone = false;
+  pages = []
+  timer = null;
+  start_test_wait = t.step_func(
+    function() {
+      clearTimeout(timer);
+      timer = setTimeout(t.step_func(
+        function() {
+          try {
+            assert_array_equals(pages, [3, 2, 2], "Pages opened during history navigation");
+            t.done();
+          } finally {
+            win.close();
+          }
+        }
+      ), 500);
+    }
+  );
+  t.step(function() {win = window.open("history_entry.html?urls=history_go_to_uri-1.html,history_forward-2.html");
+  });
+</script>

@@ -7,8 +7,8 @@ test.step(function() {
       assert_unreached()
     })
   }
+  assert_equals(client.readyState, 1, "before abort()")
   client.abort()
-  assert_equals(client.readyState, 0)
-  assert_throws("InvalidStateError", function() { client.send("test") }, "calling send() after abort()")
+  assert_equals(client.readyState, 1, "after abort()")
 })
 test.done()

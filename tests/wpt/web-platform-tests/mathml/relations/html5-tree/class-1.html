@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Class</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2"/>
+<link rel="match" href="class-1-ref.html"/>
+<meta name="assert" content="Verify that the class attribute affects CSS selectors.">
+<style>
+  mtext.fail { display: none; }
+  mtext.pass { background: green; }
+</style>
+</head>
+<body>
+
+  <p>Test passes if you see the text "PASS".</p>
+  <math>
+    <mtext class="fail" style="background: red; color: white;">FAIL</mtext>
+    <mtext class="pass" style="color: white;">PASS</mtext>
+  </math>
+
+</body>
+</html>

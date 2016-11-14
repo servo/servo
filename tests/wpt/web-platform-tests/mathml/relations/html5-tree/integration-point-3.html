@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>phrasing content inside mtext</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS1"/>
+<link rel="match" href="integration-point-3-ref.html"/>
+<meta name="assert" content="Verify that <mtext> can contain phrasing content">
+<style type="text/css">
+  div {
+    color: green;
+  }
+  span, math, mtext { font-family: monospace; font-size: 10px; }
+  span.redsquare, span.greensquare {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+  }
+  span.redsquare {
+    background: red;
+  }
+  span.greensquare {
+    background: green;
+  }
+  mspace {
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+
+  <div>
+
+    <div style="position: absolute; background: green; width: 200px; height: 200px;">
+      <span><span><span><span class="redsquare"></span></span></span></span>
+      <span><span><u><span class="redsquare"></span></u></span></span>
+      <span><span><a href="#id"><span class="redsquare"></span></a></span></span>
+      <span><span><del><span class="redsquare"></span></del></span></span>
+      <span><span><em><span class="redsquare"></span></em></span></span>
+      <span><span><strong><span class="redsquare"></span></strong></span></span>
+      <span><span><q><span class="redsquare"></span></q></span></span>
+      <span><span><small><span class="redsquare"></span></small></span></span>
+      <span><span><var><span class="redsquare"></span></var></span></span>
+      <span><span><samp><span class="redsquare"></span></samp></span></span>
+    </div>
+    <div style="position: absolute; width: 200px;">
+      <math><mtext><span><span class="greensquare"></span></span></mtext></math>
+      <math><mtext><u><span class="greensquare"></span></u></mtext></math>
+      <math><mtext><a href="#id"><span class="greensquare"></span></a></mtext></math>
+      <math><mtext><del><span class="greensquare"></span></del></mtext></math>
+      <math><mtext><em><span class="greensquare"></span></em></mtext></math>
+      <math><mtext><strong><span class="greensquare"></span></strong></mtext></math>
+      <math><mtext><q><span class="greensquare"></span></q></mtext></math>
+      <math><mtext><small><span class="greensquare"></span></small></mtext></math>
+      <math><mtext><var><span class="greensquare"></span></var></mtext></math>
+      <math><mtext><samp><span class="greensquare"></span></samp></mtext></math>
+    </div>
+
+  </div>
+
+</body>
+</html>

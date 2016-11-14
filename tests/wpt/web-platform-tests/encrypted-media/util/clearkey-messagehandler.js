@@ -42,3 +42,23 @@ MessageHandler.prototype.messagehandler = function messagehandler( messageType, 
 
     throw new TypeError( 'Unsupported message type for ClearKey' );
 };
+
+MessageHandler.prototype.createJWKSet = function createJWKSet(keyId, key) {
+    var jwkSet = '{"keys":[';
+    for (var i = 0; i < arguments.length; i++) {
+        if (i != 0)
+            jwkSet += ',';
+        jwkSet += arguments[i];
+    }
+    jwkSet += ']}';
+    return jwkSet;
+};
+
+MessageHandler.prototype.createJWK = function createJWK(keyId, key) {
+    var jwk = '{"kty":"oct","alg":"A128KW","kid":"';
+    jwk += base64urlEncode(keyId);
+    jwk += '","k":"';
+    jwk += base64urlEncode(key);
+    jwk += '"}';
+    return jwk;
+};

@@ -3,10 +3,11 @@
 <title>Loading a non-parsing URL as an image should silently fail; triggering appropriate events</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<img id=myimg />
+<img id=brokenurl />
+<img id=emptysrc />
 <script>
 async_test(function(t) {
-    var img = document.getElementById("myimg");
+    var img = document.getElementById("brokenurl");
     img.src = "http://also a broken url";
     var errorevent = false;
 
@@ -16,6 +17,26 @@ async_test(function(t) {
     img.addEventListener('loadend', t.step_func_done(function() {
         assert_true(errorevent, "error event fired");
     }));
-});
+}, 'src="http://also a broken url"');
+
+async_test(function(t) {
+    var img = document.getElementById("emptysrc");
+    img.src = "";
+    var loadendevent = false;
+
+    // Setting src to empty string triggers only error event.
+    // The errors should be queued in the event loop, so they should only trigger
+    // after this block of code finishes, not during the img.src setter itself
+    img.addEventListener('error', t.step_func(function() {
+        // Queue this check in the event loop to check there is no loadend event
+        // fired.
+        t.step_timeout(t.step_func_done(function() {
+            assert_false(loadendevent, "loadend event should not fired");
+        }), 0)
+    }));
+    img.addEventListener('loadend', t.step_func(function() {
+        loadendevent = true;
+    }));
+}, 'src=""');
 
 </script>

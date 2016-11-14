@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Href - script element tests</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='testcommon.js'></script>
+<body>
+<div id='log'></div>
+<svg id='svg' width='100' height='100' viewBox='0 0 100 100'>
+</svg>
+<script>
+'use strict';
+
+// Note:
+// The order of these tests shouldn't be changed because we don't unload
+// the external script file even if we expect the <script> element will be
+// removed by childNode.remove() and Garbage Collection after a test has been
+// finished. Therefore, I intentionally make them load externalScript1 and
+// externalScript2 alternately, and we can check if the results are changed
+// after reloading the other script.
+// Throughout this test, we periodically need to verify that a script
+// *does not load* after we've made a tweak. To do that, we have to
+// wait "long enough for it to have loaded", and then make sure nothing
+// has changed.  We estimate "long enough" by adding an extra dummy
+// <script> element and watching for its load event.
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var script = createSVGElement(t, 'script', svg);
+
+  script.setAttribute('type', 'text/javascript');
+  script.setAttribute('href', 'testScripts/externalScript1.js');
+  assert_equals(script.href.baseVal, 'testScripts/externalScript1.js');
+
+  return waitEvent(script, 'load').then(function() {
+    assert_equals(loadedScript(), 'externalScript1',
+                  'Link to correct external script');
+
+    script.setAttributeNS(XLINKNS, 'xlink:href',
+                          'testScripts/externalScript2.js');
+
+    // Load an dummy script to trigger a load event.
+    var dummyScript = createSVGElement(t, 'script', svg);
+    dummyScript.setAttribute('href', 'testScripts/dummyScript.js');
+    return waitEvent(dummyScript, 'load');
+  }).then(function() {
+    assert_equals(script.href.baseVal, 'testScripts/externalScript1.js');
+    assert_equals(loadedScript(), 'externalScript1',
+                  'Still link to the external script from href');
+  });
+}, 'Test for loading external script from href when setting href and ' +
+   'then xlink:href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var script = createSVGElement(t, 'script', svg);
+
+  script.setAttribute('type', 'text/javascript');
+  script.setAttributeNS(XLINKNS, 'xlink:href',
+                        'testScripts/externalScript2.js');
+  assert_equals(script.href.baseVal, 'testScripts/externalScript2.js');
+
+  return waitEvent(script, 'load').then(function() {
+    assert_equals(loadedScript(), 'externalScript2',
+                  'Link to the external script from xlink:href');
+
+    script.setAttribute('href', 'testScripts/externalScript1.js');
+
+    // Load an dummy script to trigger a load event.
+    var dummyScript = createSVGElement(t, 'script', svg);
+    dummyScript.setAttribute('href', 'testScripts/dummyScript.js');
+    return waitEvent(dummyScript, 'load');
+  }).then(function() {
+    assert_equals(script.href.baseVal, 'testScripts/externalScript1.js',
+                  'href() should prefer href attribute over xlink:href');
+    assert_equals(loadedScript(), 'externalScript2',
+                  'Still link to the external script from xlink:href');
+  });
+}, 'Test for loading external script from xlnk:href by adding xlink:href and ' +
+   'then href');
+
+promise_test(function(t) {
+  var svg = document.getElementById('svg');
+  var script = createSVGElement(t, 'script', svg);
+
+  script.setAttribute('type', 'text/javascript');
+  script.setAttribute('href', 'testScripts/externalScript1.js');
+  script.setAttributeNS(XLINKNS, 'xlink:href',
+                        'testScripts/externalScript2.js');
+  assert_equals(script.href.baseVal, 'testScripts/externalScript1.js');
+
+  return waitEvent(script, 'load').then(function() {
+    assert_equals(loadedScript(), 'externalScript1',
+                  'Link to the external script by href');
+
+    script.removeAttribute('href');
+    assert_equals(script.href.baseVal, 'testScripts/externalScript2.js',
+                  'href() returns xlink:href attribute because href was unset');
+
+    // Load an dummy script to trigger a load event.
+    var dummyScript = createSVGElement(t, 'script', svg);
+    dummyScript.setAttribute('href', 'testScripts/dummyScript.js');
+    return waitEvent(dummyScript, 'load');
+  }).then(function() {
+    assert_equals(loadedScript(), 'externalScript1',
+                  'The external script loaded from href is still loaded');
+  });
+}, 'Test for loading external script from href by adding href and ' +
+   'then xlink:href, and then removing href');
+
+</script>
+</body>

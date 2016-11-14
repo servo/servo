@@ -127,7 +127,7 @@
         return value.toLowerCase();
       }).sort();
 
-      var iteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf([].values()));
+      var iteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()));
       function checkIteratorProperties(iterator) {
         var prototype = Object.getPrototypeOf(iterator);
         assert_equals(Object.getPrototypeOf(prototype), iteratorPrototype);

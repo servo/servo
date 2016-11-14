@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>data URL shared worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  var worker = new SharedWorker("data:,onconnect = (e) => { fetch('/').then(() => e.ports[0].postMessage('fail'), () => e.ports[0].postMessage('pass')) }") // not same-origin
+  worker.port.onmessage = t.step_func_done(e => {
+    assert_equals(e.data, "pass")
+  })
+})
+</script>

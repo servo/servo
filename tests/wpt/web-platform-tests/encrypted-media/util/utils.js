@@ -96,6 +96,12 @@ function waitForEventAndRunStep(eventName, element, func, stepTest)
     element.addEventListener(eventName, stepTest.step_func(eventCallback), true);
 }
 
+function waitForEvent(eventName, element) {
+    return new Promise(function(resolve) {
+        element.addEventListener(eventName, resolve, true);
+    })
+}
+
 var consoleDiv = null;
 
 function consoleWrite(text)
@@ -112,16 +118,7 @@ function consoleWrite(text)
 
 function forceTestFailureFromPromise(test, error, message)
 {
-    // Promises convert exceptions into rejected Promises. Since there is
-    // currently no way to report a failed test in the test harness, errors
-    // are reported using force_timeout().
-    if (message)
-        consoleWrite(message + ': ' + error.message);
-    else if (error)
-        consoleWrite(error);
-
-    test.force_timeout();
-    test.done();
+    test.step_func(assert_unreached)(message ? message + ': ' + error.message : error);
 }
 
 // Returns an array of audioCapabilities that includes entries for a set of
@@ -178,26 +175,34 @@ function arrayBufferAsString(buffer)
 
 function dumpKeyStatuses(keyStatuses)
 {
-    consoleWrite("for (var entry of keyStatuses)");
-    for (var entry of keyStatuses) {
-        consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
+    var userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.indexOf('edge') === -1) {
+        consoleWrite("for (var entry of keyStatuses)");
+        for (var entry of keyStatuses) {
+            consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
+        }
+        consoleWrite("for (var keyId of keyStatuses.keys())");
+        for (var keyId of keyStatuses.keys()) {
+            consoleWrite(arrayBufferAsString(keyId));
+        }
+        consoleWrite("for (var status of keyStatuses.values())");
+        for (var status of keyStatuses.values()) {
+            consoleWrite(status);
+        }
+        consoleWrite("for (var entry of keyStatuses.entries())");
+        for (var entry of keyStatuses.entries()) {
+            consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
+        }
+        consoleWrite("keyStatuses.forEach()");
+        keyStatuses.forEach(function(status, keyId) {
+            consoleWrite(arrayBufferAsString(keyId) + ": " + status);
+        });
+    } else {
+        consoleWrite("keyStatuses.forEach()");
+        keyStatuses.forEach(function(keyId, status) {
+            consoleWrite(arrayBufferAsString(keyId) + ": " + status);
+        });
     }
-    consoleWrite("for (var keyId of keyStatuses.keys())");
-    for (var keyId of keyStatuses.keys()) {
-        consoleWrite(arrayBufferAsString(keyId));
-    }
-    consoleWrite("for (var status of keyStatuses.values())");
-    for (var status of keyStatuses.values()) {
-        consoleWrite(status);
-    }
-    consoleWrite("for (var entry of keyStatuses.entries())");
-    for (var entry of keyStatuses.entries()) {
-        consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
-    }
-    consoleWrite("keyStatuses.forEach()");
-    keyStatuses.forEach(function(status, keyId) {
-        consoleWrite(arrayBufferAsString(keyId) + ": " + status);
-    });
 }
 
 // Verify that |keyStatuses| contains just the keys in |keys.expected|
@@ -223,6 +228,58 @@ function verifyKeyStatuses(keyStatuses, keys)
         assert_false(keyStatuses.has(key), "keystatuses should not have unexpected keys");
         assert_equals(keyStatuses.get(key), undefined, "keystatus for unexpected key should be undefined");
     });
+}
+
+// This function checks that calling |testCase.func| returns a
+// rejected Promise with the error.name equal to
+// |testCase.exception|.
+function test_exception(testCase /*...*/) {
+    var func = testCase.func;
+    var exception = testCase.exception;
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    // Currently blink throws for TypeErrors rather than returning
+    // a rejected promise (http://crbug.com/359386).
+    // FIXME: Remove try/catch once they become failed promises.
+    try {
+        return func.apply(null, args).then(
+            function (result) {
+                assert_unreached(format_value(func));
+            },
+            function (error) {
+                assert_equals(error.name, exception, format_value(func));
+                assert_not_equals(error.message, "", format_value(func));
+            }
+        );
+    } catch (e) {
+        // Only allow 'TypeError' exceptions to be thrown.
+        // Everything else should be a failed promise.
+        assert_equals('TypeError', exception, format_value(func));
+        assert_equals(e.name, exception, format_value(func));
+    }
+}
+
+// Check that the events sequence (array of strings) matches the pattern (array of either strings, or
+// arrays of strings, with the latter representing a possibly repeating sub-sequence)
+function checkEventSequence(events,pattern) {
+    function th(i) { return i + (i < 4 ? ["th", "st", "nd", "rd"][i] : "th"); }
+    var i = 0, j=0, k=0;
+    while(i < events.length && j < pattern.length) {
+        if (!Array.isArray(pattern[j])) {
+            assert_equals(events[i], pattern[j], "Expected " + th(i+1) + " event to be '" + pattern[j] + "'");
+            ++i;
+            ++j;
+        } else {
+            assert_equals(events[i], pattern[j][k], "Expected " + th(i+1) + " event to be '" + pattern[j][k] + "'");
+            ++i;
+            k = (k+1)%pattern[j].length;
+            if (k === 0 && events[i] !== pattern[j][0]) {
+                ++j;
+            }
+        }
+    }
+    assert_equals(i,events.length,"Received more events than expected");
+    assert_equals(j,pattern.length,"Expected more events than received");
 }
 
 

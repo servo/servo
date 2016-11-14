@@ -23,8 +23,6 @@ var aliases = {
   "ProgressEvent": "ProgressEvent",
   "StorageEvent": "StorageEvent",
   "SVGEvents": "Event",
-  "SVGZoomEvent": "SVGZoomEvent",
-  "SVGZoomEvents": "SVGZoomEvent",
   "TextEvent": "CompositionEvent",
   "TouchEvent": "TouchEvent",
   "TrackEvent": "TrackEvent",

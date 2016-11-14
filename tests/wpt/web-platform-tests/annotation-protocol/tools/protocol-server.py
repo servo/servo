@@ -204,9 +204,6 @@ def collection_options(request, response):
     for header, value in load_headers_from_file(headers_file):
         response.headers.append(header, value)
 
-    response.content = "Collection Options\n";
-
-
 def page(request, response):
     page_json = {
       "@context": "http://www.w3.org/ns/anno.jsonld",
@@ -312,7 +309,6 @@ def annotation_head(request, response):
         response.status = 404
 
     add_cors_headers(response)
-    response.content = "Annotation Options\n"
 
 @wptserve.handlers.handler
 def annotation_options(request, response):
@@ -331,8 +327,6 @@ def annotation_options(request, response):
         response.status = 404
 
     add_cors_headers(response)
-    response.content = "Annotation Options\n"
-
 
 def create_annotation(body):
     # TODO: verify media type is JSON of some kind (at least)
@@ -409,6 +403,8 @@ def annotation_delete(request, response):
 
 if __name__ == '__main__':
     print 'http://' + myhost + ':{0}/'.format(port)
+    print 'container URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/"
+    print 'example annotation URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/anno1.json"
 
     routes = [
         ("GET", "", wptserve.handlers.file_handler),

@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Parser-inserted scripts with a correct nonce are allowed with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' -->
+</head>
+
+<body>
+    <h1>Parser-inserted scripts with a correct nonce are allowed with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        window.addEventListener('securitypolicyviolation', function(e) {
+            assert_unreached('No CSP violation report has fired.');
+        });
+
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWrite') {
+                    t.done();
+                }
+            }));
+            document.write('<scr' + 'ipt nonce="dummy" id="documentWrite" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted script via `document.write` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWriteln') {
+                    t.done();
+                }
+            }));
+            document.writeln('<scr' + 'ipt nonce="dummy" id="documentWriteln" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted script via `document.writeln` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWrite-defer') {
+                    t.done();
+                }
+            }));
+            document.write('<scr' + 'ipt defer nonce="dummy" id="documentWrite-defer" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted deferred script via `document.write` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWriteln-defer') {
+                    t.done();
+                }
+            }));
+            document.writeln('<scr' + 'ipt defer nonce="dummy" id="documentWriteln-defer" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted deferred script via `document.writeln` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWrite-async') {
+                    t.done();
+                }
+            }));
+            document.write('<scr' + 'ipt async nonce="dummy" id="documentWrite-async" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted async script via `document.write` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWriteln-async') {
+                    t.done();
+                }
+            }));
+            document.writeln('<scr' + 'ipt async nonce="dummy" id="documentWriteln-async" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted async script via `document.writeln` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWrite-defer-async') {
+                    t.done();
+                }
+            }));
+            document.write('<scr' + 'ipt defer async nonce="dummy" id="documentWrite-defer-async" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted deferred async script via `document.write` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'documentWriteln-defer-async') {
+                    t.done();
+                }
+            }));
+            document.writeln('<scr' + 'ipt defer async nonce="dummy" id="documentWriteln-defer-async" src="simpleSourcedScript.js"></scr' + 'ipt>');
+        }, 'Parser-inserted deferred async script via `document.writeln` with a correct nonce is allowed with `strict-dynamic`.');
+    </script>
+
+</body>
+
+</html>

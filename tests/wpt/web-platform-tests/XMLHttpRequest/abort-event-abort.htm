@@ -4,7 +4,7 @@
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following-sibling::ol/li[4]/ol/li[5]" />
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <title>XMLHttpRequest: The abort() method: do not fire abort event in OPENED state when send() flag is unset. send() throws after abort().</title>
+    <title>XMLHttpRequest: The abort() method: do not fire abort event in OPENED state when send() flag is unset.</title>
 </head>
 
 <body>
@@ -24,6 +24,7 @@
                     if (xhr.readyState == 1)
                     {
                         xhr.abort();
+                        assert_equals(xhr.readyState, 1, "abort() cannot change readyState when readyState is 1 and send() flag is unset")
                     }
                 });
             };
@@ -37,7 +38,7 @@
             };
 
             xhr.open("GET", "./resources/content.py", true); // This should cause a readystatechange event that calls abort()
-            assert_throws("InvalidStateError", function(){ xhr.send() })
+            xhr.send() // should not throw since abort() was a no-op
             test.done()
         });
     </script>

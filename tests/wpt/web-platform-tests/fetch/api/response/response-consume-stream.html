@@ -28,6 +28,8 @@ var formData = new FormData();
 formData.append("name", "value");
 var textData = JSON.stringify("This is response's body");
 var blob = new Blob([textData], { "type" : "text/plain" });
+var urlSearchParamsData = "name=value";
+var urlSearchParams = new URLSearchParams(urlSearchParamsData);
 
 promise_test(function(test) {
     var response = new Response(blob);
@@ -38,6 +40,11 @@ promise_test(function(test) {
     var response = new Response(textData);
     return validateStreamFromString(response.body.getReader(), textData);
 }, "Read text response's body as readableStream");
+
+promise_test(function(test) {
+    var response = new Response(urlSearchParams);
+    return validateStreamFromString(response.body.getReader(), urlSearchParamsData);
+}, "Read URLSearchParams response's body as readableStream");
 
 promise_test(function(test) {
     var arrayBuffer = new ArrayBuffer(textData.length);

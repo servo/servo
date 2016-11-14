@@ -1,0 +1,14 @@
+[SecureContext, NoInterfaceObject] interface WebAuthentication {
+    Promise < ScopedCredentialInfo > makeCredential (
+        Account                                 accountInformation,
+        sequence < ScopedCredentialParameters > cryptoParameters,
+        BufferSource                            attestationChallenge,
+        optional ScopedCredentialOptions        options
+    );
+
+    Promise < WebAuthnAssertion > getAssertion (
+        BufferSource               assertionChallenge,
+        optional AssertionOptions  options
+    );
+};
+

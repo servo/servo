@@ -51,4 +51,11 @@ test(function () {
   assert_equals(tr.cells.length, 0);
 }, "HTMLTableRowElement deleteCell(-1) with no cells");
 
+test(function () {
+  assert_equals(tr.cells.length, 0);
+  assert_throws("IndexSizeError", function () {
+    tr.deleteCell(0);
+  });
+}, "HTMLTableRowElement deleteCell(0) with no cells");
+
 </script>

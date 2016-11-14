@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageStartIndexImplemented.json",
+  "assertionType": "should",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Page has has no valid startIndex value.",
+  "title": "Implements **Annotation Page _startIndex_ key** with valid value of _type_ integer >= 0 - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "$ref": "collections.json#/definitions/startIndexFound" },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/startIndexFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

@@ -37,12 +37,14 @@ function textTextInContainer(cont, html, expectedPlain, msg) {
     for (var i = 0; i < pokes.length; ++i) {
       pokes[i].textContent = 'abc';
     }
-    pokes = document.getElementsByClassName('poke-rp');
-    for (var i = 0; i < pokes.length; ++i) {
-      var rp = document.createElement("rp");
-      rp.textContent = "abc";
-      pokes[i].appendChild(rp);
-    }
+    ['rp', 'optgroup', 'div'].forEach(function(tag) {
+      pokes = document.getElementsByClassName('poke-' + tag);
+      for (var i = 0; i < pokes.length; ++i) {
+        var el = document.createElement(tag);
+        el.textContent = "abc";
+        pokes[i].appendChild(el);
+      }
+    });
     var shadows = document.getElementsByClassName('shadow');
     for (var i = 0; i < shadows.length; ++i) {
       var s = shadows[i].createShadowRoot();

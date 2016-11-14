@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-pageCreatorAgentTypeImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Type (Person, Organization, Software) for Annotation Page Creator (Agent), inherited from Collection, not found. Agents should have one or more type values.",
+  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_type_ key** with one or more values from **model-recommended list (Person, Organization, Software)** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when type for Annotation Page Creator (Agent), inherited from Collection, is implemented (Section 3.3.2)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "#/definitions/creatorAgentNameFound" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "#/definitions/creatorAgentNameFound" }
+         },
+        "required": [ "first" ]
+      }
+  ],
+  "definitions": {
+   "creatorAgentNameFound":
+    {  "properties":
+      {  "creator":
+        { "oneOf":
+          [
+          { "$ref": "otherProperties.json#/definitions/agentNameFound" },
+          { "type": "array",
+            "minItems": 1,
+            "not":
+            { "items": { "not": { "$ref": "otherProperties.json#/definitions/agentNameFound" } } }
+          }
+          ]
+        }
+      },
+      "required": ["creator"]
+   }
+  }
+}

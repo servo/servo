@@ -33,7 +33,7 @@
         .then( function( contents ) {
 
             // Select a content item with multiple keys
-            var contentitem = contents.filter( function( item ) { return item.keys.length > 1; } )[ 0 ];
+            var contentitem = contents.filter( function( item ) { return item.keys && item.keys.length > 1; } )[ 0 ];
             var handler = new MessageHandler( 'org.w3.clearkey', contentitem );
             var config = {  keysystem:          'org.w3.clearkey',
                             content:            contentitem,

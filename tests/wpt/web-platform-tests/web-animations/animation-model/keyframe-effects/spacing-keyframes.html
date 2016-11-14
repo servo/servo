@@ -322,7 +322,70 @@ test(function(t) {
    'and falling back to distribute spacing for the reset with some specific ' +
    'offsets');
 
-// Bug 1276193: Test for mixing percent and pixel values.
+// Tests for setting spacing by KeyframeEffect.spacing.
+
+test(function(t) {
+  var anim = createDiv(t).animate([ { marginLeft: '0px' },
+                                    { marginLeft: '-20px' },
+                                    { marginLeft: '100px' },
+                                    { marginLeft: '50px' } ],
+                                  { duration: 100 * MS_PER_SEC });
+
+  anim.effect.spacing = 'paced(margin-left)';
+
+  var frames = anim.effect.getKeyframes();
+  var cumDist = [0, 20, 140, 190];
+  assert_equals(frames[0].computedOffset, 0.0,
+                '1st frame offset');
+  assert_equals(frames[1].computedOffset, cumDist[1] / cumDist[3],
+                '2nd frame offset');
+  assert_equals(frames[2].computedOffset, cumDist[2] / cumDist[3],
+                '3rd frame offset');
+  assert_equals(frames[3].computedOffset, 1.0,
+                'last frame offset');
+}, 'Test paced spacing by setter');
+
+test(function(t) {
+  var anim = createDiv(t).animate([ { marginLeft: '0px' },
+                                    { marginLeft: '-20px' },
+                                    { marginLeft: '100px' },
+                                    { marginLeft: '50px' } ],
+                                  { duration: 100 * MS_PER_SEC,
+                                    spacing: 'paced(margin-left)' });
+
+  anim.effect.spacing = 'distribute';
+
+  var frames = anim.effect.getKeyframes();
+  var slots = frames.length - 1;
+  assert_equals(frames[0].computedOffset, 0.0, '1st frame offset');
+  assert_equals(frames[1].computedOffset, 1.0 / slots, '2nd frame offset');
+  assert_equals(frames[2].computedOffset, 2.0 / slots, '3rd frame offset');
+  assert_equals(frames[3].computedOffset, 1.0, 'last frame offset');
+}, 'Test distribute spacing by setter');
+
+test(function(t) {
+  var anim =
+    createDiv(t).animate([ { marginLeft: '0px', borderRadius: '0%' },
+                           { marginLeft: '-20px', borderRadius: '50%' },
+                           { marginLeft: '100px', borderRadius: '25%' },
+                           { marginLeft: '50px', borderRadius: '100%' } ],
+                         { duration: 100 * MS_PER_SEC,
+                           spacing: 'paced(margin-left)' });
+
+  anim.effect.spacing = 'paced(border-radius)';
+
+  var frames = anim.effect.getKeyframes();
+  var cumDist = [0, 50, 50 + 25, 50 + 25 + 75];
+
+  assert_equals(frames[0].computedOffset, 0.0,
+                '1st frame offset');
+  assert_equals(frames[1].computedOffset, cumDist[1] / cumDist[3],
+                '2nd frame offset');
+  assert_equals(frames[2].computedOffset, cumDist[2] / cumDist[3],
+                '3rd frame offset');
+  assert_equals(frames[3].computedOffset, 1.0,
+                'last frame offset');
+}, 'Test paced spacing by changing the paced property');
 
 </script>
 </body>

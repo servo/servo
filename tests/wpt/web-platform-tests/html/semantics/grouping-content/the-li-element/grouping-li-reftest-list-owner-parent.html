@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>list owner is calculated to be the parent if there is no ancestor ul/ol/menu</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<link rel="match" href="grouping-li-reftest-list-owner-parent-ref.html">
+
+<style>
+  li {
+    list-style-type: decimal;
+    list-style-position: inside;
+  }
+
+  .container {
+    padding: 50px;
+  }
+</style>
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>1. A
+2. B
+1. C
+1. D
+       1. E
+3. F</pre>
+
+<hr>
+
+<div class="container">
+  <li>A</li>
+  <li>B</li>
+  <div>
+    <li>C</li>
+    <span>
+      <li>D</li>
+    </span>
+  </div>
+  <blockquote>
+    <li>E</li>
+  </blockquote>
+  <li>F</li>
+</div>

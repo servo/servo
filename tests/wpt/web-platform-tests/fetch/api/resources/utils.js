@@ -51,6 +51,13 @@ function stringToArray(str) {
   return array;
 }
 
+function encode_utf8(str)
+{
+    if (self.TextEncoder)
+        return (new TextEncoder).encode(str);
+    return stringToArray(unescape(encodeURIComponent(str)));
+}
+
 function validateBufferFromString(buffer, expectedValue, message)
 {
   return assert_array_equals(new Uint8Array(buffer !== undefined ? buffer : []), stringToArray(expectedValue), message);

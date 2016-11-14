@@ -4,35 +4,36 @@
     <title>XMLHttpRequest: send() with document.domain set</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <!-- The spec doesn't seem to explicitly cover this case (as of June 2013) -->
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol[1]/li[2]/ol[1]/li[3]" />
   </head>
   <body>
     <div id="log"></div>
     <script>
-      // first make sure we actually run off a domain with at least three parts, in order to be able to shorten it..
-      if (location.hostname.split(/\./).length < 3) {
-        location.href = location.protocol+'//www2.'+location.host+location.pathname
-      }
+      var test_base_url = location.protocol+'//www2.'+location.host+"/XMLHttpRequest/resources/",
+          test_windows = [
+            window.open(test_base_url + "send-after-setting-document-domain-window-1.htm"),
+            window.open(test_base_url + "send-after-setting-document-domain-window-2.htm"),
+          ],
+          num_tests_left = test_windows.length;
 
-      test(function() {
-        document.domain = document.domain // this is not a noop, it does actually change the security context
-        var client = new XMLHttpRequest()
-        client.open("GET", "resources/status.py?content=hello", false)
-        client.send(null)
-        assert_equals(client.responseText, "hello")
-        document.domain = document.domain.replace(/^\w+\./, '')
-        client.open("GET", "resources/status.py?content=hello2", false)
-        client.send(null)
-        assert_equals(client.responseText, "hello2")
-      }, "loading documents from original origin after setting document.domain")
-      // try to load a document from the origin document.domain was set to
-      test(function () {
-        var client = new XMLHttpRequest()
-        client.open("GET", location.protocol + '//' + document.domain + location.pathname.replace(/[^\/]*$/, '') + "resources/status.py?content=hello3", false)
-        // AFAIK this should throw
-        assert_throws('NetworkError', function(){client.send(null)})
-      }, "loading documents from the origin document.domain was set to should throw")
+      async_test(function(wrapper_test) {
+        window.addEventListener("message", function(evt) {
+          // run a shadow test that just forwards the results
+          async_test(function(test) {
+            assert_true(evt.data.passed, evt.data.message);
+            test.done();
+          }, evt.data.name);
+
+          // after last result comes in, close all test
+          // windows and complete the wrapper test.
+          if (--num_tests_left == 0) {
+            for (var i=0; i<test_windows.length; ++i) {
+              test_windows[i].close();
+            }
+            wrapper_test.done();
+          }
+        }, false);
+      }, "All tests ran");
     </script>
   </body>
 </html>

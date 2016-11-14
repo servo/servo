@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Remove the first element on the fullscreen element stack</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="first">
+    <div id="last"></div>
+</div>
+<script>
+async_test(function(t)
+{
+    var first = document.getElementById("first");
+    trusted_request(first);
+    document.onfullscreenchange = t.step_func(function()
+    {
+        assert_equals(document.fullscreenElement, first);
+        var last = document.getElementById("last");
+        trusted_request(last);
+        document.onfullscreenchange = t.step_func(function()
+        {
+            assert_equals(document.fullscreenElement, last);
+            first.remove();
+            document.onfullscreenchange = t.step_func(function()
+            {
+                assert_equals(document.fullscreenElement, null);
+                t.done();
+            });
+        });
+    });
+});
+</script>

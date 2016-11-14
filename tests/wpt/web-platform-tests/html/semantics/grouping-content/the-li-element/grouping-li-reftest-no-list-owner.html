@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>If no ancestors generate CSS boxes, the list item has no owner, and thus gets numbered as 0</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#ordinal-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#list-owner">
+
+<link rel="match" href="grouping-li-reftest-no-list-owner-ref.html">
+
+<style>
+  html, body {
+    display: contents;
+  }
+
+  li {
+    list-style-type: decimal;
+    margin-left: 50px;
+  }
+</style>
+
+<p>This test matches if the list displays similar to the following</p>
+
+<pre>0. A
+0. B
+0. C</pre>
+
+<hr>
+
+<li>A</li>
+<li>B</li>
+<li>C</li>

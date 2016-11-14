@@ -230,83 +230,68 @@
         // is the number of child li elements otherwise."
         // "The start IDL attribute has the same default as its content attribute."
 
-        // basic - default should be 1
         test(function() {
-            assert_equals(document.getElementById("basic").start, 1, "no start attribute provided -> 1");
+            assert_equals(document.getElementById("basic").start, 1);
         }, "Default start value for non-reversed list should be 1");
 
-        // decimal's first element has value of .5 which should return 1
         test(function() {
-            assert_equals(document.getElementById("decimal").start, 1, "start of .5 -> 1 (default)");
+            assert_equals(document.getElementById("decimal").start, 1);
         }, "IDL and content attribute parse start of '.5' correctly.");
 
-        // letter's first element has value of A which should return 1
         test(function() {
-            assert_equals(document.getElementById("letter").start, 1, "start of A -> 1 (default)");
+            assert_equals(document.getElementById("letter").start, 1);
         }, "IDL and content attribute parse start of 'A' correctly.");
 
-        // basicRevGoodName - default should be 3
         test(function() {
-            assert_equals(document.getElementById("basicRevGoodName").start, 3, "no start attribute provided -> 3");
-        }, "Default start value (if none provided) for reversed list = child li elements.");
+            assert_equals(document.getElementById("basicRevGoodName").start, 1);
+        }, "Default start value (if none provided) for reversed list = 1.");
 
-        // basicRevEmpty - default should be 3
         test(function() {
-            assert_equals(document.getElementById("basicRevEmpty").start, 3, "start of A -> 3 (default)");
-        }, "Default start value (if failed to parse) for reversed list = child li elements.");
+            assert_equals(document.getElementById("basicRevEmpty").start, 1);
+        }, "Default start value (if failed to parse) for reversed list = 1.");
 
-        // lots - default should be 3
         test(function() {
-            assert_equals(document.getElementById("lots").start, 3, "no start attribute -> 3 (default)");
-        }, "Default start value for reversed list = child li elements (even with tons of other child elements).");
+            assert_equals(document.getElementById("lots").start, 1);
+        }, "Default start value for reversed list = 1 (even with tons of other child elements).");
 
-        // adding child element changes default start value for reversed list
         test(function() {
             var myList = document.getElementById("basicRevGoodName"), myLI = document.createElement("li");
             myList.appendChild(myLI);
-            assert_equals(document.getElementById("basicRevGoodName").start, 4, "Adding child element to reversed list adds 1 to start value");
-        }, "Adding child element to reversed list adds 1 to start value");
+            assert_equals(document.getElementById("basicRevGoodName").start, 1);
+        }, "Adding child element to reversed list does not change start value");
 
-        // removing child element changes default start value for reversed list
         test(function() {
             var myList = document.getElementById("basicRevTrue");
             myList.removeChild(myList.children[0]);
-            assert_equals(document.getElementById("basicRevTrue").start, 2, "Deleting child element from reversed list reduces start value by 1");
-        }, "Deleting child element from reversed list reduces start value by 1");
+            assert_equals(document.getElementById("basicRevTrue").start, 1);
+        }, "Deleting child element from reversed list does not change start value");
 
-        // start2's first element has value of 2
         test(function() {
-            assert_equals(document.getElementById("start2").start, 2, "start of 2 -> 2");
+            assert_equals(document.getElementById("start2").start, 2);
         }, "IDL and content attribute parse start of '2' correctly.");
 
-        // negative's first element has value of -10
         test(function() {
-            assert_equals(document.getElementById("negative").start, -10, "start of -10 -> -10");
+            assert_equals(document.getElementById("negative").start, -10);
         }, "IDL and content attribute parse start of '-10' correctly.");
 
-        // posFloatDown's first element has value of 4.03 which should return 4
         test(function() {
-            assert_equals(document.getElementById("posFloatDown").start, 4, "start of 4.03 -> 4");
+            assert_equals(document.getElementById("posFloatDown").start, 4);
         }, "IDL and content attribute parse start of '4.03' correctly.");
 
-        // negFloatDown's first element has value of -4.03 which should return -4
         test(function() {
-            assert_equals(document.getElementById("negFloatDown").start, -4, "start of -4.03 -> -4");
+            assert_equals(document.getElementById("negFloatDown").start, -4);
         }, "IDL and content attribute parse start of '-4.03' correctly.");
 
-        // posFloatUp's first element has value of 4.9 which should return 4
         test(function() {
-            assert_equals(document.getElementById("posFloatUp").start, 4, "start of 4.9 -> 4");
+            assert_equals(document.getElementById("posFloatUp").start, 4);
         }, "IDL and content attribute parse start of '4.9' correctly.");
 
-        // negFloatUp's first element has value of -4.9 which should return -4
         test(function() {
-            assert_equals(document.getElementById("negFloatUp").start, -4, "start of -4.9 -> -4");
+            assert_equals(document.getElementById("negFloatUp").start, -4);
         }, "IDL and content attribute parse start of '-4.9' correctly.");
 
-        // exponent's first element has value of 7e2 which should return 7
         test(function() {
-            assert_equals(document.getElementById("exponent").start, 7, "start of 7e2 -> 7");
+            assert_equals(document.getElementById("exponent").start, 7);
         }, "IDL and content attribute parse start of '7e2' correctly.");
 
     </script>

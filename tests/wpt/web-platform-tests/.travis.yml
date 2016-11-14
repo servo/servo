@@ -1,14 +1,50 @@
-sudo: false # cause Travis to start builds much faster
+dist: trusty
 language: python
-python:
-  - "2.7"
+addons:
+  hosts:
+    - web-platform.test
+    - www.web-platform.test
+    - www1.web-platform.test
+    - www2.web-platform.test
+    - xn--n8j6ds53lwwkrqhv28a.web-platform.test
+    - xn--lve-6lad.web-platform.test
 before_install:
   - git submodule update --init --recursive
-# command to run tests, e.g. python setup.py test
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+install:
+  - pip install -U setuptools
+  - pip install -U requests
+matrix:
+  include:
+    - os: linux
+      python: "2.7"
+      env:
+        - SCRIPT=ci_lint.sh
+    - os: linux
+      python: "2.7"
+      addons:
+        apt:
+          packages:
+            - libnss3-tools
+      env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh
+        - PRODUCT=firefox
+    - os: linux
+      sudo: required
+      python: "2.7"
+      addons:
+        apt:
+          packages:
+            - libappindicator1
+            - fonts-liberation
+      env:
+        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
+        - SCRIPT=ci_stability.sh
+        - PRODUCT=chrome
 script:
-  - ./lint
-  - ./manifest
-  - ./diff-manifest.py
+  - bash $SCRIPT
 notifications:
   email:
     on_success: never

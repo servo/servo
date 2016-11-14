@@ -1,8 +1,8 @@
 function runTest(config,qualifier) {
 
-    var testname = testnamePrefix( qualifier, config.keysystem )
+    var testname = testnamePrefix(qualifier, config.keysystem)
                                     + ', persistent-usage-record, '
-                                    + /video\/([^;]*)/.exec( config.videoType )[ 1 ]
+                                    + /video\/([^;]*)/.exec(config.videoType)[1]
                                     + ', playback, retrieve in new window';
 
     var configuration = {   initDataTypes: [ config.initDataType ],
@@ -12,7 +12,6 @@ function runTest(config,qualifier) {
 
 
     async_test( function( test ) {
-
         var _video = config.video,
             _mediaKeys,
             _mediaKeySession,
@@ -37,17 +36,17 @@ function runTest(config,qualifier) {
         }
 
         function onMessage(event) {
-            assert_equals( event.target, _mediaKeySession );
-            assert_true( event instanceof window.MediaKeyMessageEvent );
-            assert_equals( event.type, 'message');
+            assert_equals(event.target, _mediaKeySession);
+            assert_true(event instanceof window.MediaKeyMessageEvent);
+            assert_equals(event.type, 'message');
 
-            assert_in_array(  event.messageType, [ 'license-request', 'individualization-request' ] );
+            assert_in_array(  event.messageType,['license-request', 'individualization-request']);
 
-            config.messagehandler( event.messageType, event.message ).then( function( response ) {
-                _mediaKeySession.update( response ).then(function() {
-                    _video.setMediaKeys(_mediaKeys);
-                }).catch(onFailure);
-            });
+            config.messagehandler( event.messageType, event.message ).then(function(response) {
+                return _mediaKeySession.update(response);
+            }).then(function() {
+                _video.setMediaKeys(_mediaKeys);
+            }).catch(onFailure);
         }
 
         function onPlaying(event) {
@@ -57,11 +56,11 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( !_isClosing && _video.currentTime > ( config.duration || 1 ) ) {
+            if (!_isClosing && _video.currentTime > (config.duration || 1)) {
                 _isClosing = true;
-                _video.removeEventListener('timeupdate', onTimeupdate );
+                _video.removeEventListener('timeupdate', onTimeupdate);
                 _video.pause();
-                _mediaKeySession.closed.then( test.step_func( onClosed ) );
+                _mediaKeySession.closed.then( test.step_func(onClosed));
                 _mediaKeySession.close();
             }
         }
@@ -70,9 +69,9 @@ function runTest(config,qualifier) {
             _video.src = "";
             _video.setMediaKeys( null );
 
-            var win = window.open( config.windowscript );
-            window.addEventListener('message', test.step_func(function( event ) {
-                event.data.forEach(test.step_func(function( assertion ) {
+            var win = window.open(config.windowscript);
+            window.addEventListener('message', test.step_func(function(event) {
+                event.data.forEach(test.step_func(function(assertion) {
                     assert_equals(assertion.actual, assertion.expected, assertion.message);
                 }));
 
@@ -84,25 +83,27 @@ function runTest(config,qualifier) {
             delete config.messagehandler;
 
             win.onload = function() {
-                win.postMessage( { config: config, sessionId: _sessionId }, '*' );
+                win.postMessage({ config: config, sessionId: _sessionId }, '*');
             }
         }
 
-        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ]).then(function(access) {
+        navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function(access) {
             return access.createMediaKeys();
         }).then(function(mediaKeys) {
             _mediaKeys = mediaKeys;
-            return _video.setMediaKeys( mediaKeys );
+            return _video.setMediaKeys(mediaKeys);
         }).then(function(){
             _mediaKeySession = _mediaKeys.createSession( 'persistent-usage-record' );
             waitForEventAndRunStep('encrypted', _video, onEncrypted, test);
             waitForEventAndRunStep('playing', _video, onPlaying, test);
-            return config.servercertificate ? _mediaKeys.setServerCertificate( config.servercertificate ) : true;
-        }).then(function( success ) {
+            return config.servercertificate ? _mediaKeys.setServerCertificate(config.servercertificate) : true;
+        }).then(function(success) {
             return testmediasource(config);
         }).then(function(source) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
+            return source.done;
+        }).then(function(){
             _video.play();
         }).catch(onFailure);
     }, testname);

@@ -13,12 +13,13 @@ test(function(){
     assert_equals(ev.track, null, 'ev.track after assignment');
 }, document.title+', one arg');
 test(function(){
-    var obj = {};
-    var ev = new TrackEvent('foo', {track:obj});
+    var video = document.createElement('video');
+    var testTrack = video.addTextTrack('subtitles', 'foo', 'foo');
+    var ev = new TrackEvent('foo', {track: testTrack});
     assert_true(ev instanceof TrackEvent, 'ev instanceof TrackEvent');
     assert_true(ev instanceof Event, 'ev instanceof Event');
-    assert_equals(ev.track, obj, 'ev.track');
+    assert_equals(ev.track, testTrack, 'ev.track');
     ev.track = {};
-    assert_equals(ev.track, obj, 'ev.track after assignment');
+    assert_equals(ev.track, testTrack, 'ev.track after assignment');
 }, document.title+', two args');
 </script>

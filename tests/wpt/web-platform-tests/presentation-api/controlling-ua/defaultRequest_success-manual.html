@@ -1,50 +1,58 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Presentation API, testing to start a new presentation with an default request setup. (success - manual)</title>
+<title>[Optional] Starting a presentation from the browser using a default presentation request.</title>
 <link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
-<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<link rel="author" title="Tomoyuki Shimizu" href="https://github.com/tomoyukilabs">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentation-defaultrequest">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
 
-<p>Click the button below and select the available casting device, to start the manual test.</p>
-<button onclick="startPresentation()">Start Presentation Test</button>
+<p>
+    Click the button or the menu item for presentation on your browser (for example, "Cast"), <br>
+    to start the manual test, and select a presentation display when prompted to do so.<br>
+    The test passes if a "PASS" result appears.
+</p>
+<p id="notice">
+    If your browser does not support <code>defaultRequest</code>, please click this button: <button id="notsupported">Not Supported</button>
+</p>
 
 <script>
     // disable the timeout function for the tests
     // and call 'done()' when the tests cases are finished.
     setup({explicit_timeout: true});
 
-    // -------------------
-    // defaultRequest init
-    // -------------------
-    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
-            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate;
+    // -----------
+    // DOM Element
+    // -----------
+    var button = document.getElementById('notsupported'),
+        notice = document.getElementById('notice');
 
-    navigator.presentation.defaultRequest = new PresentationRequest(validPresURL);
-
-    var startPresentation = function () {
-        promise_test(function () {
-            return navigator.presentation.defaultRequest.start();
-        }, "The presentation was started successfully.");
-    }
     // ------------------------------
     // Start New Presentation with
     // 'default request' Test - BEGIN
     // ------------------------------
-    navigator.presentation.defaultRequest.onconnectionavailable = function (evt) {
-        var connection = evt.connection;
-
-        test(function () {
-
-            assert_equals(connection.state, "connected", "The presentation has an connected state.");
-            assert_true(!!connection.id, "The connection ID is set.");
-            assert_true(typeof connection.id === 'string', "The connection ID is a string.");
-            assert_true(connection instanceof PresentationConnection, "The connection is an instance of PresentationConnection.");
-
-        }, "The presentation was started successfully.");
-
-        done();
-    };
+    async_test(function(t) {
+        // clean up the instruction notice when the test ends
+        t.add_cleanup(function() {
+            notice.parentNode.removeChild(notice);
+        });
+        // set an event handler to make the test fail when the button is clicked
+        button.onclick = t.step_func_done(function() {
+            assert_unreached('This browser does not support defaultRequest.');
+        });
+        // set up a default presentation request
+        var request = new PresentationRequest(presentationUrls);
+        navigator.presentation.defaultRequest = request;
+        request.onconnectionavailable = t.step_func_done(function (evt) {
+            var connection = evt.connection;
+            // check the presentation connection and its attributes
+            assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
+            assert_true(!connection.id, 'The connection ID is set.');
+            assert_true(typeof connection.id === 'string', 'The connection ID is a string.');
+            assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
+        });
+    });
     // ----------------------------
     // Start New Presentation with
     // 'default request' Test - END

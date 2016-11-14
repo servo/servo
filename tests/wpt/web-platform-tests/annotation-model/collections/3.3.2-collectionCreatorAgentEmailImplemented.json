@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.2-collectionCreatorAgentEmailImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Email for Annotation Collection Creator (Agent) not found. Agents may have one or more email values.",
+  "title": "Implements Annotation Collection-level creator (Agent) **_email_ key** with one or more values, each of which is a **mailto: uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when one or more email values for Annotation Collection Creator (Agent) is implemented (Section 3.3.2)",
+  "properties":
+  {  "creator":
+    { "oneOf":
+      [
+      { "$ref": "otherProperties.json#/definitions/agentEmailFound" },
+      { "type": "array",
+        "minItems": 1,
+        "not":
+        { "items": { "not": { "$ref": "otherProperties.json#/definitions/agentEmailFound" } } }
+      }
+      ]
+    }
+  },
+  "required": ["creator"]
+}

@@ -100,7 +100,7 @@ test(function(t) {
   var anim = createDiv(t).animate(null, { duration: 1000,
                                           iterations: 2.3,
                                           delay: 500,
-                                          endDelay: -3000,
+                                          endDelay: -2500,
                                           fill: 'forwards' });
   anim.finish();
   assert_equals(anim.effect.getComputedTiming().currentIteration, 0);

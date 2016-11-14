@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="http://www.w3.org/TR/SVG2/shapes.html#RectElement"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="rect-01-ref.html"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="rect element renders correctly."/>
+  </metadata>
+  <rect x="10" y="10" width="50" height="50" fill="blue"/>
+</svg>

@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageTotalImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Page has no total key (inherited from Collection).",
+  "title": "Implements **Annotation Page _total_ key** (inherited from Collection) with valid value - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/totalFound" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/totalFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Remove the parent of the fullscreen element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div>
+    <div id="child"></div>
+</div>
+<script>
+async_test(function(t)
+{
+    var child = document.getElementById("child");
+    trusted_request(child);
+    document.onfullscreenchange = t.step_func(function()
+    {
+        assert_equals(document.fullscreenElement, child);
+        child.parentNode.remove();
+        document.onfullscreenchange = t.step_func(function()
+        {
+            assert_equals(document.fullscreenElement, null);
+            t.done();
+        });
+    });
+});
+</script>

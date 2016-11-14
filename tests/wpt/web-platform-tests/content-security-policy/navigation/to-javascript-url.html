@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'">
+<body>
+<script nonce="abc">
+  function assert_csp_event_for_element(test, element) {
+    document.addEventListener("securitypolicyviolation", test.step_func(e => {
+      if (e.target != element)
+        return;
+      assert_equals(e.blockedURI, "inline");
+      assert_equals(e.effectiveDirective, "script-src");
+      assert_equals(element.contentDocument.body.innerText, "");
+      element.parentNode.removeChild(element);
+      test.done();
+    }));
+  }
+
+  async_test(t => {
+    var i = document.createElement("iframe");
+
+    assert_csp_event_for_element(t, i); 
+
+    i.src = "javascript:'Fail.'";
+    document.body.appendChild(i);
+  }, "<iframe src='javascript:'> blocked without 'unsafe-inline'.");
+
+  async_test(t => {
+    var i = document.createElement("iframe");
+
+    assert_csp_event_for_element(t, i); 
+
+    i.onload = _ => { i.src = "javascript:'Fail.'"; }
+    document.body.appendChild(i);
+  }, "<iframe> navigated to 'javascript:' blocked without 'unsafe-inline'.");
+
+  async_test(t => {
+    var i = document.createElement("iframe");
+
+    assert_csp_event_for_element(t, i); 
+
+    i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'unsafe-inline'");
+    i.onload = _ => { i.src = "javascript:'Fail.'"; }
+    document.body.appendChild(i);
+  }, "<iframe src='...'> with 'unsafe-inline' navigated to 'javascript:' blocked in this document");
+ 
+  async_test(t => {
+    var i = document.createElement("iframe");
+
+    assert_csp_event_for_element(t, i); 
+
+    i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'none'");
+    i.onload = _ => { i.src = "javascript:'Fail.'"; }
+    document.body.appendChild(i);
+  }, "<iframe src='...'> without 'unsafe-inline' navigated to 'javascript:' blocked in this document.");
+</script>

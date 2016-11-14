@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageStartIndexValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Page has an invalid startIndex value.",
+  "title": "True when **Annotation Page has no _startIndex_ key** or has **_startIndex_ key** with valid value of _type_ integer >= 0 - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "allOf": [
+           { "$ref": "collections.json#/definitions/startIndexDefinition" },
+           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+         ]
+      },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/startIndexDefinition" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

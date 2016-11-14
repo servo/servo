@@ -31,10 +31,11 @@
         getSupportedContent( 'org.w3.clearkey' )
         .then( function( contents )
         {
-            var handler = new MessageHandler( 'org.w3.clearkey', contents[ 0 ] );
+            var content = contents.filter(function(content) { return content.keys; })[0],
+                handler = new MessageHandler( 'org.w3.clearkey', content );
 
             runTest( {  keysystem:          'org.w3.clearkey',
-                        content:            contents[ 0 ],
+                        content:            content,
                         messagehandler:     handler.messagehandler,
                      } );
         } );

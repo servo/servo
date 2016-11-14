@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG requiredExtensions</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1">
+<meta name="assert" content="Verify whether the MathML namespace is recognized as a required extensions of SVG foreignObject when using the hasExtension javascript function.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+  assert_true(document.createElementNS("http://www.w3.org/2000/svg", "foreignObject").hasExtension("http://www.w3.org/1998/Math/MathML"))
+  }, "Testing foreignObject.hasExtension('http://www.w3.org/1998/Math/MathML')");
+</script>

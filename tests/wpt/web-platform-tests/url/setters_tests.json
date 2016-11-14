@@ -346,14 +346,14 @@
             }
         },
         {
-            "comment": "Port number is removed if empty in the new value",
+            "comment": "Port number is unchanged if not specified",
             "href": "http://example.net:8080",
             "new_value": "example.com:",
             "expected": {
-                "href": "http://example.com/",
-                "host": "example.com",
+                "href": "http://example.com:8080/",
+                "host": "example.com:8080",
                 "hostname": "example.com",
-                "port": ""
+                "port": "8080"
             }
         },
         {
@@ -761,7 +761,7 @@
             }
         },
         {
-            "comment": "Port number is removed if empty in the new value",
+            "comment": "Port number is removed if empty is the new value",
             "href": "http://example.net:8080",
             "new_value": "",
             "expected": {
@@ -972,6 +972,15 @@
             "expected": {
                 "href": "http://example.net/..%c3%89t%C3%A9",
                 "pathname": "/..%c3%89t%C3%A9"
+            }
+        },
+        {
+            "comment": "? needs to be encoded",
+            "href": "http://example.net",
+            "new_value": "?",
+            "expected": {
+                "href": "http://example.net/%3F",
+                "pathname": "/%3F"
             }
         }
     ],

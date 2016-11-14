@@ -61,7 +61,7 @@
               // Prior to EOS, the buffered range end time may not have fully reached the next media
               // segment's timecode (adjusted by any timestampOffset). It should not exceed it though.
               // Therefore, an exact assertBufferedEquals() will not work here.
-              assert_equals(sourceBuffer.buffered.length, 1, "sourceBuffer.buffered has 1 range before EOS");
+              assert_greater_than(sourceBuffer.buffered.length, 0, "sourceBuffer.buffered has at least 1 range before EOS");
               assert_equals(threeDecimalPlaces(sourceBuffer.buffered.start(0)),
                             threeDecimalPlaces(expectedBufferedRangeStartTime),
                             "sourceBuffer.buffered range begins where expected before EOS");
