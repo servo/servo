@@ -51,8 +51,6 @@ use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servoparser::{ParserContext, ServoParser};
-use dom::servoparser::html::{ParseContext, parse_html};
-use dom::servoparser::xml::{self, parse_xml};
 use dom::transitionevent::TransitionEvent;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
@@ -1779,15 +1777,17 @@ impl ScriptThread {
         };
 
         if is_xml {
-            parse_xml(&document,
-                      parse_input,
-                      final_url,
-                      xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+            ServoParser::parse_xml_document(
+                &document,
+                parse_input,
+                final_url,
+                Some(incomplete.pipeline_id));
         } else {
-            parse_html(&document,
-                       parse_input,
-                       final_url,
-                       ParseContext::Owner(Some(incomplete.pipeline_id)));
+            ServoParser::parse_html_document(
+                &document,
+                parse_input,
+                final_url,
+                Some(incomplete.pipeline_id));
         }
 
         if incomplete.is_frozen {

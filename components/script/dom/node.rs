@@ -47,7 +47,7 @@ use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHel
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
-use dom::servoparser::html::parse_html_fragment;
+use dom::servoparser::ServoParser;
 use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -833,7 +833,7 @@ impl Node {
         let context_document = document_from_node(self);
         let fragment = DocumentFragment::new(&context_document);
         if context_document.is_html_document() {
-            parse_html_fragment(self.upcast(), markup, fragment.upcast());
+            ServoParser::parse_html_fragment(self.upcast(), markup, fragment.upcast());
         } else {
             // FIXME: XML case
             unimplemented!();

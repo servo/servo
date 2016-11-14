@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
@@ -17,13 +18,68 @@ use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use html5ever_atoms::{Prefix, QualName};
-use msg::constellation_msg::PipelineId;
+use js::jsapi::JSTracer;
 use std::borrow::Cow;
-use super::{LastChunkState, ServoParser, Sink, Tokenizer};
+use super::Sink;
 use url::Url;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName, XmlTokenizer};
-use xml5ever::tree_builder::{NextParserState, NodeOrText, TreeSink, XmlTreeBuilder};
+use xml5ever::tree_builder::{NextParserState, NodeOrText};
+use xml5ever::tree_builder::{Tracer as XmlTracer, TreeSink, XmlTreeBuilder};
+
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+pub struct Tokenizer {
+    #[ignore_heap_size_of = "Defined in xml5ever"]
+    inner: XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>>,
+}
+
+impl Tokenizer {
+    pub fn new(document: &Document, url: Url) -> Self {
+        let sink = Sink {
+            base_url: url,
+            document: JS::from_ref(document),
+        };
+
+        let tb = XmlTreeBuilder::new(sink);
+        let tok = XmlTokenizer::new(tb, Default::default());
+
+        Tokenizer {
+            inner: tok,
+        }
+    }
+
+    pub fn feed(&mut self, input: String) {
+        self.inner.feed(input.into())
+    }
+
+    pub fn run(&mut self) {
+        self.inner.run()
+    }
+
+    pub fn end(&mut self) {
+        self.inner.end()
+    }
+}
+
+impl JSTraceable for XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>> {
+    fn trace(&self, trc: *mut JSTracer) {
+        struct Tracer(*mut JSTracer);
+        let tracer = Tracer(trc);
+
+        impl XmlTracer for Tracer {
+            type Handle = JS<Node>;
+            #[allow(unrooted_must_root)]
+            fn trace_handle(&self, node: JS<Node>) {
+                node.trace(self.0);
+            }
+        }
+
+        let tree_builder = self.sink();
+        tree_builder.trace_handles(&tracer);
+        tree_builder.sink().trace(trc);
+    }
+}
 
 impl<'a> TreeSink for Sink {
     type Handle = JS<Node>;
@@ -118,29 +174,4 @@ impl<'a> TreeSink for Sink {
         }
         NextParserState::Continue
     }
-}
-
-
-pub enum ParseContext {
-    Owner(Option<PipelineId>)
-}
-
-
-pub fn parse_xml(document: &Document,
-                 input: DOMString,
-                 url: Url,
-                 context: ParseContext) {
-    let parser = match context {
-        ParseContext::Owner(owner) => {
-            let tb = XmlTreeBuilder::new(Sink {
-                base_url: url,
-                document: JS::from_ref(document),
-            });
-            let tok = XmlTokenizer::new(tb, Default::default());
-
-            ServoParser::new(
-                document, owner, Tokenizer::XML(tok), LastChunkState::NotReceived)
-        }
-    };
-    parser.parse_chunk(String::from(input));
 }

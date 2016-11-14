@@ -28,8 +28,7 @@ use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::progressevent::ProgressEvent;
-use dom::servoparser::html::{ParseContext, parse_html};
-use dom::servoparser::xml::{self, parse_xml};
+use dom::servoparser::ServoParser;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -1199,10 +1198,11 @@ impl XMLHttpRequest {
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::HTMLDocument);
         // TODO: Disable scripting while parsing
-        parse_html(&document,
-                   DOMString::from(decoded),
-                   wr.get_url(),
-                   ParseContext::Owner(Some(wr.pipeline_id())));
+        ServoParser::parse_html_document(
+            &document,
+            DOMString::from(decoded),
+            wr.get_url(),
+            Some(wr.pipeline_id()));
         document
     }
 
@@ -1212,10 +1212,11 @@ impl XMLHttpRequest {
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
         let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
         // TODO: Disable scripting while parsing
-        parse_xml(&document,
-                  DOMString::from(decoded),
-                  wr.get_url(),
-                  xml::ParseContext::Owner(Some(wr.pipeline_id())));
+        ServoParser::parse_xml_document(
+            &document,
+            DOMString::from(decoded),
+            wr.get_url(),
+            Some(wr.pipeline_id()));
         document
     }
 
