@@ -34,6 +34,7 @@ extern crate net_traits;
 extern crate parking_lot;
 #[macro_use]
 extern crate profile_traits;
+extern crate rayon;
 extern crate script;
 extern crate script_layout_interface;
 extern crate script_traits;
@@ -107,14 +108,12 @@ use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
-use style::parallel::WorkQueueData;
 use style::parser::ParserContextExtraData;
 use style::selector_matching::Stylist;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::thread_state;
 use style::timer::Timer;
-use style::workqueue::WorkQueue;
 use url::Url;
 use util::geometry::max_rect;
 use util::opts;
@@ -173,7 +172,7 @@ pub struct LayoutThread {
     first_reflow: bool,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    parallel_traversal: Option<rayon::ThreadPool>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -383,7 +382,9 @@ impl LayoutThread {
             MediaType::Screen,
             opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if layout_threads != 1 {
-            WorkQueue::new("LayoutWorker", thread_state::LAYOUT, layout_threads).ok()
+            let configuration =
+                rayon::Configuration::new().set_num_threads(layout_threads);
+            rayon::ThreadPool::new(configuration).ok()
         } else {
             None
         };
@@ -711,19 +712,6 @@ impl LayoutThread {
             size: heap_size_of_local_context(),
         });
 
-        // ... as do each of the LayoutWorkers, if present.
-        if let Some(ref traversal) = self.parallel_traversal {
-            let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
-            for (i, size) in sizes.iter().enumerate() {
-                reports.push(Report {
-                    path: path![formatted_url,
-                                format!("layout-worker-{}-local-context", i)],
-                    kind: ReportKind::ExplicitJemallocHeapSize,
-                    size: *size,
-                });
-            }
-        }
-
         reports_chan.send(reports);
     }
 
@@ -773,9 +761,8 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
-        if let Some(ref mut traversal) = self.parallel_traversal {
-            traversal.shutdown()
-        }
+        // Drop the rayon threadpool if present.
+        let _ = self.parallel_traversal.take();
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
@@ -855,7 +842,7 @@ impl LayoutThread {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints_parallel(traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+    fn solve_constraints_parallel(traversal: &rayon::ThreadPool,
                                   layout_root: &mut Flow,
                                   profiler_metadata: Option<TimerMetadata>,
                                   time_profiler_chan: time::ProfilerChan,

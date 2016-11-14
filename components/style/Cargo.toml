@@ -13,11 +13,11 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor"]
+gecko = ["nsstring_vendor", "num_cpus", "rayon/unstable"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "url/heap_size", "plugins"]
+         "url/heap_size", "plugins", "rayon/unstable"]
 testing = []
 
 [dependencies]
@@ -25,7 +25,6 @@ app_units = "0.3"
 bitflags = "0.7"
 cfg-if = "0.1.0"
 cssparser = "0.7"
-deque = "0.3.1"
 encoding = "0.2"
 euclid = "0.10.1"
 fnv = "1.0"
@@ -34,17 +33,16 @@ heapsize_derive = {version = "0.1", optional = true}
 html5ever-atoms = {version = "0.1", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
-libc = "0.2"
 matches = "0.1"
 nsstring_vendor = {path = "gecko_bindings/nsstring_vendor", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
-num_cpus = "1.1.0"
 ordered-float = "0.2.2"
 owning_ref = "0.2.2"
 parking_lot = "0.3.3"
 quickersort = "2.0.0"
 rand = "0.3"
+rayon = "0.5"
 rustc-serialize = "0.3"
 selectors = "0.14"
 serde = {version = "0.8", optional = true}
@@ -58,11 +56,12 @@ url = "1.2"
 util = {path = "../util"}
 plugins = {path = "../plugins", optional = true}
 
+[dependencies.num_cpus]
+optional = true
+version = "1.0"
+
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
-
-[target.'cfg(not(windows))'.dependencies]
-libc = "0.2"
 
 [build-dependencies]
 walkdir = "0.1"
