@@ -13,6 +13,8 @@
 #![deny(unsafe_code)]
 
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
