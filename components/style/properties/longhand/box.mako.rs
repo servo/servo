@@ -1474,11 +1474,12 @@ ${helpers.single_keyword("scroll-snap-type-x",
                          animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
-${helpers.single_keyword("scroll-snap-type-y",
-                         "none mandatory proximity",
-                         products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
-                         animatable=False)}
+<%helpers:longhand products="gecko" name="scroll-snap-type-y" animatable="False">
+    pub use super::scroll_snap_type_x::SpecifiedValue;
+    pub use super::scroll_snap_type_x::computed_value;
+    pub use super::scroll_snap_type_x::get_initial_value;
+    pub use super::scroll_snap_type_x::parse;
+</%helpers:longhand>
 
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/

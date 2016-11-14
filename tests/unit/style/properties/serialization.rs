@@ -1006,4 +1006,53 @@ mod shorthand_serialization {
             );
         }
     }
+
+    mod scroll_snap_type {
+        pub use super::*;
+        use style::properties::longhands::scroll_snap_type_x::computed_value::T as ScrollSnapTypeXValue;
+
+        #[test]
+        fn should_serialize_to_empty_string_if_sub_types_not_equal() {
+            let declarations = vec![
+                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                Importance::Normal),
+                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::none)),
+                Importance::Normal)
+            ];
+
+            let block = PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0
+            };
+
+            let mut s = String::new();
+
+            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+
+            assert_eq!(x.is_ok(), true);
+            assert_eq!(s, "");
+        }
+
+        #[test]
+        fn should_serialize_to_single_value_if_sub_types_are_equal() {
+            let declarations = vec![
+                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                Importance::Normal),
+                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                Importance::Normal)
+            ];
+
+            let block = PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0
+            };
+
+            let mut s = String::new();
+
+            let x = block.single_value_to_css("scroll-snap-type", &mut s);
+
+            assert_eq!(x.is_ok(), true);
+            assert_eq!(s, "mandatory");
+        }
+    }
 }

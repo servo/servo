@@ -978,7 +978,8 @@ fn static_assert() {
 
 <% skip_box_longhands= """display overflow-y vertical-align
                           -moz-binding page-break-before page-break-after
-                          scroll-snap-points-x scroll-snap-points-y transform""" %>
+                          scroll-snap-points-x scroll-snap-points-y transform
+                          scroll-snap-type-y""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1220,6 +1221,11 @@ fn static_assert() {
     pub fn copy_transform_from(&mut self, other: &Self) {
         unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
     }
+
+    <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
+
+    ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=False)}
+
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
