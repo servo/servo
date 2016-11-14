@@ -52,7 +52,6 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
-  "network.http.redirection-limit": 20,
   "network.mime.sniff": false,
   "shell.builtin-key-shortcuts.enabled": false,
   "shell.homepage": "https://servo.org",
