@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/css-animations/#interface-csskeyframesrule
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSKeyframesRule : CSSRule {
   //          attribute DOMString   name;
   // readonly attribute CSSRuleList cssRules;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom/#the-cssstylesheet-interface
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSStyleSheet : StyleSheet {
   // readonly attribute CSSRule? ownerRule;
   [SameObject] readonly attribute CSSRuleList cssRules;

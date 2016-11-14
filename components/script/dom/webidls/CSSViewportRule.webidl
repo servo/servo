@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/css-device-adapt/#css-viewport-rule-interface
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface CSSViewportRule : CSSRule {
     // readonly attribute CSSStyleDeclaration style;
 };
