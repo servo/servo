@@ -7592,6 +7592,66 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/two-filters.html"
           }
         ],
+        "mozilla/bluetooth/startNotifications/blocklisted-characteristic.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/blocklisted-characteristic.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/blocklisted-characteristic.html"
+          }
+        ],
+        "mozilla/bluetooth/startNotifications/characteristic-is-removed.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/characteristic-is-removed.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/characteristic-is-removed.html"
+          }
+        ],
+        "mozilla/bluetooth/startNotifications/disconnect-called-before.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/disconnect-called-before.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/disconnect-called-before.html"
+          }
+        ],
+        "mozilla/bluetooth/startNotifications/disconnect-called-during.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/disconnect-called-during.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/disconnect-called-during.html"
+          }
+        ],
+        "mozilla/bluetooth/startNotifications/notify-failure.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/notify-failure.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/notify-failure.html"
+          }
+        ],
+        "mozilla/bluetooth/startNotifications/notify-succeeds.html": [
+          {
+            "path": "mozilla/bluetooth/startNotifications/notify-succeeds.html",
+            "url": "/_mozilla/mozilla/bluetooth/startNotifications/notify-succeeds.html"
+          }
+        ],
+        "mozilla/bluetooth/stopNotifications/characteristic-is-removed.html": [
+          {
+            "path": "mozilla/bluetooth/stopNotifications/characteristic-is-removed.html",
+            "url": "/_mozilla/mozilla/bluetooth/stopNotifications/characteristic-is-removed.html"
+          }
+        ],
+        "mozilla/bluetooth/stopNotifications/disconnect-called-before.html": [
+          {
+            "path": "mozilla/bluetooth/stopNotifications/disconnect-called-before.html",
+            "url": "/_mozilla/mozilla/bluetooth/stopNotifications/disconnect-called-before.html"
+          }
+        ],
+        "mozilla/bluetooth/stopNotifications/disconnect-called-during.html": [
+          {
+            "path": "mozilla/bluetooth/stopNotifications/disconnect-called-during.html",
+            "url": "/_mozilla/mozilla/bluetooth/stopNotifications/disconnect-called-during.html"
+          }
+        ],
+        "mozilla/bluetooth/stopNotifications/notify-succeeds.html": [
+          {
+            "path": "mozilla/bluetooth/stopNotifications/notify-succeeds.html",
+            "url": "/_mozilla/mozilla/bluetooth/stopNotifications/notify-succeeds.html"
+          }
+        ],
         "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
           {
             "path": "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html",
