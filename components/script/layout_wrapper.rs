@@ -34,7 +34,7 @@ use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
 use dom::characterdata::LayoutCharacterDataHelpers;
-use dom::document::{Document, LayoutDocumentHelpers};
+use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use dom::node::{LayoutNodeHelpers, Node};
@@ -65,7 +65,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl, Snapshot};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -377,8 +377,8 @@ impl<'ld> ServoLayoutDocument<'ld> {
         self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    pub fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, Snapshot)> {
-        let elements =  unsafe { self.document.drain_modified_elements() };
+    pub fn drain_pending_restyles(&self) -> Vec<(ServoLayoutElement<'ld>, PendingRestyle)> {
+        let elements =  unsafe { self.document.drain_pending_restyles() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
 

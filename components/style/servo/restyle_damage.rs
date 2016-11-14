@@ -4,6 +4,7 @@
 
 use computed_values::display;
 use dom::TRestyleDamage;
+use heapsize::HeapSizeOf;
 use properties::ServoComputedValues;
 use std::fmt;
 use std::sync::Arc;
@@ -46,6 +47,10 @@ bitflags! {
         #[doc = "The entire flow needs to be reconstructed."]
         const RECONSTRUCT_FLOW = 0x80
     }
+}
+
+impl HeapSizeOf for ServoRestyleDamage {
+    fn heap_size_of_children(&self) -> usize { 0 }
 }
 
 impl TRestyleDamage for ServoRestyleDamage {

@@ -1117,11 +1117,41 @@ impl LayoutThread {
             }
         }
 
-        let modified_elements = document.drain_modified_elements();
+        let restyles = document.drain_pending_restyles();
         if !needs_dirtying {
-            for (el, snapshot) in modified_elements {
-                let hint = rw_data.stylist.compute_restyle_hint(&el, &snapshot, el.get_state());
-                el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
+            for (el, restyle) in restyles {
+                if el.get_data().is_none() {
+                    // If we haven't styled this node yet, we can ignore the restyle.
+                    continue;
+                }
+
+                // Start with the explicit hint, if any.
+                let mut hint = restyle.hint;
+
+                // Expand any snapshots.
+                if let Some(s) = restyle.snapshot {
+                    hint |= rw_data.stylist.compute_restyle_hint(&el, &s, el.get_state());
+                }
+
+                // Apply the cumulative hint.
+                if !hint.is_empty() {
+                    el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
+                }
+
+                // Apply explicit damage, if any.
+                if !restyle.damage.is_empty() {
+                    let mut d = el.mutate_layout_data().unwrap();
+                    d.base.restyle_damage |= restyle.damage;
+                }
+
+                // Propagate the descendant bit up the ancestors.
+                if !hint.is_empty() || !restyle.damage.is_empty() {
+                    let curr = el;
+                    while let Some(curr) = curr.parent_element() {
+                        if curr.has_dirty_descendants() { break }
+                        unsafe { curr.set_dirty_descendants(); }
+                    }
+                }
             }
         }
 
