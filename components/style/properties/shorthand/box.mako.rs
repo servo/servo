@@ -297,3 +297,37 @@ macro_rules! try_parse_one {
         }
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="scroll-snap-type" products="gecko"
+                    sub_properties="scroll-snap-type-x scroll-snap-type-y">
+    use properties::longhands::scroll_snap_type_x;
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let result = try!(scroll_snap_type_x::parse(context, input));
+        Ok(Longhands {
+            scroll_snap_type_x: Some(result),
+            scroll_snap_type_y: Some(result),
+        })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        // Serializes into the single keyword value if both scroll-snap-type and scroll-snap-type-y are same.
+        // Otherwise into an empty string. This is done to match Gecko's behaviour.
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let x_and_y_equal = match (self.scroll_snap_type_x, self.scroll_snap_type_y) {
+                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_value)) => {
+                    *x_value == *y_value
+                },
+                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
+                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
+                (x, y) => { *x == *y },
+            };
+
+            if x_and_y_equal {
+                self.scroll_snap_type_x.to_css(dest)
+            } else {
+                Ok(())
+            }
+        }
+    }
+</%helpers:shorthand>
