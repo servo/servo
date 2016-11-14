@@ -32,7 +32,7 @@ use std::hash::Hash;
 use std::slice;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CSSRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
+use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
 use viewport::{self, MaybeNew, ViewportRule};
 
 pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
@@ -187,7 +187,7 @@ impl Stylist {
                            animations, precomputed_pseudo_element_decls);
         stylesheet.effective_rules(&self.device, |rule| {
             match *rule {
-                CSSRule::Style(ref style_rule) => {
+                CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
                     for selector in &guard.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
@@ -219,7 +219,7 @@ impl Stylist {
                         }
                     }
                 }
-                CSSRule::Keyframes(ref keyframes_rule) => {
+                CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read();
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
                     if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
@@ -372,7 +372,7 @@ impl Stylist {
             device = Device::new(MediaType::Screen, constraints.size);
         }
 
-        fn mq_eval_changed(rules: &[CSSRule], before: &Device, after: &Device) -> bool {
+        fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
             for rule in rules {
                 if rule.with_nested_rules_and_mq(|rules, mq| {
                     if let Some(mq) = mq {

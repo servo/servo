@@ -17,7 +17,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
-use style::stylesheets::{Stylesheet, NamespaceRule, CSSRule, StyleRule, KeyframesRule, Origin};
+use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
 
@@ -57,11 +57,11 @@ fn test_parse_stylesheet() {
         media: Default::default(),
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
+            CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
             }))),
-            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -100,7 +100,7 @@ fn test_parse_stylesheet() {
                     important_count: 2,
                 })),
             }))),
-            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -146,7 +146,7 @@ fn test_parse_stylesheet() {
                     important_count: 0,
                 })),
             }))),
-            CSSRule::Style(Arc::new(RwLock::new(StyleRule {
+            CssRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -222,7 +222,7 @@ fn test_parse_stylesheet() {
                     important_count: 0,
                 })),
             }))),
-            CSSRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
+            CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
                     Arc::new(RwLock::new(Keyframe {

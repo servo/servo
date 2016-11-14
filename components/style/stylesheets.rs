@@ -44,7 +44,7 @@ pub enum Origin {
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: Vec<CSSRule>,
+    pub rules: Vec<CssRule>,
     /// List of media associated with the Stylesheet.
     pub media: MediaList,
     pub origin: Origin,
@@ -60,7 +60,7 @@ pub struct UserAgentStylesheets {
 
 
 #[derive(Debug)]
-pub enum CSSRule {
+pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
@@ -72,21 +72,21 @@ pub enum CSSRule {
     Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
-impl CSSRule {
+impl CssRule {
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
     /// Note that only some types of rules can contain rules. An empty slice is used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
-    where F: FnMut(&[CSSRule], Option<&MediaList>) -> R {
+    where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
         match *self {
-            CSSRule::Namespace(_) |
-            CSSRule::Style(_) |
-            CSSRule::FontFace(_) |
-            CSSRule::Viewport(_) |
-            CSSRule::Keyframes(_) => {
+            CssRule::Namespace(_) |
+            CssRule::Style(_) |
+            CssRule::FontFace(_) |
+            CssRule::Viewport(_) |
+            CssRule::Keyframes(_) => {
                 f(&[], None)
             }
-            CSSRule::Media(ref lock) => {
+            CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
                 f(&media_rule.rules, Some(&mq))
@@ -112,7 +112,7 @@ pub struct KeyframesRule {
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
-    pub rules: Vec<CSSRule>,
+    pub rules: Vec<CssRule>,
 }
 
 #[derive(Debug)]
@@ -207,12 +207,12 @@ impl Stylesheet {
     /// nested rules will be skipped. Use `rules` if all rules need to be
     /// examined.
     #[inline]
-    pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CSSRule) {
+    pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
         effective_rules(&self.rules, device, &mut f);
     }
 }
 
-fn effective_rules<F>(rules: &[CSSRule], device: &Device, f: &mut F) where F: FnMut(&CSSRule) {
+fn effective_rules<F>(rules: &[CssRule], device: &Device, f: &mut F) where F: FnMut(&CssRule) {
     for rule in rules {
         f(rule);
         rule.with_nested_rules_and_mq(|rules, mq| {
@@ -232,7 +232,7 @@ macro_rules! rule_filter {
             $(
                 pub fn $method<F>(&self, device: &Device, mut f: F) where F: FnMut(&$rule_type) {
                     self.effective_rules(device, |rule| {
-                        if let CSSRule::$variant(ref lock) = *rule {
+                        if let CssRule::$variant(ref lock) = *rule {
                             let rule = lock.read();
                             f(&rule)
                         }
@@ -251,7 +251,7 @@ rule_filter! {
     effective_keyframes_rules(Keyframes => KeyframesRule),
 }
 
-fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule> {
+fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CssRule> {
     let mut iter = RuleListParser::new_for_nested_rule(input,
                                                        NestedRuleParser { context: context });
     let mut rules = Vec::new();
@@ -297,10 +297,10 @@ enum AtRulePrelude {
 
 impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
-    type AtRule = CSSRule;
+    type AtRule = CssRule;
 
     fn parse_prelude(&mut self, name: &str, input: &mut Parser)
-                     -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
+                     -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
         match_ignore_ascii_case! { name,
             "import" => {
                 if self.state.get() <= State::Imports {
@@ -328,7 +328,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         None
                     };
 
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(RwLock::new(
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Namespace(Arc::new(RwLock::new(
                         NamespaceRule {
                             prefix: opt_prefix,
                             url: url,
@@ -349,7 +349,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     }
 
     #[inline]
-    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
         AtRuleParser::parse_block(&mut NestedRuleParser { context: &self.context }, prelude, input)
     }
 }
@@ -357,7 +357,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
 impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
     type Prelude = Vec<Selector<TheSelectorImpl>>;
-    type QualifiedRule = CSSRule;
+    type QualifiedRule = CssRule;
 
     #[inline]
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
@@ -367,7 +367,7 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
 
     #[inline]
     fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
-                   -> Result<CSSRule, ()> {
+                   -> Result<CssRule, ()> {
         QualifiedRuleParser::parse_block(&mut NestedRuleParser { context: &self.context },
                                          prelude, input)
     }
@@ -381,10 +381,10 @@ struct NestedRuleParser<'a, 'b: 'a> {
 
 impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
-    type AtRule = CSSRule;
+    type AtRule = CssRule;
 
     fn parse_prelude(&mut self, name: &str, input: &mut Parser)
-                     -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
+                     -> Result<AtRuleType<AtRulePrelude, CssRule>, ()> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
@@ -414,24 +414,24 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         }
     }
 
-    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CssRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
-                Ok(CSSRule::FontFace(Arc::new(RwLock::new(
+                Ok(CssRule::FontFace(Arc::new(RwLock::new(
                     try!(parse_font_face_block(self.context, input))))))
             }
             AtRulePrelude::Media(media_queries) => {
-                Ok(CSSRule::Media(Arc::new(RwLock::new(MediaRule {
+                Ok(CssRule::Media(Arc::new(RwLock::new(MediaRule {
                     media_queries: media_queries,
                     rules: parse_nested_rules(self.context, input),
                 }))))
             }
             AtRulePrelude::Viewport => {
-                Ok(CSSRule::Viewport(Arc::new(RwLock::new(
+                Ok(CssRule::Viewport(Arc::new(RwLock::new(
                     try!(ViewportRule::parse(input, self.context))))))
             }
             AtRulePrelude::Keyframes(name) => {
-                Ok(CSSRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
+                Ok(CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&self.context, input),
                 }))))
@@ -442,15 +442,15 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
 
 impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = Vec<Selector<TheSelectorImpl>>;
-    type QualifiedRule = CSSRule;
+    type QualifiedRule = CssRule;
 
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
         parse_selector_list(&self.context.selector_context, input)
     }
 
     fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
-                   -> Result<CSSRule, ()> {
-        Ok(CSSRule::Style(Arc::new(RwLock::new(StyleRule {
+                   -> Result<CssRule, ()> {
+        Ok(CssRule::Style(Arc::new(RwLock::new(StyleRule {
             selectors: prelude,
             block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
         }))))
