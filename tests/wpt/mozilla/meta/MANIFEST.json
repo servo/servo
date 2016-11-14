@@ -7238,6 +7238,12 @@
             "url": "/_mozilla/mozilla/bluetooth/getPrimaryServices/services-not-found.html"
           }
         ],
+        "mozilla/bluetooth/idl-BluetoothUUID.html": [
+          {
+            "path": "mozilla/bluetooth/idl-BluetoothUUID.html",
+            "url": "/_mozilla/mozilla/bluetooth/idl-BluetoothUUID.html"
+          }
+        ],
         "mozilla/bluetooth/readValue/characteristic/blacklisted-characteristic.html": [
           {
             "path": "mozilla/bluetooth/readValue/characteristic/blacklisted-characteristic.html",
