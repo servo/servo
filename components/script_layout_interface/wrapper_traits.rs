@@ -86,8 +86,6 @@ pub trait LayoutNode: GetLayoutData + TNode {
     unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
     unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
 
-    fn has_changed(&self) -> bool;
-
     unsafe fn clear_dirty_bits(&self);
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {

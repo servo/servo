@@ -143,8 +143,6 @@ bitflags! {
     pub flags NodeFlags: u8 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
-        #[doc = "Specifies whether this node _must_ be reflowed regardless of style differences."]
-        const HAS_CHANGED = 0x02,
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
         const IS_DIRTY = 0x04,
         #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
@@ -169,7 +167,7 @@ bitflags! {
 
 impl NodeFlags {
     pub fn new() -> NodeFlags {
-        HAS_CHANGED | IS_DIRTY | HAS_DIRTY_DESCENDANTS
+        IS_DIRTY | HAS_DIRTY_DESCENDANTS
     }
 }
 
@@ -289,7 +287,6 @@ impl Node {
         }
 
         self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
-        child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 
     pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -420,14 +417,6 @@ impl Node {
         }
 
         self.flags.set(flags);
-    }
-
-    pub fn has_changed(&self) -> bool {
-        self.get_flag(HAS_CHANGED)
-    }
-
-    pub fn set_has_changed(&self, state: bool) {
-        self.set_flag(HAS_CHANGED, state)
     }
 
     pub fn is_dirty(&self) -> bool {

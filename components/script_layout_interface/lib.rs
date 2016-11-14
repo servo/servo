@@ -51,6 +51,7 @@ use libc::c_void;
 use std::sync::atomic::AtomicIsize;
 use style::atomic_refcell::AtomicRefCell;
 use style::data::ElementData;
+use style::dom::TRestyleDamage;
 use style::selector_impl::RestyleDamage;
 
 pub struct PartialPersistentLayoutData {
@@ -71,7 +72,10 @@ impl PartialPersistentLayoutData {
     pub fn new() -> Self {
         PartialPersistentLayoutData {
             style_data: ElementData::new(),
-            restyle_damage: RestyleDamage::empty(),
+            // FIXME(bholley): This is needed for now to make sure we do frame
+            // construction after initial styling. This will go away shortly when
+            // we move restyle damage into the style system.
+            restyle_damage: RestyleDamage::rebuild_and_reflow(),
             parallel: DomParallelInfo::new(),
         }
     }
