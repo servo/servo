@@ -529,6 +529,25 @@ impl<'le> ServoLayoutElement<'le> {
             self.get_style_and_layout_data().map(|d| &**d.ptr)
         }
     }
+
+    pub unsafe fn note_dirty_descendant(&self) {
+        use ::selectors::Element;
+        if !self.has_dirty_descendants() {
+            self.set_dirty_descendants();
+            if let Some(parent) = self.parent_element() {
+                parent.note_dirty_descendant();
+            }
+        }
+
+        debug_assert!(self.dirty_descendants_bit_is_propagated());
+    }
+
+    #[cfg(debug_assertions)]
+    fn dirty_descendants_bit_is_propagated(&self) -> bool {
+        use ::selectors::Element;
+        self.has_dirty_descendants() &&
+        self.parent_element().map_or(true, |el| el.dirty_descendants_bit_is_propagated())
+    }
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
