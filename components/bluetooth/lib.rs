@@ -465,13 +465,13 @@ impl BluetoothManager {
             match flag.as_ref() {
                 "broadcast" => props.insert(BROADCAST),
                 "read" => props.insert(READ),
-                "write_without_response" => props.insert(WRITE_WITHOUT_RESPONSE),
+                "write-without-response" => props.insert(WRITE_WITHOUT_RESPONSE),
                 "write" => props.insert(WRITE),
                 "notify" => props.insert(NOTIFY),
                 "indicate" => props.insert(INDICATE),
-                "authenticated_signed_writes" => props.insert(AUTHENTICATED_SIGNED_WRITES),
-                "reliable_write" => props.insert(RELIABLE_WRITE),
-                "writable_auxiliaries" => props.insert(WRITABLE_AUXILIARIES),
+                "authenticated-signed-writes" => props.insert(AUTHENTICATED_SIGNED_WRITES),
+                "reliable-write" => props.insert(RELIABLE_WRITE),
+                "writable-auxiliaries" => props.insert(WRITABLE_AUXILIARIES),
                 _ => (),
             }
         }
