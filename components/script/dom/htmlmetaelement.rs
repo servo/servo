@@ -22,7 +22,7 @@ use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::attr::AttrValue;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{Stylesheet, CSSRule, Origin};
+use style::stylesheets::{Stylesheet, CssRule, Origin};
 use style::viewport::ViewportRule;
 
 #[dom_struct]
@@ -81,7 +81,7 @@ impl HTMLMetaElement {
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: vec![CSSRule::Viewport(Arc::new(RwLock::new(translated_rule)))],
+                        rules: vec![CssRule::Viewport(Arc::new(RwLock::new(translated_rule)))],
                         origin: Origin::Author,
                         media: Default::default(),
                         // Viewport constraints are always recomputed on resize; they don't need to
