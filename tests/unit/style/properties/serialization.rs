@@ -1030,7 +1030,7 @@ mod shorthand_serialization {
             let x = block.single_value_to_css("scroll-snap-type", &mut s);
 
             assert_eq!(x.is_ok(), true);
-            assert_eq!(s, "scroll-snap-type: ;");
+            assert_eq!(s, "");
         }
 
         #[test]
@@ -1052,7 +1052,7 @@ mod shorthand_serialization {
             let x = block.single_value_to_css("scroll-snap-type", &mut s);
 
             assert_eq!(x.is_ok(), true);
-            assert_eq!(s, "scroll-snap-type: mandatory;");
+            assert_eq!(s, "mandatory");
         }
     }
 }

@@ -214,16 +214,13 @@ impl PropertyDeclarationBlock {
                 if !self.declarations.iter().all(|decl| decl.0.shorthands().contains(&shorthand)) {
                     return Err(fmt::Error)
                 }
-                let success = try!(shorthand.serialize_shorthand_to_buffer(
-                    dest,
-                    self.declarations.iter()
-                                     .map(get_declaration as fn(_) -> _),
-                    &mut true)
-                );
-                if success {
-                    Ok(())
-                } else {
-                    Err(fmt::Error)
+                let iter = self.declarations.iter().map(get_declaration as fn(_) -> _);
+                match shorthand.get_shorthand_appendable_value(iter) {
+                    Some(AppendableValue::Css(css)) => dest.write_str(css),
+                    Some(AppendableValue::DeclarationsForShorthand(_, decls)) => {
+                        shorthand.longhands_to_css(decls, dest)
+                    }
+                    _ => Ok(())
                 }
             }
         }
