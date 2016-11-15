@@ -6,7 +6,7 @@
 
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
-use cssparser::{AtRuleType, RuleListParser, Token};
+use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token};
 use cssparser::ToCss as ParserToCss;
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
@@ -51,6 +51,18 @@ impl From<Vec<CssRule>> for CssRules {
     }
 }
 
+impl CssRules {
+    // used in CSSOM
+    pub fn only_ns_or_import(rules: &[CssRule]) -> bool {
+        rules.iter().all(|r| {
+            match *r {
+                CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
+                _ => false
+            }
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
@@ -83,6 +95,21 @@ pub enum CssRule {
     Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
+/// Error reporter which silently forgets errors
+struct MemoryHoleReporter;
+
+impl ParseErrorReporter for MemoryHoleReporter {
+    fn report_error(&self,
+            _: &mut Parser,
+            _: SourcePosition,
+            _: &str) {
+        // do nothing
+    }
+    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
+        Box::new(MemoryHoleReporter)
+    }
+}
+
 impl CssRule {
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
@@ -103,6 +130,26 @@ impl CssRule {
                 let rules = media_rule.rules.0.read();
                 f(&rules, Some(&mq))
             }
+        }
+    }
+
+    pub fn from_str(css: &str, origin: Origin,
+                    base_url: Url, extra_data: ParserContextExtraData) -> Result<Self, ()> {
+        let error_reporter = Box::new(MemoryHoleReporter);
+        let rule_parser = TopLevelRuleParser {
+            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
+                                                        extra_data),
+            state: Cell::new(State::Start),
+        };
+        let mut input = Parser::new(css);
+        let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+        if let Some(Ok(rule)) = iter.next() {
+            if iter.next().is_some() {
+                return Err(());
+            }
+            return Ok(rule);
+        } else {
+            return Err(());
         }
     }
 }
@@ -225,7 +272,6 @@ impl ToCss for StyleRule {
         Ok(())
     }
 }
-
 
 impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
