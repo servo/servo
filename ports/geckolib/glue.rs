@@ -174,8 +174,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
-    let sheet = Arc::new(Stylesheet::from_str("", url, origin, Box::new(StdoutErrorReporter),
-                                              extra_data));
+    let sheet = Arc::new(Stylesheet::from_str(
+        "", url, origin, Default::default(), Box::new(StdoutErrorReporter), extra_data));
     unsafe {
         transmute(sheet)
     }
@@ -204,8 +204,8 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString,
         referrer: Some(GeckoArcURI::new(referrer)),
         principal: Some(GeckoArcPrincipal::new(principal)),
     }};
-    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter),
-                                              extra_data));
+    let sheet = Arc::new(Stylesheet::from_str(
+        input, url, origin, Default::default(), Box::new(StdoutErrorReporter), extra_data));
     unsafe {
         transmute(sheet)
     }

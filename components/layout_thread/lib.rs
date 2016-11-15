@@ -1531,6 +1531,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             None,
             Origin::UserAgent,
+            Default::default(),
             Box::new(StdoutErrorReporter),
             ParserContextExtraData::default()))
     }
@@ -1543,8 +1544,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
-            &contents, url.clone(), None, None, Origin::User, Box::new(StdoutErrorReporter),
-            ParserContextExtraData::default()));
+            &contents, url.clone(), None, None, Origin::User, Default::default(),
+            Box::new(StdoutErrorReporter), ParserContextExtraData::default()));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet("quirks-mode.css"));
