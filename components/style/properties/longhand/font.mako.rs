@@ -353,8 +353,7 @@ ${helpers.single_keyword("font-variant",
 </%helpers:longhand>
 
 // https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop
-// FIXME: This prop should be animatable
-<%helpers:longhand products="none" name="font-size-adjust" animatable="False">
+<%helpers:longhand products="gecko" name="font-size-adjust" animatable="True">
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::Number;
@@ -362,7 +361,7 @@ ${helpers.single_keyword("font-variant",
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
@@ -372,6 +371,8 @@ ${helpers.single_keyword("font-variant",
     pub mod computed_value {
         use style_traits::ToCss;
         use std::fmt;
+        use properties::animated_properties::Interpolate;
+        use values::specified::Number;
 
         pub use super::SpecifiedValue as T;
 
@@ -380,6 +381,16 @@ ${helpers.single_keyword("font-variant",
                 match *self {
                     T::None => dest.write_str("none"),
                     T::Number(number) => number.to_css(dest),
+                }
+            }
+        }
+
+        impl Interpolate for T {
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                match (*self, *other) {
+                    (T::Number(ref number), T::Number(ref other)) =>
+                        Ok(T::Number(Number(try!(number.0.interpolate(&other.0, time))))),
+                    _ => Err(()),
                 }
             }
         }
