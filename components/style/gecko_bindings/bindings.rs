@@ -916,6 +916,10 @@ extern "C" {
     pub fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed);
 }
 extern "C" {
+    pub fn Servo_StyleSheet_Empty(parsing_mode: SheetParsingMode)
+     -> RawServoStyleSheetStrong;
+}
+extern "C" {
     pub fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString_internal,
                                           parsing_mode: SheetParsingMode,
                                           base_url:
