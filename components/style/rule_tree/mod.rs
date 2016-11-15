@@ -410,10 +410,12 @@ impl StrongRuleNode {
         debug_assert!(thread_state::get().is_layout() &&
                       !thread_state::get().is_worker());
 
+        // NB: This can run from the root node destructor, so we can't use
+        // `get()`, since it asserts the refcount is bigger than zero.
         let me = &*self.ptr;
         debug_assert!(me.is_root());
 
-        let current = self.get().next_free.load(Ordering::SeqCst);
+        let current = me.next_free.load(Ordering::SeqCst);
         if current == FREE_LIST_SENTINEL {
             return None;
         }
