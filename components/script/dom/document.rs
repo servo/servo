@@ -2120,7 +2120,7 @@ impl Document {
                     true
                 } else {
                     // Step 3
-                    window.GetFrameElement().map(|el| el.has_attribute(&local_name!("allowfullscreen"))).unwrap_or(false)
+                    window.GetFrameElement().map_or(false, |el| el.has_attribute(&local_name!("allowfullscreen")))
                 }
             }
         }

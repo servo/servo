@@ -1226,11 +1226,11 @@ impl Element {
         win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
     }
 
+    // https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check
     pub fn fullscreen_element_ready_check(&self) -> bool {
         if !self.is_connected() {
             return false
         }
-        // allow fullscreen
         let document = document_from_node(self);
         document.get_allow_fullscreen()
     }

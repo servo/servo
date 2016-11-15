@@ -493,6 +493,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
     make_bool_getter!(AllowFullscreen, "allowfullscreen");
+    // https://html.spec.whatwg.org/multipage/#attr-iframe-allowfullscreen
     make_bool_setter!(SetAllowFullscreen, "allowfullscreen");
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
