@@ -73,6 +73,12 @@ impl CSSRule {
             StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent, s)),
         }
     }
+
+    /// Sets owner sheet/rule to null
+    pub fn disown(&self) {
+        self.parent.set(None);
+        // should set parent rule to None when we add parent rule support
+    }
 }
 
 impl CSSRuleMethods for CSSRule {
