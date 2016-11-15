@@ -57,7 +57,7 @@ pub struct Stylesheet {
     /// cascading order)
     pub rules: CssRules,
     /// List of media associated with the Stylesheet.
-    pub media: MediaList,
+    pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
     pub dirty_on_viewport_size_change: bool,
 }
@@ -228,7 +228,7 @@ impl Stylesheet {
         Stylesheet {
             origin: origin,
             rules: rules.into(),
-            media: Default::default(),
+            media: Arc::new(RwLock::new(Default::default())),
             dirty_on_viewport_size_change:
                 input.seen_viewport_percentages(),
         }
@@ -236,7 +236,7 @@ impl Stylesheet {
 
     /// Set the MediaList associated with the style-sheet.
     pub fn set_media(&mut self, media: MediaList) {
-        self.media = media;
+        *self.media.write() = media;
     }
 
     /// Returns whether the style-sheet applies for the current device depending
@@ -244,7 +244,7 @@ impl Stylesheet {
     ///
     /// Always true if no associated MediaList exists.
     pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        self.media.evaluate(device)
+        self.media.read().evaluate(device)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
