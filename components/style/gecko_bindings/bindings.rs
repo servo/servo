@@ -649,7 +649,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetFunction(css_value: nsCSSValueBorrowedMut,
-                                   len: i32);
+                                      len: i32);
 }
 extern "C" {
     pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
