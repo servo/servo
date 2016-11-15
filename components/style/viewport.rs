@@ -9,6 +9,7 @@
 
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
+use cssparser::ToCss as ParserToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use media_queries::Device;
@@ -90,6 +91,50 @@ declare_viewport_descriptor! {
 
     UserZoom(UserZoom),
     Orientation(Orientation),
+}
+
+impl ToCss for ViewportDescriptor {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ViewportDescriptor::MinWidth(width) => {
+                try!(dest.write_str("min-width: "));
+                try!(width.to_css(dest));
+            },
+            ViewportDescriptor::MaxWidth(width) => {
+                try!(dest.write_str("max-width: "));
+                try!(width.to_css(dest));
+            },
+            ViewportDescriptor::MinHeight(height) => {
+                try!(dest.write_str("max-height: "));
+                try!(height.to_css(dest));
+            },
+            ViewportDescriptor::MaxHeight(height) => {
+                try!(dest.write_str("max-height: "));
+                try!(height.to_css(dest));
+            },
+            ViewportDescriptor::Zoom(zoom) => {
+                try!(dest.write_str("zoom: "));
+                try!(zoom.to_css(dest));
+            },
+            ViewportDescriptor::MinZoom(zoom) => {
+                try!(dest.write_str("min-zoom: "));
+                try!(zoom.to_css(dest));
+            },
+            ViewportDescriptor::MaxZoom(zoom) => {
+                try!(dest.write_str("max-zoom: "));
+                try!(zoom.to_css(dest));
+            },
+            ViewportDescriptor::UserZoom(zoom) => {
+                try!(dest.write_str("user-zoom: "));
+                try!(zoom.to_css(dest));
+            },
+            ViewportDescriptor::Orientation(orientation) => {
+                try!(dest.write_str("orientation: "));
+                try!(orientation.to_css(dest));
+            },
+        }
+        dest.write_str(";")
+    }
 }
 
 trait FromMeta: Sized {
@@ -207,6 +252,16 @@ impl ViewportDescriptorDeclaration {
             descriptor: descriptor,
             important: important
         }
+    }
+}
+
+impl ToCss for ViewportDescriptorDeclaration {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(self.descriptor.to_css(dest));
+        if self.important {
+            try!(dest.write_str(" !important"));
+        }
+        dest.write_str(";")
     }
 }
 
@@ -464,6 +519,19 @@ impl ViewportRule {
         };
 
         Some((name, value))
+    }
+}
+
+impl ToCss for ViewportRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@viewport { "));
+        let mut iter = self.declarations.iter();
+        try!(iter.next().unwrap().to_css(dest));
+        for declaration in iter {
+            try!(dest.write_str(" "));
+            try!(declaration.to_css(dest));
+        }
+        dest.write_str(" }")
     }
 }
 

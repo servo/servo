@@ -18,7 +18,9 @@ use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_impl::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
 use std::cell::Cell;
+use std::fmt;
 use std::sync::Arc;
+use style_traits::ToCss;
 use url::Url;
 use viewport::ViewportRule;
 
@@ -95,6 +97,21 @@ impl CssRule {
     }
 }
 
+impl ToCss for CssRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            CssRule::Namespace(ref lock) => try!(lock.read().to_css(dest)),
+            // TODO: Uncomment here when Manishearth's CSSOM PR(#14190) lands
+            CssRule::Style(_) => /*try!(lock.read().to_css(dest))*/ unimplemented!(),
+            CssRule::FontFace(ref lock) => try!(lock.read().to_css(dest)),
+            CssRule::Viewport(ref lock) => try!(lock.read().to_css(dest)),
+            CssRule::Keyframes(ref lock) => try!(lock.read().to_css(dest)),
+            CssRule::Media(ref lock) => try!(lock.read().to_css(dest)),
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct NamespaceRule {
@@ -103,16 +120,57 @@ pub struct NamespaceRule {
     pub url: Namespace,
 }
 
+impl ToCss for NamespaceRule {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSNamespaceRule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@namespace "));
+        if let Some(ref prefix) = self.prefix {
+            try!(dest.write_str(&*prefix));
+            try!(dest.write_str(" "));
+        }
+        try!(dest.write_str(&*self.url));
+        try!(dest.write_str(";"));
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 pub struct KeyframesRule {
     pub name: Atom,
     pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
 }
 
+impl ToCss for KeyframesRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@keyframes "));
+        try!(dest.write_str(&*self.name));
+        try!(dest.write_str(" { "));
+        let iter = self.keyframes.iter();
+        for lock in iter {
+            let keyframe = lock.read();
+            try!(keyframe.to_css(dest));
+        }
+        dest.write_str(" }")
+    }
+}
+
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
     pub rules: Vec<CssRule>,
+}
+
+impl ToCss for MediaRule {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSMediaRule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@media "));
+        try!(self.media_queries.read().to_css(dest));
+        try!(dest.write_str(" { "));
+        for rule in self.rules.iter() {
+            try!(rule.to_css(dest));
+        }
+        dest.write_str(" }")
+    }
 }
 
 #[derive(Debug)]
