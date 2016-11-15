@@ -12,13 +12,13 @@ async_test(function(t) {
   var url1 = `data:text/html,<script>setTimeout(() => location.assign("${url2}"), 0)</${"script"}>`;
 
   var locations = []
-  var expected_locations = [url1, url2, url1];
+  var expected_locations = ["about:blank", url1, url2, url1];
 
   var iframe = document.createElement("iframe");
   iframe.mozbrowser = "true";
   iframe.src = url1;
 
-  iframe.addEventListener("mozbrowserlocationchange", e => {
+  iframe.addEventListener("mozbrowserlocationchange", t.step_func(e => {
     locations.push(e.detail.url);
     if (e.detail.url == url2) {
       iframe.goBack();
@@ -27,7 +27,7 @@ async_test(function(t) {
        assert_array_equals(locations, expected_locations);
        t.done();
     }
-  });
+  }));
 
   document.body.appendChild(iframe);
 
