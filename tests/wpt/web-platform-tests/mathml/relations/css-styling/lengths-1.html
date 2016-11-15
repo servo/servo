@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MathML lengths</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS3.SSS1"/>
+<link rel="match" href="lengths-1-ref.html"/>
+<meta name="assert" content="Verify whether the different units are accepted for MathML lengths.">
+<style>
+  @font-face {
+    font-family: TestFont;
+    src: url("/fonts/math/xheight500.woff");
+  }
+  span, math {
+    font-family: TestFont;
+    font-size: 10px; /* 1em = 10px, 1ex is about 5px */
+  }
+  span {
+    position: absolute;
+    display: inline-block;
+    height: 10px;
+  }
+  #red > span {
+    background: red;
+  }
+  #green > span {
+    background: green;
+  }
+</style>
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+  <div>
+    <div id="red" style="position: absolute; width: 200px; height: 200px; background: green;">
+      <!-- px -->
+      <span style="top: 0px"><math><mspace width="200px"/></math></span>
+      <span style="top: 10px; width: 200px"></span>
+
+      <!-- cm -->
+      <span style="top: 20px"><math><mspace width="5.08cm"/></math></span>
+      <span style="top: 30px; width: 192px"></span>
+
+      <!-- em -->
+      <span style="top: 40px"><math><mspace width="20em"/></math></span>
+      <span style="top: 50px; width: 200px"></span>
+
+      <!-- ex -->
+      <span style="top: 60px"><math><mspace width="30ex"/></math></span>
+      <span style="top: 70px; width: 30ex"></span>
+
+      <!-- in -->
+      <span style="top: 80px"><math><mspace width="2in"/></math></span>
+      <span style="top: 90px; width: 192px"></span>
+
+      <!-- mm -->
+      <span style="top: 100px"><math><mspace width="50.8mm"/></math></span>
+      <span style="top: 110px; width: 192px"></span>
+
+      <!-- pc -->
+      <span style="top: 120px"><math><mspace width="12.5pc"/></math></span>
+      <span style="top: 130px; width: 200px"></span>
+
+      <!-- pt -->
+      <span style="top: 140px"><math><mspace width="150pt"/></math></span>
+      <span style="top: 150px; width: 200px"></span>
+
+      <!-- % -->
+      <span style="top: 160px"><math><mstyle mathsize="2000%"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 170px; width: 200px"></span>
+
+      <!-- unitless -->
+      <span style="top: 180px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 190px; width: 200px"></span>
+    </div>
+
+    <div id="green" style="position: absolute; width: 200px; height: 200px;">
+      <!-- px -->
+      <span style="top: 10px"><math><mspace width="200px"/></math></span>
+      <span style="top: 0px; width: 200px"></span>
+
+      <!-- cm -->
+      <span style="top: 30px"><math><mspace width="5.08cm"/></math></span>
+      <span style="top: 20px; width: 192px"></span>
+
+      <!-- em -->
+      <span title="em" style="top: 50px"><math><mspace width="20em"/></math></span>
+      <span title="em" style="top: 40px; width: 200px"></span>
+
+      <!-- ex -->
+      <span title="ex" style="top: 70px"><math><mspace width="30ex"/></math></span>
+      <span title="ex" style="top: 60px; width: 30ex"></span>
+
+      <!-- in -->
+      <span style="top: 90px"><math><mspace width="2in"/></math></span>
+      <span style="top: 80px; width: 192px"></span>
+
+      <!-- mm -->
+      <span style="top: 110px"><math><mspace width="50.8mm"/></math></span>
+      <span style="top: 100px; width: 192px"></span>
+
+      <!-- pc -->
+      <span style="top: 130px"><math><mspace width="12.5pc"/></math></span>
+      <span style="top: 120px; width: 200px"></span>
+
+      <!-- pt -->
+      <span style="top: 150px"><math><mspace width="150pt"/></math></span>
+      <span style="top: 140px; width: 200px"></span>
+
+      <!-- % -->
+      <span style="top: 170px"><math><mstyle mathsize="2000%"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 160px; width: 200px"></span>
+
+      <!-- unitless -->
+      <span style="top: 190px"><math><mstyle mathsize="20.0"><mspace width="1em"/></mstyle></math></span>
+      <span style="top: 180px; width: 200px"></span>
+    </div>
+  </div>
+</body>
+</html>

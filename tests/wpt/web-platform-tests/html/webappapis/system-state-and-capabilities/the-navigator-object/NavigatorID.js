@@ -1,11 +1,19 @@
 function run_test() {
+  var compatibilityMode;
+  if (navigator.userAgent.includes("Chrome")) {
+    compatibilityMode = "Chrome";
+  } else if (navigator.userAgent.includes("WebKit")) {
+    compatibilityMode = "WebKit";
+  } else {
+    compatibilityMode = "Gecko";
+  }
+
   test(function() {
     assert_equals(navigator.appCodeName, "Mozilla");
   }, "appCodeName");
 
   test(function() {
-    assert_equals(typeof navigator.appName, "string",
-                  "navigator.appName should be a string");
+    assert_equals(navigator.appName, "Netscape");
   }, "appName");
 
   test(function() {
@@ -23,30 +31,21 @@ function run_test() {
   }, "product");
 
   test(function() {
-    // See https://www.w3.org/Bugs/Public/show_bug.cgi?id=22555
     if ("window" in self) {
-      // If you identify as WebKit, taintEnabled should not exist.
-      if (navigator.userAgent.indexOf("WebKit") != -1) {
-        assert_false("taintEnabled" in navigator);
-      }
-      // Otherwise it should exist and return false.
-      else {
-        assert_false(navigator.taintEnabled());
+      if (compatibilityMode == "Gecko") {
+        assert_equals(navigator.productSub, "20100101");
+      } else {
+        assert_equals(navigator.productSub, "20030107");
       }
     } else {
-      // taintEnabled should not exist in workers.
-      assert_false("taintEnabled" in navigator);
+      assert_false("productSub" in navigator);
     }
-  }, "taintEnabled");
+  }, "productSub");
 
   test(function() {
     assert_equals(typeof navigator.userAgent, "string",
                   "navigator.userAgent should be a string");
   }, "userAgent type");
-
-  test(function() {
-    assert_equals(navigator.vendorSub, "");
-  }, "vendorSub");
 
   async_test(function() {
     var request = new XMLHttpRequest();
@@ -60,4 +59,48 @@ function run_test() {
                         "filter_name=User-Agent");
     request.send();
   }, "userAgent value");
+
+  test(function() {
+    if ("window" in self) {
+      if (compatibilityMode == "Chrome") {
+        assert_equals(navigator.vendor, "Google Inc.");
+      } else if (compatibilityMode == "WebKit") {
+        assert_equals(navigator.vendor, "Apple Computer, Inc.");
+      } else {
+        assert_equals(navigator.vendor, "");
+      }
+    } else {
+      assert_false("vendor" in navigator);
+    }
+  }, "vendor");
+
+  test(function() {
+    if ("window" in self) {
+      assert_equals(navigator.vendorSub, "");
+    } else {
+      assert_false("vendorSub" in navigator);
+    }
+  }, "vendorSub");
+
+  // "If the navigator compatibility mode is Gecko, then the user agent must
+  // also support the following partial interface" (taintEnabled() and oscpu)
+  // See https://www.w3.org/Bugs/Public/show_bug.cgi?id=22555 and
+  // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27820
+
+  test(function() {
+    if ("window" in self && compatibilityMode == "Gecko") {
+      assert_false(navigator.taintEnabled());
+    } else {
+      assert_false("taintEnabled" in navigator);
+    }
+  }, "taintEnabled");
+
+  test(function() {
+    if ("window" in self && compatibilityMode == "Gecko") {
+      assert_equals(typeof navigator.oscpu, "string",
+                    "navigator.oscpu should be a string");
+    } else {
+      assert_false("oscpu" in navigator);
+    }
+  }, "oscpu");
 }

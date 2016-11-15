@@ -96,7 +96,7 @@ enum PresentationConnectionClosedReason {
     "wentaway"
 };
 
-[Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
+[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict)]
 interface PresentationConnectionCloseEvent : Event {
     readonly attribute PresentationConnectionClosedReason reason;
     readonly attribute DOMString                          message;

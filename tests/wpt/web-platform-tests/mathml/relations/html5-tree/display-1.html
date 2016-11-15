@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MathML display attribute</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2">
+<meta name="assert" content="Verify that the display attribute on the math element is supported and impacts centering and line breaking with surrounding content.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function getBox(aId) {
+    return document.getElementById(aId).getBoundingClientRect();
+  }
+  window.addEventListener("DOMContentLoaded", function() {
+    var content = getBox("content");
+
+    var before_block = getBox("before_block");
+    var mspace_block = getBox("mspace_block");
+    var after_block = getBox("after_block");
+    test(function() {
+      assert_approx_equals(before_block.left, content.left, 1,
+                           "content before must be left aligned");
+      assert_approx_equals((mspace_block.left + mspace_block.right) / 2,
+                           (content.left + content.right) / 2,
+                           1,
+                           "math must be centered.");
+      assert_approx_equals(after_block.left, content.left, 1,
+                           "content before must be left aligned");
+      assert_less_than_equal(before_block.bottom, mspace_block.top,
+                            "new line before math");
+      assert_less_than_equal(mspace_block.bottom, after_block.top,
+                            "new line after math");
+    }, "Test display math");
+
+    var before_inline = getBox("before_inline");
+    var mspace_inline = getBox("mspace_inline");
+    var after_inline = getBox("after_inline");
+    test(function() {
+      assert_approx_equals((before_inline.top + before_inline.bottom) / 2,
+                           (mspace_inline.top + mspace_inline.bottom) / 2,
+                           1,
+                           "content before must be horizontally aligned with math");
+      assert_approx_equals((after_inline.top + after_inline.bottom) / 2,
+                           (mspace_inline.top + mspace_inline.bottom) / 2,
+                           1,
+                           "content after must be horizontally aligned with math");
+      assert_less_than_equal(before_inline.right, mspace_inline.left,
+                            "content before must be on the left of math");
+      assert_less_than_equal(mspace_inline.right, after_inline.left,
+                            "content after must be on the right of math");
+    }, "Test inline math");
+
+    done();
+  });
+</script>
+<style>
+  #content {
+    width: 600px;
+    background: #ccc;
+  }
+  span.square {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    background: black;
+  }
+  mspace {
+    background: black;
+  }
+</style>
+</head>
+<body>
+  <div id="content">
+    <span id="before_block" class="square"></span>
+    <math display="block"><mspace id="mspace_block" width="50px" height="50px"/></math>
+    <span id="after_block" class="square"></span>
+    <br/>
+    <span id="before_inline" class="square"></span>
+    <math display="inline"><mspace id="mspace_inline" width="50px" height="50px"/></math>
+    <span id="after_inline" class="square"></span>
+  </div>
+</body>
+</html>

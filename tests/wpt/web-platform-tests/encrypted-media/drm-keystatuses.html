@@ -33,7 +33,7 @@
         getSupportedContent( keysystem ).then( function( contents ) {
             // Select a content item with multiple keys and initData that retrieves all keys
             var contentitem = contents.filter( function( item ) {
-                return item.keys.length > 1 && item.initDataType && item.associatedInitData;
+                return item.keys && item.keys.length > 1 && item.initDataType && item.associatedInitData;
             } )[ 0 ];
 
             var handler = new MessageHandler( keysystem, contentitem );

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.2-pageNextImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "Annotation Page has no next key.",
+  "title": "Implements **Annotation Page _next_ key** with valid value of string of format uri - [model 5.2](https://www.w3.org/TR/annotation-model/#annotation-page)",
+  "oneOf": [
+      { "$ref": "collections.json#/definitions/nextFound" },
+      { "type": "object",
+        "properties":
+         {"first":
+           { "$ref": "collections.json#/definitions/nextFound" }
+         },
+        "required": [ "first" ]
+      }
+  ]
+}

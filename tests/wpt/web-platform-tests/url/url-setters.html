@@ -37,7 +37,23 @@ function runURLSettersTests(all_test_cases) {
         for (var attribute in test_case.expected) {
           assert_equals(url[attribute], test_case.expected[attribute])
         }
-      }, name)
+      }, "URL: " + name)
+      test(function() {
+        var url = document.createElement("a");
+        url.href = test_case.href;
+        url[attribute_to_be_set] = test_case.new_value;
+        for (var attribute in test_case.expected) {
+          assert_equals(url[attribute], test_case.expected[attribute])
+        }
+      }, "<a>: " + name)
+      test(function() {
+        var url = document.createElement("area");
+        url.href = test_case.href;
+        url[attribute_to_be_set] = test_case.new_value;
+        for (var attribute in test_case.expected) {
+          assert_equals(url[attribute], test_case.expected[attribute])
+        }
+      }, "<area>: " + name)
     }
   }
 }

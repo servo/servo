@@ -1,0 +1,23 @@
+<!doctype html>
+<script src="history.js"></script>
+<script>
+  onunload = function() {}
+
+  onload = function() {
+    if (!opener.started) {
+      queue_next();
+    } else {
+      opener.pages.push(id);
+      opener.start_test_wait();
+      if (!opener.gone) {
+        // This is meant to test that passing a string is not supported.
+        // According to the spec, the value passed to 'go' must be an int.
+        // Internet Explorer supports passing a string and will navigate
+        // to that Url. This test will protect against regressing in
+        // this area and reverting back to IE's incorrect behavior.
+          history.go("history_entry.html");
+          opener.gone = true;
+      }
+    }
+  };
+</script>

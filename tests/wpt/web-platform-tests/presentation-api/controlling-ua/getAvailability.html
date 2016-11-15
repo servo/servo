@@ -5,15 +5,14 @@
 <link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
 
 <script>
     // ---------------------------------
     // Helper Function
     // ---------------------------------
     var createRequestObject = function () {
-        var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
-                presUrl = "../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=" + validUnixDate,
-                request = new PresentationRequest(presUrl);
+        var request = new PresentationRequest(presentationUrls);
         return request;
     }
 
@@ -64,19 +63,6 @@
                     assert_true(availability.value);
                 });
     }, "There is an availability.");
-
-
-    // Invalid Presentation URL Test
-    promise_test(function () {
-        var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
-                invalidPresUrl = "../receiving-ua/idlharness.html#__castAppId__=3445E44B/__castClientId__=" + validUnixDate,
-                request = new PresentationRequest(invalidPresUrl);
-
-        return request.getAvailability()
-                .then(function (availability) {
-                    assert_false(availability.value);
-                });
-    }, "There is no availability for an invalid presentation URL.");
     // -------------------------------
     // Screen Availability Tests - end
     // -------------------------------

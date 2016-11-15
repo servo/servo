@@ -15,7 +15,7 @@
       types: ["text", "search", "tel", "password"],
       testData: [
         {conditions: {}, expected: true, name: "[target] no constraint"},
-        {conditions: {maxLength: "4", value: "abcdef"}, expected: false, name: "[target] suffering from being too long", dirty: true},
+        {conditions: {maxLength: "4", value: "abcdef"}, expected: true, name: "[target] not suffering from being too long", dirty: true},
         {conditions: {pattern: "[A-Z]", value: "abc"}, expected: false, name: "[target] suffering from a pattern mismatch"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] suffering from being missing"}
       ]
@@ -25,7 +25,7 @@
       types: ["url"],
       testData: [
         {conditions: {}, expected: true, name: "[target] no constraint"},
-        {conditions: {maxLength: "20", value: "http://www.example.com"}, expected: false, name: "[target] suffering from being too long", dirty: true},
+        {conditions: {maxLength: "20", value: "http://www.example.com"}, expected: true, name: "[target] suffering from being too long", dirty: true},
         {conditions: {pattern: "http://www.example.com", value: "http://www.example.net"}, expected: false, name: "[target] suffering from a pattern mismatch"},
         {conditions: {value: "abc"}, expected: false, name: "[target] suffering from a type mismatch"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] suffering from being missing"}
@@ -36,7 +36,7 @@
       types: ["email"],
       testData: [
         {conditions: {}, expected: true, name: "[target] no constraint"},
-        {conditions: {maxLength: "10", value: "test@example.com"}, expected: false, name: "[target] suffering from being too long", dirty: true},
+        {conditions: {maxLength: "10", value: "test@example.com"}, expected: true, name: "[target] not suffering from being too long", dirty: true},
         {conditions: {pattern: "test@example.com", value: "test@example.net"}, expected: false, name: "[target] suffering from a pattern mismatch"},
         {conditions: {value: "abc"}, expected: false, name: "[target] suffering from a type mismatch"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] suffering from being missing"}

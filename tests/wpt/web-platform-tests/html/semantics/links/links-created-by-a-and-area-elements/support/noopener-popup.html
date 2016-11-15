@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script>
+  function findLink(arg) {
+    var doc;
+    if (arg == "self") {
+      doc = document;
+    } else {
+      doc = frames[0].document;
+    }
+    return doc.getElementById(arg + "target");
+  }
+</script>
+<a rel="noopener" target="_self" id="selftarget"
+   href="noopener-target-1.html"></a>
+<iframe srcdoc='
+        <a rel="noopener" target="_parent" id="parenttarget"
+           href="noopener-target-1.html"></a>
+        <a rel="noopener" target="_top" id="toptarget"
+           href="noopener-target-1.html"></a>'></iframe>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Click-related events should fire in the correct order</title>
+    <link rel="help" href="https://w3c.github.io/uievents/#events-clickevent-event-order">
+    <meta name="flags" content="interact">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/uievents/resources/eventrecorder.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Double-click into the blue area.</li>
+      <li>Click the "Done" button.</li>
+    </ol>
+    <div id="blue" style="width:400px; height:300px; background-color: blue;"></div>
+    <button type="button" id="done">Done</button>
+</body>
+<script>
+setup({explicit_timeout: true});
+
+function bubbles(e) {
+  assert_true(e.bubbles);
+}
+
+var relevantEvents = [
+  "mousedown",
+  "mouseup",
+  "mousemove",
+  "click",
+  "dblclick"
+];
+
+window.onload = function () {
+  var blue = document.getElementById("blue");
+  var inputs = [blue];
+  EventRecorder.configure({
+    mergeEventTypes: ["mousemove"],
+    objectMap: {
+      "blue": blue
+    }
+  });
+
+  EventRecorder.addEventListenersForNodes(relevantEvents, inputs, bubbles);
+  var expected = [
+    {type: "mousemove", target: "blue", optional: true},
+    {type: "mousedown", target: "blue"},
+    {type: "mousemove", target: "blue", optional: true},
+    {type: "mouseup", target: "blue"},
+    {type: "click", target: "blue"},
+    {type: "mousemove", target: "blue", optional: true},
+    {type: "mousedown", target: "blue"},
+    {type: "mousemove", target: "blue", optional: true},
+    {type: "mouseup", target: "blue"},
+    {type: "click", target: "blue"},
+    {type: "dblclick", target: "blue"},
+    {type: "mousemove", target: "blue", optional: true}
+  ];
+
+  async_test(function(t) {
+    document.getElementById("done").addEventListener("click", function () {
+      t.step(function () {
+        assert_true(EventRecorder.checkRecords(expected));
+        t.done();
+      });
+    }, false);
+  }, "Click-related events should fire in the correct order");
+  EventRecorder.start();
+};
+    </script>
+</html>

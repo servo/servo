@@ -29,11 +29,14 @@ t.step(function() {
     var expected = ['Sending message via clients'];
 
     function onMessage(e) {
+      assert_equals(e.constructor, frame.contentWindow.MessageEvent,
+                    'message events should use MessageEvent interface.');
       assert_equals(e.bubbles, false, 'message events should not bubble.');
-      assert_equals(e.cancelable, false, 'message events should not be cancelable.');
-      assert_equals(e.origin, host_info['HTTPS_ORIGIN'], 'message event\'s origin should be set correctly.');
-// XXXkhuey fixme!
-//      assert_equals(e.source, sw.controller, 'source should be ServiceWorker.');
+      assert_equals(e.cancelable, false,
+                    'message events should not be cancelable.');
+      assert_equals(e.origin, host_info['HTTPS_ORIGIN'],
+                    'message event\'s origin should be set correctly.');
+      assert_equals(e.source, sw.controller, 'source should be ServiceWorker.');
 
       var message = e.data;
       if (message === 'quit') {

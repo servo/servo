@@ -119,12 +119,14 @@ var tests = [
         ["<html> in a different namespace shouldn't be special",
                 document.createElementNS("http://fake-namespace", "html"), "<body><p>",
                 document.createElement("div"), "<body><p>"],
+        ["SVG namespace shouldn't be special",
+                document.createElementNS("http://www.w3.org/2000/svg", "div"), "<body><p>",
+                document.createElement("div"), "<body><p>"],
         ["null should be stringified", document.createElement("span"), null, document.createElement("span"), "null"],
-        ["undefined should be stringified", document.createElement("span"), undefined, document.createElement("span"), "undefined"]/*,
-        // FIXME: Spec doesn't say what to do about non-Elements!
-        ["Text nodes?",
-                document.createTextNode("?"), "<span>",
-                document.createTextNode("?"), "<span>"]*/
+        ["undefined should be stringified", document.createElement("span"), undefined, document.createElement("span"), "undefined"],
+        ["Text nodes shouldn't be special",
+                document.createTextNode("?"), "<body><p>",
+                document.createElement("div"), "<body><p>"]
 ];
 
 generate_tests(testEquivalence, tests);

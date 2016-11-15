@@ -1,0 +1,24 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "A single Annotation Collection implements optional keys and meets optional key value constraints",
+  "description": "A Collection of Web Annotations: <ul> <li>Should include certain properties (keys)</li> <li>May include additional keys</li> <li>May have creator Agent key values that conform to model recommended constraints</li></ul> Note: failing an assertion indicates only that a recommended or optional feature has not been implemented or has not been implemented correctly. <br/><b>Please fill textarea with json-ld serialization of a single Annotation Collection description</b>",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/",
+  "assertions": [
+    "collections/5.1-collectionLabelImplemented.json",
+    "collections/5.1-collectionLastImplemented.json",
+    "collections/5.1-collectionTotalImplemented.json",
+    "collections/5.1-collectionFirstImplemented.json",
+    "collections/3.3.1-collectionModifiedImplemented.json",
+    "collections/3.3.1-collectionCreatorImplemented.json",
+    "collections/3.3.1-collectionCreatedImplemented.json",
+    "collections/3.3.6-collectionRightsImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentEmail_sha1Implemented.json",
+    "collections/3.3.2-collectionCreatorAgentEmailImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentHomepageImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentIdImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentNameImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentNicknameImplemented.json",
+    "collections/3.3.2-collectionCreatorAgentTypeImplemented.json"
+  ]
+}

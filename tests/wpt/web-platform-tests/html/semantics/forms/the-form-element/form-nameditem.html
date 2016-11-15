@@ -115,6 +115,11 @@ test(function() {
   var button = document.getElementsByTagName("input")[0]
   assert_equals(button.type, "button")
   assert_equals(form.button, button)
+  var desc = Object.getOwnPropertyDescriptor(form, "button");
+  assert_equals(desc.value, button);
+  assert_false(desc.writable);
+  assert_true(desc.configurable);
+  assert_false(desc.enumerable);
   assert_equals(form.button.length, undefined)
 }, "Name for a single element should work")
 
@@ -222,6 +227,12 @@ test(function() {
   assert_equals(input2.localName, "input")
   assert_equals(input2.getAttribute("form"), "c")
 
+  var desc = Object.getOwnPropertyDescriptor(form, "d");
+  assert_equals(desc.value, form.d);
+  assert_false(desc.writable);
+  assert_true(desc.configurable);
+  assert_false(desc.enumerable);
+
   assert_true(form.d instanceof NodeList, "form.d should be a NodeList")
   assert_array_equals(form.d, [input1, input2])
 }, "The form attribute should be taken into account for named getters (multiple elements)")
@@ -236,4 +247,84 @@ test(function() {
   assert_equals(f.x, undefined)
   assert_equals(g.x, input)
 }, "Input should only be a named property on the innermost form that contains it")
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["l1"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "l1");
+  assert_equals(old_desc.value, old_item);
+  assert_false(old_desc.enumerable);
+  assert_true(old_desc.configurable);
+  assert_false(old_desc.writable);
+
+  form["l1"] = 5;
+  assert_equals(form["l1"], old_item);
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    form["l1"] = 5;
+  });
+  assert_throws(new TypeError(), function() {
+    Object.defineProperty(form, "l1", { value: 5 });
+  });
+
+  delete form["l1"];
+  assert_equals(form["l1"], old_item);
+
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    delete form["l1"];
+  });
+  assert_equals(form["l1"], old_item);
+
+}, 'Trying to set an expando that would shadow an already-existing named property');
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["new-name"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "new-name");
+  assert_equals(old_item, undefined);
+  assert_equals(old_desc, undefined);
+
+  form["new-name"] = 5;
+  assert_equals(form["new-name"], 5);
+
+  var input = document.createElement("input");
+  this.add_cleanup(function () {input.remove();});
+  input.name = "new-name";
+  form.appendChild(input);
+
+  assert_equals(form["new-name"], 5);
+
+  delete form["new-name"];
+  assert_equals(form["new-name"], input);
+}, 'Trying to set an expando that shadows a named property that gets added later');
+
+test(function() {
+  var form = document.getElementsByTagName("form")[1];
+  var old_item = form["new-name2"];
+  var old_desc = Object.getOwnPropertyDescriptor(form, "new-name2");
+  assert_equals(old_item, undefined);
+  assert_equals(old_desc, undefined);
+
+  Object.defineProperty(form, "new-name2", { configurable: false, writable:
+                                              false, value: 5 });
+  assert_equals(form["new-name2"], 5);
+
+  var input = document.createElement("input");
+  this.add_cleanup(function () {input.remove();});
+  input.name = "new-name2";
+  form.appendChild(input);
+
+  assert_equals(form["new-name2"], 5);
+
+  delete form["new-name2"];
+  assert_equals(form["new-name2"], 5);
+
+  assert_throws(new TypeError(), function() {
+    "use strict";
+    delete form["new-name2"];
+  });
+  assert_equals(form["new-name2"], 5);
+}, 'Trying to set a non-configurable expando that shadows a named property that gets added later');
+
 </script>

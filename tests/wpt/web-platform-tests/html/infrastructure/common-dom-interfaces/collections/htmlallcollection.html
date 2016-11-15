@@ -3,7 +3,8 @@
 <head>
 <title>HTMLAllCollection Tests</title>
 <link rel="author" title="Dan Druta" href="mailto:dan.druta@att.com"/>
-<link rel="help" href="2.7.2.1 - Common Infrastructure/Common DOM Interfaces/Collections/HTMLAllCollection"/>
+<link rel="author" title="Philip Jägenstedt" href="mailto:philip@foolip.org"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/infrastructure.html#the-htmlallcollection-interface"/>
 <meta name="flags" content="TOKENS" />
 <meta name="assert" content="TEST ASSERTION"/>
 <script src="/resources/testharness.js"></script>
@@ -13,34 +14,249 @@
 <img src="../../../../images/green.png" name="picture">
 <a name="foo"></a>
 <a name="foo"></a>
+<span id="42"></span>
+<span id="043"></span>
+<div id="4294967294"></div>
+<div id="4294967295"></div>
+<div id="4294967296"></div>
 <script>
-test(function(){ assert_equals(document.all.length,14)}, "Test for HTMLAllCollection size");
+var anchors = document.querySelectorAll("a");
+var divs = document.querySelectorAll("div");
+var scripts = document.querySelectorAll("script");
+var spans = document.querySelectorAll("span");
 
-test(function(){ assert_equals(document.all.item(0).tagName,"HTML")}, "Test lookup by index using ()");
+test(function() {
+  assert_true(document.all instanceof HTMLAllCollection);
+}, "document.all is an HTMLAllCollection");
 
-test(function(){ assert_equals(document.all[0].tagName,"HTML")}, "Test lookup by index using []");
+test(function() {
+  assert_equals(document.all.length, 20);
+}, "length attribute");
 
-test(function(){ assert_equals(document.all.item("picture").nodeName,"IMG")}, "Test lookup IMG by name");
+// indexed property getter
 
-test(function(){ assert_equals(document.all.namedItem("picture").nodeName,"IMG")}, "Test lookup IMG by namedItem ");
+test(function() {
+  assert_equals(document.all[0], document.documentElement);
+  assert_equals(document.all[19], scripts[2]);
+}, "indexed property getter");
 
-test(function(){ assert_equals(document.all("picture").nodeName,"IMG")}, "Test lookup IMG in collection using ()");
+test(function() {
+  assert_equals(document.all[-1], undefined);
+  assert_equals(document.all[20], undefined);
+  assert_equals(document.all[42], undefined);
+  assert_equals(document.all[43], undefined);
+  assert_equals(document.all[4294967294], undefined);
+  assert_equals(document.all[4294967295], divs[1]);
+  assert_equals(document.all[4294967296], divs[2]);
+}, "indexed property getter out of range");
 
-test(function(){ assert_equals(document.all["picture"].nodeName,"IMG")}, "Test lookup IMG in collection using []");
-
-test(function(){ assert_equals(document.all.picture.nodeName,"IMG")}, "Test lookup IMG in collection using .");
-
-test(function(){ assert_equals(document.all.tags.id,"tags")}, "Test lookup tags in collection using .");
+// named property getter
 
 test(function() {
   assert_equals(document.all["root"], document.documentElement);
-}, "Should find root element too");
+  assert_equals(document.all["flags"].content, "TOKENS");
+  assert_equals(document.all["picture"].tagName, "IMG");
+}, "named property getter");
 
 test(function() {
-  assert_equals(document.all["foo"].length, 2);
-}, "Should find both anchors and produce a list");
+  assert_equals(document.all.root, document.documentElement);
+  assert_equals(document.all.flags.content, "TOKENS");
+  assert_equals(document.all.picture.tagName, "IMG");
+}, "named property getter with dot syntax");
 
-test
+test(function() {
+  assert_equals(document.all["noname"], undefined);
+  assert_equals(document.all.noname, undefined);
+}, "named property getter with invalid name");
+
+test(function() {
+  var collection = document.all["foo"];
+  assert_equals(collection.length, 2);
+  assert_equals(collection[0], anchors[0]);
+  assert_equals(collection[1], anchors[1]);
+}, "named property getter returning collection");
+
+test(function() {
+  assert_equals(document.all["0"], document.documentElement);
+  assert_equals(document.all["19"], document.scripts[2]);
+  assert_equals(document.all["20"], undefined);
+  assert_equals(document.all["42"], undefined);
+  assert_equals(document.all["43"], undefined);
+}, "named property getter with \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all["00"], undefined);
+  assert_equals(document.all["042"], undefined);
+  assert_equals(document.all["043"], spans[1]);
+  assert_equals(document.all["4294967294"], undefined);
+  assert_equals(document.all["4294967295"], divs[1]);
+  assert_equals(document.all["4294967296"], divs[2]);
+}, "named property getter with invalid \"array index property name\"");
+
+// namedItem method
+
+test(function() {
+  assert_equals(document.all.namedItem("root"), document.documentElement);
+  assert_equals(document.all.namedItem("flags").content, "TOKENS");
+  assert_equals(document.all.namedItem("picture").tagName, "IMG");
+}, "namedItem method");
+
+test(function() {
+  assert_equals(document.all.namedItem("noname"), null);
+}, "namedItem method with invalid name");
+
+test(function() {
+  var collection = document.all.namedItem("foo");
+  assert_equals(collection.length, 2);
+  assert_equals(collection[0], anchors[0]);
+  assert_equals(collection[1], anchors[1]);
+}, "namedItem method returning collection");
+
+test(function() {
+  assert_equals(document.all.namedItem("0"), null);
+  assert_equals(document.all.namedItem("19"), null);
+  assert_equals(document.all.namedItem("20"), null);
+  assert_equals(document.all.namedItem("42"), spans[0]);
+  assert_equals(document.all.namedItem("43"), null);
+}, "namedItem method with \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.namedItem("00"), null);
+  assert_equals(document.all.namedItem("042"), null);
+  assert_equals(document.all.namedItem("043"), spans[1]);
+  assert_equals(document.all.namedItem("4294967294"), divs[0]);
+  assert_equals(document.all.namedItem("4294967295"), divs[1]);
+  assert_equals(document.all.namedItem("4294967296"), divs[2]);
+}, "namedItem method with invalid \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.namedItem.length, 1);
+  assert_throws(new TypeError, function() {
+    document.all.namedItem();
+  });
+}, "namedItem method with no argument");
+
+// legacy caller
+
+test(function() {
+  assert_equals(document.all("root"), document.documentElement);
+  assert_equals(document.all("flags").content, "TOKENS");
+  assert_equals(document.all("picture").tagName, "IMG");
+}, "legacy caller");
+
+test(function() {
+  assert_equals(document.all("noname"), null);
+}, "legacy caller with invalid name");
+
+test(function() {
+  var collection = document.all("foo");
+  assert_equals(collection.length, 2);
+  assert_equals(collection[0], anchors[0]);
+  assert_equals(collection[1], anchors[1]);
+}, "legacy caller returning collection");
+
+test(function() {
+  assert_equals(document.all("0"), document.documentElement);
+  assert_equals(document.all("19"), document.scripts[2]);
+  assert_equals(document.all("20"), null);
+  assert_equals(document.all("42"), null);
+  assert_equals(document.all("43"), null);
+}, "legacy caller with \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all(0), document.documentElement);
+  assert_equals(document.all(19), document.scripts[2]);
+  assert_equals(document.all(20), null);
+  assert_equals(document.all(42), null);
+  assert_equals(document.all(43), null);
+}, "legacy caller with \"array index property name\" as number");
+
+test(function() {
+  assert_equals(document.all("00"), null);
+  assert_equals(document.all("042"), null);
+  assert_equals(document.all("043"), spans[1]);
+  assert_equals(document.all("4294967294"), null);
+  assert_equals(document.all("4294967295"), divs[1]);
+  assert_equals(document.all("4294967296"), divs[2]);
+}, "legacy caller with invalid \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all(), null);
+}, "legacy caller with no argument");
+
+// item method
+
+test(function() {
+  assert_equals(document.all.item("root"), document.documentElement);
+  assert_equals(document.all.item("flags").content, "TOKENS");
+  assert_equals(document.all.item("picture").tagName, "IMG");
+}, "item method");
+
+test(function() {
+  assert_equals(document.all.item("noname"), null);
+}, "item method with invalid name");
+
+test(function() {
+  var collection = document.all.item("foo");
+  assert_equals(collection.length, 2);
+  assert_equals(collection[0], anchors[0]);
+  assert_equals(collection[1], anchors[1]);
+}, "item method returning collection");
+
+test(function() {
+  assert_equals(document.all.item("0"), document.documentElement);
+  assert_equals(document.all.item("19"), document.scripts[2]);
+  assert_equals(document.all.item("20"), null);
+  assert_equals(document.all.item("42"), null);
+  assert_equals(document.all.item("43"), null);
+}, "item method with \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.item(0), document.documentElement);
+  assert_equals(document.all.item(19), document.scripts[2]);
+  assert_equals(document.all.item(20), null);
+  assert_equals(document.all.item(42), null);
+  assert_equals(document.all.item(43), null);
+}, "item method with \"array index property name\" as number");
+
+test(function() {
+  assert_equals(document.all.item("00"), null);
+  assert_equals(document.all.item("042"), null);
+  assert_equals(document.all.item("043"), spans[1]);
+  assert_equals(document.all.item("4294967294"), null);
+  assert_equals(document.all.item("4294967295"), divs[1]);
+  assert_equals(document.all.item("4294967296"), divs[2]);
+}, "item method with invalid \"array index property name\"");
+
+test(function() {
+  assert_equals(document.all.item.length, 0);
+  assert_equals(document.all.item(), null);
+}, "item method with no argument");
+
+// live HTMLCollection
+
+test(function() {
+  var collections = [
+    document.all["foo"],
+    document.all.namedItem("foo"),
+    document.all("foo"),
+    document.all.item("foo"),
+  ];
+  // a new HTMLCollection is created for each call
+  for (var i = 0; i < collections.length; i++) {
+    assert_true(collections[i] instanceof HTMLCollection);
+    for (var j = i + 1; j < collections.length; j++) {
+      assert_not_equals(collections[i], collections[j]);
+    }
+  }
+  for (var c of collections) {
+    assert_equals(c.length, 2);
+  }
+  anchors[0].name = "bar";
+  for (var c of collections) {
+    assert_equals(c.length, 1);
+  }
+}, "collections are new live HTMLCollection instances");
 </script>
 <div id="log"></div>
 </body>

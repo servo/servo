@@ -19,11 +19,16 @@ interface Document {
 </pre>
 
 <pre id='idl'>
-enum VisibilityState { "hidden", "visible", "prerender", "unloaded" };
+enum VisibilityState {
+    "hidden",
+    "visible",
+    "prerender"
+};
 
 partial interface Document {
-  readonly attribute boolean hidden;
-  readonly attribute VisibilityState visibilityState;
+    readonly attribute boolean         hidden;
+    readonly attribute VisibilityState visibilityState;
+             attribute EventHandler    onvisibilitychange;
 };
 </pre>
 

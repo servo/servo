@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "5.1-collectionTotalValidated.json",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "failAndContinue",
+  "errorMessage": "ERROR: Annotation Collection has total key with non-numeric value, a negative numeric value, or more than one value.",
+  "title": "**Annotation Collection _total_ key**, if present, is **a non-negative integer value** - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "$ref": "collections.json#/definitions/totalDefinition"
+}

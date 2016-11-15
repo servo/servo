@@ -391,8 +391,12 @@ interface SVGGraphicsElement : SVGElement {
 SVGGraphicsElement implements SVGTests;
 
 interface SVGGeometryElement : SVGGraphicsElement {
+  [SameObject] readonly attribute SVGAnimatedNumber pathLength;
+
   boolean isPointInFill(DOMPoint point);
   boolean isPointInStroke(DOMPoint point);
+  float getTotalLength();
+  DOMPoint getPointAtLength(float distance);
 };
 
 interface SVGNumber {
@@ -739,11 +743,6 @@ interface SVGAnimatedPreserveAspectRatio {
 };
 
 interface SVGPathElement : SVGGeometryElement {
-
-  [SameObject] readonly attribute SVGAnimatedNumber pathLength;
-
-  float getTotalLength();
-  DOMPoint getPointAtLength(float distance);
 };
 
 interface SVGRectElement : SVGGeometryElement {

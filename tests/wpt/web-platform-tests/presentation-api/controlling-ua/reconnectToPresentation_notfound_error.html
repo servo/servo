@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Calling "reconnect" with an unknown presentation ID fails with a NotFoundError exception</title>
+<link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
+<link rel="author" title="Louay Bassbouss" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-reconnect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="common.js"></script>
+<script>
+    promise_test(function (t) {
+        var wrongPresentationId = "wrongPresentationId";
+        var request = new PresentationRequest(presentationUrls);
+        return promise_rejects(t, 'NotFoundError', request.reconnect(wrongPresentationId));
+    });
+</script>

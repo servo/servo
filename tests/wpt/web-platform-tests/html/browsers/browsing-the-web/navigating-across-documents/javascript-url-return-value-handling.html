@@ -16,6 +16,9 @@
   onload = t.step_func_done(function() {
     assert_equals(frames[0].document.documentElement.textContent,
                   "1", "string return should cause navigation");
+    // The rest of the test is disabled for now, until
+    //  https://github.com/whatwg/html/issues/1895 gets sorted out
+/*
     assert_equals(frames[1].document.documentElement.textContent,
                   "", "number return should not cause navigation");
     assert_equals(frames[2].document.documentElement.textContent,
@@ -28,5 +31,6 @@
                   "", "null return should not cause navigation");
     assert_equals(frames[6].document.documentElement.textContent,
                   "", "String object return should not cause navigation");
+*/
   });
 </script>

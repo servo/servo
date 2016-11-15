@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>href click</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2">
+<link rel="match" href="href-click-2-ref.html"/>
+<meta name="assert" content="Verify that a click on an element bubbles to an ancestor link.">
+<script type="text/javascript">
+  function test()
+  {
+    var event = new MouseEvent('click', {bubbles: true, cancelable: true});
+    document.getElementById('space').dispatchEvent(event);
+  }
+</script>
+</head>
+<body onload="test()">
+
+  <p>This test passes if you see a green square.</p>
+
+  <div style="width: 150px; height: 150px; overflow: hidden">
+    <math>
+      <mrow href="#target">
+        <mrow>
+          <mrow>
+            <mspace id="space" width="150px" height="150px" mathbackground="red"/>
+          </mrow>
+        </mrow>
+      </mrow>
+    </math>
+    <div style="height: 500px;"></div>
+    <math id="target">
+      <mspace width="150px" height="150px" mathbackground="green"/>
+    </math>
+  </div>
+
+</body>
+</html>

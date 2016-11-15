@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>A separate policy with more nonces works correctly with `strict-dynamic` in the script-src directive.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served:
+    1) Content-Security-Policy: script-src 'strict-dynamic' 'nonce-dummy'
+    2) Content-Security-Policy: script-src 'nonce-dummy' 'nonce-dummy2'
+    -->
+</head>
+
+<body>
+    <h1>A separate policy with more nonces works correctly with `strict-dynamic` in the script-src directive.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'unNonced-appendChild') {
+                    assert_unreached('Unnonced script injected via `appendChild` is not allowed with `strict-dynamic` + a nonce-only double policy.');
+                }
+            }));
+
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI.split('?')[1] !== 'unNonced-appendChild') {
+                    return;
+                }
+                assert_equals(violation.effectiveDirective, 'script-src');
+                t.done();
+            }));
+
+            var e = document.createElement('script');
+            e.id = 'unNonced-appendChild';
+            e.src = 'simpleSourcedScript.js?' + e.id;
+            e.onload = t.unreached_func('OnLoad should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Unnonced script injected via `appendChild` is not allowed with `strict-dynamic` + a nonce-only double policy.');
+    </script>
+
+    <script nonce='dummy'>
+        async_test(function(t) {
+            window.addEventListener('message', t.step_func(function(e) {
+                if (e.data === 'nonced-appendChild') {
+                    t.done();
+                }
+            }));
+
+            window.addEventListener('securitypolicyviolation', t.step_func(function(violation) {
+                if (violation.blockedURI.split('?')[1] !== 'nonced-appendChild') {
+                    return;
+                }
+                assert_unreached('No CSP violation report has fired.');
+            }));
+
+            var e = document.createElement('script');
+            e.setAttribute('nonce', 'dummy2');
+            e.id = 'nonced-appendChild';
+            e.src = 'simpleSourcedScript.js?' + e.id;
+            e.onerror = t.unreached_func('Error should not be triggered.');
+            document.body.appendChild(e);
+        }, 'Script injected via `appendChild` with a correct nonce is allowed with `strict-dynamic` + a nonce-only double policy.');
+    </script>
+</body>
+
+</html>

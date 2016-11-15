@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.effect tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  var anim = new Animation();
+  assert_equals(anim.effect, null, "initial effect is null");
+
+  var newEffect = new KeyframeEffectReadOnly(createDiv(t), null);
+  anim.effect = newEffect;
+  assert_equals(anim.effect, newEffect, "new effect is set");
+}, "effect is set correctly.");
+
+</script>
+</body>

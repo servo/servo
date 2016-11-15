@@ -1,0 +1,159 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; style-src 'self'">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc">
+    var unexecuted_test = async_test("These tests should not fail.");
+
+    async_test(t => {
+        var watcher = new EventWatcher(t, document, ['securitypolicyviolation'])
+        watcher.wait_for('securitypolicyviolation')
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.target, document.querySelector('#block1'));
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.target, document.querySelector('#block2'));
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.target, document.querySelector('#block3'));
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.target, document.querySelector('#block4'));
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.target, document.querySelector('#block5'));
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.lineNumber, 132);
+                assert_equals(e.target, document, "Disconnected elements target the document");
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.lineNumber, 143);
+                assert_equals(e.target, document, "Elements disconnected after triggering target the document.");
+                return watcher.wait_for('securitypolicyviolation');
+            }))
+            .then(t.step_func(e => {
+                assert_equals(e.blockedURI, "inline");
+                assert_equals(e.lineNumber, 157);
+                assert_equals(e.target, document, "Elements in DocumentFragments target the document");
+            }))
+            .then(t.step_func_done(_ => {
+                unexecuted_test.done();
+            }));
+    }, "Inline violations target the right element.");
+</script>
+<!-- Inline block with no nonce. -->
+<script id="block1">
+    unexecuted_test.assert_unreached("This code block should not execute.");
+</script>
+
+<!-- Inline event handler. -->
+<a id="block2" onclick="void(0)">Click me!</a>
+<script nonce='abc'>document.querySelector('#block2').click();</script>
+
+<!-- Style block. -->
+<style id="block3">
+  p { color: red !important; }
+</style>
+
+<!-- Inline event handler inside Shadow DOM -->
+<div id="block4"></div>
+<script nonce='abc'>
+  async_test(t => {
+    var shadow = document.querySelector('#block4').attachShadow({"mode":"closed"});
+    shadow.innerHTML = "<a id='block4a' onclick='void(0)'>Click!</a>";
+    var a = shadow.querySelector('#block4a');
+    a.addEventListener('securitypolicyviolation', t.step_func_done(e => {
+      assert_equals(e.blockedURI, "inline");
+      assert_equals(e.target, a);
+    }));
+    a.click();
+  }, "Correct targeting inside shadow tree (inline handler).");
+</script>
+
+<!-- Inline event handler inside Shadow DOM -->
+<div id="block5"></div>
+<script nonce='abc'>
+  async_test(t => {
+    var shadow = document.querySelector('#block5').attachShadow({"mode":"closed"});
+    var style = document.createElement('style');
+    style.innerText = 'p { color: red; }';
+    style.addEventListener('securitypolicyviolation', t.step_func_done(e => {
+      assert_equals(e.blockedURI, "inline");
+      assert_equals(e.target, style);
+    }));
+    shadow.appendChild(style);
+  }, "Correct targeting inside shadow tree (style).");
+</script>
+
+<!-- Pushed into a same-origin Document that isn't this Document -->
+<iframe id="block6"></iframe>
+<script nonce="abc">
+  async_test(t => {
+    var d = document.createElement("div");
+    d.setAttribute("onclick", "void(0);");
+    var events = 0;
+    d.addEventListener('securitypolicyviolation', t.step_func(e => {
+      events++;
+      assert_equals(e.blockedURI, "inline");
+      assert_equals(e.target, d);
+    }));
+    document.querySelector('#block6').contentDocument.addEventListener('securitypolicyviolation', t.step_func_done(e => {
+      events++;
+      assert_equals(e.blockedURI, "inline");
+      assert_equals(e.target, d);
+      assert_equals(events, 2);
+    }));
+    document.querySelector('#block6').contentDocument.body.appendChild(d);
+    d.click();
+  }, "Elements created in this document, but pushed into a same-origin frame trigger on that frame's document, not on this frame's document.");
+</script>
+
+<!-- Disconnected inline event handler -->
+<script nonce="abc">
+  async_test(t => {
+    var d = document.createElement("div");
+    d.setAttribute("onclick", "void(0);");
+    d.addEventListener('securitypolicyviolation', t.unreached_func());
+    d.click();
+    t.done();
+  }, "Inline event handlers for disconnected elements target the document.");
+</script>
+
+<!-- Inline event handler, disconnected after click. -->
+<a id="block8" onclick="void(0)">Click me also!</a>
+<script nonce="abc">
+  async_test(t => {
+    var a = document.querySelector('#block8');
+    a.addEventListener('securitypolicyviolation', t.unreached_func());
+    a.click();
+    a.parentNode.removeChild(a);
+    t.done();
+  }, "Inline event handlers for elements disconnected after triggering target the document.");
+</script>
+
+<!-- Disconnected in a DocumentFragment -->
+<script nonce="abc">
+  async_test(t => {
+    var f = new DocumentFragment();
+    var d = document.createElement('div');
+    d.setAttribute('onclick', 'void(0)');
+    d.addEventListener('securitypolicyviolation', t.unreached_func());
+    f.appendChild(d);
+    d.click();
+    t.done();
+  }, "Inline event handlers for elements in a DocumentFragment target the document.");
+</script>

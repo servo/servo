@@ -567,15 +567,6 @@ ReflectionTests.reflects = function(data, idlName, idlObj, domName, domObj) {
     // probably safe enough.  Just don't read stuff that will change.
     ReflectionHarness.currentTestInfo = {data: data, idlName: idlName, idlObj: idlObj, domName: domName, domObj: domObj};
 
-    ReflectionHarness.testWrapper(function() {
-        ReflectionTests.doReflects(data, idlName, idlObj, domName, domObj);
-    });
-};
-
-/**
- * Actual implementation of the above.
- */
-ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
     // If we don't recognize the type, testing is impossible.
     if (this.typeMap[data.type] === undefined) {
         if (unimplemented.indexOf(data.type) == -1) {
@@ -591,9 +582,15 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
     }
 
     // Test that typeof idlObj[idlName] is correct.  If not, further tests are
-    // probably pointless, so bail out.
-    var isDefaultValueNull = data.isNullable && data.defaultVal === null;
-    if (!ReflectionHarness.test(typeof idlObj[idlName], isDefaultValueNull ? "object" : typeInfo.jsType, "typeof IDL attribute")) {
+    // probably pointless, so bail out if we're not running conformance tests.
+    var expectedType = data.isNullable && data.defaultVal === null ? "object"
+                                                                   : typeInfo.jsType;
+    ReflectionHarness.test(function() {
+        ReflectionHarness.assertEquals(typeof idlObj[idlName], expectedType);
+    }, "typeof IDL attribute");
+
+    if (!ReflectionHarness.conformanceTesting &&
+        typeof idlObj[idlName] !== expectedType) {
         return;
     }
 
@@ -603,7 +600,9 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
         defaultVal = typeInfo.defaultVal;
     }
     if (defaultVal !== null || data.isNullable) {
-        ReflectionHarness.test(idlObj[idlName], defaultVal, "IDL get with DOM attribute unset");
+        ReflectionHarness.test(function() {
+            ReflectionHarness.assertEquals(idlObj[idlName], defaultVal);
+        }, "IDL get with DOM attribute unset");
     }
 
     var domTests = typeInfo.domTests.slice(0);
@@ -704,50 +703,42 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
                 // the test.
                 continue;
             }
-            try {
+            ReflectionHarness.test(function() {
                 domObj.setAttribute(domName, domTests[i]);
-                ReflectionHarness.test(domObj.getAttribute(domName), String(domTests[i]), "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by getAttribute()");
-                ReflectionHarness.test(idlObj[idlName], domExpected[i], "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]) + " followed by IDL get");
-                if (ReflectionHarness.catchUnexpectedExceptions) {
-                    ReflectionHarness.success();
-                }
-            } catch (err) {
-                if (ReflectionHarness.catchUnexpectedExceptions) {
-                    ReflectionHarness.failure("Exception thrown during tests with setAttribute() to " + ReflectionHarness.stringRep(domTests[i]));
-                } else {
-                    throw err;
-                }
-            }
+                ReflectionHarness.assertEquals(domObj.getAttribute(domName),
+                    String(domTests[i]), "getAttribute()");
+                ReflectionHarness.assertEquals(idlObj[idlName], domExpected[i],
+                    "IDL get");
+            }, "setAttribute() to " + ReflectionHarness.stringRep(domTests[i]));
         }
     }
 
     for (var i = 0; i < idlTests.length; i++) {
-        if ((data.type == "limited long" && idlTests[i] < 0) ||
-            (data.type == "limited unsigned long" && idlTests[i] == 0)) {
-            ReflectionHarness.testException("INDEX_SIZE_ERR", function() {
-                idlObj[idlName] = idlTests[i];
-            }, "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " must throw INDEX_SIZE_ERR");
-        } else {
-            ReflectionHarness.run(function() {
+        ReflectionHarness.test(function() {
+            if ((data.type == "limited long" && idlTests[i] < 0) ||
+                (data.type == "limited unsigned long" && idlTests[i] == 0)) {
+                ReflectionHarness.assertThrows("IndexSizeError", function() {
+                    idlObj[idlName] = idlTests[i];
+                });
+            } else {
                 idlObj[idlName] = idlTests[i];
                 if (data.type == "boolean") {
                     // Special case yay
-                    ReflectionHarness.test(domObj.hasAttribute(domName), Boolean(idlTests[i]), "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " followed by hasAttribute()");
+                    ReflectionHarness.assertEquals(domObj.hasAttribute(domName),
+                                                   Boolean(idlTests[i]), "hasAttribute()");
                 } else if (idlDomExpected[i] !== null || data.isNullable) {
                     var expected = idlDomExpected[i] + "";
                     if (data.isNullable && idlDomExpected[i] === null) {
                         expected = null;
                     }
-                    ReflectionHarness.test(domObj.getAttribute(domName), expected, "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " followed by getAttribute()");
+                    ReflectionHarness.assertEquals(domObj.getAttribute(domName), expected,
+                                                   "getAttribute()");
                 }
                 if (idlIdlExpected[i] !== null || data.isNullable) {
-                    ReflectionHarness.test(idlObj[idlName], idlIdlExpected[i], "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " followed by IDL get");
+                    ReflectionHarness.assertEquals(idlObj[idlName], idlIdlExpected[i], "IDL get");
                 }
-                if (ReflectionHarness.catchUnexpectedExceptions) {
-                    ReflectionHarness.success();
-                }
-            }, "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " should not throw");
-        }
+            }
+        }, "IDL set to " + ReflectionHarness.stringRep(idlTests[i]));
     }
 };
 

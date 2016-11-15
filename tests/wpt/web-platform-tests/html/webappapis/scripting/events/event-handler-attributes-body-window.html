@@ -21,4 +21,14 @@ handlers.forEach(function(handler) {
   }, handler);
 });
 
+handlers.forEach(function(handler) {
+    document.body['on' + handler] = null;
+});
+
+handlers.forEach(function(handler) {
+  test(function() {
+    assert_equals(document.body['on' + handler], null);
+    assert_equals(window['on' + handler], null);
+  }, handler + " removal");
+});
 </script>

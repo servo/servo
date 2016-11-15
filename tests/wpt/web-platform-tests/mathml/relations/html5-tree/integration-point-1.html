@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MathML inside foreignObject</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS1"/>
+<link rel="match" href="integration-point-1-ref.html"/>
+<meta name="assert" content="Verify that MathML can be used inside a foreignObject element.">
+</head>
+<body>
+  <p>Test passes if there is a green square and no red.</p>
+  <div>
+    <div style="position: absolute; width: 200px; height: 200px; background: red"></div>
+    <div style="position: absolute;">
+      <svg width="200px" height="200px">
+        <rect width="200px" height="100px" fill="red"/>
+        <foreignObject width="200px" height="200px"
+                       requiredExtensions="http://www.w3.org/1998/Math/MathML">
+          <div style="width: 200px; height: 200px; background: green"></div>
+        </foreignObject>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

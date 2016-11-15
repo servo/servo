@@ -13,17 +13,21 @@
         <script type="text/javascript">
             var detected_pointertypes = {};
             var test_pointerEvent = async_test("lostpointercapture: subsequent events to target.");  // set up test harness
-            var suppressedEventsFail = false;
             // showPointerTypes is defined in pointerevent_support.js
             // Requirements: the callback function will reference the test_pointerEvent object and
             // will fail unless the async_test is created with the var name "test_pointerEvent".
             add_completion_callback(showPointerTypes);
 
             var captured_event;
+            var test_done = false;
+            var overEnterEventsFail = false;
+            var outLeaveEventsFail = false;
             var f_gotPointerCapture = false;
             var f_lostPointerCapture = false;
 
             function listenerEventHandler(event) {
+                if (test_done)
+                    return;
                 detected_pointertypes[event.pointerType] = true;
                 if (event.type == "gotpointercapture") {
                     f_gotPointerCapture = true;
@@ -34,12 +38,20 @@
                     f_gotPointerCapture = false;
                     check_PointerEvent(event);
                 }
-                else if(event.type == "pointerover" || event.type == "pointerenter" || event.type == "pointerout" || event.type == "pointerleave") {
-                    if(!suppressedEventsFail) {
+                else if(event.type == "pointerover" || event.type == "pointerenter") {
+                    if(!overEnterEventsFail) {
                         test(function() {
-                            assert_true(false, "Suppressed events were received");
-                        }, "Suppressed events were received");
-                        suppressedEventsFail = true;
+                            assert_true(f_gotPointerCapture, "pointerover/enter should not be received when the target doesn't have capture and pointer is not over it.");
+                        }, "pointerover/enter should not be received when the target doesn't have capture and pointer is not over it.");
+                        overEnterEventsFail = true;
+                    }
+                }
+                else if(event.type == "pointerout" || event.type == "pointerleave") {
+                    if(!outLeaveEventsFail) {
+                        test(function() {
+                            assert_true(f_lostPointerCapture, "pointerout/leave should not be received unless the target just lost the capture.");
+                        }, "pointerout/leave should not be received unless the target just lost the capture.");
+                        outLeaveEventsFail = true;
                     }
                 }
                 else if (event.pointerId == captured_event.pointerId) {
@@ -49,19 +61,21 @@
                     }
                     else {
                         // if any other events are received after releaseCapture, then the test fails
-                        test_pointerEvent.step(function () {
-                            assert_true(false, event.target.id + "-" + event.type + " should be handled by target element handler");
-                        });
+                        test(function () {
+                            assert_unreached(event.target.id + "-" + event.type + " should be handled by target element handler");
+                        }, "No other events should be recieved by capturing node after release");
                     }
                 }
             }
 
             function targetEventHandler(event) {
+                if (test_done)
+                    return;
                 if (f_gotPointerCapture) {
                     if(event.type != "pointerout" && event.type != "pointerleave") {
-                        test_pointerEvent.step(function () {
-                            assert_true(false, "The Target element should not have received any events while capture is active. Event recieved:" + event.type + ".  ");
-                        });
+                        test(function () {
+                            assert_unreached("The Target element should not have received any events while capture is active. Event recieved:" + event.type + ".  ");
+                        }, "The target element should not receive any events while capture is active");
                     }
                 }
 
@@ -77,6 +91,7 @@
                     });
                     if (event.type == "pointerup") {
                         test_pointerEvent.done(); // complete test
+                        test_done = true;
                     }
                 }
             }

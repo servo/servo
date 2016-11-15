@@ -5,15 +5,15 @@ SETMEDIAKEYS_AFTER_UPDATE = 3;
 
 function runTest(config,qualifier) {
 
-    var testcase = ( config.testcase === SETMEDIAKEYS_IMMEDIATELY ) ? 'setMediaKeys first'
-                    : ( config.testcase === SETMEDIAKEYS_AFTER_SRC ) ? 'setMediaKeys after setting video.src'
-                    : ( config.testcase === SETMEDIAKEYS_ONENCRYPTED ) ? 'setMediaKeys in encrypted event'
-                    : ( config.testcase === SETMEDIAKEYS_AFTER_UPDATE ) ? 'setMediaKeys after updating session'
+    var testcase = (config.testcase === SETMEDIAKEYS_IMMEDIATELY) ? 'setMediaKeys first'
+                    : (config.testcase === SETMEDIAKEYS_AFTER_SRC) ? 'setMediaKeys after setting video.src'
+                    : (config.testcase === SETMEDIAKEYS_ONENCRYPTED) ? 'setMediaKeys in encrypted event'
+                    : (config.testcase === SETMEDIAKEYS_AFTER_UPDATE) ? 'setMediaKeys after updating session'
                     : 'unknown';
 
-    var testname = testnamePrefix( qualifier, config.keysystem )
+    var testname = testnamePrefix(qualifier, config.keysystem)
                                     + ', temporary, '
-                                    + /video\/([^;]*)/.exec( config.videoType )[ 1 ]
+                                    + /video\/([^;]*)/.exec(config.videoType)[1]
                                     + ', playback, ' + testcase;
 
     var configuration = {   initDataTypes: [ config.initDataType ],
@@ -21,8 +21,7 @@ function runTest(config,qualifier) {
                             videoCapabilities: [ { contentType: config.videoType } ],
                             sessionTypes: [ 'temporary' ] };
 
-    async_test( function( test ) {
-
+    async_test(function(test) {
         var _video = config.video,
             _mediaKeys,
             _mediaKeySession,
@@ -33,19 +32,17 @@ function runTest(config,qualifier) {
         }
 
         function onMessage(event) {
-            assert_equals( event.target, _mediaKeySession );
-            assert_true( event instanceof window.MediaKeyMessageEvent );
-            assert_equals( event.type, 'message');
+            assert_equals(event.target, _mediaKeySession);
+            assert_true(event instanceof window.MediaKeyMessageEvent);
+            assert_equals(event.type, 'message');
 
-            assert_any( assert_equals,
-                        event.messageType,
-                        [ 'license-request', 'individualization-request' ] );
+            assert_in_array( event.messageType, ['license-request', 'individualization-request']);
 
-            config.messagehandler( event.messageType, event.message ).then( function( response ) {
+            config.messagehandler(event.messageType, event.message).then(function(response) {
                 return _mediaKeySession.update( response );
-            }).then( function() {
-                if ( config.testcase === SETMEDIAKEYS_AFTER_UPDATE ) {
-                    return _video.setMediaKeys( _mediaKeys );
+            }).then(function() {
+                if (config.testcase === SETMEDIAKEYS_AFTER_UPDATE) {
+                    return _video.setMediaKeys(_mediaKeys);
                 }
             }).catch(onFailure);
         }
@@ -56,7 +53,7 @@ function runTest(config,qualifier) {
             assert_equals(event.type, 'encrypted');
 
             var promise = ( config.testcase === SETMEDIAKEYS_ONENCRYPTED )
-                                ? _video.setMediaKeys( _mediaKeys )
+                                ? _video.setMediaKeys(_mediaKeys)
                                 : Promise.resolve();
 
             promise.then( function() {
@@ -67,7 +64,7 @@ function runTest(config,qualifier) {
         }
 
         function onTimeupdate(event) {
-            if ( _video.currentTime > ( config.duration || 1 ) ) {
+            if (_video.currentTime > (config.duration || 1)) {
                 _video.pause();
                 test.done();
             }
@@ -79,7 +76,7 @@ function runTest(config,qualifier) {
             _video.addEventListener('timeupdate', onTimeupdate, true);
         }
 
-        navigator.requestMediaKeySystemAccess(config.keysystem, [ configuration ]).then(function(access) {
+        navigator.requestMediaKeySystemAccess(config.keysystem, [configuration]).then(function(access) {
             return access.createMediaKeys();
         }).then(test.step_func(function(mediaKeys) {
             _mediaKeys = mediaKeys;
@@ -93,14 +90,16 @@ function runTest(config,qualifier) {
             waitForEventAndRunStep('playing', _video, onPlaying, test);
 
             return testmediasource(config);
-        }).then(test.step_func(function(source) {
+        }).then(function(source) {
             _mediaSource = source;
             _video.src = URL.createObjectURL(_mediaSource);
+            return source.done;
+        }).then(function(){
             _video.play();
 
-            if ( config.testcase === SETMEDIAKEYS_AFTER_SRC ) {
-                return _video.setMediaKeys( _mediaKeys );
+            if (config.testcase === SETMEDIAKEYS_AFTER_SRC) {
+                return _video.setMediaKeys(_mediaKeys);
             }
-        })).catch(onFailure);
+        }).catch(onFailure);
     }, testname);
 }

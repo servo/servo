@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test SharedWorkerGlobalScope.isSecureContext for HTTP creator</title>
+    <meta name="help" href="https://w3c.github.io/webappsec-secure-contexts/#monkey-patching-global-object">
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="server-locations.sub.js"></script>
+  </head>
+  <body>
+    <script>
+      var t1 = async_test("Shared worker");
+      var t2 = async_test("Nested worker in shared worker");
+      var t3 = async_test("Shared worker from https subframe");
+      var t4 = async_test("Nested worker from shared worker from https subframe");
+      // Tests for SharedWorkers used from other workers (not supported right
+      // now) would go here.
+
+      t1.step(function() {
+        var w = new SharedWorker("support/shared-worker-script.js");
+        w.port.onmessage = t1.step_func_done(function(e) {
+          assert_false(e.data);
+        });
+        w.port.start();
+      });
+
+      t2.step(function() {
+        var w = new SharedWorker("support/parent-shared-worker-script.js");
+        w.port.onmessage = t2.step_func_done(function(e) {
+          assert_false(e.data);
+        });
+        w.port.start();
+      });
+
+      onmessage = function(e) {
+        var data = e.data;
+        if (data.type == "shared") {
+          t3.step(function() {
+            assert_false(data.exception);
+            assert_false(data.error);
+            assert_false(data.isSecureContext);
+          });
+          t3.done();
+        } else if (data.type == "nested") {
+          t4.step(function() {
+            assert_false(data.exception);
+            assert_false(data.error);
+            assert_false(data.isSecureContext);
+          });
+          t4.done();
+        } else {
+          t3.step(function() {
+            assert_unreached("Unknown message");
+          });
+          t3.done();
+          t4.step(function() {
+            assert_unreached("Unknown message");
+          });
+          t4.done();
+        }
+      }
+
+      var ifr = document.createElement("iframe");
+      ifr.src = https_dir2 + "support/https-subframe-shared.html";
+      document.body.appendChild(ifr);
+    </script>
+  </body>
+</html>

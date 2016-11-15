@@ -8105,7 +8105,7 @@
         "mozilla/interfaces.worker.js": [
           {
             "path": "mozilla/interfaces.worker.js",
-            "url": "/_mozilla/mozilla/interfaces.worker"
+            "url": "/_mozilla/mozilla/interfaces.worker.html"
           }
         ],
         "mozilla/iterable.html": [

@@ -59,7 +59,8 @@ CONSOLE:streams/resources/test-utils.js: 12
             'CR AT EOL': {None},
         },
     }
-    expected_ignored = {"*.pdf", "resources/*"}
+    expected_data = {os.path.normcase(p): e for p, e in expected_data.items()}
+    expected_ignored = {os.path.normcase(x) for x in {"*.pdf", "resources/*"}}
     data, ignored = parse_whitelist(input_buffer)
     assert data == expected_data
     assert ignored == expected_ignored

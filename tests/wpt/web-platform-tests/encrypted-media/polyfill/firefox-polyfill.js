@@ -20,4 +20,4 @@
             return _requestMediaKeySystemAccess( keysystem, supported_configurations );
         }
     }
-}())
+}());

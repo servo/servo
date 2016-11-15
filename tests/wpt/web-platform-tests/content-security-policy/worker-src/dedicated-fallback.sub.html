@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/testharness-helper.js"></script>
+<meta http-equiv="Content-Security-Policy" content="worker-src http://{{host}}:{{ports[http][0]}} blob:; child-src 'none'">
+<script>
+  var url = new URL("../support/ping.js", document.baseURI).toString();
+  assert_worker_is_loaded(url, "Same-origin dedicated worker allowed by host-source expression.");
+
+  var b = new Blob(["postMessage('ping');"], {type: "text/javascript"});
+  var url = URL.createObjectURL(b);
+  assert_worker_is_loaded(url, "blob: dedicated worker allowed by 'blob:'.");
+</script>

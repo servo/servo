@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Unique Identifier</title>
+<link rel="help" href="http://www.mathml-association.org/MathMLinHTML5/S2.html#SS1.SSS2">
+<meta name="assert" content="Verify whether the getElementById() works for MathML elements.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("DOMContentLoaded", function() {
+    var mtext = document.getElementById("MTEXT");
+    test(function() {
+      assert_equals(mtext, document.body.firstElementChild.lastElementChild);
+    }, "getElementById()");
+    done();
+  });
+</script>
+</head>
+<body>
+  <math>
+    <mtext id="MTEXT_"></mtext>
+    <mtext id="MTEX"></mtext>
+    <mtext id="MTEXT"></mtext>
+  </math>
+</body>
+</html>

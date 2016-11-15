@@ -17,7 +17,7 @@ interface InstallEvent : InstallPhaseEvent {
   readonly attribute ServiceWorker? activeWorker;
   void replace();
 };
-</pre>
+</script>
 
 <!--
 Service Workers use the `[InstallEvent][1]` interface for `[install][2]` event.
@@ -30,7 +30,7 @@ Service Workers use the `[InstallEvent][1]` interface for `[install][2]` event.
     <script type=text/plain id="untested_idls">
         interface ServiceWorker {};
         interface InstallPhaseEvent {};
-    </pre>
+    </script>
 
     <script>
         var idl_array = new IdlArray();
