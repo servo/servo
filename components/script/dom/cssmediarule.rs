@@ -13,6 +13,7 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::MediaRule;
+use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSMediaRule {
@@ -45,7 +46,6 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 
     fn get_css(&self) -> DOMString {
-        // self.mediarule.read().to_css_string().into()
-        "".into()
+        self.mediarule.read().to_css_string().into()
     }
 }

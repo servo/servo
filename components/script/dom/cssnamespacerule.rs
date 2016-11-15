@@ -12,6 +12,7 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::NamespaceRule;
+use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSNamespaceRule {
@@ -44,7 +45,6 @@ impl SpecificCSSRule for CSSNamespaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        // self.namespacerule.read().to_css_string().into()
-        "".into()
+        self.namespacerule.read().to_css_string().into()
     }
 }

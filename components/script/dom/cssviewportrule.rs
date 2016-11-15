@@ -12,6 +12,7 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::viewport::ViewportRule;
+use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSViewportRule {
@@ -44,7 +45,6 @@ impl SpecificCSSRule for CSSViewportRule {
     }
 
     fn get_css(&self) -> DOMString {
-        // self.viewportrule.read().to_css_string().into()
-        "".into()
+        self.viewportrule.read().to_css_string().into()
     }
 }
