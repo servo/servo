@@ -77,3 +77,5 @@ toggle
 statechange
 controllerchange
 fetch
+fullscreenchange
+fullscreenerror

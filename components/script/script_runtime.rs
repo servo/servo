@@ -76,7 +76,9 @@ pub enum ScriptThreadEventCategory {
     UpdateReplacedElement,
     WebSocketEvent,
     WorkerEvent,
-    ServiceWorkerEvent
+    ServiceWorkerEvent,
+    EnterFullscreen,
+    ExitFullscreen,
 }
 
 /// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
