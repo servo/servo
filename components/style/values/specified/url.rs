@@ -104,6 +104,13 @@ impl SpecifiedUrl {
         self.resolved.as_ref()
     }
 
+    pub fn as_str(&self) -> &str {
+        match self.resolved {
+            Some(ref url) => url.as_str(),
+            None => "",
+        }
+    }
+
     /// Little helper for Gecko's ffi.
     pub fn as_slice_components(&self) -> (*const u8, usize) {
         match self.resolved {

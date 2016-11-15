@@ -12,6 +12,7 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::font_face::FontFaceRule;
+use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSFontFaceRule {
@@ -44,7 +45,6 @@ impl SpecificCSSRule for CSSFontFaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        // self.fontfacerule.read().to_css_string().into()
-        "".into()
+        self.fontfacerule.read().to_css_string().into()
     }
 }

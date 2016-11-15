@@ -10,7 +10,9 @@ use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
+use std::fmt;
 use std::iter;
+use style_traits::ToCss;
 use values::specified::url::SpecifiedUrl;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,6 +22,22 @@ pub enum Source {
     Local(FontFamily),
 }
 
+impl ToCss for Source {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            Source::Url(ref url) => {
+                try!(dest.write_str("local(\""));
+                try!(url.to_css(dest));
+            },
+            Source::Local(ref family) => {
+                try!(dest.write_str("url(\""));
+                try!(family.to_css(dest));
+            },
+        }
+        dest.write_str("\")")
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct UrlSource {
@@ -27,11 +45,39 @@ pub struct UrlSource {
     pub format_hints: Vec<String>,
 }
 
+impl ToCss for UrlSource {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(self.url.as_str())
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct FontFaceRule {
     pub family: FontFamily,
     pub sources: Vec<Source>,
+}
+
+impl ToCss for FontFaceRule {
+    // Serialization of FontFaceRule is not specced.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@font-face { font-family: "));
+        try!(self.family.to_css(dest));
+        try!(dest.write_str(";"));
+
+        if self.sources.len() > 0 {
+            try!(dest.write_str(" src: "));
+            let mut iter = self.sources.iter();
+            try!(iter.next().unwrap().to_css(dest));
+            for source in iter {
+                try!(dest.write_str(", "));
+                try!(source.to_css(dest));
+            }
+            try!(dest.write_str(";"));
+        }
+
+        dest.write_str(" }")
+    }
 }
 
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)

@@ -9,6 +9,7 @@
 
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
+use cssparser::ToCss as ParserToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use media_queries::Device;
@@ -26,32 +27,34 @@ use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
 macro_rules! declare_viewport_descriptor {
-    ( $( $variant: ident($data: ident), )+ ) => {
-        declare_viewport_descriptor_inner!([] [ $( $variant($data), )+ ] 0);
+    ( $( $variant_name: expr => $variant: ident($data: ident), )+ ) => {
+         declare_viewport_descriptor_inner!([] [ $( $variant_name => $variant($data), )+ ] 0);
     };
 }
 
 macro_rules! declare_viewport_descriptor_inner {
     (
-        [ $( $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
+        [ $( $assigned_variant_name: expr =>
+             $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
         [
-            $next_variant: ident($next_data: ident),
-            $( $variant: ident($data: ident), )*
+            $next_variant_name: expr => $next_variant: ident($next_data: ident),
+            $( $variant_name: expr => $variant: ident($data: ident), )*
         ]
         $next_discriminant: expr
     ) => {
         declare_viewport_descriptor_inner! {
             [
-                $( $assigned_variant($assigned_data) = $assigned_discriminant, )*
-                $next_variant($next_data) = $next_discriminant,
+                $( $assigned_variant_name => $assigned_variant($assigned_data) = $assigned_discriminant, )*
+                $next_variant_name => $next_variant($next_data) = $next_discriminant,
             ]
-            [ $( $variant($data), )* ]
+            [ $( $variant_name => $variant($data), )* ]
             $next_discriminant + 1
         }
     };
 
     (
-        [ $( $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
+        [ $( $assigned_variant_name: expr =>
+             $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
         [ ]
         $number_of_variants: expr
     ) => {
@@ -74,22 +77,37 @@ macro_rules! declare_viewport_descriptor_inner {
                 }
             }
         }
+
+        impl ToCss for ViewportDescriptor {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    $(
+                        ViewportDescriptor::$assigned_variant(val) => {
+                            try!(dest.write_str($assigned_variant_name));
+                            try!(dest.write_str(": "));
+                            try!(val.to_css(dest));
+                        },
+                    )*
+                }
+                dest.write_str(";")
+            }
+        }
     };
 }
 
 declare_viewport_descriptor! {
-    MinWidth(ViewportLength),
-    MaxWidth(ViewportLength),
+    "min-width" => MinWidth(ViewportLength),
+    "max-width" => MaxWidth(ViewportLength),
 
-    MinHeight(ViewportLength),
-    MaxHeight(ViewportLength),
+    "min-height" => MinHeight(ViewportLength),
+    "max-height" => MaxHeight(ViewportLength),
 
-    Zoom(Zoom),
-    MinZoom(Zoom),
-    MaxZoom(Zoom),
+    "zoom" => Zoom(Zoom),
+    "min-zoom" => MinZoom(Zoom),
+    "max-zoom" => MaxZoom(Zoom),
 
-    UserZoom(UserZoom),
-    Orientation(Orientation),
+    "user-zoom" => UserZoom(UserZoom),
+    "orientation" => Orientation(Orientation),
 }
 
 trait FromMeta: Sized {
@@ -207,6 +225,16 @@ impl ViewportDescriptorDeclaration {
             descriptor: descriptor,
             important: important
         }
+    }
+}
+
+impl ToCss for ViewportDescriptorDeclaration {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(self.descriptor.to_css(dest));
+        if self.important {
+            try!(dest.write_str(" !important"));
+        }
+        dest.write_str(";")
     }
 }
 
@@ -464,6 +492,20 @@ impl ViewportRule {
         };
 
         Some((name, value))
+    }
+}
+
+impl ToCss for ViewportRule {
+    // Serialization of ViewportRule is not specced.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@viewport { "));
+        let mut iter = self.declarations.iter();
+        try!(iter.next().unwrap().to_css(dest));
+        for declaration in iter {
+            try!(dest.write_str(" "));
+            try!(declaration.to_css(dest));
+        }
+        dest.write_str(" }")
     }
 }
 

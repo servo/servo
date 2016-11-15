@@ -107,6 +107,20 @@ impl CssRule {
     }
 }
 
+impl ToCss for CssRule {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            CssRule::Namespace(ref lock) => lock.read().to_css(dest),
+            CssRule::Style(ref lock) => lock.read().to_css(dest),
+            CssRule::FontFace(ref lock) => lock.read().to_css(dest),
+            CssRule::Viewport(ref lock) => lock.read().to_css(dest),
+            CssRule::Keyframes(ref lock) => lock.read().to_css(dest),
+            CssRule::Media(ref lock) => lock.read().to_css(dest),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct NamespaceRule {
@@ -115,16 +129,60 @@ pub struct NamespaceRule {
     pub url: Namespace,
 }
 
+impl ToCss for NamespaceRule {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSNamespaceRule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@namespace "));
+        if let Some(ref prefix) = self.prefix {
+            try!(dest.write_str(&*prefix.to_string()));
+            try!(dest.write_str(" "));
+        }
+        try!(dest.write_str("url(\""));
+        try!(dest.write_str(&*self.url.to_string()));
+        dest.write_str("\");")
+    }
+}
+
 #[derive(Debug)]
 pub struct KeyframesRule {
     pub name: Atom,
     pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
 }
 
+impl ToCss for KeyframesRule {
+    // Serialization of KeyframesRule is not specced.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@keyframes "));
+        try!(dest.write_str(&*self.name.to_string()));
+        try!(dest.write_str(" { "));
+        let iter = self.keyframes.iter();
+        for lock in iter {
+            let keyframe = lock.read();
+            try!(keyframe.to_css(dest));
+        }
+        dest.write_str(" }")
+    }
+}
+
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
     pub rules: CssRules,
+}
+
+impl ToCss for MediaRule {
+    // Serialization of MediaRule is not specced.
+    // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSMediaRule
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@media ("));
+        try!(self.media_queries.read().to_css(dest));
+        try!(dest.write_str(") {"));
+        for rule in self.rules.0.read().iter() {
+            try!(dest.write_str(" "));
+            try!(rule.to_css(dest));
+        }
+        dest.write_str(" }")
+    }
 }
 
 #[derive(Debug)]
