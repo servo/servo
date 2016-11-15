@@ -26,13 +26,13 @@ use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
 use js::jsapi::{JSObject, JS_GetClass, JS_GetContext};
 use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
+use js::panic::maybe_resume_unwind;
 use js::rust::CompileOptionsWrapper;
 use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan};
-use script_runtime::{ScriptPort, maybe_take_panic_result};
+use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
@@ -41,7 +41,6 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
-use std::panic;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use time::{Timespec, get_time};
@@ -376,9 +375,7 @@ impl GlobalScope {
                     }
                 }
 
-                if let Some(error) = maybe_take_panic_result() {
-                    panic::resume_unwind(error);
-                }
+                maybe_resume_unwind();
             }
         )
     }

@@ -32,11 +32,8 @@ use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use libc;
-use script_runtime::store_panic_result;
 use std::ffi::CString;
 use std::os::raw::c_void;
-use std::panic;
-use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::slice;
 
@@ -516,15 +513,3 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
-
-/// Generic wrapper for JS engine callbacks panic-catching
-pub fn wrap_panic<T: FnMut() -> R, R>(function: T, generic_return_type: R) -> R {
-    let result = panic::catch_unwind(AssertUnwindSafe(function));
-    match result {
-        Ok(result) => result,
-        Err(error) => {
-            store_panic_result(error);
-            generic_return_type
-        }
-    }
-}

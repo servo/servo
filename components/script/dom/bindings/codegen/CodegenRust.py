@@ -2377,8 +2377,8 @@ class CGAbstractMethod(CGThing):
 
         if self.catchPanic:
             body = CGWrapper(CGIndenter(body),
-                             pre="return wrap_panic(|| {\n",
-                             post=("""}, %s);""" % ("()" if self.returnType == "void" else "false")))
+                             pre="return wrap_panic(panic::AssertUnwindSafe(|| {\n",
+                             post=("""}), %s);""" % ("()" if self.returnType == "void" else "false")))
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -5496,6 +5496,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
+        'js::panic::maybe_resume_unwind',
+        'js::panic::wrap_panic',
         'js::rust::GCMethods',
         'js::rust::define_methods',
         'js::rust::define_properties',
@@ -5547,7 +5549,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::resolve_global',
         'dom::bindings::utils::set_dictionary_property',
         'dom::bindings::utils::trace_global',
-        'dom::bindings::utils::wrap_panic',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
         'dom::bindings::callback::CallSetup',
@@ -5599,7 +5600,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'mem::heap_size_of_raw_self_and_children',
         'libc',
         'util::prefs::PREFS',
-        'script_runtime::maybe_take_panic_result',
         'std::borrow::ToOwned',
         'std::cmp',
         'std::mem',
@@ -6596,9 +6596,7 @@ class CallbackMethod(CallbackMember):
             "        length_: ${argc} as ::libc::size_t,\n"
             "        elements_: ${argv}\n"
             "    }, rval.handle_mut());\n"
-            "if let Some(error) = maybe_take_panic_result() {\n"
-            "    panic::resume_unwind(error);\n"
-            "}\n"
+            "maybe_resume_unwind();\n"
             "if !ok {\n"
             "    return Err(JSFailed);\n"
             "}\n").substitute(replacements)

@@ -26,17 +26,17 @@ use fetch;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
+use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
 use script_thread::{Runnable, RunnableWrapper};
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::ServoUrl;
 use std::default::Default;
-use std::panic;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -232,9 +232,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let result = self.runtime.evaluate_script(
                 self.reflector().get_jsobject(), &source, url.as_str(), 1, rval.handle_mut());
 
-            if let Some(error) = maybe_take_panic_result() {
-                panic::resume_unwind(error);
-            }
+            maybe_resume_unwind();
 
             match result {
                 Ok(_) => (),

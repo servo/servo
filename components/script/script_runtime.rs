@@ -20,17 +20,17 @@ use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_Set
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
+use js::panic::wrap_panic;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::{Runnable, STACK_ROOTS, trace_thread};
-use std::any::Any;
-use std::cell::{RefCell, Cell};
+use std::cell::Cell;
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
 use std::os::raw::c_void;
-use std::panic::{self, AssertUnwindSafe};
+use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
@@ -176,7 +176,7 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
-    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+    wrap_panic(AssertUnwindSafe(|| {
         let global = GlobalScope::from_object(job.get());
         let pipeline = global.pipeline_id();
         global.enqueue_promise_job(EnqueuedPromiseCallback {
@@ -184,14 +184,7 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
             pipeline: pipeline,
         });
         true
-    }));
-    match result {
-        Ok(result) => result,
-        Err(error) => {
-            store_panic_result(error);
-            return false;
-        }
-    }
+    }), false)
 }
 
 #[allow(unsafe_code)]
@@ -419,21 +412,6 @@ pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
         }
     }
     reports
-}
-
-thread_local!(static PANIC_RESULT: RefCell<Option<Box<Any + Send>>> = RefCell::new(None));
-
-pub fn store_panic_result(error: Box<Any + Send>) {
-    PANIC_RESULT.with(|result| {
-        assert!(result.borrow().is_none());
-        *result.borrow_mut() = Some(error);
-    });
-}
-
-pub fn maybe_take_panic_result() -> Option<Box<Any + Send>> {
-    PANIC_RESULT.with(|result| {
-        result.borrow_mut().take()
-    })
 }
 
 thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
