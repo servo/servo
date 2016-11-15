@@ -201,7 +201,7 @@ impl Runnable for StorageEventRunnable {
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
             DOMString::from(this.url.into_string()),
-            Some(&*storage)
+            Some(&storage)
         );
 
         storage_event.upcast::<Event>().fire(window.upcast());
