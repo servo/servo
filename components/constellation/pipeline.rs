@@ -165,8 +165,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
-                    content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
+                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
@@ -257,6 +256,35 @@ impl Pipeline {
         pipeline.notify_visibility();
 
         Ok((pipeline, child_process))
+    }
+
+    /// Creates a `Pipeline` for a layout thread that was spawned from an
+    /// existing script thread.
+    pub fn spawned(id: PipelineId,
+                   frame_id: FrameId,
+                   parent_info: Option<(PipelineId, FrameType)>,
+                   script_chan: IpcSender<ConstellationControlMsg>,
+                   layout_chan: IpcSender<LayoutControlMsg>,
+                   compositor_proxy: Box<CompositorProxy + 'static + Send>,
+                   is_private: bool,
+                   url: ServoUrl,
+                   size: Option<TypedSize2D<f32, PagePx>>,
+                   visible: bool)
+                   -> Pipeline {
+        let pipeline = Pipeline::new(id,
+                                     frame_id,
+                                     parent_info,
+                                     ScriptChan::new(script_chan),
+                                     layout_chan,
+                                     compositor_proxy,
+                                     is_private,
+                                     url,
+                                     size,
+                                     visible);
+
+        pipeline.notify_visibility();
+
+        pipeline
     }
 
     fn new(id: PipelineId,
@@ -424,6 +452,7 @@ impl UnprivilegedPipelineContent {
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
             constellation_chan: self.constellation_chan,
+            layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan,
             bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,
@@ -448,7 +477,7 @@ impl UnprivilegedPipelineContent {
                     self.font_cache_thread,
                     self.time_profiler_chan,
                     self.mem_profiler_chan,
-                    self.layout_content_process_shutdown_chan,
+                    Some(self.layout_content_process_shutdown_chan),
                     self.webrender_api_sender,
                     self.prefs.get("layout.threads").expect("exists").value()
                         .as_u64().expect("count") as usize);

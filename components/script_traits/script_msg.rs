@@ -4,8 +4,11 @@
 
 use AnimationState;
 use CompositorEvent;
+use ConstellationControlMsg;
 use DocumentState;
 use IFrameLoadInfo;
+use IFrameLoadInfoWithData;
+use LayoutControlMsg;
 use LoadData;
 use MozBrowserEvent;
 use WorkerGlobalScopeInit;
@@ -105,7 +108,9 @@ pub enum ScriptMsg {
     /// Notifies constellation that an iframe's visibility has been changed.
     VisibilityChangeComplete(PipelineId, bool),
     /// A load has been requested in an IFrame.
-    ScriptLoadedURLInIFrame(IFrameLoadInfo),
+    ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
+    /// A load has been completed in an IFrame.
+    ScriptDidLoadURLInIFrame(IFrameLoadInfo, IpcSender<ConstellationControlMsg>, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
