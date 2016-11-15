@@ -10,7 +10,6 @@ test_interfaces([
   "BeforeUnloadEvent",
   "Blob",
   "CloseEvent",
-  "CSS",
   "CSSStyleDeclaration",
   "DOMPoint",
   "DOMPointReadOnly",
