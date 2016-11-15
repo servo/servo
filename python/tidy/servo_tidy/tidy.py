@@ -645,11 +645,6 @@ def duplicate_key_yaml_constructor(loader, node, deep=False):
     return loader.construct_mapping(node, deep)
 
 
-class SafeYamlLoader(yaml.SafeLoader):
-    '''A SafeLoader to prevent pollution of default SafeLoader namespace'''
-    pass
-
-
 def lint_buildbot_steps_yaml(mapping):
     # Check for well-formedness of contents
     # A well-formed buildbot_steps.yml should just be a map to list of strings
@@ -666,15 +661,16 @@ def check_yaml(file_name, contents):
     if not file_name.endswith("buildbot_steps.yml"):
         raise StopIteration
 
-    # YAML specification doesn't necessarily prevent
+    # YAML specification doesn't explicitly disallow
     # duplicate keys, but they shouldn't be allowed in
     # buildbot_steps.yml as it could lead to confusion
-    SafeYamlLoader.add_constructor(
+    yaml.SafeLoader.add_constructor(
         yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        duplicate_key_yaml_constructor)
+        duplicate_key_yaml_constructor
+    )
 
     try:
-        contents = yaml.load(contents, Loader=SafeYamlLoader)
+        contents = yaml.load(contents, Loader=yaml.SafeLoader)
         lint_buildbot_steps_yaml(contents)
     except yaml.YAMLError as e:
         line = e.problem_mark.line + 1 if hasattr(e, 'problem_mark') else None
