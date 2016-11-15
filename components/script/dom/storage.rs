@@ -17,6 +17,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{Runnable, ScriptThread};
+use script_traits::ScriptMsg;
 use task_source::TaskSource;
 use url::Url;
 
@@ -149,60 +150,60 @@ impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
     fn broadcast_change_notification(&self, key: Option<String>, old_value: Option<String>,
                                      new_value: Option<String>) {
+        let pipeline_id = self.global().pipeline_id();
+        let storage = self.storage_type;
+        let url = self.get_url();
+        let msg = ScriptMsg::BroadcastStorageEvent(pipeline_id, storage, url, key, old_value, new_value);
+        self.global().constellation_chan().send(msg).unwrap();
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
+    pub fn queue_storage_event(&self, url: Url,
+                               key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let global = self.global();
         let window = global.as_window();
         let task_source = window.dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
         task_source
             .queue(
-                box StorageEventRunnable::new(trusted_storage, key, old_value, new_value), &global)
+                box StorageEventRunnable::new(trusted_storage, url, key, old_value, new_value), &global)
             .unwrap();
     }
 }
 
 pub struct StorageEventRunnable {
     element: Trusted<Storage>,
+    url: Url,
     key: Option<String>,
     old_value: Option<String>,
     new_value: Option<String>
 }
 
 impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, key: Option<String>, old_value: Option<String>,
-           new_value: Option<String>) -> StorageEventRunnable {
-        StorageEventRunnable { element: storage, key: key, old_value: old_value, new_value: new_value }
+    fn new(storage: Trusted<Storage>, url: Url,
+           key: Option<String>, old_value: Option<String>, new_value: Option<String>) -> StorageEventRunnable {
+        StorageEventRunnable { element: storage, url: url, key: key, old_value: old_value, new_value: new_value }
     }
 }
 
 impl Runnable for StorageEventRunnable {
     fn name(&self) -> &'static str { "StorageEventRunnable" }
 
-    fn main_thread_handler(self: Box<StorageEventRunnable>, script_thread: &ScriptThread) {
+    fn main_thread_handler(self: Box<StorageEventRunnable>, _: &ScriptThread) {
         let this = *self;
         let storage = this.element.root();
         let global = storage.global();
-        let ev_url = storage.get_url();
+        let window = global.as_window();
 
         let storage_event = StorageEvent::new(
             &global,
             atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
-            DOMString::from(ev_url.to_string()),
+            DOMString::from(this.url.into_string()),
             Some(&storage)
         );
 
-        // TODO: This is only iterating over documents in the current script
-        // thread, so we are not firing events to other script threads.
-        // NOTE: once that is fixed, we can remove borrow_documents from ScriptThread.
-        for (id, document) in script_thread.borrow_documents().iter() {
-            if ev_url.origin() == document.window().get_url().origin() {
-                // TODO: Such a Document object is not necessarily fully active, but events fired on such
-                // objects are ignored by the event loop until the Document becomes fully active again.
-                if global.pipeline_id() != id {
-                    storage_event.upcast::<Event>().fire(document.window().upcast());
-                }
-            }
-        }
+        storage_event.upcast::<Event>().fire(window.upcast());
     }
 }
