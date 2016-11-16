@@ -18,8 +18,8 @@ use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{Runnable, ScriptThread};
 use script_traits::ScriptMsg;
+use servo_url::ServoUrl;
 use task_source::TaskSource;
-use url::Url;
 
 #[dom_struct]
 pub struct Storage {
@@ -39,7 +39,7 @@ impl Storage {
         reflect_dom_object(box Storage::new_inherited(storage_type), global, StorageBinding::Wrap)
     }
 
-    fn get_url(&self) -> Url {
+    fn get_url(&self) -> ServoUrl {
         self.global().get_url()
     }
 
@@ -158,7 +158,7 @@ impl Storage {
     }
 
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    pub fn queue_storage_event(&self, url: Url,
+    pub fn queue_storage_event(&self, url: ServoUrl,
                                key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let global = self.global();
         let window = global.as_window();
@@ -173,14 +173,14 @@ impl Storage {
 
 pub struct StorageEventRunnable {
     element: Trusted<Storage>,
-    url: Url,
+    url: ServoUrl,
     key: Option<String>,
     old_value: Option<String>,
     new_value: Option<String>
 }
 
 impl StorageEventRunnable {
-    fn new(storage: Trusted<Storage>, url: Url,
+    fn new(storage: Trusted<Storage>, url: ServoUrl,
            key: Option<String>, old_value: Option<String>, new_value: Option<String>) -> StorageEventRunnable {
         StorageEventRunnable { element: storage, url: url, key: key, old_value: old_value, new_value: new_value }
     }

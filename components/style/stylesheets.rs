@@ -18,11 +18,11 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_impl::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
-use url::Url;
 use viewport::ViewportRule;
 
 
@@ -171,7 +171,7 @@ impl ToCss for StyleRule {
 
 impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
-            input: I, base_url: Url, protocol_encoding_label: Option<&str>,
+            input: I, base_url: ServoUrl, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>, origin: Origin,
             error_reporter: Box<ParseErrorReporter + Send>,
             extra_data: ParserContextExtraData) -> Stylesheet {
@@ -186,7 +186,7 @@ impl Stylesheet {
     }
 
     pub fn from_bytes(bytes: &[u8],
-                      base_url: Url,
+                      base_url: ServoUrl,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
                       origin: Origin, error_reporter: Box<ParseErrorReporter + Send>,
@@ -198,7 +198,7 @@ impl Stylesheet {
         Stylesheet::from_str(&string, base_url, origin, error_reporter, extra_data)
     }
 
-    pub fn from_str(css: &str, base_url: Url, origin: Origin,
+    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin,
                     error_reporter: Box<ParseErrorReporter + Send>,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let rule_parser = TopLevelRuleParser {

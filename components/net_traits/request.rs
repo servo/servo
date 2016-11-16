@@ -6,10 +6,11 @@ use ReferrerPolicy;
 use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
+use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 use std::mem::swap;
-use url::{Origin as UrlOrigin, Url};
+use url::{Origin as UrlOrigin};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Copy, Clone, PartialEq, HeapSizeOf)]
@@ -49,7 +50,7 @@ pub enum Referrer {
     NoReferrer,
     /// Default referrer if nothing is specified
     Client,
-    ReferrerUrl(Url)
+    ReferrerUrl(ServoUrl)
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
@@ -117,7 +118,7 @@ pub struct RequestInit {
             serialize_with = "::hyper_serde::serialize")]
     #[ignore_heap_size_of = "Defined in hyper"]
     pub method: Method,
-    pub url: Url,
+    pub url: ServoUrl,
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -135,9 +136,9 @@ pub struct RequestInit {
     pub use_url_credentials: bool,
     // this should actually be set by fetch, but fetch
     // doesn't have info about the client right now
-    pub origin: Url,
+    pub origin: ServoUrl,
     // XXXManishearth these should be part of the client object
-    pub referrer_url: Option<Url>,
+    pub referrer_url: Option<ServoUrl>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
@@ -147,7 +148,7 @@ impl Default for RequestInit {
     fn default() -> RequestInit {
         RequestInit {
             method: Method::Get,
-            url: Url::parse("about:blank").unwrap(),
+            url: ServoUrl::parse("about:blank").unwrap(),
             headers: Headers::new(),
             unsafe_request: false,
             body: None,
@@ -159,7 +160,7 @@ impl Default for RequestInit {
             use_cors_preflight: false,
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
-            origin: Url::parse("about:blank").unwrap(),
+            origin: ServoUrl::parse("about:blank").unwrap(),
             referrer_url: None,
             referrer_policy: None,
             pipeline_id: None,
@@ -205,14 +206,14 @@ pub struct Request {
     pub integrity_metadata: RefCell<String>,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
-    pub url_list: RefCell<Vec<Url>>,
+    pub url_list: RefCell<Vec<ServoUrl>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
     pub done: Cell<bool>,
 }
 
 impl Request {
-    pub fn new(url: Url,
+    pub fn new(url: ServoUrl,
                origin: Option<Origin>,
                is_service_worker_global_scope: bool,
                pipeline_id: Option<PipelineId>) -> Request {
@@ -277,11 +278,11 @@ impl Request {
         req
     }
 
-    pub fn url(&self) -> Url {
+    pub fn url(&self) -> ServoUrl {
         self.url_list.borrow().first().unwrap().clone()
     }
 
-    pub fn current_url(&self) -> Url {
+    pub fn current_url(&self) -> ServoUrl {
         self.url_list.borrow().last().unwrap().clone()
     }
 
@@ -301,20 +302,20 @@ impl Request {
 }
 
 impl Referrer {
-    pub fn to_url(&self) -> Option<&Url> {
+    pub fn to_url(&self) -> Option<&ServoUrl> {
         match *self {
             Referrer::NoReferrer | Referrer::Client => None,
             Referrer::ReferrerUrl(ref url) => Some(url)
         }
     }
-    pub fn from_url(url: Option<Url>) -> Self {
+    pub fn from_url(url: Option<ServoUrl>) -> Self {
         if let Some(url) = url {
             Referrer::ReferrerUrl(url)
         } else {
             Referrer::NoReferrer
         }
     }
-    pub fn take(&mut self) -> Option<Url> {
+    pub fn take(&mut self) -> Option<ServoUrl> {
         let mut new = Referrer::Client;
         swap(self, &mut new);
         match new {

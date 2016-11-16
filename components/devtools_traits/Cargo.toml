@@ -19,5 +19,5 @@ ipc-channel = "0.5"
 msg = {path = "../msg"}
 serde = "0.8"
 serde_derive = "0.8"
+servo_url = {path = "../url"}
 time = "0.1"
-url = {version = "1.2", features = ["heap_size"]}

@@ -17,8 +17,8 @@ use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::FileManagerThreadMsg;
+use servo_url::ServoUrl;
 use std::default::Default;
-use url::Url;
 use uuid::Uuid;
 
 // https://url.spec.whatwg.org/#url
@@ -27,14 +27,14 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-url-url
-    url: DOMRefCell<Url>,
+    url: DOMRefCell<ServoUrl>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     search_params: MutNullableHeap<JS<URLSearchParams>>,
 }
 
 impl URL {
-    fn new_inherited(url: Url) -> URL {
+    fn new_inherited(url: ServoUrl) -> URL {
         URL {
             reflector_: Reflector::new(),
             url: DOMRefCell::new(url),
@@ -42,18 +42,19 @@ impl URL {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: Url) -> Root<URL> {
+    pub fn new(global: &GlobalScope, url: ServoUrl) -> Root<URL> {
         reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
-        self.url.borrow().query_pairs().into_owned().collect()
+        self.url.borrow().as_url().unwrap().query_pairs().into_owned().collect()
     }
 
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
-        let mut url = self.url.borrow_mut();
-        url.query_pairs_mut().clear().extend_pairs(pairs);
+        if let Some(ref mut url) = self.url.borrow_mut().as_mut_url() {
+            url.query_pairs_mut().clear().extend_pairs(pairs);
+        }
     }
 }
 
@@ -69,7 +70,7 @@ impl URL {
             },
             Some(base) =>
                 // Step 2.1.
-                match Url::parse(&base.0) {
+                match ServoUrl::parse(&base.0) {
                     Ok(base) => Some(base),
                     Err(error) => {
                         // Step 2.2.
@@ -78,7 +79,7 @@ impl URL {
                 }
         };
         // Step 3.
-        let parsed_url = match Url::options().base_url(parsed_base.as_ref()).parse(&url.0) {
+        let parsed_url = match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
             Ok(url) => url,
             Err(error) => {
                 // Step 4.
@@ -124,7 +125,7 @@ impl URL {
         */
         let origin = get_blob_origin(&global.get_url());
 
-        if let Ok(url) = Url::parse(&url) {
+        if let Ok(url) = ServoUrl::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {
                 let resource_threads = global.resource_threads();
                 let (tx, rx) = ipc::channel().unwrap();
@@ -192,7 +193,7 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
-        match Url::parse(&value.0) {
+        match ServoUrl::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
                 self.search_params.set(None);  // To be re-initialized in the SearchParams getter.
@@ -258,7 +259,7 @@ impl URLMethods for URL {
     fn SetSearch(&self, value: USVString) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
         if let Some(search_params) = self.search_params.get() {
-            search_params.set_list(self.url.borrow().query_pairs().into_owned().collect());
+            search_params.set_list(self.query_pairs());
         }
     }
 

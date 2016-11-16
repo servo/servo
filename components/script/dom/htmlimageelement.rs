@@ -27,11 +27,11 @@ use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use script_thread::Runnable;
+use servo_url::ServoUrl;
 use std::i32;
 use std::sync::Arc;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
-use url::Url;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -44,7 +44,7 @@ enum State {
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
-    parsed_url: Option<Url>,
+    parsed_url: Option<ServoUrl>,
     source_url: Option<DOMString>,
     #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
@@ -58,7 +58,7 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    pub fn get_url(&self) -> Option<Url> {
+    pub fn get_url(&self) -> Option<ServoUrl> {
         self.current_request.borrow().parsed_url.clone()
     }
 }
@@ -120,7 +120,7 @@ impl Runnable for ImageResponseHandlerRunnable {
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&self, value: Option<(DOMString, Url)>) {
+    fn update_image(&self, value: Option<(DOMString, ServoUrl)>) {
         let document = document_from_node(self);
         let window = document.window();
         let image_cache = window.image_cache_thread();
@@ -149,7 +149,7 @@ impl HTMLImageElement {
                         let _ = task_source.queue_with_wrapper(runnable, &wrapper);
                     });
 
-                    image_cache.request_image_and_metadata(img_url,
+                    image_cache.request_image_and_metadata(img_url.into(),
                                               window.image_cache_chan(),
                                               Some(ImageResponder::new(responder_sender)));
                 } else {
@@ -241,7 +241,7 @@ pub trait LayoutHTMLImageElementHelpers {
     unsafe fn image(&self) -> Option<Arc<Image>>;
 
     #[allow(unsafe_code)]
-    unsafe fn image_url(&self) -> Option<Url>;
+    unsafe fn image_url(&self) -> Option<ServoUrl>;
 
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
@@ -254,7 +254,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn image_url(&self) -> Option<Url> {
+    unsafe fn image_url(&self) -> Option<ServoUrl> {
         (*self.unsafe_get()).current_request.borrow_for_layout().parsed_url.clone()
     }
 

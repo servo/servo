@@ -36,6 +36,7 @@ use net_traits::unwrap_websocket_protocol;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
 use script_thread::{Runnable, RunnableWrapper};
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -43,7 +44,6 @@ use std::ptr;
 use std::thread;
 use task_source::TaskSource;
 use task_source::networking::NetworkingTaskSource;
-use websocket::client::request::Url;
 use websocket::header::{Headers, WebSocketProtocol};
 use websocket::ws::util::url::parse_url;
 
@@ -171,7 +171,7 @@ pub fn fail_the_websocket_connection(address: Trusted<WebSocket>,
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
-    url: Url,
+    url: ServoUrl,
     ready_state: Cell<WebSocketRequestState>,
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running thread to clear buffered_amount
@@ -182,7 +182,7 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
-    fn new_inherited(url: Url) -> WebSocket {
+    fn new_inherited(url: ServoUrl) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url: url,
@@ -195,7 +195,7 @@ impl WebSocket {
         }
     }
 
-    fn new(global: &GlobalScope, url: Url) -> Root<WebSocket> {
+    fn new(global: &GlobalScope, url: ServoUrl) -> Root<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global, WebSocketBinding::Wrap)
     }
@@ -205,10 +205,10 @@ impl WebSocket {
                        protocols: Option<StringOrStringSequence>)
                        -> Fallible<Root<WebSocket>> {
         // Step 1.
-        let resource_url = try!(Url::parse(&url).map_err(|_| Error::Syntax));
+        let resource_url = try!(ServoUrl::parse(&url).map_err(|_| Error::Syntax));
         // Although we do this replace and parse operation again in the resource thread,
         // we try here to be able to immediately throw a syntax error on failure.
-        let _ = try!(parse_url(&replace_hosts(&resource_url)).map_err(|_| Error::Syntax));
+        let _ = try!(parse_url(&replace_hosts(&resource_url).as_url().unwrap()).map_err(|_| Error::Syntax));
         // Step 2: Disallow https -> ws connections.
 
         // Step 3: Potentially block access to some ports.

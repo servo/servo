@@ -42,11 +42,11 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
 use num_traits::ToPrimitive;
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_url::ServoUrl;
 use std::{cmp, fmt};
 use std::cell::Cell;
 use std::str::FromStr;
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
-use url::Url;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
@@ -451,7 +451,7 @@ impl CanvasRenderingContext2D {
     }
 
     #[inline]
-    fn request_image_from_cache(&self, url: Url) -> ImageResponse {
+    fn request_image_from_cache(&self, url: ServoUrl) -> ImageResponse {
         let window = window_from_node(&*self.canvas);
         canvas_utils::request_image_from_cache(&window, url)
     }

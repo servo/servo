@@ -4,16 +4,16 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
+use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::properties::longhands::{mask_clip, mask_composite, mask_image, mask_mode};
 use style::properties::longhands::{mask_origin, mask_position, mask_repeat, mask_size};
 use style::properties::shorthands::mask;
 use style::stylesheets::Origin;
-use url::Url;
 
 #[test]
 fn mask_shorthand_should_parse_all_available_properties_when_specified() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
                                  repeat-x padding-box border-box subtract");
@@ -31,7 +31,7 @@ fn mask_shorthand_should_parse_all_available_properties_when_specified() {
 
 #[test]
 fn mask_shorthand_should_parse_when_some_fields_set() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = mask::parse_value(&context, &mut parser).unwrap();
@@ -59,7 +59,7 @@ fn mask_shorthand_should_parse_when_some_fields_set() {
 
 #[test]
 fn mask_shorthand_should_parse_position_and_size_correctly() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("7px 4px");
     let result = mask::parse_value(&context, &mut parser).unwrap();
@@ -81,7 +81,7 @@ fn mask_shorthand_should_parse_position_and_size_correctly() {
 
 #[test]
 fn mask_shorthand_should_parse_origin_and_clip_correctly() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("padding-box content-box");
     let result = mask::parse_value(&context, &mut parser).unwrap();
@@ -104,7 +104,7 @@ fn mask_shorthand_should_parse_origin_and_clip_correctly() {
 
 #[test]
 fn mask_shorthand_should_not_parse_when_mode_specified_but_image_not() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("luminance 7px 4px repeat-x padding");
     assert!(mask::parse_value(&context, &mut parser).is_err());

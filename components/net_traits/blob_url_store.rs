@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use filemanager_thread::FileOrigin;
+use servo_url::ServoUrl;
 use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
@@ -34,13 +35,15 @@ pub struct BlobBuf {
 
 /// Parse URL as Blob URL scheme's definition
 /// https://w3c.github.io/FileAPI/#DefinitionOfScheme
-pub fn parse_blob_url(url: &Url) -> Result<(Uuid, FileOrigin, Option<String>), ()> {
+pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin, Option<String>), ()> {
     let url_inner = try!(Url::parse(url.path()).map_err(|_| ()));
     let fragment = url_inner.fragment().map(|s| s.to_string());
-    let mut segs = try!(url_inner.path_segments().ok_or(()));
-    let id = try!(segs.nth(0).ok_or(()));
-    let id = try!(Uuid::from_str(id).map_err(|_| ()));
-    Ok((id, get_blob_origin(&url_inner), fragment))
+    let id = {
+        let mut segs = try!(url_inner.path_segments().ok_or(()));
+        let id = try!(segs.nth(0).ok_or(()));
+        try!(Uuid::from_str(id).map_err(|_| ()))
+    };
+    Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner)), fragment))
 }
 
 /// Given an URL, returning the Origin that a Blob created under this
@@ -48,7 +51,7 @@ pub fn parse_blob_url(url: &Url) -> Result<(Uuid, FileOrigin, Option<String>), (
 /// HACK(izgzhen): Not well-specified on spec, and it is a bit a hack
 /// both due to ambiguity of spec and that we have to serialization the
 /// Origin here.
-pub fn get_blob_origin(url: &Url) -> FileOrigin {
+pub fn get_blob_origin(url: &ServoUrl) -> FileOrigin {
     if url.scheme() == "file" {
         // NOTE: by default this is "null" (Opaque), which is not ideal
         "file://".to_string()

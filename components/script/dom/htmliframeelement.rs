@@ -46,10 +46,10 @@ use script_thread::ScriptThread;
 use script_traits::{IFrameLoadInfo, LoadData, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
-use url::Url;
 use util::prefs::PREFS;
 use util::servo_version;
 
@@ -84,7 +84,7 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
     /// step 1.
-    fn get_url(&self) -> Url {
+    fn get_url(&self) -> ServoUrl {
         let element = self.upcast::<Element>();
         element.get_attribute(&ns!(), &local_name!("src")).and_then(|src| {
             let url = src.value();
@@ -93,7 +93,7 @@ impl HTMLIFrameElement {
             } else {
                 document_from_node(self).base_url().join(&url).ok()
             }
-        }).unwrap_or_else(|| Url::parse("about:blank").unwrap())
+        }).unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
     pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {

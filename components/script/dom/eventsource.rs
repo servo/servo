@@ -31,13 +31,13 @@ use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::Runnable;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
 use timers::OneshotTimerCallback;
-use url::Url;
 
 header! { (LastEventId, "Last-Event-ID") => [String] }
 
@@ -57,7 +57,7 @@ enum ReadyState {
 #[dom_struct]
 pub struct EventSource {
     eventtarget: EventTarget,
-    url: Url,
+    url: ServoUrl,
     request: DOMRefCell<Option<RequestInit>>,
     last_event_id: DOMRefCell<DOMString>,
     reconnection_time: Cell<u64>,
@@ -309,7 +309,7 @@ impl PreInvoke for EventSourceContext {
 }
 
 impl EventSource {
-    fn new_inherited(url: Url, with_credentials: bool) -> EventSource {
+    fn new_inherited(url: ServoUrl, with_credentials: bool) -> EventSource {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
             url: url,
@@ -323,7 +323,7 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, url: Url, with_credentials: bool) -> Root<EventSource> {
+    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> Root<EventSource> {
         reflect_dom_object(box EventSource::new_inherited(url, with_credentials),
                            global,
                            Wrap)

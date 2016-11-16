@@ -11,6 +11,7 @@ use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};
 use resource_files::set_resources_path;
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp;
 use std::default::Default;
@@ -30,7 +31,7 @@ pub struct Opts {
     pub is_running_problem_test: bool,
 
     /// The initial URL to load.
-    pub url: Option<Url>,
+    pub url: Option<ServoUrl>,
 
     /// How many threads to use for CPU painting (`-t`).
     ///
@@ -63,7 +64,7 @@ pub struct Opts {
     /// won't be loaded
     pub userscripts: Option<String>,
 
-    pub user_stylesheets: Vec<(Vec<u8>, Url)>,
+    pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     pub output_file: Option<String>,
 
@@ -502,7 +503,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: Some(Url::parse("about:blank").unwrap()),
+        url: Some(ServoUrl::parse("about:blank").unwrap()),
         paint_threads: 1,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -788,7 +789,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let user_stylesheets = opt_match.opt_strs("user-stylesheet").iter().map(|filename| {
         let path = cwd.join(filename);
-        let url = Url::from_file_path(&path).unwrap();
+        let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
         let mut contents = Vec::new();
         File::open(path)
             .unwrap_or_else(|err| args_fail(&format!("Couldn't open {}: {}", filename, err)))
@@ -936,11 +937,11 @@ pub fn get() -> &'static Opts {
     &OPTIONS
 }
 
-pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<Url, ()> {
-    match Url::parse(input) {
+pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
+    match ServoUrl::parse(input) {
         Ok(url) => Ok(url),
         Err(url::ParseError::RelativeUrlWithoutBase) => {
-            Url::from_file_path(&*cwd.join(input))
+            Url::from_file_path(&*cwd.join(input)).map(ServoUrl::from_url)
         }
         Err(_) => Err(()),
     }

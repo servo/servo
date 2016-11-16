@@ -24,24 +24,24 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
+extern crate servo_url;
 extern crate time;
-extern crate url;
 
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
+use servo_url::ServoUrl;
 use std::net::TcpStream;
 use time::Duration;
 use time::Tm;
-use url::Url;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: String,
-    pub url: Url
+    pub url: ServoUrl,
 }
 
 #[derive(Debug, Deserialize, HeapSizeOf, Serialize, Clone)]
@@ -292,7 +292,7 @@ pub enum CachedConsoleMessage {
 
 #[derive(Debug, PartialEq)]
 pub struct HttpRequest {
-    pub url: Url,
+    pub url: ServoUrl,
     pub method: Method,
     pub headers: Headers,
     pub body: Option<Vec<u8>>,

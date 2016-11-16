@@ -13,7 +13,7 @@ use dom::serviceworker::ServiceWorker;
 use dom::serviceworkercontainer::Controllable;
 use dom::workerglobalscope::prepare_workerscope_init;
 use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
-use url::Url;
+use servo_url::ServoUrl;
 
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
@@ -25,7 +25,7 @@ pub struct ServiceWorkerRegistration {
 }
 
 impl ServiceWorkerRegistration {
-    fn new_inherited(active_sw: &ServiceWorker, scope: Url) -> ServiceWorkerRegistration {
+    fn new_inherited(active_sw: &ServiceWorker, scope: ServoUrl) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
             active: Some(JS::from_ref(active_sw)),
@@ -36,8 +36,8 @@ impl ServiceWorkerRegistration {
     }
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
-               script_url: Url,
-               scope: Url,
+               script_url: ServoUrl,
+               scope: ServoUrl,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {
         let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
@@ -49,7 +49,7 @@ impl ServiceWorkerRegistration {
         self.active.as_ref().unwrap()
     }
 
-    pub fn create_scope_things(global: &GlobalScope, script_url: Url) -> ScopeThings {
+    pub fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
@@ -69,7 +69,7 @@ impl ServiceWorkerRegistration {
     }
 }
 
-pub fn longest_prefix_match(stored_scope: &Url, potential_match: &Url) -> bool {
+pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl) -> bool {
     if stored_scope.origin() != potential_match.origin() {
         return false;
     }

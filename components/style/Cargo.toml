@@ -17,7 +17,7 @@ gecko = ["nsstring_vendor", "num_cpus", "rayon/unstable"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "url/heap_size", "plugins", "rayon/unstable"]
+         "plugins", "rayon/unstable", "servo_url/servo"]
 testing = []
 
 [dependencies]
@@ -50,9 +50,9 @@ serde_derive = {version = "0.8", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
 smallvec = "0.1"
 style_traits = {path = "../style_traits"}
+servo_url = {path = "../url"}
 time = "0.1"
 unicode-segmentation = "0.1.2"
-url = "1.2"
 util = {path = "../util"}
 plugins = {path = "../plugins", optional = true}
 

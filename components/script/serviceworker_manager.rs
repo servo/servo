@@ -16,9 +16,9 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver, RecvError};
-use url::Url;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 
@@ -29,9 +29,9 @@ enum Message {
 
 pub struct ServiceWorkerManager {
     // map of registered service worker descriptors
-    registered_workers: HashMap<Url, ScopeThings>,
+    registered_workers: HashMap<ServoUrl, ScopeThings>,
     // map of active service worker descriptors
-    active_workers: HashMap<Url, Sender<ServiceWorkerScriptMsg>>,
+    active_workers: HashMap<ServoUrl, Sender<ServiceWorkerScriptMsg>>,
     // own sender to send messages here
     own_sender: IpcSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
@@ -67,7 +67,7 @@ impl ServiceWorkerManager {
         });
     }
 
-    pub fn get_matching_scope(&self, load_url: &Url) -> Option<Url> {
+    pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
         for scope in self.registered_workers.keys() {
             if longest_prefix_match(&scope, load_url) {
                 return Some(scope.clone());
@@ -76,7 +76,7 @@ impl ServiceWorkerManager {
         None
     }
 
-    pub fn wakeup_serviceworker(&mut self, scope_url: Url) -> Option<Sender<ServiceWorkerScriptMsg>> {
+    pub fn wakeup_serviceworker(&mut self, scope_url: ServoUrl) -> Option<Sender<ServiceWorkerScriptMsg>> {
         let scope_things = self.registered_workers.get(&scope_url);
         if let Some(scope_things) = scope_things {
             let (sender, receiver) = channel();

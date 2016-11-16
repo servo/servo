@@ -20,9 +20,9 @@ use msg::constellation_msg::{PipelineId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use servo_url::ServoUrl;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
-use url::Url;
 
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
@@ -62,7 +62,7 @@ pub enum LogEntry {
 pub enum ScriptMsg {
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
-    BroadcastStorageEvent(PipelineId, StorageType, Url, Option<String>, Option<String>, Option<String>),
+    BroadcastStorageEvent(PipelineId, StorageType, ServoUrl, Option<String>, Option<String>, Option<String>),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
@@ -95,7 +95,7 @@ pub enum ScriptMsg {
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(PipelineId, IpcSender<u32>),
     /// Favicon detected
-    NewFavicon(Url),
+    NewFavicon(ServoUrl),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
@@ -113,7 +113,7 @@ pub enum ScriptMsg {
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
-    SetFinalUrl(PipelineId, Url),
+    SetFinalUrl(PipelineId, ServoUrl),
     /// Check if an alert dialog box should be presented
     Alert(PipelineId, String, IpcSender<bool>),
     /// Scroll a page in a window
@@ -137,9 +137,9 @@ pub enum ScriptMsg {
     PipelineExited(PipelineId),
     /// Send messages from postMessage calls from serviceworker
     /// to constellation for storing in service worker manager
-    ForwardDOMMessage(DOMMessage, Url),
+    ForwardDOMMessage(DOMMessage, ServoUrl),
     /// Store the data required to activate a service worker for the given scope
-    RegisterServiceWorker(ScopeThings, Url),
+    RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Requests that the compositor shut down.
     Exit
 }
@@ -148,7 +148,7 @@ pub enum ScriptMsg {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ScopeThings {
     /// script resource url
-    pub script_url: Url,
+    pub script_url: ServoUrl,
     /// network load origin of the resource
     pub worker_load_origin: WorkerScriptLoadOrigin,
     /// base resources required to create worker global scopes
@@ -175,11 +175,11 @@ pub struct SWManagerSenders {
 #[derive(Deserialize, Serialize)]
 pub enum ServiceWorkerMsg {
     /// Message to register the service worker
-    RegisterServiceWorker(ScopeThings, Url),
+    RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Timeout message sent by active service workers
-    Timeout(Url),
+    Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
-    ForwardDOMMessage(DOMMessage, Url),
+    ForwardDOMMessage(DOMMessage, ServoUrl),
     /// Exit the service worker manager
     Exit,
 }

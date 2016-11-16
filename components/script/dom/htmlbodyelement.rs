@@ -19,9 +19,9 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use time;
-use url::Url;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -85,7 +85,7 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 pub trait HTMLBodyElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_color(&self) -> Option<RGBA>;
-    fn get_background(&self) -> Option<Url>;
+    fn get_background(&self) -> Option<ServoUrl>;
 }
 
 impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
@@ -110,7 +110,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutJS<HTMLBodyElement> {
     }
 
     #[allow(unsafe_code)]
-    fn get_background(&self) -> Option<Url> {
+    fn get_background(&self) -> Option<ServoUrl> {
         unsafe {
             (*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("background"))

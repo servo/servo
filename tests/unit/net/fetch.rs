@@ -25,6 +25,7 @@ use net::fetch::methods::{fetch, fetch_with_cors_cache};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use servo_url::ServoUrl;
 use std::fs::File;
 use std::io::Read;
 use std::rc::Rc;
@@ -33,7 +34,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use time::{self, Duration};
 use unicase::UniCase;
-use url::{Origin as UrlOrigin, Url};
+use url::Origin as UrlOrigin;
 use util::resource_files::resources_dir_path;
 
 // TODO write a struct that impls Handler for storing test values
@@ -84,7 +85,7 @@ fn test_fetch_response_body_matches_const_message() {
 
 #[test]
 fn test_fetch_aboutblank() {
-    let url = Url::parse("about:blank").unwrap();
+    let url = ServoUrl::parse("about:blank").unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
@@ -109,13 +110,13 @@ fn test_fetch_blob() {
         bytes: bytes.to_vec(),
     };
 
-    let origin = Url::parse("http://www.example.org/").unwrap();
+    let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let (sender, receiver) = ipc::channel().unwrap();
     let message = FileManagerThreadMsg::PromoteMemory(blob_buf, true, sender, "http://www.example.org".into());
     context.filemanager.handle(message, None);
     let id = receiver.recv().unwrap().unwrap();
-    let url = Url::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
+    let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
 
     let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
@@ -140,7 +141,7 @@ fn test_fetch_file() {
     let mut path = resources_dir_path().expect("Cannot find resource dir");
     path.push("servo.css");
 
-    let url = Url::from_file_path(path.clone()).unwrap();
+    let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
 
@@ -454,7 +455,7 @@ fn test_fetch_with_local_urls_only() {
     };
     let (mut server, server_url) = make_server(handler);
 
-    let do_fetch = |url: Url| {
+    let do_fetch = |url: ServoUrl| {
         let origin = Origin::Origin(url.origin());
         let mut request = Request::new(url, Some(origin), false, None);
         *request.referrer.borrow_mut() = Referrer::NoReferrer;
@@ -465,7 +466,7 @@ fn test_fetch_with_local_urls_only() {
         fetch_sync(request, None)
     };
 
-    let local_url = Url::parse("about:blank").unwrap();
+    let local_url = ServoUrl::parse("about:blank").unwrap();
     let local_response = do_fetch(local_url);
     let server_response = do_fetch(server_url);
 

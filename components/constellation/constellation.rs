@@ -46,6 +46,7 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::io::Error as IOError;
@@ -62,7 +63,6 @@ use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
-use url::Url;
 use util::opts;
 use util::prefs::PREFS;
 use util::remutex::ReentrantMutex;
@@ -1047,7 +1047,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_register_serviceworker(&self, scope_things: ScopeThings, scope: Url) {
+    fn handle_register_serviceworker(&self, scope_things: ScopeThings, scope: ServoUrl) {
         if let Some(ref mgr) = self.swmanager_chan {
             let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
         } else {
@@ -1055,7 +1055,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_broadcast_storage_event(&self, pipeline_id: PipelineId, storage: StorageType, url: Url,
+    fn handle_broadcast_storage_event(&self, pipeline_id: PipelineId, storage: StorageType, url: ServoUrl,
                                       key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let origin = url.origin();
         for pipeline in self.pipelines.values() {
@@ -1204,7 +1204,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
             }
 
-            let failure_url = Url::parse("about:failure").expect("infallible");
+            let failure_url = ServoUrl::parse("about:failure").expect("infallible");
 
             if let Some(pipeline_url) = pipeline_url {
                 if pipeline_url == failure_url {
@@ -1245,7 +1245,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_init_load(&mut self, url: Url) {
+    fn handle_init_load(&mut self, url: ServoUrl) {
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         let root_frame_id = self.root_frame_id;
@@ -1331,7 +1331,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let load_data = load_info.load_data.unwrap_or_else(|| {
                 let url = match old_pipeline {
                     Some(old_pipeline) => old_pipeline.url.clone(),
-                    None => Url::parse("about:blank").expect("infallible"),
+                    None => ServoUrl::parse("about:blank").expect("infallible"),
                 };
 
                 // TODO - loaddata here should have referrer info (not None, None)

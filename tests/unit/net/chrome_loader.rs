@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::test::resolve_chrome_url;
-use url::Url;
+use servo_url::ServoUrl;
 
-fn c(s: &str) -> Result<Url, ()> {
-    resolve_chrome_url(&Url::parse(s).unwrap())
+fn c(s: &str) -> Result<ServoUrl, ()> {
+    resolve_chrome_url(&ServoUrl::parse(s).unwrap())
 }
 
 #[test]

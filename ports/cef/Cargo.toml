@@ -25,14 +25,14 @@ gfx_traits = {path = "../../components/gfx_traits"}
 gleam = "0.2.8"
 glutin_app = {path = "../glutin"}
 libc = "0.2"
+libservo = {path = "../../components/servo"}
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 plugins = {path = "../../components/plugins"}
 script_traits = {path = "../../components/script_traits"}
-libservo = {path = "../../components/servo"}
+servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
-url = "1.2"
 util = {path = "../../components/util"}
 
 [target.'cfg(target_os="macos")'.dependencies]

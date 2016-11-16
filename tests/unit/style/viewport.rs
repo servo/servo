@@ -6,6 +6,7 @@ use cssparser::Parser;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
+use servo_url::ServoUrl;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parser::{ParserContext, ParserContextExtraData};
@@ -15,13 +16,12 @@ use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
 use style_traits::viewport::*;
-use url::Url;
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
         Box::new(Stylesheet::from_str(
             $css,
-            Url::parse("http://localhost").unwrap(),
+            ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
             $error_reporter,
             ParserContextExtraData::default()
@@ -279,7 +279,7 @@ fn multiple_stylesheets_cascading() {
 
 #[test]
 fn constrain_viewport() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
 
     macro_rules! from_css {

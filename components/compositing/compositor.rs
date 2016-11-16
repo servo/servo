@@ -26,6 +26,7 @@ use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
 use script_traits::{MouseEventType, StackingContextScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fs::File;
 use std::rc::Rc;
@@ -34,7 +35,6 @@ use style_traits::{PagePx, ViewportPx};
 use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
-use url::Url;
 use util::geometry::ScreenPx;
 use util::opts;
 use util::prefs::PREFS;
@@ -697,7 +697,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn change_page_url(&mut self, _: PipelineId, url: Url) {
+    fn change_page_url(&mut self, _: PipelineId, url: ServoUrl) {
         self.window.set_page_url(url);
     }
 
@@ -881,7 +881,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{}`", url_string);
         self.got_load_complete_message = false;
-        match Url::parse(&url_string) {
+        match ServoUrl::parse(&url_string) {
             Ok(url) => {
                 self.window.set_page_url(url.clone());
                 let msg = match self.root_pipeline {

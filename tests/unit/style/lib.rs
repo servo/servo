@@ -15,9 +15,9 @@ extern crate parking_lot;
 extern crate rustc_serialize;
 extern crate selectors;
 #[macro_use] extern crate servo_atoms;
+extern crate servo_url;
 extern crate style;
 extern crate style_traits;
-extern crate url;
 extern crate util;
 
 mod atomic_refcell;

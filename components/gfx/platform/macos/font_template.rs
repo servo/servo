@@ -10,13 +10,13 @@ use core_text::font::CTFont;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{Error, Visitor};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Error as IoError};
 use std::ops::Deref;
 use std::sync::Mutex;
-use url::Url;
 
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
@@ -86,13 +86,13 @@ impl FontTemplateData {
             None => {}
         }
 
-        let path = Url::parse(&*self.ctfont(0.0)
+        let path = ServoUrl::parse(&*self.ctfont(0.0)
                                     .expect("No Core Text font available!")
                                     .url()
                                     .expect("No URL for Core Text font!")
                                     .get_string()
                                     .to_string()).expect("Couldn't parse Core Text font URL!")
-                                                 .to_file_path()
+                                                 .as_url().unwrap().to_file_path()
                                                  .expect("Core Text font didn't name a path!");
         let mut bytes = Vec::new();
         File::open(path).expect("Couldn't open font file!").read_to_end(&mut bytes).unwrap();

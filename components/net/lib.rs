@@ -36,6 +36,7 @@ extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_url;
 extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]

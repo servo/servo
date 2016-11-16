@@ -16,9 +16,9 @@ use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress};
 use net_traits::response::HttpsState;
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use resource_thread::CancellationListener;
+use servo_url::ServoUrl;
 use std::boxed::FnBox;
 use std::sync::Arc;
-use url::Url;
 use util::thread::spawn_named;
 
 // TODO: Check on GET
@@ -124,7 +124,7 @@ fn load_blob<UI: 'static + UIProvider>
 /// https://fetch.spec.whatwg.org/#concept-basic-fetch (partial)
 // TODO: make async.
 pub fn load_blob_sync<UI: 'static + UIProvider>
-            (url: Url,
+            (url: ServoUrl,
              filemanager: FileManager<UI>)
              -> Result<(Headers, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {

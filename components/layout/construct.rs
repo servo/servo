@@ -38,6 +38,7 @@ use multicol::{MulticolColumnFlow, MulticolFlow};
 use parallel;
 use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
@@ -62,7 +63,6 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
 use traversal::PostorderNodeMutTraversal;
-use url::Url;
 use util::opts;
 use wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 
@@ -1207,7 +1207,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             list_style_image::T::Url(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            url_value.url().map(|u| (**u).clone()),
+                                                            url_value.url().map(|u| u.clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
@@ -1675,7 +1675,7 @@ trait ObjectElement {
     fn has_object_data(&self) -> bool;
 
     /// Returns the "data" attribute value parsed as a URL
-    fn object_data(&self) -> Option<Url>;
+    fn object_data(&self) -> Option<ServoUrl>;
 }
 
 impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
@@ -1691,14 +1691,14 @@ impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
         }
     }
 
-    fn object_data(&self) -> Option<Url> {
+    fn object_data(&self) -> Option<ServoUrl> {
         let elem = self.as_element().unwrap();
         let type_and_data = (
             elem.get_attr(&ns!(), &local_name!("type")),
             elem.get_attr(&ns!(), &local_name!("data")),
         );
         match type_and_data {
-            (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
+            (None, Some(uri)) if is_image_data(uri) => ServoUrl::parse(uri).ok(),
             _ => None
         }
     }

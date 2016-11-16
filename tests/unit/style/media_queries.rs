@@ -5,6 +5,7 @@
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::TypedSize2D;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;
 use style::error_reporting::ParseErrorReporter;
@@ -12,7 +13,6 @@ use style::media_queries::*;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin, CssRule};
 use style::values::specified;
-use url::Url;
 
 pub struct CSSErrorReporterTest;
 
@@ -25,7 +25,7 @@ impl ParseErrorReporter for CSSErrorReporterTest {
 }
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaList, &str) {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
     let mut rule_count = 0;
@@ -48,7 +48,7 @@ fn media_queries<F>(rules: &[CssRule], f: &mut F) where F: FnMut(&MediaList) {
 }
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest),
                                   ParserContextExtraData::default());
     let mut rule_count = 0;

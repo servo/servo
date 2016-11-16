@@ -8,10 +8,10 @@ use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
-use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize, HeapSizeOf)]
@@ -79,8 +79,8 @@ pub enum ResponseMsg {
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
-    url: Option<Url>,
-    pub url_list: RefCell<Vec<Url>>,
+    url: Option<ServoUrl>,
+    pub url_list: RefCell<Vec<ServoUrl>>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_heap_size_of = "Defined in hyper"]
     pub status: Option<StatusCode>,
@@ -91,7 +91,7 @@ pub struct Response {
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
-    pub referrer: Option<Url>,
+    pub referrer: Option<ServoUrl>,
     /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
     /// is a filtered response
     pub internal_response: Option<Box<Response>>,
@@ -100,7 +100,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new(url: Url) -> Response {
+    pub fn new(url: ServoUrl) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
@@ -136,7 +136,7 @@ impl Response {
         }
     }
 
-    pub fn url(&self) -> Option<&Url> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         self.url.as_ref()
     }
 
@@ -242,7 +242,7 @@ impl Response {
     }
 
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
-        fn init_metadata(response: &Response, url: &Url) -> Metadata {
+        fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
             metadata.set_content_type(match response.headers.get() {
                 Some(&ContentType(ref mime)) => Some(mime),

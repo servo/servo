@@ -6,7 +6,7 @@ use cookie_rs;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
-use url::Url;
+use servo_url::ServoUrl;
 
 #[test]
 fn test_domain_match() {
@@ -56,9 +56,9 @@ fn test_default_path() {
 fn fn_cookie_constructor() {
     use net_traits::CookieSource;
 
-    let url = &Url::parse("http://example.com/foo").unwrap();
+    let url = &ServoUrl::parse("http://example.com/foo").unwrap();
 
-    let gov_url = &Url::parse("http://gov.ac/foo").unwrap();
+    let gov_url = &ServoUrl::parse("http://gov.ac/foo").unwrap();
     // cookie name/value test
     assert!(cookie_rs::Cookie::parse(" baz ").is_err());
     assert!(cookie_rs::Cookie::parse(" = bar  ").is_err());
@@ -94,7 +94,7 @@ fn fn_cookie_constructor() {
     assert!(&cookie.cookie.domain.as_ref().unwrap()[..] == "example.com");
     assert!(cookie.host_only);
 
-    let u = &Url::parse("http://example.com/foobar").unwrap();
+    let u = &ServoUrl::parse("http://example.com/foobar").unwrap();
     let cookie = cookie_rs::Cookie::parse("foobar=value;path=/").unwrap();
     assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
 }
@@ -117,7 +117,7 @@ fn delay_to_ensure_different_timestamp() {
 fn test_sort_order() {
     use std::cmp::Ordering;
 
-    let url = &Url::parse("http://example.com/foo").unwrap();
+    let url = &ServoUrl::parse("http://example.com/foo").unwrap();
     let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
     let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP).unwrap();
     delay_to_ensure_different_timestamp();

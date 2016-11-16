@@ -36,8 +36,8 @@ extern crate script_traits;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_url;
 extern crate style_traits;
-extern crate url;
 #[macro_use]
 extern crate util;
 extern crate webrender_traits;

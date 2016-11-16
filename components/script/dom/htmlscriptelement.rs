@@ -35,11 +35,11 @@ use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
-use url::Url;
 
 #[dom_struct]
 pub struct HTMLScriptElement {
@@ -115,12 +115,12 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct ScriptOrigin {
     text: DOMString,
-    url: Url,
+    url: ServoUrl,
     external: bool,
 }
 
 impl ScriptOrigin {
-    fn internal(text: DOMString, url: Url) -> ScriptOrigin {
+    fn internal(text: DOMString, url: ServoUrl) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -128,7 +128,7 @@ impl ScriptOrigin {
         }
     }
 
-    fn external(text: DOMString, url: Url) -> ScriptOrigin {
+    fn external(text: DOMString, url: ServoUrl) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -149,7 +149,7 @@ struct ScriptContext {
     /// The response metadata received to date.
     metadata: Option<Metadata>,
     /// The initial URL requested.
-    url: Url,
+    url: ServoUrl,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>
 }
@@ -219,7 +219,7 @@ impl PreInvoke for ScriptContext {}
 
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
-                          url: Url,
+                          url: ServoUrl,
                           cors_setting: Option<CorsSettings>,
                           character_encoding: EncodingRef) {
     let doc = document_from_node(script);

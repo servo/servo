@@ -30,5 +30,5 @@ range = {path = "../range"}
 script_traits = {path = "../script_traits"}
 selectors = "0.14"
 servo_atoms = {path = "../atoms"}
+servo_url = {path = "../url"}
 style = {path = "../style"}
-url = {version = "1.2", features = ["heap_size"]}

@@ -11,7 +11,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::iter;
-use url::Url;
+use values::specified::url::SpecifiedUrl;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -23,7 +23,7 @@ pub enum Source {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct UrlSource {
-    pub url: Url,
+    pub url: SpecifiedUrl,
     pub format_hints: Vec<String>,
 }
 
@@ -139,9 +139,8 @@ fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, 
     if input.try(|input| input.expect_function_matching("local")).is_ok() {
         return Ok(Source::Local(try!(input.parse_nested_block(parse_one_family))))
     }
-    let url = try!(input.expect_url());
-    let url = context.base_url.join(&url).unwrap_or_else(
-        |_error| Url::parse("about:invalid").unwrap());
+
+    let url = try!(SpecifiedUrl::parse(context, input));
 
     // Parsing optional format()
     let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {

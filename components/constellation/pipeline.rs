@@ -26,6 +26,7 @@ use script_traits::{ConstellationControlMsg, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
@@ -34,7 +35,6 @@ use std::process;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
-use url::Url;
 use util::opts::{self, Opts};
 use util::prefs::{PREFS, Pref};
 use webrender_traits;
@@ -58,7 +58,7 @@ pub struct Pipeline {
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     /// URL corresponding to the most recently-loaded page.
-    pub url: Url,
+    pub url: ServoUrl,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
     pub size: Option<TypedSize2D<f32, PagePx>>,
@@ -264,7 +264,7 @@ impl Pipeline {
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            is_private: bool,
-           url: Url,
+           url: ServoUrl,
            size: Option<TypedSize2D<f32, PagePx>>,
            visible: bool)
            -> Pipeline {

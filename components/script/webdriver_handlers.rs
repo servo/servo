@@ -36,7 +36,7 @@ use net_traits::IpcSend;
 use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_traits::webdriver_msg::WebDriverCookieError;
-use url::Url;
+use servo_url::ServoUrl;
 
 fn find_node_by_unique_id(documents: &Documents,
                           pipeline: PipelineId,
@@ -361,11 +361,11 @@ pub fn handle_get_css(documents: &Documents,
 
 pub fn handle_get_url(documents: &Documents,
                       pipeline: PipelineId,
-                      reply: IpcSender<Url>) {
+                      reply: IpcSender<ServoUrl>) {
     // TODO: Return an error if the pipeline doesn't exist.
     let url = documents.find_document(pipeline)
         .map(|document| document.url().clone())
-        .unwrap_or_else(|| Url::parse("about:blank").expect("infallible"));
+        .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("infallible"));
     reply.send(url).unwrap();
 }
 
