@@ -65,3 +65,4 @@ kernel32-sys = "0.2"
 
 [build-dependencies]
 walkdir = "0.1"
+lazy_static = "0.2"

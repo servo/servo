@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[macro_use]
+extern crate lazy_static;
 extern crate walkdir;
 
 use std::env;
@@ -9,31 +11,27 @@ use std::path::Path;
 use std::process::{Command, exit};
 use walkdir::WalkDir;
 
-#[cfg(windows)]
-fn find_python() -> String {
-    if Command::new("python2.7.exe").arg("--version").output().is_ok() {
-        return "python2.7.exe".to_owned();
-    }
-
-    if Command::new("python27.exe").arg("--version").output().is_ok() {
-        return "python27.exe".to_owned();
-    }
-
-    if Command::new("python.exe").arg("--version").output().is_ok() {
-        return "python.exe".to_owned();
-    }
-
-    panic!(concat!("Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
-                   "Try fixing PATH or setting the PYTHON env var"));
-}
-
-#[cfg(not(windows))]
-fn find_python() -> String {
-    if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
-        "python2.7"
-    } else {
-        "python"
-    }.to_owned()
+lazy_static! {
+    static ref PYTHON_ENV: Option<String> = env::var("PYTHON").ok();
+    static ref PYTHON: &'static str = {
+        if let Some(ref python) = *PYTHON_ENV {
+            return &python;
+        }
+        if cfg!(windows) {
+            for &exe in ["python2.7.exe", "python27.exe", "python.exe"].iter() {
+                if Command::new(exe).arg("--version").output().is_ok() {
+                    return exe;
+                }
+            }
+            panic!(concat!("Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
+                           "Try fixing PATH or setting the PYTHON env var"));
+        }
+        if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
+            "python2.7"
+        } else {
+            "python"
+        }
+    };
 }
 
 fn main() {
@@ -48,10 +46,9 @@ fn main() {
         }
     }
 
-    let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
     let script = Path::new(file!()).parent().unwrap().join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
-    let status = Command::new(python)
+    let status = Command::new(*PYTHON)
         .arg(&script)
         .arg(product)
         .arg("style-crate")
