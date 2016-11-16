@@ -4,7 +4,19 @@
 
 #[macro_use]
 extern crate lazy_static;
+#[cfg(feature = "gecko")]
+extern crate libbindgen;
+#[cfg(feature = "gecko")]
+extern crate regex;
 extern crate walkdir;
+
+#[cfg(feature = "gecko")]
+mod build_gecko;
+
+#[cfg(not(feature = "gecko"))]
+mod build_gecko {
+    pub fn generate() {}
+}
 
 use std::env;
 use std::path::Path;
@@ -34,8 +46,7 @@ lazy_static! {
     };
 }
 
-fn main() {
-    println!("cargo:rerun-if-changed=build.rs");
+fn generate_properties() {
     for entry in WalkDir::new("properties") {
         let entry = entry.unwrap();
         match entry.path().extension().and_then(|e| e.to_str()) {
@@ -57,5 +68,13 @@ fn main() {
         .unwrap();
     if !status.success() {
         exit(1)
+    }
+}
+
+fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    generate_properties();
+    if cfg!(feature = "gecko") {
+        build_gecko::generate();
     }
 }
