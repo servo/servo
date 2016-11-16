@@ -17,6 +17,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever_atoms::{Prefix, QualName};
 use js::jsapi::JSTracer;
 use std::borrow::Cow;
@@ -49,12 +50,12 @@ impl Tokenizer {
         }
     }
 
-    pub fn feed(&mut self, input: String) {
-        self.inner.feed(input.into())
-    }
-
-    pub fn run(&mut self) {
-        self.inner.run()
+    pub fn feed(&mut self, input: &mut BufferQueue) {
+        if let Some(chunk) = input.pop_front() {
+            self.inner.feed(chunk);
+        } else {
+            self.inner.run()
+        }
     }
 
     pub fn end(&mut self) {

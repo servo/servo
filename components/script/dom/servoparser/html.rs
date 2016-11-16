@@ -41,8 +41,6 @@ use url::Url;
 pub struct Tokenizer {
     #[ignore_heap_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<JS<Node>, Sink>>,
-    #[ignore_heap_size_of = "Defined in html5ever"]
-    input_buffer: BufferQueue,
 }
 
 impl Tokenizer {
@@ -80,18 +78,11 @@ impl Tokenizer {
 
         Tokenizer {
             inner: inner,
-            input_buffer: BufferQueue::new(),
         }
     }
 
-    pub fn feed(&mut self, input: String) {
-        self.input_buffer.push_back(input.into());
-        self.run();
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn run(&mut self) {
-        while let TokenizerResult::Script(script) = self.inner.feed(&mut self.input_buffer) {
+    pub fn feed(&mut self, input: &mut BufferQueue) {
+        while let TokenizerResult::Script(script) = self.inner.feed(input) {
             let script = Root::from_ref(script.downcast::<HTMLScriptElement>().unwrap());
             if !script.prepare() {
                 break;
@@ -100,7 +91,6 @@ impl Tokenizer {
     }
 
     pub fn end(&mut self) {
-        assert!(self.input_buffer.is_empty());
         self.inner.end();
     }
 
