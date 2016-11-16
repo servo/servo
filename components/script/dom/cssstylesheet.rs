@@ -59,7 +59,7 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule
     fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
         // XXXManishearth check origin clean flag
-        self.rulelist().insert_rule(&rule, index)
+        self.rulelist().insert_rule(&rule, index, /* nested */ false)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
