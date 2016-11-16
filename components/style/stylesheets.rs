@@ -6,7 +6,7 @@
 
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
-use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token};
+use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
@@ -61,6 +61,36 @@ impl CssRules {
             }
         })
     }
+
+    // Provides the parser state at a given insertion index
+    pub fn state_at_index(rules: &[CssRule], at: usize) -> State {
+        let mut state = State::Start;
+        for rule in rules.iter().take(at) {
+            state = match *rule {
+                // CssRule::Charset(..) => State::Start,
+                // CssRule::Import(..) => State::Imports,
+                CssRule::Namespace(..) => State::Namespaces,
+                _ => State::Body,
+            };
+        }
+        state
+    }
+
+    // Provides the maximum allowed parser state at a given index,
+    // searching in reverse. If inserting at this index, the parser
+    // must not be in a state greater than this post-insertion.
+    pub fn state_at_index_rev(rules: &[CssRule], at: usize) -> State {
+        let mut state = State::Body;
+        for rule in rules.iter().skip(at).rev() {
+            state = match *rule {
+                // CssRule::Charset(..) => State::Start,
+                // CssRule::Import(..) => State::Imports,
+                CssRule::Namespace(..) => State::Namespaces,
+                _ => State::Body,
+            };
+        }
+        state
+    }
 }
 
 #[derive(Debug)]
@@ -110,6 +140,11 @@ impl ParseErrorReporter for MemoryHoleReporter {
     }
 }
 
+pub enum SingleRuleParseError {
+    Syntax,
+    Hierarchy,
+}
+
 impl CssRule {
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
@@ -133,23 +168,33 @@ impl CssRule {
         }
     }
 
-    pub fn from_str(css: &str, origin: Origin,
-                    base_url: Url, extra_data: ParserContextExtraData) -> Result<Self, ()> {
+    // input state is None for a nested rule
+    // Returns a parsed CSS rule and the final state of the parser
+    pub fn parse(css: &str, origin: Origin,
+                    base_url: Url,
+                    extra_data: ParserContextExtraData,
+                    state: Option<State>) -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = Box::new(MemoryHoleReporter);
-        let rule_parser = TopLevelRuleParser {
-            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
-                                                        extra_data),
-            state: Cell::new(State::Start),
-        };
+        let context = ParserContext::new_with_extra_data(origin, &base_url,
+                                                         error_reporter.clone(),
+                                                         extra_data);
         let mut input = Parser::new(css);
-        let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
-        if let Some(Ok(rule)) = iter.next() {
-            if iter.next().is_some() {
-                return Err(());
+
+        // nested rules are in the body state
+        let state = state.unwrap_or(State::Body);
+        let mut rule_parser = TopLevelRuleParser {
+            context: context,
+            state: Cell::new(state),
+        };
+        match parse_one_rule(&mut input, &mut rule_parser) {
+            Ok(result) => Ok((result, rule_parser.state.get())),
+            Err(_) => {
+                if let State::Invalid = rule_parser.state.get() {
+                    Err(SingleRuleParseError::Hierarchy)
+                } else {
+                    Err(SingleRuleParseError::Syntax)
+                }
             }
-            return Ok(rule);
-        } else {
-            return Err(());
         }
     }
 }
@@ -426,11 +471,12 @@ struct TopLevelRuleParser<'a> {
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
-enum State {
+pub enum State {
     Start = 1,
     Imports = 2,
     Namespaces = 3,
     Body = 4,
+    Invalid = 5,
 }
 
 
@@ -459,6 +505,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     // TODO: support @import
                     return Err(())  // "@import is not supported yet"
                 } else {
+                    self.state.set(State::Invalid);
                     return Err(())  // "@import must be before any rule but @charset"
                 }
             },
@@ -486,6 +533,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         }
                     )))))
                 } else {
+                    self.state.set(State::Invalid);
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
             },
@@ -494,7 +542,11 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "charset" => return Err(()), // (insert appropriate error message)
             _ => {}
         }
-
+        // Don't allow starting with an invalid state
+        if self.state.get() > State::Body {
+            self.state.set(State::Invalid);
+            return Err(());
+        }
         self.state.set(State::Body);
         AtRuleParser::parse_prelude(&mut NestedRuleParser { context: &self.context }, name, input)
     }

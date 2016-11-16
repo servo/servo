@@ -47,7 +47,8 @@ impl CSSRuleList {
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, idx: u32) -> Fallible<u32> {
+    pub fn insert_rule(&self, rule: &str, idx: u32, nested: bool) -> Fallible<u32> {
+        use style::stylesheets::SingleRuleParseError;
         /// Insert an item into a vector, appending if it is out of bounds
         fn insert<T>(vec: &mut Vec<T>, index: usize, item: T) {
             if index >= vec.len() {
@@ -61,22 +62,41 @@ impl CSSRuleList {
         let doc = window.Document();
         let index = idx as usize;
 
-        // Step 1, 2
-        // XXXManishearth get url from correct location
-        // XXXManishearth should we also store the namespace map?
-        let new_rule = try!(StyleCssRule::from_str(&rule, Origin::Author,
-                                                   doc.url().clone(),
-                                                   ParserContextExtraData::default())
-                          .map_err(|_| Error::Syntax));
 
-        {
+        let new_rule = {
             let rules = self.rules.0.read();
+            let state = if nested {
+                None
+            } else {
+                Some(CssRules::state_at_index(&rules, index))
+            };
+
+            let rev_state = CssRules::state_at_index_rev(&rules, index);
+
+            // Step 1, 2
+            // XXXManishearth get url from correct location
+            // XXXManishearth should we also store the namespace map?
+            let parse_result = StyleCssRule::parse(&rule, Origin::Author,
+                                               doc.url().clone(),
+                                               ParserContextExtraData::default(),
+                                               state);
+
+            if let Err(SingleRuleParseError::Syntax) = parse_result {
+                return Err(Error::Syntax)
+            }
+
             // Step 3, 4
             if index > rules.len() {
                 return Err(Error::IndexSize);
             }
 
-            // XXXManishearth Step 5 (throw HierarchyRequestError in invalid situations)
+            let (new_rule, new_state) = try!(parse_result.map_err(|_| Error::HierarchyRequest));
+
+            if new_state > rev_state {
+                // We inserted a rule too early, e.g. inserting
+                // a regular style rule before @namespace rules
+                return Err((Error::HierarchyRequest));
+            }
 
             // Step 6
             if let StyleCssRule::Namespace(..) = new_rule {
@@ -84,7 +104,9 @@ impl CSSRuleList {
                     return Err(Error::InvalidState);
                 }
             }
-        }
+
+            new_rule
+        };
 
         insert(&mut self.rules.0.write(), index, new_rule.clone());
         let dom_rule = CSSRule::new_specific(&window, &self.sheet, new_rule);
