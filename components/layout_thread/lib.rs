@@ -939,33 +939,25 @@ impl LayoutThread {
 
             debug!("Layout done!");
 
-            self.epoch.next();
-
             // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-            let Epoch(epoch_number) = self.epoch;
-            let epoch = webrender_traits::Epoch(epoch_number);
             let pipeline_id = self.id.to_webrender();
-
-            // TODO(gw) For now only create a root scrolling layer!
             let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
-            let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                &mut self.webrender_api,
-                pipeline_id,
-                epoch,
+            let built_display_list = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
                 &mut frame_builder);
-            let root_background_color = get_root_flow_background_color(layout_root);
 
             let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                             self.viewport_size.height.to_f32_px());
 
-            self.webrender_api.set_root_stacking_context(sc_id,
-                                                         root_background_color,
-                                                         epoch,
-                                                         pipeline_id,
-                                                         viewport_size,
-                                                         frame_builder.stacking_contexts,
-                                                         frame_builder.display_lists,
-                                                         frame_builder.auxiliary_lists_builder.finalize());
+            self.epoch.next();
+            let Epoch(epoch_number) = self.epoch;
+
+            self.webrender_api.set_root_display_list(
+                get_root_flow_background_color(layout_root),
+                webrender_traits::Epoch(epoch_number),
+                pipeline_id,
+                viewport_size,
+                built_display_list,
+                frame_builder.auxiliary_lists_builder.finalize());
         });
     }
 
