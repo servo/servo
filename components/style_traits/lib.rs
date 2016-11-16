@@ -23,6 +23,38 @@ extern crate euclid;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
+extern crate url;
+
+use std::sync::Arc;
+use url::Url;
+
+/// An enum to distinguish between data uris and normal urls. Data uris don't
+/// need to go through rust-url, because it's not only really slow, but also
+/// unnecessary, since it basically does a work that needs to be undone
+/// afterwards.
+///
+/// FIXME: Better name for this appreciated.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize))]
+pub enum ServoUrl {
+    Data(Arc<String>),
+    Url(Arc<Url>),
+}
+
+impl From<Url> for ServoUrl {
+    fn from(url: Url) -> ServoUrl {
+        ServoUrl::Url(Arc::new(url))
+    }
+}
+
+impl ServoUrl {
+    pub fn as_str(&self) -> &str {
+        match *self {
+            ServoUrl::Data(ref data) => &**data,
+            ServoUrl::Url(ref url) => url.as_str(),
+        }
+    }
+}
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from `TNode`.

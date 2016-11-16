@@ -41,6 +41,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
 extern crate style;
+extern crate style_traits;
 extern crate url;
 extern crate util;
 extern crate webrender_traits;
@@ -114,6 +115,7 @@ use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITI
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::thread_state;
 use style::timer::Timer;
+use style_traits::ServoUrl;
 use url::Url;
 use util::geometry::max_rect;
 use util::opts;
@@ -213,7 +215,7 @@ pub struct LayoutThread {
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
 
-    webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+    webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                               WebRenderImageInfo,
                                               BuildHasherDefault<FnvHasher>>>>,
 
