@@ -90,7 +90,7 @@ use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeDat
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler};
+use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler, InvokeType, SettleType};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -563,21 +563,6 @@ impl ScriptThread {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, metadata)
         })
-    }
-
-    pub fn get_registration(scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_get_registration(scope_url)
-        })
-    }
-
-    // stores a service worker registration
-    pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration, pipeline_id: PipelineId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_serviceworker_registration(scope_url, registration, pipeline_id);
-        });
     }
 
     #[allow(unrooted_must_root)]
@@ -1468,25 +1453,25 @@ impl ScriptThread {
     }
 
     pub fn handle_get_registration(&self, scope_url: &Url) -> Option<Root<ServiceWorkerRegistration>> {
-        let ref maybe_registration_ref = *self.registration_map.borrow();
-        maybe_registration_ref.get(scope_url).map(|ref x| Root::from_ref(&***x))
+        let maybe_registration_ref = self.registration_map.borrow();
+        maybe_registration_ref.get(scope_url).map(|x| Root::from_ref(&**x))
     }
 
     pub fn handle_serviceworker_registration(&self,
-                                         scope: Url,
+                                         scope: &Url,
                                          registration: &ServiceWorkerRegistration,
                                          pipeline_id: PipelineId) {
         {
             let ref mut reg_ref = *self.registration_map.borrow_mut();
             // according to spec we should replace if an older registration exists for
             // same scope otherwise just insert the new one
-            let _ = reg_ref.remove(&scope);
+            let _ = reg_ref.remove(scope);
             reg_ref.insert(scope.clone(), JS::from_ref(registration));
         }
 
         // send ScopeThings to sw-manager
         let ref maybe_registration_ref = *self.registration_map.borrow();
-        let maybe_registration = match maybe_registration_ref.get(&scope) {
+        let maybe_registration = match maybe_registration_ref.get(scope) {
             Some(r) => r,
             None => return
         };
@@ -1499,35 +1484,33 @@ impl ScriptThread {
         }
     }
 
-    pub fn queue_run_job(&self, run_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
-        let _ = self.dom_manipulation_task_source.queue(run_job_handler, global);
-    }
-
-    pub fn invoke_run_job(&self, run_job_handler: Box<AsyncJobHandler>) {
-        let job_queue = &*self.job_queue_map;
-        job_queue.run_job(run_job_handler, self);
-    }
-
-    pub fn invoke_promise_job(&self, promise_job_handler: Box<AsyncJobHandler>) {
-        let job_queue = &*self.job_queue_map;
-        job_queue.settle_promise_job(promise_job_handler, self);
-    }
-
-    pub fn queue_register_job(&self, reg_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
-        let _ = self.dom_manipulation_task_source.queue(reg_job_handler, global);
-    }
-
-    pub fn invoke_register_job(&self, reg_job_handler: Box<AsyncJobHandler>) {
-        let job_queue = &*self.job_queue_map;
-        let queue_ref = &*job_queue.0.borrow();
-        let first_job = {
-            let job_vec = queue_ref.get(&reg_job_handler.scope_url);
+    pub fn dispatch_job_queue(&self, job_handler: Box<AsyncJobHandler>) {
+        let scope_url = job_handler.scope_url.clone();
+        let queue_ref = self.job_queue_map.0.borrow();
+        let front_job = {
+            let job_vec = queue_ref.get(&scope_url);
             job_vec.unwrap().first().unwrap()
         };
-        job_queue.run_register(&first_job, reg_job_handler, self);
+        match job_handler.invoke_type {
+            InvokeType::Run => (&*self.job_queue_map).run_job(job_handler, self),
+            InvokeType::Register => self.job_queue_map.run_register(front_job, job_handler, self),
+            InvokeType::Update => self.job_queue_map.update(front_job, &*front_job.client.global(), self),
+            InvokeType::Settle(settle_type) => {
+                let promise = &front_job.promise;
+                let global = &*front_job.client.global();
+                let trusted_global = Trusted::new(global);
+                let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
+                match settle_type {
+                    SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
+                    SettleType::Reject(err) => promise.reject_error(global.get_cx(), err)
+                }
+                let finish_job_handler = box FinishJobHandler::new(scope_url, trusted_global);
+                self.queue_finish_job(finish_job_handler, global);
+            }
+        }
     }
 
-    pub fn queue_async_job(&self, async_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
+    pub fn queue_serviceworker_job(&self, async_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
         let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
     }
 
@@ -1539,10 +1522,10 @@ impl ScriptThread {
         let job_queue = &*self.job_queue_map;
         let global = &*finish_job_handler.global.root();
         let scope_url = (*finish_job_handler).scope_url;
-        job_queue.finish_job(scope_url, global, &self);
+        job_queue.finish_job(scope_url, global, self);
     }
 
-    pub fn invoke_job_update(&self, job:&Job, global: &GlobalScope) {
+    pub fn invoke_job_update(&self, job: &Job, global: &GlobalScope) {
         let job_queue = &*self.job_queue_map;
         job_queue.update(job, global, self);
     }

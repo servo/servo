@@ -47,7 +47,7 @@ impl ServiceWorkerContainer {
 impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
     // https://w3c.github.io/ServiceWorker/#service-worker-container-controller-attribute
     fn GetController(&self) -> Option<Root<ServiceWorker>> {
-        (&*self.client).get_controller().map(|s| Root::from_ref(&*s))
+        self.client.get_controller()
     }
 
     #[allow(unrooted_must_root)]

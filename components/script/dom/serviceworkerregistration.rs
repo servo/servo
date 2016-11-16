@@ -21,7 +21,7 @@ pub struct ServiceWorkerRegistration {
     active: Option<JS<ServiceWorker>>,
     installing: Option<JS<ServiceWorker>>,
     waiting: Option<JS<ServiceWorker>>,
-    scope: String,
+    scope: Url,
     uninstalling: Cell<bool>
 }
 
@@ -32,15 +32,15 @@ impl ServiceWorkerRegistration {
             active: Some(JS::from_ref(active_sw)),
             installing: None,
             waiting: None,
-            scope: scope.as_str().to_owned(),
+            scope: scope,
             uninstalling: Cell::new(false)
         }
     }
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
-               script_url: Url,
+               script_url: &Url,
                scope: Url) -> Root<ServiceWorkerRegistration> {
-        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
+        let active_worker = ServiceWorker::install_serviceworker(global, script_url, scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)
     }
@@ -119,6 +119,6 @@ impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute
     fn Scope(&self) -> USVString {
-        USVString(self.scope.clone())
+        USVString(self.scope.as_str().to_owned())
     }
 }

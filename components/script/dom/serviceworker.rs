@@ -46,9 +46,9 @@ impl ServiceWorker {
     }
 
     pub fn install_serviceworker(global: &GlobalScope,
-                script_url: Url,
-                scope_url: Url,
-                skip_waiting: bool) -> Root<ServiceWorker> {
+                                 script_url: &Url,
+                                 scope_url: Url,
+                                 skip_waiting: bool) -> Root<ServiceWorker> {
         reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
                                                             skip_waiting,
                                                             scope_url), global, Wrap)

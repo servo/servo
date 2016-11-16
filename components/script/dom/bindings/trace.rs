@@ -78,7 +78,7 @@ use script_runtime::ScriptChan;
 use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
-use serviceworkerjob::{JobQueue, Job};
+use serviceworkerjob::Job;
 use servo_atoms::Atom;
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -157,12 +157,6 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
-    }
-}
-
-impl JSTraceable for JobQueue {
-    fn trace(&self, trc: *mut JSTracer) {
-        self.0.trace(trc)
     }
 }
 
