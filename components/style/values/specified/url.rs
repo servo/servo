@@ -13,7 +13,7 @@ use parser::ParserContextExtraData;
 use std::fmt::{self, Write};
 use std::ptr;
 use std::sync::Arc;
-use style_traits::ToCss;
+use style_traits::{ToCss, ServoUrl};
 use url::Url;
 use values::computed::ComputedValueAsSpecified;
 
@@ -66,7 +66,7 @@ pub struct SpecifiedUrl {
     original: Option<Arc<String>>,
 
     /// The resolved value for the url, if valid.
-    resolved: Option<Arc<Url>>,
+    resolved: Option<ServoUrl>,
 
     /// Extra data used for Stylo.
     extra_data: UrlExtraData,
@@ -88,7 +88,11 @@ impl SpecifiedUrl {
         };
 
         let serialization = Arc::new(url.into_owned());
-        let resolved = context.base_url.join(&serialization).ok().map(Arc::new);
+        let resolved = if serialization.starts_with("data:") {
+            Some(ServoUrl::Data(serialization.clone()))
+        } else {
+            context.base_url.join(&serialization).ok().map(Arc::new).map(ServoUrl::Url)
+        };
         Ok(SpecifiedUrl {
             original: Some(serialization),
             resolved: resolved,
@@ -100,7 +104,7 @@ impl SpecifiedUrl {
         &self.extra_data
     }
 
-    pub fn url(&self) -> Option<&Arc<Url>> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         self.resolved.as_ref()
     }
 
@@ -114,7 +118,7 @@ impl SpecifiedUrl {
 
     /// Creates an already specified url value from an already resolved URL
     /// for insertion in the cascade.
-    pub fn for_cascade(url: Option<Arc<Url>>, extra_data: UrlExtraData) -> Self {
+    pub fn for_cascade(url: Option<ServoUrl>, extra_data: UrlExtraData) -> Self {
         SpecifiedUrl {
             original: None,
             resolved: url,
@@ -127,7 +131,7 @@ impl SpecifiedUrl {
     pub fn new_for_testing(url: &str) -> Self {
         SpecifiedUrl {
             original: Some(Arc::new(url.into())),
-            resolved: Url::parse(url).ok().map(Arc::new),
+            resolved: Url::parse(url).ok().map(Arc::new).map(ServoUrl::Url),
             extra_data: UrlExtraData {}
         }
     }

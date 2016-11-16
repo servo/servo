@@ -344,7 +344,7 @@ pub mod utils {
     pub fn request_image_from_cache(window: &Window, url: Url) -> ImageResponse {
         let image_cache = window.image_cache_thread();
         let (response_chan, response_port) = ipc::channel().unwrap();
-        image_cache.request_image(url, ImageCacheChan(response_chan), None);
+        image_cache.request_image(url.into(), ImageCacheChan(response_chan), None);
         let result = response_port.recv().unwrap();
         result.image_response
     }

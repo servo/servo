@@ -56,8 +56,8 @@ use style::values::{self, Either, RGBA, computed};
 use style::values::computed::{Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
+use style_traits::ServoUrl;
 use table_cell::CollapsedBordersForCell;
-use url::Url;
 use util::opts;
 use webrender_traits::{ColorF, GradientStop};
 
@@ -360,7 +360,7 @@ pub trait FragmentDisplayListBuilding {
                                                display_list_section: DisplayListSection,
                                                absolute_bounds: &Rect<Au>,
                                                clip: &ClippingRegion,
-                                               image_url: &Url,
+                                               image_url: &ServoUrl,
                                                background_index: usize);
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
@@ -692,11 +692,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                display_list_section: DisplayListSection,
                                                absolute_bounds: &Rect<Au>,
                                                clip: &ClippingRegion,
-                                               image_url: &Url,
+                                               image_url: &ServoUrl,
                                                index: usize) {
         let background = style.get_background();
         let webrender_image = state.shared_layout_context
-                                   .get_webrender_image_for_url(image_url,
+                                   .get_webrender_image_for_url(image_url.clone(),
                                                                 UsePlaceholder::No);
 
         if let Some(webrender_image) = webrender_image {

@@ -345,14 +345,17 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
+                // TODO: Get a ServoUrl directly from the image!
+                //
+                // That's net code though.
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            node.image_url(),
+                                                            node.image_url().map(Into::into),
                                                             &self.layout_context.shared);
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            node.object_data(),
+                                                            node.object_data().map(Into::into),
                                                             &self.layout_context.shared);
                 SpecificFragmentInfo::Image(image_info)
             }
@@ -1207,7 +1210,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             list_style_image::T::Url(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(node,
-                                                            url_value.url().map(|u| (**u).clone()),
+                                                            url_value.url().map(|u| u.clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }

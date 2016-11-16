@@ -149,7 +149,7 @@ impl HTMLImageElement {
                         let _ = task_source.queue_with_wrapper(runnable, &wrapper);
                     });
 
-                    image_cache.request_image_and_metadata(img_url,
+                    image_cache.request_image_and_metadata(img_url.into(),
                                               window.image_cache_chan(),
                                               Some(ImageResponder::new(responder_sender)));
                 } else {
