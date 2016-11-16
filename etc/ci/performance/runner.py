@@ -251,7 +251,7 @@ def main():
     if args.engine == 'servo':
         run_test = run_servo_test
     elif args.engine == 'gecko':
-        import gecko_driver # Load this only when we need gecko test
+        import gecko_driver  # Load this only when we need gecko test
         run_test = gecko_driver.run_gecko_test
     try:
         # Assume the server is up and running
