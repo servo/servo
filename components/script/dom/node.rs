@@ -167,7 +167,7 @@ bitflags! {
 
 impl NodeFlags {
     pub fn new() -> NodeFlags {
-        IS_DIRTY | HAS_DIRTY_DESCENDANTS
+        IS_DIRTY
     }
 }
 
@@ -243,6 +243,8 @@ impl Node {
         let parent_in_doc = self.is_in_doc();
         for node in new_child.traverse_preorder() {
             node.set_flag(IS_IN_DOC, parent_in_doc);
+            // Out-of-document elements never have the descendants flag set.
+            debug_assert!(!node.get_flag(HAS_DIRTY_DESCENDANTS));
             vtable_for(&&*node).bind_to_tree(parent_in_doc);
         }
         let document = new_child.owner_doc();
@@ -281,7 +283,8 @@ impl Node {
         self.children_count.set(self.children_count.get() - 1);
 
         for node in child.traverse_preorder() {
-            node.set_flag(IS_IN_DOC, false);
+            // Out-of-document elements never have the descendants flag set.
+            node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS, false);
             vtable_for(&&*node).unbind_from_tree(&context);
             node.style_and_layout_data.get().map(|d| node.dispose(d));
         }
