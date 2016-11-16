@@ -3,33 +3,33 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use script::origin::Origin;
-use url::Url;
+use servo_url::ServoUrl;
 
 #[test]
 fn same_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.com/b.html").unwrap());
+    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
+    let b = Origin::new(&ServoUrl::parse("http://example.com/b.html").unwrap());
     assert!(a.same_origin(&b));
     assert_eq!(a.is_scheme_host_port_tuple(), true);
 }
 
 #[test]
 fn identical_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
+    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
     assert!(a.same_origin(&a));
 }
 
 #[test]
 fn cross_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.org/b.html").unwrap());
+    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
+    let b = Origin::new(&ServoUrl::parse("http://example.org/b.html").unwrap());
     assert!(!a.same_origin(&b));
 }
 
 #[test]
 fn alias_same_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.com/b.html").unwrap());
+    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
+    let b = Origin::new(&ServoUrl::parse("http://example.com/b.html").unwrap());
     let c = b.alias();
     assert!(a.same_origin(&c));
     assert!(b.same_origin(&b));
@@ -39,8 +39,8 @@ fn alias_same_origin() {
 
 #[test]
 fn alias_cross_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.org/b.html").unwrap());
+    let a = Origin::new(&ServoUrl::parse("http://example.com/a.html").unwrap());
+    let b = Origin::new(&ServoUrl::parse("http://example.org/b.html").unwrap());
     let c = b.alias();
     assert!(!a.same_origin(&c));
     assert!(b.same_origin(&c));

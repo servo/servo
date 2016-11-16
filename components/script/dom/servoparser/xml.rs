@@ -19,9 +19,9 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use html5ever_atoms::{Prefix, QualName};
 use js::jsapi::JSTracer;
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use super::Sink;
-use url::Url;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName, XmlTokenizer};
 use xml5ever::tree_builder::{NextParserState, NodeOrText};
@@ -35,7 +35,7 @@ pub struct Tokenizer {
 }
 
 impl Tokenizer {
-    pub fn new(document: &Document, url: Url) -> Self {
+    pub fn new(document: &Document, url: ServoUrl) -> Self {
         let sink = Sink {
             base_url: url,
             document: JS::from_ref(document),

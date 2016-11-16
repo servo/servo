@@ -22,6 +22,7 @@ plugins = {path = "../plugins"}
 regex = "0.1.55"
 rustc-serialize = "0.3.4"
 script_traits = {path = "../script_traits"}
+servo_url = {path = "../url", features = ["servo"]}
 url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 uuid = { version = "0.3.1", features = ["v4"] }

@@ -26,8 +26,9 @@ num_cpus = "1.1.0"
 rustc-serialize = "0.3"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
-url = "1.2"
+servo_url = {path = "../url"}
 plugins = {path = "../plugins", optional = true}
+url = "1.2"
 
 [dev-dependencies]
 env_logger = "0.3"

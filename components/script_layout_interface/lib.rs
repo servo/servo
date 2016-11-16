@@ -36,8 +36,8 @@ extern crate range;
 extern crate script_traits;
 extern crate selectors;
 #[macro_use] extern crate servo_atoms;
+extern crate servo_url;
 extern crate style;
-extern crate url;
 
 pub mod message;
 pub mod reporter;

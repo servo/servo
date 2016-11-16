@@ -5,11 +5,11 @@
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use resource_thread;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use url::Url;
 use util::thread::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
@@ -105,7 +105,7 @@ impl StorageManager {
         }
     }
 
-    fn length(&self, sender: IpcSender<usize>, url: Url, storage_type: StorageType) {
+    fn length(&self, sender: IpcSender<usize>, url: ServoUrl, storage_type: StorageType) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin).map_or(0, |&(_, ref entry)| entry.len())).unwrap();
@@ -113,7 +113,7 @@ impl StorageManager {
 
     fn key(&self,
            sender: IpcSender<Option<String>>,
-           url: Url,
+           url: ServoUrl,
            storage_type: StorageType,
            index: u32) {
         let origin = self.origin_as_string(url);
@@ -126,7 +126,7 @@ impl StorageManager {
 
     fn keys(&self,
             sender: IpcSender<Vec<String>>,
-            url: Url,
+            url: ServoUrl,
             storage_type: StorageType) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
@@ -142,7 +142,7 @@ impl StorageManager {
     /// exceeding the quota limit
     fn set_item(&mut self,
                 sender: IpcSender<Result<(bool, Option<String>), ()>>,
-                url: Url,
+                url: ServoUrl,
                 storage_type: StorageType,
                 name: String,
                 value: String) {
@@ -191,7 +191,7 @@ impl StorageManager {
 
     fn request_item(&self,
                 sender: IpcSender<Option<String>>,
-                url: Url,
+                url: ServoUrl,
                 storage_type: StorageType,
                 name: String) {
         let origin = self.origin_as_string(url);
@@ -204,7 +204,7 @@ impl StorageManager {
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None
     fn remove_item(&mut self,
                    sender: IpcSender<Option<String>>,
-                   url: Url,
+                   url: ServoUrl,
                    storage_type: StorageType,
                    name: String) {
         let origin = self.origin_as_string(url);
@@ -218,7 +218,7 @@ impl StorageManager {
         sender.send(old_value).unwrap();
     }
 
-    fn clear(&mut self, sender: IpcSender<bool>, url: Url, storage_type: StorageType) {
+    fn clear(&mut self, sender: IpcSender<bool>, url: ServoUrl, storage_type: StorageType) {
         let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         sender.send(data.get_mut(&origin)
@@ -232,7 +232,7 @@ impl StorageManager {
                         }})).unwrap();
     }
 
-    fn origin_as_string(&self, url: Url) -> String {
+    fn origin_as_string(&self, url: ServoUrl) -> String {
         url.origin().ascii_serialization()
     }
 }

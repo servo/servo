@@ -4,8 +4,8 @@
 
 use image::base::{Image, ImageMetadata};
 use ipc_channel::ipc::{self, IpcSender};
+use servo_url::ServoUrl;
 use std::sync::Arc;
-use url::Url;
 
 /// This is optionally passed to the image cache when requesting
 /// and image, and returned to the specified event loop when the
@@ -74,27 +74,27 @@ pub enum ImageCacheCommand {
     /// Request an image asynchronously from the cache. Supply a channel
     /// to receive the result, and optionally an image responder
     /// that is passed to the result channel.
-    RequestImage(Url, ImageCacheChan, Option<ImageResponder>),
+    RequestImage(ServoUrl, ImageCacheChan, Option<ImageResponder>),
 
     /// Requests an image and a "metadata-ready" notification message asynchronously from the
     /// cache. The cache will make an effort to send metadata before the image is completely
     /// loaded. Supply a channel to receive the results, and optionally an image responder
     /// that is passed to the result channel.
-    RequestImageAndMetadata(Url, ImageCacheChan, Option<ImageResponder>),
+    RequestImageAndMetadata(ServoUrl, ImageCacheChan, Option<ImageResponder>),
 
     /// Synchronously check the state of an image in the cache.
     /// TODO(gw): Profile this on some real world sites and see
     /// if it's worth caching the results of this locally in each
     /// layout / paint thread.
-    GetImageIfAvailable(Url, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
+    GetImageIfAvailable(ServoUrl, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
 
     /// Synchronously check the state of an image in the cache. If the image is in a loading
     /// state and but its metadata has been made available, it will be sent as a response.
-    GetImageOrMetadataIfAvailable(Url, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
+    GetImageOrMetadataIfAvailable(ServoUrl, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
 
     /// Instruct the cache to store this data as a newly-complete network request and continue
     /// decoding the result into pixel data
-    StoreDecodeImage(Url, Vec<u8>),
+    StoreDecodeImage(ServoUrl, Vec<u8>),
 
     /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
@@ -124,7 +124,7 @@ impl ImageCacheThread {
 
     /// Asynchronously request an image. See ImageCacheCommand::RequestImage.
     pub fn request_image(&self,
-                         url: Url,
+                         url: ServoUrl,
                          result_chan: ImageCacheChan,
                          responder: Option<ImageResponder>) {
         let msg = ImageCacheCommand::RequestImage(url, result_chan, responder);
@@ -134,7 +134,7 @@ impl ImageCacheThread {
     /// Asynchronously request an image and metadata.
     /// See ImageCacheCommand::RequestImageAndMetadata
     pub fn request_image_and_metadata(&self,
-                                      url: Url,
+                                      url: ServoUrl,
                                       result_chan: ImageCacheChan,
                                       responder: Option<ImageResponder>) {
         let msg = ImageCacheCommand::RequestImageAndMetadata(url, result_chan, responder);
@@ -142,7 +142,7 @@ impl ImageCacheThread {
     }
 
     /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
-    pub fn find_image(&self, url: Url, use_placeholder: UsePlaceholder)
+    pub fn find_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
                                   -> Result<Arc<Image>, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
@@ -152,7 +152,9 @@ impl ImageCacheThread {
 
     /// Get the current state of an image, returning its metadata if available.
     /// See ImageCacheCommand::GetImageOrMetadataIfAvailable.
-    pub fn find_image_or_metadata(&self, url: Url, use_placeholder: UsePlaceholder)
+    ///
+    /// FIXME: We shouldn't do IPC for data uris!
+    pub fn find_image_or_metadata(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
                                   -> Result<ImageOrMetadataAvailable, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
@@ -162,8 +164,8 @@ impl ImageCacheThread {
 
     /// Decode the given image bytes and cache the result for the given URL.
     pub fn store_complete_image_bytes(&self,
-                                   url: Url,
-                                   image_data: Vec<u8>) {
+                                      url: ServoUrl,
+                                      image_data: Vec<u8>) {
         let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
         let _ = self.chan.send(msg);
     }

@@ -13,9 +13,9 @@ use gfx_traits::DevicePixel;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::Cursor;
-use url::Url;
 use util::geometry::ScreenPx;
 
 #[derive(Clone)]
@@ -123,7 +123,7 @@ pub trait WindowMethods {
     /// Sets the page title for the current page.
     fn set_page_title(&self, title: Option<String>);
     /// Sets the load data for the current page.
-    fn set_page_url(&self, url: Url);
+    fn set_page_url(&self, url: ServoUrl);
     /// Called when the browser chrome should display a status message.
     fn status(&self, Option<String>);
     /// Called when the browser has started loading a frame.
@@ -160,5 +160,5 @@ pub trait WindowMethods {
     fn supports_clipboard(&self) -> bool;
 
     /// Add a favicon
-    fn set_favicon(&self, url: Url);
+    fn set_favicon(&self, url: ServoUrl);
 }

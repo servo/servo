@@ -10,21 +10,21 @@ use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchResponseMsg, ResourceThreads, IpcSend};
 use net_traits::request::RequestInit;
+use servo_url::ServoUrl;
 use std::thread;
-use url::Url;
 
 #[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
 pub enum LoadType {
-    Image(Url),
-    Script(Url),
-    Subframe(Url),
-    Stylesheet(Url),
-    PageSource(Url),
-    Media(Url),
+    Image(ServoUrl),
+    Script(ServoUrl),
+    Subframe(ServoUrl),
+    Stylesheet(ServoUrl),
+    PageSource(ServoUrl),
+    Media(ServoUrl),
 }
 
 impl LoadType {
-    fn url(&self) -> &Url {
+    fn url(&self) -> &ServoUrl {
         match *self {
             LoadType::Image(ref url) |
             LoadType::Script(ref url) |
@@ -67,7 +67,7 @@ impl LoadBlocker {
     }
 
     /// Return the url associated with this load.
-    pub fn url(&self) -> Option<&Url> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         self.load.as_ref().map(LoadType::url)
     }
 }
@@ -93,7 +93,7 @@ impl DocumentLoader {
     }
 
     pub fn new_with_threads(resource_threads: ResourceThreads,
-                            initial_load: Option<Url>) -> DocumentLoader {
+                            initial_load: Option<ServoUrl>) -> DocumentLoader {
         debug!("Initial blocking load {:?}.", initial_load);
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 

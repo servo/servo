@@ -24,10 +24,10 @@ use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestInit as NetTraitsRequestInit;
 use network_listener::{NetworkListener, PreInvoke};
+use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use url::Url;
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
@@ -35,7 +35,7 @@ struct FetchContext {
     body: Vec<u8>,
 }
 
-fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<Url> {
+fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl> {
     let referrer = request.referrer.borrow();
     referrer.to_url().map(|url| url.clone())
 }

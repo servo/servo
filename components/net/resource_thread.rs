@@ -35,6 +35,7 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::{Decodable, Encodable};
 use rustc_serialize::json;
+use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -48,7 +49,6 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use storage_thread::StorageThreadFactory;
-use url::Url;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 use websocket_loader;
@@ -76,7 +76,7 @@ impl ProgressSender {
     }
 }
 
-pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
+pub fn send_error(url: ServoUrl, err: NetworkError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
@@ -477,7 +477,7 @@ impl CoreResourceManager {
     }
 
     fn set_cookies_for_url(&mut self,
-                           request: Url,
+                           request: ServoUrl,
                            cookie_list: String,
                            source: CookieSource,
                            resource_group: &ResourceGroup) {
@@ -492,7 +492,7 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookies_for_url_with_data(&mut self, request: Url, cookie: cookie_rs::Cookie, source: CookieSource,
+    fn set_cookies_for_url_with_data(&mut self, request: ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
                                      resource_group: &ResourceGroup) {
         if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();

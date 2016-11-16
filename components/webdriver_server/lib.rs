@@ -22,7 +22,7 @@ extern crate net_traits;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
-extern crate url;
+extern crate servo_url;
 extern crate util;
 extern crate uuid;
 extern crate webdriver;
@@ -42,13 +42,13 @@ use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
-use url::Url;
 use util::prefs::{PREFS, PrefValue};
 use util::thread::spawn_named;
 use uuid::Uuid;
@@ -337,7 +337,7 @@ impl Handler {
     }
 
     fn handle_get(&self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
-        let url = match Url::parse(&parameters.url[..]) {
+        let url = match ServoUrl::parse(&parameters.url[..]) {
             Ok(url) => url,
             Err(_) => return Err(WebDriverError::new(ErrorStatus::InvalidArgument,
                                                "Invalid URL"))

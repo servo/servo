@@ -32,6 +32,7 @@ use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::{Serialize, Serializer};
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -54,7 +55,6 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
-use url::Url;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -419,7 +419,7 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, url: Option<Url>,
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, url: Option<ServoUrl>,
                                         shared_layout_context: &SharedLayoutContext)
                                         -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {

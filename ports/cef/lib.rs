@@ -24,14 +24,14 @@ extern crate gleam;
 extern crate glutin_app;
 extern crate rustc_unicode;
 extern crate script_traits;
+extern crate servo_url;
+extern crate style_traits;
 
 extern crate net_traits;
 extern crate msg;
 extern crate util;
-extern crate style_traits;
 
 extern crate libc;
-extern crate url as std_url;
 
 #[cfg(target_os="macos")]
 #[link_args="-Xlinker -undefined -Xlinker dynamic_lookup"]

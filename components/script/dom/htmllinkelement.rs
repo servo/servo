@@ -36,6 +36,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as Req
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::message::Msg;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -47,7 +48,6 @@ use style::media_queries::{MediaList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, Origin};
-use url::Url;
 
 no_jsmanaged_fields!(Stylesheet);
 
@@ -318,7 +318,7 @@ struct StylesheetContext {
     /// The response metadata received to date.
     metadata: Option<Metadata>,
     /// The initial URL requested.
-    url: Url,
+    url: ServoUrl,
 }
 
 impl PreInvoke for StylesheetContext {}

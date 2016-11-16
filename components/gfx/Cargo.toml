@@ -32,13 +32,13 @@ range = {path = "../range"}
 rustc-serialize = "0.3"
 serde = "0.8"
 servo_atoms = {path = "../atoms"}
+servo_url = {path = "../url"}
 serde_derive = "0.8"
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 xi-unicode = "0.0.1"
 

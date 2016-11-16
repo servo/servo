@@ -6,13 +6,13 @@ use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::Origin;
 use super::*;
-use url::Url;
 
 
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -423,14 +423,19 @@ pub fn append_serialization<'a, W, I>(dest: &mut W,
     write!(dest, ";")
 }
 
-pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+pub fn parse_style_attribute(input: &str,
+                             base_url: &ServoUrl,
+                             error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
                              -> PropertyDeclarationBlock {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+pub fn parse_one_declaration(name: &str,
+                             input: &str,
+                             base_url: &ServoUrl,
+                             error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
                              -> Result<Vec<PropertyDeclaration>, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);

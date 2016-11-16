@@ -15,6 +15,7 @@ use platform::font_list::last_resort_font_families;
 use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem;
@@ -23,7 +24,6 @@ use std::sync::{Arc, Mutex};
 use std::u32;
 use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::FontFamily;
-use url::Url;
 use util::thread::spawn_named;
 use webrender_traits;
 
@@ -106,7 +106,7 @@ pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
-    AddDownloadedWebFont(LowercaseString, Url, Vec<u8>, IpcSender<()>),
+    AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
 }
 
@@ -206,7 +206,11 @@ impl FontCache {
         match src {
             Source::Url(url_source) => {
                 // https://drafts.csswg.org/css-fonts/#font-fetching-requirements
-                let url = url_source.url;
+                let url = match url_source.url.url() {
+                    Some(url) => url.clone(),
+                    None => return,
+                };
+
                 let request = RequestInit {
                     url: url.clone(),
                     type_: RequestType::Font,
@@ -242,7 +246,7 @@ impl FontCache {
                                 Err(_) => {
                                     // FIXME(servo/fontsan#1): get an error message
                                     debug!("Sanitiser rejected web font: \
-                                            family={:?} url={}", family_name, url);
+                                            family={:?} url={:?}", family_name, url);
                                     let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
                                     channel_to_self.send(msg).unwrap();
                                     return;

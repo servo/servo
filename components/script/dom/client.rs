@@ -10,7 +10,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::serviceworker::ServiceWorker;
 use dom::window::Window;
-use url::Url;
+use servo_url::ServoUrl;
 use uuid::Uuid;
 
 #[dom_struct]
@@ -24,7 +24,7 @@ pub struct Client {
 }
 
 impl Client {
-    fn new_inherited(url: Url) -> Client {
+    fn new_inherited(url: ServoUrl) -> Client {
         Client {
             reflector_: Reflector::new(),
             active_worker: None,

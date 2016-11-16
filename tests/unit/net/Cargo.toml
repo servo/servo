@@ -25,4 +25,5 @@ profile_traits = {path = "../../../components/profile_traits"}
 time = "0.1"
 unicase = "1.0"
 url = {version = "1.2", features = ["heap_size"]}
+servo_url = {path = "../../../components/url"}
 util = {path = "../../../components/util"}

@@ -10,15 +10,15 @@ use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use parser::ParserContext;
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
+use servo_url::ServoUrl;
 use std::fmt::{self, Write};
 use std::ptr;
 use std::sync::Arc;
 use style_traits::ToCss;
-use url::Url;
 use values::computed::ComputedValueAsSpecified;
 
 #[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize, Eq))]
 pub struct UrlExtraData {
     #[cfg(feature = "gecko")]
     pub base: GeckoArcURI,
@@ -55,7 +55,7 @@ impl UrlExtraData {
 
 /// A specified url() value.
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize))]
 pub struct SpecifiedUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to
@@ -66,7 +66,7 @@ pub struct SpecifiedUrl {
     original: Option<Arc<String>>,
 
     /// The resolved value for the url, if valid.
-    resolved: Option<Arc<Url>>,
+    resolved: Option<ServoUrl>,
 
     /// Extra data used for Stylo.
     extra_data: UrlExtraData,
@@ -88,7 +88,7 @@ impl SpecifiedUrl {
         };
 
         let serialization = Arc::new(url.into_owned());
-        let resolved = context.base_url.join(&serialization).ok().map(Arc::new);
+        let resolved = context.base_url.join(&serialization).ok();
         Ok(SpecifiedUrl {
             original: Some(serialization),
             resolved: resolved,
@@ -100,7 +100,7 @@ impl SpecifiedUrl {
         &self.extra_data
     }
 
-    pub fn url(&self) -> Option<&Arc<Url>> {
+    pub fn url(&self) -> Option<&ServoUrl> {
         self.resolved.as_ref()
     }
 
@@ -114,7 +114,7 @@ impl SpecifiedUrl {
 
     /// Creates an already specified url value from an already resolved URL
     /// for insertion in the cascade.
-    pub fn for_cascade(url: Option<Arc<Url>>, extra_data: UrlExtraData) -> Self {
+    pub fn for_cascade(url: Option<ServoUrl>, extra_data: UrlExtraData) -> Self {
         SpecifiedUrl {
             original: None,
             resolved: url,
@@ -122,12 +122,11 @@ impl SpecifiedUrl {
         }
     }
 
-    // Just for unit tests, don't use outside of them!
     #[cfg(feature = "servo")]
     pub fn new_for_testing(url: &str) -> Self {
         SpecifiedUrl {
             original: Some(Arc::new(url.into())),
-            resolved: Url::parse(url).ok().map(Arc::new),
+            resolved: ServoUrl::parse(url).ok(),
             extra_data: UrlExtraData {}
         }
     }
@@ -141,6 +140,8 @@ impl PartialEq for SpecifiedUrl {
             self.extra_data == other.extra_data
     }
 }
+
+impl Eq for SpecifiedUrl {}
 
 impl ToCss for SpecifiedUrl {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

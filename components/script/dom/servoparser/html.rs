@@ -31,10 +31,10 @@ use html5ever::tree_builder::{NodeOrText, QuirksMode};
 use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts, TreeSink};
 use html5ever_atoms::QualName;
 use js::jsapi::JSTracer;
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use super::{FragmentContext, Sink};
-use url::Url;
 
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
@@ -48,7 +48,7 @@ pub struct Tokenizer {
 impl Tokenizer {
     pub fn new(
             document: &Document,
-            url: Url,
+            url: ServoUrl,
             fragment_context: Option<FragmentContext>)
             -> Self {
         let sink = Sink {

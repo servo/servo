@@ -9,13 +9,13 @@ use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction,
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use util::thread::spawn_named;
 use websocket::{Client, Message};
-use websocket::client::request::Url;
 use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
 use websocket::receiver::Receiver;
@@ -27,7 +27,7 @@ use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
-fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
+fn establish_a_websocket_connection(resource_url: &ServoUrl, net_url: (Host, String, bool),
                                     origin: String, protocols: Vec<String>,
                                     cookie_jar: Arc<RwLock<CookieStorage>>)
     -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
@@ -71,7 +71,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
 
         // URL that we actually fetch from the network, after applying the replacements
         // specified in the hosts file.
-        let net_url_result = parse_url(&replace_hosts(&connect_data.resource_url));
+        let net_url_result = parse_url(replace_hosts(&connect_data.resource_url).as_url().unwrap());
         let net_url = match net_url_result {
             Ok(net_url) => net_url,
             Err(e) => {

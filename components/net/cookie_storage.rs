@@ -8,8 +8,8 @@
 use cookie::Cookie;
 use cookie_rs;
 use net_traits::CookieSource;
+use servo_url::ServoUrl;
 use std::cmp::Ordering;
-use url::Url;
 
 #[derive(Clone, RustcDecodable, RustcEncodable)]
 pub struct CookieStorage {
@@ -84,7 +84,7 @@ impl CookieStorage {
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.4
-    pub fn cookies_for_url(&mut self, url: &Url, source: CookieSource) -> Option<String> {
+    pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         let filterer = |c: &&mut Cookie| -> bool {
             info!(" === SENT COOKIE : {} {} {:?} {:?}",
                   c.cookie.name, c.cookie.value, c.cookie.domain, c.cookie.path);
@@ -116,7 +116,7 @@ impl CookieStorage {
         }
     }
 
-    pub fn cookies_data_for_url<'a>(&'a mut self, url: &'a Url,
+    pub fn cookies_data_for_url<'a>(&'a mut self, url: &'a ServoUrl,
                                     source: CookieSource) -> Box<Iterator<Item=cookie_rs::Cookie> + 'a> {
         Box::new(self.cookies.iter_mut().filter(move |c| { c.appropriate_for_url(url, source) }).map(|c| {
             c.touch();

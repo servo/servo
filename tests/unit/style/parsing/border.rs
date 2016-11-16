@@ -4,16 +4,16 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
+use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
 use style::properties::longhands::{border_image_source, border_image_width};
 use style::properties::shorthands::border_image;
 use style::stylesheets::Origin;
-use url::Url;
 
 #[test]
 fn border_image_shorhand_should_parse_when_all_properties_specified() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px / 10px \
                                  round stretch");
@@ -29,7 +29,7 @@ fn border_image_shorhand_should_parse_when_all_properties_specified() {
 
 #[test]
 fn border_image_shorhand_should_parse_without_width() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / / 10px round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
@@ -44,7 +44,7 @@ fn border_image_shorhand_should_parse_without_width() {
 
 #[test]
 fn border_image_shorhand_should_parse_without_outset() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
@@ -59,7 +59,7 @@ fn border_image_shorhand_should_parse_without_outset() {
 
 #[test]
 fn border_image_shorhand_should_parse_without_width_or_outset() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
@@ -74,7 +74,7 @@ fn border_image_shorhand_should_parse_without_width_or_outset() {
 
 #[test]
 fn border_image_shorhand_should_parse_with_just_source() {
-    let url = Url::parse("http://localhost").unwrap();
+    let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new("linear-gradient(red, blue)");
     let result = border_image::parse_value(&context, &mut parser).unwrap();

@@ -39,12 +39,12 @@ serde = "0.8"
 serde_derive = "0.8"
 serde_json = "0.8"
 servo_atoms = {path = "../atoms"}
+servo_url = {path = "../url"}
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = "0.2"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 
 [dependencies.webrender_traits]

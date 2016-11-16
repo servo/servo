@@ -11,12 +11,12 @@ use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
 #[cfg(not(feature = "gecko"))] use str::str_join;
-use url::Url;
 use values::specified::Length;
 
 // Duplicated from script::dom::values.
@@ -42,7 +42,7 @@ pub enum AttrValue {
     Length(String, Option<Length>),
     Color(String, Option<RGBA>),
     Dimension(String, LengthOrPercentageOrAuto),
-    Url(String, Option<Url>),
+    Url(String, Option<ServoUrl>),
 }
 
 /// Shared implementation to parse an integer according to
@@ -208,7 +208,7 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn from_url(base: &Url, url: String) -> AttrValue {
+    pub fn from_url(base: &ServoUrl, url: String) -> AttrValue {
         let joined = base.join(&url).ok();
         AttrValue::Url(url, joined)
     }
@@ -293,7 +293,7 @@ impl AttrValue {
     /// ## Panics
     ///
     /// Panics if the `AttrValue` is not a `Url`
-    pub fn as_url(&self) -> Option<&Url> {
+    pub fn as_url(&self) -> Option<&ServoUrl> {
         match *self {
             AttrValue::Url(_, ref url) => url.as_ref(),
             _ => panic!("Url not found"),

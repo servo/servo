@@ -35,10 +35,10 @@ use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
-use url::Url;
 
 #[dom_struct]
 pub struct Request {
@@ -53,7 +53,7 @@ pub struct Request {
 
 impl Request {
     fn new_inherited(global: &GlobalScope,
-                     url: Url,
+                     url: ServoUrl,
                      is_service_worker_global_scope: bool) -> Request {
         Request {
             reflector_: Reflector::new(),
@@ -69,7 +69,7 @@ impl Request {
     }
 
     pub fn new(global: &GlobalScope,
-               url: Url,
+               url: ServoUrl,
                is_service_worker_global_scope: bool) -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(global,
                                                       url,
@@ -468,7 +468,7 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope,
-                           url: Url,
+                           url: ServoUrl,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
     let pipeline_id = global.pipeline_id();
@@ -524,7 +524,7 @@ fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
 }
 
 // https://url.spec.whatwg.org/#include-credentials
-fn includes_credentials(input: &Url) -> bool {
+fn includes_credentials(input: &ServoUrl) -> bool {
     !input.username().is_empty() || input.password().is_some()
 }
 

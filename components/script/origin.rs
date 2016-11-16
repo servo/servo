@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use servo_url::ServoUrl;
 use std::sync::Arc;
-use url::{Host, Url};
+use url::Host;
 use url::Origin as UrlOrigin;
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
@@ -22,7 +23,7 @@ impl Origin {
     }
 
     /// Create a new origin for the given URL.
-    pub fn new(url: &Url) -> Origin {
+    pub fn new(url: &ServoUrl) -> Origin {
         Origin {
             inner: Arc::new(url.origin()),
         }

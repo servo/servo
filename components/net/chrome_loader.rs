@@ -6,13 +6,13 @@ use file_loader;
 use mime_classifier::MimeClassifier;
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::{CancellationListener, send_error};
+use servo_url::ServoUrl;
 use std::fs::canonicalize;
 use std::sync::Arc;
-use url::Url;
 use url::percent_encoding::percent_decode;
 use util::resource_files::resources_dir_path;
 
-pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
+pub fn resolve_chrome_url(url: &ServoUrl) -> Result<ServoUrl, ()> {
     assert_eq!(url.scheme(), "chrome");
     if url.host_str() != Some("resources") {
         return Err(())
@@ -29,7 +29,7 @@ pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
     }
     match canonicalize(path) {
         Ok(ref path) if path.starts_with(&resources) && path.exists() => {
-            Ok(Url::from_file_path(path).unwrap())
+            Ok(ServoUrl::from_file_path(path).unwrap())
         }
         _ => Err(())
     }

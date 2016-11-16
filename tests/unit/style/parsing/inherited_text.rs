@@ -6,7 +6,6 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
-use url::Url;
 
 #[test]
 fn text_emphasis_style_longhand_should_parse_properly() {

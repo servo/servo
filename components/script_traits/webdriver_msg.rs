@@ -10,7 +10,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{Json, ToJson};
-use url::Url;
+use servo_url::ServoUrl;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
@@ -34,7 +34,7 @@ pub enum WebDriverScriptCommand {
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
-    GetUrl(IpcSender<Url>),
+    GetUrl(IpcSender<ServoUrl>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>)
