@@ -206,6 +206,9 @@ pub struct Opts {
     /// True to show webrender debug on screen.
     pub webrender_debug: bool,
 
+    /// True if webrender recording should be enabled.
+    pub webrender_record: bool,
+
     /// True to compile all webrender shaders at init time. This is mostly
     /// useful when modifying the shaders, to ensure they all compile
     /// after each change is made.
@@ -325,6 +328,9 @@ pub struct DebugOptions {
     /// Show webrender debug on screen.
     pub webrender_debug: bool,
 
+    /// Enable webrender recording.
+    pub webrender_record: bool,
+
     /// Use multisample antialiasing in WebRender.
     pub use_msaa: bool,
 
@@ -377,6 +383,7 @@ impl DebugOptions {
                 "disable-vsync" => debug_options.disable_vsync = true,
                 "wr-stats" => debug_options.webrender_stats = true,
                 "wr-debug" => debug_options.webrender_debug = true,
+                "wr-record" => debug_options.webrender_record = true,
                 "msaa" => debug_options.use_msaa = true,
                 "full-backtraces" => debug_options.full_backtraces = true,
                 "precache-shaders" => debug_options.precache_shaders = true,
@@ -558,6 +565,7 @@ pub fn default_opts() -> Opts {
         full_backtraces: false,
         is_printing_version: false,
         webrender_debug: false,
+        webrender_record: false,
         precache_shaders: false,
         signpost: false,
     }
@@ -861,6 +869,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
         webrender_debug: debug_options.webrender_debug,
+        webrender_record: debug_options.webrender_record,
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
     };
