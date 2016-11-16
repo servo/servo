@@ -156,11 +156,16 @@ pub fn read_prefs_from_file<T>(mut file: T)
     let mut prefs = HashMap::new();
     if let Json::Object(obj) = json {
         for (name, value) in obj.into_iter() {
-            match Pref::from_json(value) {
-                Ok(x) => {
-                    prefs.insert(name, x);
-                },
-                Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
+            if prefs.contains_key(&name) {
+                println!("Ignoring redeclaration for pref {:?}", name);
+                continue;
+            } else {
+                match Pref::from_json(value) {
+                    Ok(x) => {
+                        prefs.insert(name, x);
+                    },
+                    Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
+                }
             }
         }
     }
