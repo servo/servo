@@ -107,7 +107,10 @@ def host_triple():
     elif os_type == "android":
         os_type = "linux-androideabi"
     elif os_type == "windows":
-        os_type = "pc-windows-msvc"
+        if os.getenv("MSYSTEM") is None:
+            os_type = "pc-windows-msvc"
+        else:
+            os_type = "pc-windows-gnu"
     elif os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
         os_type = "pc-windows-gnu"
     elif os_type == "freebsd":
@@ -481,6 +484,14 @@ class CommandBase(object):
 
         git_info = []
         if os.path.isdir('.git') and is_build:
+            pwd_output = subprocess.check_output(['pwd']).strip()
+            print('pwd = {}'.format(pwd_output))
+            git_sha = subprocess.check_output(['which', 'git']).strip()
+            print('git = {}'.format(git_sha))
+            git_output = subprocess.check_output(['ls', '-l', '/usr/bin/git']).strip()
+            print('ls = {}'.format(git_output))
+            git_output = subprocess.check_output(['git']).strip()
+            print('git output = {}'.format(git_output))
             git_sha = subprocess.check_output([
                 'git', 'rev-parse', '--short', 'HEAD'
             ]).strip()
