@@ -51,117 +51,119 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
+<%def name="vector_longhand(name, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
-        % if product == "gecko" or not gecko_only:
-            use std::fmt;
-            use values::HasViewportPercentage;
-            use style_traits::ToCss;
+        use std::fmt;
+        use values::HasViewportPercentage;
+        use style_traits::ToCss;
 
-            impl HasViewportPercentage for SpecifiedValue {
-                fn has_viewport_percentage(&self) -> bool {
-                    let &SpecifiedValue(ref vec) = self;
-                    vec.iter().any(|ref x| x.has_viewport_percentage())
-                }
+        impl HasViewportPercentage for SpecifiedValue {
+            fn has_viewport_percentage(&self) -> bool {
+                let &SpecifiedValue(ref vec) = self;
+                vec.iter().any(|ref x| x.has_viewport_percentage())
             }
+        }
 
-            pub mod single_value {
-                use cssparser::Parser;
-                use parser::{Parse, ParserContext, ParserContextExtraData};
-                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
-                use values::computed::{Context, ToComputedValue};
-                use values::{computed, specified};
-                ${caller.body()}
-            }
-            pub mod computed_value {
-                pub use super::single_value::computed_value as single_value;
-                #[derive(Debug, Clone, PartialEq)]
-                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub Vec<single_value::T>);
-            }
-
-            impl ToCss for computed_value::T {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    let mut iter = self.0.iter();
-                    if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
-                    } else {
-                        % if allow_empty:
-                            try!(dest.write_str("none"));
-                        % else:
-                            error!("Found empty value for property ${name}");
-                        % endif
-                    }
-                    for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
-                    }
-                    Ok(())
-                }
-            }
-
+        pub mod single_value {
+            use cssparser::Parser;
+            use parser::{Parse, ParserContext, ParserContextExtraData};
+            use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
+            use values::computed::{Context, ToComputedValue};
+            use values::{computed, specified};
+            ${caller.body()}
+        }
+        pub mod computed_value {
+            pub use super::single_value::computed_value as single_value;
+            pub use super::single_value::computed_value::T as SingleComputedValue;
             #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
+            pub struct T(pub Vec<single_value::T>);
+        }
 
-            impl ToCss for SpecifiedValue {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    let mut iter = self.0.iter();
-                    if let Some(val) = iter.next() {
-                        try!(val.to_css(dest));
-                    } else {
-                        % if allow_empty:
-                            try!(dest.write_str("none"));
-                        % else:
-                            error!("Found empty value for property ${name}");
-                        % endif
-                    }
-                    for i in iter {
-                        try!(dest.write_str(", "));
-                        try!(i.to_css(dest));
-                    }
-                    Ok(())
+        impl ToCss for computed_value::T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut iter = self.0.iter();
+                if let Some(val) = iter.next() {
+                    try!(val.to_css(dest));
+                } else {
+                    % if allow_empty:
+                        try!(dest.write_str("none"));
+                    % else:
+                        error!("Found empty value for property ${name}");
+                    % endif
                 }
+                for i in iter {
+                    try!(dest.write_str(", "));
+                    try!(i.to_css(dest));
+                }
+                Ok(())
             }
-            pub fn get_initial_value() -> computed_value::T {
-                % if allow_empty:
-                    computed_value::T(vec![])
-                % else:
-                    computed_value::T(vec![single_value::get_initial_value()])
-                % endif
+        }
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut iter = self.0.iter();
+                if let Some(val) = iter.next() {
+                    try!(val.to_css(dest));
+                } else {
+                    % if allow_empty:
+                        try!(dest.write_str("none"));
+                    % else:
+                        error!("Found empty value for property ${name}");
+                    % endif
+                }
+                for i in iter {
+                    try!(dest.write_str(", "));
+                    try!(i.to_css(dest));
+                }
+                Ok(())
             }
-            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-                % if allow_empty:
-                    if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                        Ok(SpecifiedValue(Vec::new()))
-                    } else {
-                        input.parse_comma_separated(|parser| {
-                            single_value::parse(context, parser)
-                        }).map(SpecifiedValue)
-                    }
-                % else:
+        }
+
+        pub fn get_initial_value() -> computed_value::T {
+            % if allow_empty:
+                computed_value::T(vec![])
+            % else:
+                computed_value::T(vec![single_value::get_initial_value()])
+            % endif
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            % if allow_empty:
+                if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                    Ok(SpecifiedValue(Vec::new()))
+                } else {
                     input.parse_comma_separated(|parser| {
                         single_value::parse(context, parser)
                     }).map(SpecifiedValue)
-                % endif
-            }
-            impl ToComputedValue for SpecifiedValue {
-                type ComputedValue = computed_value::T;
+                }
+            % else:
+                input.parse_comma_separated(|parser| {
+                    single_value::parse(context, parser)
+                }).map(SpecifiedValue)
+            % endif
+        }
 
-                #[inline]
-                fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                    computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
-                }
-                #[inline]
-                fn from_computed_value(computed: &computed_value::T) -> Self {
-                    SpecifiedValue(computed.0.iter()
-                                       .map(|x| ToComputedValue::from_computed_value(x))
-                                       .collect())
-                }
+        pub use self::single_value::computed_value::T as SingleSpecifiedValue;
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
             }
-        % else:
-            ${caller.body()}
-        % endif
+            #[inline]
+            fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue(computed.0.iter()
+                                   .map(|x| ToComputedValue::from_computed_value(x))
+                                   .collect())
+            }
+        }
     </%call>
 </%def>
 

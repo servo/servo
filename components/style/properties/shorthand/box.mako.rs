@@ -53,7 +53,7 @@
 macro_rules! try_parse_one {
     ($input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
-            if let Ok(value) = $input.try($prop_module::parse_one) {
+            if let Ok(value) = $input.try($prop_module::computed_value::SingleComputedValue::parse) {
                 $var = Some(value);
                 continue;
             }
@@ -65,6 +65,7 @@ macro_rules! try_parse_one {
                     sub_properties="transition-property transition-duration
                                     transition-timing-function
                                     transition-delay">
+    use parser::Parse;
     use properties::longhands::{transition_delay, transition_duration, transition_property};
     use properties::longhands::{transition_timing_function};
 
@@ -94,8 +95,7 @@ macro_rules! try_parse_one {
                     transition_duration:
                         duration.unwrap_or_else(transition_duration::get_initial_single_value),
                     transition_timing_function:
-                        timing_function.unwrap_or_else(
-                            transition_timing_function::get_initial_single_value),
+                        timing_function.unwrap_or_else(transition_timing_function::get_initial_single_value),
                     transition_delay:
                         delay.unwrap_or_else(transition_delay::get_initial_single_value),
                 })
@@ -154,6 +154,7 @@ macro_rules! try_parse_one {
                                     animation-iteration-count animation-direction
                                     animation-fill-mode animation-play-state"
                     allowed_in_keyframe_block="False">
+    use parser::Parse;
     use properties::longhands::{animation_name, animation_duration, animation_timing_function};
     use properties::longhands::{animation_delay, animation_iteration_count, animation_direction};
     use properties::longhands::{animation_fill_mode, animation_play_state};
@@ -210,11 +211,11 @@ macro_rules! try_parse_one {
                     animation_iteration_count:
                         iteration_count.unwrap_or_else(animation_iteration_count::get_initial_single_value),
                     animation_direction:
-                        direction.unwrap_or_else(animation_direction::get_initial_single_value),
+                        direction.unwrap_or_else(animation_direction::single_value::get_initial_value),
                     animation_fill_mode:
-                        fill_mode.unwrap_or_else(animation_fill_mode::get_initial_single_value),
+                        fill_mode.unwrap_or_else(animation_fill_mode::single_value::get_initial_value),
                     animation_play_state:
-                        play_state.unwrap_or_else(animation_play_state::get_initial_single_value),
+                        play_state.unwrap_or_else(animation_play_state::single_value::get_initial_value),
                 })
             } else {
                 Err(())
