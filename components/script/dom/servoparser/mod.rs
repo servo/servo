@@ -17,9 +17,11 @@ use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
+use html5ever::tokenizer::buffer_queue::BufferQueue;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -31,7 +33,6 @@ use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use std::collections::VecDeque;
 use util::resource_files::read_resource_file;
 
 mod html;
@@ -46,7 +47,8 @@ pub struct ServoParser {
     /// does not correspond to a page load.
     pipeline: Option<PipelineId>,
     /// Input chunks received but not yet passed to the parser.
-    pending_input: DOMRefCell<VecDeque<String>>,
+    #[ignore_heap_size_of = "Defined in html5ever"]
+    pending_input: DOMRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DOMRefCell<Tokenizer>,
     /// Whether to expect any further input from the associated network request.
@@ -143,7 +145,7 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
             pipeline: pipeline,
-            pending_input: DOMRefCell::new(VecDeque::new()),
+            pending_input: DOMRefCell::new(BufferQueue::new()),
             tokenizer: DOMRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
@@ -176,16 +178,7 @@ impl ServoParser {
     }
 
     fn push_input_chunk(&self, chunk: String) {
-        self.pending_input.borrow_mut().push_back(chunk);
-    }
-
-    fn take_next_input_chunk(&self) -> Option<String> {
-        let mut pending_input = self.pending_input.borrow_mut();
-        if pending_input.is_empty() {
-            None
-        } else {
-            pending_input.pop_front()
-        }
+        self.pending_input.borrow_mut().push_back(chunk.into());
     }
 
     fn last_chunk_received(&self) -> bool {
@@ -233,10 +226,10 @@ impl ServoParser {
         // the parser remains unsuspended.
         loop {
             self.document().reflow_if_reflow_timer_expired();
-            if let Some(chunk) = self.take_next_input_chunk() {
-                self.tokenizer.borrow_mut().feed(chunk);
-            } else {
-                self.tokenizer.borrow_mut().run();
+            if let Err(script) = self.tokenizer.borrow_mut().feed(&mut *self.pending_input.borrow_mut()) {
+                if script.prepare() {
+                    continue;
+                }
             }
 
             // Document parsing is blocked on an external resource.
@@ -284,25 +277,11 @@ enum Tokenizer {
     Xml(self::xml::Tokenizer),
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[must_root]
-struct Sink {
-    pub base_url: ServoUrl,
-    pub document: JS<Document>,
-}
-
 impl Tokenizer {
-    fn feed(&mut self, input: String) {
+    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
-            Tokenizer::Xml(ref mut tokenizer) => tokenizer.feed(input.into()),
-        }
-    }
-
-    fn run(&mut self) {
-        match *self {
-            Tokenizer::Html(ref mut tokenizer) => tokenizer.run(),
-            Tokenizer::Xml(ref mut tokenizer) => tokenizer.run(),
+            Tokenizer::Xml(ref mut tokenizer) => tokenizer.feed(input),
         }
     }
 
