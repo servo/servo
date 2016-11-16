@@ -97,6 +97,7 @@ arm64:
   - bash ./etc/ci/manifest_changed.sh
 
 windows-dev:
+  - echo $PATH
   - ./mach build --dev
   - ./mach test-unit
   - ./mach build-geckolib
