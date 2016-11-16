@@ -255,7 +255,7 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
-    !Stylesheet::as_arc(&raw_sheet).rules.is_empty()
+    !Stylesheet::as_arc(&raw_sheet).rules.0.read().is_empty()
 }
 
 #[no_mangle]

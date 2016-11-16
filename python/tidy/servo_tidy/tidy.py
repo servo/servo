@@ -63,7 +63,7 @@ WEBIDL_STANDARDS = [
     "//dvcs.w3.org/hg",
     "//dom.spec.whatwg.org",
     "//domparsing.spec.whatwg.org",
-    "//drafts.csswg.org/cssom",
+    "//drafts.csswg.org",
     "//drafts.fxtf.org",
     "//encoding.spec.whatwg.org",
     "//fetch.spec.whatwg.org",

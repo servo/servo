@@ -20,7 +20,7 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>) -> StyleSheet {
+    pub fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
