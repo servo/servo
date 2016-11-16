@@ -109,6 +109,10 @@ function testEquivalence(element1, fragment1, element2, fragment2) {
         }
 }
 
+var doc_fragment = document.createDocumentFragment();
+var comment = document.createComment("~o~");
+doc_fragment.appendChild(comment);
+
 var tests = [
         ["<html> and <body> must work the same, 1", document.documentElement, "<span>Hello world</span>", document.body, "<span>Hello world</span>"],
         ["<html> and <body> must work the same, 2", document.documentElement, "<body><p>Hello world", document.body, "<body><p>Hello world"],
@@ -126,6 +130,9 @@ var tests = [
         ["undefined should be stringified", document.createElement("span"), undefined, document.createElement("span"), "undefined"],
         ["Text nodes shouldn't be special",
                 document.createTextNode("?"), "<body><p>",
+                document.createElement("div"), "<body><p>"],
+        ["Non-Element parent should not be special",
+                comment, "<body><p>",
                 document.createElement("div"), "<body><p>"]
 ];
 
