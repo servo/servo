@@ -33,7 +33,6 @@ use html5ever_atoms::QualName;
 use js::jsapi::JSTracer;
 use std::borrow::Cow;
 use std::io::{self, Write};
-use super::{FragmentContext, Sink};
 use url::Url;
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -41,15 +40,13 @@ use url::Url;
 pub struct Tokenizer {
     #[ignore_heap_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<JS<Node>, Sink>>,
-    #[ignore_heap_size_of = "Defined in html5ever"]
-    input_buffer: BufferQueue,
 }
 
 impl Tokenizer {
     pub fn new(
             document: &Document,
             url: Url,
-            fragment_context: Option<FragmentContext>)
+            fragment_context: Option<super::FragmentContext>)
             -> Self {
         let sink = Sink {
             base_url: url,
@@ -80,27 +77,17 @@ impl Tokenizer {
 
         Tokenizer {
             inner: inner,
-            input_buffer: BufferQueue::new(),
         }
     }
 
-    pub fn feed(&mut self, input: String) {
-        self.input_buffer.push_back(input.into());
-        self.run();
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn run(&mut self) {
-        while let TokenizerResult::Script(script) = self.inner.feed(&mut self.input_buffer) {
-            let script = Root::from_ref(script.downcast::<HTMLScriptElement>().unwrap());
-            if !script.prepare() {
-                break;
-            }
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+        match self.inner.feed(input) {
+            TokenizerResult::Done => Ok(()),
+            TokenizerResult::Script(script) => Err(Root::from_ref(script.downcast().unwrap())),
         }
     }
 
     pub fn end(&mut self) {
-        assert!(self.input_buffer.is_empty());
         self.inner.end();
     }
 
@@ -126,6 +113,13 @@ impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
         tree_builder.trace_handles(&tracer);
         tree_builder.sink().trace(trc);
     }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+struct Sink {
+    base_url: Url,
+    document: JS<Document>,
 }
 
 impl<'a> TreeSink for Sink {

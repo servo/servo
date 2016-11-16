@@ -408,6 +408,12 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         }
     }
 
+    /// Gets the current value out of this object and sets it to `None`.
+    pub fn take(&self) -> Option<Root<T>> {
+        let value = self.get();
+        self.set(None);
+        value
+    }
 }
 
 impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
