@@ -64,7 +64,7 @@ If you want to test the data submission code in `submit_to_perfherder.py` withou
 ## For Gecko
 
 * Install Firefox Nightly in your PATH
-* Download [geckodrive](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH`
+* Download [geckodriver](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH`
 * `pip install selenium`
 * Run `python gecko_driver.py` to test
 

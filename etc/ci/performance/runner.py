@@ -27,8 +27,9 @@ def parse_manifest(text):
 
 def execute_test(url, command, timeout):
     try:
-        return subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                       timeout=timeout)
+        return subprocess.check_output(
+            command, stderr=subprocess.STDOUT, timeout=timeout
+        )
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
@@ -42,15 +43,17 @@ def execute_test(url, command, timeout):
 def get_servo_command(url):
     def run_servo_test(url, timeout):
         ua_script_path = "{}/user-agent-js".format(os.getcwd())
-        command = ["../../../target/release/servo", url,
-                   "--userscripts", ua_script_path,
-                   "--headless",
-                   "-x", "-o", "output.png"]
+        command = [
+            "../../../target/release/servo", url,
+            "--userscripts", ua_script_path,
+            "--headless",
+            "-x", "-o", "output.png"
+        ]
         log = ""
         try:
-            log = subprocess.check_output(command,
-                                          stderr=subprocess.STDOUT,
-                                          timeout=timeout)
+            log = subprocess.check_output(
+                command, stderr=subprocess.STDOUT, timeout=timeout
+            )
         except subprocess.CalledProcessError as e:
             print("Unexpected Fail:")
             print(e)
@@ -63,7 +66,7 @@ def get_servo_command(url):
 
 
 def get_gecko_command(url):
-    return gecko_driver.execute_gecko_test
+    return gecko_driver.run_gecko_test
 
 
 def parse_log(log, testcase):
@@ -265,7 +268,7 @@ def main():
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
                                                         testcase))
-                # results will be a mixure of timeings dict and testcase strings
+                # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
                 results += run_test(testcase, args.timeout)
                 print("Finished")

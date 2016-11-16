@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 
 
-def execute_gecko_test(testcase, timeout):
+def run_gecko_test(testcase, timeout):
     firefox_binary = "./firefox/firefox/firefox"
     driver = webdriver.Firefox(firefox_binary=firefox_binary)
     driver.set_page_load_timeout(timeout)
@@ -55,16 +55,16 @@ def execute_gecko_test(testcase, timeout):
     # So we need to get the timing fields one by one
     for name in timing_names:
         if failed:
-            if name == "navigationStart":
-                timings[name] = 0
-            else:
-                timings[name] = -1
+            # We need to still include the failed tests, otherwise Treeherder will
+            # consider the result to be a new test series, and thus a new graph. So we
+            # use a placeholder with values = -1 to make Treeherder happy, and still be
+            # able to identify failed tests (successful tests have time >=0).
+            timings[name] = 0 if name == "navigationStart" else -1
         else:
             timings[name] = driver.execute_script(
                 "return performance.timing.{0}".format(name)
             )
 
-    timings['testcase'] = testcase
     # driver.quit() gives an "'NoneType' object has no attribute 'path'" error.
     # Fixed in
     # https://github.com/SeleniumHQ/selenium/commit/9157c7071f9900c2608f5ca40ae4f518ed373b96
