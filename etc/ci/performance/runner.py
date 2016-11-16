@@ -9,7 +9,6 @@ import itertools
 import json
 import os
 import subprocess
-import gecko_driver
 from functools import partial
 from statistics import median, StatisticsError
 
@@ -40,33 +39,28 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def get_servo_command(url):
-    def run_servo_test(url, timeout):
-        ua_script_path = "{}/user-agent-js".format(os.getcwd())
-        command = [
-            "../../../target/release/servo", url,
-            "--userscripts", ua_script_path,
-            "--headless",
-            "-x", "-o", "output.png"
-        ]
-        log = ""
-        try:
-            log = subprocess.check_output(
-                command, stderr=subprocess.STDOUT, timeout=timeout
-            )
-        except subprocess.CalledProcessError as e:
-            print("Unexpected Fail:")
-            print(e)
-            print("You may want to re-run the test manually:\n{}"
-                  .format(' '.join(command)))
-        except subprocess.TimeoutExpired:
-            print("Test FAILED due to timeout: {}".format(url))
-        return parse_log(log, url)
-    return run_servo_test
-
-
-def get_gecko_command(url):
-    return gecko_driver.run_gecko_test
+def run_servo_test(url, timeout):
+    ua_script_path = "{}/user-agent-js".format(os.getcwd())
+    command = [
+        "../../../target/release/servo", url,
+        "--userscripts", ua_script_path,
+        "--headless",
+        "-x", "-o", "output.png"
+    ]
+    log = ""
+    try:
+        log = subprocess.check_output(
+            command, stderr=subprocess.STDOUT, timeout=timeout
+        )
+    except subprocess.CalledProcessError as e:
+        print("Unexpected Fail:")
+        print(e)
+        print("You may want to re-run the test manually:\n{}".format(
+            ' '.join(command)
+        ))
+    except subprocess.TimeoutExpired:
+        print("Test FAILED due to timeout: {}".format(url))
+    return parse_log(log, url)
 
 
 def parse_log(log, testcase):
@@ -255,15 +249,15 @@ def main():
                               " servo and gecko are supported."))
     args = parser.parse_args()
     if args.engine == 'servo':
-        command_factory = get_servo_command
+        run_test = run_servo_test
     elif args.engine == 'gecko':
-        command_factory = get_gecko_command
+        import gecko_driver # Load this only when we need gecko test
+        run_test = gecko_driver.run_gecko_test
     try:
         # Assume the server is up and running
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            run_test = command_factory(testcase)
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
