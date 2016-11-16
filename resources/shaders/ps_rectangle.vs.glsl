@@ -15,9 +15,11 @@ void main(void) {
     vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
 #else
-    write_vertex(prim.local_rect,
-                 prim.local_clip_rect,
-                 prim.layer,
-                 prim.tile);
+    VertexInfo vi = write_vertex(prim.local_rect,
+                                 prim.local_clip_rect,
+                                 prim.layer,
+                                 prim.tile);
 #endif
+
+    write_clip(vi.global_clamped_pos, prim.clip_area);
 }

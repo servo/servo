@@ -327,7 +327,7 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Res
                                             image.height,
                                             None,
                                             format,
-                                            bytes));
+                                            webrender_traits::ImageData::Raw(bytes)));
     Ok(Arc::new(image))
 }
 
@@ -486,7 +486,7 @@ impl ImageCache {
                                                              image.height,
                                                              None,
                                                              format,
-                                                             bytes));
+                                                             webrender_traits::ImageData::Raw(bytes)));
             }
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }

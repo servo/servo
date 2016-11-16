@@ -4,14 +4,17 @@
 
 void main(void) {
 #ifdef WR_FEATURE_SUBPIXEL_AA
+    //note: the blend mode is not compatible with clipping
     oFragColor = texture(sColor0, vUv);
 #else
-    float a = texture(sColor0, vUv).a;
+    float alpha = texture(sColor0, vUv).a;
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0.0;
-    init_transform_fs(vLocalPos, vLocalRect, alpha);
-    a *= alpha;
+    float a = 0.0;
+    init_transform_fs(vLocalPos, vLocalRect, a);
+    alpha *= a;
 #endif
-    oFragColor = vec4(vColor.rgb, vColor.a * a);
+    vec4 color = vColor;
+    alpha = min(alpha, do_clip());
+    oFragColor = vec4(vColor.rgb, vColor.a * alpha);
 #endif
 }

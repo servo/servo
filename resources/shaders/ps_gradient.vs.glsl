@@ -54,6 +54,8 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 #endif
 
+    write_clip(vi.global_clamped_pos, prim.clip_area);
+
     switch (int(gradient.kind.x)) {
         case GRADIENT_HORIZONTAL:
             vColor = mix(g0.color, g1.color, f.x);

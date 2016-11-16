@@ -11,5 +11,6 @@ void main(void) {
     vec2 local_pos = vPos;
 #endif
 
-    oFragColor = vColor * vec4(1, 1, 1, alpha);
+    alpha = min(alpha, do_clip());
+    oFragColor = vColor * vec4(1.0, 1.0, 1.0, alpha);
 }
