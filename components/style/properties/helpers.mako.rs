@@ -53,7 +53,7 @@
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
-        % if product == "gecko" or not gecko_only:
+        % if not gecko_only:
             use std::fmt;
             use values::HasViewportPercentage;
             use style_traits::ToCss;
@@ -75,6 +75,7 @@
             }
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
+                pub use self::single_value::T as SingleComputedValue;
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
@@ -123,6 +124,7 @@
                     Ok(())
                 }
             }
+
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty:
                     computed_value::T(vec![])
@@ -130,6 +132,7 @@
                     computed_value::T(vec![single_value::get_initial_value()])
                 % endif
             }
+
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -145,6 +148,9 @@
                     }).map(SpecifiedValue)
                 % endif
             }
+
+            pub use self::single_value::computed_value::T as SingleSpecifiedValue;
+
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
 
