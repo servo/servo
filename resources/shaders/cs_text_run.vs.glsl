@@ -13,17 +13,18 @@ void main(void) {
     TextRun text = fetch_text_run(cpi.specific_prim_index);
     Glyph glyph = fetch_glyph(cpi.sub_index);
     PrimitiveGeometry pg = fetch_prim_geometry(cpi.global_prim_index);
+    ResourceRect res = fetch_resource_rect(cpi.user_data.x);
 
     // Glyphs size is already in device-pixels.
     // The render task origin is in device-pixels. Offset that by
     // the glyph offset, relative to its primitive bounding rect.
-    vec2 size = glyph.uv_rect.zw - glyph.uv_rect.xy;
+    vec2 size = res.uv_rect.zw - res.uv_rect.xy;
     vec2 origin = task.data0.xy + uDevicePixelRatio * (glyph.offset.xy - pg.local_rect.xy);
     vec4 local_rect = vec4(origin, size);
 
     vec2 texture_size = vec2(textureSize(sColor0, 0));
-    vec2 st0 = glyph.uv_rect.xy / texture_size;
-    vec2 st1 = glyph.uv_rect.zw / texture_size;
+    vec2 st0 = res.uv_rect.xy / texture_size;
+    vec2 st1 = res.uv_rect.zw / texture_size;
 
     vec2 pos = mix(local_rect.xy,
                    local_rect.xy + local_rect.zw,
