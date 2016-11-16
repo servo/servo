@@ -2,7 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "gecko")]
+#[macro_use]
+extern crate lazy_static;
+#[cfg(feature = "gecko")]
+extern crate libbindgen;
+#[cfg(feature = "gecko")]
+extern crate regex;
 extern crate walkdir;
+
+#[cfg(feature = "gecko")]
+mod build_gecko;
 
 use std::env;
 use std::path::Path;
@@ -36,8 +46,7 @@ fn find_python() -> String {
     }.to_owned()
 }
 
-fn main() {
-    println!("cargo:rerun-if-changed=build.rs");
+fn generate_properties() {
     for entry in WalkDir::new("properties") {
         let entry = entry.unwrap();
         match entry.path().extension().and_then(|e| e.to_str()) {
@@ -60,5 +69,13 @@ fn main() {
         .unwrap();
     if !status.success() {
         exit(1)
+    }
+}
+
+fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    generate_properties();
+    if cfg!(feature = "gecko") {
+        build_gecko::generate();
     }
 }
