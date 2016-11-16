@@ -1,0 +1,55 @@
+[package]
+
+name = "servo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[[bin]]
+name = "servo"
+path = "main.rs"
+test = false
+doc = false
+bench = false
+
+[dev-dependencies]
+compiletest_helper = {path = "../../tests/compiletest/helper"}
+gfx_tests = {path = "../../tests/unit/gfx"}
+layout_tests = {path = "../../tests/unit/layout"}
+net_tests = {path = "../../tests/unit/net"}
+net_traits_tests = {path = "../../tests/unit/net_traits"}
+plugin_compiletest = {path = "../../tests/compiletest/plugin"}
+profile_tests = {path = "../../tests/unit/profile"}
+script_tests = {path = "../../tests/unit/script"}
+style_tests = {path = "../../tests/unit/style"}
+util_tests = {path = "../../tests/unit/util"}
+
+[features]
+default = ["webdriver", "max_log_level"]
+max_log_level = ["log/release_max_level_info"]
+webdriver = ["libservo/webdriver_server"]
+energy-profiling = ["libservo/energy-profiling"]
+testing = ["libservo/testing"]
+clippy = ["libservo/clippy"]
+debugmozjs = ["libservo/debugmozjs"]
+
+[profile.release]
+opt-level = 3
+# Uncomment to profile on Linux:
+# debug = true
+# lto = false
+
+[dependencies]
+backtrace = "0.2"
+browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
+glutin_app = {path = "../../ports/glutin"}
+log = "0.3"
+libservo = {path = "../../components/servo"}
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+sig = "0.1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+libc = "0.2"
+android_glue = "0.2"

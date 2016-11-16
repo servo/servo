@@ -14,6 +14,9 @@ opt-level = 3
 # debug = true
 # lto = false
 
+[features]
+debugmozjs = ["libservo/debugmozjs"]
+
 [dependencies]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
@@ -27,7 +30,7 @@ msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 plugins = {path = "../../components/plugins"}
 script_traits = {path = "../../components/script_traits"}
-servo = {path = "../../components/servo"}
+libservo = {path = "../../components/servo"}
 style_traits = {path = "../../components/style_traits"}
 url = "1.2"
 util = {path = "../../components/util"}

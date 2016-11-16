@@ -501,13 +501,13 @@ class CommandBase(object):
         return env
 
     def servo_crate(self):
-        return path.join(self.context.topdir, "components", "servo")
+        return path.join(self.context.topdir, "ports", "servo")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""
         features = []
         if self.config["build"]["debug-mozjs"]:
-            features += ["script/debugmozjs"]
+            features += ["debugmozjs"]
         return features
 
     def android_support_dir(self):
