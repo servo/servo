@@ -5,6 +5,7 @@
 use cssparser::Parser as CssParser;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
+use dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -14,6 +15,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
+use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use script_layout_interface::message::Msg;
@@ -115,5 +117,12 @@ impl VirtualMethods for HTMLStyleElement {
         if tree_in_doc {
             self.parse_own_css();
         }
+    }
+}
+
+impl HTMLStyleElementMethods for HTMLStyleElement {
+    // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
+    fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
+        self.get_cssom_stylesheet().map(Root::upcast)
     }
 }

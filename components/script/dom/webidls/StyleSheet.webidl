@@ -15,3 +15,9 @@ interface StyleSheet {
   // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
   // attribute boolean disabled;
 };
+
+// https://drafts.csswg.org/cssom/#the-linkstyle-interface
+[NoInterfaceObject]
+interface LinkStyle {
+  readonly attribute StyleSheet? sheet;
+};
