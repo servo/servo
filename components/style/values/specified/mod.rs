@@ -388,6 +388,11 @@ impl BorderStyle {
 pub struct Time(pub CSSFloat);
 
 impl Time {
+    #[inline]
+    pub fn get_initial_value() -> Time {
+        Time(0.0)
+    }
+
     /// Returns the time in fractional seconds.
     pub fn seconds(self) -> f32 {
         let Time(seconds) = self;
