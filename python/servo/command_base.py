@@ -107,7 +107,10 @@ def host_triple():
     elif os_type == "android":
         os_type = "linux-androideabi"
     elif os_type == "windows":
-        os_type = "pc-windows-msvc"
+        if os.getenv("MSYSTEM") is None:
+            os_type = "pc-windows-msvc"
+        else:
+            os_type = "pc-windows-gnu"
     elif os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
         os_type = "pc-windows-gnu"
     elif os_type == "freebsd":

@@ -68,6 +68,6 @@ install:
 
 build_script:
   - if %BUILD_ENV%==msvc mach build -d -v && mach test-unit
-  - if %BUILD_ENV%==gnu  bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
+  - if %BUILD_ENV%==gnu  bash -lc "export PATH=/c/Python27:$PATH; cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
 
 test: off

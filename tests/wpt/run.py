@@ -49,7 +49,10 @@ def set_defaults(paths, kwargs):
 
     if kwargs["binary"] is None:
         bin_dir = "release" if kwargs["release"] else "debug"
-        bin_path = servo_path("target", bin_dir, "servo")
+        bin_name = "servo"
+        if sys.platform == "win32":
+            bin_name += ".exe"
+        bin_path = servo_path("target", bin_dir, bin_name)
 
         kwargs["binary"] = bin_path
 
