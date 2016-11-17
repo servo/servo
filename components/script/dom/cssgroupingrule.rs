@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::reflector::Reflectable;
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding;
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};

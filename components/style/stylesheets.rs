@@ -126,7 +126,7 @@ pub enum CssRule {
 }
 
 /// Error reporter which silently forgets errors
-struct MemoryHoleReporter;
+pub struct MemoryHoleReporter;
 
 impl ParseErrorReporter for MemoryHoleReporter {
     fn report_error(&self,
@@ -171,7 +171,7 @@ impl CssRule {
     // input state is None for a nested rule
     // Returns a parsed CSS rule and the final state of the parser
     pub fn parse(css: &str, origin: Origin,
-                    base_url: Url,
+                    base_url: ServoUrl,
                     extra_data: ParserContextExtraData,
                     state: Option<State>) -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = Box::new(MemoryHoleReporter);
