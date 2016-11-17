@@ -28,15 +28,15 @@ pub struct CSSRule {
 
 impl CSSRule {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent: &CSSStyleSheet) -> CSSRule {
+    pub fn new_inherited(parent: Option<&CSSStyleSheet>) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
-            parent: MutNullableHeap::new(Some(parent)),
+            parent: MutNullableHeap::new(parent),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet) -> Root<CSSRule> {
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>) -> Root<CSSRule> {
         reflect_dom_object(box CSSRule::new_inherited(parent),
                            window,
                            CSSRuleBinding::Wrap)
@@ -64,7 +64,7 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(window: &Window, parent: &CSSStyleSheet,
+    pub fn new_specific(window: &Window, parent: Option<&CSSStyleSheet>,
                         rule: StyleCssRule) -> Root<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
@@ -81,6 +81,7 @@ impl CSSRule {
     pub fn disown(&self) {
         self.parent.set(None);
         // should set parent rule to None when we add parent rule support
+        // Should we disown children as well? (https://github.com/w3c/csswg-drafts/issues/722)
     }
 }
 

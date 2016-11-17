@@ -15,14 +15,14 @@ pub struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub fn new_inherited(parent: &CSSStyleSheet) -> CSSGroupingRule {
+    pub fn new_inherited(parent: Option<&CSSStyleSheet>) -> CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet) -> Root<CSSGroupingRule> {
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>) -> Root<CSSGroupingRule> {
         reflect_dom_object(box CSSGroupingRule::new_inherited(parent),
                            window,
                            CSSGroupingRuleBinding::Wrap)

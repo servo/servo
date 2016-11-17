@@ -44,7 +44,7 @@ impl CSSStyleSheet {
 
     fn rulelist(&self) -> Root<CSSRuleList> {
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  self,
+                                                  Some(self),
                                                   RulesSource::Rules(self.style_stylesheet
                                                                          .rules.clone())))
     }
