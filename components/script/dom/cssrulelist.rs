@@ -9,8 +9,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::cssrule::CSSRule;
 use dom::csskeyframerule::CSSKeyframeRule;
+use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use parking_lot::RwLock;
@@ -166,9 +166,16 @@ impl CSSRuleList {
 
         let mut dom_rules = self.dom_rules.borrow_mut();
         css_rules.0.write().remove(index);
-        dom_rules[index].get().map(|r| r.disown());
+        dom_rules[index].get().map(|r| r.detach());
         dom_rules.remove(index);
         Ok(())
+    }
+
+    // Remove parent stylesheets from all children
+    pub fn deparent_all(&self) {
+        for rule in self.dom_rules.borrow().iter() {
+            rule.get().map(|r| Root::upcast(r).deparent());
+        }
     }
 }
 

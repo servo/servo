@@ -55,7 +55,8 @@ impl CSSKeyframesRule {
 }
 
 impl CSSKeyframesRuleMethods for CSSKeyframesRule {
-   fn CssRules(&self) -> Root<CSSRuleList> {
+    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-cssrules
+    fn CssRules(&self) -> Root<CSSRuleList> {
         self.rulelist()
     }
 }
@@ -68,5 +69,9 @@ impl SpecificCSSRule for CSSKeyframesRule {
 
     fn get_css(&self) -> DOMString {
         self.keyframesrule.read().to_css_string().into()
+    }
+
+    fn deparent_children(&self) {
+        self.rulelist.get().map(|list| list.deparent_all());
     }
 }
