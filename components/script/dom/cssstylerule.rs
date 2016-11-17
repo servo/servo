@@ -22,7 +22,7 @@ pub struct CSSStyleRule {
 }
 
 impl CSSStyleRule {
-    fn new_inherited(parent: &CSSStyleSheet, stylerule: Arc<RwLock<StyleRule>>) -> CSSStyleRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, stylerule: Arc<RwLock<StyleRule>>) -> CSSStyleRule {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent),
             stylerule: stylerule,
@@ -30,7 +30,7 @@ impl CSSStyleRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                stylerule: Arc<RwLock<StyleRule>>) -> Root<CSSStyleRule> {
         reflect_dom_object(box CSSStyleRule::new_inherited(parent, stylerule),
                            window,

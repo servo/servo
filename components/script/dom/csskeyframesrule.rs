@@ -27,7 +27,7 @@ pub struct CSSKeyframesRule {
 }
 
 impl CSSKeyframesRule {
-    fn new_inherited(parent: &CSSStyleSheet, keyframesrule: Arc<RwLock<KeyframesRule>>) -> CSSKeyframesRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, keyframesrule: Arc<RwLock<KeyframesRule>>) -> CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent),
             keyframesrule: keyframesrule,
@@ -36,7 +36,7 @@ impl CSSKeyframesRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                keyframesrule: Arc<RwLock<KeyframesRule>>) -> Root<CSSKeyframesRule> {
         reflect_dom_object(box CSSKeyframesRule::new_inherited(parent, keyframesrule),
                            window,
@@ -44,10 +44,13 @@ impl CSSKeyframesRule {
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
-        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  // temporary unwrap
-                                                  &self.upcast::<CSSRule>().GetParentStyleSheet().unwrap(),
-                                                  RulesSource::Keyframes(self.keyframesrule.clone())))
+        self.rulelist.or_init(|| {
+            let sheet = self.upcast::<CSSRule>().GetParentStyleSheet();
+            let sheet = sheet.as_ref().map(|s| &**s);
+            CSSRuleList::new(self.global().as_window(),
+                             sheet,
+                             RulesSource::Keyframes(self.keyframesrule.clone()))
+        })
     }
 }
 

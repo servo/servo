@@ -22,7 +22,7 @@ pub struct CSSNamespaceRule {
 }
 
 impl CSSNamespaceRule {
-    fn new_inherited(parent: &CSSStyleSheet, namespacerule: Arc<RwLock<NamespaceRule>>) -> CSSNamespaceRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, namespacerule: Arc<RwLock<NamespaceRule>>) -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent),
             namespacerule: namespacerule,
@@ -30,7 +30,7 @@ impl CSSNamespaceRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                namespacerule: Arc<RwLock<NamespaceRule>>) -> Root<CSSNamespaceRule> {
         reflect_dom_object(box CSSNamespaceRule::new_inherited(parent, namespacerule),
                            window,

@@ -23,7 +23,7 @@ pub struct CSSMediaRule {
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent: &CSSStyleSheet, mediarule: Arc<RwLock<MediaRule>>) -> CSSMediaRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, mediarule: Arc<RwLock<MediaRule>>) -> CSSMediaRule {
         CSSMediaRule {
             cssrule: CSSGroupingRule::new_inherited(parent),
             mediarule: mediarule,
@@ -31,7 +31,7 @@ impl CSSMediaRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                mediarule: Arc<RwLock<MediaRule>>) -> Root<CSSMediaRule> {
         reflect_dom_object(box CSSMediaRule::new_inherited(parent, mediarule),
                            window,

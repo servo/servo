@@ -22,7 +22,7 @@ pub struct CSSViewportRule {
 }
 
 impl CSSViewportRule {
-    fn new_inherited(parent: &CSSStyleSheet, viewportrule: Arc<RwLock<ViewportRule>>) -> CSSViewportRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, viewportrule: Arc<RwLock<ViewportRule>>) -> CSSViewportRule {
         CSSViewportRule {
             cssrule: CSSRule::new_inherited(parent),
             viewportrule: viewportrule,
@@ -30,7 +30,7 @@ impl CSSViewportRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                viewportrule: Arc<RwLock<ViewportRule>>) -> Root<CSSViewportRule> {
         reflect_dom_object(box CSSViewportRule::new_inherited(parent, viewportrule),
                            window,
