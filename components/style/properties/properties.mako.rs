@@ -150,6 +150,7 @@ pub mod animated_properties {
 // TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
 // Maybe submit for inclusion in libstd?
 mod property_bit_field {
+    use logical_geometry::WritingMode;
 
     pub struct PropertyBitField {
         storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
@@ -180,6 +181,24 @@ mod property_bit_field {
                 #[inline]
                 pub fn set_${property.ident}(&mut self) {
                     self.set(${i})
+                }
+            % endif
+            % if property.logical:
+                #[allow(non_snake_case)]
+                pub fn get_physical_${property.ident}(&self, wm: WritingMode) -> bool {
+                    <%helpers:logical_setter_helper name="${property.name}">
+                        <%def name="inner(physical_ident)">
+                            self.get_${physical_ident}()
+                        </%def>
+                    </%helpers:logical_setter_helper>
+                }
+                #[allow(non_snake_case)]
+                pub fn set_physical_${property.ident}(&mut self, wm: WritingMode) {
+                    <%helpers:logical_setter_helper name="${property.name}">
+                        <%def name="inner(physical_ident)">
+                            self.set_${physical_ident}()
+                        </%def>
+                    </%helpers:logical_setter_helper>
                 }
             % endif
         % endfor

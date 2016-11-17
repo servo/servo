@@ -206,11 +206,17 @@
                 }
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
+
+            % if property.logical:
+                let wm = context.style.writing_mode;
+            % endif
+            <% maybe_wm = "wm" if property.logical else "" %>
+            <% maybe_physical = "_physical" if property.logical else "" %>
             % if not property.derived_from:
-                if seen.get_${property.ident}() {
+                if seen.get${maybe_physical}_${property.ident}(${maybe_wm}) {
                     return
                 }
-                seen.set_${property.ident}();
+                seen.set${maybe_physical}_${property.ident}(${maybe_wm});
                 {
                     let custom_props = context.style().custom_properties();
                     ::properties::substitute_variables_${property.ident}(
@@ -220,9 +226,6 @@
                             cascade_info.on_cascade_property(&declaration,
                                                              &value);
                         }
-                        % if property.logical:
-                            let wm = context.style.writing_mode;
-                        % endif
                         <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
