@@ -1394,7 +1394,7 @@ impl Node {
     pub fn reflect_node<N>(
             node: Box<N>,
             document: &Document,
-            wrap_fn: extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
+            wrap_fn: unsafe extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
             -> Root<N>
         where N: DerivedFrom<Node> + Reflectable
     {

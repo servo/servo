@@ -760,47 +760,45 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    fn Response(&self, cx: *mut JSContext) -> JSVal {
-        unsafe {
-            rooted!(in(cx) let mut rval = UndefinedValue());
-            match self.response_type.get() {
-                XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
-                    let ready_state = self.ready_state.get();
-                    // Step 2
-                    if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
-                        self.text_response().to_jsval(cx, rval.handle_mut());
-                    } else {
-                    // Step 1
-                        "".to_jsval(cx, rval.handle_mut());
-                    }
-                },
-                // Step 1
-                _ if self.ready_state.get() != XMLHttpRequestState::Done => {
-                    return NullValue();
-                },
+    unsafe fn Response(&self, cx: *mut JSContext) -> JSVal {
+        rooted!(in(cx) let mut rval = UndefinedValue());
+        match self.response_type.get() {
+            XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
+                let ready_state = self.ready_state.get();
                 // Step 2
-                XMLHttpRequestResponseType::Document => {
-                    let op_doc = self.document_response();
-                    if let Some(doc) = op_doc {
-                        doc.to_jsval(cx, rval.handle_mut());
-                    } else {
-                    // Substep 1
-                        return NullValue();
-                    }
-                },
-                XMLHttpRequestResponseType::Json => {
-                    self.json_response(cx).to_jsval(cx, rval.handle_mut());
-                },
-                XMLHttpRequestResponseType::Blob => {
-                    self.blob_response().to_jsval(cx, rval.handle_mut());
-                },
-                _ => {
-                    // XXXManishearth handle other response types
-                    self.response.borrow().to_jsval(cx, rval.handle_mut());
+                if ready_state == XMLHttpRequestState::Done || ready_state == XMLHttpRequestState::Loading {
+                    self.text_response().to_jsval(cx, rval.handle_mut());
+                } else {
+                // Step 1
+                    "".to_jsval(cx, rval.handle_mut());
                 }
+            },
+            // Step 1
+            _ if self.ready_state.get() != XMLHttpRequestState::Done => {
+                return NullValue();
+            },
+            // Step 2
+            XMLHttpRequestResponseType::Document => {
+                let op_doc = self.document_response();
+                if let Some(doc) = op_doc {
+                    doc.to_jsval(cx, rval.handle_mut());
+                } else {
+                // Substep 1
+                    return NullValue();
+                }
+            },
+            XMLHttpRequestResponseType::Json => {
+                self.json_response(cx).to_jsval(cx, rval.handle_mut());
+            },
+            XMLHttpRequestResponseType::Blob => {
+                self.blob_response().to_jsval(cx, rval.handle_mut());
+            },
+            _ => {
+                // XXXManishearth handle other response types
+                self.response.borrow().to_jsval(cx, rval.handle_mut());
             }
-            rval.get()
         }
+        rval.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute

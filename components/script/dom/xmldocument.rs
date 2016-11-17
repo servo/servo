@@ -86,8 +86,9 @@ impl XMLDocumentMethods for XMLDocument {
         self.upcast::<Document>().SupportedPropertyNames()
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
         self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

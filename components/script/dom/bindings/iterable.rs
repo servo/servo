@@ -85,7 +85,7 @@ impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,
-               wrap: fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
+               wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
                      -> Root<Self>) -> Root<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),

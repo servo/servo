@@ -110,6 +110,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
                worker_url: Url,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
@@ -132,7 +133,9 @@ impl ServiceWorkerGlobalScope {
                                                                   timer_event_port,
                                                                   swmanager_sender,
                                                                   scope_url);
-        ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
+        unsafe {
+            ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
+        }
     }
 
     #[allow(unsafe_code)]

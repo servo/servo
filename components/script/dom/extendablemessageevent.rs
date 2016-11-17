@@ -74,8 +74,9 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+    #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
-    fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
         self.data.get()
     }
 

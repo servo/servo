@@ -235,8 +235,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    fn GetContext(&self,
+    unsafe fn GetContext(&self,
                   cx: *mut JSContext,
                   id: DOMString,
                   attributes: Vec<HandleValue>)
@@ -254,8 +255,9 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    fn ToDataURL(&self,
+    unsafe fn ToDataURL(&self,
                  _context: *mut JSContext,
                  _mime_type: Option<DOMString>,
                  _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
