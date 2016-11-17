@@ -64,7 +64,10 @@ impl CSSRuleList {
                            CSSRuleListBinding::Wrap)
     }
 
-    // https://drafts.csswg.org/cssom/#insert-a-css-rule
+    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
+    ///
+    /// Should only be called for CssRules-backed rules. Use append_lazy_rule
+    /// for keyframes-backed rules.
     pub fn insert_rule(&self, rule: &str, idx: u32, nested: bool) -> Fallible<u32> {
         use style::stylesheets::SingleRuleParseError;
         /// Insert an item into a vector, appending if it is out of bounds
@@ -143,33 +146,49 @@ impl CSSRuleList {
     }
 
     // https://drafts.csswg.org/cssom/#remove-a-css-rule
+    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
+    // In case of a keyframe rule, index must be valid.
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
 
-        let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
-            rules
-        } else {
-            panic!("Called remove_rule on non-CssRule-backed CSSRuleList");
-        };
+        match self.rules {
+            RulesSource::Rules(ref css_rules) => {
+                // https://drafts.csswg.org/cssom/#remove-a-css-rule
+                {
+                    let rules = css_rules.0.read();
 
-        {
-            let rules = css_rules.0.read();
-            if index >= rules.len() {
-                return Err(Error::IndexSize);
-            }
-            let ref rule = rules[index];
-            if let StyleCssRule::Namespace(..) = *rule {
-                if !CssRules::only_ns_or_import(&rules) {
-                    return Err(Error::InvalidState);
+                    // Step 1, 2
+                    if index >= rules.len() {
+                        return Err(Error::IndexSize);
+                    }
+
+                    // Step 3
+                    let ref rule = rules[index];
+
+                    // Step 4
+                    if let StyleCssRule::Namespace(..) = *rule {
+                        if !CssRules::only_ns_or_import(&rules) {
+                            return Err(Error::InvalidState);
+                        }
+                    }
                 }
+
+                // Step 5, 6
+                let mut dom_rules = self.dom_rules.borrow_mut();
+                css_rules.0.write().remove(index);
+                dom_rules[index].get().map(|r| r.detach());
+                dom_rules.remove(index);
+                Ok(())
+            }
+            RulesSource::Keyframes(ref kf) => {
+                // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
+                let mut dom_rules = self.dom_rules.borrow_mut();
+                dom_rules[index].get().map(|r| r.detach());
+                dom_rules.remove(index);
+                kf.write().keyframes.remove(index);
+                Ok(())
             }
         }
-
-        let mut dom_rules = self.dom_rules.borrow_mut();
-        css_rules.0.write().remove(index);
-        dom_rules[index].get().map(|r| r.detach());
-        dom_rules.remove(index);
-        Ok(())
     }
 
     // Remove parent stylesheets from all children
@@ -178,11 +197,8 @@ impl CSSRuleList {
             rule.get().map(|r| Root::upcast(r).deparent());
         }
     }
-}
 
-impl CSSRuleListMethods for CSSRuleList {
-    // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
-    fn Item(&self, idx: u32) -> Option<Root<CSSRule>> {
+    pub fn item(&self, idx: u32) -> Option<Root<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let sheet = self.sheet.get();
@@ -204,6 +220,25 @@ impl CSSRuleListMethods for CSSRuleList {
 
             })
         })
+    }
+
+    /// Add a rule to the list of DOM rules. This list is lazy,
+    /// so we just append a placeholder.
+    ///
+    /// Should only be called for keyframes-backed rules, use insert_rule
+    /// for CssRules-backed rules
+    pub fn append_lazy_dom_rule(&self) {
+        if let RulesSource::Rules(..) = self.rules {
+            panic!("Can only call append_lazy_rule with keyframes-backed CSSRules");
+        }
+        self.dom_rules.borrow_mut().push(MutNullableHeap::new(None));
+    }
+}
+
+impl CSSRuleListMethods for CSSRuleList {
+    // https://drafts.csswg.org/cssom/#ref-for-dom-cssrulelist-item-1
+    fn Item(&self, idx: u32) -> Option<Root<CSSRule>> {
+        self.item(idx)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrulelist-length

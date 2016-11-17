@@ -12,6 +12,7 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::Keyframe;
+use style_traits::ToCss;
 
 #[dom_struct]
 pub struct CSSKeyframeRule {
@@ -44,7 +45,6 @@ impl SpecificCSSRule for CSSKeyframeRule {
     }
 
     fn get_css(&self) -> DOMString {
-        // self.keyframerule.read().to_css_string().into()
-        "".into()
+        self.keyframerule.read().to_css_string().into()
     }
 }
