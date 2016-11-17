@@ -9,8 +9,8 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
-use dom::csskeyframesrule::CSSKeyframesRule;
 use dom::csskeyframerule::CSSKeyframeRule;
+use dom::csskeyframesrule::CSSKeyframesRule;
 use dom::cssmediarule::CSSMediaRule;
 use dom::cssnamespacerule::CSSNamespaceRule;
 use dom::cssstylerule::CSSStyleRule;
@@ -78,10 +78,18 @@ impl CSSRule {
     }
 
     /// Sets owner sheet/rule to null
-    pub fn disown(&self) {
-        self.parent.set(None);
+    pub fn detach(&self) {
+        self.deparent();
         // should set parent rule to None when we add parent rule support
-        // Should we disown children as well? (https://github.com/w3c/csswg-drafts/issues/722)
+    }
+
+    /// Sets owner sheet to null (and does the same for all children)
+    pub fn deparent(&self) {
+        self.parent.set(None);
+        // https://github.com/w3c/csswg-drafts/issues/722
+        // Spec doesn't ask us to do this, but it makes sense
+        // and browsers implement this behavior
+        self.as_specific().deparent_children();
     }
 }
 
@@ -110,4 +118,8 @@ impl CSSRuleMethods for CSSRule {
 pub trait SpecificCSSRule {
     fn ty(&self) -> u16;
     fn get_css(&self) -> DOMString;
+    /// Remove CSSStyleSheet parent from all transitive children
+    fn deparent_children(&self) {
+        // most CSSRules do nothing here
+    }
 }
