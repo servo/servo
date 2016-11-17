@@ -10,27 +10,43 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::cssrule::CSSRule;
+use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use parking_lot::RwLock;
+use std::sync::Arc;
 use style::parser::ParserContextExtraData;
-use style::stylesheets::{CssRules, Origin};
+use style::stylesheets::{CssRules, KeyframesRule, Origin};
 use style::stylesheets::CssRule as StyleCssRule;
 
-no_jsmanaged_fields!(CssRules);
+no_jsmanaged_fields!(RulesSource);
 
 #[dom_struct]
 pub struct CSSRuleList {
     reflector_: Reflector,
     sheet: JS<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
-    rules: CssRules,
+    rules: RulesSource,
     dom_rules: DOMRefCell<Vec<MutNullableHeap<JS<CSSRule>>>>
+}
+
+pub enum RulesSource {
+    Rules(CssRules),
+    Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(sheet: &CSSStyleSheet, rules: CssRules) -> CSSRuleList {
-        let dom_rules = rules.0.read().iter().map(|_| MutNullableHeap::new(None)).collect();
+    pub fn new_inherited(sheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
+        let dom_rules = match rules {
+            RulesSource::Rules(ref rules) => {
+                rules.0.read().iter().map(|_| MutNullableHeap::new(None)).collect()
+            }
+            RulesSource::Keyframes(ref rules) => {
+                rules.read().keyframes.iter().map(|_| MutNullableHeap::new(None)).collect()
+            }
+        };
+
         CSSRuleList {
             reflector_: Reflector::new(),
             sheet: JS::from_ref(sheet),
@@ -40,7 +56,7 @@ impl CSSRuleList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, sheet: &CSSStyleSheet, rules: CssRules) -> Root<CSSRuleList> {
+    pub fn new(window: &Window, sheet: &CSSStyleSheet, rules: RulesSource) -> Root<CSSRuleList> {
         reflect_dom_object(box CSSRuleList::new_inherited(sheet, rules),
                            window,
                            CSSRuleListBinding::Wrap)
@@ -57,6 +73,13 @@ impl CSSRuleList {
                 vec.insert(index, item);
             }
         }
+
+        let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
+            rules
+        } else {
+            panic!("Called insert_rule on non-CssRule-backed CSSRuleList");
+        };
+
         let global = self.global();
         let window = global.as_window();
         let doc = window.Document();
@@ -64,7 +87,7 @@ impl CSSRuleList {
 
 
         let new_rule = {
-            let rules = self.rules.0.read();
+            let rules = css_rules.0.read();
             let state = if nested {
                 None
             } else {
@@ -108,7 +131,7 @@ impl CSSRuleList {
             new_rule
         };
 
-        insert(&mut self.rules.0.write(), index, new_rule.clone());
+        insert(&mut css_rules.0.write(), index, new_rule.clone());
         let dom_rule = CSSRule::new_specific(&window, &self.sheet, new_rule);
         insert(&mut self.dom_rules.borrow_mut(),
                index, MutNullableHeap::new(Some(&*dom_rule)));
@@ -119,8 +142,14 @@ impl CSSRuleList {
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
 
+        let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
+            rules
+        } else {
+            panic!("Called remove_rule on non-CssRule-backed CSSRuleList");
+        };
+
         {
-            let rules = self.rules.0.read();
+            let rules = css_rules.0.read();
             if index >= rules.len() {
                 return Err(Error::IndexSize);
             }
@@ -133,7 +162,7 @@ impl CSSRuleList {
         }
 
         let mut dom_rules = self.dom_rules.borrow_mut();
-        self.rules.0.write().remove(index);
+        css_rules.0.write().remove(index);
         dom_rules[index].get().map(|r| r.disown());
         dom_rules.remove(index);
         Ok(())
@@ -145,9 +174,21 @@ impl CSSRuleListMethods for CSSRuleList {
     fn Item(&self, idx: u32) -> Option<Root<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
-                CSSRule::new_specific(self.global().as_window(),
-                                     &self.sheet,
-                                     self.rules.0.read()[idx as usize].clone())
+                match self.rules {
+                    RulesSource::Rules(ref rules) => {
+                        CSSRule::new_specific(self.global().as_window(),
+                                             &self.sheet,
+                                             rules.0.read()[idx as usize].clone())
+                    }
+                    RulesSource::Keyframes(ref rules) => {
+                        Root::upcast(CSSKeyframeRule::new(self.global().as_window(),
+                                                          &self.sheet,
+                                                          rules.read()
+                                                                .keyframes[idx as usize]
+                                                                .clone()))
+                    }
+                }
+
             })
         })
     }

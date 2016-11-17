@@ -245,6 +245,7 @@ pub mod css;
 pub mod cssfontfacerule;
 pub mod cssgroupingrule;
 pub mod csskeyframesrule;
+pub mod csskeyframerule;
 pub mod cssmediarule;
 pub mod cssnamespacerule;
 pub mod cssrule;

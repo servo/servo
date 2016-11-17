@@ -3,10 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
+use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use parking_lot::RwLock;
@@ -19,6 +23,7 @@ pub struct CSSKeyframesRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     keyframesrule: Arc<RwLock<KeyframesRule>>,
+    rulelist: MutNullableHeap<JS<CSSRuleList>>,
 }
 
 impl CSSKeyframesRule {
@@ -26,6 +31,7 @@ impl CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent),
             keyframesrule: keyframesrule,
+            rulelist: MutNullableHeap::new(None),
         }
     }
 
@@ -35,6 +41,19 @@ impl CSSKeyframesRule {
         reflect_dom_object(box CSSKeyframesRule::new_inherited(parent, keyframesrule),
                            window,
                            CSSKeyframesRuleBinding::Wrap)
+    }
+
+    fn rulelist(&self) -> Root<CSSRuleList> {
+        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
+                                                  // temporary unwrap
+                                                  &self.upcast::<CSSRule>().GetParentStyleSheet().unwrap(),
+                                                  RulesSource::Keyframes(self.keyframesrule.clone())))
+    }
+}
+
+impl CSSKeyframesRuleMethods for CSSKeyframesRule {
+   fn CssRules(&self) -> Root<CSSRuleList> {
+        self.rulelist()
     }
 }
 
