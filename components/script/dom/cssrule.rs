@@ -10,6 +10,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::csskeyframesrule::CSSKeyframesRule;
+use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssmediarule::CSSMediaRule;
 use dom::cssnamespacerule::CSSNamespaceRule;
 use dom::cssstylerule::CSSStyleRule;
@@ -53,6 +54,8 @@ impl CSSRule {
         } else if let Some(rule) = self.downcast::<CSSNamespaceRule>() {
             rule as &SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSViewportRule>() {
+            rule as &SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSKeyframeRule>() {
             rule as &SpecificCSSRule
         } else {
             unreachable!()
