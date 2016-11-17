@@ -22,9 +22,9 @@ from mach.decorators import (
 from servo.command_base import CommandBase, cd, call
 
 CARGO_PATHS = [
-    path.join('components', 'servo'),
     path.join('ports', 'cef'),
     path.join('ports', 'geckolib'),
+    path.join('ports', 'servo'),
 ]
 
 
