@@ -1008,40 +1008,4 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum LengthOrNumber {
-    Length(Length),
-    Number(Number),
-}
-
-impl HasViewportPercentage for LengthOrNumber {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            LengthOrNumber::Length(length) => length.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
-
-impl ToCss for LengthOrNumber {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrNumber::Length(len) => len.to_css(dest),
-            LengthOrNumber::Number(number) => number.to_css(dest),
-        }
-    }
-}
-
-impl Parse for LengthOrNumber {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        let length = input.try(Length::parse);
-        if let Ok(len) = length {
-            return Ok(LengthOrNumber::Length(len));
-        }
-
-        let num = try!(Number::parse_non_negative(input));
-        Ok(LengthOrNumber::Number(num))
-    }
-}
-
+pub type LengthOrNumber = Either<Length, Number>;

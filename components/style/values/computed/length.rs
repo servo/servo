@@ -471,52 +471,6 @@ impl ToCss for LengthOrPercentageOrNone {
 
 pub type LengthOrNone = Either<Length, None_>;
 
-#[derive(Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum LengthOrNumber {
-    Length(Length),
-    Number(Number),
-}
-
-impl fmt::Debug for LengthOrNumber {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            LengthOrNumber::Length(length) => write!(f, "{:?}", length),
-            LengthOrNumber::Number(number) => write!(f, "{:?}", number),
-        }
-    }
-}
-
-impl ToComputedValue for specified::LengthOrNumber {
-    type ComputedValue = LengthOrNumber;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> LengthOrNumber {
-        match *self {
-            specified::LengthOrNumber::Length(len) =>
-                LengthOrNumber::Length(len.to_computed_value(context)),
-            specified::LengthOrNumber::Number(number) =>
-                LengthOrNumber::Number(number.to_computed_value(context)),
-        }
-    }
-    #[inline]
-    fn from_computed_value(computed: &LengthOrNumber) -> Self {
-        match *computed {
-            LengthOrNumber::Length(len) =>
-                specified::LengthOrNumber::Length(ToComputedValue::from_computed_value(&len)),
-            LengthOrNumber::Number(number) =>
-                specified::LengthOrNumber::Number(ToComputedValue::from_computed_value(&number)),
-        }
-    }
-}
-
-impl ToCss for LengthOrNumber {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            LengthOrNumber::Length(len) => len.to_css(dest),
-            LengthOrNumber::Number(number) => number.to_css(dest),
-        }
-    }
-}
+pub type LengthOrNumber = Either<Length, Number>;
 
 pub type Length = Au;
