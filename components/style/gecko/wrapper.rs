@@ -7,22 +7,20 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, UnsafeNode};
+use dom::{LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use gecko::restyle_damage::GeckoRestyleDamage;
 use gecko::selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
-use gecko::snapshot::GeckoElementSnapshot;
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
-use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
-use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetLastChild, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
-use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::Gecko_SetNodeFlags;
@@ -78,7 +76,6 @@ impl<'ln> NodeInfo for GeckoNode<'ln> {
 }
 
 impl<'ln> TNode for GeckoNode<'ln> {
-    type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
@@ -135,10 +132,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         } else {
             None
         }
-    }
-
-    fn as_document(&self) -> Option<GeckoDocument<'ln>> {
-        unimplemented!()
     }
 
     fn can_be_fragmented(&self) -> bool {
@@ -219,33 +212,6 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct GeckoDocument<'ld>(pub &'ld RawGeckoDocument);
-
-impl<'ld> TDocument for GeckoDocument<'ld> {
-    type ConcreteNode = GeckoNode<'ld>;
-    type ConcreteElement = GeckoElement<'ld>;
-
-    fn as_node(&self) -> GeckoNode<'ld> {
-        unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
-    }
-
-    fn root_node(&self) -> Option<GeckoNode<'ld>> {
-        unsafe {
-            Gecko_GetDocumentElement(self.0).map(|el| GeckoElement(el).as_node())
-        }
-    }
-
-    fn drain_modified_elements(&self) -> Vec<(GeckoElement<'ld>, GeckoElementSnapshot)> {
-        unimplemented!()
-        /*
-        let elements =  unsafe { self.0.drain_modified_elements() };
-        elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()*/
-    }
-    fn will_paint(&self) { unimplemented!() }
-    fn needs_paint_from_layout(&self) { unimplemented!() }
-}
-
-#[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
 impl<'le> fmt::Debug for GeckoElement<'le> {
@@ -322,7 +288,6 @@ lazy_static! {
 
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
-    type ConcreteDocument = GeckoDocument<'le>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }

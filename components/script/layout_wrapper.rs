@@ -34,9 +34,9 @@ use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
 use dom::characterdata::LayoutCharacterDataHelpers;
-use dom::document::{Document, LayoutDocumentHelpers};
+use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
@@ -46,7 +46,7 @@ use parking_lot::RwLock;
 use range::Range;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
-use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutElement, LayoutNode};
+use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -61,11 +61,11 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
-use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
-use style::dom::{TRestyleDamage, UnsafeNode};
+use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
+use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl, Snapshot};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
@@ -112,6 +112,10 @@ impl<'ln> ServoLayoutNode<'ln> {
             self.node.type_id_for_layout()
         }
     }
+
+    pub fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
+        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
+    }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
@@ -128,7 +132,6 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
-    type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
@@ -175,10 +178,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
-    }
-
-    fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -260,12 +259,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         self.get_jsmanaged().take_style_and_layout_data()
     }
 
-    fn has_changed(&self) -> bool {
-        unsafe { self.node.get_flag(HAS_CHANGED) }
-    }
-
     unsafe fn clear_dirty_bits(&self) {
-        self.node.set_flag(HAS_CHANGED, false);
         self.node.set_flag(IS_DIRTY, false);
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, false);
     }
@@ -336,8 +330,8 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{:?}: changed={} dirty={} dirty_descendants={}",
-                self.script_type_id(), self.has_changed(),
+        format!("{:?}: dirty={} dirty_descendants={}",
+                self.script_type_id(),
                 self.as_element().map_or(false, |el| el.deprecated_dirty_bit_is_set()),
                 self.as_element().map_or(false, |el| el.has_dirty_descendants()))
     }
@@ -369,34 +363,29 @@ pub struct ServoLayoutDocument<'ld> {
     chain: PhantomData<&'ld ()>,
 }
 
-impl<'ld> TDocument for ServoLayoutDocument<'ld> {
-    type ConcreteNode = ServoLayoutNode<'ld>;
-    type ConcreteElement = ServoLayoutElement<'ld>;
-
+impl<'ld> ServoLayoutDocument<'ld> {
     fn as_node(&self) -> ServoLayoutNode<'ld> {
         ServoLayoutNode::from_layout_js(self.document.upcast())
     }
 
-    fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
+    pub fn root_node(&self) -> Option<ServoLayoutNode<'ld>> {
         self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, Snapshot)> {
-        let elements =  unsafe { self.document.drain_modified_elements() };
+    pub fn drain_pending_restyles(&self) -> Vec<(ServoLayoutElement<'ld>, PendingRestyle)> {
+        let elements =  unsafe { self.document.drain_pending_restyles() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
 
-    fn needs_paint_from_layout(&self) {
+    pub fn needs_paint_from_layout(&self) {
         unsafe { self.document.needs_paint_from_layout(); }
     }
 
-    fn will_paint(&self) {
+    pub fn will_paint(&self) {
         unsafe { self.document.will_paint(); }
     }
-}
 
-impl<'ld> ServoLayoutDocument<'ld> {
-    fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
+    pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
             chain: PhantomData,
@@ -433,7 +422,6 @@ impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
 
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
-    type ConcreteDocument = ServoLayoutDocument<'le>;
 
     fn as_node(&self) -> ServoLayoutNode<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
@@ -460,7 +448,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage = damage;
+        self.get_partial_layout_data().unwrap().borrow_mut().restyle_damage |= damage;
     }
 
     #[inline]
@@ -535,6 +523,35 @@ impl<'le> ServoLayoutElement<'le> {
         unsafe {
             self.get_style_and_layout_data().map(|d| &**d.ptr)
         }
+    }
+
+    pub unsafe fn note_dirty_descendant(&self) {
+        use ::selectors::Element;
+
+        let mut current = Some(*self);
+        while let Some(el) = current {
+            // FIXME(bholley): Ideally we'd have the invariant that any element
+            // with has_dirty_descendants also has the bit set on all its ancestors.
+            // However, there are currently some corner-cases where we get that wrong.
+            // I have in-flight patches to fix all this stuff up, so we just always
+            // propagate this bit for now.
+            el.set_dirty_descendants();
+            current = el.parent_element();
+        }
+
+        debug_assert!(self.dirty_descendants_bit_is_propagated());
+    }
+
+    fn dirty_descendants_bit_is_propagated(&self) -> bool {
+        use ::selectors::Element;
+
+        let mut current = Some(*self);
+        while let Some(el) = current {
+            if !el.has_dirty_descendants() { return false; }
+            current = el.parent_element();
+        }
+
+        true
     }
 }
 
@@ -857,9 +874,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        if self.node.has_changed() {
-            RestyleDamage::rebuild_and_reflow()
-        } else if self.is_text_node() {
+        if self.is_text_node() {
             let parent = self.node.parent_node().unwrap().as_element().unwrap();
             let parent_data = parent.get_partial_layout_data().unwrap().borrow();
             parent_data.restyle_damage
@@ -1068,8 +1083,6 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
         self.element.get_data()
     }
 }
-
-impl<'le> LayoutElement for ServoLayoutElement<'le> {}
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
 /// pseudo-elements.

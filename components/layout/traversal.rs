@@ -10,7 +10,7 @@ use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use gfx::display_list::OpaqueNode;
-use script_layout_interface::wrapper_traits::{LayoutElement, LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
@@ -32,7 +32,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
 #[allow(unsafe_code)]
 impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     where N: LayoutNode + TNode,
-          N::ConcreteElement: LayoutElement
+          N::ConcreteElement: TElement
 
 {
     type SharedContext = SharedLayoutContext;
@@ -118,16 +118,13 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
             return false;
         }
 
-        // If this node has been marked as damaged in some way, we need to
-        // traverse it for layout.
-        if child.has_changed() {
-            return true;
-        }
-
         match child.as_element() {
-            Some(el) => el.styling_mode() != StylingMode::Stop,
-            // Aside from the has_changed case above, we want to traverse non-element children
-            // in two additional cases:
+            // Elements should be traversed if they need styling or flow construction.
+            Some(el) => el.styling_mode() != StylingMode::Stop ||
+                        el.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
+
+            // Text nodes never need styling. However, there are two cases they may need
+            // flow construction:
             // (1) They child doesn't yet have layout data (preorder traversal initializes it).
             // (2) The parent element has restyle damage (so the text flow also needs fixup).
             None => child.get_raw_data().is_none() ||

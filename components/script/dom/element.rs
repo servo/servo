@@ -84,13 +84,15 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::dom::TRestyleDamage;
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::parser::ParserContextExtraData;
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
-use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::restyle_hints::RESTYLE_SELF;
+use style::selector_impl::{NonTSPseudoClass, RestyleDamage, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::values::CSSFloat;
@@ -199,6 +201,19 @@ impl Element {
             box Element::new_inherited(local_name, namespace, prefix, document),
             document,
             ElementBinding::Wrap)
+    }
+
+    pub fn restyle(&self, damage: NodeDamage) {
+        let doc = self.node.owner_doc();
+        let mut restyle = doc.ensure_pending_restyle(self);
+
+        // FIXME(bholley): I think we should probably only do this for
+        // NodeStyleDamaged, but I'm preserving existing behavior.
+        restyle.hint |= RESTYLE_SELF;
+
+        if damage == NodeDamage::OtherNodeDamage {
+            restyle.damage = RestyleDamage::rebuild_and_reflow();
+        }
     }
 
     // https://drafts.csswg.org/cssom-view/#css-layout-box

@@ -122,7 +122,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::selector_impl::Snapshot;
+use style::restyle_hints::RestyleHint;
+use style::selector_impl::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use time;
@@ -153,6 +154,29 @@ pub struct StylesheetInDocument {
     pub node: JS<Node>,
     #[ignore_heap_size_of = "Arc"]
     pub stylesheet: Arc<Stylesheet>,
+}
+
+#[derive(Debug, HeapSizeOf)]
+pub struct PendingRestyle {
+    /// If this element had a state or attribute change since the last restyle, track
+    /// the original condition of the element.
+    pub snapshot: Option<Snapshot>,
+
+    /// Any explicit restyles hints that have been accumulated for this element.
+    pub hint: RestyleHint,
+
+    /// Any explicit restyles damage that have been accumulated for this element.
+    pub damage: RestyleDamage,
+}
+
+impl PendingRestyle {
+    pub fn new() -> Self {
+        PendingRestyle {
+            snapshot: None,
+            hint: RestyleHint::empty(),
+            damage: RestyleDamage::empty(),
+        }
+    }
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -232,9 +256,9 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
-    /// For each element that has had a state or attribute change since the last restyle,
-    /// track the original condition of the element.
-    modified_elements: DOMRefCell<HashMap<JS<Element>, Snapshot>>,
+    /// Information on elements needing restyle to ship over to the layout thread when the
+    /// time comes.
+    pending_restyles: DOMRefCell<HashMap<JS<Element>, PendingRestyle>>,
     /// This flag will be true if layout suppressed a reflow attempt that was
     /// needed in order for the page to be painted.
     needs_paint: Cell<bool>,
@@ -408,7 +432,7 @@ impl Document {
             Some(root) => {
                 root.upcast::<Node>().is_dirty() ||
                 root.upcast::<Node>().has_dirty_descendants() ||
-                !self.modified_elements.borrow().is_empty() ||
+                !self.pending_restyles.borrow().is_empty() ||
                 self.needs_paint()
             }
             None => false,
@@ -451,7 +475,7 @@ impl Document {
     }
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
-        node.force_dirty_ancestors(damage);
+        node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
@@ -1706,7 +1730,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, Snapshot)>;
+    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)>;
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
 }
@@ -1720,8 +1744,8 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, Snapshot)> {
-        let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
+    unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)> {
+        let mut elements = (*self.unsafe_get()).pending_restyles.borrow_mut_for_layout();
         let result = elements.drain().map(|(k, v)| (k.to_layout(), v)).collect();
         result
     }
@@ -1829,7 +1853,7 @@ impl Document {
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            modified_elements: DOMRefCell::new(HashMap::new()),
+            pending_restyles: DOMRefCell::new(HashMap::new()),
             needs_paint: Cell::new(false),
             active_touch_points: DOMRefCell::new(Vec::new()),
             dom_loading: Cell::new(Default::default()),
@@ -1967,23 +1991,28 @@ impl Document {
         self.id_map.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
     }
 
+    pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
+        let map = self.pending_restyles.borrow_mut();
+        RefMut::map(map, |m| m.entry(JS::from_ref(el)).or_insert_with(PendingRestyle::new))
+    }
+
+    pub fn ensure_snapshot(&self, el: &Element) -> RefMut<Snapshot> {
+        let mut entry = self.ensure_pending_restyle(el);
+        if entry.snapshot.is_none() {
+            entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
+        }
+        RefMut::map(entry, |e| e.snapshot.as_mut().unwrap())
+    }
+
     pub fn element_state_will_change(&self, el: &Element) {
-        let mut map = self.modified_elements.borrow_mut();
-        let snapshot = map.entry(JS::from_ref(el))
-                          .or_insert_with(|| {
-                              Snapshot::new(el.html_element_in_html_document())
-                          });
+        let mut snapshot = self.ensure_snapshot(el);
         if snapshot.state.is_none() {
             snapshot.state = Some(el.state());
         }
     }
 
     pub fn element_attr_will_change(&self, el: &Element) {
-        let mut map = self.modified_elements.borrow_mut();
-        let mut snapshot = map.entry(JS::from_ref(el))
-                              .or_insert_with(|| {
-                                  Snapshot::new(el.html_element_in_html_document())
-                              });
+        let mut snapshot = self.ensure_snapshot(el);
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()

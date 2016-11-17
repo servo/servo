@@ -104,7 +104,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
@@ -1063,11 +1063,8 @@ impl LayoutThread {
                         // NB: The dirty bit is propagated down the tree.
                         unsafe { node.set_dirty(); }
 
-                        let mut current = node.parent_node().and_then(|n| n.as_element());
-                        while let Some(el) = current {
-                            if el.has_dirty_descendants() { break; }
-                            unsafe { el.set_dirty_descendants(); }
-                            current = el.parent_element();
+                        if let Some(p) = node.parent_node().and_then(|n| n.as_element()) {
+                            unsafe { p.note_dirty_descendant() };
                         }
 
                         next = iter.next_skipping_children();
@@ -1096,11 +1093,40 @@ impl LayoutThread {
             }
         }
 
-        let modified_elements = document.drain_modified_elements();
+        let restyles = document.drain_pending_restyles();
         if !needs_dirtying {
-            for (el, snapshot) in modified_elements {
-                let hint = rw_data.stylist.compute_restyle_hint(&el, &snapshot, el.get_state());
-                el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
+            for (el, restyle) in restyles {
+                // Propagate the descendant bit up the ancestors. Do this before
+                // the restyle calculation so that we can also do it for new
+                // unstyled nodes, which the descendants bit helps us find.
+                if let Some(parent) = el.parent_element() {
+                    unsafe { parent.note_dirty_descendant() };
+                }
+
+                if el.get_data().is_none() {
+                    // If we haven't styled this node yet, we don't need to track
+                    // a restyle.
+                    continue;
+                }
+
+                // Start with the explicit hint, if any.
+                let mut hint = restyle.hint;
+
+                // Expand any snapshots.
+                if let Some(s) = restyle.snapshot {
+                    hint |= rw_data.stylist.compute_restyle_hint(&el, &s, el.get_state());
+                }
+
+                // Apply the cumulative hint.
+                if !hint.is_empty() {
+                    el.note_restyle_hint::<RecalcStyleAndConstructFlows>(hint);
+                }
+
+                // Apply explicit damage, if any.
+                if !restyle.damage.is_empty() {
+                    let mut d = el.mutate_layout_data().unwrap();
+                    d.base.restyle_damage |= restyle.damage;
+                }
             }
         }
 
