@@ -24,8 +24,9 @@ pub struct CSSMediaRule {
 
 impl CSSMediaRule {
     fn new_inherited(parent: Option<&CSSStyleSheet>, mediarule: Arc<RwLock<MediaRule>>) -> CSSMediaRule {
+        let list = mediarule.read().rules.clone();
         CSSMediaRule {
-            cssrule: CSSGroupingRule::new_inherited(parent),
+            cssrule: CSSGroupingRule::new_inherited(parent, list),
             mediarule: mediarule,
         }
     }

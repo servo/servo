@@ -20,6 +20,7 @@ use style::stylesheets::{CssRules, KeyframesRule, Origin};
 use style::stylesheets::CssRule as StyleCssRule;
 
 no_jsmanaged_fields!(RulesSource);
+no_jsmanaged_fields!(CssRules);
 
 #[dom_struct]
 pub struct CSSRuleList {
