@@ -350,8 +350,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
-    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
-        Time::parse(input)
+    pub fn get_initial_single_value() -> Time {
+        Time(0.0)
     }
 
     #[inline]
@@ -359,13 +359,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(vec![get_initial_single_value()])
     }
 
-    #[inline]
-    pub fn get_initial_single_value() -> Time {
-        Time(0.0)
-    }
-
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(Time::parse))))
     }
 </%helpers:longhand>
 
@@ -421,8 +416,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub mod computed_value {
         use euclid::point::Point2D;
+        use parser::Parse;
         use std::fmt;
         use style_traits::ToCss;
+        use values::specified;
         use values::computed::ComputedValueAsSpecified;
 
         pub use self::TransitionTimingFunction as SingleComputedValue;
@@ -432,6 +429,58 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         pub enum TransitionTimingFunction {
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
+        }
+
+        impl Parse for TransitionTimingFunction {
+            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                if let Ok(function_name) = input.try(|input| input.expect_function()) {
+                    return match_ignore_ascii_case! { function_name,
+                        "cubic-bezier" => {
+                            let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
+                            try!(input.parse_nested_block(|input| {
+                                p1x = try!(specified::parse_number(input));
+                                try!(input.expect_comma());
+                                p1y = try!(specified::parse_number(input));
+                                try!(input.expect_comma());
+                                p2x = try!(specified::parse_number(input));
+                                try!(input.expect_comma());
+                                p2y = try!(specified::parse_number(input));
+                                Ok(())
+                            }));
+                            let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
+                            Ok(TransitionTimingFunction::CubicBezier(p1, p2))
+                        },
+                        "steps" => {
+                            let (mut step_count, mut start_end) = (0, StartEnd::End);
+                            try!(input.parse_nested_block(|input| {
+                                step_count = try!(specified::parse_integer(input));
+                                if input.try(|input| input.expect_comma()).is_ok() {
+                                    start_end = try!(match_ignore_ascii_case! {
+                                        try!(input.expect_ident()),
+                                        "start" => Ok(StartEnd::Start),
+                                        "end" => Ok(StartEnd::End),
+                                        _ => Err(())
+                                    });
+                                }
+                                Ok(())
+                            }));
+                            Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
+                        },
+                        _ => Err(())
+                    }
+                }
+                match_ignore_ascii_case! {
+                    try!(input.expect_ident()),
+                    "ease" => Ok(super::ease()),
+                    "linear" => Ok(super::linear()),
+                    "ease-in" => Ok(super::ease_in()),
+                    "ease-out" => Ok(super::ease_out()),
+                    "ease-in-out" => Ok(super::ease_in_out()),
+                    "step-start" => Ok(super::STEP_START),
+                    "step-end" => Ok(super::STEP_END),
+                    _ => Err(())
+                }
+            }
         }
 
         impl ToCss for TransitionTimingFunction {
@@ -501,67 +550,17 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
-    }
-
-    #[inline]
     pub fn get_initial_single_value() -> TransitionTimingFunction {
         ease()
     }
 
-    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
-        if let Ok(function_name) = input.try(|input| input.expect_function()) {
-            return match_ignore_ascii_case! { function_name,
-                "cubic-bezier" => {
-                    let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
-                    try!(input.parse_nested_block(|input| {
-                        p1x = try!(specified::parse_number(input));
-                        try!(input.expect_comma());
-                        p1y = try!(specified::parse_number(input));
-                        try!(input.expect_comma());
-                        p2x = try!(specified::parse_number(input));
-                        try!(input.expect_comma());
-                        p2y = try!(specified::parse_number(input));
-                        Ok(())
-                    }));
-                    let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
-                    Ok(TransitionTimingFunction::CubicBezier(p1, p2))
-                },
-                "steps" => {
-                    let (mut step_count, mut start_end) = (0, computed_value::StartEnd::End);
-                    try!(input.parse_nested_block(|input| {
-                        step_count = try!(specified::parse_integer(input));
-                        if input.try(|input| input.expect_comma()).is_ok() {
-                            start_end = try!(match_ignore_ascii_case! {
-                                try!(input.expect_ident()),
-                                "start" => Ok(computed_value::StartEnd::Start),
-                                "end" => Ok(computed_value::StartEnd::End),
-                                _ => Err(())
-                            });
-                        }
-                        Ok(())
-                    }));
-                    Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
-                },
-                _ => Err(())
-            }
-        }
-        match_ignore_ascii_case! {
-            try!(input.expect_ident()),
-            "ease" => Ok(ease()),
-            "linear" => Ok(linear()),
-            "ease-in" => Ok(ease_in()),
-            "ease-out" => Ok(ease_out()),
-            "ease-in-out" => Ok(ease_in_out()),
-            "step-start" => Ok(STEP_START),
-            "step-end" => Ok(STEP_END),
-            _ => Err(())
-        }
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(vec![get_initial_single_value()])
     }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(TransitionTimingFunction::parse))))
     }
 </%helpers:longhand>
 
@@ -607,12 +606,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(Vec::new())
     }
 
-
-    #[inline]
-    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
-        SingleSpecifiedValue::parse(input)
-    }
-
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
@@ -627,9 +620,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
-    pub use properties::longhands::transition_duration::{computed_value};
-    pub use properties::longhands::transition_duration::{get_initial_single_value};
-    pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
+    pub use properties::longhands::transition_duration::computed_value;
+    pub use properties::longhands::transition_duration::{get_initial_value, get_initial_single_value, parse};
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-name"
@@ -640,15 +632,38 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use std::fmt;
         use Atom;
+        use parser::Parse;
+        use std::fmt;
+        use std::ops::Deref;
         use style_traits::ToCss;
 
-        pub use Atom as SingleComputedValue;
+        #[derive(Clone, Debug, Hash, Eq, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct AnimationName(pub Atom);
+
+        impl fmt::Display for AnimationName {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                self.0.fmt(f)
+            }
+        }
+
+        pub use self::AnimationName as SingleComputedValue;
+
+        impl Parse for AnimationName {
+            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                use cssparser::Token;
+                Ok(match input.next() {
+                    Ok(Token::Ident(ref value)) if value != "none" => AnimationName(Atom::from(&**value)),
+                    Ok(Token::QuotedString(value)) => AnimationName(Atom::from(&*value)),
+                    _ => return Err(()),
+                })
+            }
+        }
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<Atom>);
+        pub struct T(pub Vec<AnimationName>);
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -670,18 +685,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub use self::computed_value::T as SpecifiedValue;
     impl NoViewportPercentage for SpecifiedValue {}
-    pub use Atom as SingleSpecifiedValue;
-
-    #[inline]
-    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
-        use cssparser::Token;
-
-        Ok(match input.next() {
-            Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
-            Ok(Token::QuotedString(value)) => Atom::from(&*value),
-            _ => return Err(()),
-        })
-    }
+    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -690,7 +694,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -701,8 +705,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    animatable="False",
                    allowed_in_keyframe_block="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
-    pub use super::transition_duration::{parse, parse_one};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
     pub use super::transition_duration::SpecifiedValue;
     pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
@@ -712,8 +715,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    animatable="False",
                    allowed_in_keyframe_block="False">
     pub use super::transition_timing_function::computed_value;
-    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value};
-    pub use super::transition_timing_function::{parse, parse_one};
+    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value, parse};
     pub use super::transition_timing_function::SpecifiedValue;
     pub use super::transition_timing_function::SingleSpecifiedValue;
 </%helpers:longhand>
@@ -726,6 +728,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
 
     pub mod computed_value {
+        use parser::Parse;
         use std::fmt;
         use style_traits::ToCss;
 
@@ -736,6 +739,21 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         pub enum AnimationIterationCount {
             Number(u32),
             Infinite,
+        }
+
+        impl Parse for AnimationIterationCount {
+            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+                if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+                    return Ok(AnimationIterationCount::Infinite)
+                }
+
+                let number = try!(input.expect_integer());
+                if number < 0 {
+                    return Err(());
+                }
+
+                Ok(AnimationIterationCount::Number(number as u32))
+            }
         }
 
         impl ToCss for AnimationIterationCount {
@@ -777,22 +795,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         AnimationIterationCount::Number(1)
     }
 
-    pub fn parse_one(input: &mut Parser) -> Result<AnimationIterationCount, ()> {
-        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
-            Ok(AnimationIterationCount::Infinite)
-        } else {
-            let number = try!(input.expect_integer());
-            if number < 0 {
-                return Err(());
-            }
-            Ok(AnimationIterationCount::Number(number as u32))
-        }
-    }
-
-
     #[inline]
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(AnimationIterationCount::parse))))
     }
 
     #[inline]
@@ -803,34 +808,36 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-${helpers.keyword_list("animation-direction",
-                       "normal reverse alternate alternate-reverse",
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=False)}
+${helpers.single_keyword("animation-direction",
+                         "normal reverse alternate alternate-reverse",
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         allowed_in_keyframe_block=False)}
 
 // animation-play-state is the exception to the rule for allowed_in_keyframe_block:
 // https://drafts.csswg.org/css-animations/#keyframes
-${helpers.keyword_list("animation-play-state",
-                       "running paused",
-                       need_clone=True,
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=True)}
+${helpers.single_keyword("animation-play-state",
+                         "running paused",
+                         need_clone=True,
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         allowed_in_keyframe_block=True)}
 
-${helpers.keyword_list("animation-fill-mode",
-                       "none forwards backwards both",
-                       need_index=True,
-                       animatable=False,
-                       allowed_in_keyframe_block=False)}
+${helpers.single_keyword("animation-fill-mode",
+                         "none forwards backwards both",
+                         need_index=True,
+                         animatable=False,
+                         vector=True,
+                         allowed_in_keyframe_block=False)}
 
 <%helpers:longhand name="animation-delay"
                    need_index="True"
                    animatable="False",
                    allowed_in_keyframe_block="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
-    pub use super::transition_duration::{parse, parse_one};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
     pub use super::transition_duration::SpecifiedValue;
     pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>

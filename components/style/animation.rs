@@ -12,9 +12,9 @@ use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
-use properties::longhands::animation_direction::computed_value::AnimationDirection;
+use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
-use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
+use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use std::sync::Arc;
@@ -425,7 +425,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             continue
         }
 
-        if let Some(ref anim) = context.stylist.animations().get(&name) {
+        if let Some(ref anim) = context.stylist.animations().get(&name.0) {
             debug!("maybe_start_animations: animation {} found", name);
 
             // If this animation doesn't have any keyframe, we can just continue
@@ -461,7 +461,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
 
 
             new_animations_sender
-                .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
+                .send(Animation::Keyframes(node, name.0.clone(), KeyframesAnimationState {
                     started_at: animation_start,
                     duration: duration as f64,
                     delay: delay as f64,
@@ -540,7 +540,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 
             let maybe_index = style.get_box()
                                    .animation_name_iter()
-                                   .position(|animation_name| *name == animation_name);
+                                   .position(|animation_name| *name == animation_name.0);
 
             let index = match maybe_index {
                 Some(index) => index,

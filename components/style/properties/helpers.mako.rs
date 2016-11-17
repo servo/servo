@@ -53,7 +53,7 @@
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
-        % if product == "gecko" or not gecko_only:
+        % if not gecko_only:
             use std::fmt;
             use values::HasViewportPercentage;
             use style_traits::ToCss;
@@ -75,6 +75,7 @@
             }
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
+                pub use self::single_value::T as SingleComputedValue;
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
@@ -123,6 +124,7 @@
                     Ok(())
                 }
             }
+
             pub fn get_initial_value() -> computed_value::T {
                 % if allow_empty:
                     computed_value::T(vec![])
@@ -130,6 +132,7 @@
                     computed_value::T(vec![single_value::get_initial_value()])
                 % endif
             }
+
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
@@ -145,6 +148,9 @@
                     }).map(SpecifiedValue)
                 % endif
             }
+
+            pub use self::single_value::computed_value::T as SingleSpecifiedValue;
+
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
 
@@ -362,79 +368,6 @@
             ${caller.body()}
         </%call>
     % endif
-</%def>
-
-<%def name="keyword_list(name, values, **kwargs)">
-    <%
-        keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix', 'gecko_enum_prefix',
-            'extra_gecko_values', 'extra_servo_values',
-        ]}
-    %>
-    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-        use values::computed::ComputedValueAsSpecified;
-        pub use self::computed_value::T as SpecifiedValue;
-        use values::NoViewportPercentage;
-        impl NoViewportPercentage for SpecifiedValue {}
-        pub mod computed_value {
-            use std::fmt;
-            use style_traits::ToCss;
-
-            #[derive(Debug, Clone, PartialEq)]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct T(pub Vec<${to_camel_case(name)}>);
-
-            impl ToCss for T {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    debug_assert!(!self.0.is_empty(), "Always parses at least one");
-
-                    for (index, item) in self.0.iter().enumerate() {
-                        if index != 0 {
-                            try!(dest.write_str(", "));
-                        }
-
-                        try!(item.to_css(dest));
-                    }
-
-                    Ok(())
-                }
-            }
-
-            pub use self::${to_camel_case(name)} as SingleComputedValue;
-
-            define_css_keyword_enum! { ${to_camel_case(name)}:
-                % for value in data.longhands_by_name[name].keyword.values_for(product):
-                    "${value}" => ${to_rust_ident(value)},
-                % endfor
-            }
-        }
-
-        pub use self::computed_value::${to_camel_case(name)} as SingleSpecifiedValue;
-
-        #[inline]
-        pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
-            SingleSpecifiedValue::parse(input)
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![get_initial_single_value()])
-        }
-
-        #[inline]
-        pub fn get_initial_single_value() -> SingleSpecifiedValue {
-            SingleSpecifiedValue::${to_rust_ident(values.split()[0])}
-        }
-
-        #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            Ok(SpecifiedValue(try!(
-                input.parse_comma_separated(computed_value::${to_camel_case(name)}::parse))))
-        }
-
-        impl ComputedValueAsSpecified for SpecifiedValue {}
-    </%call>
 </%def>
 
 <%def name="shorthand(name, sub_properties, experimental=False, **kwargs)">
