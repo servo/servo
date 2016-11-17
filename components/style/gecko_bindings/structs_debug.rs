@@ -73,6 +73,12 @@ pub const NS_FONT_VARIANT_WIDTH_FULL: ::std::os::raw::c_uint = 1;
 pub const NS_FONT_VARIANT_WIDTH_HALF: ::std::os::raw::c_uint = 2;
 pub const NS_FONT_VARIANT_WIDTH_THIRD: ::std::os::raw::c_uint = 3;
 pub const NS_FONT_VARIANT_WIDTH_QUARTER: ::std::os::raw::c_uint = 4;
+pub const NS_FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.2;
+pub const NS_FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
+pub const NS_FONT_SUB_SUPER_SIZE_RATIO_SMALL: f32 = 0.82;
+pub const NS_FONT_SUB_SUPER_SIZE_RATIO_LARGE: f32 = 0.667;
+pub const NS_FONT_SUB_SUPER_SMALL_SIZE: f32 = 20.;
+pub const NS_FONT_SUB_SUPER_LARGE_SIZE: f32 = 45.;
 pub const NS_THEME_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_THEME_BUTTON: ::std::os::raw::c_uint = 1;
 pub const NS_THEME_RADIO: ::std::os::raw::c_uint = 2;
@@ -1079,6 +1085,7 @@ pub enum nsresult {
     NS_NET_STATUS_SENDING_TO = 2152398853,
     NS_NET_STATUS_RECEIVING_FROM = 2152398854,
     NS_ERROR_INTERCEPTION_FAILED = 2152398948,
+    NS_ERROR_HSTS_PRIMING_TIMEOUT = 2152398958,
     NS_ERROR_PLUGINS_PLUGINSNOTCHANGED = 2152465384,
     NS_ERROR_PLUGIN_DISABLED = 2152465385,
     NS_ERROR_PLUGIN_BLOCKLISTED = 2152465386,
@@ -6605,141 +6612,128 @@ impl nsIPresShell {
         self._bitfield_1 |= ((val as u8 as u16) << 2u32) & (4usize as u16);
     }
     #[inline]
-    pub fn mIsZombie(&self) -> bool {
+    pub fn mIsReflowing(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (8usize as u16)) >>
                                        3u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mIsZombie(&mut self, val: bool) {
+    pub fn set_mIsReflowing(&mut self, val: bool) {
         self._bitfield_1 &= !(8usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 3u32) & (8usize as u16);
     }
     #[inline]
-    pub fn mIsReflowing(&self) -> bool {
+    pub fn mPaintingSuppressed(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (16usize as u16)) >>
                                        4u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mIsReflowing(&mut self, val: bool) {
+    pub fn set_mPaintingSuppressed(&mut self, val: bool) {
         self._bitfield_1 &= !(16usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 4u32) & (16usize as u16);
     }
     #[inline]
-    pub fn mPaintingSuppressed(&self) -> bool {
+    pub fn mIsThemeSupportDisabled(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (32usize as u16)) >>
                                        5u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mPaintingSuppressed(&mut self, val: bool) {
+    pub fn set_mIsThemeSupportDisabled(&mut self, val: bool) {
         self._bitfield_1 &= !(32usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 5u32) & (32usize as u16);
     }
     #[inline]
-    pub fn mIsThemeSupportDisabled(&self) -> bool {
+    pub fn mIsActive(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (64usize as u16)) >>
                                        6u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mIsThemeSupportDisabled(&mut self, val: bool) {
+    pub fn set_mIsActive(&mut self, val: bool) {
         self._bitfield_1 &= !(64usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 6u32) & (64usize as u16);
     }
     #[inline]
-    pub fn mIsActive(&self) -> bool {
+    pub fn mFrozen(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (128usize as u16)) >>
                                        7u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mIsActive(&mut self, val: bool) {
+    pub fn set_mFrozen(&mut self, val: bool) {
         self._bitfield_1 &= !(128usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 7u32) & (128usize as u16);
     }
     #[inline]
-    pub fn mFrozen(&self) -> bool {
+    pub fn mIsFirstPaint(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (256usize as u16)) >>
                                        8u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mFrozen(&mut self, val: bool) {
+    pub fn set_mIsFirstPaint(&mut self, val: bool) {
         self._bitfield_1 &= !(256usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 8u32) & (256usize as u16);
     }
     #[inline]
-    pub fn mIsFirstPaint(&self) -> bool {
+    pub fn mObservesMutationsForPrint(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (512usize as u16)) >>
                                        9u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mIsFirstPaint(&mut self, val: bool) {
+    pub fn set_mObservesMutationsForPrint(&mut self, val: bool) {
         self._bitfield_1 &= !(512usize as u16);
         self._bitfield_1 |= ((val as u8 as u16) << 9u32) & (512usize as u16);
     }
     #[inline]
-    pub fn mObservesMutationsForPrint(&self) -> bool {
+    pub fn mReflowScheduled(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (1024usize as u16)) >>
                                        10u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mObservesMutationsForPrint(&mut self, val: bool) {
+    pub fn set_mReflowScheduled(&mut self, val: bool) {
         self._bitfield_1 &= !(1024usize as u16);
         self._bitfield_1 |=
             ((val as u8 as u16) << 10u32) & (1024usize as u16);
     }
     #[inline]
-    pub fn mReflowScheduled(&self) -> bool {
+    pub fn mSuppressInterruptibleReflows(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (2048usize as u16)) >>
                                        11u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mReflowScheduled(&mut self, val: bool) {
+    pub fn set_mSuppressInterruptibleReflows(&mut self, val: bool) {
         self._bitfield_1 &= !(2048usize as u16);
         self._bitfield_1 |=
             ((val as u8 as u16) << 11u32) & (2048usize as u16);
     }
     #[inline]
-    pub fn mSuppressInterruptibleReflows(&self) -> bool {
+    pub fn mScrollPositionClampingScrollPortSizeSet(&self) -> bool {
         unsafe {
             ::std::mem::transmute(((self._bitfield_1 & (4096usize as u16)) >>
                                        12u32) as u8)
         }
     }
     #[inline]
-    pub fn set_mSuppressInterruptibleReflows(&mut self, val: bool) {
+    pub fn set_mScrollPositionClampingScrollPortSizeSet(&mut self,
+                                                        val: bool) {
         self._bitfield_1 &= !(4096usize as u16);
         self._bitfield_1 |=
             ((val as u8 as u16) << 12u32) & (4096usize as u16);
-    }
-    #[inline]
-    pub fn mScrollPositionClampingScrollPortSizeSet(&self) -> bool {
-        unsafe {
-            ::std::mem::transmute(((self._bitfield_1 & (8192usize as u16)) >>
-                                       13u32) as u8)
-        }
-    }
-    #[inline]
-    pub fn set_mScrollPositionClampingScrollPortSizeSet(&mut self,
-                                                        val: bool) {
-        self._bitfield_1 &= !(8192usize as u16);
-        self._bitfield_1 |=
-            ((val as u8 as u16) << 13u32) & (8192usize as u16);
     }
 }
 /**
