@@ -41,6 +41,7 @@ matrix:
             - libavcodec-dev
             - libavutil-dev
             - libedit-dev
+            - libclang-dev
 
 branches:
   only:
