@@ -40,8 +40,9 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_url;
 extern crate style;
-extern crate url;
+extern crate style_traits;
 extern crate util;
 extern crate webrender_traits;
 
@@ -94,6 +95,7 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use selectors::Element;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -114,7 +116,6 @@ use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITI
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::thread_state;
 use style::timer::Timer;
-use url::Url;
 use util::geometry::max_rect;
 use util::opts;
 use util::prefs::PREFS;
@@ -127,7 +128,7 @@ pub struct LayoutThread {
     id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    url: Url,
+    url: ServoUrl,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -213,7 +214,7 @@ pub struct LayoutThread {
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
 
-    webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+    webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                               WebRenderImageInfo,
                                               BuildHasherDefault<FnvHasher>>>>,
 
@@ -234,7 +235,7 @@ impl LayoutThreadFactory for LayoutThread {
 
     /// Spawns a new layout thread.
     fn create(id: PipelineId,
-              url: Url,
+              url: ServoUrl,
               is_iframe: bool,
               chan: (Sender<Msg>, Receiver<Msg>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
@@ -254,18 +255,18 @@ impl LayoutThreadFactory for LayoutThread {
             { // Ensures layout thread is destroyed before we send shutdown message
                 let sender = chan.0;
                 let layout = LayoutThread::new(id,
-                                             url,
-                                             is_iframe,
-                                             chan.1,
-                                             pipeline_port,
-                                             constellation_chan,
-                                             script_chan,
-                                             image_cache_thread,
-                                             font_cache_thread,
-                                             time_profiler_chan,
-                                             mem_profiler_chan.clone(),
-                                             webrender_api_sender,
-                                             layout_threads);
+                                               url,
+                                               is_iframe,
+                                               chan.1,
+                                               pipeline_port,
+                                               constellation_chan,
+                                               script_chan,
+                                               image_cache_thread,
+                                               font_cache_thread,
+                                               time_profiler_chan,
+                                               mem_profiler_chan.clone(),
+                                               webrender_api_sender,
+                                               layout_threads);
 
                 let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
@@ -365,7 +366,7 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
 impl LayoutThread {
     /// Creates a new `LayoutThread` structure.
     fn new(id: PipelineId,
-           url: Url,
+           url: ServoUrl,
            is_iframe: bool,
            port: Receiver<Msg>,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
@@ -1526,7 +1527,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         let res = try!(read_resource_file(filename).map_err(|_| filename));
         Ok(Stylesheet::from_bytes(
             &res,
-            Url::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
+            ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
             None,
             None,
             Origin::UserAgent,

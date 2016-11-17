@@ -45,6 +45,7 @@ pub extern crate profile_traits;
 pub extern crate script;
 pub extern crate script_traits;
 pub extern crate script_layout_interface;
+pub extern crate servo_url;
 pub extern crate style;
 pub extern crate url;
 pub extern crate util;
@@ -87,12 +88,12 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use url::Url;
 use util::opts;
 use util::prefs::PREFS;
 use util::resource_files::resources_dir_path;
@@ -249,7 +250,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
 fn create_constellation(user_agent: Cow<'static, str>,
                         config_dir: Option<PathBuf>,
-                        url: Option<Url>,
+                        url: Option<ServoUrl>,
                         compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,

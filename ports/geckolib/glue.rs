@@ -7,6 +7,7 @@ use cssparser::Parser;
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
+use servo_url::ServoUrl;
 use std::fmt::Write;
 use std::mem::transmute;
 use std::sync::{Arc, Mutex};
@@ -47,7 +48,6 @@ use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};
 use style::timer::Timer;
 use style_traits::ToCss;
-use url::Url;
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -167,7 +167,7 @@ pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
-    let url = Url::parse("about:blank").unwrap();
+    let url = ServoUrl::parse("about:blank").unwrap();
     let extra_data = ParserContextExtraData::default();
     let origin = match mode {
         SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
@@ -198,7 +198,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString,
     };
 
     let base_str = unsafe { base_url.as_ref().unwrap().as_str_unchecked() };
-    let url = Url::parse(base_str).unwrap();
+    let url = ServoUrl::parse(base_str).unwrap();
     let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
         referrer: Some(GeckoArcURI::new(referrer)),
@@ -408,7 +408,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
     let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     let base_str = unsafe { base_url.as_ref().unwrap().as_str_unchecked() };
-    let base_url = Url::parse(base_str).unwrap();
+    let base_url = ServoUrl::parse(base_str).unwrap();
     let extra_data = unsafe { ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
         referrer: Some(GeckoArcURI::new(referrer)),

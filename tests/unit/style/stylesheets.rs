@@ -8,6 +8,7 @@ use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
 use selectors::parser::*;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -19,7 +20,6 @@ use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
-use url::Url;
 
 #[test]
 fn test_parse_stylesheet() {
@@ -48,7 +48,7 @@ fn test_parse_stylesheet() {
                 animation-play-state: running; /* … except animation-play-state */
             }
         }";
-    let url = Url::parse("about::test").unwrap();
+    let url = ServoUrl::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
@@ -315,7 +315,7 @@ fn test_report_error_stylesheet() {
         invalid: true;
     }
     ";
-    let url = Url::parse("about::test").unwrap();
+    let url = ServoUrl::parse("about::test").unwrap();
     let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
 
     let errors = error_reporter.errors.clone();

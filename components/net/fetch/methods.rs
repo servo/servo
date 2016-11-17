@@ -29,6 +29,7 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, Response
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::error::Error;
@@ -40,7 +41,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use unicase::UniCase;
-use url::{Origin as UrlOrigin, Url};
+use url::{Origin as UrlOrigin};
 use util::thread::spawn_named;
 use uuid;
 
@@ -1305,7 +1306,7 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     Err(())
 }
 
-fn has_credentials(url: &Url) -> bool {
+fn has_credentials(url: &ServoUrl) -> bool {
     !url.username().is_empty() || url.password().is_some()
 }
 

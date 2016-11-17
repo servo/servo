@@ -76,6 +76,7 @@ use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -102,7 +103,6 @@ use time;
 use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
-use url::Url;
 use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
@@ -633,7 +633,7 @@ impl WindowMethods for Window {
                 //               object, not self's.
                 Some(self.Document().origin().copy())
             },
-            url => match Url::parse(&url) {
+            url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(Origin::new(&url)),
                 Err(_) => return Err(Error::Syntax),
             }
@@ -869,7 +869,7 @@ impl WindowMethods for Window {
 
     // check-tidy: no specs after this line
     fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
-        let url = try!(Url::parse(&href).map_err(|e| {
+        let url = try!(ServoUrl::parse(&href).map_err(|e| {
             Error::Type(format!("Couldn't parse URL: {}", e))
         }));
         match open::that(url.as_str()) {
@@ -1331,7 +1331,7 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: Url, replace: bool, referrer_policy: Option<ReferrerPolicy>) {
+    pub fn load_url(&self, url: ServoUrl, replace: bool, referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
@@ -1364,7 +1364,7 @@ impl Window {
         self.window_size.get()
     }
 
-    pub fn get_url(&self) -> Url {
+    pub fn get_url(&self) -> ServoUrl {
         (*self.Document().url()).clone()
     }
 

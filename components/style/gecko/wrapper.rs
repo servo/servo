@@ -36,12 +36,12 @@ use selector_impl::ElementExt;
 use selector_matching::ApplicableDeclarationBlock;
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use servo_url::ServoUrl;
 use sink::Push;
 use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-use url::Url;
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
 // magic guarantees that our LayoutFoo references won't outlive the root, and
@@ -281,8 +281,8 @@ impl<'le> GeckoElement<'le> {
 }
 
 lazy_static! {
-    pub static ref DUMMY_BASE_URL: Url = {
-        Url::parse("http://www.example.org").unwrap()
+    pub static ref DUMMY_BASE_URL: ServoUrl = {
+        ServoUrl::parse("http://www.example.org").unwrap()
     };
 }
 

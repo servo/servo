@@ -12,6 +12,7 @@ use gfx_traits::ByteIndex;
 use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
+use servo_url::ServoUrl;
 use std::fmt::Debug;
 use std::sync::Arc;
 use style::atomic_refcell::AtomicRefCell;
@@ -22,7 +23,6 @@ use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
-use url::Url;
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {
@@ -249,9 +249,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + GetLayoutData + NodeInfo + Partia
     fn selection(&self) -> Option<Range<ByteIndex>>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
-    ///
-    /// FIXME(pcwalton): Don't copy URLs.
-    fn image_url(&self) -> Option<Url>;
+    fn image_url(&self) -> Option<ServoUrl>;
 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 

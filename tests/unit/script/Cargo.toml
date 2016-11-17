@@ -13,4 +13,4 @@ doctest = false
 msg = {path = "../../../components/msg"}
 plugins = {path = "../../../components/plugins"}
 script = {path = "../../../components/script"}
-url = {version = "1.2", features = ["heap_size"]}
+servo_url = {path = "../../../components/url"}

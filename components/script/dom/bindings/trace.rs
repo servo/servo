@@ -80,6 +80,7 @@ use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
@@ -100,7 +101,6 @@ use style::selector_impl::{PseudoElement, Snapshot};
 use style::values::specified::Length;
 use time::Duration;
 use url::Origin as UrlOrigin;
-use url::Url;
 use uuid::Uuid;
 use webrender_traits::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
 use webrender_traits::{WebGLRenderbufferId, WebGLShaderId, WebGLTextureId};
@@ -302,7 +302,7 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
+no_jsmanaged_fields!(bool, f32, f64, String, ServoUrl, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);

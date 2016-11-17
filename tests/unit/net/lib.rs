@@ -16,6 +16,7 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate servo_url;
 extern crate time;
 extern crate unicase;
 extern crate url;
@@ -42,10 +43,10 @@ use net::test::HttpState;
 use net_traits::FetchTaskTarget;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use servo_url::ServoUrl;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::thread;
-use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -82,10 +83,10 @@ fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
     fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
 }
 
-fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
+fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
     // this is a Listening server because of handle_threads()
     let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 1).unwrap();
     let url_string = format!("http://localhost:{}", server.socket.port());
-    let url = Url::parse(&url_string).unwrap();
+    let url = ServoUrl::parse(&url_string).unwrap();
     (server, url)
 }

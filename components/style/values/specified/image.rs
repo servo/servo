@@ -9,11 +9,10 @@
 
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use servo_url::ServoUrl;
 use std::f32::consts::PI;
 use std::fmt;
-use std::sync::Arc;
 use style_traits::ToCss;
-use url::Url;
 use values::computed::ComputedValueAsSpecified;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
 use values::specified::position::Position;
@@ -48,7 +47,7 @@ impl Image {
 
     /// Creates an already specified image value from an already resolved URL
     /// for insertion in the cascade.
-    pub fn for_cascade(url: Option<Arc<Url>>, extra_data: UrlExtraData) -> Self {
+    pub fn for_cascade(url: Option<ServoUrl>, extra_data: UrlExtraData) -> Self {
         Image::Url(SpecifiedUrl::for_cascade(url, extra_data))
     }
 }

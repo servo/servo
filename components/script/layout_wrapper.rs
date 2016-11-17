@@ -51,6 +51,7 @@ use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayou
 use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::fmt;
 use std::marker::PhantomData;
 use std::mem::transmute;
@@ -69,7 +70,6 @@ use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, Servo
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
-use url::Url;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {
@@ -910,7 +910,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         })
     }
 
-    fn image_url(&self) -> Option<Url> {
+    fn image_url(&self) -> Option<ServoUrl> {
         let this = unsafe { self.get_jsmanaged() };
         this.image_url()
     }

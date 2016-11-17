@@ -28,16 +28,16 @@ use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
+use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
-use url::Url;
 use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
-    url: DOMRefCell<Option<Url>>,
+    url: DOMRefCell<Option<ServoUrl>>,
 }
 
 impl HTMLAnchorElement {

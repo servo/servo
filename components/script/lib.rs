@@ -82,6 +82,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate serde;
 #[macro_use] extern crate servo_atoms;
+extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
 extern crate style;

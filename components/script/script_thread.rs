@@ -90,6 +90,7 @@ use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeDat
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -110,7 +111,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
-use url::{Position, Url};
+use url::Position;
 use util::opts;
 use util::thread;
 use webdriver_handlers;
@@ -150,7 +151,7 @@ struct InProgressLoad {
     /// Window is visible.
     is_visible: bool,
     /// The requested URL of the load.
-    url: Url,
+    url: ServoUrl,
 }
 
 impl InProgressLoad {
@@ -160,7 +161,7 @@ impl InProgressLoad {
            parent_info: Option<(PipelineId, FrameType)>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
-           url: Url) -> InProgressLoad {
+           url: ServoUrl) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
             frame_id: frame_id,
@@ -397,7 +398,7 @@ pub struct ScriptThread {
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A map to store service worker registrations for a given origin
-    registration_map: DOMRefCell<HashMap<Url, JS<ServiceWorkerRegistration>>>,
+    registration_map: DOMRefCell<HashMap<ServoUrl, JS<ServiceWorkerRegistration>>>,
     /// A handle to the image cache thread.
     image_cache_thread: ImageCacheThread,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -563,7 +564,7 @@ impl ScriptThread {
     }
 
     // stores a service worker registration
-    pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration, pipeline_id: PipelineId) {
+    pub fn set_registration(scope_url: ServoUrl, registration:&ServiceWorkerRegistration, pipeline_id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_serviceworker_registration(scope_url, registration, pipeline_id);
@@ -1448,7 +1449,7 @@ impl ScriptThread {
     }
 
     fn handle_serviceworker_registration(&self,
-                                         scope: Url,
+                                         scope: ServoUrl,
                                          registration: &ServiceWorkerRegistration,
                                          pipeline_id: PipelineId) {
         {
@@ -1580,7 +1581,7 @@ impl ScriptThread {
     }
 
     /// Notify a window of a storage event
-    fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: Url,
+    fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: ServoUrl,
                             key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
         let storage = match self.documents.borrow().find_window(pipeline_id) {
             None => return warn!("Storage event sent to closed pipeline {}.", pipeline_id),
@@ -1752,7 +1753,7 @@ impl ScriptThread {
             // Start with the scheme data of the parsed URL;
             // append question mark and query component, if any;
             // append number sign and fragment component if any.
-            let encoded = &incomplete.url[Position::BeforePath..];
+            let encoded = &incomplete.url.as_url().unwrap()[Position::BeforePath..];
 
             // Percent-decode (8.) and UTF-8 decode (9.)
             let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
@@ -1812,7 +1813,7 @@ impl ScriptThread {
         document.get_current_parser().unwrap()
     }
 
-    fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
+    fn notify_devtools(&self, title: DOMString, url: ServoUrl, ids: (PipelineId, Option<WorkerId>)) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
                 title: String::from(title),
@@ -1994,11 +1995,13 @@ impl ScriptThread {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
                 };
-                let url = document.url();
-                if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
-                    load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, &document);
-                    return;
+                let nurl = nurl.as_url().unwrap();
+                if let Some(url) = document.url().as_url() {
+                    if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
+                        load_data.method == Method::Get {
+                        self.check_and_scroll_fragment(fragment, parent_pipeline_id, &document);
+                        return;
+                    }
                 }
             }
         }
@@ -2068,7 +2071,7 @@ impl ScriptThread {
         });
 
         if load_data.url.scheme() == "javascript" {
-            load_data.url = Url::parse("about:blank").unwrap();
+            load_data.url = ServoUrl::parse("about:blank").unwrap();
         }
 
         let request = RequestInit {

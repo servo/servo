@@ -36,7 +36,7 @@ macro_rules! assert_roundtrip_with_context {
         assert_roundtrip_with_context!($fun, $string, $string);
     };
     ($fun:expr,$input:expr, $output:expr) => {
-        let url = Url::parse("http://localhost").unwrap();
+        let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
         let mut parser = Parser::new($input);
         let parsed = $fun(&context, &mut parser)
@@ -55,7 +55,7 @@ macro_rules! assert_roundtrip_with_context {
 
 macro_rules! parse_longhand {
     ($name:ident, $s:expr) => {{
-        let url = Url::parse("http://localhost").unwrap();
+        let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
         let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
         $name::parse(&context, &mut Parser::new($s)).unwrap()
     }};

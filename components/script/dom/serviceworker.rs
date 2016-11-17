@@ -18,8 +18,8 @@ use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
 use script_traits::{ScriptMsg, DOMMessage};
+use servo_url::ServoUrl;
 use std::cell::Cell;
-use url::Url;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
@@ -27,7 +27,7 @@ pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 pub struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DOMRefCell<String>,
-    scope_url: Url,
+    scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
     skip_waiting: Cell<bool>
 }
@@ -35,7 +35,7 @@ pub struct ServiceWorker {
 impl ServiceWorker {
     fn new_inherited(script_url: &str,
                      skip_waiting: bool,
-                     scope_url: Url) -> ServiceWorker {
+                     scope_url: ServoUrl) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DOMRefCell::new(String::from(script_url)),
@@ -46,8 +46,8 @@ impl ServiceWorker {
     }
 
     pub fn install_serviceworker(global: &GlobalScope,
-                script_url: Url,
-                scope_url: Url,
+                script_url: ServoUrl,
+                scope_url: ServoUrl,
                 skip_waiting: bool) -> Root<ServiceWorker> {
         reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
                                                             skip_waiting,
@@ -64,8 +64,8 @@ impl ServiceWorker {
         self.upcast::<EventTarget>().fire_event(atom!("statechange"));
     }
 
-    pub fn get_script_url(&self) -> Url {
-        Url::parse(&self.script_url.borrow().clone()).unwrap()
+    pub fn get_script_url(&self) -> ServoUrl {
+        ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
 }
 

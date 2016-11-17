@@ -26,6 +26,7 @@ use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use script_traits::{TouchEventType, TouchpadPressurePhase};
+use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::ffi::CString;
@@ -36,7 +37,6 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
-use url::Url;
 #[cfg(target_os = "windows")]
 use user32;
 use util::geometry::ScreenPx;
@@ -183,7 +183,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
-    current_url: RefCell<Option<Url>>,
+    current_url: RefCell<Option<ServoUrl>>,
 
     /// The contents of the last ReceivedCharacter event for use in a subsequent KeyEvent.
     pending_key_event_char: Cell<Option<char>>,
@@ -904,7 +904,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_url(&self, url: Url) {
+    fn set_page_url(&self, url: ServoUrl) {
         *self.current_url.borrow_mut() = Some(url);
     }
 
@@ -980,7 +980,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_favicon(&self, _: Url) {
+    fn set_favicon(&self, _: ServoUrl) {
     }
 
     fn prepare_for_composite(&self, _width: usize, _height: usize) -> bool {

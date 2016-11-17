@@ -9,11 +9,11 @@ use net_traits::{CoreResourceMsg, LoadConsumer, LoadContext, LoadData};
 use net_traits::{LoadOrigin, NetworkError, ProgressMsg, ReferrerPolicy};
 use net_traits::hosts::{host_replacement, parse_hostsfile};
 use profile_traits::time::ProfilerChan;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::mpsc::channel;
-use url::Url;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
@@ -22,7 +22,7 @@ fn ip(s: &str) -> IpAddr {
 struct ResourceTest;
 
 impl LoadOrigin for ResourceTest {
-    fn referrer_url(&self) -> Option<Url> {
+    fn referrer_url(&self) -> Option<ServoUrl> {
         None
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
@@ -50,7 +50,7 @@ fn test_bad_scheme() {
     let (resource_thread, _) = new_core_resource_thread(
         "".into(), None, ProfilerChan(tx), None);
     let (start_chan, start) = ipc::channel().unwrap();
-    let url = Url::parse("bogus://whatever").unwrap();
+    let url = ServoUrl::parse("bogus://whatever").unwrap();
     resource_thread.send(CoreResourceMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
 
     LoadConsumer::Channel(start_chan), None)).unwrap();
@@ -187,13 +187,13 @@ fn test_replace_hosts() {
     host_table.insert("foo.bar.com".to_owned(), ip("127.0.0.1"));
     host_table.insert("servo.test.server".to_owned(), ip("127.0.0.2"));
 
-    let url = Url::parse("http://foo.bar.com:8000/foo").unwrap();
+    let url = ServoUrl::parse("http://foo.bar.com:8000/foo").unwrap();
     assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.1");
 
-    let url = Url::parse("http://servo.test.server").unwrap();
+    let url = ServoUrl::parse("http://servo.test.server").unwrap();
     assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.2");
 
-    let url = Url::parse("http://a.foo.bar.com").unwrap();
+    let url = ServoUrl::parse("http://a.foo.bar.com").unwrap();
     assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "a.foo.bar.com");
 }
 
@@ -232,7 +232,7 @@ fn test_cancelled_listener() {
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();
-    let url = Url::parse(&format!("http://127.0.0.1:{}", port)).unwrap();
+    let url = ServoUrl::parse(&format!("http://127.0.0.1:{}", port)).unwrap();
 
     resource_thread.send(CoreResourceMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
                                         LoadConsumer::Channel(sender),

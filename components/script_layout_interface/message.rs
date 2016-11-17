@@ -15,12 +15,12 @@ use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
 use style::stylesheets::Stylesheet;
-use url::Url;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -79,7 +79,7 @@ pub enum Msg {
     CreateLayoutThread(NewLayoutThreadInfo),
 
     /// Set the final Url.
-    SetFinalUrl(Url),
+    SetFinalUrl(ServoUrl),
 
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetStackingContextScrollStates(Vec<StackingContextScrollState>),
@@ -135,7 +135,7 @@ impl Drop for ScriptReflow {
 
 pub struct NewLayoutThreadInfo {
     pub id: PipelineId,
-    pub url: Url,
+    pub url: ServoUrl,
     pub is_parent: bool,
     pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,

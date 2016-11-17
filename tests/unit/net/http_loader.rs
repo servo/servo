@@ -34,6 +34,7 @@ use net_traits::{CustomResponse, LoadOrigin, Metadata, NetworkError, ReferrerPol
 use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
+use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::io::{self, Cursor, Read, Write};
 use std::rc::Rc;
@@ -41,14 +42,13 @@ use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use std::thread;
-use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
 struct HttpTest;
 
 impl LoadOrigin for HttpTest {
-    fn referrer_url(&self) -> Option<Url> {
+    fn referrer_url(&self) -> Option<ServoUrl> {
         None
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
@@ -65,8 +65,8 @@ struct LoadOriginInfo<'a> {
 }
 
 impl<'a> LoadOrigin for LoadOriginInfo<'a> {
-    fn referrer_url(&self) -> Option<Url> {
-        Some(Url::parse(self.referrer_url).unwrap())
+    fn referrer_url(&self) -> Option<ServoUrl> {
+        Some(ServoUrl::parse(self.referrer_url).unwrap())
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         self.referrer_policy.clone()
@@ -245,7 +245,7 @@ struct AssertAuthHeaderRequestFactory {
 impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
     type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         let request = if headers.has::<Authorization<Basic>>() {
             assert_headers_included(&self.expected_headers, &headers);
             MockRequest::new(ResponseType::Text(self.body.clone()))
@@ -276,7 +276,7 @@ struct AssertMustIncludeHeadersRequestFactory {
 impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
     type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         assert_headers_included(&self.expected_headers, &headers);
         Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
@@ -284,7 +284,7 @@ impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
 
 fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: Option<&str>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    let url = Url::parse(&*domain).unwrap();
+    let url = ServoUrl::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
     assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
 }
@@ -297,7 +297,7 @@ struct AssertMustNotIncludeHeadersRequestFactory {
 impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
     type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         assert!(self.headers_not_expected.len() != 0);
         for header in &self.headers_not_expected {
             assert!(headers.get_raw(header).is_none());
@@ -760,7 +760,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
@@ -768,7 +768,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
         }
     }
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = ServoUrl::parse("https://mozilla.com").unwrap();
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
@@ -857,8 +857,8 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
 #[test]
 fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_store() {
-    let url = Url::parse("http://mozilla.com").unwrap();
-    let secured_url = Url::parse("https://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
+    let secured_url = ServoUrl::parse("https://mozilla.com").unwrap();
     let ui_provider = TestProvider::new();
     let http_state = HttpState::new();
     {
@@ -1005,8 +1005,8 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
 #[test]
 fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
-    let sec_url = Url::parse("https://mozilla.com").unwrap();
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let sec_url = ServoUrl::parse("https://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1173,7 +1173,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
 #[test]
 fn test_load_errors_when_there_a_redirect_loop() {
-    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a = Arc::new(Mutex::new(None::<ServoUrl>));
     let url_b_for_a_clone = url_b_for_a.clone();
     let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
         response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
@@ -1211,7 +1211,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
 #[test]
 fn test_load_succeeds_with_a_redirect_loop() {
-    let url_b_for_a = Arc::new(Mutex::new(None::<Url>));
+    let url_b_for_a = Arc::new(Mutex::new(None::<ServoUrl>));
     let url_b_for_a_clone = url_b_for_a.clone();
     let handled_a = AtomicBool::new(false);
     let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
@@ -1262,7 +1262,7 @@ fn test_load_follows_a_redirect() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
@@ -1279,7 +1279,7 @@ fn test_load_follows_a_redirect() {
         }
     }
 
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1299,14 +1299,14 @@ struct DontConnectFactory;
 impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
-    fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, url: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
         Err(LoadError::new(url, LoadErrorType::Connection { reason: "should not have connected".into() }))
     }
 }
 
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
-    let url = Url::parse("ftp://not-supported").unwrap();
+    let url = ServoUrl::parse("ftp://not-supported").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
@@ -1325,7 +1325,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
-    let url = Url::parse("view-source:ftp://not-supported").unwrap();
+    let url = ServoUrl::parse("view-source:ftp://not-supported").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
@@ -1353,7 +1353,7 @@ fn test_load_errors_when_cancelled() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut headers = Headers::new();
             headers.set(Host { hostname: "Kaboom!".to_owned(), port: None });
             Ok(MockRequest::new(
@@ -1368,7 +1368,7 @@ fn test_load_errors_when_cancelled() {
     let cancel_listener = CancellationListener::new(Some(cancel_resource));
     cancel_sender.send(()).unwrap();
 
-    let url = Url::parse("https://mozilla.com").unwrap();
+    let url = ServoUrl::parse("https://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1386,15 +1386,15 @@ fn test_load_errors_when_cancelled() {
 
 #[test]
 fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
-    let url_x = Url::parse("http://mozilla.com").unwrap();
-    let url_y = Url::parse("http://mozilla.org").unwrap();
+    let url_x = ServoUrl::parse("http://mozilla.com").unwrap();
+    let url_y = ServoUrl::parse("http://mozilla.org").unwrap();
 
     struct Factory;
 
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 let mut expected_headers_x = Headers::new();
                 expected_headers_x.set_raw("Cookie".to_owned(),
@@ -1459,14 +1459,14 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
 #[test]
 fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
-    let url = Url::parse("http://mozilla.org/initial/").unwrap();
+    let url = ServoUrl::parse("http://mozilla.org/initial/").unwrap();
 
     struct Factory;
 
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.path_segments().unwrap().next().unwrap() == "initial" {
                 let mut initial_answer_headers = Headers::new();
                 initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
@@ -1505,7 +1505,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
 #[test]
 fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1541,7 +1541,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
 #[test]
 fn test_auth_ui_sets_header_on_401() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
     let http_state = HttpState::new();
     let ui_provider = TestProvider { username: "test".to_owned(), password: "test".to_owned() };
 
@@ -1574,7 +1574,7 @@ fn test_auth_ui_sets_header_on_401() {
 
 #[test]
 fn test_auth_ui_needs_www_auth() {
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
     let http_state = HttpState::new();
     struct AuthProvider;
     impl UIProvider for AuthProvider {
@@ -1588,7 +1588,7 @@ fn test_auth_ui_needs_www_auth() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             Ok(MockRequest::new(ResponseType::NeedsAuth(Headers::new())))
         }
     }
@@ -1610,7 +1610,7 @@ fn test_auth_ui_needs_www_auth() {
 fn assert_referrer_header_matches(origin_info: &LoadOrigin,
                                   request_url: &str,
                                   expected_referrer: &str) {
-    let url = Url::parse(request_url).unwrap();
+    let url = ServoUrl::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
@@ -1631,7 +1631,7 @@ fn assert_referrer_header_matches(origin_info: &LoadOrigin,
 }
 
 fn assert_referrer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
-    let url = Url::parse(request_url).unwrap();
+    let url = ServoUrl::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
@@ -2039,7 +2039,7 @@ fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String
     struct Factory;
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
-        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             Ok(MockRequest::new(ResponseType::Dummy404))
         }
     }
@@ -2049,7 +2049,7 @@ fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String
         RawStatus(200, Cow::Borrowed("OK")),
         expected_body
     );
-    let url = Url::parse("http://mozilla.com").unwrap();
+    let url = ServoUrl::parse("http://mozilla.com").unwrap();
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
@@ -2087,13 +2087,13 @@ fn test_content_blocked() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, _url: Url, _method: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _url: ServoUrl, _method: Method, _: Headers) -> Result<MockRequest, LoadError> {
             Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
         }
     }
 
-    let blocked_url = Url::parse("http://mozilla.com").unwrap();
-    let url_without_cookies = Url::parse("http://mozilla2.com").unwrap();
+    let blocked_url = ServoUrl::parse("http://mozilla.com").unwrap();
+    let url_without_cookies = ServoUrl::parse("http://mozilla2.com").unwrap();
     let mut http_state = HttpState::new();
 
     let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla.com\" }, \

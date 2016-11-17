@@ -10,8 +10,8 @@ use error_reporting::ParseErrorReporter;
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use selector_impl::TheSelectorImpl;
 use selectors::parser::ParserContext as SelectorParserContext;
+use servo_url::ServoUrl;
 use stylesheets::Origin;
-use url::Url;
 
 #[cfg(not(feature = "gecko"))]
 pub struct ParserContextExtraData;
@@ -37,14 +37,14 @@ impl ParserContextExtraData {
 
 pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,
-    pub base_url: &'a Url,
+    pub base_url: &'a ServoUrl,
     pub selector_context: SelectorParserContext<TheSelectorImpl>,
     pub error_reporter: Box<ParseErrorReporter + Send>,
     pub extra_data: ParserContextExtraData,
 }
 
 impl<'a> ParserContext<'a> {
-    pub fn new_with_extra_data(stylesheet_origin: Origin, base_url: &'a Url,
+    pub fn new_with_extra_data(stylesheet_origin: Origin, base_url: &'a ServoUrl,
                                error_reporter: Box<ParseErrorReporter + Send>,
                                extra_data: ParserContextExtraData)
                                -> ParserContext<'a> {
@@ -59,7 +59,7 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    pub fn new(stylesheet_origin: Origin, base_url: &'a Url, error_reporter: Box<ParseErrorReporter + Send>)
+    pub fn new(stylesheet_origin: Origin, base_url: &'a ServoUrl, error_reporter: Box<ParseErrorReporter + Send>)
                -> ParserContext<'a> {
         let extra_data = ParserContextExtraData::default();
         ParserContext::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)

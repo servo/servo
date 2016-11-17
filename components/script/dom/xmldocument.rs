@@ -16,7 +16,7 @@ use dom::location::Location;
 use dom::node::Node;
 use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
-use url::Url;
+use servo_url::ServoUrl;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -27,7 +27,7 @@ pub struct XMLDocument {
 impl XMLDocument {
     fn new_inherited(window: &Window,
                      browsing_context: Option<&BrowsingContext>,
-                     url: Option<Url>,
+                     url: Option<ServoUrl>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<String>,
@@ -49,7 +49,7 @@ impl XMLDocument {
 
     pub fn new(window: &Window,
                browsing_context: Option<&BrowsingContext>,
-               url: Option<Url>,
+               url: Option<ServoUrl>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,

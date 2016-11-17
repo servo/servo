@@ -341,12 +341,12 @@ pub mod utils {
     use dom::window::Window;
     use ipc_channel::ipc;
     use net_traits::image_cache_thread::{ImageCacheChan, ImageResponse};
-    use url::Url;
+    use servo_url::ServoUrl;
 
-    pub fn request_image_from_cache(window: &Window, url: Url) -> ImageResponse {
+    pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
         let image_cache = window.image_cache_thread();
         let (response_chan, response_port) = ipc::channel().unwrap();
-        image_cache.request_image(url, ImageCacheChan(response_chan), None);
+        image_cache.request_image(url.into(), ImageCacheChan(response_chan), None);
         let result = response_port.recv().unwrap();
         result.image_response
     }

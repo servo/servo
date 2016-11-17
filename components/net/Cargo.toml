@@ -34,6 +34,7 @@ profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 serde = "0.8"
 serde_derive = "0.8"
+servo_url = {path = "../url"}
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"

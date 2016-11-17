@@ -19,8 +19,8 @@ msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 script_traits = {path = "../../components/script_traits"}
 servo-glutin = "0.6"
+servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
-url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../../components/util"}
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]

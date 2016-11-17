@@ -20,9 +20,9 @@ log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "1.1.0"
 parking_lot = "0.3"
 selectors = "0.14"
+servo_url = {path = "../../components/url"}
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
-url = "1.2"
 
 [dev-dependencies]
 stylo_tests = {path = "../../tests/unit/stylo"}

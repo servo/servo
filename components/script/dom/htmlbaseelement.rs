@@ -14,8 +14,8 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
+use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use url::Url;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -39,7 +39,7 @@ impl HTMLBaseElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url
-    pub fn frozen_base_url(&self) -> Url {
+    pub fn frozen_base_url(&self) -> ServoUrl {
         let href = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");

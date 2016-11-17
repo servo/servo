@@ -22,12 +22,12 @@ use hyper::header::Headers as HyperHeaders;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use servo_url::ServoUrl;
 use std::cell::Ref;
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
 use url::Position;
-use url::Url;
 
 #[dom_struct]
 pub struct Response {
@@ -40,8 +40,8 @@ pub struct Response {
     status: DOMRefCell<Option<StatusCode>>,
     raw_status: DOMRefCell<Option<(u16, Vec<u8>)>>,
     response_type: DOMRefCell<DOMResponseType>,
-    url: DOMRefCell<Option<Url>>,
-    url_list: DOMRefCell<Vec<Url>>,
+    url: DOMRefCell<Option<ServoUrl>>,
+    url_list: DOMRefCell<Vec<ServoUrl>>,
     // For now use the existing NetTraitsResponseBody enum
     body: DOMRefCell<NetTraitsResponseBody>,
     #[ignore_heap_size_of = "Rc"]
@@ -156,7 +156,7 @@ impl Response {
         // Step 2
         let url = match parsed_url {
             Ok(url) => url,
-            Err(_) => return Err(Error::Type("Url could not be parsed".to_string())),
+            Err(_) => return Err(Error::Type("ServoUrl could not be parsed".to_string())),
         };
 
         // Step 3
@@ -357,8 +357,8 @@ impl ResponseMethods for Response {
     }
 }
 
-fn serialize_without_fragment(url: &Url) -> &str {
-    &url[..Position::AfterQuery]
+fn serialize_without_fragment(url: &ServoUrl) -> &str {
+    &url.as_url().unwrap()[..Position::AfterQuery]
 }
 
 impl Response {
@@ -377,7 +377,7 @@ impl Response {
         *self.raw_status.borrow_mut() = status;
     }
 
-    pub fn set_final_url(&self, final_url: Url) {
+    pub fn set_final_url(&self, final_url: ServoUrl) {
         *self.url.borrow_mut() = Some(final_url);
     }
 

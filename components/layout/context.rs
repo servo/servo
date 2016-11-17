@@ -17,13 +17,13 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
+use servo_url::ServoUrl;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, StyleContext, SharedStyleContext};
-use url::Url;
 use util::opts;
 
 struct LocalLayoutContext {
@@ -83,7 +83,7 @@ pub struct SharedLayoutContext {
     pub font_cache_thread: Mutex<FontCacheThread>,
 
     /// A cache of WebRender image info.
-    pub webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+    pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
 }
@@ -125,7 +125,7 @@ impl<'a> LayoutContext<'a> {
 }
 
 impl SharedLayoutContext {
-    fn get_or_request_image_synchronously(&self, url: Url, use_placeholder: UsePlaceholder)
+    fn get_or_request_image_synchronously(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
                                           -> Option<Arc<Image>> {
         debug_assert!(opts::get().output_file.is_some() || opts::get().exit_after_load);
 
@@ -161,7 +161,7 @@ impl SharedLayoutContext {
         }
     }
 
-    pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
+    pub fn get_or_request_image_or_meta(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
                                 -> Option<ImageOrMetadataAvailable> {
         // If we are emitting an output file, load the image synchronously.
         if opts::get().output_file.is_some() || opts::get().exit_after_load {
@@ -190,23 +190,23 @@ impl SharedLayoutContext {
     }
 
     pub fn get_webrender_image_for_url(&self,
-                                       url: &Url,
+                                       url: ServoUrl,
                                        use_placeholder: UsePlaceholder)
                                        -> Option<WebRenderImageInfo> {
         if let Some(existing_webrender_image) = self.webrender_image_cache
                                                     .read()
-                                                    .get(&((*url).clone(), use_placeholder)) {
+                                                    .get(&(url.clone(), use_placeholder)) {
             return Some((*existing_webrender_image).clone())
         }
 
-        match self.get_or_request_image_or_meta((*url).clone(), use_placeholder) {
+        match self.get_or_request_image_or_meta(url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {
                     Some(image_info)
                 } else {
                     let mut webrender_image_cache = self.webrender_image_cache.write();
-                    webrender_image_cache.insert(((*url).clone(), use_placeholder),
+                    webrender_image_cache.insert((url, use_placeholder),
                                                  image_info);
                     Some(image_info)
                 }

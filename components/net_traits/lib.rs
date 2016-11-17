@@ -27,6 +27,7 @@ extern crate num_traits;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_url;
 extern crate url;
 extern crate util;
 extern crate uuid;
@@ -47,9 +48,9 @@ use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
+use servo_url::ServoUrl;
 use std::io::Error as IOError;
 use storage_thread::StorageThreadMsg;
-use url::Url;
 use websocket::header;
 
 pub mod blob_url_store;
@@ -108,7 +109,7 @@ impl CustomResponse {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct CustomResponseMediator {
     pub response_chan: IpcSender<Option<CustomResponse>>,
-    pub load_url: Url
+    pub load_url: ServoUrl,
 }
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
@@ -135,7 +136,7 @@ pub enum ReferrerPolicy {
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
-    pub url: Url,
+    pub url: ServoUrl,
     #[ignore_heap_size_of = "Defined in hyper"]
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
@@ -159,12 +160,12 @@ pub struct LoadData {
     pub context: LoadContext,
     /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
-    pub referrer_url: Option<Url>
+    pub referrer_url: Option<ServoUrl>
 }
 
 impl LoadData {
     pub fn new(context: LoadContext,
-               url: Url,
+               url: ServoUrl,
                load_origin: &LoadOrigin) -> LoadData {
         LoadData {
             url: url,
@@ -183,7 +184,7 @@ impl LoadData {
 }
 
 pub trait LoadOrigin {
-    fn referrer_url(&self) -> Option<Url>;
+    fn referrer_url(&self) -> Option<ServoUrl>;
     fn referrer_policy(&self) -> Option<ReferrerPolicy>;
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
@@ -406,7 +407,7 @@ pub struct WebSocketCommunicate {
 
 #[derive(Deserialize, Serialize)]
 pub struct WebSocketConnectData {
-    pub resource_url: Url,
+    pub resource_url: ServoUrl,
     pub origin: String,
     pub protocols: Vec<String>,
 }
@@ -419,19 +420,19 @@ pub enum CoreResourceMsg {
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
-    SetCookiesForUrl(Url, String, CookieSource),
+    SetCookiesForUrl(ServoUrl, String, CookieSource),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrlWithData(
-        Url,
+        ServoUrl,
         #[serde(deserialize_with = "::hyper_serde::deserialize",
                 serialize_with = "::hyper_serde::serialize")]
         Cookie,
         CookieSource
     ),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
+    GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(Url, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
+    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
@@ -476,14 +477,14 @@ pub struct ResourceCorsData {
     /// CORS Preflight flag
     pub preflight: bool,
     /// Origin of CORS Request
-    pub origin: Url,
+    pub origin: ServoUrl,
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct Metadata {
     /// Final URL after redirects.
-    pub final_url: Url,
+    pub final_url: ServoUrl,
 
     #[ignore_heap_size_of = "Defined in hyper"]
     /// MIME type / subtype.
@@ -503,12 +504,12 @@ pub struct Metadata {
     pub https_state: HttpsState,
 
     /// Referrer Url
-    pub referrer: Option<Url>,
+    pub referrer: Option<ServoUrl>,
 }
 
 impl Metadata {
     /// Metadata with defaults for everything optional.
-    pub fn default(url: Url) -> Self {
+    pub fn default(url: ServoUrl) -> Self {
         Metadata {
             final_url:    url,
             content_type: None,
@@ -614,7 +615,7 @@ pub enum NetworkError {
     Internal(String),
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
-    SslValidation(Url, String),
+    SslValidation(ServoUrl, String),
 }
 
 /// Normalize `slice`, as defined by

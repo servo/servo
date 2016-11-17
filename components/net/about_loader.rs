@@ -11,6 +11,7 @@ use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
+use servo_url::ServoUrl;
 use std::io;
 use std::sync::Arc;
 use url::Url;
@@ -20,7 +21,7 @@ fn url_from_non_relative_scheme(load_data: &mut LoadData, filename: &str) -> io:
     let mut path = try!(resources_dir_path());
     path.push(filename);
     assert!(path.exists());
-    load_data.url = Url::from_file_path(&*path).unwrap();
+    load_data.url = ServoUrl::from_url(Url::from_file_path(&*path).unwrap());
     Ok(())
 }
 

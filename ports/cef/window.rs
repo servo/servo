@@ -33,7 +33,7 @@ use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
-use std_url::Url;
+use servo_url::ServoUrl;
 use style_traits::cursor::Cursor;
 use util::geometry::ScreenPx;
 #[cfg(target_os="linux")]
@@ -312,13 +312,13 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_favicon(&self, url: Url) {
+    fn set_favicon(&self, url: ServoUrl) {
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
-        browser.downcast().favicons.borrow_mut().push(url.to_string().clone());
+        browser.downcast().favicons.borrow_mut().push(url.into_string());
     }
 
     fn status(&self, info: Option<String>) {
@@ -444,7 +444,7 @@ impl WindowMethods for Window {
         };
     }
 
-    fn set_page_url(&self, url: Url) {
+    fn set_page_url(&self, url: ServoUrl) {
         // it seems to be the case that load start is always called
         // IMMEDIATELY before address change, so just stick it here
         on_load_start(self);
@@ -457,7 +457,7 @@ impl WindowMethods for Window {
         let servoframe = frame.downcast();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let mut frame_url = servoframe.url.borrow_mut();
-        *frame_url = url.to_string();
+        *frame_url = url.into_string();
         let utf16_chars: Vec<u16> = Utf16Encoder::new((*frame_url).chars()).collect();
         if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {

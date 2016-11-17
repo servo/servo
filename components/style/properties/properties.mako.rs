@@ -21,7 +21,6 @@ use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
 use cssparser::{Parser, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
-use url::Url;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use computed_values;
@@ -29,6 +28,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
+use servo_url::ServoUrl;
 use style_traits::ToCss;
 use stylesheets::Origin;
 #[cfg(feature = "servo")] use values::Either;
@@ -240,7 +240,7 @@ mod property_bit_field {
         fn substitute_variables_${property.ident}_slow<F>(
                 css: &String,
                 first_token_type: TokenSerializationType,
-                base_url: &Url,
+                base_url: &ServoUrl,
                 from_shorthand: Option<Shorthand>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
@@ -493,7 +493,7 @@ pub enum DeclaredValue<T> {
     WithVariables {
         css: String,
         first_token_type: TokenSerializationType,
-        base_url: Url,
+        base_url: ServoUrl,
         from_shorthand: Option<Shorthand>,
     },
     Initial,

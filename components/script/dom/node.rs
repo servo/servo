@@ -73,6 +73,7 @@ use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::max;
@@ -85,7 +86,6 @@ use style::dom::OpaqueNode;
 use style::selector_impl::ServoSelectorImpl;
 use style::stylesheets::Stylesheet;
 use style::thread_state;
-use url::Url;
 use uuid::Uuid;
 
 //
@@ -968,7 +968,7 @@ pub trait LayoutNodeHelpers {
 
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
-    fn image_url(&self) -> Option<Url>;
+    fn image_url(&self) -> Option<ServoUrl>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_pipeline_id(&self) -> PipelineId;
@@ -1103,7 +1103,7 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     }
 
     #[allow(unsafe_code)]
-    fn image_url(&self) -> Option<Url> {
+    fn image_url(&self) -> Option<ServoUrl> {
         unsafe {
             self.downcast::<HTMLImageElement>()
                 .expect("not an image!")

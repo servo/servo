@@ -55,6 +55,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode
 use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -64,7 +65,7 @@ use std::sync::{Arc, Mutex};
 use task_source::networking::NetworkingTaskSource;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
-use url::{Position, Url};
+use url::Position;
 use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
@@ -137,7 +138,7 @@ pub struct XMLHttpRequest {
     // Associated concepts
     #[ignore_heap_size_of = "Defined in hyper"]
     request_method: DOMRefCell<Method>,
-    request_url: DOMRefCell<Option<Url>>,
+    request_url: DOMRefCell<Option<ServoUrl>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     request_headers: DOMRefCell<Headers>,
     request_body_len: Cell<usize>,
@@ -149,7 +150,7 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
-    referrer_url: Option<Url>,
+    referrer_url: Option<ServoUrl>,
     referrer_policy: Option<ReferrerPolicy>,
 }
 
@@ -169,7 +170,7 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
-            response_url: DOMRefCell::new(String::from("")),
+            response_url: DOMRefCell::new(String::new()),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -272,7 +273,7 @@ impl XMLHttpRequest {
 }
 
 impl LoadOrigin for XMLHttpRequest {
-    fn referrer_url(&self) -> Option<Url> {
+    fn referrer_url(&self) -> Option<ServoUrl> {
         return self.referrer_url.clone();
     }
 
@@ -860,7 +861,8 @@ impl XMLHttpRequest {
     }
 
     fn process_headers_available(&self,
-                                 gen_id: GenerationId, metadata: Result<FetchMetadata, NetworkError>)
+                                 gen_id: GenerationId,
+                                 metadata: Result<FetchMetadata, NetworkError>)
                                  -> Result<(), Error> {
         let metadata = match metadata {
             Ok(meta) => match meta {
@@ -876,7 +878,7 @@ impl XMLHttpRequest {
             },
         };
 
-        *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
+        *self.response_url.borrow_mut() = metadata.final_url.as_url().unwrap()[..Position::AfterQuery].to_owned();
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(

@@ -57,6 +57,7 @@ profile_traits = {path = "../profile_traits"}
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
+servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
 url = "1.2"
 util = {path = "../util"}

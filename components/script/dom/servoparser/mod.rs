@@ -29,9 +29,9 @@ use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
-use url::Url;
 use util::resource_files::read_resource_file;
 
 mod html;
@@ -65,7 +65,7 @@ impl ServoParser {
     pub fn parse_html_document(
             document: &Document,
             input: DOMString,
-            url: Url,
+            url: ServoUrl,
             owner: Option<PipelineId>) {
         let parser = ServoParser::new(
             document,
@@ -122,7 +122,7 @@ impl ServoParser {
     pub fn parse_xml_document(
             document: &Document,
             input: DOMString,
-            url: Url,
+            url: ServoUrl,
             owner: Option<PipelineId>) {
         let parser = ServoParser::new(
             document,
@@ -287,7 +287,7 @@ enum Tokenizer {
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 struct Sink {
-    pub base_url: Url,
+    pub base_url: ServoUrl,
     pub document: JS<Document>,
 }
 
@@ -338,11 +338,11 @@ pub struct ParserContext {
     /// The pipeline associated with this document.
     id: PipelineId,
     /// The URL for this document.
-    url: Url,
+    url: ServoUrl,
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, url: Url) -> ParserContext {
+    pub fn new(id: PipelineId, url: ServoUrl) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,

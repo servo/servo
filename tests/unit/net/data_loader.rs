@@ -9,15 +9,15 @@ use hyper_serde::Serde;
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use net_traits::request::{Origin, Request};
 use net_traits::response::ResponseBody;
+use servo_url::ServoUrl;
 use std::ops::Deref;
-use url::Url;
 
 #[cfg(test)]
 fn assert_parse(url:          &'static str,
                 content_type: Option<ContentType>,
                 charset:      Option<&str>,
                 data:         Option<&[u8]>) {
-    let url = Url::parse(url).unwrap();
+    let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
 

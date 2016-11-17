@@ -33,6 +33,7 @@ use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -42,7 +43,6 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
-use url::Url;
 
 #[derive(PartialEq, Clone, JSTraceable)]
 pub enum CommonEventHandler {
@@ -71,7 +71,7 @@ pub enum ListenerPhase {
 #[derive(JSTraceable, Clone, PartialEq)]
 pub struct InternalRawUncompiledHandler {
     source: DOMString,
-    url: Url,
+    url: ServoUrl,
     line: usize,
 }
 
@@ -348,7 +348,7 @@ impl EventTarget {
     /// Store the raw uncompiled event handler for on-demand compilation later.
     /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
     pub fn set_event_handler_uncompiled(&self,
-                                        url: Url,
+                                        url: ServoUrl,
                                         line: usize,
                                         ty: &str,
                                         source: DOMString) {

@@ -69,6 +69,7 @@ script_traits = {path = "../script_traits"}
 selectors = "0.14"
 serde = "0.8"
 servo_atoms = {path = "../atoms"}
+servo_url = {path = "../url", features = ["servo"] }
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}

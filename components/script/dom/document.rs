@@ -108,6 +108,7 @@ use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -127,7 +128,6 @@ use style::selector_impl::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use time;
-use url::Url;
 use url::percent_encoding::percent_decode;
 use util::prefs::PREFS;
 
@@ -192,7 +192,7 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
     is_html_document: bool,
-    url: Url,
+    url: ServoUrl,
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
@@ -398,12 +398,12 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    pub fn url(&self) -> &Url {
+    pub fn url(&self) -> &ServoUrl {
         &self.url
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
-    pub fn fallback_base_url(&self) -> Url {
+    pub fn fallback_base_url(&self) -> ServoUrl {
         // Step 1: iframe srcdoc (#4767).
         // Step 2: about:blank with a creator browsing context.
         // Step 3.
@@ -411,7 +411,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url
-    pub fn base_url(&self) -> Url {
+    pub fn base_url(&self) -> ServoUrl {
         match self.base_element() {
             // Step 1.
             None => self.fallback_base_url(),
@@ -1762,7 +1762,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 }
 
 /// https://url.spec.whatwg.org/#network-scheme
-fn url_has_network_scheme(url: &Url) -> bool {
+fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
         "ftp" | "http" | "https" => true,
         _ => false,
@@ -1772,7 +1772,7 @@ fn url_has_network_scheme(url: &Url) -> bool {
 impl Document {
     pub fn new_inherited(window: &Window,
                          browsing_context: Option<&BrowsingContext>,
-                         url: Option<Url>,
+                         url: Option<ServoUrl>,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
@@ -1781,7 +1781,7 @@ impl Document {
                          referrer: Option<String>,
                          referrer_policy: Option<ReferrerPolicy>)
                          -> Document {
-        let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
+        let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
         let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
             (DocumentReadyState::Loading, false)
@@ -1892,7 +1892,7 @@ impl Document {
 
     pub fn new(window: &Window,
                browsing_context: Option<&BrowsingContext>,
-               url: Option<Url>,
+               url: Option<ServoUrl>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,

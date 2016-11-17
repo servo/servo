@@ -33,7 +33,7 @@ script_traits = {path = "../script_traits"}
 serde = "0.8"
 serde_derive = "0.8"
 style_traits = {path = "../style_traits"}
-url = {version = "1.2", features = ["heap_size"]}
+servo_url = {path = "../url", features = ["servo"]}
 util = {path = "../util"}
 
 [dependencies.webrender_traits]

@@ -28,11 +28,11 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as Req
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use servo_url::ServoUrl;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, IN_WORKER, SCRIPT};
-use url::Url;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 
@@ -80,12 +80,12 @@ pub struct ServiceWorkerGlobalScope {
     timer_event_port: Receiver<()>,
     #[ignore_heap_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
-    scope_url: Url,
+    scope_url: ServoUrl,
 }
 
 impl ServiceWorkerGlobalScope {
     fn new_inherited(init: WorkerGlobalScopeInit,
-                     worker_url: Url,
+                     worker_url: ServoUrl,
                      from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                      runtime: Runtime,
                      own_sender: Sender<ServiceWorkerScriptMsg>,
@@ -93,7 +93,7 @@ impl ServiceWorkerGlobalScope {
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                     scope_url: Url)
+                     scope_url: ServoUrl)
                      -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(init,
@@ -112,7 +112,7 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
-               worker_url: Url,
+               worker_url: ServoUrl,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
                own_sender: Sender<ServiceWorkerScriptMsg>,
@@ -120,7 +120,7 @@ impl ServiceWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
-               scope_url: Url)
+               scope_url: ServoUrl)
                -> Root<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
@@ -144,7 +144,7 @@ impl ServiceWorkerGlobalScope {
                             receiver: Receiver<ServiceWorkerScriptMsg>,
                             devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                            scope_url: Url) {
+                            scope_url: ServoUrl) {
         let ScopeThings { script_url,
                           init,
                           worker_load_origin,

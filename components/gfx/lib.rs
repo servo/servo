@@ -63,17 +63,15 @@ extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-
+extern crate servo_url;
+#[macro_use] extern crate servo_atoms;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 extern crate simd;
-
-#[macro_use] extern crate servo_atoms;
 extern crate smallvec;
 extern crate style;
 extern crate style_traits;
 extern crate time;
 extern crate unicode_script;
-extern crate url;
 extern crate util;
 extern crate webrender_traits;
 extern crate xi_unicode;

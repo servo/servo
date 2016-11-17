@@ -10,13 +10,13 @@ use net_traits::{LoadConsumer, LoadData, LoadOrigin, Metadata, NetworkError, Ref
 use net_traits::ProgressMsg::{Done, Payload};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
+use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
-use url::Url;
 use util::thread::spawn_named;
 
 static READ_SIZE: usize = 8192;
@@ -33,7 +33,7 @@ enum LoadResult {
 
 struct FileLoadOrigin;
 impl LoadOrigin for FileLoadOrigin {
-    fn referrer_url(&self) -> Option<Url> {
+    fn referrer_url(&self) -> Option<ServoUrl> {
         None
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
@@ -97,7 +97,7 @@ pub fn factory(load_data: LoadData,
                 // this should be one of the three errors listed in
                 // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                 // but, we'll go for a "file not found!"
-                let url = Url::parse("about:not-found").unwrap();
+                let url = ServoUrl::parse("about:not-found").unwrap();
                 let load_data_404 = LoadData::new(load_data.context, url, &FileLoadOrigin);
                 about_loader::factory(load_data_404, senders, classifier, cancel_listener);
                 return;
