@@ -10,9 +10,9 @@ use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use std::fmt;
+use servo_url::ServoUrl;
 use std::sync::Arc;
 use stylesheets::{MemoryHoleReporter, Origin};
-use servo_url::ServoUrl;
 use style_traits::ToCss;
 
 /// A number from 1 to 100, indicating the percentage of the animation where
