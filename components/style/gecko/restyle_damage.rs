@@ -4,6 +4,7 @@
 
 use dom::TRestyleDamage;
 use gecko_bindings::bindings;
+use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use properties::ComputedValues;
@@ -23,8 +24,7 @@ impl TRestyleDamage for GeckoRestyleDamage {
     type PreExistingComputedValues = nsStyleContext;
 
     fn empty() -> Self {
-        use std::mem;
-        GeckoRestyleDamage(unsafe { mem::transmute(0u32) })
+        GeckoRestyleDamage(nsChangeHint(0))
     }
 
     fn compute(source: &nsStyleContext,
@@ -38,7 +38,7 @@ impl TRestyleDamage for GeckoRestyleDamage {
     }
 
     fn rebuild_and_reflow() -> Self {
-        GeckoRestyleDamage(nsChangeHint::nsChangeHint_ReconstructFrame)
+        GeckoRestyleDamage(structs::nsChangeHint_nsChangeHint_ReconstructFrame)
     }
 }
 
@@ -46,8 +46,7 @@ impl BitOr for GeckoRestyleDamage {
     type Output = Self;
 
     fn bitor(self, other: Self) -> Self {
-        use std::mem;
-        GeckoRestyleDamage(unsafe { mem::transmute(self.0 as u32 | other.0 as u32) })
+        GeckoRestyleDamage(self.0 | other.0)
     }
 }
 

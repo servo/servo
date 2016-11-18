@@ -3948,7 +3948,36 @@ fn bindgen_test_layout_EventStates() {
 impl Clone for EventStates {
     fn clone(&self) -> Self { *self }
 }
-#[repr(u32)]
+pub const nsRestyleHint_eRestyle_Self: nsRestyleHint = nsRestyleHint(1);
+pub const nsRestyleHint_eRestyle_SomeDescendants: nsRestyleHint =
+    nsRestyleHint(2);
+pub const nsRestyleHint_eRestyle_Subtree: nsRestyleHint = nsRestyleHint(4);
+pub const nsRestyleHint_eRestyle_LaterSiblings: nsRestyleHint =
+    nsRestyleHint(8);
+pub const nsRestyleHint_eRestyle_CSSTransitions: nsRestyleHint =
+    nsRestyleHint(16);
+pub const nsRestyleHint_eRestyle_CSSAnimations: nsRestyleHint =
+    nsRestyleHint(32);
+pub const nsRestyleHint_eRestyle_SVGAttrAnimations: nsRestyleHint =
+    nsRestyleHint(64);
+pub const nsRestyleHint_eRestyle_StyleAttribute: nsRestyleHint =
+    nsRestyleHint(128);
+pub const nsRestyleHint_eRestyle_StyleAttribute_Animations: nsRestyleHint =
+    nsRestyleHint(256);
+pub const nsRestyleHint_eRestyle_Force: nsRestyleHint = nsRestyleHint(512);
+pub const nsRestyleHint_eRestyle_ForceDescendants: nsRestyleHint =
+    nsRestyleHint(1024);
+pub const nsRestyleHint_eRestyle_AllHintsWithAnimations: nsRestyleHint =
+    nsRestyleHint(368);
+impl ::std::ops::BitOr<nsRestyleHint> for nsRestyleHint {
+    type
+    Output
+    =
+    Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self { nsRestyleHint(self.0 | other.0) }
+}
+#[repr(C)]
 /**
  * |nsRestyleHint| is a bitfield for the result of
  * |HasStateDependentStyle| and |HasAttributeDependentStyle|.  When no
@@ -3968,20 +3997,7 @@ impl Clone for EventStates {
  * RestyleManager::RestyleHintToString.
  */
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsRestyleHint {
-    eRestyle_Self = 1,
-    eRestyle_SomeDescendants = 2,
-    eRestyle_Subtree = 4,
-    eRestyle_LaterSiblings = 8,
-    eRestyle_CSSTransitions = 16,
-    eRestyle_CSSAnimations = 32,
-    eRestyle_SVGAttrAnimations = 64,
-    eRestyle_StyleAttribute = 128,
-    eRestyle_StyleAttribute_Animations = 256,
-    eRestyle_Force = 512,
-    eRestyle_ForceDescendants = 1024,
-    eRestyle_AllHintsWithAnimations = 368,
-}
+pub struct nsRestyleHint(pub u32);
 /**
  * Instances of this class represent moments in time, or a special
  * "null" moment. We do not use the non-monotonic system clock or
@@ -5089,39 +5105,78 @@ fn bindgen_test_layout_RestyleManagerHandle() {
 impl Clone for RestyleManagerHandle {
     fn clone(&self) -> Self { *self }
 }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum nsChangeHint {
-    nsChangeHint_RepaintFrame = 1,
-    nsChangeHint_NeedReflow = 2,
-    nsChangeHint_ClearAncestorIntrinsics = 4,
-    nsChangeHint_ClearDescendantIntrinsics = 8,
-    nsChangeHint_NeedDirtyReflow = 16,
-    nsChangeHint_SyncFrameView = 32,
-    nsChangeHint_UpdateCursor = 64,
-    nsChangeHint_UpdateEffects = 128,
-    nsChangeHint_UpdateOpacityLayer = 256,
-    nsChangeHint_UpdateTransformLayer = 512,
-    nsChangeHint_ReconstructFrame = 1024,
-    nsChangeHint_UpdateOverflow = 2048,
-    nsChangeHint_UpdateSubtreeOverflow = 4096,
-    nsChangeHint_UpdatePostTransformOverflow = 8192,
-    nsChangeHint_UpdateParentOverflow = 16384,
-    nsChangeHint_ChildrenOnlyTransform = 32768,
-    nsChangeHint_RecomputePosition = 65536,
-    nsChangeHint_UpdateContainingBlock = 131072,
-    nsChangeHint_BorderStyleNoneChange = 262144,
-    nsChangeHint_UpdateTextPath = 524288,
-    nsChangeHint_SchedulePaint = 1048576,
-    nsChangeHint_NeutralChange = 2097152,
-    nsChangeHint_InvalidateRenderingObservers = 4194304,
-    nsChangeHint_ReflowChangesSizeOrPosition = 8388608,
-    nsChangeHint_UpdateComputedBSize = 16777216,
-    nsChangeHint_UpdateUsesOpacity = 33554432,
-    nsChangeHint_UpdateBackgroundPosition = 67108864,
-    nsChangeHint_AddOrRemoveTransform = 134217728,
-    nsChangeHint_AllHints = 268435455,
+pub const nsChangeHint_nsChangeHint_RepaintFrame: nsChangeHint =
+    nsChangeHint(1);
+pub const nsChangeHint_nsChangeHint_NeedReflow: nsChangeHint =
+    nsChangeHint(2);
+pub const nsChangeHint_nsChangeHint_ClearAncestorIntrinsics: nsChangeHint =
+    nsChangeHint(4);
+pub const nsChangeHint_nsChangeHint_ClearDescendantIntrinsics: nsChangeHint =
+    nsChangeHint(8);
+pub const nsChangeHint_nsChangeHint_NeedDirtyReflow: nsChangeHint =
+    nsChangeHint(16);
+pub const nsChangeHint_nsChangeHint_SyncFrameView: nsChangeHint =
+    nsChangeHint(32);
+pub const nsChangeHint_nsChangeHint_UpdateCursor: nsChangeHint =
+    nsChangeHint(64);
+pub const nsChangeHint_nsChangeHint_UpdateEffects: nsChangeHint =
+    nsChangeHint(128);
+pub const nsChangeHint_nsChangeHint_UpdateOpacityLayer: nsChangeHint =
+    nsChangeHint(256);
+pub const nsChangeHint_nsChangeHint_UpdateTransformLayer: nsChangeHint =
+    nsChangeHint(512);
+pub const nsChangeHint_nsChangeHint_ReconstructFrame: nsChangeHint =
+    nsChangeHint(1024);
+pub const nsChangeHint_nsChangeHint_UpdateOverflow: nsChangeHint =
+    nsChangeHint(2048);
+pub const nsChangeHint_nsChangeHint_UpdateSubtreeOverflow: nsChangeHint =
+    nsChangeHint(4096);
+pub const nsChangeHint_nsChangeHint_UpdatePostTransformOverflow: nsChangeHint
+          =
+    nsChangeHint(8192);
+pub const nsChangeHint_nsChangeHint_UpdateParentOverflow: nsChangeHint =
+    nsChangeHint(16384);
+pub const nsChangeHint_nsChangeHint_ChildrenOnlyTransform: nsChangeHint =
+    nsChangeHint(32768);
+pub const nsChangeHint_nsChangeHint_RecomputePosition: nsChangeHint =
+    nsChangeHint(65536);
+pub const nsChangeHint_nsChangeHint_UpdateContainingBlock: nsChangeHint =
+    nsChangeHint(131072);
+pub const nsChangeHint_nsChangeHint_BorderStyleNoneChange: nsChangeHint =
+    nsChangeHint(262144);
+pub const nsChangeHint_nsChangeHint_UpdateTextPath: nsChangeHint =
+    nsChangeHint(524288);
+pub const nsChangeHint_nsChangeHint_SchedulePaint: nsChangeHint =
+    nsChangeHint(1048576);
+pub const nsChangeHint_nsChangeHint_NeutralChange: nsChangeHint =
+    nsChangeHint(2097152);
+pub const nsChangeHint_nsChangeHint_InvalidateRenderingObservers: nsChangeHint
+          =
+    nsChangeHint(4194304);
+pub const nsChangeHint_nsChangeHint_ReflowChangesSizeOrPosition: nsChangeHint
+          =
+    nsChangeHint(8388608);
+pub const nsChangeHint_nsChangeHint_UpdateComputedBSize: nsChangeHint =
+    nsChangeHint(16777216);
+pub const nsChangeHint_nsChangeHint_UpdateUsesOpacity: nsChangeHint =
+    nsChangeHint(33554432);
+pub const nsChangeHint_nsChangeHint_UpdateBackgroundPosition: nsChangeHint =
+    nsChangeHint(67108864);
+pub const nsChangeHint_nsChangeHint_AddOrRemoveTransform: nsChangeHint =
+    nsChangeHint(134217728);
+pub const nsChangeHint_nsChangeHint_AllHints: nsChangeHint =
+    nsChangeHint(268435455);
+impl ::std::ops::BitOr<nsChangeHint> for nsChangeHint {
+    type
+    Output
+    =
+    Self;
+    #[inline]
+    fn bitor(self, other: Self) -> Self { nsChangeHint(self.0 | other.0) }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct nsChangeHint(pub u32);
 pub type nscolor = u32;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
