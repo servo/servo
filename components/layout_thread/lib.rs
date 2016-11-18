@@ -42,7 +42,6 @@ extern crate selectors;
 extern crate serde_json;
 extern crate servo_url;
 extern crate style;
-extern crate style_traits;
 extern crate util;
 extern crate webrender_traits;
 
