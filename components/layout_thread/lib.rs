@@ -1055,7 +1055,7 @@ impl LayoutThread {
                        .send(ConstellationMsg::ViewportConstrained(self.id, constraints))
                        .unwrap();
             }
-            if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
+            if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change()) {
                 let mut iter = node.traverse_preorder();
 
                 let mut next = iter.next();

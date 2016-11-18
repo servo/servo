@@ -22,6 +22,7 @@ use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use viewport::ViewportRule;
 
@@ -59,7 +60,7 @@ pub struct Stylesheet {
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
-    pub dirty_on_viewport_size_change: bool,
+    pub dirty_on_viewport_size_change: AtomicBool,
 }
 
 
@@ -215,9 +216,27 @@ impl Stylesheet {
             origin: origin,
             rules: rules.into(),
             media: Arc::new(RwLock::new(media)),
-            dirty_on_viewport_size_change:
-                input.seen_viewport_percentages(),
+            dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
         }
+    }
+
+    pub fn dirty_on_viewport_size_change(&self) -> bool {
+        self.dirty_on_viewport_size_change.load(Ordering::SeqCst)
+    }
+
+    /// When CSSOM inserts a rule or declaration into this stylesheet, it needs to call this method
+    /// with the return value of `cssparser::Parser::seen_viewport_percentages`.
+    ///
+    /// FIXME: actually make these calls
+    ///
+    /// Note: when *removing* a rule or declaration that contains a viewport percentage,
+    /// to keep the flag accurate we’d need to iterator through the rest of the stylesheet to
+    /// check for *other* such values.
+    ///
+    /// Instead, we conservatively assume there might be some.
+    /// Restyling will some some more work than necessary, but give correct results.
+    pub fn inserted_has_viewport_percentages(&self, has_viewport_percentages: bool) {
+        self.dirty_on_viewport_size_change.fetch_or(has_viewport_percentages, Ordering::SeqCst);
     }
 
     /// Returns whether the style-sheet applies for the current device depending

@@ -12,6 +12,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -55,7 +56,7 @@ fn test_parse_stylesheet() {
     let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: Default::default(),
-        dirty_on_viewport_size_change: false,
+        dirty_on_viewport_size_change: AtomicBool::new(false),
         rules: vec![
             CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
