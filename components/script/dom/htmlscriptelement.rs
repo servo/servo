@@ -241,9 +241,9 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
             Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
             _ => CredentialsMode::Include,
         },
-        origin: doc.url().clone(),
+        origin: doc.url(),
         pipeline_id: Some(script.global().pipeline_id()),
-        referrer_url: Some(doc.url().clone()),
+        referrer_url: Some(doc.url()),
         referrer_policy: doc.get_referrer_policy(),
         .. RequestInit::default()
     };

@@ -1239,7 +1239,7 @@ impl ScriptThread {
         let mut reports = vec![];
 
         for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url().as_str();
+            let current_url = document.url();
 
             for child in document.upcast::<Node>().traverse_preorder() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);
@@ -1249,10 +1249,10 @@ impl ScriptThread {
             if reports.len() > 0 {
                 path_seg.push_str(", ");
             }
-            path_seg.push_str(current_url);
+            path_seg.push_str(current_url.as_str());
 
             reports.push(Report {
-                path: path![format!("url({})", current_url), "dom-tree"],
+                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
                 size: dom_tree_size,
             });

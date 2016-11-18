@@ -341,7 +341,7 @@ impl HTMLFormElement {
         let _target = submitter.target();
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
-        let mut load_data = LoadData::new(action_components, doc.get_referrer_policy(), Some(doc.url().clone()));
+        let mut load_data = LoadData::new(action_components, doc.get_referrer_policy(), Some(doc.url()));
 
         // Step 18
         match (&*scheme, method) {

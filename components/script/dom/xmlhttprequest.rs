@@ -159,7 +159,7 @@ impl XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
         let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
             let document = window.Document();
-            (Some(document.url().clone()), document.get_referrer_policy())
+            (Some(document.url()), document.get_referrer_policy())
         } else {
             (None, None)
         };

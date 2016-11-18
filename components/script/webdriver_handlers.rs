@@ -195,7 +195,7 @@ pub fn handle_get_cookies(documents: &Documents,
             let url = document.url();
             let (sender, receiver) = ipc::channel().unwrap();
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+                GetCookiesDataForUrl(url, sender, NonHTTP)
             );
             receiver.recv().unwrap()
         },
@@ -215,7 +215,7 @@ pub fn handle_get_cookie(documents: &Documents,
             let url = document.url();
             let (sender, receiver) = ipc::channel().unwrap();
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+                GetCookiesDataForUrl(url, sender, NonHTTP)
             );
             receiver.recv().unwrap()
         },
@@ -243,13 +243,13 @@ pub fn handle_add_cookie(documents: &Documents,
         (true, _) => Err(WebDriverCookieError::InvalidDomain),
         (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                SetCookiesForUrlWithData(url, cookie, method)
                 );
             Ok(())
         },
         (false, None) => {
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                SetCookiesForUrlWithData(url, cookie, method)
                 );
             Ok(())
         },
@@ -364,7 +364,7 @@ pub fn handle_get_url(documents: &Documents,
                       reply: IpcSender<ServoUrl>) {
     // TODO: Return an error if the pipeline doesn't exist.
     let url = documents.find_document(pipeline)
-        .map(|document| document.url().clone())
+        .map(|document| document.url())
         .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("infallible"));
     reply.send(url).unwrap();
 }

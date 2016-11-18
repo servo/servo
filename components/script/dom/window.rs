@@ -1366,7 +1366,7 @@ impl Window {
     }
 
     pub fn get_url(&self) -> ServoUrl {
-        (*self.Document().url()).clone()
+        self.Document().url()
     }
 
     pub fn layout_chan(&self) -> &Sender<Msg> {
