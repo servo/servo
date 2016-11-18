@@ -19,14 +19,14 @@ use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
 use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
 use js::jsapi::{JS_DefineProperty4, JS_DefinePropertyById3, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_GetClass, JS_GetFunctionObject, JS_GetPrototype};
+use js::jsapi::{JS_GetFunctionObject, JS_GetPrototype};
 use js::jsapi::{JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject};
 use js::jsapi::{JS_NewObject, JS_NewObjectWithUniqueType, JS_NewPlainObject};
 use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot, MutableHandleObject};
 use js::jsapi::{MutableHandleValue, ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
 use js::jsval::{JSVal, PrivateValue};
-use js::rust::{define_methods, define_properties};
+use js::rust::{define_methods, define_properties, get_object_class};
 use libc;
 use std::ptr;
 
@@ -352,7 +352,7 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
                                         obj: HandleObject,
                                         _indent: u32)
                                         -> *mut JSString {
-    let js_class = JS_GetClass(obj.get());
+    let js_class = get_object_class(obj.get());
     assert!(!js_class.is_null());
     let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
     assert!(!repr.is_empty());
@@ -388,7 +388,7 @@ unsafe fn has_instance(
     }
     rooted!(in(cx) let mut value = value.to_object());
 
-    let js_class = JS_GetClass(interface_object.get());
+    let js_class = get_object_class(interface_object.get());
     let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
 
     if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.get(),

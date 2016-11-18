@@ -24,10 +24,10 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
-use js::jsapi::{JSObject, JS_GetClass, JS_GetContext};
+use js::jsapi::{JSObject, JS_GetContext};
 use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::panic::maybe_resume_unwind;
-use js::rust::CompileOptionsWrapper;
+use js::rust::{CompileOptionsWrapper, get_object_class};
 use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
@@ -516,7 +516,7 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 #[allow(unsafe_code)]
 unsafe fn global_scope_from_global(global: *mut JSObject) -> Root<GlobalScope> {
     assert!(!global.is_null());
-    let clasp = JS_GetClass(global);
+    let clasp = get_object_class(global);
     assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
     root_from_object(global).unwrap()
 }

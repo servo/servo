@@ -20,11 +20,12 @@ use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
 use js::jsapi::{Handle, HandleId, HandleObject, HandleValue};
 use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
 use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
 use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
+use js::rust::get_object_class;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 
@@ -67,7 +68,7 @@ impl BrowsingContext {
             let cx = window.get_cx();
             let parent = window.reflector().get_jsobject();
             assert!(!parent.get().is_null());
-            assert!(((*JS_GetClass(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            assert!(((*get_object_class(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);
             let _ac = JSAutoCompartment::new(cx, parent.get());
             rooted!(in(cx) let window_proxy = NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.is_null());

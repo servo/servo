@@ -2537,7 +2537,7 @@ class CGWrapMethod(CGAbstractMethod):
         return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
-assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 rooted!(in(cx) let mut proto = ptr::null_mut());
 let _ac = JSAutoCompartment::new(cx, scope.get());
@@ -2954,7 +2954,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""
-assert!(((*JS_GetClass(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
+assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
 let proto_or_iface_array = get_proto_or_iface_array(global.get());
@@ -5448,7 +5448,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_DefineProperty',
         'js::jsapi::JS_DefinePropertyById2',
         'js::jsapi::JS_ForwardGetPropertyTo',
-        'js::jsapi::JS_GetClass',
         'js::jsapi::JS_GetErrorPrototype',
         'js::jsapi::JS_GetFunctionPrototype',
         'js::jsapi::JS_GetGlobalForObject',
@@ -5501,6 +5500,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::GCMethods',
         'js::rust::define_methods',
         'js::rust::define_properties',
+        'js::rust::get_object_class',
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',

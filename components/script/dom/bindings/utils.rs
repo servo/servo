@@ -7,7 +7,7 @@
 use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{is_dom_class, jsstring_to_str, private_from_proto_check};
+use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::str::DOMString;
@@ -24,13 +24,13 @@ use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
 use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetLatin1StringCharsAndLength};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{GCMethods, ToString};
+use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
 use std::ffi::CString;
 use std::os::raw::c_void;
@@ -115,7 +115,7 @@ unsafe impl Sync for DOMJSClass {}
 /// Fails if `global` is not a DOM global object.
 pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
     unsafe {
-        assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
+        assert!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut ProtoOrIfaceArray
     }
 }
@@ -198,7 +198,7 @@ pub unsafe fn find_enum_string_index(cx: *mut JSContext,
 pub fn is_platform_object(obj: *mut JSObject) -> bool {
     unsafe {
         // Fast-path the common case
-        let mut clasp = JS_GetClass(obj);
+        let mut clasp = get_object_class(obj);
         if is_dom_class(&*clasp) {
             return true;
         }
@@ -208,7 +208,7 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
             if unwrapped_obj.is_null() {
                 return false;
             }
-            clasp = js::jsapi::JS_GetClass(obj);
+            clasp = get_object_class(obj);
         }
         // TODO also check if JS_IsArrayBufferObject
         is_dom_class(&*clasp)
