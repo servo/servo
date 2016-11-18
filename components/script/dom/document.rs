@@ -591,7 +591,7 @@ impl Document {
                 // Step 6
                 .or_else(|| self.get_anchor_by_name(fragid))
                 // Step 7
-                .or_else(|| if fragid.to_lowercase() == "top" {
+                .or_else(|| if fragid.eq_ignore_ascii_case("top") {
                     self.GetDocumentElement()
                 } else {
                     // Step 8
@@ -607,7 +607,7 @@ impl Document {
         // Step 1
         self.set_target_element(target.r());
 
-        let point = if fragment.is_empty() || fragment.to_lowercase() == "top" {
+        let point = if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
             // FIXME(stshine): this should be the origin of the stacking context space,
             // which may differ under the influence of writing mode.
             Some((0.0, 0.0))
