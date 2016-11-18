@@ -9,11 +9,11 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
-use std::fmt;
 use servo_url::ServoUrl;
+use std::fmt;
 use std::sync::Arc;
-use stylesheets::{MemoryHoleReporter, Origin};
 use style_traits::ToCss;
+use stylesheets::{MemoryHoleReporter, Origin};
 
 /// A number from 1 to 100, indicating the percentage of the animation where
 /// this keyframe should run.
