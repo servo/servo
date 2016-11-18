@@ -113,7 +113,8 @@ enum FileImpl {
 }
 
 pub struct FileManager<UI: 'static + UIProvider> {
-    store: Arc<FileManagerStore<UI>>,
+    store: Arc<FileManagerStore>,
+    ui: &'static UI,
 }
 
 // Not derived to avoid an unnecessary `UI: Clone` bound.
@@ -121,6 +122,7 @@ impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
     fn clone(&self) -> Self {
         FileManager {
             store: self.store.clone(),
+            ui: self.ui,
         }
     }
 }
@@ -128,7 +130,8 @@ impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
 impl<UI: 'static + UIProvider> FileManager<UI> {
     pub fn new(ui: &'static UI) -> FileManager<UI> {
         FileManager {
-            store: Arc::new(FileManagerStore::new(ui)),
+            store: Arc::new(FileManagerStore::new()),
+            ui: ui,
         }
     }
 
@@ -137,13 +140,15 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         let store = self.store.clone();
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
+                let ui = self.ui;
                 spawn_named("select file".to_owned(), move || {
-                    store.select_file(filter, sender, origin, opt_test_path);
+                    store.select_file(filter, sender, origin, opt_test_path, ui);
                 });
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
+                let ui = self.ui;
                 spawn_named("select files".to_owned(), move || {
-                    store.select_files(filter, sender, origin, opt_test_paths);
+                    store.select_files(filter, sender, origin, opt_test_paths, ui);
                 })
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
@@ -178,16 +183,14 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
 /// File manager's data store. It maintains a thread-safe mapping
 /// from FileID to FileStoreEntry which might have different backend implementation.
 /// Access to the content is encapsulated as methods of this struct.
-struct FileManagerStore<UI: 'static + UIProvider> {
+struct FileManagerStore {
     entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
-    ui: &'static UI,
 }
 
-impl <UI: 'static + UIProvider> FileManagerStore<UI> {
-    fn new(ui: &'static UI) -> Self {
+impl FileManagerStore {
+    fn new() -> Self {
         FileManagerStore {
             entries: RwLock::new(HashMap::new()),
-            ui: ui,
         }
     }
 
@@ -257,16 +260,21 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn select_file(&self, patterns: Vec<FilterPattern>,
-                   sender: IpcSender<FileManagerResult<SelectedFile>>,
-                   origin: FileOrigin, opt_test_path: Option<String>) {
+    fn select_file<UI>(&self,
+                       patterns: Vec<FilterPattern>,
+                       sender: IpcSender<FileManagerResult<SelectedFile>>,
+                       origin: FileOrigin,
+                       opt_test_path: Option<String>,
+                       ui: &UI)
+        where UI: UIProvider,
+    {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
         let opt_s = if select_files_pref_enabled() {
             opt_test_path
         } else {
-            self.ui.open_file_dialog("", patterns)
+            ui.open_file_dialog("", patterns)
         };
 
         match opt_s {
@@ -282,16 +290,21 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn select_files(&self, patterns: Vec<FilterPattern>,
-                    sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                    origin: FileOrigin, opt_test_paths: Option<Vec<String>>) {
+    fn select_files<UI>(&self,
+                        patterns: Vec<FilterPattern>,
+                        sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
+                        origin: FileOrigin,
+                        opt_test_paths: Option<Vec<String>>,
+                        ui: &UI)
+        where UI: UIProvider,
+    {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
         let opt_v = if select_files_pref_enabled() {
             opt_test_paths
         } else {
-            self.ui.open_file_dialog_multi("", patterns)
+            ui.open_file_dialog_multi("", patterns)
         };
 
         match opt_v {
