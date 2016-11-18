@@ -13,4 +13,6 @@ crate_type = ["rlib"]
 [dependencies]
 log = "0.3.5"
 util = {path = "../util"}
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
 ws = "0.5.3"
