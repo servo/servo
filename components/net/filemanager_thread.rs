@@ -150,6 +150,17 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         })
     }
 
+    pub fn promote_memory(&self,
+                          blob_buf: BlobBuf,
+                          set_valid: bool,
+                          sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
+                          origin: FileOrigin) {
+        let store = self.store.clone();
+        spawn_named("transfer memory".to_owned(), move || {
+            store.promote_memory(blob_buf, set_valid, sender, origin);
+        })
+    }
+
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg, cancel_listener: Option<CancellationListener>) {
         match msg {
@@ -171,10 +182,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 self.read_file(sender, id, check_url_validity, origin, cancel_listener);
             }
             FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
-                let store = self.store.clone();
-                spawn_named("transfer memory".to_owned(), move || {
-                    store.promote_memory(blob_buf, set_valid, sender, origin);
-                })
+                self.promote_memory(blob_buf, set_valid, sender, origin);
             }
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
                 self.store.add_sliced_url_entry(id, rel_pos, sender, origin);
