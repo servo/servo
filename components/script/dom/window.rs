@@ -1589,7 +1589,6 @@ impl Window {
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             bluetooth_thread: bluetooth_thread,
             page_clip_rect: Cell::new(max_rect()),
-            fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
