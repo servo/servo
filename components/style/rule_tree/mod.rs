@@ -427,15 +427,23 @@ impl StrongRuleNode {
     }
 
     unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
-        debug_assert!(thread_state::get().is_layout() &&
-                      !thread_state::get().is_worker());
-
         // NB: This can run from the root node destructor, so we can't use
         // `get()`, since it asserts the refcount is bigger than zero.
         let me = &*self.ptr;
+
         debug_assert!(me.is_root());
 
+        // FIXME(#14213): Apparently the layout data can be gone from script.
+        //
+        // That's... suspicious, but it's fine if it happens for the rule tree
+        // case, so just don't crash in the case we're doing the final GC in
+        // script.
+        debug_assert!(!thread_state::get().is_worker() &&
+                      (thread_state::get().is_layout() ||
+                       (thread_state::get().is_script() &&
+                        me.refcount.load(Ordering::SeqCst) == 0)));
         let current = me.next_free.load(Ordering::SeqCst);
+
         if current == FREE_LIST_SENTINEL {
             return None;
         }
