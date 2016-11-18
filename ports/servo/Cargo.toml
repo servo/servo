@@ -10,7 +10,6 @@ publish = false
 name = "servo"
 path = "main.rs"
 test = false
-doc = false
 bench = false
 
 [dev-dependencies]
