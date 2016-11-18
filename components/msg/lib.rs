@@ -15,6 +15,8 @@ extern crate heapsize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_rand;
+extern crate uuid;
 extern crate webrender_traits;
 
 pub mod constellation_msg;
