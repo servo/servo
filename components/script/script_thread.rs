@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use net_traits::{CoreResourceMsg, IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -518,7 +518,6 @@ impl ScriptThreadFactory for ScriptThread {
                             move || {
             thread_state::initialize(thread_state::SCRIPT);
             PipelineId::install(state.id);
-            PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;

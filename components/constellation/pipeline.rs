@@ -17,7 +17,7 @@ use gfx_traits::DevicePixel;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem as profile_mem;
@@ -118,8 +118,6 @@ pub struct InitialPipelineState {
     pub script_chan: Option<Rc<ScriptChan>>,
     /// Information about the page to load.
     pub load_data: LoadData,
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
     /// Pipeline visibility to be inherited
     pub prev_visibility: Option<bool>,
     /// Webrender api.
@@ -223,7 +221,6 @@ impl Pipeline {
                 opts: (*opts::get()).clone(),
                 prefs: PREFS.cloned(),
                 pipeline_port: pipeline_port,
-                pipeline_namespace_id: state.pipeline_namespace_id,
                 layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                 layout_content_process_shutdown_port: layout_content_process_shutdown_port,
                 script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -400,7 +397,6 @@ pub struct UnprivilegedPipelineContent {
     opts: Opts,
     prefs: HashMap<String, Pref>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pipeline_namespace_id: PipelineNamespaceId,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
@@ -428,7 +424,6 @@ impl UnprivilegedPipelineContent {
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             devtools_chan: self.devtools_chan,
             window_size: self.window_size,
-            pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
         }, self.load_data.clone());
 
