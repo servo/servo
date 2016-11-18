@@ -1335,13 +1335,14 @@ impl Window {
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
-        if !force_reload && url.as_url().unwrap()[..Position::AfterQuery] == doc.url().as_url().unwrap()[..Position::AfterQuery] {
-            // Step 5
-            if let Some(fragment) = url.fragment() {
-                doc.check_and_scroll_fragment(fragment);
-                doc.set_url(url.clone());
-                return
-            }
+        if !force_reload && url.as_url().unwrap()[..Position::AfterQuery] ==
+            doc.url().as_url().unwrap()[..Position::AfterQuery] {
+                // Step 5
+                if let Some(fragment) = url.fragment() {
+                    doc.check_and_scroll_fragment(fragment);
+                    doc.set_url(url.clone());
+                    return
+                }
         }
 
         self.main_thread_script_chan().send(
