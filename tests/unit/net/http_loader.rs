@@ -1502,38 +1502,40 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
 #[test]
 fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
-    let url = ServoUrl::parse("http://mozilla.com").unwrap();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        let expected = Authorization(Basic {
+            username: "username".to_owned(),
+            password: Some("test".to_owned())
+        });
+        assert_eq!(request.headers.get(), Some(&expected));
+        response.send(b"").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let context = new_fetch_context(None);
 
     let auth_entry = AuthCacheEntry {
-                        user_name: "username".to_owned(),
-                        password: "test".to_owned(),
-                     };
+        user_name: "username".to_owned(),
+        password: "test".to_owned(),
+    };
 
-    http_state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
+    context.state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
-    load_data.credentials_flag = true;
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let mut auth_header = Headers::new();
+    let _ = server.close();
 
-    auth_header.set(
-       Authorization(
-           Basic {
-               username: "username".to_owned(),
-               password: Some("test".to_owned())
-           }
-       )
-    );
-
-    let _ = load(
-        &load_data, &ui_provider, &http_state,
-        None, &AssertMustIncludeHeadersRequestFactory {
-            expected_headers: auth_header,
-            body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    assert!(response.status.unwrap().is_success());
 }
 
 #[test]
