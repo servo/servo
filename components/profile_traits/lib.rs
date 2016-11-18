@@ -21,6 +21,7 @@ extern crate serde_derive;
 extern crate signpost;
 extern crate util;
 
+#[allow(unsafe_code)]
 pub mod energy;
 pub mod mem;
 pub mod time;
