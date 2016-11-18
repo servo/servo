@@ -12,7 +12,7 @@ use mime_classifier::MimeClassifier;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::blob_url_store::parse_blob_url;
-use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress};
+use net_traits::filemanager_thread::ReadFileProgress;
 use net_traits::response::HttpsState;
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use resource_thread::CancellationListener;
@@ -41,8 +41,7 @@ fn load_blob<UI: 'static + UIProvider>
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
         let check_url_validity = true;
-        let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
-        let _ = filemanager.handle(msg, Some(cancel_listener));
+        filemanager.read_file(chan, id, check_url_validity, origin, Some(cancel_listener));
 
         // Receive first chunk
         match recv.recv().unwrap() {
@@ -137,8 +136,7 @@ pub fn load_blob_sync<UI: 'static + UIProvider>
 
     let (sender, receiver) = ipc::channel().unwrap();
     let check_url_validity = true;
-    let msg = FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin);
-    let _ = filemanager.handle(msg, None);
+    filemanager.read_file(sender, id, check_url_validity, origin, None);
 
     let blob_buf = match receiver.recv().unwrap() {
         Ok(ReadFileProgress::Meta(blob_buf)) => blob_buf,

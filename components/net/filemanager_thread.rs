@@ -135,6 +135,21 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
+    pub fn read_file(&self,
+                     sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+                     id: Uuid,
+                     check_url_validity: bool,
+                     origin: FileOrigin,
+                     cancel_listener: Option<CancellationListener>) {
+        let store = self.store.clone();
+        spawn_named("read file".to_owned(), move || {
+            if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
+                                                origin, cancel_listener) {
+                let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
+            }
+        })
+    }
+
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg, cancel_listener: Option<CancellationListener>) {
         match msg {
@@ -153,13 +168,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 })
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
-                let store = self.store.clone();
-                spawn_named("read file".to_owned(), move || {
-                    if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
-                                                        origin, cancel_listener) {
-                        let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
-                    }
-                })
+                self.read_file(sender, id, check_url_validity, origin, cancel_listener);
             }
             FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
                 let store = self.store.clone();
