@@ -192,7 +192,7 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
     is_html_document: bool,
-    url: ServoUrl,
+    url: DOMRefCell<ServoUrl>,
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
     id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
@@ -398,8 +398,12 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    pub fn url(&self) -> &ServoUrl {
-        &self.url
+    pub fn url(&self) -> ServoUrl {
+        self.url.borrow().clone()
+    }
+
+    pub fn set_url(&self, url: ServoUrl) {
+        *self.url.borrow_mut() = url;
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
@@ -407,7 +411,7 @@ impl Document {
         // Step 1: iframe srcdoc (#4767).
         // Step 2: about:blank with a creator browsing context.
         // Step 3.
-        self.url().clone()
+        self.url()
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url
@@ -1709,7 +1713,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
     pub fn is_cookie_averse(&self) -> bool {
-        self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
+        self.browsing_context.is_none() || !url_has_network_scheme(&self.url())
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
@@ -1814,7 +1818,7 @@ impl Document {
                 }),
             },
             last_modified: last_modified,
-            url: url,
+            url: DOMRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
@@ -2787,7 +2791,7 @@ impl DocumentMethods for Document {
         let _ = self.window
             .upcast::<GlobalScope>()
             .resource_threads()
-            .send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+            .send(GetCookiesForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2806,7 +2810,7 @@ impl DocumentMethods for Document {
         let _ = self.window
                     .upcast::<GlobalScope>()
                     .resource_threads()
-                    .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
+                    .send(SetCookiesForUrl(url, String::from(cookie), NonHTTP));
         Ok(())
     }
 
