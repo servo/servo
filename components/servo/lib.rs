@@ -96,7 +96,6 @@ use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
 use util::prefs::PREFS;
-use util::resource_files::resources_dir_path;
 
 pub use gleam::gl;
 
@@ -139,8 +138,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             devtools::start_server(port)
         });
 
-        let mut resource_path = resources_dir_path().unwrap();
-        resource_path.push("shaders");
+        // Hard-code the shader override path for webrender. For now,
+        // we assume that you need a directory structure with a local
+        // checkout of webrender at the same level as servo in order
+        // to use local shader overrides.
+        let resource_path = PathBuf::from("../webrender/webrender/res");
 
         let (webrender, webrender_api_sender) = {
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
@@ -161,7 +163,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
             webrender::Renderer::new(webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
-                resource_path: resource_path,
+                resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 enable_msaa: opts.use_msaa,
                 enable_profiler: opts.webrender_stats,
