@@ -878,7 +878,7 @@ impl XMLHttpRequest {
             },
         };
 
-        *self.response_url.borrow_mut() = metadata.final_url.as_url().unwrap()[..Position::AfterQuery].to_owned();
+        *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(
