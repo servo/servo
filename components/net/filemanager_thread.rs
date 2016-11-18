@@ -137,21 +137,23 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
 
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg, cancel_listener: Option<CancellationListener>) {
-        let store = self.store.clone();
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
+                let store = self.store.clone();
                 let ui = self.ui;
                 spawn_named("select file".to_owned(), move || {
                     store.select_file(filter, sender, origin, opt_test_path, ui);
                 });
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
+                let store = self.store.clone();
                 let ui = self.ui;
                 spawn_named("select files".to_owned(), move || {
                     store.select_files(filter, sender, origin, opt_test_paths, ui);
                 })
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
+                let store = self.store.clone();
                 spawn_named("read file".to_owned(), move || {
                     if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
                                                         origin, cancel_listener) {
@@ -160,21 +162,22 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 })
             }
             FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
+                let store = self.store.clone();
                 spawn_named("transfer memory".to_owned(), move || {
                     store.promote_memory(blob_buf, set_valid, sender, origin);
                 })
             }
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
-                store.add_sliced_url_entry(id, rel_pos, sender, origin);
+                self.store.add_sliced_url_entry(id, rel_pos, sender, origin);
             }
             FileManagerThreadMsg::DecRef(id, origin, sender) => {
-                let _ = sender.send(store.dec_ref(&id, &origin));
+                let _ = sender.send(self.store.dec_ref(&id, &origin));
             }
             FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
-                let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
+                let _ = sender.send(self.store.set_blob_url_validity(false, &id, &origin));
             }
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
-                let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
+                let _ = sender.send(self.store.set_blob_url_validity(true, &id, &origin));
             }
         }
     }
