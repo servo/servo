@@ -7268,6 +7268,12 @@
             "url": "/_mozilla/mozilla/bluetooth/readValue/characteristic/disconnect-called-before.html"
           }
         ],
+        "mozilla/bluetooth/readValue/characteristic/event-is-fired.html": [
+          {
+            "path": "mozilla/bluetooth/readValue/characteristic/event-is-fired.html",
+            "url": "/_mozilla/mozilla/bluetooth/readValue/characteristic/event-is-fired.html"
+          }
+        ],
         "mozilla/bluetooth/readValue/characteristic/read-succeeds.html": [
           {
             "path": "mozilla/bluetooth/readValue/characteristic/read-succeeds.html",

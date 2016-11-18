@@ -8,15 +8,17 @@ use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMet
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::IpcSender;
@@ -26,7 +28,7 @@ use std::rc::Rc;
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     device: MutHeap<JS<BluetoothDevice>>,
     uuid: DOMString,
     is_primary: bool,
@@ -40,7 +42,7 @@ impl BluetoothRemoteGATTService {
                          instance_id: String)
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             device: MutHeap::new(device),
             uuid: uuid,
             is_primary: is_primary,
@@ -217,6 +219,15 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                     sender)).unwrap();
         return p;
     }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-serviceeventhandlers-onserviceadded
+    event_handler!(serviceadded, GetOnserviceadded, SetOnserviceadded);
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-serviceeventhandlers-onservicechanged
+    event_handler!(servicechanged, GetOnservicechanged, SetOnservicechanged);
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-serviceeventhandlers-onserviceremoved
+    event_handler!(serviceremoved, GetOnserviceremoved, SetOnserviceremoved);
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {

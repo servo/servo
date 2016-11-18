@@ -4,18 +4,20 @@
 
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
 pub struct BluetoothDevice {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     id: DOMString,
     name: Option<DOMString>,
     ad_data: MutHeap<JS<BluetoothAdvertisingData>>,
@@ -30,7 +32,7 @@ impl BluetoothDevice {
                          context: &Bluetooth)
                          -> BluetoothDevice {
         BluetoothDevice {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             id: id,
             name: name,
             ad_data: MutHeap::new(ad_data),
@@ -80,4 +82,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
             BluetoothRemoteGATTServer::new(&self.global(), self)
         })
     }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdeviceeventhandlers-ongattserverdisconnected
+    event_handler!(gattserverdisconnected, GetOngattserverdisconnected, SetOngattserverdisconnected);
 }
