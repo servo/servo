@@ -285,7 +285,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, None),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, None, TFD_PROVIDER),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match group.auth_cache.read() {
@@ -455,7 +455,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
-    filemanager: FileManager<TFDProvider>,
+    filemanager: FileManager,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -470,7 +470,7 @@ impl CoreResourceManager {
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             profiler_chan: profiler_chan,
-            filemanager: FileManager::new(TFD_PROVIDER),
+            filemanager: FileManager::new(),
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }

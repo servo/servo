@@ -35,7 +35,6 @@ extern crate util;
 #[cfg(test)] mod filemanager_thread;
 
 use devtools_traits::DevtoolsControlMsg;
-use filemanager_thread::{TestProvider, TEST_PROVIDER};
 use hyper::server::{Handler, Listening, Server};
 use net::fetch::methods::{FetchContext, fetch};
 use net::filemanager_thread::FileManager;
@@ -54,12 +53,12 @@ struct FetchResponseCollector {
     sender: Sender<Response>,
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext<TestProvider> {
+fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
     FetchContext {
         state: HttpState::new(),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
-        filemanager: FileManager::new(TEST_PROVIDER),
+        filemanager: FileManager::new(),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

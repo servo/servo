@@ -112,26 +112,15 @@ enum FileImpl {
     Sliced(Uuid, RelativePos),
 }
 
-pub struct FileManager<UI: 'static + UIProvider> {
+#[derive(Clone)]
+pub struct FileManager {
     store: Arc<FileManagerStore>,
-    ui: &'static UI,
 }
 
-// Not derived to avoid an unnecessary `UI: Clone` bound.
-impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
-    fn clone(&self) -> Self {
-        FileManager {
-            store: self.store.clone(),
-            ui: self.ui,
-        }
-    }
-}
-
-impl<UI: 'static + UIProvider> FileManager<UI> {
-    pub fn new(ui: &'static UI) -> FileManager<UI> {
+impl FileManager {
+    pub fn new() -> FileManager {
         FileManager {
             store: Arc::new(FileManagerStore::new()),
-            ui: ui,
         }
     }
 
@@ -162,18 +151,21 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
     }
 
     /// Message handler
-    pub fn handle(&self, msg: FileManagerThreadMsg, cancel_listener: Option<CancellationListener>) {
+    pub fn handle<UI>(&self,
+                      msg: FileManagerThreadMsg,
+                      cancel_listener: Option<CancellationListener>,
+                      ui: &'static UI)
+        where UI: UIProvider + 'static,
+    {
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
-                let ui = self.ui;
                 spawn_named("select file".to_owned(), move || {
                     store.select_file(filter, sender, origin, opt_test_path, ui);
                 });
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
                 let store = self.store.clone();
-                let ui = self.ui;
                 spawn_named("select files".to_owned(), move || {
                     store.select_files(filter, sender, origin, opt_test_paths, ui);
                 })
