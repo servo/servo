@@ -166,7 +166,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 enable_msaa: opts.use_msaa,
                 enable_profiler: opts.webrender_stats,
                 debug: opts.webrender_debug,
-                enable_recording: false,
+                enable_recording: opts.webrender_record,
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),
                 renderer_kind: renderer_kind,
