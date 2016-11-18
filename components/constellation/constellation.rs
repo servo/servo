@@ -84,7 +84,7 @@ use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::TraversalDirection;
 use net_traits::{self, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_host;
@@ -489,8 +489,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let swmanager_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(swmanager_receiver);
 
-            PipelineNamespace::install(PipelineNamespaceId(0));
-
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 layout_sender: ipc_layout_sender,
@@ -512,8 +510,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pending_frames: vec!(),
-                // We initialize the namespace at 1, since we reserved namespace 0 for the constellation
-                next_pipeline_namespace_id: PipelineNamespaceId(1),
                 root_frame_id: FrameId::new(),
                 focus_pipeline_id: None,
                 time_profiler_chan: state.time_profiler_chan,
@@ -558,14 +554,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.handle_request();
         }
         self.handle_shutdown();
-    }
-
-    /// Generate a new pipeline id namespace.
-    fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
-        let namespace_id = self.next_pipeline_namespace_id;
-        let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
-        *i += 1;
-        namespace_id
     }
 
     /// Helper function for creating a pipeline
@@ -647,7 +635,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             event_loop: event_loop,
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
-            pipeline_namespace_id: self.next_pipeline_namespace_id(),
             prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
             is_private: is_private,
