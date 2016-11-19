@@ -13,8 +13,9 @@ use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLResult, WebGLError};
 
 #[must_root]
@@ -67,7 +68,7 @@ impl WebGLFramebuffer {
 
     pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLFramebuffer>> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
