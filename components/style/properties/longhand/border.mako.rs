@@ -195,15 +195,13 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(computed::LengthOrNumber::Number(0.0),
-                          computed::LengthOrNumber::Number(0.0),
-                          computed::LengthOrNumber::Number(0.0),
-                          computed::LengthOrNumber::Number(0.0))
+        computed_value::T(Either::Second(0.0), Either::Second(0.0),
+                          Either::Second(0.0), Either::Second(0.0))
     }
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(vec![LengthOrNumber::Number(Number(0.0))])
+        SpecifiedValue(vec![Either::Second(Number(0.0))])
     }
 
     impl ToComputedValue for SpecifiedValue {

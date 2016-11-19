@@ -10,8 +10,9 @@ use gecko_bindings::structs::{NS_RADIUS_CLOSEST_SIDE, NS_RADIUS_FARTHEST_SIDE};
 use gecko_bindings::structs::nsStyleCoord;
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
-use values::computed::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, Angle};
+use values::Either;
+use values::computed::{Angle, LengthOrPercentageOrNone, Number};
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
 
 pub trait StyleCoordHelpers {
@@ -25,10 +26,37 @@ impl StyleCoordHelpers for nsStyleCoord {
     }
 }
 
-
 pub trait GeckoStyleCoordConvertible : Sized {
     fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
+}
+
+impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Either<A, B> {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            Either::First(ref v) => v.to_gecko_style_coord(coord),
+            Either::Second(ref v) => v.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        A::from_gecko_style_coord(coord)
+          .map(Either::First)
+          .or_else(|| B::from_gecko_style_coord(coord).map(Either::Second))
+    }
+}
+
+impl GeckoStyleCoordConvertible for Number {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Factor(*self));
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Factor(f) => Some(f),
+            _ => None,
+        }
+    }
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentage {
@@ -103,24 +131,6 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
             CoordDataValue::Percent(p) => Some(LengthOrPercentageOrNone::Percentage(p)),
             CoordDataValue::None => Some(LengthOrPercentageOrNone::None),
             CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrNone::Calc(calc.into())),
-            _ => None,
-        }
-    }
-}
-
-impl GeckoStyleCoordConvertible for LengthOrNumber {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
-        let value = match *self {
-            LengthOrNumber::Length(au) => CoordDataValue::Coord(au.0),
-            LengthOrNumber::Number(number) => CoordDataValue::Factor(number),
-        };
-        coord.set_value(value);
-    }
-
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
-        match coord.as_value() {
-            CoordDataValue::Coord(coord) => Some(LengthOrNumber::Length(Au(coord))),
-            CoordDataValue::Factor(f) => Some(LengthOrNumber::Number(f)),
             _ => None,
         }
     }
