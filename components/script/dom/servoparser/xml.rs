@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
@@ -17,11 +17,11 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever_atoms::{Prefix, QualName};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use super::Sink;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName, XmlTokenizer};
 use xml5ever::tree_builder::{NextParserState, NodeOrText};
@@ -39,6 +39,7 @@ impl Tokenizer {
         let sink = Sink {
             base_url: url,
             document: JS::from_ref(document),
+            script: Default::default(),
         };
 
         let tb = XmlTreeBuilder::new(sink);
@@ -49,12 +50,21 @@ impl Tokenizer {
         }
     }
 
-    pub fn feed(&mut self, input: String) {
-        self.inner.feed(input.into())
-    }
-
-    pub fn run(&mut self) {
-        self.inner.run()
+    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), Root<HTMLScriptElement>> {
+        if !input.is_empty() {
+            while let Some(chunk) = input.pop_front() {
+                self.inner.feed(chunk);
+                if let Some(script) = self.inner.sink().sink().script.take() {
+                    return Err(script);
+                }
+            }
+        } else {
+            self.inner.run();
+            if let Some(script) = self.inner.sink().sink().script.take() {
+                return Err(script);
+            }
+        }
+        Ok(())
     }
 
     pub fn end(&mut self) {
@@ -79,6 +89,14 @@ impl JSTraceable for XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>> {
         tree_builder.trace_handles(&tracer);
         tree_builder.sink().trace(trc);
     }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+struct Sink {
+    base_url: ServoUrl,
+    document: JS<Document>,
+    script: MutNullableHeap<JS<HTMLScriptElement>>,
 }
 
 impl<'a> TreeSink for Sink {
@@ -165,13 +183,11 @@ impl<'a> TreeSink for Sink {
     }
 
     fn complete_script(&mut self, node: Self::Handle) -> NextParserState {
-        let script = node.downcast::<HTMLScriptElement>();
-        if let Some(script) = script {
-            return match script.prepare() {
-                true => NextParserState::Continue,
-                false => NextParserState::Suspend,
-            };
+        if let Some(script) = node.downcast() {
+            self.script.set(Some(script));
+            NextParserState::Suspend
+        } else {
+            NextParserState::Continue
         }
-        NextParserState::Continue
     }
 }
