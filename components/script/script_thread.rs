@@ -325,11 +325,51 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     }
 }
 
+/// The state that a document managed by this script thread could be in.
+#[must_root]
+enum DocumentState {
+    Kept(bool, JS<Document>),
+    Discarded(ServoUrl),
+}
+
+impl JSTraceable for DocumentState {
+    fn trace(&self, trc: *mut JSTracer) {
+        // Note: we only trace thawed documents.
+        if let DocumentState::Kept(true, ref doc) = *self {
+            doc.trace(trc);
+        }
+    }
+}
+
+impl DocumentState {
+    fn new(document: &Document) -> DocumentState {
+        DocumentState::Kept(true, JS::from_ref(document))
+    }
+
+    // This function is safe as long as Document implements Drop
+    // to set the state to be discarded.
+    fn document(&self) -> Option<Root<Document>> {
+        match *self {
+            DocumentState::Kept(_, ref doc) => Some(Root::from_ref(doc)),
+            DocumentState::Discarded(_) => None,
+        }
+    }
+
+    // This function is safe as long as Document implements Drop
+    // to set the state to be discarded.
+    fn url(&self) -> ServoUrl {
+        match *self {
+            DocumentState::Kept(_, ref doc) => doc.url(),
+            DocumentState::Discarded(ref url) => url.clone(),
+        }
+    }
+}
+
 /// The set of all documents managed by this script thread.
 #[derive(JSTraceable)]
 #[must_root]
 pub struct Documents {
-    map: HashMap<PipelineId, JS<Document>>,
+    map: HashMap<PipelineId, DocumentState>,
 }
 
 impl Documents {
@@ -339,12 +379,25 @@ impl Documents {
         }
     }
 
-    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(pipeline_id, JS::from_ref(doc));
+    fn get(&self, pipeline_id: PipelineId) -> Option<&DocumentState> {
+        self.map.get(&pipeline_id)
+    }
+
+    fn get_mut(&mut self, pipeline_id: PipelineId) -> Option<&mut DocumentState> {
+        self.map.get_mut(&pipeline_id)
+    }
+
+    pub fn insert(&mut self, pipeline_id: PipelineId, document: &Document) {
+        self.map.insert(pipeline_id, DocumentState::new(document));
+    }
+
+    pub fn discard(&mut self, pipeline_id: PipelineId, url: ServoUrl) -> Option<Root<Document>> {
+        self.map.insert(pipeline_id, DocumentState::Discarded(url))
+            .and_then(|ref state| state.document())
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.remove(&pipeline_id).map(|ref doc| Root::from_ref(&**doc))
+        self.map.remove(&pipeline_id).and_then(|ref state| state.document())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -352,7 +405,7 @@ impl Documents {
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.get(&pipeline_id).map(|doc| Root::from_ref(&**doc))
+        self.get(pipeline_id).and_then(|state| state.document())
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<Root<Window>> {
@@ -376,14 +429,19 @@ impl Documents {
 
 #[allow(unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, JS<Document>>,
+    iter: hash_map::Iter<'a, PipelineId, DocumentState>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
     type Item = (PipelineId, Root<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, Root<Document>)> {
-        self.iter.next().map(|(id, doc)| (*id, Root::from_ref(&**doc)))
+        while let Some((id, state)) = self.iter.next() {
+            if let Some(document) = state.document() {
+                return Some((*id, document));
+            }
+        }
+        return None;
     }
 }
 
@@ -607,6 +665,24 @@ impl ScriptThread {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
         }))
+    }
+
+    pub fn discard_document(document: &Document) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                if document.browsing_context().is_some() {
+                    let pipeline_id = document.window().upcast::<GlobalScope>().pipeline_id();
+                    let url = document.url().clone();
+                    debug!("Document {} discarded.", pipeline_id);
+                    if script_thread.documents.borrow_mut().discard(pipeline_id, url).is_some() {
+                        script_thread.closed_pipelines.borrow_mut().insert(pipeline_id);
+                        shut_down_layout(document.window());
+                        let _ = script_thread.constellation_chan.send(ConstellationMsg::PipelineExited(pipeline_id));
+                    }
+                }
+            }
+        })
     }
 
     /// Creates a new script thread.
@@ -1031,10 +1107,10 @@ impl ScriptThread {
             TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script thread"),
         };
 
-        let window = self.documents.borrow().find_window(pipeline_id)
-            .expect("ScriptThread: received fire timer msg for a pipeline not in this script thread. This is a bug.");
-
-        window.handle_fire_timer(id);
+        match self.documents.borrow().find_window(pipeline_id) {
+            None => warn!("Received fire timer msg for closed pipeline {}.", pipeline_id),
+            Some(window) => window.handle_fire_timer(id),
+        }
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
@@ -1043,7 +1119,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
                 match documents.find_window(id) {
                     Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
-                    None => return warn!("Message sent to closed pipeline {}.", id),
+                    None => return warn!("Devtools evaluate JS message sent to closed pipeline {}.", id),
                 }
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
@@ -1061,7 +1137,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
                 match documents.find_window(id) {
                     Some(window) => devtools::handle_wants_live_notifications(window.upcast(), to_send),
-                    None => return warn!("Message sent to closed pipeline {}.", id),
+                    None => return warn!("Devtools live notifications message sent to closed pipeline {}.", id),
                 }
             },
             DevtoolScriptControlMsg::SetTimelineMarkers(id, marker_types, reply) =>
@@ -1217,7 +1293,7 @@ impl ScriptThread {
     fn handle_loads_complete(&self, pipeline: PipelineId) {
         let doc = match self.documents.borrow().find_document(pipeline) {
             Some(doc) => doc,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline),
+            None => return warn!("Loads complete message sent to closed pipeline {}.", pipeline),
         };
         if doc.loader().is_blocked() {
             debug!("Script thread got loads complete while loader is blocked.");
@@ -1311,8 +1387,28 @@ impl ScriptThread {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        if let Some(window) = self.documents.borrow().find_window(id) {
-            window.upcast::<GlobalScope>().suspend();
+        if let Some(state) = self.documents.borrow_mut().get_mut(id) {
+            // For testing purposes, we have an option to agressively
+            // discard all inactive documents.
+            if opts::get().discard_inactive_documents {
+                debug!("Discarding pipeline {}.", id);
+                *state = DocumentState::Discarded(state.url());
+            } else {
+                match *state {
+                    DocumentState::Kept(ref mut traced, ref document) => {
+                        if *traced {
+                            debug!("Freezing pipeline {}.", id);
+                            *traced = false;
+                            document.global().suspend();
+                        } else {
+                            warn!("Freezing already frozen pipeline {}.", id);
+                        }
+                    },
+                    DocumentState::Discarded(_) => {
+                        warn!("Freezing already discarded pipeline {}.", id);
+                    }
+                };
+            }
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1325,14 +1421,30 @@ impl ScriptThread {
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        if let Some(document) = self.documents.borrow().find_document(id) {
-            if let Some(context) = document.browsing_context() {
-                let needed_reflow = context.set_reflow_status(false);
-                if needed_reflow {
-                    self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
+        if let Some(state) = self.documents.borrow_mut().get_mut(id) {
+            match *state {
+                DocumentState::Kept(ref mut traced, ref document) => {
+                    if *traced {
+                        warn!("Thawing already thawed pipeline {}.", id);
+                    } else {
+                        *traced = true;
+                        if let Some(context) = document.browsing_context() {
+                            let needed_reflow = context.set_reflow_status(false);
+                            if needed_reflow {
+                                self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
+                            }
+                        }
+                        document.window().thaw();
+                    }
+                },
+                DocumentState::Discarded(ref url) => {
+                    warn!("Thawing discarded pipeline {}.", id);
+                    // TODO referrer info
+                    let load_data = LoadData::new(url.clone(), None, None);
+                    let msg = ConstellationMsg::LoadUrl(id, load_data, true);
+                    self.constellation_chan.send(msg).unwrap();
                 }
-            }
-            document.window().thaw();
+            };
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1399,10 +1511,13 @@ impl ScriptThread {
 
     /// Window was resized, but this script was not active, so don't reflow yet
     fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: WindowSizeData) {
-        let window = self.documents.borrow().find_window(id)
-            .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
-        window.set_window_size(new_size);
-        window.browsing_context().set_reflow_status(true);
+        match self.documents.borrow().find_window(id) {
+            None => warn!("Resize msg after pipeline {} closed.", id),
+            Some(window) => {
+                window.set_window_size(new_size);
+                window.browsing_context().set_reflow_status(true);
+            },
+        }
     }
 
     /// We have gotten a window.close from script, which we pass on to the compositor.
@@ -1520,7 +1635,7 @@ impl ScriptThread {
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+            None => return warn!("Get title message sent to closed pipeline {}.", pipeline_id),
         };
         document.send_title_to_compositor();
     }
@@ -1550,7 +1665,8 @@ impl ScriptThread {
             }
         }
 
-        if let Some(document) = self.documents.borrow_mut().remove(id) {
+        let document = self.documents.borrow_mut().remove(id);
+        if let Some(document) = document {
             shut_down_layout(document.window());
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
         }
@@ -1577,7 +1693,7 @@ impl ScriptThread {
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let document = match self.documents.borrow().find_document(id) {
             Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", id),
+            None => return warn!("Tick all animations message sent to closed pipeline {}.", id),
         };
         document.run_the_animation_frame_callbacks();
     }
@@ -1639,7 +1755,7 @@ impl ScriptThread {
     fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
         match self.documents.borrow().find_iframe(parent_id, frame_id) {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
-            None => warn!("Message sent to closed pipeline {}.", parent_id),
+            None => warn!("Frame load message sent to closed pipeline {}.", parent_id),
         }
     }
 
@@ -1890,7 +2006,7 @@ impl ScriptThread {
             MouseMoveEvent(point) => {
                 let document = match self.documents.borrow().find_document(pipeline_id) {
                     Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    None => return warn!("Mouse event message sent to closed pipeline {}.", pipeline_id),
                 };
 
                 // Get the previous target temporarily
@@ -1962,14 +2078,14 @@ impl ScriptThread {
             TouchpadPressureEvent(point, pressure, phase) => {
                 match self.documents.borrow().find_document(pipeline_id) {
                     Some(doc) => doc.handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase),
-                    None => warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    None => warn!("Touchpad pressure message sent to closed pipeline {}.", pipeline_id),
                 }
             }
 
             KeyEvent(ch, key, state, modifiers) => {
                 match self.documents.borrow().find_document(pipeline_id) {
                     Some(document) => document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan),
-                    None => warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    None => warn!("Key message sent to closed pipeline {}.", pipeline_id),
                 }
             }
         }
@@ -1982,7 +2098,7 @@ impl ScriptThread {
                           point: Point2D<f32>) {
         match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type),
-            None => warn!("Message sent to closed pipeline {}.", pipeline_id),
+            None => warn!("Mouse message sent to closed pipeline {}.", pipeline_id),
         }
     }
 
@@ -1995,7 +2111,7 @@ impl ScriptThread {
         match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point),
             None => {
-                warn!("Message sent to closed pipeline {}.", pipeline_id);
+                warn!("Touch message sent to closed pipeline {}.", pipeline_id);
                 TouchEventResult::Processed(true)
             },
         }
@@ -2025,7 +2141,7 @@ impl ScriptThread {
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
         let document = match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+            None => return warn!("Resize message sent to closed pipeline {}.", pipeline_id),
         };
 
         let window = document.window();
