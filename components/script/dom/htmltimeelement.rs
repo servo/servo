@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods; 
+use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeElementMethods;
 use dom::bindings::inheritance::Castable;
