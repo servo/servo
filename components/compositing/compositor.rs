@@ -1418,11 +1418,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         if wait_for_stable_image {
+            // If there are animations active, tick those and continue waiting
+            // for all animations to complete before bothering the
+            // constellation.
+            if self.animations_active() {
+                self.process_animations();
+                return Err(UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::AnimationsActive));
+            }
             match self.is_ready_to_paint_image_output() {
                 Ok(()) => {
-                    // The current image is ready to output. However, if there are animations active,
-                    // tick those instead and continue waiting for the image output to be stable AND
-                    // all active animations to complete.
                     if self.animations_active() {
                         self.process_animations();
                         return Err(UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::AnimationsActive));
