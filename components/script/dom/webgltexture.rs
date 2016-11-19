@@ -12,9 +12,10 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::globalscope::GlobalScope;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;
+use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
 
 pub enum TexParameterValue {
@@ -62,7 +63,7 @@ impl WebGLTexture {
 
     pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLTexture>> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
 
         let result = receiver.recv().unwrap();

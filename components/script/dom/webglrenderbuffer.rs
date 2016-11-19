@@ -10,8 +10,9 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
+use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLRenderbufferId, WebGLResult, WebGLError};
 
 #[dom_struct]
@@ -43,7 +44,7 @@ impl WebGLRenderbuffer {
 
     pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLRenderbuffer>> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateRenderbuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
