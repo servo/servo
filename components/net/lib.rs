@@ -18,6 +18,7 @@ extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
+extern crate fnv;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate immeta;
