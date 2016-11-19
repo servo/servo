@@ -1445,6 +1445,10 @@ impl Window {
         None
     }
 
+    pub fn freeze(&self) {
+        self.upcast::<GlobalScope>().suspend();
+    }
+
     pub fn thaw(&self) {
         self.upcast::<GlobalScope>().resume();
 
