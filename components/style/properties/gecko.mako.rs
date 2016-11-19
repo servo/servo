@@ -887,7 +887,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-weight font-synthesis"
+    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -972,6 +972,28 @@ fn static_assert() {
 
     pub fn copy_font_synthesis_from(&mut self, other: &Self) {
         self.gecko.mFont.synthesis = other.gecko.mFont.synthesis;
+    }
+
+    pub fn set_font_size_adjust(&mut self, v: longhands::font_size_adjust::computed_value::T) {
+        use properties::longhands::font_size_adjust::computed_value::T;
+        match v {
+            T::None => self.gecko.mFont.sizeAdjust = -1.0 as f32,
+            T::Number(n) => self.gecko.mFont.sizeAdjust = n.0 as f32,
+        }
+    }
+
+    pub fn copy_font_size_adjust_from(&mut self, other: &Self) {
+        self.gecko.mFont.sizeAdjust = other.gecko.mFont.sizeAdjust;
+    }
+
+    pub fn clone_font_size_adjust(&self) -> longhands::font_size_adjust::computed_value::T {
+        use properties::longhands::font_size_adjust::computed_value::T;
+        use values::specified::Number;
+
+        match self.gecko.mFont.sizeAdjust {
+            -1.0 => T::None,
+            _ => T::Number(Number(self.gecko.mFont.sizeAdjust)),
+        }
     }
 
 </%self:impl_trait>
