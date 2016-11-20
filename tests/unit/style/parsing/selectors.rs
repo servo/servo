@@ -4,7 +4,7 @@
 
 use cssparser::{Parser, ToCss};
 use selectors::parser::{Selector, ParserContext, parse_selector_list};
-use style::selector_impl::TheSelectorImpl;
+use style::selector_parser::TheSelectorImpl;
 
 fn parse(input: &mut Parser) -> Result<Selector<TheSelectorImpl>, ()> {
     let mut context = ParserContext::new();

@@ -11,11 +11,11 @@ use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
+use stylist::Stylist;
 use timer::Timer;
 
 /// This structure is used to create a local style context from a shared one.

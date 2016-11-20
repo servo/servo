@@ -17,8 +17,7 @@ use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
-use selector_impl::{PseudoElement, RestyleDamage, TheSelectorImpl};
-use selector_matching::ApplicableDeclarationBlock;
+use selector_parser::{PseudoElement, RestyleDamage, TheSelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
@@ -28,6 +27,7 @@ use std::hash::BuildHasherDefault;
 use std::mem;
 use std::slice::IterMut;
 use std::sync::Arc;
+use stylist::ApplicableDeclarationBlock;
 use util::opts;
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)

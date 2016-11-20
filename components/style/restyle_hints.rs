@@ -8,7 +8,7 @@ use Atom;
 use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_impl::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, TheSelectorImpl};
+use selector_parser::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, TheSelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{MatchingReason, StyleRelations};
 use selectors::matching::matches_complex_selector;

@@ -92,7 +92,7 @@ use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
 use style::properties::longhands::overflow_x;
-use style::selector_impl::PseudoElement;
+use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;

@@ -12,7 +12,7 @@ use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use gecko::restyle_damage::GeckoRestyleDamage;
-use gecko::selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
+use gecko::selector_parser::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
@@ -32,8 +32,7 @@ use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
-use selector_impl::ElementExt;
-use selector_matching::ApplicableDeclarationBlock;
+use selector_parser::ElementExt;
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
@@ -42,6 +41,7 @@ use std::fmt;
 use std::ptr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
+use stylist::ApplicableDeclarationBlock;
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
 // magic guarantees that our LayoutFoo references won't outlive the root, and

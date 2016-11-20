@@ -12,5 +12,5 @@ pub mod traversal;
 pub mod wrapper;
 
 pub mod conversions;
-pub mod selector_impl;
+pub mod selector_parser;
 pub mod values;

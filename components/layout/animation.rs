@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
 use style::dom::TRestyleDamage;
-use style::selector_impl::RestyleDamage;
+use style::selector_parser::RestyleDamage;
 use style::timer::Timer;
 
 /// Processes any new animations that were discovered after style recalculation.

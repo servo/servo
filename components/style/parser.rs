@@ -8,7 +8,7 @@ use cssparser::{Parser, SourcePosition};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use selector_impl::TheSelectorImpl;
+use selector_parser::TheSelectorImpl;
 use selectors::parser::ParserContext as SelectorParserContext;
 use servo_url::ServoUrl;
 use stylesheets::Origin;

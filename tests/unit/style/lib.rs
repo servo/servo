@@ -28,9 +28,9 @@ mod media_queries;
 mod owning_handle;
 mod parsing;
 mod properties;
-mod selector_matching;
 mod str;
 mod stylesheets;
+mod stylist;
 mod value;
 mod viewport;
 

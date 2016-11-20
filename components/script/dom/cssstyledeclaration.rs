@@ -18,7 +18,7 @@ use std::sync::Arc;
 use style::parser::ParserContextExtraData;
 use style::properties::{Shorthand, Importance, PropertyDeclarationBlock};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
-use style::selector_impl::PseudoElement;
+use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

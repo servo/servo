@@ -3,4 +3,4 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 pub mod restyle_damage;
-pub mod selector_impl;
+pub mod selector_parser;

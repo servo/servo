@@ -83,7 +83,7 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
-use style::selector_impl::ServoSelectorImpl;
+use style::selector_parser::ServoSelectorImpl;
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;

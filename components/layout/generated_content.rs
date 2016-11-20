@@ -21,7 +21,7 @@ use style::computed_values::{display, list_style_type};
 use style::computed_values::content::ContentItem;
 use style::dom::TRestyleDamage;
 use style::properties::ServoComputedValues;
-use style::selector_impl::RestyleDamage;
+use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use text::TextRunScanner;
 

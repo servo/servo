@@ -5,7 +5,7 @@
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, IS_ABSOLUTELY_POSITIONED};
 use style::computed_values::float;
 use style::dom::TRestyleDamage;
-use style::selector_impl::RestyleDamage;
+use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{REFLOW, RECONSTRUCT_FLOW};
 
 bitflags! {

@@ -47,7 +47,7 @@ use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
-use style::selector_impl::RestyleDamage;
+use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::Either;

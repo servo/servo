@@ -97,7 +97,7 @@ use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
-use style::selector_impl::{PseudoElement, Snapshot};
+use style::selector_parser::{PseudoElement, Snapshot};
 use style::values::specified::Length;
 use time::Duration;
 use url::Origin as UrlOrigin;

@@ -9,7 +9,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use restyle_hints::ElementSnapshot;
-use selector_impl::TheSelectorImpl;
+use selector_parser::TheSelectorImpl;
 use selectors::parser::AttrSelector;
 use string_cache::Atom;
 
