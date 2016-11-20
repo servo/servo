@@ -55,6 +55,8 @@ pub struct ServoParser {
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
     suspended: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#script-nesting-level
+    script_nesting_level: Cell<usize>,
 }
 
 #[derive(PartialEq)]
@@ -134,6 +136,10 @@ impl ServoParser {
         parser.parse_chunk(String::from(input));
     }
 
+    pub fn script_nesting_level(&self) -> usize {
+        self.script_nesting_level.get()
+    }
+
     #[allow(unrooted_must_root)]
     fn new_inherited(
             document: &Document,
@@ -149,6 +155,7 @@ impl ServoParser {
             tokenizer: DOMRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
+            script_nesting_level: Default::default(),
         }
     }
 
@@ -208,6 +215,22 @@ impl ServoParser {
         self.suspended.get()
     }
 
+    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
+        assert!(self.suspended.get());
+        self.suspended.set(false);
+
+        let script_nesting_level = self.script_nesting_level.get();
+        assert_eq!(script_nesting_level, 0);
+
+        self.script_nesting_level.set(script_nesting_level + 1);
+        script.execute();
+        self.script_nesting_level.set(script_nesting_level);
+
+        if !self.suspended.get() {
+            self.parse_sync();
+        }
+    }
+
     fn parse_sync(&self) {
         let metadata = TimerMetadata {
             url: self.document().url().as_str().into(),
@@ -226,20 +249,23 @@ impl ServoParser {
         // the parser remains unsuspended.
         loop {
             self.document().reflow_if_reflow_timer_expired();
-            if let Err(script) = self.tokenizer.borrow_mut().feed(&mut *self.pending_input.borrow_mut()) {
-                if script.prepare() {
-                    continue;
-                }
-            }
+            let script = match self.tokenizer.borrow_mut().feed(&mut *self.pending_input.borrow_mut()) {
+                Ok(()) => break,
+                Err(script) => script,
+            };
 
-            // Document parsing is blocked on an external resource.
-            if self.suspended.get() {
+            let script_nesting_level = self.script_nesting_level.get();
+
+            self.script_nesting_level.set(script_nesting_level + 1);
+            script.prepare();
+            self.script_nesting_level.set(script_nesting_level);
+
+            if self.document.get_pending_parsing_blocking_script().is_some() {
+                self.suspend();
                 return;
             }
 
-            if !self.has_pending_input() {
-                break;
-            }
+            assert!(!self.suspended.get());
         }
 
         if self.last_chunk_received() {

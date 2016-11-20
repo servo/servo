@@ -142,12 +142,6 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(PartialEq)]
-enum ParserBlockedByScript {
-    Blocked,
-    Unblocked,
-}
-
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub struct StylesheetInDocument {
@@ -1546,15 +1540,13 @@ impl Document {
             self.process_asap_scripts();
         }
 
-        if self.maybe_execute_parser_blocking_script() == ParserBlockedByScript::Blocked {
-            return;
-        }
-
-        // A finished resource load can potentially unblock parsing. In that case, resume the
-        // parser so its loop can find out.
         if let Some(parser) = self.get_current_parser() {
-            if parser.is_suspended() {
-                parser.resume();
+            if let Some(script) = self.pending_parsing_blocking_script.get() {
+                if self.script_blocking_stylesheets_count.get() > 0 || !script.is_ready_to_be_executed() {
+                    return;
+                }
+                self.pending_parsing_blocking_script.set(None);
+                parser.resume_with_pending_parsing_blocking_script(&script);
             }
         } else if self.reflow_timeout.get().is_none() {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
@@ -1575,23 +1567,6 @@ impl Document {
                 win.upcast::<GlobalScope>().pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
-    }
-
-    /// If document parsing is blocked on a script, and that script is ready to run,
-    /// execute it.
-    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
-        let script = match self.pending_parsing_blocking_script.get() {
-            None => return ParserBlockedByScript::Unblocked,
-            Some(script) => script,
-        };
-
-        if self.script_blocking_stylesheets_count.get() == 0 && script.is_ready_to_be_executed() {
-            self.pending_parsing_blocking_script.set(None);
-            script.execute();
-            return ParserBlockedByScript::Unblocked;
-        }
-        ParserBlockedByScript::Blocked
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3
