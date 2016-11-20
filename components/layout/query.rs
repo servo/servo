@@ -32,7 +32,7 @@ use style::context::StyleContext;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
-use style::selector_impl::PseudoElement;
+use style::selector_parser::PseudoElement;
 use style::stylist::Stylist;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;

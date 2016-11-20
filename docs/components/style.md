@@ -138,13 +138,13 @@ that you didn't find it here so it can be added :)
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
 [stylo]: https://public.etherpad-mozilla.org/p/stylo
 [selector-impl]: http://doc.servo.org/selectors/parser/trait.SelectorImpl.html
-[selector-impl-ext]: http://doc.servo.org/style/selector_impl/trait.SelectorImplExt.html
-[servo-selector-impl]: http://doc.servo.org/style/servo_selector_impl/struct.ServoSelectorImpl.html
+[selector-impl-ext]: http://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
+[servo-selector-impl]: http://doc.servo.org/style/servo_selector_parser/struct.ServoSelectorImpl.html
 [tree-structural-pseudo-classes]: https://www.w3.org/TR/selectors4/#structural-pseudos
 [style-dom-traits]: http://doc.servo.org/style/dom/index.html
 [layout-wrapper]: http://doc.servo.org/layout/wrapper/index.html
-[pseudo-cascade-type]: http://doc.servo.org/style/selector_impl/enum.PseudoElementCascadeType.html
-[servo-pseudo-elements]: http://doc.servo.org/style/selector_impl/enum.PseudoElement.html
+[pseudo-cascade-type]: http://doc.servo.org/style/selector_parser/enum.PseudoElementCascadeType.html
+[servo-pseudo-elements]: http://doc.servo.org/style/selector_parser/enum.PseudoElement.html
 [mdn-pseudo-before]: https://developer.mozilla.org/en/docs/Web/CSS/::before
 [mdn-pseudo-after]: https://developer.mozilla.org/en/docs/Web/CSS/::after
 [mdn-pseudo-selection]: https://developer.mozilla.org/en/docs/Web/CSS/::selection

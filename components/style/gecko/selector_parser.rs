@@ -4,8 +4,8 @@
 
 use cssparser::ToCss;
 use element_state::ElementState;
-use selector_impl::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
-use selector_impl::PseudoElementCascadeType;
+use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
+use selector_parser::PseudoElementCascadeType;
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};

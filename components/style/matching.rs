@@ -17,7 +17,7 @@ use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
-use selector_impl::{PseudoElement, RestyleDamage, TheSelectorImpl};
+use selector_parser::{PseudoElement, RestyleDamage, TheSelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};

@@ -52,7 +52,7 @@ use std::sync::atomic::AtomicIsize;
 use style::atomic_refcell::AtomicRefCell;
 use style::data::ElementData;
 use style::dom::TRestyleDamage;
-use style::selector_impl::RestyleDamage;
+use style::selector_parser::RestyleDamage;
 
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the

@@ -6,7 +6,7 @@
 
 use properties::ComputedValues;
 use rule_tree::StrongRuleNode;
-use selector_impl::PseudoElement;
+use selector_parser::PseudoElement;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::mem;

@@ -16,7 +16,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
-use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement, Snapshot};
+use selector_parser::{ElementExt, TheSelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};

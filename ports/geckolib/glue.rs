@@ -16,7 +16,7 @@ use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleConte
 use style::dom::{NodeInfo, StylingMode, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData};
-use style::gecko::selector_impl::{GeckoSelectorImpl, PseudoElement};
+use style::gecko::selector_parser::{GeckoSelectorImpl, PseudoElement};
 use style::gecko::snapshot::GeckoElementSnapshot;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::{GeckoElement, GeckoNode};
@@ -42,7 +42,7 @@ use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
 use style::properties::{apply_declarations, parse_one_declaration};
-use style::selector_impl::PseudoElementCascadeType;
+use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};

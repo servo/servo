@@ -16,7 +16,7 @@ use media_queries::{Device, MediaList, parse_media_query_list};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
-use selector_impl::TheSelectorImpl;
+use selector_parser::TheSelectorImpl;
 use selectors::parser::{Selector, parse_selector_list};
 use servo_url::ServoUrl;
 use std::cell::Cell;

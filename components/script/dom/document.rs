@@ -124,7 +124,7 @@ use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
 use style::restyle_hints::RestyleHint;
-use style::selector_impl::{RestyleDamage, Snapshot};
+use style::selector_parser::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use time;

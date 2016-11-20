@@ -11,19 +11,19 @@ use selectors::parser::{AttrSelector, SelectorImpl};
 pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
-pub use servo::selector_impl::*;
+pub use servo::selector_parser::*;
 
 #[cfg(feature = "gecko")]
-pub use gecko::selector_impl::*;
+pub use gecko::selector_parser::*;
 
 #[cfg(feature = "servo")]
-pub use servo::selector_impl::ServoSelectorImpl as TheSelectorImpl;
+pub use servo::selector_parser::ServoSelectorImpl as TheSelectorImpl;
 
 #[cfg(feature = "gecko")]
-pub use gecko::selector_impl::GeckoSelectorImpl as TheSelectorImpl;
+pub use gecko::selector_parser::GeckoSelectorImpl as TheSelectorImpl;
 
 #[cfg(feature = "servo")]
-pub use servo::selector_impl::ServoElementSnapshot as Snapshot;
+pub use servo::selector_parser::ServoElementSnapshot as Snapshot;
 
 #[cfg(feature = "gecko")]
 pub use gecko::snapshot::GeckoElementSnapshot as Snapshot;

@@ -22,7 +22,7 @@ use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
-use style::selector_impl::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
+use style::selector_parser::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {

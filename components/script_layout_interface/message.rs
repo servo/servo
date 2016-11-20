@@ -19,7 +19,7 @@ use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use style::context::ReflowGoal;
-use style::selector_impl::PseudoElement;
+use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
 
 /// Asynchronous messages that script can send to layout.
