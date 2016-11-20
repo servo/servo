@@ -931,7 +931,7 @@ pub fn load<A, B>(load_data: &LoadData,
     // the source rather than rendering the contents of the URL.
     let viewing_source = doc_url.scheme() == "view-source";
     if viewing_source {
-        doc_url = ServoUrl::parse(&load_data.url.as_url().unwrap()[Position::BeforeUsername..]).unwrap();
+        doc_url = ServoUrl::parse(&load_data.url[Position::BeforeUsername..]).unwrap();
     }
 
     // Loop to handle redirects.

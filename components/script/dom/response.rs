@@ -358,7 +358,7 @@ impl ResponseMethods for Response {
 }
 
 fn serialize_without_fragment(url: &ServoUrl) -> &str {
-    &url.as_url().unwrap()[..Position::AfterQuery]
+    &url[..Position::AfterQuery]
 }
 
 impl Response {

@@ -35,7 +35,7 @@ pub type DecodeData = (Mime, Vec<u8>);
 pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
     assert_eq!(url.scheme(), "data");
     // Split out content type and data.
-    let parts: Vec<&str> = url.as_url().unwrap()[Position::BeforePath..Position::AfterQuery].splitn(2, ',').collect();
+    let parts: Vec<&str> = url[Position::BeforePath..Position::AfterQuery].splitn(2, ',').collect();
     if parts.len() != 2 {
         return Err(DecodeError::InvalidDataUri);
     }
