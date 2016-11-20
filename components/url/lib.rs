@@ -98,6 +98,10 @@ impl ServoUrl {
         Arc::make_mut(&mut self.0).set_password(pass)
     }
 
+    pub fn set_fragment(&mut self, fragment: Option<&str>) {
+        Arc::make_mut(&mut self.0).set_fragment(fragment)
+    }
+
     pub fn username(&self) -> &str {
         self.0.username()
     }

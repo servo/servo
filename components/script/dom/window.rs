@@ -103,6 +103,7 @@ use time;
 use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
+use url::Position;
 use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
@@ -204,9 +205,6 @@ pub struct Window {
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// Pending scroll to fragment event, if any
-    fragment_name: DOMRefCell<Option<String>>,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
@@ -1331,13 +1329,25 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: ServoUrl, replace: bool, referrer_policy: Option<ReferrerPolicy>) {
+    pub fn load_url(&self, url: ServoUrl, replace: bool, force_reload: bool,
+                    referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
 
+        // https://html.spec.whatwg.org/multipage/#navigating-across-documents
+        if !force_reload && url.as_url().unwrap()[..Position::AfterQuery] ==
+            doc.url().as_url().unwrap()[..Position::AfterQuery] {
+                // Step 5
+                if let Some(fragment) = url.fragment() {
+                    doc.check_and_scroll_fragment(fragment);
+                    doc.set_url(url.clone());
+                    return
+                }
+        }
+
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.upcast::<GlobalScope>().pipeline_id(),
-                LoadData::new(url, referrer_policy, Some(doc.url().clone())),
+                LoadData::new(url, referrer_policy, Some(doc.url())),
                 replace)).unwrap();
     }
 
@@ -1346,14 +1356,6 @@ impl Window {
         self.reflow(ReflowGoal::ForDisplay,
                     ReflowQueryType::NoQuery,
                     ReflowReason::Timer);
-    }
-
-    pub fn set_fragment_name(&self, fragment: Option<String>) {
-        *self.fragment_name.borrow_mut() = fragment;
-    }
-
-    pub fn steal_fragment_name(&self) -> Option<String> {
-        self.fragment_name.borrow_mut().take()
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
@@ -1365,7 +1367,7 @@ impl Window {
     }
 
     pub fn get_url(&self) -> ServoUrl {
-        (*self.Document().url()).clone()
+        self.Document().url()
     }
 
     pub fn layout_chan(&self) -> &Sender<Msg> {
@@ -1588,7 +1590,6 @@ impl Window {
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             bluetooth_thread: bluetooth_thread,
             page_clip_rect: Cell::new(max_rect()),
-            fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,

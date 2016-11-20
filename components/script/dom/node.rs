@@ -1751,7 +1751,7 @@ impl Node {
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
                 let document = Document::new(window, None,
-                                             Some((*document.url()).clone()),
+                                             Some(document.url()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader,
                                              None, None);

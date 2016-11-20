@@ -208,7 +208,7 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn from_url(base: &ServoUrl, url: String) -> AttrValue {
+    pub fn from_url(base: ServoUrl, url: String) -> AttrValue {
         let joined = base.join(&url).ok();
         AttrValue::Url(url, joined)
     }

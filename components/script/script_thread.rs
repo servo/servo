@@ -59,7 +59,6 @@ use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{ContentType, HttpDate, LastModified};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
-use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -91,7 +90,6 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use servo_url::ServoUrl;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::option::Option;
@@ -1231,20 +1229,8 @@ impl ScriptThread {
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
-            self.check_and_scroll_fragment(fragment, pipeline, &doc);
-        }
-    }
-
-    fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
-        match doc.find_fragment_node(fragment) {
-            Some(ref node) => {
-                doc.set_target_element(Some(&node));
-                self.scroll_fragment_point(pipeline_id, &node);
-            }
-            None => {
-                doc.set_target_element(None);
-            }
-        }
+            doc.check_and_scroll_fragment(fragment);
+        };
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1253,7 +1239,7 @@ impl ScriptThread {
         let mut reports = vec![];
 
         for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url().as_str();
+            let current_url = document.url();
 
             for child in document.upcast::<Node>().traverse_preorder() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);
@@ -1263,10 +1249,10 @@ impl ScriptThread {
             if reports.len() > 0 {
                 path_seg.push_str(", ");
             }
-            path_seg.push_str(current_url);
+            path_seg.push_str(current_url.as_str());
 
             reports.push(Report {
-                path: path![format!("url({})", current_url), "dom-tree"],
+                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
                 size: dom_tree_size,
             });
@@ -1826,26 +1812,6 @@ impl ScriptThread {
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, element: &Element) {
-        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
-        // Really what needs to happen is that this needs to go through layout to ask which
-        // layer the element belongs to, and have it send the scroll message to the
-        // compositor.
-        let rect = element.upcast::<Node>().bounding_content_box();
-
-        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
-        // paint thread currently does the same for drawing elements. This is important for pages
-        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
-        // don't have the device pixel ratio here, this might not be accurate, but should work as
-        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
-        // account the real device pixel ratio.
-        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
-                                 rect.origin.y.to_nearest_px() as f32);
-
-        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id, point, false);
-        self.constellation_chan.send(message).unwrap();
-    }
-
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
         let window = window_from_node(&*document);
@@ -1987,25 +1953,6 @@ impl ScriptThread {
                               frame_id: Option<FrameId>,
                               load_data: LoadData,
                               replace: bool) {
-        // Step 7.
-        {
-            let nurl = &load_data.url;
-            if let Some(fragment) = nurl.fragment() {
-                let document = match self.documents.borrow().find_document(parent_pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
-                };
-                let nurl = nurl.as_url().unwrap();
-                if let Some(url) = document.url().as_url() {
-                    if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
-                        load_data.method == Method::Get {
-                        self.check_and_scroll_fragment(fragment, parent_pipeline_id, &document);
-                        return;
-                    }
-                }
-            }
-        }
-
         match frame_id {
             Some(frame_id) => {
                 if let Some(iframe) = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id) {
@@ -2031,13 +1978,6 @@ impl ScriptThread {
         window.force_reflow(ReflowGoal::ForDisplay,
                             ReflowQueryType::NoQuery,
                             ReflowReason::WindowResize);
-
-        let fragment_node = window.steal_fragment_name()
-                                  .and_then(|name| document.find_fragment_node(&*name));
-        match fragment_node {
-            Some(ref node) => self.scroll_fragment_point(pipeline_id, &node),
-            None => {}
-        }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
@@ -2118,8 +2058,6 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.process_deferred_scripts();
-
-        window.set_fragment_name(final_url.fragment().map(str::to_owned));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,

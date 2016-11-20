@@ -615,5 +615,5 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referre
     debug!("following hyperlink to {}", url);
 
     let window = document.window();
-    window.load_url(url, false, referrer_policy);
+    window.load_url(url, false, false, referrer_policy);
 }

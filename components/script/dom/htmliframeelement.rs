@@ -157,7 +157,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(
-            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))), false);
+            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url()))), false);
     }
 
     #[allow(unsafe_code)]
