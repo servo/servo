@@ -67,9 +67,9 @@ use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl};
-use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
+use style::stylist::ApplicableDeclarationBlock;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {

@@ -115,7 +115,7 @@ pub mod refcell;
 pub mod restyle_hints;
 pub mod rule_tree;
 pub mod selector_impl;
-pub mod selector_matching;
+pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
 pub mod sink;

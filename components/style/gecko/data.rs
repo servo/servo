@@ -12,7 +12,6 @@ use media_queries::{Device, MediaType};
 use num_cpus;
 use parking_lot::RwLock;
 use rayon;
-use selector_matching::Stylist;
 use std::cmp;
 use std::collections::HashMap;
 use std::env;
@@ -20,6 +19,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::ViewportPx;
 use stylesheets::Stylesheet;
+use stylist::Stylist;
 
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.

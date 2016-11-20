@@ -10,8 +10,8 @@ use servo_atoms::Atom;
 use std::sync::Arc;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
-use style::selector_matching::{Rule, SelectorMap};
 use style::stylesheets::StyleRule;
+use style::stylist::{Rule, SelectorMap};
 use style::thread_state;
 
 /// Helper method to get some Rules from selector strings.

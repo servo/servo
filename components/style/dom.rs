@@ -15,11 +15,11 @@ use properties::{ComputedValues, PropertyDeclarationBlock};
 use properties::longhands::display::computed_value as display;
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement, RestyleDamage};
-use selector_matching::ApplicableDeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
 use std::ops::BitOr;
 use std::sync::Arc;
+use stylist::ApplicableDeclarationBlock;
 use traversal::DomTraversalContext;
 use util::opts;
 

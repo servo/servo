@@ -93,8 +93,8 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::selector_impl::{NonTSPseudoClass, RestyleDamage, ServoSelectorImpl};
-use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
+use style::stylist::ApplicableDeclarationBlock;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
 

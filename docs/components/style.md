@@ -148,11 +148,11 @@ that you didn't find it here so it can be added :)
 [mdn-pseudo-before]: https://developer.mozilla.org/en/docs/Web/CSS/::before
 [mdn-pseudo-after]: https://developer.mozilla.org/en/docs/Web/CSS/::after
 [mdn-pseudo-selection]: https://developer.mozilla.org/en/docs/Web/CSS/::selection
-[stylist]: http://doc.servo.org/style/selector_matching/struct.Stylist.html
+[stylist]: http://doc.servo.org/style/stylist/struct.Stylist.html
 [selectors-selectormap]: http://doc.servo.org/selectors/matching/struct.SelectorMap.html
 [selectors-rule]: http://doc.servo.org/selectors/matching/struct.Rule.html
-[per-pseudo-selectormap]: http://doc.servo.org/style/selector_matching/struct.PerPseudoElementSelectorMap.html
-[per-origin-selectormap]: http://doc.servo.org/style/selector_matching/struct.PerOriginSelectorMap.html
+[per-pseudo-selectormap]: http://doc.servo.org/style/stylist/struct.PerPseudoElementSelectorMap.html
+[per-origin-selectormap]: http://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
 [docs-pipeline]: https://github.com/servo/servo/blob/master/docs/glossary.md#pipeline
 [properties-module]: http://doc.servo.org/style/properties/index.html
 [properties-cascade-fn]: http://doc.servo.org/style/properties/fn.cascade.html
