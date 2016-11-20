@@ -124,7 +124,17 @@ impl RuleTree {
     pub unsafe fn gc(&self) {
         self.root.gc();
     }
+
+    /// This can only be called when no other threads is accessing this tree.
+    pub unsafe fn maybe_gc(&self) {
+        self.root.maybe_gc();
+    }
 }
+
+/// The number of RuleNodes added to the free list before we will consider
+/// doing a GC when calling maybe_gc().  (The value is copied from Gecko,
+/// where it likely did not result from a rigorous performance analysis.)
+const RULE_TREE_GC_INTERVAL: usize = 300;
 
 struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
@@ -148,6 +158,14 @@ struct RuleNode {
 
     /// The next item in the rule tree free list, that starts on the root node.
     next_free: AtomicPtr<RuleNode>,
+
+    /// Number of RuleNodes we have added to the free list since the last GC.
+    /// (We don't update this if we rescue a RuleNode from the free list.  It's
+    /// just used as a heuristic to decide when to run GC.)
+    ///
+    /// Only used on the root RuleNode.  (We could probably re-use one of the
+    /// sibling pointers to save space.)
+    free_count: AtomicUsize,
 }
 
 unsafe impl Sync for RuleTree {}
@@ -169,6 +187,7 @@ impl RuleNode {
             next_sibling: AtomicPtr::new(ptr::null_mut()),
             prev_sibling: AtomicPtr::new(ptr::null_mut()),
             next_free: AtomicPtr::new(ptr::null_mut()),
+            free_count: AtomicUsize::new(0),
         }
     }
 
@@ -183,6 +202,7 @@ impl RuleNode {
             next_sibling: AtomicPtr::new(ptr::null_mut()),
             prev_sibling: AtomicPtr::new(ptr::null_mut()),
             next_free: AtomicPtr::new(FREE_LIST_SENTINEL),
+            free_count: AtomicUsize::new(0),
         }
     }
 
@@ -410,10 +430,12 @@ impl StrongRuleNode {
         debug_assert!(thread_state::get().is_layout() &&
                       !thread_state::get().is_worker());
 
+        // NB: This can run from the root node destructor, so we can't use
+        // `get()`, since it asserts the refcount is bigger than zero.
         let me = &*self.ptr;
         debug_assert!(me.is_root());
 
-        let current = self.get().next_free.load(Ordering::SeqCst);
+        let current = me.next_free.load(Ordering::SeqCst);
         if current == FREE_LIST_SENTINEL {
             return None;
         }
@@ -453,7 +475,16 @@ impl StrongRuleNode {
             }
         }
 
+        me.free_count.store(0, Ordering::SeqCst);
+
         debug_assert!(me.next_free.load(Ordering::SeqCst) == FREE_LIST_SENTINEL);
+    }
+
+    unsafe fn maybe_gc(&self) {
+        debug_assert!(self.get().is_root(), "Can't call GC on a non-root node!");
+        if self.get().free_count.load(Ordering::SeqCst) > RULE_TREE_GC_INTERVAL {
+            self.gc();
+        }
     }
 }
 
@@ -519,8 +550,8 @@ impl Drop for StrongRuleNode {
             return;
         }
 
-        let free_list =
-            &unsafe { &*node.root.as_ref().unwrap().ptr() }.next_free;
+        let root = unsafe { &*node.root.as_ref().unwrap().ptr() };
+        let free_list = &root.next_free;
         loop {
             let next_free = free_list.load(Ordering::SeqCst);
             debug_assert!(!next_free.is_null());
@@ -533,6 +564,7 @@ impl Drop for StrongRuleNode {
                                            Ordering::SeqCst);
             if existing == next_free {
                 // Successfully inserted, yay! Otherwise try again.
+                root.free_count.fetch_add(1, Ordering::Relaxed);
                 break;
             }
         }
