@@ -105,18 +105,6 @@ impl HttpResponse for MockResponse {
     fn status_raw(&self) -> &RawStatus { &self.sr }
 }
 
-fn redirect_to(host: String) -> MockResponse {
-    let mut headers = Headers::new();
-    headers.set(Location(host.to_owned()));
-
-    MockResponse::new(
-        headers,
-        StatusCode::MovedPermanently,
-        RawStatus(301, Cow::Borrowed("Moved Permanently")),
-        b"".to_vec()
-    )
-}
-
 struct TestProvider {
     username: String,
     password: String,
@@ -146,7 +134,6 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
 }
 
 enum ResponseType {
-    Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
 }
@@ -163,9 +150,6 @@ impl MockRequest {
 
 fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError> {
     match t {
-        ResponseType::Redirect(location) => {
-            Ok(redirect_to(location))
-        },
         ResponseType::RedirectWithHeaders(location, headers) => {
             Ok(redirect_with_headers(location, headers))
         },
@@ -1074,79 +1058,6 @@ fn test_load_follows_a_redirect() {
     assert!(response.status.unwrap().is_success());
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
-}
-
-#[test]
-fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
-    let url_x = ServoUrl::parse("http://mozilla.com").unwrap();
-    let url_y = ServoUrl::parse("http://mozilla.org").unwrap();
-
-    struct Factory;
-
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
-
-        fn create(&self, url: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
-            if url.domain().unwrap() == "mozilla.com" {
-                let mut expected_headers_x = Headers::new();
-                expected_headers_x.set_raw("Cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
-                assert_headers_included(&expected_headers_x, &headers);
-
-                Ok(MockRequest::new(
-                    ResponseType::Redirect("http://mozilla.org".to_owned())))
-            } else if url.domain().unwrap() == "mozilla.org" {
-                let mut expected_headers_y = Headers::new();
-                expected_headers_y.set_raw(
-                    "Cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
-                assert_headers_included(&expected_headers_y, &headers);
-
-                Ok(MockRequest::new(
-                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
-            } else {
-                panic!("unexpected host {:?}", url)
-            }
-        }
-    }
-
-    let load_data = LoadData::new(LoadContext::Browsing, url_x.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-        let cookie_x_url = url_x.clone();
-        let cookie_x = Cookie::new_wrapped(
-            CookiePair::new("mozillaIsNot".to_owned(), "dotCom".to_owned()),
-            &cookie_x_url,
-            CookieSource::HTTP
-        ).unwrap();
-
-        cookie_jar.push(cookie_x, CookieSource::HTTP);
-
-        let cookie_y_url = url_y.clone();
-        let cookie_y = Cookie::new_wrapped(
-            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
-            &cookie_y_url,
-            CookieSource::HTTP
-        ).unwrap();
-        cookie_jar.push(cookie_y, CookieSource::HTTP);
-    }
-
-    match load(&load_data,
-               &ui_provider, &http_state,
-               None,
-               &Factory,
-               DEFAULT_USER_AGENT.into(),
-               &CancellationListener::new(None), None) {
-        Err(e) => panic!("expected to follow a redirect {:?}", e),
-        Ok(mut lr) => {
-            let response = read_response(&mut lr);
-            assert_eq!(response, "Yay!".to_owned());
-        }
-    }
 }
 
 #[test]
