@@ -23,8 +23,8 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
 use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
-use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot};
-use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise};
+use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot, PromiseState};
+use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise, GetPromiseState};
 use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use std::ptr;
@@ -196,6 +196,15 @@ impl Promise {
             rooted!(in(cx) let res =
                 CallOriginalPromiseThen(cx, promise, resolve.handle(), reject.handle()));
             result.set(*res);
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn is_settled(&self) -> bool {
+        let state = unsafe { GetPromiseState(self.promise_obj()) };
+        match state {
+            PromiseState::Rejected | PromiseState::Fulfilled => true,
+            _ => false
         }
     }
 

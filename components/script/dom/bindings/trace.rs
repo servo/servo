@@ -195,7 +195,6 @@ impl JSTraceable for Heap<*mut JSObject> {
     }
 }
 
-
 impl JSTraceable for Heap<JSVal> {
     fn trace(&self, trc: *mut JSTracer) {
         trace_jsval(trc, "heap value", self);
