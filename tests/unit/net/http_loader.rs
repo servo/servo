@@ -1510,12 +1510,33 @@ fn test_content_blocked() {
     }
 
     let blocked_url = ServoUrl::parse("http://mozilla.com").unwrap();
-    let url_without_cookies = ServoUrl::parse("http://mozilla2.com").unwrap();
     let mut http_state = HttpState::new();
 
     let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla.com\" }, \
-                                   \"action\": { \"type\": \"block\" } },\
-                                 { \"trigger\": { \"url-filter\": \"https?://mozilla2.com\" }, \
+                                   \"action\": { \"type\": \"block\" } }]";
+    http_state.blocked_content = Arc::new(parse_list(blocked_content_list).ok());
+    assert!(http_state.blocked_content.is_some());
+
+    let ui_provider = TestProvider::new();
+
+    let load_data = LoadData::new(LoadContext::Browsing, blocked_url, &HttpTest);
+
+    let response = load(
+        &load_data, &ui_provider, &http_state,
+        None, &Factory,
+        DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
+    match response {
+        Err(LoadError { error: LoadErrorType::ContentBlocked, .. }) => {},
+        _ => panic!("request should have been blocked"),
+    }
+}
+
+#[test]
+fn test_cookies_blocked() {
+    let url_without_cookies = ServoUrl::parse("http://mozilla2.com").unwrap();
+    let mut http_state = HttpState::new();
+
+    let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla2.com\" }, \
                                    \"action\": { \"type\": \"block-cookies\" } }]";
     http_state.blocked_content = Arc::new(parse_list(blocked_content_list).ok());
     assert!(http_state.blocked_content.is_some());
@@ -1543,16 +1564,5 @@ fn test_content_blocked() {
     match response {
         Ok(_) => {},
         _ => panic!("request should have succeeded without cookies"),
-    }
-
-    let load_data = LoadData::new(LoadContext::Browsing, blocked_url, &HttpTest);
-
-    let response = load(
-        &load_data, &ui_provider, &http_state,
-        None, &Factory,
-        DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
-    match response {
-        Err(LoadError { error: LoadErrorType::ContentBlocked, .. }) => {},
-        _ => panic!("request should have been blocked"),
     }
 }
