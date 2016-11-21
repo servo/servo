@@ -224,28 +224,6 @@ impl HttpRequest for MockRequest {
     }
 }
 
-struct AssertAuthHeaderRequestFactory {
-    expected_headers: Headers,
-    body: Vec<u8>
-}
-
-impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
-    type R = MockRequest;
-
-    fn create(&self, _: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
-        let request = if headers.has::<Authorization<Basic>>() {
-            assert_headers_included(&self.expected_headers, &headers);
-            MockRequest::new(ResponseType::Text(self.body.clone()))
-        } else {
-            let mut headers = Headers::new();
-            headers.set_raw("WWW-Authenticate", vec![b"Basic realm=\"Test realm\"".to_vec()]);
-            MockRequest::new(ResponseType::NeedsAuth(headers))
-        };
-
-        Ok(request)
-    }
-}
-
 fn assert_headers_included(expected: &Headers, request: &Headers) {
     assert!(expected.len() != 0);
     for header in expected.iter() {
@@ -1527,39 +1505,6 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
     let _ = server.close();
 
     assert!(response.status.unwrap().is_success());
-}
-
-#[test]
-fn test_auth_ui_sets_header_on_401() {
-    let url = ServoUrl::parse("http://mozilla.com").unwrap();
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider { username: "test".to_owned(), password: "test".to_owned() };
-
-    let mut auth_header = Headers::new();
-
-    auth_header.set(
-       Authorization(
-           Basic {
-               username: "test".to_owned(),
-               password: Some("test".to_owned())
-           }
-       )
-    );
-
-    let load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
-
-    match load(
-        &load_data, &ui_provider, &http_state,
-        None, &AssertAuthHeaderRequestFactory {
-            expected_headers: auth_header,
-            body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None) {
-        Err(e) => panic!("response contained error {:?}", e),
-        Ok(response) => {
-            assert_eq!(response.metadata.status,
-                       Some((200, b"OK".to_vec())));
-        }
-    }
 }
 
 #[test]
