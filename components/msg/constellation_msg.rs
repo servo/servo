@@ -217,8 +217,6 @@ impl PipelineNamespace {
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
 
-thread_local!(pub static PIPELINE_ID: Cell<Option<PipelineId>> = Cell::new(None));
-
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineNamespaceId(pub u32);
 
@@ -246,15 +244,6 @@ impl PipelineId {
         let PipelineIndex(index) = self.index;
         webrender_traits::PipelineId(namespace_id, index)
     }
-
-    pub fn install(id: PipelineId) {
-        PIPELINE_ID.with(|tls| tls.set(Some(id)))
-    }
-
-    pub fn installed() -> Option<PipelineId> {
-        PIPELINE_ID.with(|tls| tls.get())
-    }
-
 }
 
 impl fmt::Display for PipelineId {
@@ -264,6 +253,8 @@ impl fmt::Display for PipelineId {
         write!(fmt, "({},{})", namespace_id, index)
     }
 }
+
+thread_local!(pub static TOP_LEVEL_FRAME_ID: Cell<Option<FrameId>> = Cell::new(None));
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct FrameIndex(pub u32);
@@ -282,6 +273,16 @@ impl FrameId {
             tls.set(Some(namespace));
             new_frame_id
         })
+    }
+
+    /// Each script and layout thread should have the top-level frame id installed,
+    /// since it is used by crash reporting.
+    pub fn install(id: FrameId) {
+        TOP_LEVEL_FRAME_ID.with(|tls| tls.set(Some(id)))
+    }
+
+    pub fn installed() -> Option<FrameId> {
+        TOP_LEVEL_FRAME_ID.with(|tls| tls.get())
     }
 }
 

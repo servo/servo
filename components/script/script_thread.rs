@@ -518,8 +518,8 @@ impl ScriptThreadFactory for ScriptThread {
         thread::spawn_named(format!("ScriptThread {:?}", state.id),
                             move || {
             thread_state::initialize(thread_state::SCRIPT);
-            PipelineId::install(state.id);
             PipelineNamespace::install(state.pipeline_namespace_id);
+            FrameId::install(state.top_level_frame_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;
