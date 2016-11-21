@@ -30,7 +30,7 @@ use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net::test::{HttpRequest, HttpRequestFactory, HttpState, LoadError, UIProvider, load};
 use net::test::{HttpResponse, LoadErrorType};
 use net_traits::{CookieSource, IncludeSubdomains, LoadContext, LoadData};
-use net_traits::{CustomResponse, LoadOrigin, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{LoadOrigin, NetworkError, ReferrerPolicy};
 use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
@@ -41,7 +41,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
-use std::thread;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
@@ -152,21 +151,11 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     )
 }
 
-fn respond_404() -> MockResponse {
-    MockResponse::new(
-        Headers::new(),
-        StatusCode::NotFound,
-        RawStatus(404, Cow::Borrowed("Not Found")),
-        b"".to_vec()
-    )
-}
-
 enum ResponseType {
     Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers),
-    Dummy404
 }
 
 struct MockRequest {
@@ -193,9 +182,6 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::WithHeaders(b, h) => {
             Ok(respond_with_headers(b, h))
         },
-        ResponseType::Dummy404 => {
-            Ok(respond_404())
-        }
     }
 }
 
@@ -1510,55 +1496,6 @@ fn test_auth_ui_needs_www_auth() {
     let _ = server.close();
 
     assert_eq!(response.status.unwrap(), StatusCode::Unauthorized);
-}
-
-fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String) {
-    use ipc_channel::ipc;
-    let (sender, receiver) = ipc::channel().unwrap();
-
-    struct Factory;
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
-        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            Ok(MockRequest::new(ResponseType::Dummy404))
-        }
-    }
-
-    let mock_response = CustomResponse::new(
-        Headers::new(),
-        RawStatus(200, Cow::Borrowed("OK")),
-        expected_body
-    );
-    let url = ServoUrl::parse("http://mozilla.com").unwrap();
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let join_handle = thread::spawn(move || {
-        let response = load(&load_data.clone(), &ui_provider, &http_state,
-        None, &Factory, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), Some(sender));
-        match response {
-            Ok(mut response) => {
-                let metadata = response.metadata.clone();
-                let body = read_response(&mut response);
-                (metadata, body)
-            }
-            Err(e) => panic!("Error Getting Response: {:?}", e)
-        }
-    });
-
-    let mediator = receiver.recv().unwrap();
-    mediator.response_chan.send(Some(mock_response)).unwrap();
-    let (metadata, body) = join_handle.join().unwrap();
-    (metadata, body)
-}
-
-#[test]
-fn test_custom_response() {
-    let expected_body = b"Yay!".to_vec();
-    let (metadata, body) = load_request_for_custom_response(expected_body.clone());
-    assert_eq!(metadata.status, Some((200, b"OK".to_vec())));
-    assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
 
 #[test]
