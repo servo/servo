@@ -36,7 +36,7 @@ use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use time;
 use time::Tm;
-use url::Origin;
+use url::Origin as UrlOrigin;
 
 pub enum ReadResult {
     Payload(Vec<u8>),
@@ -495,7 +495,7 @@ pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
     let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
-pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &Origin) -> Option<Basic> {
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &UrlOrigin) -> Option<Basic> {
     if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());
