@@ -607,10 +607,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     Ok((response, msg))
 }
 
-pub trait UIProvider {
-    fn input_username_and_password(&self, prompt: &str) -> (Option<String>, Option<String>);
-}
-
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
 fn is_cert_verify_error(error: &OpensslError) -> bool {
     match error {
