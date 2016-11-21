@@ -1524,36 +1524,42 @@ fn test_content_blocked() {
 
 #[test]
 fn test_cookies_blocked() {
-    let url_without_cookies = ServoUrl::parse("http://mozilla2.com").unwrap();
-    let mut http_state = HttpState::new();
+    let handler = move |request: HyperRequest, response: HyperResponse| {
+        assert_eq!(request.headers.get::<CookieHeader>(), None);
+        response.send(b"hi").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla2.com\" }, \
-                                   \"action\": { \"type\": \"block-cookies\" } }]";
-    http_state.blocked_content = Arc::new(parse_list(blocked_content_list).ok());
-    assert!(http_state.blocked_content.is_some());
+    let url_filter = url.as_str().replace("http://", "https?://");
+    let blocked_content_list = format!("[{{ \
+        \"trigger\": {{ \"url-filter\": \"{}\" }}, \
+        \"action\": {{ \"type\": \"block-cookies\" }} \
+    }}]", url_filter);
 
+    let mut context = new_fetch_context(None);
+    context.state.blocked_content = Arc::new(Some(parse_list(&blocked_content_list).unwrap()));
     {
-        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+        let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie = Cookie::new_wrapped(
-            CookiePair::parse("mozillaIs=theBest;").unwrap(),
-            &url_without_cookies,
+            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
+            &url,
             CookieSource::HTTP
         ).unwrap();
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let ui_provider = TestProvider::new();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        .. RequestInit::default()
+    });
 
-    let load_data = LoadData::new(LoadContext::Browsing, url_without_cookies, &HttpTest);
+    let response = fetch(Rc::new(request), &mut None, &context);
 
-    let response = load(
-        &load_data, &ui_provider, &http_state,
-        None, &AssertMustNotIncludeHeadersRequestFactory {
-            headers_not_expected: vec!["Cookie".to_owned()],
-            body: b"hi".to_vec(),
-        }, DEFAULT_USER_AGENT.into(), &CancellationListener::new(None), None);
-    match response {
-        Ok(_) => {},
-        _ => panic!("request should have succeeded without cookies"),
-    }
+    let _ = server.close();
+
+    assert!(response.status.unwrap().is_success());
 }
