@@ -46,6 +46,7 @@ use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};
+use style::thread_state;
 use style::timer::Timer;
 use style_traits::ToCss;
 
@@ -66,6 +67,9 @@ pub extern "C" fn Servo_Initialize() -> () {
 
     // Allocate our default computed values.
     unsafe { ComputedValues::initialize(); }
+
+    // Pretend that we're a Servo Layout thread, to make some assertions happy.
+    thread_state::initialize(thread_state::LAYOUT);
 }
 
 #[no_mangle]

@@ -624,6 +624,18 @@ impl Stylist {
     }
 }
 
+impl Drop for Stylist {
+    fn drop(&mut self) {
+        // This is the last chance to GC the rule tree.  If we have dropped all
+        // strong rule node references before the Stylist is dropped, then this
+        // will cause the rule tree to be destroyed correctly.  If we haven't
+        // dropped all strong rule node references before now, then we will
+        // leak them, since there will be no way to call gc() on the rule tree
+        // after this point.
+        unsafe { self.rule_tree.gc(); }
+    }
+}
+
 
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
