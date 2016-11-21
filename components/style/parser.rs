@@ -8,8 +8,6 @@ use cssparser::{Parser, SourcePosition};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use selector_parser::TheSelectorImpl;
-use selectors::parser::ParserContext as SelectorParserContext;
 use servo_url::ServoUrl;
 use stylesheets::Origin;
 
@@ -38,7 +36,6 @@ impl ParserContextExtraData {
 pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,
     pub base_url: &'a ServoUrl,
-    pub selector_context: SelectorParserContext<TheSelectorImpl>,
     pub error_reporter: Box<ParseErrorReporter + Send>,
     pub extra_data: ParserContextExtraData,
 }
@@ -48,12 +45,9 @@ impl<'a> ParserContext<'a> {
                                error_reporter: Box<ParseErrorReporter + Send>,
                                extra_data: ParserContextExtraData)
                                -> ParserContext<'a> {
-        let mut selector_context = SelectorParserContext::new();
-        selector_context.in_user_agent_stylesheet = stylesheet_origin == Origin::UserAgent;
         ParserContext {
             stylesheet_origin: stylesheet_origin,
             base_url: base_url,
-            selector_context: selector_context,
             error_reporter: error_reporter,
             extra_data: extra_data,
         }

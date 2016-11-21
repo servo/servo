@@ -16,7 +16,7 @@ euclid = "0.10.1"
 owning_ref = "0.2.2"
 parking_lot = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.14"
+selectors = "0.15"
 html5ever-atoms = "0.1"
 servo_atoms = {path = "../../../components/atoms"}
 style = {path = "../../../components/style"}

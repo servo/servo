@@ -72,7 +72,6 @@ use script_layout_interface::message::Msg;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
 use selectors::parser::Selector;
-use selectors::parser::parse_author_origin_selector_list_from_str;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell};
@@ -83,7 +82,7 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
-use style::selector_parser::ServoSelectorImpl;
+use style::selector_parser::{ServoSelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -690,13 +689,13 @@ impl Node {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
             Err(()) => Err(Error::Syntax),
             // Step 3.
-            Ok(ref selectors) => {
+            Ok(selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(selectors, element, None, MatchingReason::Other)
+                    matches(&selectors.0, element, None, MatchingReason::Other)
                 }))
             }
         }
@@ -709,7 +708,7 @@ impl Node {
     pub fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
             Err(()) => Err(Error::Syntax),
             // Step 3.
@@ -717,7 +716,7 @@ impl Node {
                 let mut descendants = self.traverse_preorder();
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
-                Ok(QuerySelectorIterator::new(descendants, selectors))
+                Ok(QuerySelectorIterator::new(descendants, selectors.0))
             }
         }
     }
