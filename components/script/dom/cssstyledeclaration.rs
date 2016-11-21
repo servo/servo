@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
@@ -24,9 +25,57 @@ use style_traits::ToCss;
 #[dom_struct]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
-    owner: JS<Element>,
+    owner: CSSStyleOwner,
     readonly: bool,
     pseudo: Option<PseudoElement>,
+}
+
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+pub enum CSSStyleOwner {
+    Element(JS<Element>),
+    CSSStyleRule(JS<Window>,
+                 #[ignore_heap_size_of = "Arc"]
+                 Arc<RwLock<PropertyDeclarationBlock>>),
+}
+
+impl CSSStyleOwner {
+    fn style_attribute(&self) -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        match *self {
+            CSSStyleOwner::Element(ref el) => {
+                if let Some(ref pdb) = *el.style_attribute().borrow() {
+                    Some(pdb.clone())
+                } else {
+                    None
+                }
+            }
+            CSSStyleOwner::CSSStyleRule(_, ref pdb) => {
+                Some(pdb.clone())
+            }
+        }
+    }
+
+    fn window(&self) -> Root<Window> {
+        match *self {
+            CSSStyleOwner::Element(ref el) => window_from_node(&**el),
+            CSSStyleOwner::CSSStyleRule(ref window, _) => Root::from_ref(&**window),
+        }
+    }
+
+    fn flush_style(&self, pdb: &PropertyDeclarationBlock) {
+        if let CSSStyleOwner::Element(ref el) = *self {
+            el.set_style_attr(pdb.to_css_string());
+        }
+    }
+
+    fn dirty(&self) {
+        match *self {
+            CSSStyleOwner::Element(ref el) =>
+                el.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged),
+            CSSStyleOwner::CSSStyleRule(ref window, _) =>
+                window.Document().invalidate_stylesheets(),
+        }
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -49,20 +98,22 @@ macro_rules! css_properties(
 );
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: &Element,
+    #[allow(unrooted_must_root)]
+    pub fn new_inherited(owner: CSSStyleOwner,
                          pseudo: Option<PseudoElement>,
                          modification_access: CSSModificationAccess)
                          -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
-            owner: JS::from_ref(owner),
+            owner: owner,
             readonly: modification_access == CSSModificationAccess::Readonly,
             pseudo: pseudo,
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(global: &Window,
-               owner: &Element,
+               owner: CSSStyleOwner,
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess)
                -> Root<CSSStyleDeclaration> {
@@ -74,14 +125,20 @@ impl CSSStyleDeclaration {
     }
 
     fn get_computed_style(&self, property: PropertyId) -> DOMString {
-        let node = self.owner.upcast::<Node>();
-        if !node.is_in_doc() {
-            // TODO: Node should be matched against the style rules of this window.
-            // Firefox is currently the only browser to implement this.
-            return DOMString::new();
+        match self.owner {
+            CSSStyleOwner::CSSStyleRule(..) =>
+                panic!("get_computed_style called on CSSStyleDeclaration with a CSSStyleRule owner"),
+            CSSStyleOwner::Element(ref el) => {
+                let node = el.upcast::<Node>();
+                if !node.is_in_doc() {
+                    // TODO: Node should be matched against the style rules of this window.
+                    // Firefox is currently the only browser to implement this.
+                    return DOMString::new();
+                }
+                let addr = node.to_trusted_node_address();
+                window_from_node(node).resolved_style_query(addr, self.pseudo.clone(), property)
+            }
         }
-        let addr = node.to_trusted_node_address();
-        window_from_node(&*self.owner).resolved_style_query(addr, self.pseudo.clone(), property)
     }
 
     fn get_property_value(&self, id: PropertyId) -> DOMString {
@@ -90,17 +147,14 @@ impl CSSStyleDeclaration {
             return self.get_computed_style(id);
         }
 
-        let style_attribute = self.owner.style_attribute().borrow();
-        let style_attribute = if let Some(ref lock) = *style_attribute {
-            lock.read()
+        if let Some(ref lock) = self.owner.style_attribute() {
+            let mut string = String::new();
+            lock.read().property_value_to_css(&id, &mut string).unwrap();
+            DOMString::from(string)
         } else {
             // No style attribute is like an empty style attribute: no matching declaration.
-            return DOMString::new()
-        };
-
-        let mut string = String::new();
-        style_attribute.property_value_to_css(&id, &mut string).unwrap();
-        DOMString::from(string)
+            DOMString::new()
+        }
     }
 
     fn set_property(&self, id: PropertyId, value: DOMString, priority: DOMString) -> ErrorResult {
@@ -109,24 +163,20 @@ impl CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let mut style_attribute = self.owner.style_attribute().borrow_mut();
-
         if value.is_empty() {
             // Step 4
-            let empty;
-            {
-                let mut style_attribute = if let Some(ref lock) = *style_attribute {
-                    lock.write()
+            let empty = {
+                if let Some(ref lock) = self.owner.style_attribute() {
+                    let mut style_attribute = lock.write();
+                    style_attribute.remove_property(&id);
+                    style_attribute.declarations.is_empty()
                 } else {
                     // No style attribute is like an empty style attribute: nothing to remove.
                     return Ok(())
-                };
-
-                style_attribute.remove_property(&id);
-                empty = style_attribute.declarations.is_empty()
-            }
-            if empty {
-                *style_attribute = None;
+                }
+            };
+            if let (&CSSStyleOwner::Element(ref el), true) = (&self.owner, empty) {
+                *el.style_attribute().borrow_mut() = None;
             }
         } else {
             // Step 5
@@ -137,29 +187,28 @@ impl CSSStyleDeclaration {
             };
 
             // Step 6
-            let window = window_from_node(&*self.owner);
+            let window = self.owner.window();
             let declarations =
                 parse_one_declaration(id, &value, &window.get_url(), window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = if let Ok(declarations) = declarations {
-                declarations
-            } else {
-                return Ok(());
+            let declarations = match declarations {
+                Ok(declarations) => declarations,
+                Err(_) => return Ok(())
             };
 
             // Step 8
             // Step 9
-            match *style_attribute {
+            match self.owner.style_attribute() {
                 Some(ref lock) => {
                     let mut style_attribute = lock.write();
                     for declaration in declarations {
                         style_attribute.set_parsed_declaration(declaration, importance);
                     }
-                    self.owner.set_style_attr(style_attribute.to_css_string());
+                    self.owner.flush_style(&style_attribute);
                 }
-                ref mut option @ None => {
+                None => {
                     let important_count = if importance.important() {
                         declarations.len() as u32
                     } else {
@@ -169,14 +218,17 @@ impl CSSStyleDeclaration {
                         declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
                         important_count: important_count,
                     };
-                    self.owner.set_style_attr(block.to_css_string());
-                    *option = Some(Arc::new(RwLock::new(block)));
+                    if let CSSStyleOwner::Element(ref el) = self.owner {
+                        el.set_style_attr(block.to_css_string());
+                        *el.style_attribute().borrow_mut() = Some(Arc::new(RwLock::new(block)));
+                    } else {
+                        panic!("set_property called on a CSSStyleDeclaration with a non-Element owner");
+                    }
                 }
             }
         }
 
-        let node = self.owner.upcast::<Node>();
-        node.dirty(NodeDamage::NodeStyleDamaged);
+        self.owner.dirty();
         Ok(())
     }
 }
@@ -184,12 +236,7 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        let elem = self.owner.upcast::<Element>();
-        let len = match *elem.style_attribute().borrow() {
-            Some(ref lock) => lock.read().declarations.len(),
-            None => 0,
-        };
-        len as u32
+        self.owner.style_attribute().as_ref().map_or(0, |lock| lock.read().declarations.len() as u32)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
@@ -217,18 +264,15 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return DOMString::new()
         };
 
-        let style_attribute = self.owner.style_attribute().borrow();
-        let style_attribute = if let Some(ref lock) = *style_attribute {
-            lock.read()
+        if let Some(ref lock) = self.owner.style_attribute() {
+            if lock.read().property_priority(&id).important() {
+                DOMString::from("important")
+            } else {
+                // Step 4
+                DOMString::new()
+            }
         } else {
             // No style attribute is like an empty style attribute: no matching declaration.
-            return DOMString::new()
-        };
-
-        if style_attribute.property_priority(&id).important() {
-            DOMString::from("important")
-        } else {
-            // Step 4
             DOMString::new()
         }
     }
@@ -243,7 +287,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let id = if let Ok(id) = PropertyId::parse(property.into()) {
             id
         } else {
-            // Unkwown property
+            // Unknown property
             return Ok(())
         };
         self.set_property(id, value, priority)
@@ -271,16 +315,14 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             _ => return Ok(()),
         };
 
-        let style_attribute = self.owner.style_attribute().borrow();
-        if let Some(ref lock) = *style_attribute {
+        if let Some(ref lock) = self.owner.style_attribute() {
             let mut style_attribute = lock.write();
 
             // Step 5 & 6
             style_attribute.set_importance(&id, importance);
 
-            self.owner.set_style_attr(style_attribute.to_css_string());
-            let node = self.owner.upcast::<Node>();
-            node.dirty(NodeDamage::NodeStyleDamaged);
+            self.owner.flush_style(&style_attribute);
+            self.owner.dirty();
         }
         Ok(())
     }
@@ -304,31 +346,26 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Ok(DOMString::new())
         };
 
-        let mut style_attribute = self.owner.style_attribute().borrow_mut();
         let mut string = String::new();
-        let empty;
-        {
-            let mut style_attribute = if let Some(ref lock) = *style_attribute {
-                lock.write()
+        let empty = {
+            if let Some(ref lock) = self.owner.style_attribute() {
+                let mut style_attribute = lock.write();
+                // Step 3
+                style_attribute.property_value_to_css(&id, &mut string).unwrap();
+
+                // Step 4 & 5
+                style_attribute.remove_property(&id);
+                self.owner.flush_style(&style_attribute);
+                style_attribute.declarations.is_empty()
             } else {
                 // No style attribute is like an empty style attribute: nothing to remove.
                 return Ok(DOMString::new())
-            };
-
-            // Step 3
-            style_attribute.property_value_to_css(&id, &mut string).unwrap();
-
-            // Step 4 & 5
-            style_attribute.remove_property(&id);
-            self.owner.set_style_attr(style_attribute.to_css_string());
-            empty = style_attribute.declarations.is_empty()
+            }
+        };
+        if let (&CSSStyleOwner::Element(ref el), true) = (&self.owner, empty) {
+            *el.style_attribute().borrow_mut() = None;
         }
-        if empty {
-            *style_attribute = None;
-        }
-
-        let node = self.owner.upcast::<Node>();
-        node.dirty(NodeDamage::NodeStyleDamaged);
+        self.owner.dirty();
 
         // Step 6
         Ok(DOMString::from(string))
@@ -346,11 +383,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        let index = index as usize;
-        let elem = self.owner.upcast::<Element>();
-        let style_attribute = elem.style_attribute().borrow();
-        style_attribute.as_ref().and_then(|lock| {
-            lock.read().declarations.get(index).map(|entry| {
+        self.owner.style_attribute().as_ref().and_then(|lock| {
+            lock.read().declarations.get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
@@ -363,19 +397,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
-        let elem = self.owner.upcast::<Element>();
-        let style_attribute = elem.style_attribute().borrow();
-
-        if let Some(lock) = style_attribute.as_ref() {
-            DOMString::from(lock.read().to_css_string())
-        } else {
-            DOMString::new()
-        }
+        self.owner.style_attribute().as_ref().map_or(DOMString::new(), |lock|
+            DOMString::from(lock.read().to_css_string()))
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn SetCssText(&self, value: DOMString) -> ErrorResult {
-        let window = window_from_node(self.owner.upcast::<Node>());
+        let window = self.owner.window();
 
         // Step 1
         if self.readonly {
@@ -385,15 +413,16 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
                                                ParserContextExtraData::default());
-        *self.owner.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
-            self.owner.set_style_attr(String::new());
-            None // Step 2
-        } else {
-            self.owner.set_style_attr(decl_block.to_css_string());
-            Some(Arc::new(RwLock::new(decl_block)))
-        };
-        let node = self.owner.upcast::<Node>();
-        node.dirty(NodeDamage::NodeStyleDamaged);
+        if let CSSStyleOwner::Element(ref el) = self.owner {
+            *el.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
+                el.set_style_attr(String::new());
+                None // Step 2
+            } else {
+                el.set_style_attr(decl_block.to_css_string());
+                Some(Arc::new(RwLock::new(decl_block)))
+            };
+        }
+        self.owner.dirty();
         Ok(())
     }
 

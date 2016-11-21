@@ -6,5 +6,5 @@
 [Exposed=Window]
 interface CSSStyleRule : CSSRule {
   // attribute DOMString selectorText;
-  // [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };
