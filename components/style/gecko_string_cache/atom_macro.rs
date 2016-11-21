@@ -162,8 +162,6 @@ cfg_if! {
             pub static nsGkAtoms_anonlocation: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms3anyE"]
             pub static nsGkAtoms_any: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms6mozappE"]
-            pub static nsGkAtoms_mozapp: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6appletE"]
             pub static nsGkAtoms_applet: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12applyImportsE"]
@@ -1944,8 +1942,6 @@ cfg_if! {
             pub static nsGkAtoms_parameter: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6parentE"]
             pub static nsGkAtoms_parent: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9parentappE"]
-            pub static nsGkAtoms_parentapp: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13parentfocusedE"]
             pub static nsGkAtoms_parentfocused: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9parsetypeE"]
@@ -5799,8 +5795,6 @@ cfg_if! {
             pub static nsGkAtoms_anonlocation: *mut nsIAtom;
             #[link_name = "?any@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_any: *mut nsIAtom;
-            #[link_name = "?mozapp@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_mozapp: *mut nsIAtom;
             #[link_name = "?applet@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_applet: *mut nsIAtom;
             #[link_name = "?applyImports@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7581,8 +7575,6 @@ cfg_if! {
             pub static nsGkAtoms_parameter: *mut nsIAtom;
             #[link_name = "?parent@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_parent: *mut nsIAtom;
-            #[link_name = "?parentapp@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_parentapp: *mut nsIAtom;
             #[link_name = "?parentfocused@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_parentfocused: *mut nsIAtom;
             #[link_name = "?parsetype@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11436,8 +11428,6 @@ cfg_if! {
             pub static nsGkAtoms_anonlocation: *mut nsIAtom;
             #[link_name = "\x01?any@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_any: *mut nsIAtom;
-            #[link_name = "\x01?mozapp@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_mozapp: *mut nsIAtom;
             #[link_name = "\x01?applet@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_applet: *mut nsIAtom;
             #[link_name = "\x01?applyImports@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13218,8 +13208,6 @@ cfg_if! {
             pub static nsGkAtoms_parameter: *mut nsIAtom;
             #[link_name = "\x01?parent@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_parent: *mut nsIAtom;
-            #[link_name = "\x01?parentapp@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_parentapp: *mut nsIAtom;
             #[link_name = "\x01?parentfocused@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_parentfocused: *mut nsIAtom;
             #[link_name = "\x01?parsetype@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17076,8 +17064,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_anonlocation as *mut _) } };
 ("any") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_any as *mut _) } };
-("mozapp") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozapp as *mut _) } };
 ("applet") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_applet as *mut _) } };
 ("apply-imports") =>
@@ -18858,8 +18844,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parameter as *mut _) } };
 ("parent") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parent as *mut _) } };
-("parentapp") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentapp as *mut _) } };
 ("parentfocused") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_parentfocused as *mut _) } };
 ("parsetype") =>

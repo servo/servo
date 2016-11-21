@@ -188,6 +188,7 @@ COMPILATION_TARGETS = {
             "StyleTransition",
             "UniquePtr",
         ],
+        "bitfield_enum_types": ["nsChangeHint", "nsRestyleHint"],
         "opaque_types": [
             "atomic___base",
             "nsAString_internal_char_traits",
@@ -523,6 +524,11 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         for header in current_target["whitelist_vars"]:
             flags.append("--whitelist-var")
             flags.append(header)
+
+    if "bitfield_enum_types" in current_target:
+        for ty in current_target["bitfield_enum_types"]:
+            flags.append("--bitfield-enum")
+            flags.append(ty)
 
     if "opaque_types" in current_target:
         for ty in current_target["opaque_types"]:
