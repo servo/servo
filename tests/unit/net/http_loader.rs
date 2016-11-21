@@ -1212,35 +1212,6 @@ fn test_load_follows_a_redirect() {
                ResponseBody::Done(b"Yay!".to_vec()));
 }
 
-struct DontConnectFactory;
-
-impl HttpRequestFactory for DontConnectFactory {
-    type R = MockRequest;
-
-    fn create(&self, url: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-        Err(LoadError::new(url, LoadErrorType::Connection { reason: "should not have connected".into() }))
-    }
-}
-
-#[test]
-fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
-    let url = ServoUrl::parse("view-source:ftp://not-supported").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
-
-    match load(&load_data,
-               &ui_provider, &http_state,
-               None,
-               &DontConnectFactory,
-               DEFAULT_USER_AGENT.into(),
-               &CancellationListener::new(None), None) {
-        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme { scheme: "ftp".into() } => (),
-        _ => panic!("expected ftp scheme to be unsupported")
-    }
-}
-
 #[test]
 fn test_load_errors_when_cancelled() {
     use ipc_channel::ipc;
