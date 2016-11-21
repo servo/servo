@@ -39,7 +39,7 @@ use util::geometry::ScreenPx;
 use util::opts;
 use util::prefs::PREFS;
 use webrender;
-use webrender_traits::{self, ScrollEventPhase};
+use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -493,9 +493,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.title_for_main_frame();
             }
 
-            (Msg::ScrollFragmentPoint(pipeline_id, point, _),
+            (Msg::ScrollFragmentPoint(pipeline_id, scroll_root_id, point, _),
              ShutdownState::NotShuttingDown) => {
-                self.scroll_fragment_to_point(pipeline_id, point);
+                self.scroll_fragment_to_point(pipeline_id, scroll_root_id, point);
             }
 
             (Msg::MoveTo(point),
@@ -761,9 +761,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn scroll_fragment_to_point(&mut self,
-                                _pipeline_id: PipelineId,
-                                _point: Point2D<f32>) {
-        println!("TODO: Support scroll_fragment_to_point again");
+                                pipeline_id: PipelineId,
+                                scroll_root_id: ScrollRootId,
+                                point: Point2D<f32>) {
+        self.webrender_api.scroll_layers_with_scroll_root_id(
+            point,
+            pipeline_id.to_webrender(),
+            ServoScrollRootId(scroll_root_id.0));
     }
 
     fn handle_window_message(&mut self, event: WindowEvent) {
