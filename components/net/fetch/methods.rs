@@ -28,7 +28,6 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use resource_thread::CancellationListener;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -992,7 +991,6 @@ fn http_network_fetch(request: Rc<Request>,
         connector: connection,
     };
     let url = request.current_url();
-    let cancellation_listener = CancellationListener::new(None);
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
         uuid::Uuid::new_v4().simple().to_string()
@@ -1004,7 +1002,7 @@ fn http_network_fetch(request: Rc<Request>,
     let is_xhr = request.destination == Destination::None;
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
                                            &request.headers.borrow(),
-                                           &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
+                                           &request.body.borrow(), &request.method.borrow(),
                                            &request.pipeline_id.get(), request.redirect_count.get() + 1,
                                            request_id.as_ref().map(Deref::deref), is_xhr);
 
@@ -1015,7 +1013,6 @@ fn http_network_fetch(request: Rc<Request>,
             let error = match error.error {
                 LoadErrorType::ConnectionAborted { .. } => unreachable!(),
                 LoadErrorType::Ssl { reason } => NetworkError::SslValidation(error.url, reason),
-                LoadErrorType::Cancelled => NetworkError::LoadCancelled,
                 e => NetworkError::Internal(e.description().to_owned())
             };
             return Response::network_error(error);

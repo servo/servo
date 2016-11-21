@@ -27,7 +27,7 @@ use net_traits::{CookieSource, Metadata, ReferrerPolicy};
 use net_traits::hosts::replace_hosts;
 use openssl;
 use openssl::ssl::error::{OpensslError, SslError};
-use resource_thread::{AuthCache, CancellationListener};
+use resource_thread::AuthCache;
 use servo_url::ServoUrl;
 use std::error::Error;
 use std::fmt;
@@ -240,7 +240,6 @@ impl LoadError {
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum LoadErrorType {
-    Cancelled,
     Connection { reason: String },
     ConnectionAborted { reason: String },
     Decoding { reason: String },
@@ -256,7 +255,6 @@ impl fmt::Display for LoadErrorType {
 impl Error for LoadErrorType {
     fn description(&self) -> &str {
         match *self {
-            LoadErrorType::Cancelled => "load cancelled",
             LoadErrorType::Connection { ref reason } => reason,
             LoadErrorType::ConnectionAborted { ref reason } => reason,
             LoadErrorType::Decoding { ref reason } => reason,
@@ -511,7 +509,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           url: &ServoUrl,
                           method: &Method,
                           request_headers: &Headers,
-                          cancel_listener: &CancellationListener,
                           data: &Option<Vec<u8>>,
                           load_data_method: &Method,
                           pipeline_id: &Option<PipelineId>,
@@ -568,10 +565,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                                               headers.clone()));
 
         let connect_end = precise_time_ms();
-
-        if cancel_listener.is_cancelled() {
-            return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled));
-        }
 
         let send_start = precise_time_ms();
 
