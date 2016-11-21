@@ -351,11 +351,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
                 let image_info = box ImageFragmentInfo::new(node.image_url(),
+                                                            node,
                                                             &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = box ImageFragmentInfo::new(node.object_data(),
+                                                            node,
                                                             &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
@@ -1219,6 +1221,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             Either::First(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(url_value.url().map(|u| u.clone()),
+                                                            node,
                                                             &self.layout_context);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }

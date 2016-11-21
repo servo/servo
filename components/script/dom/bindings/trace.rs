@@ -62,7 +62,7 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::image_cache_thread::{ImageCacheThread, PendingImageId};
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseBody};
 use net_traits::response::HttpsState;
@@ -320,7 +320,7 @@ unsafe_no_jsmanaged_fields!(bool, f32, f64, String, AtomicBool, AtomicUsize, Uui
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 unsafe_no_jsmanaged_fields!(ServoUrl, ImmutableOrigin, MutableOrigin);
-unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCacheChan, ImageCacheThread);
+unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCacheThread, PendingImageId);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
