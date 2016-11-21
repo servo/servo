@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
+use document_loader::{LoadType, LoadBlocker};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
@@ -12,6 +13,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -24,12 +26,16 @@ use dom::window::Window;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
+use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable};
+use net_traits::request::{RequestInit, Type as RequestType};
+use network_listener::{NetworkListener, PreInvoke};
 use script_thread::Runnable;
 use servo_url::ServoUrl;
 use std::i32;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
 
@@ -42,10 +48,12 @@ enum State {
     Broken,
 }
 #[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
 struct ImageRequest {
     state: State,
     parsed_url: Option<ServoUrl>,
     source_url: Option<DOMString>,
+    blocker: Option<LoadBlocker>,
     #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
@@ -63,6 +71,64 @@ impl HTMLImageElement {
     }
 }
 
+struct ImageRequestRunnable {
+    element: Trusted<HTMLImageElement>,
+    img_url: ServoUrl,
+    id: PendingImageId,
+}
+
+impl ImageRequestRunnable {
+    fn new(element: Trusted<HTMLImageElement>,
+           img_url: ServoUrl,
+           id: PendingImageId)
+           -> ImageRequestRunnable {
+        ImageRequestRunnable {
+            element: element,
+            img_url: img_url,
+            id: id,
+        }
+    }
+}
+
+impl Runnable for ImageRequestRunnable {
+    fn handler(self: Box<Self>) {
+        let this = *self;
+        let trusted_node = this.element.clone();
+        let element = this.element.root();
+
+        let document = document_from_node(&*element);
+        let window = window_from_node(&*element);
+
+        let context = Arc::new(Mutex::new(ImageContext {
+            elem: trusted_node,
+            data: vec!(),
+            metadata: None,
+            url: this.img_url.clone(),
+            status: Ok(()),
+            id: this.id,
+        }));
+
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let listener = NetworkListener {
+            context: context,
+            task_source: window.networking_task_source(),
+            wrapper: Some(window.get_runnable_wrapper()),
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify_fetch(message.to().unwrap());
+        });
+
+        let request = RequestInit {
+            url: this.img_url.clone(),
+            origin: document.url().clone(),
+            type_: RequestType::Image,
+            pipeline_id: Some(document.global().pipeline_id()),
+            .. RequestInit::default()
+        };
+
+        document.fetch_async(LoadType::Image(this.img_url), request, action_sender);
+    }
+}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -111,11 +177,71 @@ impl Runnable for ImageResponseHandlerRunnable {
             element.upcast::<EventTarget>().fire_event(atom!("error"));
         }
 
+        LoadBlocker::terminate(&mut element.current_request.borrow_mut().blocker);
+
         // Trigger reflow
         let window = window_from_node(&*document);
         window.add_pending_reflow();
     }
 }
+
+/// The context required for asynchronously loading an external image.
+struct ImageContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLImageElement>,
+    /// The response body received to date.
+    data: Vec<u8>,
+    /// The response metadata received to date.
+    metadata: Option<Metadata>,
+    /// The initial URL requested.
+    url: ServoUrl,
+    /// Indicates whether the request failed, and why
+    status: Result<(), NetworkError>,
+    /// The cache ID for this request.
+    id: PendingImageId,
+}
+
+impl FetchResponseListener for ImageContext {
+    fn process_request_body(&mut self) {}
+    fn process_request_eof(&mut self) {}
+
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        self.metadata = metadata.ok().map(|meta| match meta {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        });
+
+        let status_code = self.metadata.as_ref().and_then(|m| {
+            match m.status {
+                Some((c, _)) => Some(c),
+                _ => None,
+            }
+        }).unwrap_or(0);
+
+        self.status = match status_code {
+            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
+            200...299 => Ok(()), // HTTP ok status codes
+            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
+        };
+    }
+
+    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
+        if self.status.is_ok() {
+            self.data.append(&mut payload);
+        }
+    }
+
+    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+        let elem = self.elem.root();
+        let document = document_from_node(&*elem);
+        let window = document.window();
+        let image_cache = window.image_cache_thread();
+        image_cache.store_complete_image_bytes(self.id, self.data.clone());
+        document.finish_load(LoadType::Image(self.url.clone()));
+    }
+}
+
+impl PreInvoke for ImageContext {}
 
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
@@ -123,11 +249,11 @@ impl HTMLImageElement {
     fn update_image(&self, value: Option<(DOMString, ServoUrl)>) {
         let document = document_from_node(self);
         let window = document.window();
-        let image_cache = window.image_cache_thread();
         match value {
             None => {
                 self.current_request.borrow_mut().parsed_url = None;
                 self.current_request.borrow_mut().source_url = None;
+                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
                 self.current_request.borrow_mut().image = None;
             }
             Some((src, base_url)) => {
@@ -136,22 +262,57 @@ impl HTMLImageElement {
                     self.current_request.borrow_mut().parsed_url = Some(img_url.clone());
                     self.current_request.borrow_mut().source_url = Some(src);
 
+                    LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+                    self.current_request.borrow_mut().blocker =
+                        Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
+
                     let trusted_node = Trusted::new(self);
                     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                     let task_source = window.networking_task_source();
                     let wrapper = window.get_runnable_wrapper();
+                    let img_url_cloned = img_url.clone();
+                    let trusted_node_clone = trusted_node.clone();
                     ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
-                        let image_response = message.to().unwrap();
-                        let runnable = box ImageResponseHandlerRunnable::new(
-                            trusted_node.clone(), image_response);
-                        let _ = task_source.queue_with_wrapper(runnable, &wrapper);
+                        let runnable = ImageResponseHandlerRunnable::new(
+                            trusted_node_clone.clone(), message.to().unwrap());
+                        let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
                     });
 
-                    image_cache.request_image_and_metadata(img_url.into(),
-                                              window.image_cache_chan(),
-                                              Some(ImageResponder::new(responder_sender)));
+                    let image_cache = window.image_cache_thread();
+                    let response =
+                        image_cache.find_image_or_metadata(img_url_cloned.into(), UsePlaceholder::Yes);
+                    match response {
+                        Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::Loaded(image));
+                            event.handler();
+                        }
+
+                        Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::MetadataLoaded(m));
+                            event.handler();
+                        }
+
+                        Err(ImageState::Pending(id)) => {
+                            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+                        }
+
+                        Err(ImageState::LoadError) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::None);
+                            event.handler();
+                        }
+
+                        Err(ImageState::NotRequested(id)) => {
+                            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+                            let runnable = box ImageRequestRunnable::new(
+                                Trusted::new(self), img_url, id);
+                            runnable.handler();
+                        }
+                    }
                 } else {
                     // https://html.spec.whatwg.org/multipage/#update-the-image-data
                     // Step 11 (error substeps)
@@ -191,6 +352,7 @@ impl HTMLImageElement {
             }
         }
     }
+
     fn new_inherited(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
@@ -199,14 +361,16 @@ impl HTMLImageElement {
                 parsed_url: None,
                 source_url: None,
                 image: None,
-                metadata: None
+                metadata: None,
+                blocker: None,
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
                 image: None,
-                metadata: None
+                metadata: None,
+                blocker: None,
             }),
         }
     }
