@@ -2244,7 +2244,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-width column-count">
+                  skip_longhands="column-width column-count -moz-column-rule-width">
 
     pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
@@ -2268,6 +2268,9 @@ clip-path
     }
 
     ${impl_simple_copy('column_count', 'mColumnCount')}
+
+    <% impl_app_units("_moz_column_rule_width", "mColumnRuleWidth", need_clone=True,
+                      round_to_pixels=True) %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"
