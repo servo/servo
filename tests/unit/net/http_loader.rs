@@ -15,61 +15,29 @@ use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cook
 use hyper::header::{AcceptLanguage, Authorization, Basic, Date};
 use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, SetCookie, qitem};
 use hyper::header::{StrictTransportSecurity, UserAgent};
-use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use make_server;
-use msg::constellation_msg::{PipelineId, TEST_PIPELINE_ID};
+use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::fetch::methods::fetch;
-use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net::test::{HttpRequest, HttpRequestFactory, HttpResponse, HttpState, LoadError, UIProvider, load};
-use net_traits::{CookieSource, LoadContext, LoadData};
-use net_traits::{LoadOrigin, NetworkError, ReferrerPolicy};
+use net::resource_thread::AuthCacheEntry;
+use net_traits::{CookieSource, NetworkError};
 use net_traits::hosts::replace_host_table;
 use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
 use servo_url::ServoUrl;
-use std::borrow::Cow;
 use std::collections::HashMap;
-use std::io::{self, Cursor, Read, Write};
+use std::io::{Read, Write};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
-
-const DEFAULT_USER_AGENT: &'static str = "Test-agent";
-
-struct HttpTest;
-
-impl LoadOrigin for HttpTest {
-    fn referrer_url(&self) -> Option<ServoUrl> {
-        None
-    }
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
-    }
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(TEST_PIPELINE_ID)
-    }
-}
-
-fn respond_with(body: Vec<u8>) -> MockResponse {
-    let mut headers = Headers::new();
-    headers.set(ContentLength(body.len() as u64));
-
-    MockResponse::new(
-        headers,
-        StatusCode::Ok,
-        RawStatus(200, Cow::Borrowed("OK")),
-        body
-    )
-}
 
 fn read_response(reader: &mut Read) -> String {
     let mut buf = vec![0; 1024];
@@ -80,102 +48,6 @@ fn read_response(reader: &mut Read) -> String {
         },
         Ok(_) => "".to_owned(),
         Err(e) => panic!("problem reading response {}", e)
-    }
-}
-
-struct MockResponse {
-    h: Headers,
-    sc: StatusCode,
-    sr: RawStatus,
-    msg: Cursor<Vec<u8>>
-}
-
-impl MockResponse {
-    fn new(h: Headers, sc: StatusCode, sr: RawStatus, msg: Vec<u8>) -> MockResponse {
-        MockResponse { h: h, sc: sc, sr: sr, msg: Cursor::new(msg) }
-    }
-}
-
-impl Read for MockResponse {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.msg.read(buf)
-    }
-}
-
-impl HttpResponse for MockResponse {
-    fn headers(&self) -> &Headers { &self.h }
-    fn status(&self) -> StatusCode { self.sc }
-    fn status_raw(&self) -> &RawStatus { &self.sr }
-}
-
-struct TestProvider {
-    username: String,
-    password: String,
-}
-
-impl TestProvider {
-    fn new() -> TestProvider {
-        TestProvider { username: "default".to_owned(), password: "default".to_owned() }
-    }
-}
-impl UIProvider for TestProvider {
-    fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
-        (Some(self.username.to_owned()),
-        Some(self.password.to_owned()))
-    }
-}
-
-fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
-    headers.set(Location(host.to_string()));
-
-    MockResponse::new(
-        headers,
-        StatusCode::MovedPermanently,
-        RawStatus(301, Cow::Borrowed("Moved Permanently")),
-        b"".to_vec()
-    )
-}
-
-enum ResponseType {
-    RedirectWithHeaders(String, Headers),
-    Text(Vec<u8>),
-}
-
-struct MockRequest {
-    t: ResponseType
-}
-
-impl MockRequest {
-    fn new(t: ResponseType) -> MockRequest {
-        MockRequest { t: t }
-    }
-}
-
-fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError> {
-    match t {
-        ResponseType::RedirectWithHeaders(location, headers) => {
-            Ok(redirect_with_headers(location, headers))
-        },
-        ResponseType::Text(b) => {
-            Ok(respond_with(b))
-        },
-    }
-}
-
-impl HttpRequest for MockRequest {
-    type R = MockResponse;
-
-    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        response_for_request_type(self.t)
-    }
-}
-
-fn assert_headers_included(expected: &Headers, request: &Headers) {
-    assert!(expected.len() != 0);
-    for header in expected.iter() {
-        assert!(request.get_raw(header.name()).is_some());
-        assert_eq!(request.get_raw(header.name()).unwrap(),
-                   expected.get_raw(header.name()).unwrap())
     }
 }
 
@@ -1142,48 +1014,46 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
 #[test]
 fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
-    let url = ServoUrl::parse("http://mozilla.org/initial/").unwrap();
-
-    struct Factory;
-
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
-
-        fn create(&self, url: ServoUrl, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
-            if url.path_segments().unwrap().next().unwrap() == "initial" {
-                let mut initial_answer_headers = Headers::new();
-                initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
-                Ok(MockRequest::new(
-                    ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_owned(),
-                        initial_answer_headers)))
-            } else if url.path_segments().unwrap().next().unwrap() == "subsequent" {
-                let mut expected_subsequent_headers = Headers::new();
-                expected_subsequent_headers.set_raw("Cookie", vec![b"mozillaIs=theBest".to_vec()]);
-                assert_headers_included(&expected_subsequent_headers, &headers);
-                Ok(MockRequest::new(ResponseType::Text(b"Yay!".to_vec())))
-            } else {
-                panic!("unexpected host {:?}", url)
-            }
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+        let path = match request.uri {
+            ::hyper::uri::RequestUri::AbsolutePath(path) => path,
+            uri => panic!("Unexpected uri: {:?}", uri),
+        };
+        if path == "/initial/" {
+            response.headers_mut().set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
+            let location = "/subsequent/".to_string();
+            response.headers_mut().set(Location(location));
+            *response.status_mut() = StatusCode::MovedPermanently;
+            response.send(b"").unwrap();
+        } else if path == "/subsequent/" {
+            assert_eq!(request.headers.get(),
+                       Some(&CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())])));
+            response.send(b"Yay!").unwrap();
+        } else {
+            panic!("unexpected path {:?}", path)
         }
-    }
+    };
+    let (mut server, url) = make_server(handler);
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+    let url = url.join("/initial/").unwrap();
 
-    let http_state = HttpState::new();
-    let ui_provider = TestProvider::new();
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
+    let response = fetch_sync(request, None);
 
-    match load(&load_data,
-               &ui_provider, &http_state,
-               None,
-               &Factory,
-               DEFAULT_USER_AGENT.into(),
-               &CancellationListener::new(None), None) {
-        Err(e) => panic!("expected to follow a redirect {:?}", e),
-        Ok(mut lr) => {
-            let response = read_response(&mut lr);
-            assert_eq!(response, "Yay!".to_owned());
-        }
-    }
+    let _ = server.close();
+
+    let response = response.to_actual();
+    assert!(response.status.unwrap().is_success());
+    assert_eq!(*response.body.lock().unwrap(),
+               ResponseBody::Done(b"Yay!".to_vec()));
 }
 
 #[test]
