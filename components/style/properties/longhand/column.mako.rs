@@ -169,7 +169,7 @@
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-gap" experimental="True" products="servo" animatable="False">
+<%helpers:longhand name="column-gap" experimental="True" animatable="False">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
