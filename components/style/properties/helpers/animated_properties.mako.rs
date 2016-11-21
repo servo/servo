@@ -24,8 +24,7 @@ use style_traits::ToCss;
 use super::ComputedValues;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderRadiusSize, LengthOrNone};
-use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::{BorderRadiusSize, CalcLengthOrPercentage, LengthOrPercentage};
 use values::computed::position::Position;
 use values::computed::ToComputedValue;
 
@@ -680,11 +679,11 @@ impl Interpolate for BoxShadow {
     }
 }
 
-impl Interpolate for LengthOrNone {
+impl<T: Interpolate, U> Interpolate for Either<T, U> {
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        match (*self, *other) {
-            (Either::First(ref length), Either::First(ref other)) =>
-                length.interpolate(&other, progress).map(Either::First),
+        match (self, other) {
+            (&Either::First(ref value), &Either::First(ref other)) =>
+                value.interpolate(&other, progress).map(Either::First),
             _ => Err(()),
         }
     }
