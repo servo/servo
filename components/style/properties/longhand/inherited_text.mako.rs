@@ -866,6 +866,11 @@ ${helpers.single_keyword("text-align-last",
         computed_value::T::None
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::None
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -984,6 +989,12 @@ ${helpers.single_keyword("text-align-last",
         }
     }
 </%helpers:longhand>
+
+// https://drafts.csswg.org/css-text-decor-3/#text-emphasis-color-property
+${helpers.predefined_type("text-emphasis-color", "CSSColor",
+                          "::cssparser::Color::CurrentColor",
+                          products="gecko",animatable=True,
+                          complex_color=True, need_clone=True)}
 
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
