@@ -189,7 +189,7 @@ impl Stylist {
             match *rule {
                 CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
-                    for selector in &guard.selectors {
+                    for selector in &guard.selectors.0 {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             pseudos_map
                                 .entry(pseudo.clone())
@@ -208,7 +208,7 @@ impl Stylist {
                     }
                     *rules_source_order += 1;
 
-                    for selector in &guard.selectors {
+                    for selector in &guard.selectors.0 {
                         state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
                             sibling_affecting_selectors.push(selector.clone());

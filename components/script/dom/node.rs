@@ -71,7 +71,7 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddr
 use script_layout_interface::message::Msg;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
-use selectors::parser::Selector;
+use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell};
@@ -304,12 +304,12 @@ impl Node {
 }
 
 pub struct QuerySelectorIterator {
-    selectors: Vec<Selector<SelectorImpl>>,
+    selectors: SelectorList<SelectorImpl>,
     iterator: TreeIterator,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: Vec<Selector<SelectorImpl>>)
+     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
@@ -322,7 +322,7 @@ impl<'a> Iterator for QuerySelectorIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let selectors = &self.selectors;
+        let selectors = &self.selectors.0;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
@@ -716,7 +716,7 @@ impl Node {
                 let mut descendants = self.traverse_preorder();
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
-                Ok(QuerySelectorIterator::new(descendants, selectors.0))
+                Ok(QuerySelectorIterator::new(descendants, selectors))
             }
         }
     }

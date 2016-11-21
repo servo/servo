@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
 use html5ever_atoms::LocalName;
 use parking_lot::RwLock;
 use selectors::parser::LocalName as LocalNameSelector;
@@ -19,7 +18,7 @@ use style::thread_state;
 /// Each sublist of the result contains the Rules for one StyleRule.
 fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
     css_selectors.iter().enumerate().map(|(i, selectors)| {
-        let selectors = SelectorParser::parse_author_origin_no_namespace(selectors).unwrap().0;
+        let selectors = SelectorParser::parse_author_origin_no_namespace(selectors).unwrap();
 
         let rule = Arc::new(RwLock::new(StyleRule {
             selectors: selectors,
@@ -34,7 +33,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         }));
 
         let guard = rule.read();
-        guard.selectors.iter().map(|s| {
+        guard.selectors.0.iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
                 style_rule: rule.clone(),

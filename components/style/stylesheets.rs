@@ -17,7 +17,7 @@ use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
-use selectors::parser::{Selector, SelectorList};
+use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
@@ -196,30 +196,15 @@ impl ToCss for MediaRule {
 
 #[derive(Debug)]
 pub struct StyleRule {
-    pub selectors: Vec<Selector<SelectorImpl>>,
+    pub selectors: SelectorList<SelectorImpl>,
     pub block: Arc<RwLock<PropertyDeclarationBlock>>,
-}
-
-impl StyleRule {
-    /// Serialize the group of selectors for this rule.
-    ///
-    /// https://drafts.csswg.org/cssom/#serialize-a-group-of-selectors
-    pub fn selectors_to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        let mut iter = self.selectors.iter();
-        try!(iter.next().unwrap().to_css(dest));
-        for selector in iter {
-            try!(write!(dest, ", "));
-            try!(selector.to_css(dest));
-        }
-        Ok(())
-    }
 }
 
 impl ToCss for StyleRule {
     // https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         // Step 1
-        try!(self.selectors_to_css(dest));
+        try!(self.selectors.to_css(dest));
         // Step 2
         try!(dest.write_str(" { "));
         // Step 3
@@ -582,7 +567,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&mut self, prelude: SelectorList<SelectorImpl>, input: &mut Parser)
                    -> Result<CssRule, ()> {
         Ok(CssRule::Style(Arc::new(RwLock::new(StyleRule {
-            selectors: prelude.0,
+            selectors: prelude,
             block: Arc::new(RwLock::new(parse_property_declaration_list(self.context, input)))
         }))))
     }
