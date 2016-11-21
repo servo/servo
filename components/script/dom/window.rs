@@ -29,7 +29,7 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
-use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::Event;
@@ -706,7 +706,10 @@ impl WindowMethods for Window {
         };
 
         // Step 5.
-        CSSStyleDeclaration::new(self, element, pseudo, CSSModificationAccess::Readonly)
+        CSSStyleDeclaration::new(self,
+                                 CSSStyleOwner::Element(JS::from_ref(element)),
+                                 pseudo,
+                                 CSSModificationAccess::Readonly)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight

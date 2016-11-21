@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::CSSStyleRuleBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use parking_lot::RwLock;
@@ -19,6 +20,7 @@ pub struct CSSStyleRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     stylerule: Arc<RwLock<StyleRule>>,
+    style_decl: MutNullableHeap<JS<CSSStyleDeclaration>>,
 }
 
 impl CSSStyleRule {
@@ -26,6 +28,7 @@ impl CSSStyleRule {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent),
             stylerule: stylerule,
+            style_decl: Default::default(),
         }
     }
 
@@ -35,6 +38,10 @@ impl CSSStyleRule {
         reflect_dom_object(box CSSStyleRule::new_inherited(parent, stylerule),
                            window,
                            CSSStyleRuleBinding::Wrap)
+    }
+
+    pub fn style_rule(&self) -> Arc<RwLock<StyleRule>> {
+        self.stylerule.clone()
     }
 }
 
@@ -46,5 +53,17 @@ impl SpecificCSSRule for CSSStyleRule {
 
     fn get_css(&self) -> DOMString {
         self.stylerule.read().to_css_string().into()
+    }
+}
+
+impl CSSStyleRuleMethods for CSSStyleRule {
+    // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
+    fn Style(&self) -> Root<CSSStyleDeclaration> {
+        self.style_decl.or_init(|| {
+            CSSStyleDeclaration::new(self.global().as_window(),
+                                     CSSStyleOwner::CSSStyleRule(JS::from_ref(self)),
+                                     None,
+                                     CSSModificationAccess::ReadWrite)
+        })
     }
 }
