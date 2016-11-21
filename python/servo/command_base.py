@@ -261,14 +261,11 @@ class CommandBase(object):
 
         context.sharedir = self.config["tools"]["cache-dir"]
 
-        self.config["tools"].setdefault("system-rust", False)
-        self.config["tools"].setdefault("system-cargo", False)
+        # 'system-rust' and 'system-cargo' would be set when accessed.
+        # See set_use_system_rust_by_default and use_system_{rust,cargo}.
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
         self.set_use_stable_rust(False)
-        if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(
-                context.sharedir, "cargo", self.cargo_build_id())
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
@@ -289,9 +286,27 @@ class CommandBase(object):
     _rust_version_is_stable = False
     _cargo_build_id = None
 
+    def set_use_system_rust_by_default(self):
+        """This method sets 'system-rust' and 'system-cargo' config to True
+        if they are not explicitly specified."""
+        self.config["tools"].setdefault("system-rust", True)
+        self.config["tools"].setdefault("system-cargo", True)
+
+    def use_system_rust(self):
+        return self.config["tools"].setdefault("system-rust", False)
+
+    def use_system_cargo(self):
+        return self.config["tools"].setdefault("system-cargo", False)
+
+    def get_cargo_root(self):
+        if not self.use_system_cargo():
+            self.config["tools"]["cargo-root"] = path.join(
+                self.context.sharedir, "cargo", self.cargo_build_id())
+        return self.config["tools"]["cargo-root"]
+
     def set_use_stable_rust(self, use_stable_rust=True):
         self._use_stable_rust = use_stable_rust
-        if not self.config["tools"]["system-rust"]:
+        if not self.use_system_rust():
             self.config["tools"]["rust-root"] = path.join(
                 self.context.sharedir, "rust", self.rust_path())
 
@@ -399,8 +414,7 @@ class CommandBase(object):
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
 
-        if not self.config["tools"]["system-rust"] \
-                or self.config["tools"]["rust-root"]:
+        if not self.use_system_rust() or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
             # Add mingw64 binary path before rust paths to avoid conflict with libstdc++-6.dll
             if sys.platform == "msys":
@@ -412,14 +426,11 @@ class CommandBase(object):
             extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
             extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
 
-        if not self.config["tools"]["system-cargo"] \
-                or self.config["tools"]["cargo-root"]:
+        if not self.use_system_cargo() or self.get_cargo_root():
             # This path is for when rust-root points to an unpacked installer
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
+            extra_path += [path.join(self.get_cargo_root(), "cargo", "bin")]
             # This path is for when rust-root points to a rustc sysroot
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "bin")]
+            extra_path += [path.join(self.get_cargo_root(), "bin")]
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
@@ -537,16 +548,16 @@ class CommandBase(object):
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
 
-        if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
+        if not (self.use_system_rust() or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
             Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
                                stable=self._use_stable_rust)
 
-        cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
+        cargo_path = path.join(self.get_cargo_root(), "cargo", "bin",
                                "cargo" + BIN_SUFFIX)
         cargo_binary_exists = path.exists(cargo_path)
 
-        if not self.config["tools"]["system-cargo"] and not cargo_binary_exists:
+        if not self.use_system_cargo() and not cargo_binary_exists:
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
