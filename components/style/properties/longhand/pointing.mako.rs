@@ -10,6 +10,7 @@
     pub use self::computed_value::T as SpecifiedValue;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    use values::specified::url::SpecifiedUrl;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
@@ -18,38 +19,127 @@
         use std::fmt;
         use style_traits::cursor::Cursor;
         use style_traits::ToCss;
+        use values::specified::url::SpecifiedUrl;
 
-        #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+        #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum T {
+        pub enum Keyword {
             AutoCursor,
             SpecifiedCursor(Cursor),
         }
 
-        impl ToCss for T {
+        #[cfg(not(feature = "gecko"))]
+        pub type T = Keyword;
+
+        #[cfg(feature = "gecko")]
+        #[derive(Clone, PartialEq, Debug)]
+        pub struct Image {
+            pub url: SpecifiedUrl,
+            pub hotspot: Option<(f32, f32)>,
+        }
+
+        #[cfg(feature = "gecko")]
+        #[derive(Clone, PartialEq, Debug)]
+        pub struct T {
+            pub images: Vec<Image>,
+            pub keyword: Keyword,
+        }
+
+        impl ToCss for Keyword {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    T::AutoCursor => dest.write_str("auto"),
-                    T::SpecifiedCursor(c) => c.to_css(dest),
+                    Keyword::AutoCursor => dest.write_str("auto"),
+                    Keyword::SpecifiedCursor(c) => c.to_css(dest),
                 }
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        impl ToCss for Image {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                try!(self.url.to_css(dest));
+                if let Some((x, y)) = self.hotspot {
+                    try!(dest.write_str(" "));
+                    try!(x.to_css(dest));
+                    try!(dest.write_str(" "));
+                    try!(y.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        #[cfg(feature = "gecko")]
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                for url in &self.images {
+                    try!(url.to_css(dest));
+                    try!(dest.write_str(", "));
+                }
+                self.keyword.to_css(dest)
             }
         }
     }
 
+    #[cfg(not(feature = "gecko"))]
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::AutoCursor
+        computed_value::Keyword::AutoCursor
     }
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use std::ascii::AsciiExt;
-        use style_traits::cursor::Cursor;
-        let ident = try!(input.expect_ident());
-        if ident.eq_ignore_ascii_case("auto") {
-            Ok(SpecifiedValue::AutoCursor)
-        } else {
-            Cursor::from_css_keyword(&ident)
-            .map(SpecifiedValue::SpecifiedCursor)
+
+    #[cfg(feature = "gecko")]
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            images: vec![],
+            keyword: computed_value::Keyword::AutoCursor
         }
+    }
+
+    impl Parse for computed_value::Keyword {
+        fn parse(input: &mut Parser) -> Result<computed_value::Keyword, ()> {
+            use std::ascii::AsciiExt;
+            use style_traits::cursor::Cursor;
+            let ident = try!(input.expect_ident());
+            if ident.eq_ignore_ascii_case("auto") {
+                Ok(computed_value::Keyword::AutoCursor)
+            } else {
+                Cursor::from_css_keyword(&ident).map(computed_value::Keyword::SpecifiedCursor)
+            }
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn parse_image(context: &ParserContext, input: &mut Parser) -> Result<computed_value::Image, ()> {
+        Ok(computed_value::Image {
+            url: try!(SpecifiedUrl::parse(context, input)),
+            hotspot: match input.try(|input| input.expect_number()) {
+                Ok(number) => Some((number, try!(input.expect_number()))),
+                Err(()) => None,
+            },
+        })
+    }
+
+    #[cfg(not(feature = "gecko"))]
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        computed_value::Keyword::parse(input)
+    }
+
+    /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]
+    #[cfg(feature = "gecko")]
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut images = vec![];
+        loop {
+            match input.try(|input| parse_image(context, input)) {
+                Ok(image) => images.push(image),
+                Err(()) => break,
+            }
+            try!(input.expect_comma());
+        }
+
+        Ok(computed_value::T {
+            images: images,
+            keyword: try!(computed_value::Keyword::parse(input)),
+        })
     }
 </%helpers:longhand>
 

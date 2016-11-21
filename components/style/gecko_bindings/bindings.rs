@@ -60,6 +60,7 @@ use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSValue;
 use gecko_bindings::structs::nsCSSValueSharedList;
 use gecko_bindings::structs::nsChangeHint;
+use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
 use gecko_bindings::structs::nsIDocument;
@@ -509,6 +510,21 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
                                         src: *const nsStyleList);
+}
+extern "C" {
+    pub fn Gecko_SetCursorArrayLength(ui: *mut nsStyleUserInterface,
+                                      len: usize);
+}
+extern "C" {
+    pub fn Gecko_SetCursorImage(cursor: *mut nsCursorImage,
+                                string_bytes: *const u8, string_length: u32,
+                                base_uri: *mut ThreadSafeURIHolder,
+                                referrer: *mut ThreadSafeURIHolder,
+                                principal: *mut ThreadSafePrincipalHolder);
+}
+extern "C" {
+    pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
+                                     src: *const nsStyleUserInterface);
 }
 extern "C" {
     pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,

@@ -11866,7 +11866,7 @@ pub struct nsCursorImage {
     pub mHaveHotspot: bool,
     pub mHotspotX: f32,
     pub mHotspotY: f32,
-    pub mImage: nsCOMPtr<imgIRequest>,
+    pub mImage: RefPtr<nsStyleImageRequest>,
 }
 #[test]
 fn bindgen_test_layout_nsCursorImage() {

@@ -2246,8 +2246,8 @@ impl ServoComputedValuesCursorUtility for ServoComputedValues {
     fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor> {
         match (self.get_pointing().pointer_events, self.get_pointing().cursor) {
             (pointer_events::T::none, _) => None,
-            (pointer_events::T::auto, cursor::T::AutoCursor) => Some(default_cursor),
-            (pointer_events::T::auto, cursor::T::SpecifiedCursor(cursor)) => Some(cursor),
+            (pointer_events::T::auto, cursor::Keyword::AutoCursor) => Some(default_cursor),
+            (pointer_events::T::auto, cursor::Keyword::SpecifiedCursor(cursor)) => Some(cursor),
         }
     }
 }
