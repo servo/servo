@@ -149,15 +149,6 @@ impl UIProvider for TestProvider {
     }
 }
 
-fn basic_auth(headers: Headers) -> MockResponse {
-    MockResponse::new(
-        headers,
-        StatusCode::Unauthorized,
-        RawStatus(401, Cow::Borrowed("Unauthorized")),
-        b"".to_vec()
-    )
-}
-
 fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     headers.set(Location(host.to_string()));
 
@@ -182,7 +173,6 @@ enum ResponseType {
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers),
-    NeedsAuth(Headers),
     Dummy404
 }
 
@@ -206,9 +196,6 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         },
         ResponseType::WithHeaders(b, h) => {
             Ok(respond_with_headers(b, h))
-        },
-        ResponseType::NeedsAuth(h) => {
-            Ok(basic_auth(h))
         },
         ResponseType::Dummy404 => {
             Ok(respond_404())
@@ -1509,37 +1496,28 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
 #[test]
 fn test_auth_ui_needs_www_auth() {
-    let url = ServoUrl::parse("http://mozilla.com").unwrap();
-    let http_state = HttpState::new();
-    struct AuthProvider;
-    impl UIProvider for AuthProvider {
-        fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
-            panic!("shouldn't be invoked")
-        }
-    }
+    let handler = move |_: HyperRequest, mut response: HyperResponse| {
+        *response.status_mut() = StatusCode::Unauthorized;
+        response.send(b"").unwrap();
+    };
+    let (mut server, url) = make_server(handler);
 
-    struct Factory;
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        body: None,
+        destination: Destination::Document,
+        origin: url.clone(),
+        pipeline_id: Some(TEST_PIPELINE_ID),
+        credentials_mode: CredentialsMode::Include,
+        .. RequestInit::default()
+    });
 
-    impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+    let response = fetch_sync(request, None);
 
-        fn create(&self, _: ServoUrl, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-            Ok(MockRequest::new(ResponseType::NeedsAuth(Headers::new())))
-        }
-    }
+    let _ = server.close();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
-
-    let response = load(&load_data, &AuthProvider, &http_state,
-                        None, &Factory, DEFAULT_USER_AGENT.into(),
-                        &CancellationListener::new(None), None);
-    match response {
-        Err(e) => panic!("response contained error {:?}", e),
-        Ok(response) => {
-            assert_eq!(response.metadata.status,
-                       Some((401, "Unauthorized".as_bytes().to_vec())));
-        }
-    }
+    assert_eq!(response.status.unwrap(), StatusCode::Unauthorized);
 }
 
 fn assert_referrer_header_matches(origin_info: &LoadOrigin,
