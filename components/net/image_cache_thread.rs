@@ -9,7 +9,7 @@ use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::image_cache_thread::ImageResponder;
+use net_traits::image_cache_thread::{ImageResponder, ImageCacheResultResponse};
 use net_traits::request::{Destination, RequestInit, Type as RequestType};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
@@ -209,6 +209,11 @@ impl ImageListener {
         }
     }
 
+    fn initiate_request(&self, responder: Option<ImageResponder>) {
+        let ImageCacheChan(ref sender) = self.sender;
+        sender.send(ImageCacheResult::InitiateRequest(responder)).unwrap();
+    }
+
     fn notify(&self, image_response: ImageResponse) {
         if !self.send_metadata_msg {
             if let ImageResponse::MetadataLoaded(_) = image_response {
@@ -217,11 +222,11 @@ impl ImageListener {
         }
 
         let ImageCacheChan(ref sender) = self.sender;
-        let msg = ImageCacheResult {
+        let msg = ImageCacheResultResponse {
             responder: self.responder.clone(),
             image_response: image_response,
         };
-        sender.send(msg).ok();
+        sender.send(ImageCacheResult::Response(msg)).ok();
     }
 }
 
@@ -510,7 +515,7 @@ impl ImageCache {
                      result_chan: ImageCacheChan,
                      responder: Option<ImageResponder>,
                      send_metadata_msg: bool) {
-        let image_listener = ImageListener::new(result_chan, responder, send_metadata_msg);
+        let image_listener = ImageListener::new(result_chan, responder.clone(), send_metadata_msg);
 
         // Check if already completed
         match self.completed_loads.get(&url) {
@@ -520,41 +525,16 @@ impl ImageCache {
             }
             None => {
                 // Check if the load is already pending
-                let (cache_result, load_key, mut pending_load) = self.pending_loads.get_cached(url.clone());
-                pending_load.add_listener(image_listener);
+                let (cache_result, load_key, mut pending_load) = self.pending_loads.get_cached(url);
                 match cache_result {
                     CacheResult::Miss => {
-                        // A new load request! Request the load from
-                        // the resource thread.
-                        // https://html.spec.whatwg.org/multipage/#update-the-image-data
-                        // step 12.
-                        //
-                        // TODO(emilio): ServoUrl in more places please!
-                        let request = RequestInit {
-                            url: url.clone(),
-                            type_: RequestType::Image,
-                            destination: Destination::Image,
-                            origin: url.clone(),
-                            .. RequestInit::default()
-                        };
-
-                        let progress_sender = self.progress_sender.clone();
-                        fetch_async(request, &self.core_resource_thread, move |action| {
-                            let action = match action {
-                                FetchResponseMsg::ProcessRequestBody |
-                                FetchResponseMsg::ProcessRequestEOF => return,
-                                a => a
-                            };
-                            progress_sender.send(ResourceLoadInfo {
-                                action: action,
-                                key: load_key,
-                            }).unwrap();
-                        });
+                        image_listener.initiate_request(responder);
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.
                     }
                 }
+                pending_load.add_listener(image_listener);
             }
         }
     }
@@ -608,8 +588,8 @@ impl ImageCache {
     fn store_decode_image(&mut self,
                           ref_url: ServoUrl,
                           loaded_bytes: Vec<u8>) {
-        let (cache_result, load_key, _) = self.pending_loads.get_cached(ref_url.clone());
-        assert!(cache_result == CacheResult::Miss);
+        let (cache_result, load_key, _) = self.pending_loads.get_cached(ref_url);
+        //assert!(cache_result == CacheResult::Miss);
         let action = FetchResponseMsg::ProcessResponseChunk(loaded_bytes);
         let _ = self.progress_sender.send(ResourceLoadInfo {
             action: action,
