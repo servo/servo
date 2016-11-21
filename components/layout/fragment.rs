@@ -367,11 +367,14 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new(url: Option<ServoUrl>,
-               layout_context: &LayoutContext)
+    pub fn new<N: ThreadSafeLayoutNode>(url: Option<ServoUrl>,
+                                        node: &N,
+                                        layout_context: &LayoutContext)
                -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
-            layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
+            layout_context.get_or_request_image_or_meta(node.opaque(),
+                                                        url,
+                                                        UsePlaceholder::Yes)
         });
 
         let (image, metadata) = match image_or_metadata {
