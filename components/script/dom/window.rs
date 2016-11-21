@@ -48,6 +48,7 @@ use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
+use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
@@ -67,7 +68,8 @@ use script_layout_interface::TrustedNodeAddress;
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
+use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
+use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
@@ -967,13 +969,20 @@ impl Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
-        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32),
-                              behavior, None);
+        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32),
+                              y.to_f32().unwrap_or(0.0f32),
+                              ScrollRootId::root(),
+                              behavior,
+                              None);
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    pub fn perform_a_scroll(&self, x: f32, y: f32,
-                            behavior: ScrollBehavior, element: Option<&Element>) {
+    pub fn perform_a_scroll(&self,
+                            x: f32,
+                            y: f32,
+                            scroll_root_id: ScrollRootId,
+                            behavior: ScrollBehavior,
+                            element: Option<&Element>) {
         //TODO Step 1
         let point = Point2D::new(x, y);
         let smooth = match behavior {
@@ -992,7 +1001,7 @@ impl Window {
 
         let global_scope = self.upcast::<GlobalScope>();
         let message = ConstellationMsg::ScrollFragmentPoint(
-            global_scope.pipeline_id(), point, smooth);
+            global_scope.pipeline_id(), scroll_root_id, point, smooth);
         global_scope.constellation_chan().send(message).unwrap();
     }
 
@@ -1272,11 +1281,24 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
-    pub fn scroll_node(&self, _node: TrustedNodeAddress,
-                       x_: f64, y_: f64, behavior: ScrollBehavior) {
+    pub fn scroll_node(&self,
+                       node: TrustedNodeAddress,
+                       x_: f64,
+                       y_: f64,
+                       behavior: ScrollBehavior) {
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeScrollRootIdQuery(node),
+                        ReflowReason::Query) {
+            return;
+        }
+        let NodeScrollRootIdResponse(scroll_root_id) = self.layout_rpc.node_scroll_root_id();
+
         // Step 12
-        self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32), y_.to_f32().unwrap_or(0.0f32),
-                              behavior, None);
+        self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32),
+                              y_.to_f32().unwrap_or(0.0f32),
+                              scroll_root_id,
+                              behavior,
+                              None);
     }
 
     pub fn resolved_style_query(&self,
@@ -1648,6 +1670,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
+        ReflowQueryType::NodeScrollRootIdQuery(_n) => "\tNodeScrollRootIdQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
         ReflowQueryType::MarginStyleQuery(_n) => "\tMarginStyleQuery",

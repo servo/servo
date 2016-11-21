@@ -6414,6 +6414,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/simple_scroll_to_fragment.html": [
+          {
+            "path": "mozilla/simple_scroll_to_fragment.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/simple_scroll_to_fragment_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/simple_scroll_to_fragment.html"
+          }
+        ],
         "mozilla/sslfail.html": [
           {
             "path": "mozilla/sslfail.html",
@@ -21430,6 +21442,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/simple_scroll_to_fragment.html": [
+        {
+          "path": "mozilla/simple_scroll_to_fragment.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/simple_scroll_to_fragment_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/simple_scroll_to_fragment.html"
         }
       ],
       "mozilla/sslfail.html": [
