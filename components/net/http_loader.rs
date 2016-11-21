@@ -13,7 +13,7 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
-use hyper::client::{Pool, Request, Response};
+use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
 use hyper::header::{AcceptEncoding, AcceptLanguage, Basic, ContentEncoding, ContentLength};
 use hyper::header::{Encoding, Header, Headers, Quality, QualityItem, Referer};
 use hyper::header::{SetCookie, qitem};
@@ -79,7 +79,7 @@ fn precise_time_ms() -> u64 {
 }
 
 pub struct WrappedHttpResponse {
-    pub response: Response
+    pub response: HyperResponse
 }
 
 impl Read for WrappedHttpResponse {
@@ -146,9 +146,9 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
 
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<WrappedHttpRequest, LoadError> {
-        let connection = Request::with_connector(method,
-                                                 url.clone().into_url().unwrap(),
-                                                 &*self.connector);
+        let connection = HyperRequest::with_connector(method,
+                                                      url.clone().into_url().unwrap(),
+                                                      &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
@@ -191,7 +191,7 @@ pub trait HttpRequest {
 }
 
 pub struct WrappedHttpRequest {
-    request: Request<Fresh>
+    request: HyperRequest<Fresh>
 }
 
 impl HttpRequest for WrappedHttpRequest {
