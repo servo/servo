@@ -11,9 +11,6 @@ use std::borrow::Cow;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
-// FIXME remove
-pub use self::SelectorImpl as GeckoSelectorImpl;
-
 /// NOTE: The boolean field represents whether this element is an anonymous box.
 ///
 /// This is just for convenience, instead of recomputing it. Also, note that

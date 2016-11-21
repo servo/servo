@@ -16,7 +16,7 @@ use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleConte
 use style::dom::{NodeInfo, StylingMode, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData};
-use style::gecko::selector_parser::{GeckoSelectorImpl, PseudoElement};
+use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::snapshot::GeckoElementSnapshot;
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::{GeckoElement, GeckoNode};
@@ -350,7 +350,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
     let element = GeckoElement(match_element);
 
 
-    match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
+    match SelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
             let maybe_computed = element.get_pseudo_style(&pseudo);
             maybe_computed.map_or_else(parent_or_null, FFIArcHelpers::into_strong)

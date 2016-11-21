@@ -82,7 +82,7 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
-use style::selector_parser::{ServoSelectorImpl, SelectorParser};
+use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -304,12 +304,12 @@ impl Node {
 }
 
 pub struct QuerySelectorIterator {
-    selectors: Vec<Selector<ServoSelectorImpl>>,
+    selectors: Vec<Selector<SelectorImpl>>,
     iterator: TreeIterator,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: Vec<Selector<ServoSelectorImpl>>)
+     fn new(iter: TreeIterator, selectors: Vec<Selector<SelectorImpl>>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,

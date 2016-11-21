@@ -8,11 +8,11 @@ use Atom;
 use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_parser::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, TheSelectorImpl};
+use selector_parser::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{MatchingReason, StyleRelations};
 use selectors::matching::matches_complex_selector;
-use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SelectorImpl, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector};
 use std::clone::Clone;
 use std::sync::Arc;
 
@@ -60,7 +60,7 @@ impl HeapSizeOf for RestyleHint {
 /// still need to take the ElementWrapper approach for attribute-dependent
 /// style. So we do it the same both ways for now to reduce complexity, but it's
 /// worth measuring the performance impact (if any) of the mStateMask approach.
-pub trait ElementSnapshot : Sized + MatchAttr<Impl=TheSelectorImpl> {
+pub trait ElementSnapshot : Sized + MatchAttr<Impl=SelectorImpl> {
     /// The state of the snapshot, if any.
     fn state(&self) -> Option<ElementState>;
 
@@ -103,9 +103,9 @@ impl<'a, E> ElementWrapper<'a, E>
 impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     where E: ElementExt,
 {
-    type Impl = TheSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr_has(&self, attr: &AttrSelector<TheSelectorImpl>) -> bool {
+    fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_has(attr),
@@ -114,7 +114,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_equals(&self,
-                         attr: &AttrSelector<TheSelectorImpl>,
+                         attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -124,7 +124,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_equals_ignore_ascii_case(&self,
-                                           attr: &AttrSelector<TheSelectorImpl>,
+                                           attr: &AttrSelector<SelectorImpl>,
                                            value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -134,7 +134,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_includes(&self,
-                           attr: &AttrSelector<TheSelectorImpl>,
+                           attr: &AttrSelector<SelectorImpl>,
                            value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -144,7 +144,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_dash(&self,
-                       attr: &AttrSelector<TheSelectorImpl>,
+                       attr: &AttrSelector<SelectorImpl>,
                        value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -154,7 +154,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_prefix(&self,
-                         attr: &AttrSelector<TheSelectorImpl>,
+                         attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -164,7 +164,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_substring(&self,
-                            attr: &AttrSelector<TheSelectorImpl>,
+                            attr: &AttrSelector<SelectorImpl>,
                             value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -174,7 +174,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_suffix(&self,
-                         attr: &AttrSelector<TheSelectorImpl>,
+                         attr: &AttrSelector<SelectorImpl>,
                          value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
@@ -185,10 +185,10 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: ElementExt<Impl=TheSelectorImpl>
+    where E: ElementExt<Impl=SelectorImpl>
 {
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
-        let flag = TheSelectorImpl::pseudo_class_state_flag(&pseudo_class);
+        let flag = SelectorImpl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
             self.element.match_non_ts_pseudo_class(pseudo_class)
         } else {
@@ -223,11 +223,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_html_element_in_html_document()
     }
 
-    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName {
+    fn get_local_name(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedLocalName {
         self.element.get_local_name()
     }
 
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl {
+    fn get_namespace(&self) -> &<Self::Impl as ::selectors::SelectorImpl>::BorrowedNamespaceUrl {
         self.element.get_namespace()
     }
 
@@ -265,14 +265,14 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-fn selector_to_state(sel: &SimpleSelector<TheSelectorImpl>) -> ElementState {
+fn selector_to_state(sel: &SimpleSelector<SelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => TheSelectorImpl::pseudo_class_state_flag(pc),
+        SimpleSelector::NonTSPseudoClass(ref pc) => SelectorImpl::pseudo_class_state_flag(pc),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector(sel: &SimpleSelector<TheSelectorImpl>) -> bool {
+fn is_attr_selector(sel: &SimpleSelector<SelectorImpl>) -> bool {
     match *sel {
         SimpleSelector::ID(_) |
         SimpleSelector::Class(_) |
@@ -341,7 +341,7 @@ impl Sensitivities {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    selector: Arc<ComplexSelector<TheSelectorImpl>>,
+    selector: Arc<ComplexSelector<SelectorImpl>>,
     hint: RestyleHint,
     sensitivities: Sensitivities,
 }
@@ -388,7 +388,7 @@ impl DependencySet {
         self.common_deps.len() + self.attr_deps.len() + self.state_deps.len()
     }
 
-    pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<TheSelectorImpl>>) {
+    pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<SelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {

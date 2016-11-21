@@ -10,11 +10,7 @@ use selectors::Element;
 use selectors::parser::{AttrSelector, SelectorList};
 use stylesheets::{Origin, Namespaces};
 
-pub type AttrValue = <TheSelectorImpl as ::selectors::SelectorImpl>::AttrValue;
-
-// FIXME remove
-pub use self::SelectorImpl as TheSelectorImpl;
-pub use self::SelectorImpl as ServoSelectorImpl;
+pub type AttrValue = <SelectorImpl as ::selectors::SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
 pub use servo::selector_parser::*;
@@ -103,7 +99,7 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element<Impl=TheSelectorImpl> {
+pub trait ElementExt: Element<Impl=SelectorImpl> {
     fn is_link(&self) -> bool;
 }
 
@@ -131,7 +127,7 @@ impl SelectorImpl {
     }
 }
 
-pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>) -> bool {
+pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>) -> bool {
     // NB(pcwalton): If you update this, remember to update the corresponding list in
     // `can_share_style_with()` as well.
     common_style_affecting_attributes().iter().any(|common_attr_info| {
@@ -142,7 +138,7 @@ pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelecto
     })
 }
 
-pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>,
+pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>,
                                          value: &AttrValue) -> bool {
     // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
     // here because the UA style otherwise disables all style sharing completely.

@@ -92,7 +92,7 @@ use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
-use style::selector_parser::{NonTSPseudoClass, RestyleDamage, ServoSelectorImpl, SelectorParser};
+use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::values::CSSFloat;
@@ -2141,9 +2141,9 @@ impl VirtualMethods for Element {
 }
 
 impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
-    type Impl = ServoSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         use ::selectors::Element;

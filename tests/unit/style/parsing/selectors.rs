@@ -4,10 +4,10 @@
 
 use cssparser::{Parser, ToCss};
 use selectors::parser::SelectorList;
-use style::selector_parser::{TheSelectorImpl, SelectorParser};
+use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Origin, Namespaces};
 
-fn parse(input: &mut Parser) -> Result<SelectorList<TheSelectorImpl>, ()> {
+fn parse(input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
     let mut ns = Namespaces::default();
     ns.prefixes.insert("svg".into(), ns!(svg));
     let parser = SelectorParser {
