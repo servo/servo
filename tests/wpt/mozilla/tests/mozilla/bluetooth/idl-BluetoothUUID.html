@@ -83,23 +83,23 @@ test(() => {
 
 test(() => {
   let all_caps_uuid = '1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D';
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(all_caps_uuid));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(all_caps_uuid));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(all_caps_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(all_caps_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(all_caps_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(all_caps_uuid));
 }, 'A UUID String with uppercase letters is an invalid UUID.');
 
 test(() => {
   let string_alias = 'deadbeef';
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(string_alias));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(string_alias));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(string_alias));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(string_alias));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(string_alias));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(string_alias));
 }, 'A 32bit *String* alias is invalid.');
 
 test(() => {
   let invalid_character_uuid = '0000000g-0000-1000-8000-00805f9b34fb';
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(invalid_character_uuid));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(invalid_character_uuid));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(invalid_character_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(invalid_character_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(invalid_character_uuid));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(invalid_character_uuid));
 }, 'A UUID with invalid characters is an invalid UUID.');
 
 test(() => {
@@ -112,31 +112,31 @@ test(() => {
 }, 'A valid UUID from a name.');
 
 test(() => {
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getService(aerobic_heart_rate_lower_limit.name);
   });
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getService(characteristic_extended_properties.name);
   });
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getCharacteristic(alert_notification.name);
   });
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getCharacteristic(characteristic_extended_properties.name);
   });
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getDescriptor(alert_notification.name);
   });
-  assert_throws('SyntaxError', () => {
+  assert_throws(new TypeError(), () => {
     BluetoothUUID.getDescriptor(aerobic_heart_rate_lower_limit.name);
   });
 }, 'Make sure attributes don\'t share a map');
 
 test(() => {
   let wrong_name = 'wrong_name';
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(wrong_name));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(wrong_name));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(wrong_name));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(wrong_name));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(wrong_name));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(wrong_name));
 }, 'Invalid Descriptor name');
 
 test(() => {
@@ -154,25 +154,25 @@ test(() => {
   assert_equals(BluetoothUUID.canonicalUUID(true), BluetoothUUID.canonicalUUID(1));
   assert_throws(new TypeError, () => BluetoothUUID.canonicalUUID(NaN));
   // getService
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(object));
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(array));
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(func));
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(undefined));
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(null));
-  assert_throws('SyntaxError', () => BluetoothUUID.getService(false));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(object));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(array));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(func));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(undefined));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(null));
+  assert_throws(new TypeError(), () => BluetoothUUID.getService(false));
   // getCharacteristic
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(object));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(array));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(func));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(undefined));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(null));
-  assert_throws('SyntaxError', () => BluetoothUUID.getCharacteristic(false));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(object));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(array));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(func));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(undefined));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(null));
+  assert_throws(new TypeError(), () => BluetoothUUID.getCharacteristic(false));
   // getDescriptor
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(object));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(array));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(func));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(undefined));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(null));
-  assert_throws('SyntaxError', () => BluetoothUUID.getDescriptor(false));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(object));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(array));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(func));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(undefined));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(null));
+  assert_throws(new TypeError(), () => BluetoothUUID.getDescriptor(false));
 }, 'Non-number and non-strings');
 </script>

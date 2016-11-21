@@ -12,6 +12,6 @@ promise_test(t => {
     })
     .then(device => device.gatt.connect())
     .then(gattServer => gattServer.getPrimaryService(generic_access.name))
-    .then(service => promise_rejects(t, 'SyntaxError', service.getCharacteristic(wrong.name)));
-}, 'Wrong Characteristic name. Reject with SyntaxError.');
+    .then(service => promise_rejects(t, new TypeError(), service.getCharacteristic(wrong.name)));
+}, 'Wrong Characteristic name. Reject with TypeError.');
 </script>

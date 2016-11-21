@@ -81,8 +81,8 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
     let promises = [];
     wrong_service_data_keys.forEach(args => {
-        promises.push(promise_rejects(t, 'SyntaxError', window.navigator.bluetooth.requestDevice(args)));
+        promises.push(promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
-}, 'Rejects with SyntaxError, if a serviceData key does not convert to a valid uuid.');
+}, 'Rejects with TypeError, if a serviceData key does not convert to a valid uuid.');
 </script>

@@ -30,7 +30,7 @@ promise_test(t => {
     window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
     let promises = [];
     test_specs.forEach(args => {
-        promises.push(promise_rejects(t, 'SyntaxError', window.navigator.bluetooth.requestDevice(args)));
+        promises.push(promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
 }, 'Invalid optional service must reject the promise.');
