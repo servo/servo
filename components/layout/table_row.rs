@@ -78,6 +78,8 @@ pub struct CellIntrinsicInlineSize {
     pub column_size: ColumnIntrinsicInlineSize,
     /// The column span of this cell.
     pub column_span: u32,
+    /// The row span of this cell.
+    pub row_span: u32,
 }
 
 
@@ -268,6 +270,7 @@ impl Flow for TableRowFlow {
                 // fixed and automatic table layout calculation.
                 let child_specified_inline_size;
                 let child_column_span;
+                let child_row_span;
                 {
                     let child_table_cell = kid.as_mut_table_cell();
                     child_specified_inline_size = child_table_cell.block_flow
@@ -275,6 +278,7 @@ impl Flow for TableRowFlow {
                                                                   .style
                                                                   .content_inline_size();
                     child_column_span = child_table_cell.column_span;
+                    child_row_span = child_table_cell.row_span;
 
                     // Perform border collapse if necessary.
                     if collapsing_borders {
@@ -319,6 +323,7 @@ impl Flow for TableRowFlow {
                 self.cell_intrinsic_inline_sizes.push(CellIntrinsicInlineSize {
                     column_size: child_column_inline_size,
                     column_span: child_column_span,
+                    row_span: child_row_span,
                 });
             }
         }
