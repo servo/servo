@@ -136,6 +136,30 @@ pub enum CssRule {
     Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
+pub enum CssRuleType {
+    // https://drafts.csswg.org/cssom/#the-cssrule-interface
+    Style               = 1,
+    Charset             = 2,
+    Import              = 3,
+    Media               = 4,
+    FontFace            = 5,
+    Page                = 6,
+    // https://drafts.csswg.org/css-animations-1/#interface-cssrule-idl
+    Keyframes           = 7,
+    Keyframe            = 8,
+    // https://drafts.csswg.org/cssom/#the-cssrule-interface
+    Margin              = 9,
+    Namespace           = 10,
+    // https://drafts.csswg.org/css-counter-styles-3/#extentions-to-cssrule-interface
+    CounterStyle        = 11,
+    // https://drafts.csswg.org/css-conditional-3/#extentions-to-cssrule-interface
+    Supports            = 12,
+    // https://drafts.csswg.org/css-fonts-3/#om-fontfeaturevalues
+    FontFeatureValues   = 14,
+    // https://drafts.csswg.org/css-device-adapt/#css-rule-interface
+    Viewport            = 15,
+}
+
 /// Error reporter which silently forgets errors
 pub struct MemoryHoleReporter;
 
@@ -157,6 +181,17 @@ pub enum SingleRuleParseError {
 }
 
 impl CssRule {
+    pub fn rule_type(&self) -> CssRuleType {
+        match *self {
+            CssRule::Style(_)     => CssRuleType::Style,
+            CssRule::Media(_)     => CssRuleType::Media,
+            CssRule::FontFace(_)  => CssRuleType::FontFace,
+            CssRule::Keyframes(_) => CssRuleType::Keyframes,
+            CssRule::Namespace(_) => CssRuleType::Namespace,
+            CssRule::Viewport(_)  => CssRuleType::Viewport,
+        }
+    }
+
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
     /// Note that only some types of rules can contain rules. An empty slice is used for others.

@@ -3,11 +3,17 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
 enum ServoComputedValuesVoid{ }
 pub struct ServoComputedValues(ServoComputedValuesVoid);
+pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
+pub type ServoCssRulesBorrowedOrNull<'a> = Option<&'a ServoCssRules>;
+pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
+enum ServoCssRulesVoid{ }
+pub struct ServoCssRules(ServoCssRulesVoid);
 pub type RawServoStyleSheetStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
@@ -188,6 +194,12 @@ unsafe impl Sync for nsStyleXUL {}
 pub type RawGeckoNode = nsINode;
 pub type RawGeckoElement = Element;
 pub type RawGeckoDocument = nsIDocument;
+extern "C" {
+    pub fn Servo_CssRules_AddRef(ptr: ServoCssRulesBorrowed);
+}
+extern "C" {
+    pub fn Servo_CssRules_Release(ptr: ServoCssRulesBorrowed);
+}
 extern "C" {
     pub fn Servo_StyleSheet_AddRef(ptr: RawServoStyleSheetBorrowed);
 }
@@ -951,6 +963,10 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed)
+     -> ServoCssRulesStrong;
+}
+extern "C" {
     pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
 }
 extern "C" {
@@ -973,6 +989,10 @@ extern "C" {
                                                      RawServoStyleSheetBorrowed,
                                                  reference:
                                                      RawServoStyleSheetBorrowed);
+}
+extern "C" {
+    pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
+                                    result: nsTArrayBorrowed_uintptr_t);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,
