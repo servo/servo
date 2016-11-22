@@ -112,15 +112,11 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         construct_flows_at(&self.context, self.root, node);
     }
 
-    fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool {
-        // If the parent is display:none, we don't need to do anything.
-        if parent.is_display_none() {
-            return false;
-        }
-
+    fn should_traverse_child(child: N, restyled_previous_sibling_element: bool) -> bool {
         match child.as_element() {
             // Elements should be traversed if they need styling or flow construction.
-            Some(el) => el.styling_mode() != StylingMode::Stop ||
+            Some(el) => restyled_previous_sibling_element ||
+                        el.styling_mode() != StylingMode::Stop ||
                         el.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
 
             // Text nodes never need styling. However, there are two cases they may need
@@ -128,7 +124,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
             // (1) They child doesn't yet have layout data (preorder traversal initializes it).
             // (2) The parent element has restyle damage (so the text flow also needs fixup).
             None => child.get_raw_data().is_none() ||
-                    parent.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
+                    child.parent_node().unwrap().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
         }
     }
 

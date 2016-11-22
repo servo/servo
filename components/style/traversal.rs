@@ -168,16 +168,28 @@ pub trait DomTraversalContext<N: TNode> {
     fn needs_postorder_traversal(&self) -> bool { true }
 
     /// Returns true if traversal should visit the given child.
-    fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool;
+    fn should_traverse_child(child: N, restyled_previous_element_sibling: bool) -> bool;
 
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
     fn traverse_children<F: FnMut(N)>(parent: N::ConcreteElement, mut f: F)
     {
         use dom::StylingMode::Restyle;
+
+        if parent.is_display_none() {
+            return;
+        }
+
+        // Parallel traversal enqueues all the children before processing any
+        // of them. This means that we need to conservatively enqueue all the
+        // later siblings of an element needing restyle, since computing its
+        // restyle hint may cause us to flag a restyle for later siblings.
+        let mut restyled_element = false;
+
         for kid in parent.as_node().children() {
-            if Self::should_traverse_child(parent, kid) {
+            if Self::should_traverse_child(kid, restyled_element) {
                 if kid.as_element().map_or(false, |el| el.styling_mode() == Restyle) {
+                    restyled_element = true;
                     unsafe { parent.set_dirty_descendants(); }
                 }
                 f(kid);
@@ -286,10 +298,14 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
           D: DomTraversalContext<E::ConcreteNode>
 {
     // Get the style bloom filter.
+    //
+    // FIXME(bholley): We need to do these even in the StylingMode::Stop case
+    // to handshake with the unconditional pop during servo's bottom-up
+    // traversal. We should avoid doing work here in the Stop case when we
+    // redesign the bloom filter.
     let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
 
     let mode = element.styling_mode();
-    debug_assert!(mode != StylingMode::Stop, "Parent should not have enqueued us");
     debug!("recalc_style_at: {:?} (mode={:?}, data={:?})", element, mode, element.borrow_data());
 
     if mode != StylingMode::Traverse {

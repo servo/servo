@@ -43,14 +43,9 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal(&self) -> bool { false }
 
-    fn should_traverse_child(parent: GeckoElement<'ln>, child: GeckoNode<'ln>) -> bool {
-        if parent.is_display_none() {
-            debug_assert!(child.as_element().map_or(true, |el| el.get_data().is_none()));
-            return false;
-        }
-
+    fn should_traverse_child(child: GeckoNode<'ln>, restyled_previous_sibling_element: bool) -> bool {
         match child.as_element() {
-            Some(el) => el.styling_mode() != StylingMode::Stop,
+            Some(el) => restyled_previous_sibling_element || el.styling_mode() != StylingMode::Stop,
             None => false, // Gecko restyle doesn't need to traverse text nodes.
         }
     }
