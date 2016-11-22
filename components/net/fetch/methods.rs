@@ -9,7 +9,7 @@ use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
 use http_loader::{HttpState, set_default_accept_encoding, set_default_accept_language, set_request_cookies};
-use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
+use http_loader::{NetworkHttpRequestFactory, StreamedResponse, obtain_response, read_block};
 use http_loader::{auth_from_cache, determine_request_referrer, set_cookies_from_headers};
 use http_loader::{send_response_to_devtools, send_request_to_devtools, LoadErrorType};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
@@ -46,7 +46,7 @@ use uuid;
 
 pub type Target = Option<Box<FetchTaskTarget + Send>>;
 
-enum Data {
+pub enum Data {
     Payload(Vec<u8>),
     Done,
 }
@@ -1061,7 +1061,7 @@ fn http_network_fetch(request: Rc<Request>,
 
                 loop {
                     match read_block(&mut res) {
-                        Ok(ReadResult::Payload(chunk)) => {
+                        Ok(Data::Payload(chunk)) => {
                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                                 body.extend_from_slice(&chunk);
                                 if let Some(ref sender) = done_sender {
@@ -1069,7 +1069,7 @@ fn http_network_fetch(request: Rc<Request>,
                                 }
                             }
                         },
-                        Ok(ReadResult::EOF) | Err(_) => {
+                        Ok(Data::Done) | Err(_) => {
                             let mut empty_vec = Vec::new();
                             let completed_body = match *res_body.lock().unwrap() {
                                 ResponseBody::Receiving(ref mut body) => {

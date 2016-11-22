@@ -9,6 +9,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
+use fetch::methods::Data;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
 use hyper::Error as HttpError;
@@ -38,20 +39,15 @@ use time;
 use time::Tm;
 use url::Origin as UrlOrigin;
 
-pub enum ReadResult {
-    Payload(Vec<u8>),
-    EOF,
-}
-
-pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
+pub fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
     let mut buf = vec![0; 1024];
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
             buf.truncate(len);
-            Ok(ReadResult::Payload(buf))
+            Ok(Data::Payload(buf))
         }
-        Ok(_) => Ok(ReadResult::EOF),
+        Ok(_) => Ok(Data::Done),
         Err(_) => Err(()),
     }
 }
