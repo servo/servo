@@ -1,0 +1,15 @@
+[package]
+name = "servo_rand"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "servo_rand"
+path = "lib.rs"
+
+[dependencies]
+lazy_static = "0.2"
+log = "0.3"
+rand = "0.3"

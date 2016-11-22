@@ -7,7 +7,7 @@ extern crate bitflags;
 extern crate bluetooth_traits;
 extern crate device;
 extern crate ipc_channel;
-extern crate rand;
+extern crate servo_rand;
 #[cfg(target_os = "linux")]
 extern crate tinyfiledialogs;
 extern crate uuid;
@@ -22,7 +22,7 @@ use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSeque
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use rand::Rng;
+use servo_rand::Rng;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, HashSet};
 use std::string::String;
@@ -397,7 +397,7 @@ impl BluetoothManager {
 
     fn generate_device_id(&mut self) -> String {
         let mut device_id;
-        let mut rng = rand::thread_rng();
+        let mut rng = servo_rand::thread_rng();
         loop {
             device_id = rng.gen::<u32>().to_string();
             if !self.cached_devices.contains_key(&device_id) {

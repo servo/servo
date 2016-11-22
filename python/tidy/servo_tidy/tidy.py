@@ -81,6 +81,24 @@ WEBIDL_STANDARDS = [
     " accessible to\n// web pages."
 ]
 
+WHITELISTED_DEPENDENCIES = {
+    "rand": [
+        "deque",
+        "gaol",
+        "ipc-channel",
+        "num-bigint",
+        "parking_lot_core",
+        "phf_generator",
+        "rayon",
+        "servo_rand",
+        "tempdir",
+        "tempfile",
+        "uuid",
+        "websocket",
+        "ws",
+    ],
+}
+
 
 def is_iter_empty(iterator):
     try:
@@ -354,6 +372,20 @@ duplicate versions for package "{package}"
 {reverse_dependencies}
 """.format(**substitutions).strip()
                 yield (1, message)
+
+    # Check to see if we are transitively using any blacklisted packages
+    for package in content.get("package", []):
+        package_name = package.get("name")
+        package_version = package.get("version")
+        for dependency in package.get("dependencies", []):
+            dependency = dependency.split()
+            dependency_name = dependency[0]
+            whitelist = WHITELISTED_DEPENDENCIES.get(dependency_name)
+            if whitelist is not None:
+                if package_name not in whitelist:
+                    fmt = "Package {} {} depends on blacklisted package {}."
+                    message = fmt.format(package_name, package_version, dependency_name)
+                    yield (1, message)
 
 
 def check_toml(file_name, lines):
