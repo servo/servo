@@ -23,6 +23,7 @@ use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko::wrapper::DUMMY_BASE_URL;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
+use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
@@ -47,7 +48,7 @@ use style::properties::{apply_declarations, parse_one_declaration};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, Origin, Stylesheet};
+use style::stylesheets::{CssRule, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
 use style_traits::ToCss;
@@ -291,6 +292,18 @@ pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, index: u32)
+                                                -> RawServoStyleRuleStrong {
+    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
+    match rules[index as usize] {
+        CssRule::Style(ref rule) => rule.clone().into_strong(),
+        _ => {
+            unreachable!("GetStyleRuleAt should only be called on a style rule");
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
     unsafe { RwLock::<Vec<CssRule>>::addref(rules) };
 }
@@ -298,6 +311,16 @@ pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_Release(rules: ServoCssRulesBorrowed) -> () {
     unsafe { RwLock::<Vec<CssRule>>::release(rules) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_AddRef(rule: RawServoStyleRuleBorrowed) -> () {
+    unsafe { RwLock::<StyleRule>::addref(rule) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_Release(rule: RawServoStyleRuleBorrowed) -> () {
+    unsafe { RwLock::<StyleRule>::release(rule) };
 }
 
 #[no_mangle]
