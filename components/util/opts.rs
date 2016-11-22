@@ -350,51 +350,48 @@ pub struct DebugOptions {
 
 
 impl DebugOptions {
-    pub fn new(debug_string: &str) -> Result<DebugOptions, &str> {
-        let mut debug_options = DebugOptions::default();
-
+    pub fn extend(&mut self, debug_string: String) -> Result<(), String> {
         for option in debug_string.split(',') {
             match option {
-                "help" => debug_options.help = true,
-                "bubble-widths" => debug_options.bubble_widths = true,
-                "disable-text-aa" => debug_options.disable_text_aa = true,
-                "enable-subpixel-aa" => debug_options.enable_subpixel_aa = true,
-                "disable-canvas-aa" => debug_options.disable_text_aa = true,
-                "dump-style-tree" => debug_options.dump_style_tree = true,
-                "dump-rule-tree" => debug_options.dump_rule_tree = true,
-                "dump-flow-tree" => debug_options.dump_flow_tree = true,
-                "dump-display-list" => debug_options.dump_display_list = true,
-                "dump-display-list-json" => debug_options.dump_display_list_json = true,
-                "dump-layer-tree" => debug_options.dump_layer_tree = true,
-                "relayout-event" => debug_options.relayout_event = true,
-                "profile-script-events" => debug_options.profile_script_events = true,
-                "profile-heartbeats" => debug_options.profile_heartbeats = true,
-                "show-compositor-borders" => debug_options.show_compositor_borders = true,
-                "show-fragment-borders" => debug_options.show_fragment_borders = true,
-                "show-parallel-paint" => debug_options.show_parallel_paint = true,
-                "show-parallel-layout" => debug_options.show_parallel_layout = true,
-                "paint-flashing" => debug_options.paint_flashing = true,
-                "trace-layout" => debug_options.trace_layout = true,
-                "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
-                "style-sharing-stats" => debug_options.style_sharing_stats = true,
-                "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
-                "replace-surrogates" => debug_options.replace_surrogates = true,
-                "gc-profile" => debug_options.gc_profile = true,
-                "load-webfonts-synchronously" => debug_options.load_webfonts_synchronously = true,
-                "disable-vsync" => debug_options.disable_vsync = true,
-                "wr-stats" => debug_options.webrender_stats = true,
-                "wr-debug" => debug_options.webrender_debug = true,
-                "wr-record" => debug_options.webrender_record = true,
-                "msaa" => debug_options.use_msaa = true,
-                "full-backtraces" => debug_options.full_backtraces = true,
-                "precache-shaders" => debug_options.precache_shaders = true,
-                "signpost" => debug_options.signpost = true,
+                "help" => self.help = true,
+                "bubble-widths" => self.bubble_widths = true,
+                "disable-text-aa" => self.disable_text_aa = true,
+                "enable-subpixel-aa" => self.enable_subpixel_aa = true,
+                "disable-canvas-aa" => self.disable_text_aa = true,
+                "dump-style-tree" => self.dump_style_tree = true,
+                "dump-rule-tree" => self.dump_rule_tree = true,
+                "dump-flow-tree" => self.dump_flow_tree = true,
+                "dump-display-list" => self.dump_display_list = true,
+                "dump-display-list-json" => self.dump_display_list_json = true,
+                "dump-layer-tree" => self.dump_layer_tree = true,
+                "relayout-event" => self.relayout_event = true,
+                "profile-script-events" => self.profile_script_events = true,
+                "profile-heartbeats" => self.profile_heartbeats = true,
+                "show-compositor-borders" => self.show_compositor_borders = true,
+                "show-fragment-borders" => self.show_fragment_borders = true,
+                "show-parallel-paint" => self.show_parallel_paint = true,
+                "show-parallel-layout" => self.show_parallel_layout = true,
+                "paint-flashing" => self.paint_flashing = true,
+                "trace-layout" => self.trace_layout = true,
+                "disable-share-style-cache" => self.disable_share_style_cache = true,
+                "style-sharing-stats" => self.style_sharing_stats = true,
+                "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
+                "replace-surrogates" => self.replace_surrogates = true,
+                "gc-profile" => self.gc_profile = true,
+                "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
+                "disable-vsync" => self.disable_vsync = true,
+                "wr-stats" => self.webrender_stats = true,
+                "wr-debug" => self.webrender_debug = true,
+                "wr-record" => self.webrender_record = true,
+                "msaa" => self.use_msaa = true,
+                "full-backtraces" => self.full_backtraces = true,
+                "precache-shaders" => self.precache_shaders = true,
+                "signpost" => self.signpost = true,
                 "" => {},
-                _ => return Err(option)
+                _ => return Err(String::from(option)),
             };
         };
-
-        Ok(debug_options)
+        Ok(())
     }
 }
 
@@ -614,8 +611,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 "Probability of randomly closing a pipeline (for testing constellation hardening).",
                 "0.0");
     opts.optopt("", "random-pipeline-closure-seed", "A fixed seed for repeatbility of random pipeline closure.", "");
-    opts.optopt("Z", "debug",
-                "A comma-separated string of debug options. Pass help to show available options.", "");
+    opts.optmulti("Z", "debug",
+                  "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
@@ -648,15 +645,13 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         return ArgumentParsingResult::ContentProcess(content_process);
     }
 
-    let debug_string = match opt_match.opt_str("Z") {
-        Some(string) => string,
-        None => String::new()
-    };
+    let mut debug_options = DebugOptions::default();
 
-    let debug_options = match DebugOptions::new(&debug_string) {
-        Ok(debug_options) => debug_options,
-        Err(e) => args_fail(&format!("error: unrecognized debug option: {}", e)),
-    };
+    for debug_string in opt_match.opt_strs("Z") {
+        if let Err(e) = debug_options.extend(debug_string) {
+            return args_fail(&format!("error: unrecognized debug option: {}", e));
+        }
+    }
 
     if debug_options.help {
         print_debug_usage(app_name)
