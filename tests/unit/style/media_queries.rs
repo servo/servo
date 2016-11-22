@@ -26,8 +26,9 @@ impl ParseErrorReporter for CSSErrorReporterTest {
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaList, &str) {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest),
-                                          ParserContextExtraData::default());
+    let stylesheet = Stylesheet::from_str(
+        css, url, Origin::Author, Default::default(),
+        Box::new(CSSErrorReporterTest), ParserContextExtraData::default());
     let mut rule_count = 0;
     media_queries(&stylesheet.rules.0.read(), &mut |mq| {
         rule_count += 1;
@@ -49,8 +50,9 @@ fn media_queries<F>(rules: &[CssRule], f: &mut F) where F: FnMut(&MediaList) {
 
 fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let ss = Stylesheet::from_str(css, url, Origin::Author, Box::new(CSSErrorReporterTest),
-                                  ParserContextExtraData::default());
+    let ss = Stylesheet::from_str(
+        css, url, Origin::Author, Default::default(),
+        Box::new(CSSErrorReporterTest), ParserContextExtraData::default());
     let mut rule_count = 0;
     ss.effective_style_rules(device, |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());

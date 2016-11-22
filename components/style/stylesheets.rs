@@ -22,6 +22,7 @@ use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use viewport::ViewportRule;
 
@@ -57,9 +58,9 @@ pub struct Stylesheet {
     /// cascading order)
     pub rules: CssRules,
     /// List of media associated with the Stylesheet.
-    pub media: MediaList,
+    pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
-    pub dirty_on_viewport_size_change: bool,
+    pub dirty_on_viewport_size_change: AtomicBool,
 }
 
 
@@ -228,35 +229,21 @@ impl ToCss for StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
-            input: I, base_url: ServoUrl, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingRef>, origin: Origin,
-            error_reporter: Box<ParseErrorReporter + Send>,
-            extra_data: ParserContextExtraData) -> Stylesheet {
-        let mut bytes = vec![];
-        // TODO: incremental decoding and tokenization/parsing
-        for chunk in input {
-            bytes.extend_from_slice(&chunk)
-        }
-        Stylesheet::from_bytes(&bytes, base_url, protocol_encoding_label,
-                               environment_encoding, origin, error_reporter,
-                               extra_data)
-    }
-
     pub fn from_bytes(bytes: &[u8],
                       base_url: ServoUrl,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
-                      origin: Origin, error_reporter: Box<ParseErrorReporter + Send>,
+                      origin: Origin,
+                      media: MediaList,
+                      error_reporter: Box<ParseErrorReporter + Send>,
                       extra_data: ParserContextExtraData)
                       -> Stylesheet {
-        // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string, base_url, origin, error_reporter, extra_data)
+        Stylesheet::from_str(&string, base_url, origin, media, error_reporter, extra_data)
     }
 
-    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin,
+    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin, media: MediaList,
                     error_reporter: Box<ParseErrorReporter + Send>,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let rule_parser = TopLevelRuleParser {
@@ -286,15 +273,28 @@ impl Stylesheet {
         Stylesheet {
             origin: origin,
             rules: rules.into(),
-            media: Default::default(),
-            dirty_on_viewport_size_change:
-                input.seen_viewport_percentages(),
+            media: Arc::new(RwLock::new(media)),
+            dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
         }
     }
 
-    /// Set the MediaList associated with the style-sheet.
-    pub fn set_media(&mut self, media: MediaList) {
-        self.media = media;
+    pub fn dirty_on_viewport_size_change(&self) -> bool {
+        self.dirty_on_viewport_size_change.load(Ordering::SeqCst)
+    }
+
+    /// When CSSOM inserts a rule or declaration into this stylesheet, it needs to call this method
+    /// with the return value of `cssparser::Parser::seen_viewport_percentages`.
+    ///
+    /// FIXME: actually make these calls
+    ///
+    /// Note: when *removing* a rule or declaration that contains a viewport percentage,
+    /// to keep the flag accurate we’d need to iterator through the rest of the stylesheet to
+    /// check for *other* such values.
+    ///
+    /// Instead, we conservatively assume there might be some.
+    /// Restyling will some some more work than necessary, but give correct results.
+    pub fn inserted_has_viewport_percentages(&self, has_viewport_percentages: bool) {
+        self.dirty_on_viewport_size_change.fetch_or(has_viewport_percentages, Ordering::SeqCst);
     }
 
     /// Returns whether the style-sheet applies for the current device depending
@@ -302,7 +302,7 @@ impl Stylesheet {
     ///
     /// Always true if no associated MediaList exists.
     pub fn is_effective_for_device(&self, device: &Device) -> bool {
-        self.media.evaluate(device)
+        self.media.read().evaluate(device)
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as

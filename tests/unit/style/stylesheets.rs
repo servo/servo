@@ -12,6 +12,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -49,13 +50,13 @@ fn test_parse_stylesheet() {
             }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
+    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
     let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: Default::default(),
-        dirty_on_viewport_size_change: false,
+        dirty_on_viewport_size_change: AtomicBool::new(false),
         rules: vec![
             CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
@@ -320,7 +321,7 @@ fn test_report_error_stylesheet() {
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, error_reporter,
+    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(), error_reporter,
                          ParserContextExtraData::default());
 
     let mut errors = errors.lock().unwrap();

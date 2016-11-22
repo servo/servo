@@ -21,6 +21,7 @@ use html5ever_atoms::LocalName;
 use parking_lot::RwLock;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, CssRule, Origin};
@@ -101,7 +102,7 @@ impl HTMLMetaElement {
                         media: Default::default(),
                         // Viewport constraints are always recomputed on resize; they don't need to
                         // force all styles to be recomputed.
-                        dirty_on_viewport_size_change: false,
+                        dirty_on_viewport_size_change: AtomicBool::new(false),
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();
