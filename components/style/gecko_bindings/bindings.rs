@@ -1011,6 +1011,10 @@ extern "C" {
      -> RawServoStyleRuleStrong;
 }
 extern "C" {
+    pub fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed,
+                                 result: *mut nsACString_internal);
+}
+extern "C" {
     pub fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed)
      -> RawServoDeclarationBlockStrong;
 }

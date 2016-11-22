@@ -325,6 +325,13 @@ pub extern "C" fn Servo_StyleRule_Release(rule: RawServoStyleRuleBorrowed) -> ()
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed, result: *mut nsACString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    let result = unsafe { result.as_mut().unwrap() };
+    write!(result, "{:?}", *rule.read()).unwrap();
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> RawServoDeclarationBlockStrong {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().block.clone().into_strong()
