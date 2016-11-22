@@ -29,7 +29,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
-use net_traits::{CookieSource, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::hosts::replace_hosts;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
@@ -218,7 +218,6 @@ impl LoadError {
 enum LoadErrorType {
     Connection { reason: String },
     ConnectionAborted { reason: String },
-    Decoding { reason: String },
     Ssl { reason: String },
 }
 
@@ -233,7 +232,6 @@ impl Error for LoadErrorType {
         match *self {
             LoadErrorType::Connection { ref reason } => reason,
             LoadErrorType::ConnectionAborted { ref reason } => reason,
-            LoadErrorType::Decoding { ref reason } => reason,
             LoadErrorType::Ssl { ref reason } => reason,
         }
     }
@@ -389,17 +387,10 @@ impl Read for StreamedResponse {
 }
 
 impl StreamedResponse {
-    pub fn from_http_response(response: WrappedHttpResponse, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
-                let result = GzDecoder::new(response);
-                match result {
-                    Ok(response_decoding) => Decoder::Gzip(response_decoding),
-                    Err(err) => {
-                        return Err(
-                            LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() }))
-                    }
-                }
+                Decoder::Gzip(try!(GzDecoder::new(response)))
             }
             Some(Encoding::Deflate) => {
                 Decoder::Deflate(DeflateDecoder::new(response))
@@ -1155,7 +1146,7 @@ fn http_network_fetch(request: Rc<Request>,
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
     spawn_named(format!("fetch worker thread"), move || {
-        match StreamedResponse::from_http_response(res, meta) {
+        match StreamedResponse::from_http_response(res) {
             Ok(mut res) => {
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
