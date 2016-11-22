@@ -559,13 +559,6 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn get_constellation_sender() -> IpcSender<ConstellationControlMsg> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.control_chan.clone()
-        })
-    }
-
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
                                   -> Option<Root<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
