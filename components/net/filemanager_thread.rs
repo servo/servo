@@ -112,64 +112,81 @@ enum FileImpl {
     Sliced(Uuid, RelativePos),
 }
 
-pub struct FileManager<UI: 'static + UIProvider> {
-    store: Arc<FileManagerStore<UI>>,
+#[derive(Clone)]
+pub struct FileManager {
+    store: Arc<FileManagerStore>,
 }
 
-// Not derived to avoid an unnecessary `UI: Clone` bound.
-impl<UI: 'static + UIProvider> Clone for FileManager<UI> {
-    fn clone(&self) -> Self {
+impl FileManager {
+    pub fn new() -> FileManager {
         FileManager {
-            store: self.store.clone(),
+            store: Arc::new(FileManagerStore::new()),
         }
     }
-}
 
-impl<UI: 'static + UIProvider> FileManager<UI> {
-    pub fn new(ui: &'static UI) -> FileManager<UI> {
-        FileManager {
-            store: Arc::new(FileManagerStore::new(ui)),
-        }
+    pub fn read_file(&self,
+                     sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+                     id: Uuid,
+                     check_url_validity: bool,
+                     origin: FileOrigin,
+                     cancel_listener: Option<CancellationListener>) {
+        let store = self.store.clone();
+        spawn_named("read file".to_owned(), move || {
+            if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
+                                                origin, cancel_listener) {
+                let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
+            }
+        })
+    }
+
+    pub fn promote_memory(&self,
+                          blob_buf: BlobBuf,
+                          set_valid: bool,
+                          sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
+                          origin: FileOrigin) {
+        let store = self.store.clone();
+        spawn_named("transfer memory".to_owned(), move || {
+            store.promote_memory(blob_buf, set_valid, sender, origin);
+        })
     }
 
     /// Message handler
-    pub fn handle(&self, msg: FileManagerThreadMsg, cancel_listener: Option<CancellationListener>) {
-        let store = self.store.clone();
+    pub fn handle<UI>(&self,
+                      msg: FileManagerThreadMsg,
+                      cancel_listener: Option<CancellationListener>,
+                      ui: &'static UI)
+        where UI: UIProvider + 'static,
+    {
         match msg {
             FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
+                let store = self.store.clone();
                 spawn_named("select file".to_owned(), move || {
-                    store.select_file(filter, sender, origin, opt_test_path);
+                    store.select_file(filter, sender, origin, opt_test_path, ui);
                 });
             }
             FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
+                let store = self.store.clone();
                 spawn_named("select files".to_owned(), move || {
-                    store.select_files(filter, sender, origin, opt_test_paths);
+                    store.select_files(filter, sender, origin, opt_test_paths, ui);
                 })
             }
             FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
-                spawn_named("read file".to_owned(), move || {
-                    if let Err(e) = store.try_read_file(&sender, id, check_url_validity,
-                                                        origin, cancel_listener) {
-                        let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
-                    }
-                })
+                self.read_file(sender, id, check_url_validity, origin, cancel_listener);
             }
             FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
-                spawn_named("transfer memory".to_owned(), move || {
-                    store.promote_memory(blob_buf, set_valid, sender, origin);
-                })
+                self.promote_memory(blob_buf, set_valid, sender, origin);
             }
             FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
-                store.add_sliced_url_entry(id, rel_pos, sender, origin);
+                self.store.add_sliced_url_entry(id, rel_pos, sender, origin);
             }
             FileManagerThreadMsg::DecRef(id, origin, sender) => {
-                let _ = sender.send(store.dec_ref(&id, &origin));
+                let _ = sender.send(self.store.dec_ref(&id, &origin));
             }
             FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
-                let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
+                let _ = sender.send(self.store.set_blob_url_validity(false, &id, &origin));
             }
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
-                let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
+                let _ = sender.send(self.store.set_blob_url_validity(true, &id, &origin));
             }
         }
     }
@@ -178,16 +195,14 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
 /// File manager's data store. It maintains a thread-safe mapping
 /// from FileID to FileStoreEntry which might have different backend implementation.
 /// Access to the content is encapsulated as methods of this struct.
-struct FileManagerStore<UI: 'static + UIProvider> {
+struct FileManagerStore {
     entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
-    ui: &'static UI,
 }
 
-impl <UI: 'static + UIProvider> FileManagerStore<UI> {
-    fn new(ui: &'static UI) -> Self {
+impl FileManagerStore {
+    fn new() -> Self {
         FileManagerStore {
             entries: RwLock::new(HashMap::new()),
-            ui: ui,
         }
     }
 
@@ -257,16 +272,21 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn select_file(&self, patterns: Vec<FilterPattern>,
-                   sender: IpcSender<FileManagerResult<SelectedFile>>,
-                   origin: FileOrigin, opt_test_path: Option<String>) {
+    fn select_file<UI>(&self,
+                       patterns: Vec<FilterPattern>,
+                       sender: IpcSender<FileManagerResult<SelectedFile>>,
+                       origin: FileOrigin,
+                       opt_test_path: Option<String>,
+                       ui: &UI)
+        where UI: UIProvider,
+    {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
         let opt_s = if select_files_pref_enabled() {
             opt_test_path
         } else {
-            self.ui.open_file_dialog("", patterns)
+            ui.open_file_dialog("", patterns)
         };
 
         match opt_s {
@@ -282,16 +302,21 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn select_files(&self, patterns: Vec<FilterPattern>,
-                    sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                    origin: FileOrigin, opt_test_paths: Option<Vec<String>>) {
+    fn select_files<UI>(&self,
+                        patterns: Vec<FilterPattern>,
+                        sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
+                        origin: FileOrigin,
+                        opt_test_paths: Option<Vec<String>>,
+                        ui: &UI)
+        where UI: UIProvider,
+    {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
         let opt_v = if select_files_pref_enabled() {
             opt_test_paths
         } else {
-            self.ui.open_file_dialog_multi("", patterns)
+            ui.open_file_dialog_multi("", patterns)
         };
 
         match opt_v {

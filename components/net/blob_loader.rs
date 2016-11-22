@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use filemanager_thread::{FileManager, UIProvider};
+use filemanager_thread::FileManager;
 use hyper::header::{Charset, ContentLength, ContentType, Headers};
 use hyper::header::{ContentDisposition, DispositionParam, DispositionType};
 use hyper_serde::Serde;
@@ -12,7 +12,7 @@ use mime_classifier::MimeClassifier;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::blob_url_store::parse_blob_url;
-use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress};
+use net_traits::filemanager_thread::ReadFileProgress;
 use net_traits::response::HttpsState;
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use resource_thread::CancellationListener;
@@ -24,7 +24,7 @@ use util::thread::spawn_named;
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
 
-pub fn factory<UI: 'static + UIProvider>(filemanager: FileManager<UI>)
+pub fn factory(filemanager: FileManager)
               -> Box<FnBox(LoadData, LoadConsumer, Arc<MimeClassifier>, CancellationListener) + Send> {
     box move |load_data: LoadData, start_chan, classifier, cancel_listener| {
         spawn_named(format!("blob loader for {}", load_data.url), move || {
@@ -33,16 +33,14 @@ pub fn factory<UI: 'static + UIProvider>(filemanager: FileManager<UI>)
     }
 }
 
-fn load_blob<UI: 'static + UIProvider>
-            (load_data: LoadData, start_chan: LoadConsumer,
+fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
              classifier: Arc<MimeClassifier>,
-             filemanager: FileManager<UI>,
+             filemanager: FileManager,
              cancel_listener: CancellationListener) {
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
         let check_url_validity = true;
-        let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
-        let _ = filemanager.handle(msg, Some(cancel_listener));
+        filemanager.read_file(chan, id, check_url_validity, origin, Some(cancel_listener));
 
         // Receive first chunk
         match recv.recv().unwrap() {
@@ -123,9 +121,9 @@ fn load_blob<UI: 'static + UIProvider>
 
 /// https://fetch.spec.whatwg.org/#concept-basic-fetch (partial)
 // TODO: make async.
-pub fn load_blob_sync<UI: 'static + UIProvider>
+pub fn load_blob_sync
             (url: ServoUrl,
-             filemanager: FileManager<UI>)
+             filemanager: FileManager)
              -> Result<(Headers, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
         Ok((id, origin, _fragment)) => (id, origin),
@@ -137,8 +135,7 @@ pub fn load_blob_sync<UI: 'static + UIProvider>
 
     let (sender, receiver) = ipc::channel().unwrap();
     let check_url_validity = true;
-    let msg = FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin);
-    let _ = filemanager.handle(msg, None);
+    filemanager.read_file(sender, id, check_url_validity, origin, None);
 
     let blob_buf = match receiver.recv().unwrap() {
         Ok(ReadFileProgress::Meta(blob_buf)) => blob_buf,

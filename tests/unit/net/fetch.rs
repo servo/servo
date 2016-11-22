@@ -98,7 +98,6 @@ fn test_fetch_aboutblank() {
 fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
-    use net_traits::filemanager_thread::FileManagerThreadMsg;
 
     let context = new_fetch_context(None);
 
@@ -113,8 +112,7 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let (sender, receiver) = ipc::channel().unwrap();
-    let message = FileManagerThreadMsg::PromoteMemory(blob_buf, true, sender, "http://www.example.org".into());
-    context.filemanager.handle(message, None);
+    context.filemanager.promote_memory(blob_buf, true, sender, "http://www.example.org".into());
     let id = receiver.recv().unwrap().unwrap();
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
 
