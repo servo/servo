@@ -1011,6 +1011,14 @@ extern "C" {
      -> RawServoStyleRuleStrong;
 }
 extern "C" {
+    pub fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed,
+                                      result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed,
+                                           result: *mut nsAString_internal);
+}
+extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,
                                value: *const nsACString_internal,
                                base_url: *const nsACString_internal,
