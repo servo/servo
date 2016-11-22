@@ -263,8 +263,8 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
-pub fn rare_style_affecting_attributes() -> [LocalName; 3] {
-    [ local_name!("bgcolor"), local_name!("border"), local_name!("colspan") ]
+pub fn rare_style_affecting_attributes() -> [LocalName; 4] {
+    [local_name!("bgcolor"), local_name!("border"), local_name!("colspan"), local_name!("rowspan")]
 }
 
 fn have_same_class<E: TElement>(element: &E,
