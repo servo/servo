@@ -1150,12 +1150,12 @@ fn http_network_fetch(request: Rc<Request>,
     let res_body = response.body.clone();
 
     // We're about to spawn a thread to be waited on here
-    *done_chan = Some(channel());
+    let (done_sender, done_receiver) = channel();
+    *done_chan = Some((done_sender.clone(), done_receiver));
     let meta = match response.metadata().expect("Response metadata should exist at this stage") {
         FetchMetadata::Unfiltered(m) => m,
         FetchMetadata::Filtered { unsafe_, .. } => unsafe_
     };
-    let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
@@ -1185,9 +1185,7 @@ fn http_network_fetch(request: Rc<Request>,
                         Ok(Data::Payload(chunk)) => {
                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                                 body.extend_from_slice(&chunk);
-                                if let Some(ref sender) = done_sender {
-                                    let _ = sender.send(Data::Payload(chunk));
-                                }
+                                let _ = done_sender.send(Data::Payload(chunk));
                             }
                         },
                         Ok(Data::Done) | Err(_) => {
@@ -1201,9 +1199,7 @@ fn http_network_fetch(request: Rc<Request>,
                                 _ => empty_vec,
                             };
                             *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
-                            if let Some(ref sender) = done_sender {
-                                let _ = sender.send(Data::Done);
-                            }
+                            let _ = done_sender.send(Data::Done);
                             break;
                         }
                     }
@@ -1212,9 +1208,7 @@ fn http_network_fetch(request: Rc<Request>,
             Err(_) => {
                 // XXXManishearth we should propagate this error somehow
                 *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
-                if let Some(ref sender) = done_sender {
-                    let _ = sender.send(Data::Done);
-                }
+                let _ = done_sender.send(Data::Done);
             }
         }
     });
