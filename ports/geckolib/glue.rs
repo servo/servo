@@ -26,10 +26,12 @@ use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServo
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
+use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
+use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
@@ -45,7 +47,7 @@ use style::properties::{apply_declarations, parse_one_declaration};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{Origin, Stylesheet};
+use style::stylesheets::{CssRule, Origin, Stylesheet};
 use style::thread_state;
 use style::timer::Timer;
 use style_traits::ToCss;
@@ -263,6 +265,11 @@ pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowe
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -> ServoCssRulesStrong {
+    Stylesheet::as_arc(&sheet).rules.0.clone().into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> () {
     unsafe { Stylesheet::addref(sheet) };
 }
@@ -270,6 +277,27 @@ pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) -> () {
     unsafe { Stylesheet::release(sheet) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
+                                           result: nsTArrayBorrowed_uintptr_t) -> () {
+    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
+    let iter = rules.iter().map(|rule| rule.rule_type() as usize);
+    let (size, upper) = iter.size_hint();
+    debug_assert_eq!(size, upper.unwrap());
+    unsafe { result.set_len(size as u32) };
+    result.iter_mut().zip(iter).fold((), |_, (r, v)| *r = v);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
+    unsafe { RwLock::<Vec<CssRule>>::addref(rules) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_Release(rules: ServoCssRulesBorrowed) -> () {
+    unsafe { RwLock::<Vec<CssRule>>::release(rules) };
 }
 
 #[no_mangle]

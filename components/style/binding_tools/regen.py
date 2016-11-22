@@ -328,8 +328,13 @@ COMPILATION_TARGETS = {
             "nsStyleVisibility",
             "nsStyleXUL",
         ],
+        "array_types": {
+            "uintptr_t": "usize",
+        },
         "servo_nullable_arc_types": [
-            "ServoComputedValues", "RawServoStyleSheet",
+            "ServoComputedValues",
+            "ServoCssRules",
+            "RawServoStyleSheet",
             "RawServoDeclarationBlock"
         ],
         "servo_owned_types": [
@@ -534,6 +539,14 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         for ty in current_target["opaque_types"]:
             flags.append("--opaque-type")
             flags.append(ty)
+
+    if "array_types" in current_target:
+        for cpp_type, rust_type in current_target["array_types"].items():
+            flags.append("--blacklist-type")
+            flags.append("nsTArrayBorrowed_{}".format(cpp_type))
+            flags.append("--raw-line")
+            flags.append("pub type nsTArrayBorrowed_{0}<'a> = &'a mut ::gecko_bindings::structs::nsTArray<{1}>;"
+                         .format(cpp_type, rust_type))
 
     if "blacklist_types" in current_target:
         for ty in current_target["blacklist_types"]:
