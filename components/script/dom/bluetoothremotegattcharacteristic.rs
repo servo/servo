@@ -220,15 +220,18 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     fn StartNotifications(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
+        // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
             p.reject_error(p_cx, Security);
             return p;
         }
+        // Step 3.
         if !(self.Properties().Notify() ||
              self.Properties().Indicate()) {
             p.reject_error(p_cx, NotSupported);
             return p;
         }
+        // Step 6.
         if !self.Service().Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;

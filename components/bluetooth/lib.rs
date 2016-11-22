@@ -953,10 +953,13 @@ impl BluetoothManager {
                     false => c.stop_notify(),
                 };
                 match result {
+                    // Step 11.
                     Ok(_) => return drop(sender.send(Ok(BluetoothResponse::EnableNotification(())))),
+                    // Step 4.
                     Err(_) => return drop(sender.send(Err(BluetoothError::NotSupported))),
                 }
             },
+            // Step 3.
             None => return drop(sender.send(Err(BluetoothError::InvalidState))),
         }
     }

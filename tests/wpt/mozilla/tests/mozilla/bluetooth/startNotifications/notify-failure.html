@@ -16,5 +16,5 @@ promise_test(t => {
         .then(service => service.getCharacteristic(device_name.name))
         .then(characteristic => promise_rejects(t, 'NotSupportedError', characteristic.startNotifications()));
     });
-}, 'startNotifications should throw NotSupportedError without Notify or Indent flag.');
+}, 'startNotifications should throw NotSupportedError without Notify or Indicate flag.');
 </script>
