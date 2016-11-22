@@ -919,11 +919,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        load_info.info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            FromScriptMsg::ScriptDidLoadURLInIFrame(load_info, sc, lc) => {
+            FromScriptMsg::ScriptDidLoadURLInIFrame(load_info, lc) => {
                 debug!("constellation got did load iframe URL message {:?} {:?}",
                        load_info.parent_pipeline_id,
                        load_info.new_pipeline_id);
-                self.handle_script_did_load_url_in_iframe_msg(load_info, sc, lc);
+                self.handle_script_did_load_url_in_iframe_msg(load_info, lc);
             }
             FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
@@ -1421,7 +1421,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_script_did_load_url_in_iframe_msg(&mut self,
                                                 load_info: IFrameLoadInfo,
-                                                script_sender: IpcSender<ConstellationControlMsg>,
                                                 layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
@@ -1437,6 +1436,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(parent_pipeline) => parent_pipeline,
                 None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
             };
+
+            let script_sender = parent_pipeline.script_chan.clone();
 
             let url = ServoUrl::parse("about:blank").expect("infallible");
             Pipeline::spawned(new_pipeline_id,

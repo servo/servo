@@ -4,7 +4,6 @@
 
 use AnimationState;
 use CompositorEvent;
-use ConstellationControlMsg;
 use DocumentState;
 use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
@@ -110,7 +109,7 @@ pub enum ScriptMsg {
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load has been completed in an IFrame.
-    ScriptDidLoadURLInIFrame(IFrameLoadInfo, IpcSender<ConstellationControlMsg>, IpcSender<LayoutControlMsg>),
+    ScriptDidLoadURLInIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
