@@ -172,33 +172,6 @@ pub struct WrappedHttpRequest {
     request: HyperRequest<Fresh>
 }
 
-impl WrappedHttpRequest {
-    fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
-        let url = ServoUrl::from_url(self.request.url.clone());
-        let mut request_writer = match self.request.start() {
-            Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
-        };
-
-        if let Some(ref data) = *body {
-            if let Err(e) = request_writer.write_all(&data) {
-                return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() }))
-            }
-        }
-
-        let response = match request_writer.send() {
-            Ok(w) => w,
-            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                let error_type = LoadErrorType::ConnectionAborted { reason: io_error.description().to_owned() };
-                return Err(LoadError::new(url, error_type));
-            },
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
-        };
-
-        Ok(WrappedHttpResponse { response: response })
-    }
-}
-
 #[derive(Debug)]
 struct LoadError {
     pub url: ServoUrl,
@@ -217,7 +190,6 @@ impl LoadError {
 #[derive(Eq, PartialEq, Debug)]
 enum LoadErrorType {
     Connection { reason: String },
-    ConnectionAborted { reason: String },
     Ssl { reason: String },
 }
 
@@ -231,7 +203,6 @@ impl Error for LoadErrorType {
     fn description(&self) -> &str {
         match *self {
             LoadErrorType::Connection { ref reason } => reason,
-            LoadErrorType::ConnectionAborted { ref reason } => reason,
             LoadErrorType::Ssl { ref reason } => reason,
         }
     }
@@ -526,21 +497,30 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let send_start = precise_time_ms();
 
-        let maybe_response = req.send(request_body);
+        let mut request_writer = match req.request.start() {
+            Ok(streaming) => streaming,
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
+        };
+
+        if let Some(ref data) = *request_body {
+            if let Err(e) = request_writer.write_all(&data) {
+                return Err(LoadError::new(connection_url,
+                                          LoadErrorType::Connection { reason: e.description().to_owned() }))
+            }
+        }
+
+        let response = match request_writer.send() {
+            Ok(w) => w,
+            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
+                debug!("connection aborted ({:?}), possibly stale, trying new connection", io_error.description());
+                continue;
+            },
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
+        };
 
         let send_end = precise_time_ms();
-
-        let response = match maybe_response {
-            Ok(r) => r,
-            Err(e) => {
-                if let LoadErrorType::ConnectionAborted { reason } = e.error {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
-                    continue;
-                } else {
-                    return Err(e)
-                }
-            },
-        };
 
         let msg = if let Some(request_id) = request_id {
             if let Some(pipeline_id) = *pipeline_id {
@@ -558,8 +538,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
             None
         };
 
-        // if no ConnectionAborted, break the loop
-        return Ok((response, msg));
+        return Ok((WrappedHttpResponse { response: response }, msg));
     }
 }
 
@@ -1113,7 +1092,6 @@ fn http_network_fetch(request: Rc<Request>,
         Ok(wrapped_response) => wrapped_response,
         Err(error) => {
             let error = match error.error {
-                LoadErrorType::ConnectionAborted { .. } => unreachable!(),
                 LoadErrorType::Ssl { reason } => NetworkError::SslValidation(error.url, reason),
                 e => NetworkError::Internal(e.description().to_owned())
             };
