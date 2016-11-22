@@ -74,13 +74,15 @@ impl CssRules {
     // Provides the parser state at a given insertion index
     pub fn state_at_index(rules: &[CssRule], at: usize) -> State {
         let mut state = State::Start;
-        for rule in rules.iter().take(at) {
-            state = match *rule {
-                // CssRule::Charset(..) => State::Start,
-                // CssRule::Import(..) => State::Imports,
-                CssRule::Namespace(..) => State::Namespaces,
-                _ => State::Body,
-            };
+        if at > 0 {
+            if let Some(rule) = rules.get(at - 1) {
+                state = match *rule {
+                    // CssRule::Charset(..) => State::Start,
+                    // CssRule::Import(..) => State::Imports,
+                    CssRule::Namespace(..) => State::Namespaces,
+                    _ => State::Body,
+                };
+            }
         }
         state
     }
@@ -89,16 +91,16 @@ impl CssRules {
     // searching in reverse. If inserting at this index, the parser
     // must not be in a state greater than this post-insertion.
     pub fn state_at_index_rev(rules: &[CssRule], at: usize) -> State {
-        let mut state = State::Body;
-        for rule in rules.iter().skip(at).rev() {
-            state = match *rule {
+        if let Some(rule) = rules.get(at) {
+            match *rule {
                 // CssRule::Charset(..) => State::Start,
                 // CssRule::Import(..) => State::Imports,
                 CssRule::Namespace(..) => State::Namespaces,
                 _ => State::Body,
-            };
+            }
+        } else {
+            State::Body
         }
-        state
     }
 }
 
@@ -193,6 +195,7 @@ impl CssRule {
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
+            stylesheet_origin: origin,
             context: context,
             state: Cell::new(state),
             namespaces: &mut namespaces,

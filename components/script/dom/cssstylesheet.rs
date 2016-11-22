@@ -54,6 +54,7 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
     fn CssRules(&self) -> Root<CSSRuleList> {
         // XXXManishearth check origin clean flag
+        // https://github.com/servo/servo/issues/14327
         self.rulelist()
     }
 
