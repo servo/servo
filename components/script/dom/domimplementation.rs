@@ -75,11 +75,22 @@ impl DOMImplementationMethods for DOMImplementation {
             _ => "application/xml"
         };
 
+        // @TODO What's the right thing to do for this? Without this, tests in DOMImplementation-createDocument.html
+        // and Node-properties.html fail.
+        //
+        // Before, the call to XMLDocument::new was hardcoded to pass in NonHTMLDocument as the doc type. That means
+        // that document.is_html_document is false for documents that are actually HTML. That makes the tests fail
+        // because I use that property in document.createElement to decide whether to use the HTML namespace or not.
+        let doc_type = match maybe_doctype {
+            Some(dt) if dt.name() == "html" && content_type != "application/xml"  => IsHTMLDocument::HTMLDocument,
+            _ => IsHTMLDocument::NonHTMLDocument,
+        };
+
         // Step 1.
         let doc = XMLDocument::new(win,
                                    None,
                                    None,
-                                   IsHTMLDocument::NonHTMLDocument,
+                                   doc_type,
                                    Some(DOMString::from(content_type)),
                                    None,
                                    DocumentSource::NotFromParser,
