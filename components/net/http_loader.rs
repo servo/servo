@@ -189,19 +189,11 @@ impl NetworkHttpRequestFactory {
     }
 }
 
-trait HttpRequest {
-    type R: HttpResponse + 'static;
-
-    fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
-}
-
 pub struct WrappedHttpRequest {
     request: HyperRequest<Fresh>
 }
 
-impl HttpRequest for WrappedHttpRequest {
-    type R = WrappedHttpResponse;
-
+impl WrappedHttpRequest {
     fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
         let url = ServoUrl::from_url(self.request.url.clone());
         let mut request_writer = match self.request.start() {
