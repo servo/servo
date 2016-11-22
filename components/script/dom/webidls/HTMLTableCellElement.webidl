@@ -5,8 +5,8 @@
 // https://html.spec.whatwg.org/multipage/#htmltablecellelement
 [Abstract]
 interface HTMLTableCellElement : HTMLElement {
-             attribute unsigned long colSpan;
-  //         attribute unsigned long rowSpan;
+  attribute unsigned long colSpan;
+  attribute unsigned long rowSpan;
   //         attribute DOMString headers;
   readonly attribute long cellIndex;
 

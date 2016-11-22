@@ -864,6 +864,12 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
         }
     }
+
+    fn get_rowspan(&self) -> u32 {
+        unsafe {
+            self.get_jsmanaged().downcast::<Element>().unwrap().get_rowspan()
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<ConcreteNode: ThreadSafeLayoutNode> {
