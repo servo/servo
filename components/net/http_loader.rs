@@ -389,10 +389,6 @@ impl Read for StreamedResponse {
 }
 
 impl StreamedResponse {
-    fn new(d: Decoder) -> StreamedResponse {
-        StreamedResponse { decoder: d }
-    }
-
     pub fn from_http_response(response: WrappedHttpResponse, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
@@ -415,7 +411,7 @@ impl StreamedResponse {
                 Decoder::Plain(response)
             }
         };
-        Ok(StreamedResponse::new(decoder))
+        Ok(StreamedResponse { decoder: decoder })
     }
 }
 
