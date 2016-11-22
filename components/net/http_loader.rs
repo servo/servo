@@ -129,7 +129,7 @@ struct NetworkHttpRequestFactory {
 
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
-              -> Result<WrappedHttpRequest, LoadError> {
+              -> Result<HyperRequest<Fresh>, LoadError> {
         let connection = HyperRequest::with_connector(method,
                                                       url.clone().into_url().unwrap(),
                                                       &*self.connector);
@@ -164,12 +164,8 @@ impl NetworkHttpRequestFactory {
         };
         *request.headers_mut() = headers;
 
-        Ok(WrappedHttpRequest { request: request })
+        Ok(request)
     }
-}
-
-pub struct WrappedHttpRequest {
-    request: HyperRequest<Fresh>
 }
 
 #[derive(Debug)]
@@ -490,14 +486,14 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let connect_start = precise_time_ms();
 
-        let req = try!(request_factory.create(connection_url.clone(), method.clone(),
-                                              headers.clone()));
+        let request = try!(request_factory.create(connection_url.clone(), method.clone(),
+                                                  headers.clone()));
 
         let connect_end = precise_time_ms();
 
         let send_start = precise_time_ms();
 
-        let mut request_writer = match req.request.start() {
+        let mut request_writer = match request.start() {
             Ok(streaming) => streaming,
             Err(e) => return Err(LoadError::new(connection_url,
                                                 LoadErrorType::Connection { reason: e.description().to_owned() })),
