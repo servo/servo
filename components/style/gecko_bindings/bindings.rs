@@ -1108,7 +1108,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_Element_GetSnapshot(element: RawGeckoElementBorrowed)
-     -> ServoElementSnapshotBorrowedMut;
+     -> *mut ServoElementSnapshot;
 }
 extern "C" {
     pub fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
