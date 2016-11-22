@@ -73,7 +73,7 @@ use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use parking_lot::RwLock;
 use selectors::matching::{ElementFlags, MatchingReason, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
-use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
+use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -92,7 +92,7 @@ use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
-use style::selector_parser::{NonTSPseudoClass, RestyleDamage, ServoSelectorImpl};
+use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::values::CSSFloat;
@@ -1885,10 +1885,10 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
-            Ok(ref selectors) => {
-                Ok(matches(selectors, &Root::from_ref(self), None, MatchingReason::Other))
+            Ok(selectors) => {
+                Ok(matches(&selectors.0, &Root::from_ref(self), None, MatchingReason::Other))
             }
         }
     }
@@ -1900,13 +1900,13 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
-            Ok(ref selectors) => {
+            Ok(selectors) => {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches(selectors, &element, None, MatchingReason::Other) {
+                        if matches(&selectors.0, &element, None, MatchingReason::Other) {
                             return Ok(Some(element));
                         }
                     }
@@ -2141,9 +2141,9 @@ impl VirtualMethods for Element {
 }
 
 impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
-    type Impl = ServoSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         use ::selectors::Element;

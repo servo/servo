@@ -7,10 +7,11 @@ use attr::{AttrIdentifier, AttrValue};
 use cssparser::ToCss;
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
-use selector_parser::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
+use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
-use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
+use selectors::parser::AttrSelector;
+use std::borrow::Cow;
 use std::fmt;
 
 /// NB: If you add to this list, be sure to update `each_pseudo_element` too.
@@ -150,9 +151,9 @@ impl NonTSPseudoClass {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct ServoSelectorImpl;
+pub struct SelectorImpl;
 
-impl SelectorImpl for ServoSelectorImpl {
+impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
@@ -173,11 +174,14 @@ impl SelectorImpl for ServoSelectorImpl {
                                          value: &Self::AttrValue) -> bool {
         attr_equals_selector_is_shareable(attr_selector, value)
     }
+}
 
-    fn parse_non_ts_pseudo_class(context: &ParserContext<TheSelectorImpl>,
-                                 name: &str) -> Result<NonTSPseudoClass, ()> {
+impl<'a> ::selectors::Parser for SelectorParser<'a> {
+    type Impl = SelectorImpl;
+
+    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
-        let pseudo_class = match_ignore_ascii_case! { name,
+        let pseudo_class = match_ignore_ascii_case! { &name,
             "any-link" => AnyLink,
             "link" => Link,
             "visited" => Visited,
@@ -193,7 +197,7 @@ impl SelectorImpl for ServoSelectorImpl {
             "placeholder-shown" => PlaceholderShown,
             "target" => Target,
             "-servo-nonzero-border" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(());
                 }
                 ServoNonZeroBorder
@@ -204,63 +208,62 @@ impl SelectorImpl for ServoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext<TheSelectorImpl>,
-                            name: &str) -> Result<PseudoElement, ()> {
+    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
-        let pseudo_element = match_ignore_ascii_case! { name,
+        let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
             "after" => After,
             "selection" => Selection,
             "-servo-details-summary" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 DetailsSummary
             },
             "-servo-details-content" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 DetailsContent
             },
             "-servo-input-text" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoInputText
             },
             "-servo-table-wrapper" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoTableWrapper
             },
             "-servo-anonymous-table-wrapper" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoAnonymousTableWrapper
             },
             "-servo-anonymous-table" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoAnonymousTable
             },
             "-servo-anonymous-table-row" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoAnonymousTableRow
             },
             "-servo-anonymous-table-cell" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoAnonymousTableCell
             },
             "-servo-anonymous-block" => {
-                if !context.in_user_agent_stylesheet {
+                if !self.in_user_agent_stylesheet() {
                     return Err(())
                 }
                 ServoAnonymousBlock
@@ -270,9 +273,17 @@ impl SelectorImpl for ServoSelectorImpl {
 
         Ok(pseudo_element)
     }
+
+    fn default_namespace(&self) -> Option<Namespace> {
+        self.namespaces.default.clone()
+    }
+
+    fn namespace_for_prefix(&self, prefix: &Prefix) -> Option<Namespace> {
+        self.namespaces.prefixes.get(prefix).cloned()
+    }
 }
 
-impl ServoSelectorImpl {
+impl SelectorImpl {
     #[inline]
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         pseudo.cascade_type()
@@ -368,9 +379,9 @@ impl ElementSnapshot for ServoElementSnapshot {
 }
 
 impl MatchAttrGeneric for ServoElementSnapshot {
-    type Impl = ServoSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         use selectors::parser::NamespaceConstraint;
@@ -383,7 +394,7 @@ impl MatchAttrGeneric for ServoElementSnapshot {
     }
 }
 
-impl<E: Element<Impl=TheSelectorImpl>> ElementExt for E {
+impl<E: Element<Impl=SelectorImpl>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

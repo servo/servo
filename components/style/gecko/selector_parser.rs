@@ -4,14 +4,12 @@
 
 use cssparser::ToCss;
 use element_state::ElementState;
+use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
-use selector_parser::PseudoElementCascadeType;
-use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
+use selectors::parser::AttrSelector;
+use std::borrow::Cow;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GeckoSelectorImpl;
 
 /// NOTE: The boolean field represents whether this element is an anonymous box.
 ///
@@ -161,7 +159,10 @@ impl NonTSPseudoClass {
     }
 }
 
-impl SelectorImpl for GeckoSelectorImpl {
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectorImpl;
+
+impl ::selectors::SelectorImpl for SelectorImpl {
     type AttrValue = Atom;
     type Identifier = Atom;
     type ClassName = Atom;
@@ -182,11 +183,14 @@ impl SelectorImpl for GeckoSelectorImpl {
                                          value: &Self::AttrValue) -> bool {
         attr_equals_selector_is_shareable(attr_selector, value)
     }
+}
 
-    fn parse_non_ts_pseudo_class(_context: &ParserContext<Self>,
-                                 name: &str) -> Result<NonTSPseudoClass, ()> {
+impl<'a> ::selectors::Parser for SelectorParser<'a> {
+    type Impl = SelectorImpl;
+
+    fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
-        let pseudo_class = match_ignore_ascii_case! { name,
+        let pseudo_class = match_ignore_ascii_case! { &name,
             "any-link" => AnyLink,
             "link" => Link,
             "visited" => Visited,
@@ -205,16 +209,23 @@ impl SelectorImpl for GeckoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext<Self>,
-                            name: &str) -> Result<PseudoElement, ()> {
-        match PseudoElement::from_slice(name, context.in_user_agent_stylesheet) {
+    fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
+        match PseudoElement::from_slice(&name, self.in_user_agent_stylesheet()) {
             Some(pseudo) => Ok(pseudo),
             None => Err(()),
         }
     }
+
+    fn default_namespace(&self) -> Option<Namespace> {
+        self.namespaces.default.clone()
+    }
+
+    fn namespace_for_prefix(&self, prefix: &Atom) -> Option<Namespace> {
+        self.namespaces.prefixes.get(prefix).cloned()
+    }
 }
 
-impl GeckoSelectorImpl {
+impl SelectorImpl {
     #[inline]
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         if Self::pseudo_is_before_or_after(pseudo) {

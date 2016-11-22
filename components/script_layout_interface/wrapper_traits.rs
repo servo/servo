@@ -22,7 +22,7 @@ use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
-use style::selector_parser::{PseudoElement, PseudoElementCascadeType, RestyleDamage, ServoSelectorImpl};
+use style::selector_parser::{PseudoElement, PseudoElementCascadeType, RestyleDamage, SelectorImpl};
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {
@@ -147,7 +147,7 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
 pub trait ThreadSafeLayoutNode: Clone + Copy + GetLayoutData + NodeInfo + PartialEq + Sized {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
-        + ::selectors::Element<Impl=ServoSelectorImpl>;
+        + ::selectors::Element<Impl=SelectorImpl>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Converts self into an `OpaqueNode`.
@@ -271,7 +271,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
-                                   ::selectors::Element<Impl=ServoSelectorImpl> +
+                                   ::selectors::Element<Impl=SelectorImpl> +
                                    GetLayoutData +
                                    PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;

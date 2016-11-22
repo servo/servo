@@ -71,8 +71,7 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddr
 use script_layout_interface::message::Msg;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
-use selectors::parser::Selector;
-use selectors::parser::parse_author_origin_selector_list_from_str;
+use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell};
@@ -83,7 +82,7 @@ use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
 use style::dom::OpaqueNode;
-use style::selector_parser::ServoSelectorImpl;
+use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use style::thread_state;
 use uuid::Uuid;
@@ -305,12 +304,12 @@ impl Node {
 }
 
 pub struct QuerySelectorIterator {
-    selectors: Vec<Selector<ServoSelectorImpl>>,
+    selectors: SelectorList<SelectorImpl>,
     iterator: TreeIterator,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: Vec<Selector<ServoSelectorImpl>>)
+     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
@@ -323,7 +322,7 @@ impl<'a> Iterator for QuerySelectorIterator {
     type Item = Root<Node>;
 
     fn next(&mut self) -> Option<Root<Node>> {
-        let selectors = &self.selectors;
+        let selectors = &self.selectors.0;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
@@ -690,13 +689,13 @@ impl Node {
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
             Err(()) => Err(Error::Syntax),
             // Step 3.
-            Ok(ref selectors) => {
+            Ok(selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(selectors, element, None, MatchingReason::Other)
+                    matches(&selectors.0, element, None, MatchingReason::Other)
                 }))
             }
         }
@@ -709,7 +708,7 @@ impl Node {
     pub fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
-        match parse_author_origin_selector_list_from_str(&selectors) {
+        match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             // Step 2.
             Err(()) => Err(Error::Syntax),
             // Step 3.

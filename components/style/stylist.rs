@@ -16,7 +16,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
-use selector_parser::{ElementExt, TheSelectorImpl, PseudoElement, Snapshot};
+use selector_parser::{ElementExt, SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
@@ -89,12 +89,12 @@ pub struct Stylist {
 
     /// Selectors in the page affecting siblings
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    sibling_affecting_selectors: Vec<Selector<TheSelectorImpl>>,
+    sibling_affecting_selectors: Vec<Selector<SelectorImpl>>,
 
     /// Selectors in the page matching elements with non-common style-affecting
     /// attributes.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    non_common_style_affecting_attributes_selectors: Vec<Selector<TheSelectorImpl>>,
+    non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
 impl Stylist {
@@ -119,7 +119,7 @@ impl Stylist {
             non_common_style_affecting_attributes_selectors: vec![]
         };
 
-        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             stylist.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
@@ -139,7 +139,7 @@ impl Stylist {
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = Default::default();
         self.animations = Default::default();
-        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
@@ -189,7 +189,7 @@ impl Stylist {
             match *rule {
                 CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
-                    for selector in &guard.selectors {
+                    for selector in &guard.selectors.0 {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             pseudos_map
                                 .entry(pseudo.clone())
@@ -208,7 +208,7 @@ impl Stylist {
                     }
                     *rules_source_order += 1;
 
-                    for selector in &guard.selectors {
+                    for selector in &guard.selectors.0 {
                         state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
                             sibling_affecting_selectors.push(selector.clone());
@@ -246,7 +246,7 @@ impl Stylist {
         debug!(" - Got {} deps for style-hint calculation",
                state_deps.len());
 
-        TheSelectorImpl::each_precomputed_pseudo_element(|pseudo| {
+        SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
             // fly. It should be a bit slower, but we'd take rid of the
             // extra field, and avoid this precomputation entirely.
@@ -271,7 +271,7 @@ impl Stylist {
                                          parent: Option<&Arc<ComputedValues>>,
                                          inherit_all: bool)
                                          -> Option<(Arc<ComputedValues>, StrongRuleNode)> {
-        debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
+        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
             // FIXME(emilio): When we've taken rid of the cascade we can just
             // use into_iter.
@@ -330,11 +330,11 @@ impl Stylist {
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<(Arc<ComputedValues>, StrongRuleNode)>
-        where E: Element<Impl=TheSelectorImpl> +
+        where E: Element<Impl=SelectorImpl> +
               fmt::Debug +
               PresentationalHintsSynthetizer
     {
-        debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
+        debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
             return None;
         }
@@ -418,7 +418,7 @@ impl Stylist {
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
-        where E: Element<Impl=TheSelectorImpl> +
+        where E: Element<Impl=SelectorImpl> +
                  fmt::Debug +
                  PresentationalHintsSynthetizer,
               V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
@@ -427,7 +427,7 @@ impl Stylist {
         debug_assert!(style_attribute.is_none() || pseudo_element.is_none(),
                       "Style attributes do not apply to pseudo-elements");
         debug_assert!(pseudo_element.is_none() ||
-                      !TheSelectorImpl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap())
+                      !SelectorImpl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap())
                         .is_precomputed());
 
         let map = match pseudo_element {
@@ -731,7 +731,7 @@ impl SelectorMap {
                                         relations: &mut StyleRelations,
                                         reason: MatchingReason,
                                         importance: Importance)
-        where E: Element<Impl=TheSelectorImpl>,
+        where E: Element<Impl=SelectorImpl>,
               V: VecLike<ApplicableDeclarationBlock>
     {
         if self.empty {
@@ -831,7 +831,7 @@ impl SelectorMap {
         relations: &mut StyleRelations,
         reason: MatchingReason,
         importance: Importance)
-        where E: Element<Impl=TheSelectorImpl>,
+        where E: Element<Impl=SelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
               Vector: VecLike<ApplicableDeclarationBlock>
@@ -856,7 +856,7 @@ impl SelectorMap {
                                 relations: &mut StyleRelations,
                                 reason: MatchingReason,
                                 importance: Importance)
-        where E: Element<Impl=TheSelectorImpl>,
+        where E: Element<Impl=SelectorImpl>,
               V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
@@ -927,7 +927,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<TheSelectorImpl>> {
+    pub fn get_local_name(rule: &Rule) -> Option<LocalNameSelector<SelectorImpl>> {
         for ss in &rule.selector.compound_selector {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalNameSelector {
@@ -948,7 +948,7 @@ pub struct Rule {
     // that it matches. Selector contains an owned vector (through
     // ComplexSelector) and we want to avoid the allocation.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
+    pub selector: Arc<ComplexSelector<SelectorImpl>>,
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub style_rule: Arc<RwLock<StyleRule>>,
     pub source_order: usize,

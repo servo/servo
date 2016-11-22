@@ -4,23 +4,19 @@
 
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
+use cssparser::Parser as CssParser;
 use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use selectors::Element;
-use selectors::parser::{AttrSelector, SelectorImpl};
+use selectors::parser::{AttrSelector, SelectorList};
+use stylesheets::{Origin, Namespaces};
 
-pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
+pub type AttrValue = <SelectorImpl as ::selectors::SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
 pub use servo::selector_parser::*;
 
 #[cfg(feature = "gecko")]
 pub use gecko::selector_parser::*;
-
-#[cfg(feature = "servo")]
-pub use servo::selector_parser::ServoSelectorImpl as TheSelectorImpl;
-
-#[cfg(feature = "gecko")]
-pub use gecko::selector_parser::GeckoSelectorImpl as TheSelectorImpl;
 
 #[cfg(feature = "servo")]
 pub use servo::selector_parser::ServoElementSnapshot as Snapshot;
@@ -33,6 +29,28 @@ pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 
 #[cfg(feature = "gecko")]
 pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
+
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct SelectorParser<'a> {
+    pub stylesheet_origin: Origin,
+    pub namespaces: &'a Namespaces,
+}
+
+impl<'a> SelectorParser<'a> {
+    pub fn parse_author_origin_no_namespace(input: &str)
+                                            -> Result<SelectorList<SelectorImpl>, ()> {
+        let namespaces = Namespaces::default();
+        let parser = SelectorParser {
+            stylesheet_origin: Origin::Author,
+            namespaces: &namespaces,
+        };
+        SelectorList::parse(&parser, &mut CssParser::new(input))
+    }
+
+    pub fn in_user_agent_stylesheet(&self) -> bool {
+        matches!(self.stylesheet_origin, Origin::UserAgent)
+    }
+}
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
 ///
@@ -81,11 +99,11 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element<Impl=TheSelectorImpl> {
+pub trait ElementExt: Element<Impl=SelectorImpl> {
     fn is_link(&self) -> bool;
 }
 
-impl TheSelectorImpl {
+impl SelectorImpl {
     #[inline]
     pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement)
@@ -109,7 +127,7 @@ impl TheSelectorImpl {
     }
 }
 
-pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>) -> bool {
+pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>) -> bool {
     // NB(pcwalton): If you update this, remember to update the corresponding list in
     // `can_share_style_with()` as well.
     common_style_affecting_attributes().iter().any(|common_attr_info| {
@@ -120,7 +138,7 @@ pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelecto
     })
 }
 
-pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>,
+pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<SelectorImpl>,
                                          value: &AttrValue) -> bool {
     // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
     // here because the UA style otherwise disables all style sharing completely.

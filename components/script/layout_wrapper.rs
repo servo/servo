@@ -66,7 +66,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, ServoSelectorImpl};
+use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl};
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylist::ApplicableDeclarationBlock;
@@ -560,9 +560,9 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
 }
 
 impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
-    type Impl = ServoSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
     where F: Fn(&str) -> bool {
         use ::selectors::Element;
         let name = if self.is_html_element_in_html_document() {
@@ -1097,9 +1097,9 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropiately).
 impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
-    type Impl = ServoSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    fn match_attr<F>(&self, attr: &AttrSelector<SelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool {
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {

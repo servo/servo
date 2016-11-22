@@ -128,8 +128,8 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
 /// lock held.
-// NB: This is specific for ServoSelectorImpl, since the layout context and the
-// flows are ServoSelectorImpl specific too. If that goes away at some point,
+// NB: This is specific for SelectorImpl, since the layout context and the
+// flows are SelectorImpl specific too. If that goes away at some point,
 // this should be made generic.
 pub fn recalc_style_for_animations(context: &SharedLayoutContext,
                                    flow: &mut Flow,

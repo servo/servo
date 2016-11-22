@@ -9,7 +9,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
 use restyle_hints::ElementSnapshot;
-use selector_parser::TheSelectorImpl;
+use selector_parser::SelectorImpl;
 use selectors::parser::AttrSelector;
 use string_cache::Atom;
 
@@ -36,9 +36,9 @@ impl GeckoElementSnapshot {
 }
 
 impl ::selectors::MatchAttr for GeckoElementSnapshot {
-    type Impl = TheSelectorImpl;
+    type Impl = SelectorImpl;
 
-    fn match_attr_has(&self, attr: &AttrSelector<TheSelectorImpl>) -> bool {
+    fn match_attr_has(&self, attr: &AttrSelector<SelectorImpl>) -> bool {
         unsafe {
             bindings::Gecko_SnapshotHasAttr(self.0,
                                             attr.ns_or_null(),
@@ -46,7 +46,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
         }
     }
 
-    fn match_attr_equals(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_equals(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrEquals(self.0,
                                                attr.ns_or_null(),
@@ -56,7 +56,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
         }
     }
 
-    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrEquals(self.0,
                                                attr.ns_or_null(),
@@ -65,7 +65,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                /* ignoreCase = */ true)
         }
     }
-    fn match_attr_includes(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_includes(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrIncludes(self.0,
                                                  attr.ns_or_null(),
@@ -73,7 +73,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                  value.as_ptr())
         }
     }
-    fn match_attr_dash(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_dash(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrDashEquals(self.0,
                                                    attr.ns_or_null(),
@@ -81,7 +81,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                    value.as_ptr())
         }
     }
-    fn match_attr_prefix(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_prefix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasPrefix(self.0,
                                                   attr.ns_or_null(),
@@ -89,7 +89,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                   value.as_ptr())
         }
     }
-    fn match_attr_substring(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_substring(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasSubstring(self.0,
                                                      attr.ns_or_null(),
@@ -97,7 +97,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                      value.as_ptr())
         }
     }
-    fn match_attr_suffix(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
+    fn match_attr_suffix(&self, attr: &AttrSelector<SelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasSuffix(self.0,
                                                   attr.ns_or_null(),

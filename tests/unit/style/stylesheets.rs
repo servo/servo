@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{self, Parser, SourcePosition};
+use cssparser::{self, Parser as CssParser, SourcePosition};
 use html5ever_atoms::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
@@ -63,7 +63,7 @@ fn test_parse_stylesheet() {
                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
             }))),
             CssRule::Style(Arc::new(RwLock::new(StyleRule {
-                selectors: vec![
+                selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
                             compound_selector: vec![
@@ -89,7 +89,7 @@ fn test_parse_stylesheet() {
                         pseudo_element: None,
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
-                ],
+                ]),
                 block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
@@ -102,7 +102,7 @@ fn test_parse_stylesheet() {
                 })),
             }))),
             CssRule::Style(Arc::new(RwLock::new(StyleRule {
-                selectors: vec![
+                selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
                             compound_selector: vec![
@@ -137,7 +137,7 @@ fn test_parse_stylesheet() {
                         pseudo_element: None,
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
-                ],
+                ]),
                 block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
@@ -148,7 +148,7 @@ fn test_parse_stylesheet() {
                 })),
             }))),
             CssRule::Style(Arc::new(RwLock::new(StyleRule {
-                selectors: vec![
+                selectors: SelectorList(vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
                             compound_selector: vec![
@@ -172,7 +172,7 @@ fn test_parse_stylesheet() {
                         pseudo_element: None,
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
-                ],
+                ]),
                 block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
@@ -282,7 +282,7 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
+    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str) {
         let location = input.source_location(position);
 
         let errors = self.errors.clone();

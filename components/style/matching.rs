@@ -17,7 +17,7 @@ use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
-use selector_parser::{PseudoElement, RestyleDamage, TheSelectorImpl};
+use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
@@ -535,7 +535,7 @@ pub trait MatchMethods : TElement {
 
         // Compute the pseudo rule nodes.
         let mut per_pseudo: PseudoRuleNodes = HashMap::with_hasher(Default::default());
-        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             debug_assert!(applicable_declarations.is_empty());
             stylist.push_applicable_declarations(self, parent_bf, None,
                                                  Some(&pseudo.clone()),

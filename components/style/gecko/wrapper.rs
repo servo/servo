@@ -12,7 +12,7 @@ use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use gecko::restyle_damage::GeckoRestyleDamage;
-use gecko::selector_parser::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
+use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
@@ -532,7 +532,7 @@ pub trait AttrSelectorHelpers {
     fn select_name(&self, is_html_element_in_html_document: bool) -> *mut nsIAtom;
 }
 
-impl AttrSelectorHelpers for AttrSelector<GeckoSelectorImpl> {
+impl AttrSelectorHelpers for AttrSelector<SelectorImpl> {
     fn ns_or_null(&self) -> *mut nsIAtom {
         match self.namespace {
             NamespaceConstraint::Any => ptr::null_mut(),
@@ -550,7 +550,7 @@ impl AttrSelectorHelpers for AttrSelector<GeckoSelectorImpl> {
 }
 
 impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
-    type Impl = GeckoSelectorImpl;
+    type Impl = SelectorImpl;
 
     fn match_attr_has(&self, attr: &AttrSelector<Self::Impl>) -> bool {
         unsafe {
