@@ -144,19 +144,11 @@ impl HttpResponse for WrappedHttpResponse {
     }
 }
 
-trait HttpRequestFactory {
-    type R: HttpRequest;
-
-    fn create(&self, url: ServoUrl, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
-}
-
 struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
 
-impl HttpRequestFactory for NetworkHttpRequestFactory {
-    type R = WrappedHttpRequest;
-
+impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<WrappedHttpRequest, LoadError> {
         let connection = HyperRequest::with_connector(method,
@@ -518,18 +510,17 @@ fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &UrlOrigin) -> O
     }
 }
 
-fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
-                      url: &ServoUrl,
-                      method: &Method,
-                      request_headers: &Headers,
-                      data: &Option<Vec<u8>>,
-                      load_data_method: &Method,
-                      pipeline_id: &Option<PipelineId>,
-                      iters: u32,
-                      request_id: Option<&str>,
-                      is_xhr: bool)
-                      -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
-                      where A: HttpRequest + 'static  {
+fn obtain_response(request_factory: &NetworkHttpRequestFactory,
+                   url: &ServoUrl,
+                   method: &Method,
+                   request_headers: &Headers,
+                   data: &Option<Vec<u8>>,
+                   load_data_method: &Method,
+                   pipeline_id: &Option<PipelineId>,
+                   iters: u32,
+                   request_id: Option<&str>,
+                   is_xhr: bool)
+                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), LoadError> {
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
