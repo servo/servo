@@ -335,7 +335,8 @@ COMPILATION_TARGETS = {
             "ServoComputedValues",
             "ServoCssRules",
             "RawServoStyleSheet",
-            "RawServoDeclarationBlock"
+            "RawServoDeclarationBlock",
+            "RawServoStyleRule",
         ],
         "servo_owned_types": [
             "RawServoStyleSet",

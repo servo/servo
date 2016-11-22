@@ -11,13 +11,14 @@
 use app_units::Au;
 use gecko::values::{convert_rgba_to_nscolor, StyleCoordHelpers};
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
-use gecko_bindings::bindings::{RawServoStyleSheet, RawServoDeclarationBlock, ServoComputedValues, ServoCssRules};
+use gecko_bindings::bindings::{RawServoStyleSheet, RawServoDeclarationBlock, RawServoStyleRule};
+use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use stylesheets::{CssRule, Stylesheet};
+use stylesheets::{CssRule, Stylesheet, StyleRule};
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
 
 unsafe impl HasFFI for Stylesheet {
@@ -38,6 +39,11 @@ unsafe impl HasFFI for RwLock<Vec<CssRule>> {
     type FFIType = ServoCssRules;
 }
 unsafe impl HasArcFFI for RwLock<Vec<CssRule>> {}
+
+unsafe impl HasFFI for RwLock<StyleRule> {
+    type FFIType = RawServoStyleRule;
+}
+unsafe impl HasArcFFI for RwLock<StyleRule> {}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
