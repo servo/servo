@@ -1011,6 +1011,15 @@ extern "C" {
      -> RawServoStyleRuleStrong;
 }
 extern "C" {
+    pub fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
+                                    declarations:
+                                        RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed,
                                       result: *mut nsAString_internal);
 }
