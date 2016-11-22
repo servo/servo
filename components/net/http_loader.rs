@@ -373,7 +373,6 @@ fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &Arc<
 
 struct StreamedResponse {
     decoder: Decoder,
-    pub metadata: Metadata
 }
 
 
@@ -390,8 +389,8 @@ impl Read for StreamedResponse {
 }
 
 impl StreamedResponse {
-    fn new(m: Metadata, d: Decoder) -> StreamedResponse {
-        StreamedResponse { metadata: m, decoder: d }
+    fn new(d: Decoder) -> StreamedResponse {
+        StreamedResponse { decoder: d }
     }
 
     pub fn from_http_response(response: WrappedHttpResponse, m: Metadata) -> Result<StreamedResponse, LoadError> {
@@ -416,7 +415,7 @@ impl StreamedResponse {
                 Decoder::Plain(response)
             }
         };
-        Ok(StreamedResponse::new(m, decoder))
+        Ok(StreamedResponse::new(decoder))
     }
 }
 
