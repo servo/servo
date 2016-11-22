@@ -8,7 +8,6 @@ use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use core::clone::Clone;
-use core::ops::Deref;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
@@ -295,11 +294,11 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
     // Step 2.4.6 - 2.4.7
     let manufacturer_data = match filter.manufacturerData {
         Some(ref manufacturer_data_map) => {
-            if manufacturer_data_map.deref().is_empty() {
+            if manufacturer_data_map.is_empty() {
                 return Err(Type(MANUFACTURER_DATA_ERROR.to_owned()));
             }
             let mut map = HashMap::new();
-            for (key, bdfi) in manufacturer_data_map.deref() {
+            for (key, bdfi) in manufacturer_data_map.iter() {
                 let manufacturer_id = match u16::from_str(key.as_ref()) {
                     Ok(id) => id,
                     Err(err) => return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err))),
@@ -314,11 +313,11 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
     // Step 2.4.8 -2.4.9
     let service_data = match filter.serviceData {
         Some(ref service_data_map) => {
-            if service_data_map.deref().is_empty() {
+            if service_data_map.is_empty() {
                 return Err(Type(SERVICE_DATA_ERROR.to_owned()));
             }
             let mut map = HashMap::new();
-            for (key, bdfi) in service_data_map.deref() {
+            for (key, bdfi) in service_data_map.iter() {
                 let service_name = match u32::from_str(key.as_ref()) {
                     Ok(number) => StringOrUnsignedLong::UnsignedLong(number),
                     _ => StringOrUnsignedLong::String(key.clone())
@@ -341,17 +340,11 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing
 fn canonicalize_bluetooth_data_filter_init(bdfi: &BluetoothDataFilterInit) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
-    let data_prefix = match bdfi.dataPrefix {
-        Some(ref d) => d.clone(),
-        None => Vec::new(),
-    };
+    let data_prefix = bdfi.dataPrefix.clone().unwrap_or(vec![]);
     // Step 2.
-    let mask = match bdfi.mask {
-        Some(ref m) => m.clone(),
-        // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
-        // Masking dataPrefix with this, leaves dataPrefix untouched.
-        None => vec![0xFF; data_prefix.len()],
-    };
+    // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
+    // Masking dataPrefix with this, leaves dataPrefix untouched.
+    let mask = bdfi.mask.clone().unwrap_or(vec![0xFF; data_prefix.len()]);
     // Step 3.
     if mask.len() != data_prefix.len() {
         return Err(Type(MASK_LENGTH_ERROR.to_owned()));

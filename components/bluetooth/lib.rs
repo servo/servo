@@ -131,12 +131,12 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
     }
 
     // Step 4.
-    if let Some(ref manufacurer_data) = *filter.get_manufacturer_data() {
+    if let Some(ref manufacturer_data) = filter.get_manufacturer_data() {
         let advertised_manufacturer_data = match device.get_manufacturer_data() {
             Ok(data) => data,
             Err(_) => return false,
         };
-        for (ref id, &(ref prefix, ref mask)) in manufacurer_data {
+        for (ref id, &(ref prefix, ref mask)) in manufacturer_data.iter() {
             if let Some(advertised_data) = advertised_manufacturer_data.get(id) {
                 if !data_filter_matches(advertised_data, prefix, mask) {
                     return false;
@@ -148,12 +148,12 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
     }
 
     // Step 5.
-    if let Some(ref service_data) = *filter.get_service_data() {
+    if let Some(ref service_data) = filter.get_service_data() {
         let advertised_service_data = match device.get_service_data() {
             Ok(data) => data,
             Err(_) => return false,
         };
-        for (uuid, &(ref prefix, ref mask)) in service_data {
+        for (uuid, &(ref prefix, ref mask)) in service_data.iter() {
             if let Some(advertised_data) = advertised_service_data.get(uuid.as_str()) {
                 if !data_filter_matches(advertised_data, prefix, mask) {
                     return false;
@@ -177,8 +177,8 @@ fn data_filter_matches(data: &[u8], prefix: &[u8], mask: &[u8]) -> bool {
     }
 
     // Step 4.
-    for i in 0..mask.len() {
-        if data[i] & mask[i] != prefix[i] & mask[i] {
+    for ((data, mask), prefix) in data.iter().zip(mask.iter()).zip(prefix.iter()) {
+        if data & mask != prefix & mask {
             return false;
         }
     }

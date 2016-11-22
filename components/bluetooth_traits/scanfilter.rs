@@ -63,12 +63,12 @@ impl BluetoothScanfilter {
         &self.services.0
     }
 
-    pub fn get_manufacturer_data(&self) -> &Option<ManufacturerData> {
-        &self.manufacturer_data
+    pub fn get_manufacturer_data(&self) -> Option<&ManufacturerData> {
+        self.manufacturer_data.as_ref()
     }
 
-    pub fn get_service_data(&self) -> &Option<ServiceData> {
-        &self.service_data
+    pub fn get_service_data(&self) -> Option<&ServiceData> {
+        self.service_data.as_ref()
     }
 
     pub fn is_empty_or_invalid(&self) -> bool {

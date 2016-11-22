@@ -84,5 +84,5 @@ promise_test(t => {
         promises.push(promise_rejects(t, 'SyntaxError', window.navigator.bluetooth.requestDevice(args)));
     });
     return Promise.all(promises);
-}, 'Rejects with SyntaxError, if a serviceData key not converts to a valid uuid.');
+}, 'Rejects with SyntaxError, if a serviceData key does not convert to a valid uuid.');
 </script>
