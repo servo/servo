@@ -23,7 +23,6 @@ use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentE
 use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
-use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::net::Fresh;
 use hyper::status::StatusCode;
@@ -102,13 +101,11 @@ impl Read for WrappedHttpResponse {
     }
 }
 
-pub trait HttpResponse: Read {
-    fn headers(&self) -> &Headers;
-    fn status(&self) -> StatusCode;
-    fn status_raw(&self) -> &RawStatus;
-    fn http_version(&self) -> String {
-        "HTTP/1.1".to_owned()
+impl WrappedHttpResponse {
+    fn headers(&self) -> &Headers {
+        &self.response.headers
     }
+
     fn content_encoding(&self) -> Option<Encoding> {
         let encodings = match self.headers().get::<ContentEncoding>() {
             Some(&ContentEncoding(ref encodings)) => encodings,
@@ -123,24 +120,6 @@ pub trait HttpResponse: Read {
         } else {
             None
         }
-    }
-}
-
-impl HttpResponse for WrappedHttpResponse {
-    fn headers(&self) -> &Headers {
-        &self.response.headers
-    }
-
-    fn status(&self) -> StatusCode {
-        self.response.status
-    }
-
-    fn status_raw(&self) -> &RawStatus {
-        self.response.status_raw()
-    }
-
-    fn http_version(&self) -> String {
-        self.response.version.to_string()
     }
 }
 
@@ -415,7 +394,7 @@ impl StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    pub fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    pub fn from_http_response(response: WrappedHttpResponse, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
@@ -442,10 +421,10 @@ impl StreamedResponse {
 }
 
 enum Decoder {
-    Gzip(GzDecoder<Box<HttpResponse>>),
-    Deflate(DeflateDecoder<Box<HttpResponse>>),
-    Brotli(Decompressor<Box<HttpResponse>>),
-    Plain(Box<HttpResponse>)
+    Gzip(GzDecoder<WrappedHttpResponse>),
+    Deflate(DeflateDecoder<WrappedHttpResponse>),
+    Brotli(Decompressor<WrappedHttpResponse>),
+    Plain(WrappedHttpResponse)
 }
 
 fn prepare_devtools_request(request_id: String,
@@ -1181,7 +1160,7 @@ fn http_network_fetch(request: Rc<Request>,
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
     spawn_named(format!("fetch worker thread"), move || {
-        match StreamedResponse::from_http_response(box res, meta) {
+        match StreamedResponse::from_http_response(res, meta) {
             Ok(mut res) => {
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
 
