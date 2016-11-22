@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use cssparser::Parser;
+use cssparser::ToCss as ParserToCss;
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
@@ -321,6 +322,18 @@ pub extern "C" fn Servo_StyleRule_AddRef(rule: RawServoStyleRuleBorrowed) -> () 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_Release(rule: RawServoStyleRuleBorrowed) -> () {
     unsafe { RwLock::<StyleRule>::release(rule) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
