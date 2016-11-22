@@ -31,6 +31,7 @@ use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
 use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImage;
+use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
@@ -1692,7 +1693,9 @@ fn static_assert() {
     }
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
+        use cssparser::Color;
         use properties::longhands::filter::computed_value::Filter::*;
+        use gecko_bindings::structs::nsCSSShadowArray;
         use gecko_bindings::structs::nsStyleFilter;
         use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
         use gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
@@ -1703,6 +1706,7 @@ fn static_assert() {
         use gecko_bindings::structs::NS_STYLE_FILTER_SATURATE;
         use gecko_bindings::structs::NS_STYLE_FILTER_SEPIA;
         use gecko_bindings::structs::NS_STYLE_FILTER_HUE_ROTATE;
+        use gecko_bindings::structs::NS_STYLE_FILTER_DROP_SHADOW;
 
         fn fill_filter(m_type: u32, value: CoordDataValue, gecko_filter: &mut nsStyleFilter){
             gecko_filter.mType = m_type;
@@ -1744,6 +1748,36 @@ fn static_assert() {
                 Sepia(factor)      => fill_filter(NS_STYLE_FILTER_SEPIA,
                                                   CoordDataValue::Factor(factor),
                                                   gecko_filter),
+                DropShadow(offset_x, offset_y, blur_radius, ref color) => {
+                    gecko_filter.mType = NS_STYLE_FILTER_DROP_SHADOW;
+
+                    fn init_shadow(filter: &mut nsStyleFilter) -> &mut nsCSSShadowArray {
+                        unsafe {
+                            let ref mut union = filter.__bindgen_anon_1;
+                            let mut shadow_array: &mut *mut nsCSSShadowArray = union.mDropShadow.as_mut();
+                            *shadow_array = Gecko_NewCSSShadowArray(1);
+
+                            &mut **shadow_array
+                        }
+                    }
+
+                    let mut gecko_shadow = init_shadow(gecko_filter);
+                    gecko_shadow.mArray[0].mXOffset = offset_x.0;
+                    gecko_shadow.mArray[0].mYOffset = offset_y.0;
+                    gecko_shadow.mArray[0].mRadius = blur_radius.0;
+                    // mSpread is not supported in the spec, so we leave it as 0
+                    gecko_shadow.mArray[0].mInset = false; // Not supported in spec level 1
+
+                    gecko_shadow.mArray[0].mColor = match *color {
+                        Color::RGBA(rgba) => {
+                            gecko_shadow.mArray[0].mHasColor = true;
+                            convert_rgba_to_nscolor(&rgba)
+                        },
+                        // TODO handle currentColor
+                        // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+                        Color::CurrentColor => 0,
+                    };
+                }
             }
         }
     }
