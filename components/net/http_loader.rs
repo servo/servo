@@ -479,10 +479,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                    is_xhr: bool)
                    -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), LoadError> {
     let null_data = None;
-    let response;
     let connection_url = replace_hosts(&url);
-    let mut msg;
-
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -533,7 +530,19 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let send_end = precise_time_ms();
 
-        msg = if let Some(request_id) = request_id {
+        let response = match maybe_response {
+            Ok(r) => r,
+            Err(e) => {
+                if let LoadErrorType::ConnectionAborted { reason } = e.error {
+                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
+                    continue;
+                } else {
+                    return Err(e)
+                }
+            },
+        };
+
+        let msg = if let Some(request_id) = request_id {
             if let Some(pipeline_id) = *pipeline_id {
                 Some(prepare_devtools_request(
                     request_id.into(),
@@ -549,23 +558,9 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
             None
         };
 
-        response = match maybe_response {
-            Ok(r) => r,
-            Err(e) => {
-                if let LoadErrorType::ConnectionAborted { reason } = e.error {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
-                    continue;
-                } else {
-                    return Err(e)
-                }
-            },
-        };
-
         // if no ConnectionAborted, break the loop
-        break;
+        return Ok((response, msg));
     }
-
-    Ok((response, msg))
 }
 
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
