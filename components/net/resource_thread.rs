@@ -32,7 +32,6 @@ use rustc_serialize::{Decodable, Encodable};
 use rustc_serialize::json;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -41,7 +40,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 use storage_thread::StorageThreadFactory;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
@@ -354,69 +353,6 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
                                                Error::description(&why))
         },
         Ok(_) => println!("successfully wrote to {}", display),
-    }
-}
-
-/// The optional resources required by the `CancellationListener`
-pub struct CancellableResource {
-    /// The receiver which receives a message on load cancellation
-    cancel_receiver: Receiver<()>,
-    /// The `CancellationListener` is unique to this `ResourceId`
-    resource_id: ResourceId,
-    /// If we haven't initiated any cancel requests, then the loaders ask
-    /// the listener to remove the `ResourceId` in the `HashMap` of
-    /// `CoreResourceManager` once they finish loading
-    resource_thread: CoreResourceThread,
-}
-
-impl CancellableResource {
-    pub fn new(receiver: Receiver<()>, res_id: ResourceId, res_thread: CoreResourceThread) -> CancellableResource {
-        CancellableResource {
-            cancel_receiver: receiver,
-            resource_id: res_id,
-            resource_thread: res_thread,
-        }
-    }
-}
-
-/// A listener which is basically a wrapped optional receiver which looks
-/// for the load cancellation message. Some of the loading processes always keep
-/// an eye out for this message and stop loading stuff once they receive it.
-pub struct CancellationListener {
-    /// We'll be needing the resources only if we plan to cancel it
-    cancel_resource: Option<CancellableResource>,
-    /// This lets us know whether the request has already been cancelled
-    cancel_status: Cell<bool>,
-}
-
-impl CancellationListener {
-    pub fn new(resources: Option<CancellableResource>) -> CancellationListener {
-        CancellationListener {
-            cancel_resource: resources,
-            cancel_status: Cell::new(false),
-        }
-    }
-
-    pub fn is_cancelled(&self) -> bool {
-        let resource = match self.cancel_resource {
-            Some(ref resource) => resource,
-            None => return false,  // channel doesn't exist!
-        };
-        if resource.cancel_receiver.try_recv().is_ok() {
-            self.cancel_status.set(true);
-            true
-        } else {
-            self.cancel_status.get()
-        }
-    }
-}
-
-impl Drop for CancellationListener {
-    fn drop(&mut self) {
-        if let Some(ref resource) = self.cancel_resource {
-            // Ensure that the resource manager stops tracking this request now that it's terminated.
-            let _ = resource.resource_thread.send(CoreResourceMsg::Cancel(resource.resource_id));
-        }
     }
 }
 
