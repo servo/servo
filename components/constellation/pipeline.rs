@@ -115,8 +115,9 @@ pub struct InitialPipelineState {
     pub window_size: Option<TypedSize2D<f32, PagePx>>,
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
-    /// A channel to the script thread, if applicable. If this is `Some`,
-    /// then `parent_info` must also be `Some`.
+    /// A channel to the script thread, if applicable.
+    /// If this is `None`, create a new script thread.
+    /// If this is `Some`, then reuse an existing script thread.
     pub script_chan: Option<Rc<ScriptChan>>,
     /// Information about the page to load.
     pub load_data: LoadData,
@@ -146,16 +147,23 @@ impl Pipeline {
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
+        let device_pixel_ratio = state.device_pixel_ratio;
+        let window_size = state.window_size.map(|size| {
+            WindowSizeData {
+                visible_viewport: size,
+                initial_viewport: size * ScaleFactor::new(1.0),
+                device_pixel_ratio: device_pixel_ratio,
+            }
+        });
+
         let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
-                let (parent_pipeline_id, frame_type) =
-                    state.parent_info.expect("script_pipeline != None but parent_info == None");
                 let new_layout_info = NewLayoutInfo {
-                    parent_pipeline_id: parent_pipeline_id,
+                    parent_info: state.parent_info,
                     new_pipeline_id: state.id,
                     frame_id: state.frame_id,
-                    frame_type: frame_type,
                     load_data: state.load_data.clone(),
+                    window_size: window_size,
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
@@ -189,15 +197,6 @@ impl Pipeline {
                     }
                 });
                 script_to_devtools_chan
-            });
-
-            let device_pixel_ratio = state.device_pixel_ratio;
-            let window_size = state.window_size.map(|size| {
-                WindowSizeData {
-                    visible_viewport: size,
-                    initial_viewport: size * ScaleFactor::new(1.0),
-                    device_pixel_ratio: device_pixel_ratio,
-                }
             });
 
             let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =

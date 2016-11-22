@@ -1173,11 +1173,11 @@ impl ScriptThread {
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
-            parent_pipeline_id,
+            parent_info,
             new_pipeline_id,
             frame_id,
-            frame_type,
             load_data,
+            window_size,
             pipeline_port,
             layout_to_constellation_chan,
             content_process_shutdown_chan,
@@ -1187,7 +1187,7 @@ impl ScriptThread {
         let layout_pair = channel();
         let layout_chan = layout_pair.0.clone();
 
-        let layout_creation_info = NewLayoutThreadInfo {
+        let msg = message::Msg::CreateLayoutThread(NewLayoutThreadInfo {
             id: new_pipeline_id,
             url: load_data.url.clone(),
             is_parent: false,
@@ -1198,19 +1198,18 @@ impl ScriptThread {
             image_cache_thread: self.image_cache_thread.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
             layout_threads: layout_threads,
+        });
+
+        // Pick a layout thread, any layout thread
+        match self.documents.borrow().iter().next() {
+            None => panic!("Layout attached to empty script thread."),
+            // Tell the layout thread factory to actually spawn the thread.
+            Some((_, document)) => document.window().layout_chan().send(msg).unwrap(),
         };
 
-        let parent_window = self.documents.borrow().find_window(parent_pipeline_id)
-            .expect("ScriptThread: received a layout for a parent pipeline not in this script thread. This is a bug.");
-
-        // Tell layout to actually spawn the thread.
-        parent_window.layout_chan()
-                     .send(message::Msg::CreateLayoutThread(layout_creation_info))
-                     .unwrap();
-
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, frame_id, Some((parent_pipeline_id, frame_type)),
-                                           layout_chan, parent_window.window_size(),
+        let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
+                                           layout_chan, window_size,
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
     }
