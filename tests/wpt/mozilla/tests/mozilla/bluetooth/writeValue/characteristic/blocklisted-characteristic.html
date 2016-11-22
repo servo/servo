@@ -5,9 +5,9 @@
 <script>
 'use strict';
 promise_test(t => {
-    window.testRunner.setBluetoothMockDataSet(adapter_type.blacklist);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.blocklist);
     return window.navigator.bluetooth.requestDevice({
-        filters: [{services: [blacklist_test_service_uuid]}],
+        filters: [{services: [blocklist_test_service_uuid]}],
         optionalServices: [generic_access.name]
     })
     .then(device => device.gatt.connect())

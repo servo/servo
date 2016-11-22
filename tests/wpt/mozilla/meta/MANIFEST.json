@@ -6746,10 +6746,10 @@
             "url": "/_mozilla/mozilla/bluetooth/disconnect/disconnect-twice-in-a-row.html"
           }
         ],
-        "mozilla/bluetooth/getCharacteristic/blacklisted-characteristic.html": [
+        "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
           {
-            "path": "mozilla/bluetooth/getCharacteristic/blacklisted-characteristic.html",
-            "url": "/_mozilla/mozilla/bluetooth/getCharacteristic/blacklisted-characteristic.html"
+            "path": "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html",
+            "url": "/_mozilla/mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html"
           }
         ],
         "mozilla/bluetooth/getCharacteristic/characteristic-found.html": [
@@ -6800,16 +6800,16 @@
             "url": "/_mozilla/mozilla/bluetooth/getCharacteristic/service-is-removed.html"
           }
         ],
-        "mozilla/bluetooth/getCharacteristics/blacklisted-characteristics-with-uuid.html": [
+        "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html": [
           {
-            "path": "mozilla/bluetooth/getCharacteristics/blacklisted-characteristics-with-uuid.html",
-            "url": "/_mozilla/mozilla/bluetooth/getCharacteristics/blacklisted-characteristics-with-uuid.html"
+            "path": "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html",
+            "url": "/_mozilla/mozilla/bluetooth/getCharacteristics/blocklisted-characteristics-with-uuid.html"
           }
         ],
-        "mozilla/bluetooth/getCharacteristics/blacklisted-characteristics.html": [
+        "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html": [
           {
-            "path": "mozilla/bluetooth/getCharacteristics/blacklisted-characteristics.html",
-            "url": "/_mozilla/mozilla/bluetooth/getCharacteristics/blacklisted-characteristics.html"
+            "path": "mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html",
+            "url": "/_mozilla/mozilla/bluetooth/getCharacteristics/blocklisted-characteristics.html"
           }
         ],
         "mozilla/bluetooth/getCharacteristics/characteristics-found-with-uuid.html": [
@@ -6902,10 +6902,10 @@
             "url": "/_mozilla/mozilla/bluetooth/getCharacteristics/service-is-removed.html"
           }
         ],
-        "mozilla/bluetooth/getDescriptor/blacklisted-descriptor.html": [
+        "mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html": [
           {
-            "path": "mozilla/bluetooth/getDescriptor/blacklisted-descriptor.html",
-            "url": "/_mozilla/mozilla/bluetooth/getDescriptor/blacklisted-descriptor.html"
+            "path": "mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html",
+            "url": "/_mozilla/mozilla/bluetooth/getDescriptor/blocklisted-descriptor.html"
           }
         ],
         "mozilla/bluetooth/getDescriptor/characteristic-is-removed.html": [
@@ -6956,16 +6956,16 @@
             "url": "/_mozilla/mozilla/bluetooth/getDescriptor/invalid-descriptor-name.html"
           }
         ],
-        "mozilla/bluetooth/getDescriptors/blacklisted-descriptors-with-uuid.html": [
+        "mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html": [
           {
-            "path": "mozilla/bluetooth/getDescriptors/blacklisted-descriptors-with-uuid.html",
-            "url": "/_mozilla/mozilla/bluetooth/getDescriptors/blacklisted-descriptors-with-uuid.html"
+            "path": "mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html",
+            "url": "/_mozilla/mozilla/bluetooth/getDescriptors/blocklisted-descriptors-with-uuid.html"
           }
         ],
-        "mozilla/bluetooth/getDescriptors/blacklisted-descriptors.html": [
+        "mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html": [
           {
-            "path": "mozilla/bluetooth/getDescriptors/blacklisted-descriptors.html",
-            "url": "/_mozilla/mozilla/bluetooth/getDescriptors/blacklisted-descriptors.html"
+            "path": "mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html",
+            "url": "/_mozilla/mozilla/bluetooth/getDescriptors/blocklisted-descriptors.html"
           }
         ],
         "mozilla/bluetooth/getDescriptors/characteristic-is-removed-with-uuid.html": [
@@ -7118,16 +7118,16 @@
             "url": "/_mozilla/mozilla/bluetooth/getPrimaryService/service-not-found.html"
           }
         ],
-        "mozilla/bluetooth/getPrimaryServices/blacklisted-services-with-uuid.html": [
+        "mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html": [
           {
-            "path": "mozilla/bluetooth/getPrimaryServices/blacklisted-services-with-uuid.html",
-            "url": "/_mozilla/mozilla/bluetooth/getPrimaryServices/blacklisted-services-with-uuid.html"
+            "path": "mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html",
+            "url": "/_mozilla/mozilla/bluetooth/getPrimaryServices/blocklisted-services-with-uuid.html"
           }
         ],
-        "mozilla/bluetooth/getPrimaryServices/blacklisted-services.html": [
+        "mozilla/bluetooth/getPrimaryServices/blocklisted-services.html": [
           {
-            "path": "mozilla/bluetooth/getPrimaryServices/blacklisted-services.html",
-            "url": "/_mozilla/mozilla/bluetooth/getPrimaryServices/blacklisted-services.html"
+            "path": "mozilla/bluetooth/getPrimaryServices/blocklisted-services.html",
+            "url": "/_mozilla/mozilla/bluetooth/getPrimaryServices/blocklisted-services.html"
           }
         ],
         "mozilla/bluetooth/getPrimaryServices/correct-services.html": [
@@ -7244,10 +7244,10 @@
             "url": "/_mozilla/mozilla/bluetooth/idl-BluetoothUUID.html"
           }
         ],
-        "mozilla/bluetooth/readValue/characteristic/blacklisted-characteristic.html": [
+        "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
           {
-            "path": "mozilla/bluetooth/readValue/characteristic/blacklisted-characteristic.html",
-            "url": "/_mozilla/mozilla/bluetooth/readValue/characteristic/blacklisted-characteristic.html"
+            "path": "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html",
+            "url": "/_mozilla/mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html"
           }
         ],
         "mozilla/bluetooth/readValue/characteristic/characteristic-is-removed.html": [
@@ -7286,10 +7286,10 @@
             "url": "/_mozilla/mozilla/bluetooth/readValue/characteristic/service-is-removed.html"
           }
         ],
-        "mozilla/bluetooth/readValue/descriptor/blacklisted-descriptor.html": [
+        "mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html": [
           {
-            "path": "mozilla/bluetooth/readValue/descriptor/blacklisted-descriptor.html",
-            "url": "/_mozilla/mozilla/bluetooth/readValue/descriptor/blacklisted-descriptor.html"
+            "path": "mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html",
+            "url": "/_mozilla/mozilla/bluetooth/readValue/descriptor/blocklisted-descriptor.html"
           }
         ],
         "mozilla/bluetooth/readValue/descriptor/characteristic-is-removed.html": [
@@ -7358,16 +7358,16 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/adapter-off.html"
           }
         ],
-        "mozilla/bluetooth/requestDevice/blacklisted-service-in-filter.html": [
+        "mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html": [
           {
-            "path": "mozilla/bluetooth/requestDevice/blacklisted-service-in-filter.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/blacklisted-service-in-filter.html"
+            "path": "mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/blocklisted-service-in-filter.html"
           }
         ],
-        "mozilla/bluetooth/requestDevice/blacklisted-service-in-optionalServices.html": [
+        "mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html": [
           {
-            "path": "mozilla/bluetooth/requestDevice/blacklisted-service-in-optionalServices.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/blacklisted-service-in-optionalServices.html"
+            "path": "mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html",
+            "url": "/_mozilla/mozilla/bluetooth/requestDevice/blocklisted-service-in-optionalServices.html"
           }
         ],
         "mozilla/bluetooth/requestDevice/canonicalizeFilter/empty-filter.html": [
@@ -7592,10 +7592,10 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/two-filters.html"
           }
         ],
-        "mozilla/bluetooth/writeValue/characteristic/blacklisted-characteristic.html": [
+        "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html": [
           {
-            "path": "mozilla/bluetooth/writeValue/characteristic/blacklisted-characteristic.html",
-            "url": "/_mozilla/mozilla/bluetooth/writeValue/characteristic/blacklisted-characteristic.html"
+            "path": "mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html",
+            "url": "/_mozilla/mozilla/bluetooth/writeValue/characteristic/blocklisted-characteristic.html"
           }
         ],
         "mozilla/bluetooth/writeValue/characteristic/characteristic-is-removed.html": [
@@ -7634,10 +7634,10 @@
             "url": "/_mozilla/mozilla/bluetooth/writeValue/characteristic/write-updates-value.html"
           }
         ],
-        "mozilla/bluetooth/writeValue/descriptor/blacklisted-descriptor.html": [
+        "mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
           {
-            "path": "mozilla/bluetooth/writeValue/descriptor/blacklisted-descriptor.html",
-            "url": "/_mozilla/mozilla/bluetooth/writeValue/descriptor/blacklisted-descriptor.html"
+            "path": "mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html",
+            "url": "/_mozilla/mozilla/bluetooth/writeValue/descriptor/blocklisted-descriptor.html"
           }
         ],
         "mozilla/bluetooth/writeValue/descriptor/characteristic-is-removed.html": [
