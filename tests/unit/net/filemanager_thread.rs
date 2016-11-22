@@ -42,7 +42,7 @@ fn test_filemanager() {
         // Try to select a dummy file "tests/unit/net/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
         filemanager.handle(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None),
-                           None, TEST_PROVIDER);
+                           TEST_PROVIDER);
         let selected = rx.recv().expect("Broken channel")
                                 .expect("The file manager failed to find test.jpeg");
 
@@ -54,7 +54,7 @@ fn test_filemanager() {
         {
             let (tx2, rx2) = ipc::channel().unwrap();
             filemanager.handle(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), false, origin.clone()),
-                               None, TEST_PROVIDER);
+                               TEST_PROVIDER);
 
             let msg = rx2.recv().expect("Broken channel");
 
@@ -85,7 +85,7 @@ fn test_filemanager() {
         {
             let (tx2, rx2) = ipc::channel().unwrap();
             filemanager.handle(FileManagerThreadMsg::DecRef(selected.id.clone(), origin.clone(), tx2),
-                               None, TEST_PROVIDER);
+                               TEST_PROVIDER);
 
             let ret = rx2.recv().expect("Broken channel");
             assert!(ret.is_ok(), "DecRef is not okay");
@@ -95,7 +95,7 @@ fn test_filemanager() {
         {
             let (tx2, rx2) = ipc::channel().unwrap();
             filemanager.handle(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), false, origin.clone()),
-                               None, TEST_PROVIDER);
+                               TEST_PROVIDER);
 
             let msg = rx2.recv().expect("Broken channel");
 

@@ -31,7 +31,7 @@ pub fn load_blob_sync
 
     let (sender, receiver) = ipc::channel().unwrap();
     let check_url_validity = true;
-    filemanager.read_file(sender, id, check_url_validity, origin, None);
+    filemanager.read_file(sender, id, check_url_validity, origin);
 
     let blob_buf = match receiver.recv().unwrap() {
         Ok(ReadFileProgress::Meta(blob_buf)) => blob_buf,

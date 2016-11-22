@@ -277,7 +277,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, None, TFD_PROVIDER),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match group.auth_cache.read() {
