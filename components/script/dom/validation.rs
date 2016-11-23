@@ -4,6 +4,6 @@
 use dom::validitystate::ValidationFlags;
 
 pub trait Validatable {
-    fn is_instance_validatable(&self) -> bool;
-    fn validate(&self, validate_flags: ValidationFlags) -> bool;
+    fn is_instance_validatable(&self) -> bool { true}
+    fn validate(&self, _validate_flags: ValidationFlags) -> bool { true}
 }

@@ -409,12 +409,12 @@ impl FormControl for HTMLTextAreaElement {}
 
 
 impl Validatable for HTMLTextAreaElement {
-    fn is_instance_validatable(&self) -> bool {
+  fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
         true
     }
-    fn validate(&self, validate_flags: ValidationFlags) -> bool {
-        if validate_flags.is_empty() {}
-        // Need more flag check for different validation types later
+    fn validate(&self, _validate_flags: ValidationFlags) -> bool {
+        // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
         true
     }
 }
