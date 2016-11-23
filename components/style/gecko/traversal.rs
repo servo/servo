@@ -9,7 +9,7 @@ use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode};
 use gecko::context::StandaloneStyleContext;
 use gecko::wrapper::{GeckoElement, GeckoNode};
 use std::mem;
-use traversal::{DomTraversalContext, recalc_style_at};
+use traversal::{DomTraversalContext, PerLevelTraversalData, recalc_style_at};
 
 pub struct RecalcStyleOnly<'lc> {
     context: StandaloneStyleContext<'lc>,
@@ -29,10 +29,10 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         }
     }
 
-    fn process_preorder(&self, node: GeckoNode<'ln>) {
+    fn process_preorder(&self, node: GeckoNode<'ln>, data: &mut PerLevelTraversalData) {
         if node.is_element() && (!self.context.shared_context().skip_root || node.opaque() != self.root) {
             let el = node.as_element().unwrap();
-            recalc_style_at::<_, _, Self>(&self.context, self.root, el);
+            recalc_style_at::<_, _, Self>(&self.context, data, el);
         }
     }
 

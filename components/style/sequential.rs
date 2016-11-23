@@ -5,20 +5,27 @@
 //! Implements sequential traversal over the DOM tree.
 
 use dom::TNode;
-use traversal::DomTraversalContext;
+use traversal::{DomTraversalContext, PerLevelTraversalData};
 
 pub fn traverse_dom<N, C>(root: N,
                           shared: &C::SharedContext)
     where N: TNode,
           C: DomTraversalContext<N>
 {
-    fn doit<'a, N, C>(context: &'a C, node: N)
+    fn doit<'a, N, C>(context: &'a C, node: N, data: &mut PerLevelTraversalData)
         where N: TNode,
               C: DomTraversalContext<N>
     {
-        context.process_preorder(node);
+        context.process_preorder(node, data);
         if let Some(el) = node.as_element() {
-            C::traverse_children(el, |kid| doit::<N, C>(context, kid));
+            if let Some(ref mut depth) = data.current_dom_depth {
+                *depth += 1;
+            }
+
+            C::traverse_children(el, |kid| doit::<N, C>(context, kid, data));
+
+            // NB: Data is unused now, but we can always decrement the count
+            // here if we need it for the post-order one :)
         }
 
         if context.needs_postorder_traversal() {
@@ -26,8 +33,11 @@ pub fn traverse_dom<N, C>(root: N,
         }
     }
 
+    let mut data = PerLevelTraversalData {
+        current_dom_depth: None,
+    };
     let context = C::new(shared, root.opaque());
-    doit::<N, C>(&context, root);
+    doit::<N, C>(&context, root, &mut data);
 
     // Clear the local LRU cache since we store stateful elements inside.
     context.local_context().style_sharing_candidate_cache.borrow_mut().clear();

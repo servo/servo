@@ -90,13 +90,19 @@ pub fn remove_from_bloom_filter<'a, E, C>(context: &C, root: OpaqueNode, element
     }
 }
 
+// NB: Keep this as small as possible, please!
+#[derive(Clone, Debug)]
+pub struct PerLevelTraversalData {
+    pub current_dom_depth: Option<usize>,
+}
+
 pub trait DomTraversalContext<N: TNode> {
     type SharedContext: Sync + 'static;
 
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N);
+    fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
@@ -200,7 +206,7 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
-                                    dom_depth: Option<usize>,
+                                    data: &mut PerLevelTraversalData,
                                     element: E)
     where E: TElement,
           C: StyleContext<'a>,
@@ -212,7 +218,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
            element, should_compute, mode, element.borrow_data());
 
     let (computed_display_none, propagated_hint) = if should_compute {
-        compute_style::<_, _, D>(context, dom_depth, element)
+        compute_style::<_, _, D>(context, data, element)
     } else {
         (false, StoredRestyleHint::empty())
     };
@@ -231,7 +237,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 }
 
 fn compute_style<'a, E, C, D>(context: &'a C,
-                              dom_depth: Option<usize>,
+                              data: &mut PerLevelTraversalData,
                               element: E) -> (bool, StoredRestyleHint)
     where E: TElement,
           C: StyleContext<'a>,
@@ -239,11 +245,17 @@ fn compute_style<'a, E, C, D>(context: &'a C,
 {
     let shared_context = context.shared_context();
     let mut bf = take_thread_local_bloom_filter(shared_context);
-
     // Ensure the bloom filter is up to date.
-    bf.insert_parents_recovering(element,
-                                 dom_depth,
-                                 shared_context.generation);
+    let dom_depth = bf.insert_parents_recovering(element,
+                                                 data.current_dom_depth,
+                                                 shared_context.generation);
+
+    // Update the dom depth with the up-to-date dom depth.
+    //
+    // Note that this is always the same than the pre-existing depth, but it can
+    // change from unknown to known at this step.
+    data.current_dom_depth = Some(dom_depth);
+
     bf.assert_complete(element);
 
     let mut data = unsafe { D::ensure_element_data(&element).borrow_mut() };

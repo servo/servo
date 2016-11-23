@@ -19,6 +19,7 @@ use style::dom::{StylingMode, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
+use style::traversal::PerLevelTraversalData;
 use util::opts;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 
@@ -72,17 +73,14 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    fn process_preorder(&self, node: N) {
+    fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         node.initialize_data();
 
-        // FIXME(emilio): Get it!
-        let traversal_depth = None;
-
         if !node.is_text_node() {
             let el = node.as_element().unwrap();
-            recalc_style_at::<_, _, Self>(&self.context, traversal_depth, el);
+            recalc_style_at::<_, _, Self>(&self.context, data, el);
         }
     }
 
