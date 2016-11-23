@@ -225,66 +225,38 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
-pub fn ensure_element_styled<'a, E, C>(element: E,
-                                       context: &'a C)
+pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
+                                                          init_data: &F,
+                                                          context: &'a C) -> E
     where E: TElement,
-          C: StyleContext<'a>
+          C: StyleContext<'a>,
+          F: Fn(E),
 {
-    let mut display_none = false;
-    ensure_element_styled_internal(element, context, &mut display_none);
-}
-
-#[allow(unsafe_code)]
-fn ensure_element_styled_internal<'a, E, C>(element: E,
-                                            context: &'a C,
-                                            parents_had_display_none: &mut bool)
-    where E: TElement,
-          C: StyleContext<'a>
-{
-    use properties::longhands::display::computed_value as display;
-
-    // NB: The node data must be initialized here.
-
-    // We need to go to the root and ensure their style is up to date.
-    //
-    // This means potentially a bit of wasted work (usually not much). We could
-    // add a flag at the node at which point we stopped the traversal to know
-    // where should we stop, but let's not add that complication unless needed.
-    let parent = element.parent_element();
-    if let Some(parent) = parent {
-        ensure_element_styled_internal(parent, context, parents_had_display_none);
+    // Check the base case.
+    if element.get_data().is_some() {
+        debug_assert!(element.is_display_none());
+        return element;
     }
 
-    // Common case: our style is already resolved and none of our ancestors had
-    // display: none.
-    //
-    // We only need to mark whether we have display none, and forget about it,
-    // our style is up to date.
-    if let Some(data) = element.borrow_data() {
-        if let Some(style) = data.get_current_styles().map(|x| &x.primary) {
-            if !*parents_had_display_none {
-                *parents_had_display_none = style.values.get_box().clone_display() == display::T::none;
-                return;
-            }
-        }
-    }
+    // Ensure the parent is styled.
+    let parent = element.parent_element().unwrap();
+    let display_none_root = style_element_in_display_none_subtree(parent, init_data, context);
 
-    // Otherwise, our style might be out of date. Time to do selector matching
-    // if appropriate and cascade the node.
-    //
-    // Note that we could add the bloom filter's complexity here, but that's
-    // probably not necessary since we're likely to be matching only a few
-    // nodes, at best.
+    // Initialize our data.
+    init_data(element);
+
+    // Resolve our style.
     let mut data = element.mutate_data().unwrap();
-    debug_assert!(!data.is_persistent(), "should have early-returned above");
     let match_results = element.match_element(context, None);
     unsafe {
         let shareable = match_results.primary_is_shareable();
-        element.cascade_node(context, &mut data, parent,
+        element.cascade_node(context, &mut data, Some(parent),
                              match_results.primary,
                              match_results.per_pseudo,
                              shareable);
     }
+
+    display_none_root
 }
 
 /// Calculates the style for a single node.
@@ -405,7 +377,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
     // in the subtree, and return.
     if data.current_styles().is_display_none() {
         debug!("New element style is display:none - clearing data from descendants.");
-        clear_descendant_data::<_, D>(element);
+        clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
         return;
     }
 
@@ -459,15 +431,15 @@ fn compute_style<'a, E, C, D>(context: &'a C,
     }
 }
 
-fn clear_descendant_data<E: TElement, D: DomTraversalContext<E::ConcreteNode>>(el: E) {
+pub fn clear_descendant_data<E: TElement, F: Fn(E)>(el: E, clear_data: &F) {
     for kid in el.as_node().children() {
         if let Some(kid) = kid.as_element() {
             // We maintain an invariant that, if an element has data, all its ancestors
             // have data as well. By consequence, any element without data has no
             // descendants with data.
             if kid.get_data().is_some() {
-                unsafe { D::clear_element_data(&kid) };
-                clear_descendant_data::<_, D>(kid);
+                clear_data(kid);
+                clear_descendant_data(kid, clear_data);
             }
         }
     }

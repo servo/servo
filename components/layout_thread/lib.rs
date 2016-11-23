@@ -981,8 +981,6 @@ impl LayoutThread {
                       (data.reflow_info.goal == ReflowGoal::ForScriptQuery &&
                        data.query_type != ReflowQueryType::NoQuery));
 
-        debug!("layout: received layout request for: {}", self.url);
-
         let mut rw_data = possibly_locked_rw_data.lock();
 
         let element: ServoLayoutElement = match document.root_node() {
@@ -1024,7 +1022,8 @@ impl LayoutThread {
             Some(x) => x.as_element().unwrap(),
         };
 
-        debug!("layout: received layout request for: {}", self.url);
+        debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
+               element, self.url, data.query_type);
         if log_enabled!(log::LogLevel::Debug) {
             element.as_node().dump();
         }

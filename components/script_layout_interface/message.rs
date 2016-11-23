@@ -87,7 +87,7 @@ pub enum Msg {
 
 
 /// Any query to perform with this reflow.
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),

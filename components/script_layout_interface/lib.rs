@@ -133,7 +133,7 @@ pub struct SVGSVGData {
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
 #[allow(unsafe_code)]

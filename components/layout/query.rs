@@ -29,6 +29,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values;
 use style::context::StyleContext;
+use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
@@ -607,20 +608,6 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
     }
 }
 
-/// Ensures that a node's data, and all its parents' is initialized. This is
-/// needed to resolve style lazily.
-fn ensure_node_data_initialized<N: LayoutNode>(node: &N) {
-    let mut cur = Some(node.clone());
-    while let Some(current) = cur {
-        if current.borrow_layout_data().is_some() {
-            break;
-        }
-
-        current.initialize_data();
-        cur = current.parent_node();
-    }
-}
-
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
 pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
@@ -631,14 +618,24 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     where N: LayoutNode,
           C: StyleContext<'a>
 {
-    use style::traversal::ensure_element_styled;
+    use style::traversal::{clear_descendant_data, style_element_in_display_none_subtree};
+    let element = requested_node.as_element().unwrap();
 
-    // This node might have display: none, or it's style might be not up to
-    // date, so we might need to do style recalc.
-    //
-    // FIXME(emilio): Is a bit shame we have to do this instead of in style.
-    ensure_node_data_initialized(&requested_node);
-    ensure_element_styled(requested_node.as_element().unwrap(), style_context);
+    // We call process_resolved_style_request after performing a whole-document
+    // traversal, so the only reason we wouldn't have an up-to-date style here
+    // is that the requested node is in a display:none subtree. We currently
+    // maintain the invariant that elements in display:none subtrees always have
+    // no ElementData, so we need to temporarily bend those invariants here, and
+    // then throw them the style data away again before returning to preserve them.
+    // We could optimize this later to keep the style data cached somehow, but
+    // we'd need a mechanism to prevent detect when it's stale (since we don't
+    // traverse display:none subtrees during restyle).
+    let display_none_root = if element.get_data().is_none() {
+        Some(style_element_in_display_none_subtree(element, &|e| e.as_node().initialize_data(),
+                                                   style_context))
+    } else {
+        None
+    };
 
     let layout_el = requested_node.to_threadsafe().as_element().unwrap();
     let layout_el = match *pseudo {
@@ -661,6 +658,10 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     };
 
     let style = &*layout_el.resolved_style();
+
+    // Clear any temporarily-resolved data to maintain our invariants. See the comment
+    // at the top of this function.
+    display_none_root.map(|r| clear_descendant_data(r, &|e| e.as_node().clear_data()));
 
     let positioned = match style.get_box().position {
         position::computed_value::T::relative |
