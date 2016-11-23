@@ -8,6 +8,7 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=check_bindings.py");
     println!("cargo:rerun-if-changed=../../../ports/geckolib/glue.rs");
+    println!("cargo:rerun-if-changed=../../../components/style/gecko_bindings/bindings.rs");
     assert!(Command::new("python").arg("./check_bindings.py")
                                   .spawn().unwrap().wait().unwrap().success());
 }
