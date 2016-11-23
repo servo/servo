@@ -6590,6 +6590,12 @@
             "url": "/_mozilla/css/empty-keyframes.html"
           }
         ],
+        "css/flex-auto-min-size-fallback.html": [
+          {
+            "path": "css/flex-auto-min-size-fallback.html",
+            "url": "/_mozilla/css/flex-auto-min-size-fallback.html"
+          }
+        ],
         "css/flex-item-assign-inline-size.html": [
           {
             "path": "css/flex-item-assign-inline-size.html",
