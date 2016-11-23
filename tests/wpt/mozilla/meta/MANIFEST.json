@@ -11036,6 +11036,12 @@
      {}
     ]
    ],
+   "css/flex-auto-min-size-fallback.html": [
+    [
+     "/_mozilla/css/flex-auto-min-size-fallback.html",
+     {}
+    ]
+   ],
    "css/flex-item-assign-inline-size.html": [
     [
      "/_mozilla/css/flex-item-assign-inline-size.html",
@@ -20886,6 +20892,10 @@
   "css/fixed_width_overrides_child_intrinsic_width_ref.html": [
    "6fe33897803cd5b28c42630833cb5d3d17221c9b",
    "support"
+  ],
+  "css/flex-auto-min-size-fallback.html": [
+   "5b7412371f3ba0a2961b92e3ee30a5440ef3052f",
+   "testharness"
   ],
   "css/flex-item-assign-inline-size.html": [
    "9e262b0328e80050f5088a7264e7d40b67873750",
