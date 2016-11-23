@@ -1700,6 +1700,16 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         }
     % endfor
 
+    % for direction in ["width", "height"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if let (false, computed::LengthOrPercentageOrAuto::Auto) = (
+            is_flex_item, style.get_position().clone_min_${direction}()
+        ){
+            style.mutate_position().set_min_${direction}(
+                computed::LengthOrPercentageOrAuto::Length(Au(0))
+            );
+        }
+    % endfor
 
     % if product == "gecko":
         style.mutate_background().fill_arrays();
