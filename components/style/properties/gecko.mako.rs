@@ -814,7 +814,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index box-sizing">
+                  skip_longhands="${skip_position_longhands} z-index box-sizing order">
 
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
@@ -863,6 +863,16 @@ fn static_assert() {
         }
     }
     ${impl_simple_copy('box_sizing', 'mBoxSizing')}
+
+    pub fn set_order(&mut self, v: longhands::order::computed_value::T) {
+        self.gecko.mOrder = v;
+    }
+
+    pub fn clone_order(&self) -> longhands::order::computed_value::T {
+        self.gecko.mOrder
+    }
+
+    ${impl_simple_copy('order', 'mOrder')}
 
 </%self:impl_trait>
 
@@ -2306,7 +2316,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-width column-count">
+                  skip_longhands="column-width column-count column-gap -moz-column-rule-width">
 
     pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
@@ -2330,6 +2340,18 @@ clip-path
     }
 
     ${impl_simple_copy('column_count', 'mColumnCount')}
+
+    pub fn set_column_gap(&mut self, v: longhands::column_gap::computed_value::T) {
+        match v.0 {
+            Some(len) => self.gecko.mColumnGap.set(len),
+            None => self.gecko.mColumnGap.set_value(CoordDataValue::Normal),
+        }
+    }
+
+    <%call expr="impl_coord_copy('column_gap', 'mColumnGap')"></%call>
+
+    <% impl_app_units("_moz_column_rule_width", "mColumnRuleWidth", need_clone=True,
+                      round_to_pixels=True) %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"

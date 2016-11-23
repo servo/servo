@@ -21,3 +21,60 @@
         }
     }
 </%helpers:shorthand>
+
+// https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property
+<%helpers:shorthand name="text-emphasis" products="gecko" sub_properties="text-emphasis-color
+    text-emphasis-style">
+    use properties::longhands::{text_emphasis_color, text_emphasis_style};
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        let mut color = None;
+        let mut style = None;
+
+        loop {
+            if color.is_none() {
+                if let Ok(value) = input.try(|input| text_emphasis_color::parse(context, input)) {
+                    color = Some(value);
+                    continue
+                }
+            }
+            if style.is_none() {
+                if let Ok(value) = input.try(|input| text_emphasis_style::parse(context, input)) {
+                    style = Some(value);
+                    continue
+                }
+            }
+            break
+        }
+        if color.is_some() || style.is_some() {
+            if style.is_none() {
+                style = Some(text_emphasis_style::get_initial_specified_value());
+            }
+
+            Ok(Longhands {
+                text_emphasis_color: color,
+                text_emphasis_style: style,
+            })
+        } else {
+            Err(())
+        }
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let mut style_present = false;
+            if let DeclaredValue::Value(ref value) = *self.text_emphasis_style {
+                style_present = true;
+                try!(value.to_css(dest));
+            }
+
+            if let DeclaredValue::Value(ref color) = *self.text_emphasis_color {
+                if style_present {
+                    try!(write!(dest, " "));
+                }
+                try!(color.to_css(dest));
+            }
+            Ok(())
+        }
+    }
+</%helpers:shorthand>

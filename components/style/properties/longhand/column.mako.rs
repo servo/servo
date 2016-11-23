@@ -169,7 +169,7 @@
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-gap" experimental="True" products="servo" animatable="False">
+<%helpers:longhand name="column-gap" experimental="True" animatable="False">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -252,3 +252,39 @@
 
 ${helpers.single_keyword("column-fill", "auto balance",
                          products="gecko", animatable=False)}
+
+// https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
+<%helpers:longhand name="-moz-column-rule-width" products="gecko" animatable="True">
+    use app_units::Au;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::BorderWidth;
+
+    pub mod computed_value {
+        use app_units::Au;
+        pub type T = Au;
+    }
+
+    pub type SpecifiedValue = BorderWidth;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Au::from_px(3) // medium
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        BorderWidth::parse(input)
+    }
+</%helpers:longhand>
+
+// https://drafts.csswg.org/css-multicol-1/#crc
+${helpers.predefined_type("-moz-column-rule-color", "CSSColor",
+                          "::cssparser::Color::CurrentColor",
+                          products="gecko", gecko_ffi_name="mColumnRuleColor",
+                          animatable=True, complex_color=True, need_clone=True)}
+
+// It's not implemented in servo or gecko yet.
+// https://drafts.csswg.org/css-multicol-1/#column-span
+${helpers.single_keyword("column-span", "none all",
+                         products="none", animatable=False)}
