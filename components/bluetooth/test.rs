@@ -18,6 +18,7 @@ const ADAPTER_ERROR: &'static str = "No adapter found";
 const WRONG_DATA_SET_ERROR: &'static str = "Wrong data set name was provided";
 const READ_FLAG: &'static str = "read";
 const WRITE_FLAG: &'static str = "write";
+const NOTIFY_FLAG: &'static str = "notify";
 
 // Adapter names
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=65
@@ -217,10 +218,11 @@ fn create_heart_rate_service(device: &BluetoothDevice,
     }
 
     // Heart Rate Measurement Characteristic
-    let _heart_rate_measurement_characteristic =
+    let heart_rate_measurement_characteristic =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID.to_owned(),
                                               vec![0]));
+    try!(heart_rate_measurement_characteristic.set_flags(vec![NOTIFY_FLAG.to_string()]));
 
     // Body Sensor Location Characteristic 1
     let body_sensor_location_characteristic_1 =
@@ -357,10 +359,11 @@ fn create_two_heart_rate_services_device(adapter: &BluetoothAdapter) -> Result<(
 
     let heart_rate_service_empty_2 = try!(create_heart_rate_service(&heart_rate_device_empty, true));
 
-    let _heart_rate_measurement_characteristic =
+    let heart_rate_measurement_characteristic =
         try!(create_characteristic_with_value(&heart_rate_service_empty_1,
                                               HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID.to_owned(),
                                               vec![0]));
+    try!(heart_rate_measurement_characteristic.set_flags(vec![NOTIFY_FLAG.to_string()]));
 
     let _body_sensor_location_characteristic_1 =
         try!(create_characteristic_with_value(&heart_rate_service_empty_1,

@@ -275,6 +275,9 @@ impl BluetoothManager {
                 BluetoothRequest::WriteValue(id, value, sender) => {
                     self.write_value(id, value, sender)
                 },
+                BluetoothRequest::EnableNotification(id, enable, sender) => {
+                    self.enable_notification(id, enable, sender)
+                },
                 BluetoothRequest::Test(data_set_name, sender) => {
                     self.test(data_set_name, sender)
                 }
@@ -974,6 +977,27 @@ impl BluetoothManager {
                 Ok(_) => return drop(sender.send(Ok(BluetoothResponse::WriteValue(value)))),
                 Err(_) => return drop(sender.send(Err(BluetoothError::NotSupported))),
             },
+            None => return drop(sender.send(Err(BluetoothError::InvalidState))),
+        }
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
+    fn enable_notification(&mut self, id: String, enable: bool, sender: IpcSender<BluetoothResponseResult>) {
+        let mut adapter = get_adapter_or_return_error!(self, sender);
+        match self.get_gatt_characteristic(&mut adapter, &id) {
+            Some(c) => {
+                let result = match enable {
+                    true => c.start_notify(),
+                    false => c.stop_notify(),
+                };
+                match result {
+                    // Step 11.
+                    Ok(_) => return drop(sender.send(Ok(BluetoothResponse::EnableNotification(())))),
+                    // Step 4.
+                    Err(_) => return drop(sender.send(Err(BluetoothError::NotSupported))),
+                }
+            },
+            // Step 3.
             None => return drop(sender.send(Err(BluetoothError::InvalidState))),
         }
     }
