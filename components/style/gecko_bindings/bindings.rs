@@ -3,11 +3,17 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
 enum ServoComputedValuesVoid{ }
 pub struct ServoComputedValues(ServoComputedValuesVoid);
+pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
+pub type ServoCssRulesBorrowedOrNull<'a> = Option<&'a ServoCssRules>;
+pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
+enum ServoCssRulesVoid{ }
+pub struct ServoCssRules(ServoCssRulesVoid);
 pub type RawServoStyleSheetStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
@@ -18,6 +24,11 @@ pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclara
 pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
 enum RawServoDeclarationBlockVoid{ }
 pub struct RawServoDeclarationBlock(RawServoDeclarationBlockVoid);
+pub type RawServoStyleRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoStyleRule>;
+pub type RawServoStyleRuleBorrowedOrNull<'a> = Option<&'a RawServoStyleRule>;
+pub type RawServoStyleRuleBorrowed<'a> = &'a RawServoStyleRule;
+enum RawServoStyleRuleVoid{ }
+pub struct RawServoStyleRule(RawServoStyleRuleVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = Option<&'a RawGeckoNode>;
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
@@ -189,6 +200,12 @@ pub type RawGeckoNode = nsINode;
 pub type RawGeckoElement = Element;
 pub type RawGeckoDocument = nsIDocument;
 extern "C" {
+    pub fn Servo_CssRules_AddRef(ptr: ServoCssRulesBorrowed);
+}
+extern "C" {
+    pub fn Servo_CssRules_Release(ptr: ServoCssRulesBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleSheet_AddRef(ptr: RawServoStyleSheetBorrowed);
 }
 extern "C" {
@@ -207,6 +224,12 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_Release(ptr:
                                               RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleRule_AddRef(ptr: RawServoStyleRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleRule_Release(ptr: RawServoStyleRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -951,6 +974,10 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed)
+     -> ServoCssRulesStrong;
+}
+extern "C" {
     pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
 }
 extern "C" {
@@ -973,6 +1000,36 @@ extern "C" {
                                                      RawServoStyleSheetBorrowed,
                                                  reference:
                                                      RawServoStyleSheetBorrowed);
+}
+extern "C" {
+    pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
+                                    result: nsTArrayBorrowed_uintptr_t);
+}
+extern "C" {
+    pub fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed,
+                                         index: u32)
+     -> RawServoStyleRuleStrong;
+}
+extern "C" {
+    pub fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed,
+                                 result: *mut nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
+                                    declarations:
+                                        RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed,
+                                      result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed,
+                                           result: *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,

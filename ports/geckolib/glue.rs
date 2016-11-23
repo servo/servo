@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use cssparser::Parser;
+use cssparser::ToCss as ParserToCss;
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
@@ -23,13 +24,16 @@ use style::gecko::wrapper::{GeckoElement, GeckoNode};
 use style::gecko::wrapper::DUMMY_BASE_URL;
 use style::gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
+use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
+use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
+use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
@@ -45,7 +49,7 @@ use style::properties::{apply_declarations, parse_one_declaration};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{Origin, Stylesheet};
+use style::stylesheets::{CssRule, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
 use style_traits::ToCss;
@@ -263,6 +267,11 @@ pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowe
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -> ServoCssRulesStrong {
+    Stylesheet::as_arc(&sheet).rules.0.clone().into_strong()
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> () {
     unsafe { Stylesheet::addref(sheet) };
 }
@@ -270,6 +279,82 @@ pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) -> () {
     unsafe { Stylesheet::release(sheet) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
+                                           result: nsTArrayBorrowed_uintptr_t) -> () {
+    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
+    let iter = rules.iter().map(|rule| rule.rule_type() as usize);
+    let (size, upper) = iter.size_hint();
+    debug_assert_eq!(size, upper.unwrap());
+    unsafe { result.set_len(size as u32) };
+    result.iter_mut().zip(iter).fold((), |_, (r, v)| *r = v);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, index: u32)
+                                                -> RawServoStyleRuleStrong {
+    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
+    match rules[index as usize] {
+        CssRule::Style(ref rule) => rule.clone().into_strong(),
+        _ => {
+            unreachable!("GetStyleRuleAt should only be called on a style rule");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
+    unsafe { RwLock::<Vec<CssRule>>::addref(rules) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_Release(rules: ServoCssRulesBorrowed) -> () {
+    unsafe { RwLock::<Vec<CssRule>>::release(rules) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_AddRef(rule: RawServoStyleRuleBorrowed) -> () {
+    unsafe { RwLock::<StyleRule>::addref(rule) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_Release(rule: RawServoStyleRuleBorrowed) -> () {
+    unsafe { RwLock::<StyleRule>::release(rule) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed, result: *mut nsACString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    let result = unsafe { result.as_mut().unwrap() };
+    write!(result, "{:?}", *rule.read()).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> RawServoDeclarationBlockStrong {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    rule.read().block.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
+                                           declarations: RawServoDeclarationBlockBorrowed) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    rule.write().block = declarations.clone();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<StyleRule>::as_arc(&rule);
+    rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
