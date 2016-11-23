@@ -8,9 +8,10 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::net::IpAddr;
+use std::sync::Mutex;
 
 lazy_static! {
-    static ref HOST_TABLE: Option<HashMap<String, IpAddr>> = create_host_table();
+    static ref HOST_TABLE: Mutex<Option<HashMap<String, IpAddr>>> = Mutex::new(create_host_table());
 }
 
 fn create_host_table() -> Option<HashMap<String, IpAddr>> {
@@ -34,13 +35,17 @@ fn create_host_table() -> Option<HashMap<String, IpAddr>> {
     return Some(parse_hostsfile(&lines));
 }
 
+pub fn replace_host_table(table: HashMap<String, IpAddr>) {
+    *HOST_TABLE.lock().unwrap() = Some(table);
+}
+
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     let mut host_table = HashMap::new();
     for line in hostsfile_content.split('\n') {
-        let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
-        if ip_host.len() > 1 {
-            if let Ok(address) = ip_host[0].parse::<IpAddr>() {
-                for token in ip_host.iter().skip(1) {
+        let mut ip_host = line.trim().split(|c: char| c == ' ' || c == '\t');
+        if let Some(ip) = ip_host.next() {
+            if let Ok(address) = ip.parse::<IpAddr>() {
+                for token in ip_host {
                     if token.as_bytes()[0] == b'#' {
                         break;
                     }
@@ -53,7 +58,7 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
 }
 
 pub fn replace_hosts(url: &ServoUrl) -> ServoUrl {
-    HOST_TABLE.as_ref().map_or_else(|| url.clone(), |host_table| {
+    HOST_TABLE.lock().unwrap().as_ref().map_or_else(|| url.clone(), |host_table| {
         host_replacement(host_table, url)
     })
 }
