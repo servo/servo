@@ -26,11 +26,11 @@ impl ToCss for Source {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             Source::Url(ref url) => {
-                try!(dest.write_str("local(\""));
+                try!(dest.write_str("url(\""));
                 try!(url.to_css(dest));
             },
             Source::Local(ref family) => {
-                try!(dest.write_str("url(\""));
+                try!(dest.write_str("local(\""));
                 try!(family.to_css(dest));
             },
         }

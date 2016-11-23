@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding;
+use dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
@@ -22,7 +23,7 @@ pub struct CSSNamespaceRule {
 }
 
 impl CSSNamespaceRule {
-    fn new_inherited(parent: &CSSStyleSheet, namespacerule: Arc<RwLock<NamespaceRule>>) -> CSSNamespaceRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, namespacerule: Arc<RwLock<NamespaceRule>>) -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent),
             namespacerule: namespacerule,
@@ -30,11 +31,25 @@ impl CSSNamespaceRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet,
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
                namespacerule: Arc<RwLock<NamespaceRule>>) -> Root<CSSNamespaceRule> {
         reflect_dom_object(box CSSNamespaceRule::new_inherited(parent, namespacerule),
                            window,
                            CSSNamespaceRuleBinding::Wrap)
+    }
+}
+
+impl CSSNamespaceRuleMethods for CSSNamespaceRule {
+    // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix
+    fn Prefix(&self) -> DOMString {
+        self.namespacerule.read().prefix
+            .as_ref().map(|s| s.to_string().into())
+            .unwrap_or(DOMString::new())
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri
+    fn NamespaceURI(&self) -> DOMString {
+        (*self.namespacerule.read().url).into()
     }
 }
 

@@ -4,10 +4,11 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::reflector::{reflect_dom_object, Reflectable};
 use dom::bindings::str::DOMString;
-use dom::cssrulelist::CSSRuleList;
+use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 use std::sync::Arc;
@@ -40,12 +41,33 @@ impl CSSStyleSheet {
                            window,
                            CSSStyleSheetBinding::Wrap)
     }
+
+    fn rulelist(&self) -> Root<CSSRuleList> {
+        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
+                                                  Some(self),
+                                                  RulesSource::Rules(self.style_stylesheet
+                                                                         .rules.clone())))
+    }
 }
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
     fn CssRules(&self) -> Root<CSSRuleList> {
-        self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(), self, self.style_stylesheet.rules.clone()))
+        // XXXManishearth check origin clean flag
+        // https://github.com/servo/servo/issues/14327
+        self.rulelist()
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule
+    fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
+        // XXXManishearth check origin clean flag
+        self.rulelist().insert_rule(&rule, index, /* nested */ false)
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
+    fn DeleteRule(&self, index: u32) -> ErrorResult {
+        // XXXManishearth check origin clean flag
+        self.rulelist().remove_rule(index)
     }
 }
 

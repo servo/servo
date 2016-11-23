@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
+use dom::csskeyframerule::CSSKeyframeRule;
 use dom::csskeyframesrule::CSSKeyframesRule;
 use dom::cssmediarule::CSSMediaRule;
 use dom::cssnamespacerule::CSSNamespaceRule;
@@ -27,15 +28,15 @@ pub struct CSSRule {
 
 impl CSSRule {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(parent: &CSSStyleSheet) -> CSSRule {
+    pub fn new_inherited(parent: Option<&CSSStyleSheet>) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
-            parent: MutNullableHeap::new(Some(parent)),
+            parent: MutNullableHeap::new(parent),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: &CSSStyleSheet) -> Root<CSSRule> {
+    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>) -> Root<CSSRule> {
         reflect_dom_object(box CSSRule::new_inherited(parent),
                            window,
                            CSSRuleBinding::Wrap)
@@ -54,6 +55,8 @@ impl CSSRule {
             rule as &SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSViewportRule>() {
             rule as &SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSKeyframeRule>() {
+            rule as &SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -61,7 +64,7 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(window: &Window, parent: &CSSStyleSheet,
+    pub fn new_specific(window: &Window, parent: Option<&CSSStyleSheet>,
                         rule: StyleCssRule) -> Root<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
@@ -72,6 +75,21 @@ impl CSSRule {
             StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent, s)),
             StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent, s)),
         }
+    }
+
+    /// Sets owner sheet/rule to null
+    pub fn detach(&self) {
+        self.deparent();
+        // should set parent rule to None when we add parent rule support
+    }
+
+    /// Sets owner sheet to null (and does the same for all children)
+    pub fn deparent(&self) {
+        self.parent.set(None);
+        // https://github.com/w3c/csswg-drafts/issues/722
+        // Spec doesn't ask us to do this, but it makes sense
+        // and browsers implement this behavior
+        self.as_specific().deparent_children();
     }
 }
 
@@ -100,4 +118,8 @@ impl CSSRuleMethods for CSSRule {
 pub trait SpecificCSSRule {
     fn ty(&self) -> u16;
     fn get_css(&self) -> DOMString;
+    /// Remove CSSStyleSheet parent from all transitive children
+    fn deparent_children(&self) {
+        // most CSSRules do nothing here
+    }
 }

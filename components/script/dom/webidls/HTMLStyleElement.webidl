@@ -8,4 +8,4 @@ interface HTMLStyleElement : HTMLElement {
   //         attribute DOMString type;
   //         attribute boolean scoped;
 };
-//HTMLStyleElement implements LinkStyle;
+HTMLStyleElement implements LinkStyle;

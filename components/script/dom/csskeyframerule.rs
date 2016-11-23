@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::CSSFontFaceRuleBinding;
+use dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
@@ -11,40 +11,40 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use style::font_face::FontFaceRule;
+use style::keyframes::Keyframe;
 use style_traits::ToCss;
 
 #[dom_struct]
-pub struct CSSFontFaceRule {
+pub struct CSSKeyframeRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
-    fontfacerule: Arc<RwLock<FontFaceRule>>,
+    keyframerule: Arc<RwLock<Keyframe>>,
 }
 
-impl CSSFontFaceRule {
-    fn new_inherited(parent: Option<&CSSStyleSheet>, fontfacerule: Arc<RwLock<FontFaceRule>>) -> CSSFontFaceRule {
-        CSSFontFaceRule {
+impl CSSKeyframeRule {
+    fn new_inherited(parent: Option<&CSSStyleSheet>, keyframerule: Arc<RwLock<Keyframe>>) -> CSSKeyframeRule {
+        CSSKeyframeRule {
             cssrule: CSSRule::new_inherited(parent),
-            fontfacerule: fontfacerule,
+            keyframerule: keyframerule,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
-               fontfacerule: Arc<RwLock<FontFaceRule>>) -> Root<CSSFontFaceRule> {
-        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent, fontfacerule),
+               keyframerule: Arc<RwLock<Keyframe>>) -> Root<CSSKeyframeRule> {
+        reflect_dom_object(box CSSKeyframeRule::new_inherited(parent, keyframerule),
                            window,
-                           CSSFontFaceRuleBinding::Wrap)
+                           CSSKeyframeRuleBinding::Wrap)
     }
 }
 
-impl SpecificCSSRule for CSSFontFaceRule {
+impl SpecificCSSRule for CSSKeyframeRule {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::FONT_FACE_RULE
+        CSSRuleConstants::KEYFRAME_RULE
     }
 
     fn get_css(&self) -> DOMString {
-        self.fontfacerule.read().to_css_string().into()
+        self.keyframerule.read().to_css_string().into()
     }
 }

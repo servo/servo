@@ -22,6 +22,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -452,4 +453,9 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
+
+    // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
+    fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
+        self.get_cssom_stylesheet().map(Root::upcast)
+    }
 }

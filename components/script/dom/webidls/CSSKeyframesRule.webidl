@@ -6,9 +6,9 @@
 [Exposed=Window]
 interface CSSKeyframesRule : CSSRule {
   //          attribute DOMString   name;
-  // readonly attribute CSSRuleList cssRules;
+  readonly attribute CSSRuleList cssRules;
 
-  // void            appendRule(DOMString rule);
-  // void            deleteRule(DOMString select);
-  // CSSKeyframeRule? findRule(DOMString select);
+  void            appendRule(DOMString rule);
+  void            deleteRule(DOMString select);
+  CSSKeyframeRule? findRule(DOMString select);
 };

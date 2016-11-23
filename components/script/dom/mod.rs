@@ -244,6 +244,7 @@ pub mod crypto;
 pub mod css;
 pub mod cssfontfacerule;
 pub mod cssgroupingrule;
+pub mod csskeyframerule;
 pub mod csskeyframesrule;
 pub mod cssmediarule;
 pub mod cssnamespacerule;

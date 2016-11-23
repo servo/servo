@@ -3,15 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{DeclarationListParser, DeclarationParser};
+use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
-use parser::{ParserContext, log_css_error};
+use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
+use servo_url::ServoUrl;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
+use stylesheets::{MemoryHoleReporter, Origin};
 
 /// A number from 1 to 100, indicating the percentage of the animation where
 /// this keyframe should run.
@@ -68,6 +70,11 @@ impl KeyframeSelector {
     pub fn new_for_unit_testing(percentages: Vec<KeyframePercentage>) -> KeyframeSelector {
         KeyframeSelector(percentages)
     }
+
+    pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+        input.parse_comma_separated(KeyframePercentage::parse)
+             .map(KeyframeSelector)
+    }
 }
 
 /// A keyframe.
@@ -96,6 +103,24 @@ impl ToCss for Keyframe {
         try!(self.block.read().to_css(dest));
         try!(dest.write_str(" }"));
         Ok(())
+    }
+}
+
+
+impl Keyframe {
+    pub fn parse(css: &str, origin: Origin,
+                 base_url: ServoUrl,
+                 extra_data: ParserContextExtraData) -> Result<Arc<RwLock<Self>>, ()> {
+        let error_reporter = Box::new(MemoryHoleReporter);
+        let context = ParserContext::new_with_extra_data(origin, &base_url,
+                                                         error_reporter,
+                                                         extra_data);
+        let mut input = Parser::new(css);
+
+        let mut rule_parser = KeyframeListParser {
+            context: &context,
+        };
+        parse_one_rule(&mut input, &mut rule_parser)
     }
 }
 
@@ -260,8 +285,8 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
     fn parse_prelude(&mut self, input: &mut Parser) -> Result<Self::Prelude, ()> {
         let start = input.position();
-        match input.parse_comma_separated(|input| KeyframePercentage::parse(input)) {
-            Ok(percentages) => Ok(KeyframeSelector(percentages)),
+        match KeyframeSelector::parse(input) {
+            Ok(sel) => Ok(sel),
             Err(()) => {
                 let message = format!("Invalid keyframe rule: '{}'", input.slice_from(start));
                 log_css_error(input, start, &message, self.context);

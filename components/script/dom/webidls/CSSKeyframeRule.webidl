@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://drafts.csswg.org/cssom/#the-cssnamespacerule-interface
+// https://drafts.csswg.org/css-animations/#interface-csskeyframerule
 [Exposed=Window]
-interface CSSNamespaceRule : CSSRule {
-  readonly attribute DOMString namespaceURI;
-  readonly attribute DOMString prefix;
+interface CSSKeyframeRule : CSSRule {
+  //          attribute DOMString           keyText;
+  // readonly attribute CSSStyleDeclaration style;
 };
