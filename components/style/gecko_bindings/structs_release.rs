@@ -2687,9 +2687,46 @@ fn bindgen_test_layout_SourceHook() {
     assert_eq!(::std::mem::align_of::<SourceHook>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIRunnable {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsIRunnable_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+#[test]
+fn bindgen_test_layout_nsIRunnable() {
+    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
+}
+impl Clone for nsIRunnable {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+pub struct DispatcherTrait__bindgen_vtable {
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DispatcherTrait {
+    pub vtable_: *const DispatcherTrait__bindgen_vtable,
+}
+#[test]
+fn bindgen_test_layout_DispatcherTrait() {
+    assert_eq!(::std::mem::size_of::<DispatcherTrait>() , 8usize);
+    assert_eq!(::std::mem::align_of::<DispatcherTrait>() , 8usize);
+}
+impl Clone for DispatcherTrait {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct nsIGlobalObject {
     pub _base: nsISupports,
+    pub _base_1: DispatcherTrait,
     pub mHostObjectURIs: nsTArray<nsCString>,
     pub mIsDying: bool,
 }
@@ -2702,7 +2739,7 @@ pub struct nsIGlobalObject_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsIGlobalObject() {
-    assert_eq!(::std::mem::size_of::<nsIGlobalObject>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsIGlobalObject>() , 32usize);
     assert_eq!(::std::mem::align_of::<nsIGlobalObject>() , 8usize);
 }
 #[repr(C)]
@@ -2746,6 +2783,7 @@ fn bindgen_test_layout_nsPIDOMWindowInner() {
 #[derive(Debug)]
 pub struct nsIDocument {
     pub _base: nsINode,
+    pub _base_1: DispatcherTrait,
     pub mDeprecationWarnedAbout: u64,
     pub mDocWarningWarnedAbout: u64,
     pub mSelectorCache: [u64; 15usize],
@@ -3068,7 +3106,7 @@ impl Clone for nsIDocument_FrameRequest {
 }
 #[test]
 fn bindgen_test_layout_nsIDocument() {
-    assert_eq!(::std::mem::size_of::<nsIDocument>() , 960usize);
+    assert_eq!(::std::mem::size_of::<nsIDocument>() , 968usize);
     assert_eq!(::std::mem::align_of::<nsIDocument>() , 8usize);
 }
 impl nsIDocument {
@@ -4091,7 +4129,7 @@ pub struct nsIScriptGlobalObject_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsIScriptGlobalObject() {
-    assert_eq!(::std::mem::size_of::<nsIScriptGlobalObject>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsIScriptGlobalObject>() , 32usize);
     assert_eq!(::std::mem::align_of::<nsIScriptGlobalObject>() , 8usize);
 }
 #[repr(C)]
@@ -4112,26 +4150,6 @@ fn bindgen_test_layout_nsIVariant() {
     assert_eq!(::std::mem::align_of::<nsIVariant>() , 8usize);
 }
 impl Clone for nsIVariant {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIRunnable {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsIRunnable_COMTypeInfo<T, U> {
-    pub _address: u8,
-    pub _phantom_0: ::std::marker::PhantomData<T>,
-    pub _phantom_1: ::std::marker::PhantomData<U>,
-}
-#[test]
-fn bindgen_test_layout_nsIRunnable() {
-    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
-}
-impl Clone for nsIRunnable {
     fn clone(&self) -> Self { *self }
 }
 pub type TimeStampValue = u64;
@@ -5736,15 +5754,15 @@ pub const ReferrerPolicy_RP_Default: ReferrerPolicy =
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ReferrerPolicy {
-    RP_No_Referrer = 1,
-    RP_Origin = 2,
-    RP_No_Referrer_When_Downgrade = 0,
-    RP_Origin_When_Crossorigin = 3,
-    RP_Unsafe_URL = 4,
-    RP_Same_Origin = 5,
-    RP_Strict_Origin = 6,
-    RP_Strict_Origin_When_Cross_Origin = 7,
-    RP_Unset = 4294967295,
+    RP_No_Referrer = 2,
+    RP_Origin = 3,
+    RP_No_Referrer_When_Downgrade = 1,
+    RP_Origin_When_Crossorigin = 4,
+    RP_Unsafe_URL = 5,
+    RP_Same_Origin = 6,
+    RP_Strict_Origin = 7,
+    RP_Strict_Origin_When_Cross_Origin = 8,
+    RP_Unset = 0,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -6587,10 +6605,11 @@ pub struct nsIPresShell_PointerInfo {
     pub mPointerType: u16,
     pub mActiveState: bool,
     pub mPrimaryState: bool,
+    pub mPreventMouseEventByContent: bool,
 }
 #[test]
 fn bindgen_test_layout_nsIPresShell_PointerInfo() {
-    assert_eq!(::std::mem::size_of::<nsIPresShell_PointerInfo>() , 4usize);
+    assert_eq!(::std::mem::size_of::<nsIPresShell_PointerInfo>() , 6usize);
     assert_eq!(::std::mem::align_of::<nsIPresShell_PointerInfo>() , 2usize);
 }
 impl Clone for nsIPresShell_PointerInfo {
