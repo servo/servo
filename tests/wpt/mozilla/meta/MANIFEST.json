@@ -14690,6 +14690,12 @@
             "url": "/_mozilla/mozilla/scrollTo.html"
           }
         ],
+        "mozilla/scroll_top_null_target.html": [
+          {
+            "path": "mozilla/scroll_top_null_target.html",
+            "url": "/_mozilla/mozilla/scroll_top_null_target.html"
+          }
+        ],
         "mozilla/send-arraybuffer.htm": [
           {
             "path": "mozilla/send-arraybuffer.htm",

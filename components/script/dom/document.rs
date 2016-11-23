@@ -580,26 +580,18 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
         // Step 1 is not handled here; the fragid is already obtained by the calling function
-        // Step 2
-        if fragid.is_empty() {
-            self.GetDocumentElement()
-        } else {
-            // Step 3 & 4
-            percent_decode(fragid.as_bytes()).decode_utf8().ok()
-                // Step 5
-                .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
-                // Step 6
-                .or_else(|| self.get_anchor_by_name(fragid))
-                // Step 7
-                .or_else(|| if fragid.eq_ignore_ascii_case("top") {
-                    self.GetDocumentElement()
-                } else {
-                    // Step 8
-                    None
-                })
-        }
+        // Step 2: Simply use None to indicate the top of the document.
+        // Step 3 & 4
+        percent_decode(fragid.as_bytes()).decode_utf8().ok()
+        // Step 5
+            .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
+        // Step 6
+            .or_else(|| self.get_anchor_by_name(fragid))
+        // Step 7 & 8
     }
 
+    /// Scroll to the target element, and when we do not find a target
+    /// and the fragment is empty or "top", scroll to the top.
     /// https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier
     pub fn check_and_scroll_fragment(&self, fragment: &str) {
         let target = self.find_fragment_node(fragment);
@@ -607,30 +599,27 @@ impl Document {
         // Step 1
         self.set_target_element(target.r());
 
-        let point = if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
+        let point = target.r().map(|element| {
+            // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
+            // Really what needs to happen is that this needs to go through layout to ask which
+            // layer the element belongs to, and have it send the scroll message to the
+            // compositor.
+            let rect = element.upcast::<Node>().bounding_content_box();
+
+            // In order to align with element edges, we snap to unscaled pixel boundaries, since
+            // the paint thread currently does the same for drawing elements. This is important
+            // for pages that require pixel perfect scroll positioning for proper display
+            // (like Acid2). Since we don't have the device pixel ratio here, this might not be
+            // accurate, but should work as long as the ratio is a whole number. Once #8275 is
+            // fixed this should actually take into account the real device pixel ratio.
+            (rect.origin.x.to_nearest_px() as f32, rect.origin.y.to_nearest_px() as f32)
+        }).or_else(|| if fragment.is_empty() || fragment.eq_ignore_ascii_case("top") {
             // FIXME(stshine): this should be the origin of the stacking context space,
             // which may differ under the influence of writing mode.
             Some((0.0, 0.0))
         } else {
-            target.r().map(|element| {
-                // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers
-                // are involved. Really what needs to happen is that this needs to go
-                // through layout to ask which layer the element belongs to, and have
-                // it send the scroll message to the compositor.
-                let rect = element.upcast::<Node>().bounding_content_box();
-
-                // In order to align with element edges, we snap to unscaled pixel
-                // boundaries, since the paint thread currently does the same for
-                // drawing elements. This is important for pages that require pixel
-                // perfect scroll positioning for proper display (like Acid2). Since
-                // we don't have the device pixel ratio here, this might not be
-                // accurate, but should work as long as the ratio is a whole number.
-                // Once #8275 is fixed this should actually take into account the
-                // real device pixel ratio.
-                (rect.origin.x.to_nearest_px() as f32,
-                 rect.origin.y.to_nearest_px() as f32)
-            })
-        };
+            None
+        });
 
         if let Some((x, y)) = point {
             // Step 3
