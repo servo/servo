@@ -63,6 +63,7 @@ impl HTMLMetaElement {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
+                                   self.upcast::<Element>(),
                                    "text/css".into(),
                                    None, // todo handle location
                                    None, // todo handle title
@@ -103,6 +104,7 @@ impl HTMLMetaElement {
                         // Viewport constraints are always recomputed on resize; they don't need to
                         // force all styles to be recomputed.
                         dirty_on_viewport_size_change: AtomicBool::new(false),
+                        disabled: AtomicBool::new(false),
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();

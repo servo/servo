@@ -113,6 +113,7 @@ pub struct Stylesheet {
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
     pub dirty_on_viewport_size_change: AtomicBool,
+    pub disabled: AtomicBool,
 }
 
 
@@ -402,6 +403,7 @@ impl Stylesheet {
             rules: rules.into(),
             media: Arc::new(RwLock::new(media)),
             dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
+            disabled: AtomicBool::new(false),
         }
     }
 
@@ -441,6 +443,20 @@ impl Stylesheet {
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
         effective_rules(&self.rules.0.read(), device, &mut f);
+    }
+
+    /// Returns whether the stylesheet has been explicitly disabled through the CSSOM.
+    pub fn disabled(&self) -> bool {
+        self.disabled.load(Ordering::SeqCst)
+    }
+
+    /// Records that the stylesheet has been explicitly disabled through the CSSOM.
+    /// Returns whether the the call resulted in a change in disabled state.
+    ///
+    /// Disabled stylesheets remain in the document, but their rules are not added to
+    /// the Stylist.
+    pub fn set_disabled(&self, disabled: bool) -> bool {
+        self.disabled.swap(disabled, Ordering::SeqCst) != disabled
     }
 }
 

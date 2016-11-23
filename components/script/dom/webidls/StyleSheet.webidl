@@ -13,7 +13,7 @@ interface StyleSheet {
   readonly attribute DOMString? title;
 
   // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
-  // attribute boolean disabled;
+  attribute boolean disabled;
 };
 
 // https://drafts.csswg.org/cssom/#the-linkstyle-interface
