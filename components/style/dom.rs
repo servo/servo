@@ -122,12 +122,8 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<Self::ConcreteElement> {
-        if self.opaque() == reflow_root {
-            None
-        } else {
-            self.parent_node().and_then(|n| n.as_element())
-        }
+    fn parent_element(&self) -> Option<Self::ConcreteElement> {
+        self.parent_node().and_then(|n| n.as_element())
     }
 
     fn debug_id(self) -> usize;

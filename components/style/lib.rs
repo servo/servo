@@ -92,6 +92,7 @@ pub mod animation;
 pub mod atomic_refcell;
 pub mod attr;
 pub mod bezier;
+pub mod bloom;
 pub mod cache;
 pub mod cascade_info;
 pub mod context;

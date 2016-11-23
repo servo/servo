@@ -125,8 +125,12 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
         // Perform the appropriate operation.
         context.process_postorder(node);
 
-        let parent = match node.layout_parent_element(root) {
-            None => break,
+        if node.opaque() == root {
+            break;
+        }
+
+        let parent = match node.parent_element() {
+            None => unreachable!("How can this happen after the break above?"),
             Some(parent) => parent,
         };
 

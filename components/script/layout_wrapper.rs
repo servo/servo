@@ -175,14 +175,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         unsafe { self.get_jsmanaged().opaque() }
     }
 
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<ServoLayoutElement<'ln>> {
-        if self.opaque() == reflow_root {
-            None
-        } else {
-            self.parent_node().and_then(|x| x.as_element())
-        }
-    }
-
     fn debug_id(self) -> usize {
         self.opaque().0
     }
