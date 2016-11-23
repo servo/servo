@@ -5,10 +5,13 @@
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::reflector::{reflect_dom_object, Reflectable};
 use dom::bindings::str::DOMString;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
+use dom::element::Element;
+use dom::node::{document_from_node, Node};
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 use std::sync::Arc;
@@ -17,27 +20,34 @@ use style::stylesheets::Stylesheet as StyleStyleSheet;
 #[dom_struct]
 pub struct CSSStyleSheet {
     stylesheet: StyleSheet,
+    owner: JS<Element>,
     rulelist: MutNullableHeap<JS<CSSRuleList>>,
     #[ignore_heap_size_of = "Arc"]
     style_stylesheet: Arc<StyleStyleSheet>,
 }
 
 impl CSSStyleSheet {
-    fn new_inherited(type_: DOMString, href: Option<DOMString>,
-                     title: Option<DOMString>, stylesheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
+    fn new_inherited(owner: &Element,
+                     type_: DOMString,
+                     href: Option<DOMString>,
+                     title: Option<DOMString>,
+                     stylesheet: Arc<StyleStyleSheet>) -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
+            owner: JS::from_ref(owner),
             rulelist: MutNullableHeap::new(None),
             style_stylesheet: stylesheet,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, type_: DOMString,
+    pub fn new(window: &Window,
+               owner: &Element,
+               type_: DOMString,
                href: Option<DOMString>,
                title: Option<DOMString>,
                stylesheet: Arc<StyleStyleSheet>) -> Root<CSSStyleSheet> {
-        reflect_dom_object(box CSSStyleSheet::new_inherited(type_, href, title, stylesheet),
+        reflect_dom_object(box CSSStyleSheet::new_inherited(owner, type_, href, title, stylesheet),
                            window,
                            CSSStyleSheetBinding::Wrap)
     }
@@ -47,6 +57,18 @@ impl CSSStyleSheet {
                                                   Some(self),
                                                   RulesSource::Rules(self.style_stylesheet
                                                                          .rules.clone())))
+    }
+
+    pub fn disabled(&self) -> bool {
+        self.style_stylesheet.disabled()
+    }
+
+    pub fn set_disabled(&self, disabled: bool) {
+        if self.style_stylesheet.set_disabled(disabled) {
+            let owner = self.owner.upcast::<Node>();
+            let doc = document_from_node(owner);
+            doc.invalidate_stylesheets();
+        }
     }
 }
 
