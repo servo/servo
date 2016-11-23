@@ -1009,3 +1009,13 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
 }
 
 pub type LengthOrNumber = Either<Length, Number>;
+
+impl LengthOrNumber {
+    pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(v) = input.try(|i| Length::parse_non_negative(i)) {
+            Ok(Either::First(v))
+        } else {
+            Number::parse_non_negative(input).map(Either::Second)
+        }
+    }
+}
