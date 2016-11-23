@@ -37,10 +37,10 @@ fn create_host_table() -> Option<HashMap<String, IpAddr>> {
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     let mut host_table = HashMap::new();
     for line in hostsfile_content.split('\n') {
-        let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
-        if ip_host.len() > 1 {
-            if let Ok(address) = ip_host[0].parse::<IpAddr>() {
-                for token in ip_host.iter().skip(1) {
+        let mut ip_host = line.trim().split(|c: char| c == ' ' || c == '\t');
+        if let Some(ip) = ip_host.next() {
+            if let Ok(address) = ip.parse::<IpAddr>() {
+                for token in ip_host {
                     if token.as_bytes()[0] == b'#' {
                         break;
                     }
