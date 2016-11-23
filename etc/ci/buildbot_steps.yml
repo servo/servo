@@ -57,7 +57,7 @@ linux-dev:
 linux-rel-wpt:
   - ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 20 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
+  - ./mach test-wpt --release --processes 16 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
