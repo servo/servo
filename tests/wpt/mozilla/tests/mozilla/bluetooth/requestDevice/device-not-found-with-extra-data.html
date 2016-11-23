@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+let extra_data_filters = [{
+    filters: [{
+        manufacturerData: {
+            17: {},
+            18: {}
+        }
+    }]
+}, {
+    filters: [{
+        serviceData: {
+            'battery_service': {},
+            'glucose': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {},
+            18: {}
+        },
+        serviceData: {
+            'battery_service': {},
+            'glucose': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {}
+        },
+        serviceData: {
+            'battery_service': {},
+            'glucose': {}
+        }
+    }]
+}, {
+    filters: [{
+        manufacturerData: {
+            17: {},
+            18: {}
+        },
+        serviceData: {
+            'glucose': {}
+        }
+    }]
+}];
+
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    let promises = [];
+    extra_data_filters.forEach(args => {
+        promises.push(promise_rejects(t, 'NotFoundError', window.navigator.bluetooth.requestDevice(args)));
+    });
+    return Promise.all(promises);
+}, 'Requesting with an extra service/manufacturerData, which is not advertised, rejects with NotFoundError.');
+</script>
