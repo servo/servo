@@ -398,4 +398,9 @@ impl<E: Element<Impl=SelectorImpl>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
+
+    #[inline]
+    fn matches_user_and_author_rules(&self) -> bool {
+        true
+    }
 }

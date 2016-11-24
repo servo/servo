@@ -106,6 +106,7 @@ pub enum CacheMiss {
     LocalName,
     Namespace,
     Link,
+    UserAndAuthorRules,
     State,
     IdAttr,
     StyleAttr,
@@ -141,6 +142,10 @@ fn element_matches_candidate<E: TElement>(element: &E,
 
     if element.is_link() != candidate_element.is_link() {
         miss!(Link)
+    }
+
+    if element.matches_user_and_author_rules() != candidate_element.matches_user_and_author_rules() {
+        miss!(UserAndAuthorRules)
     }
 
     if element.get_state() != candidate_element.get_state() {
