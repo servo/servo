@@ -435,7 +435,8 @@ impl Shorthand {
     pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
                                                    dest: &mut W,
                                                    declarations: I,
-                                                   is_first_serialization: &mut bool)
+                                                   is_first_serialization: &mut bool,
+                                                   is_important: bool)
                                                    -> Result<bool, fmt::Error>
     where W: Write, I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
         match self.get_shorthand_appendable_value(declarations) {
@@ -448,7 +449,8 @@ impl Shorthand {
                     property_name,
                     appendable_value,
                     Importance::Normal,
-                    is_first_serialization
+                    is_first_serialization,
+                    is_important
                 ).and_then(|_| Ok(true))
             }
         }

@@ -89,13 +89,21 @@ impl PropertyDeclarationBlock {
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(&(ref declaration, _importance)) => list.push(declaration),
+                    Some(&(ref declaration, importance)) => {
+                        // If there is an longhand with important, we don't
+                        // serialize it as a shorthand.
+                        if importance.important() {
+                            return Ok(());
+                        }
+                        list.push(declaration);
+                    },
                     None => return Ok(()),
                 }
             }
 
             // Step 2.3
-            // TODO: importance is hardcoded because method does not implement it yet
+            // We don't print !important when serializing individual properties,
+            // so we treat this as a normal-importance property
             let importance = Importance::Normal;
             let appendable_value = shorthand.get_shorthand_appendable_value(list).unwrap();
             return append_declaration_value(dest, appendable_value, importance)
@@ -287,14 +295,14 @@ impl ToCss for PropertyDeclarationBlock {
                         continue;
                     }
 
-                    // TODO: serialize shorthand does not take is_important into account currently
                     // Substep 5
                     let was_serialized =
                         try!(
                             shorthand.serialize_shorthand_to_buffer(
                                 dest,
                                 current_longhands.iter().cloned(),
-                                &mut is_first_serialization
+                                &mut is_first_serialization,
+                                is_important
                             )
                         );
                     // If serialization occured, Substep 7 & 8 will have been completed
@@ -334,7 +342,8 @@ impl ToCss for PropertyDeclarationBlock {
                 &property.to_string(),
                 AppendableValue::Declaration(declaration),
                 importance,
-                &mut is_first_serialization));
+                &mut is_first_serialization,
+                false));
 
             // Step 3.3.8
             already_serialized.push(property);
@@ -392,7 +401,8 @@ pub fn append_serialization<'a, W, I>(dest: &mut W,
                                   property_name: &str,
                                   appendable_value: AppendableValue<'a, I>,
                                   importance: Importance,
-                                  is_first_serialization: &mut bool)
+                                  is_first_serialization: &mut bool,
+                                  is_important: bool)
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
     try!(handle_first_serialization(dest, is_first_serialization));
@@ -420,6 +430,9 @@ pub fn append_serialization<'a, W, I>(dest: &mut W,
     }
 
     try!(append_declaration_value(dest, appendable_value, importance));
+    if is_important {
+        try!(write!(dest, " !important"));
+    }
     write!(dest, ";")
 }
 
