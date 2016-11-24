@@ -153,7 +153,7 @@ impl HTMLIFrameElement {
 
             global_scope
                   .constellation_chan()
-                  .send(ConstellationMsg::ScriptDidLoadURLInIFrame(load_info, pipeline_sender))
+                  .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
                   .unwrap();
 
             let new_layout_info = NewLayoutInfo {
