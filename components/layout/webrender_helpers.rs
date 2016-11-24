@@ -8,7 +8,7 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Matrix4D, Point2D, Rect, Size2D, TypedRect};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use gfx_traits::{FragmentType, ScrollPolicy, ScrollRootId};
@@ -362,20 +362,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::PushScrollRoot(ref item) => {
-                let overflow = TypedRect::new(Point2D::zero(), item.scroll_root.size);
-                let context = webrender_traits::StackingContext::new(
-                        webrender_traits::ScrollPolicy::Scrollable,
-                        item.scroll_root.clip.to_rectf(),
-                        overflow.to_rectf(),
-                        0,
-                        &Matrix4D::identity(),
-                        &Matrix4D::identity(),
-                        mix_blend_mode::T::normal.to_blend_mode(),
-                        filter::T::new(Vec::new()).to_filter_ops(),
-                        &mut frame_builder.auxiliary_lists_builder);
-                builder.push_stacking_context(context);
+                builder.push_scroll_layer(item.scroll_root.clip.to_rectf(),
+                                          item.scroll_root.size.to_sizef(),
+                                          frame_builder.next_scroll_layer_id(item.scroll_root.id));
             }
-            DisplayItem::PopScrollRoot(_) => builder.pop_stacking_context(),
+            DisplayItem::PopScrollRoot(_) => builder.pop_scroll_layer(),
         }
     }
 }

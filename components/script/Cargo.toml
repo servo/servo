@@ -83,4 +83,4 @@ xml5ever = {version = "0.2", features = ["unstable"]}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["nightly", "serde_derive"]
+features = ["nightly", "serde_derive", "ipc"]
