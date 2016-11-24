@@ -3,21 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use about_loader;
-use blob_loader;
-use chrome_loader;
 use connector::{Connector, create_http_connector};
 use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
-use data_loader;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::methods::{FetchContext, fetch};
-use file_loader;
 use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
-use http_loader::{self, HttpState};
+use http_loader::HttpState;
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -26,7 +21,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
 use net_traits::{CookieSource, CoreResourceThread, Metadata, ProgressMsg};
 use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
-use net_traits::{CustomResponseMediator, LoadData, LoadResponse, NetworkError, ResourceId};
+use net_traits::{CustomResponseMediator, LoadResponse, NetworkError, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
@@ -37,8 +32,6 @@ use rustc_serialize::{Decodable, Encodable};
 use rustc_serialize::json;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
-use std::boxed::FnBox;
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
@@ -47,7 +40,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::Sender;
 use storage_thread::StorageThreadFactory;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
@@ -168,8 +161,6 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
-    let public_setup_chan_clone = public_setup_chan.clone();
-    let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
             user_agent, devtools_chan, profiler_chan
@@ -179,9 +170,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
             resource_manager: resource_manager,
             config_dir: config_dir,
         };
-        channel_manager.start(public_setup_chan_clone,
-                              private_setup_chan_clone,
-                              public_setup_port,
+        channel_manager.start(public_setup_port,
                               private_setup_port);
     });
     (public_setup_chan, private_setup_chan)
@@ -220,8 +209,6 @@ fn create_resource_groups(config_dir: Option<&Path>)
 impl ResourceChannelManager {
     #[allow(unsafe_code)]
     fn start(&mut self,
-             public_control_sender: CoreResourceThread,
-             private_control_sender: CoreResourceThread,
              public_receiver: IpcReceiver<CoreResourceMsg>,
              private_receiver: IpcReceiver<CoreResourceMsg>) {
         let (public_resource_group, private_resource_group) =
@@ -233,15 +220,15 @@ impl ResourceChannelManager {
 
         loop {
             for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
-                let (group, sender) = if id == private_id {
-                    (&private_resource_group, &private_control_sender)
+                let group = if id == private_id {
+                    &private_resource_group
                 } else {
                     assert_eq!(id, public_id);
-                    (&public_resource_group, &public_control_sender)
+                    &public_resource_group
                 };
                 if let Ok(msg) = data.to() {
-                    if !self.process_msg(msg, group, &sender) {
-                        break;
+                    if !self.process_msg(msg, group) {
+                        return;
                     }
                 }
             }
@@ -251,11 +238,8 @@ impl ResourceChannelManager {
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
-                   group: &ResourceGroup,
-                   control_sender: &CoreResourceThread) -> bool {
+                   group: &ResourceGroup) -> bool {
         match msg {
-            CoreResourceMsg::Load(load_data, consumer, id_sender) =>
-                self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone(), group),
             CoreResourceMsg::Fetch(init, sender) =>
                 self.resource_manager.fetch(init, sender, group),
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
@@ -285,7 +269,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, None, TFD_PROVIDER),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match group.auth_cache.read() {
@@ -365,69 +349,6 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
     }
 }
 
-/// The optional resources required by the `CancellationListener`
-pub struct CancellableResource {
-    /// The receiver which receives a message on load cancellation
-    cancel_receiver: Receiver<()>,
-    /// The `CancellationListener` is unique to this `ResourceId`
-    resource_id: ResourceId,
-    /// If we haven't initiated any cancel requests, then the loaders ask
-    /// the listener to remove the `ResourceId` in the `HashMap` of
-    /// `CoreResourceManager` once they finish loading
-    resource_thread: CoreResourceThread,
-}
-
-impl CancellableResource {
-    pub fn new(receiver: Receiver<()>, res_id: ResourceId, res_thread: CoreResourceThread) -> CancellableResource {
-        CancellableResource {
-            cancel_receiver: receiver,
-            resource_id: res_id,
-            resource_thread: res_thread,
-        }
-    }
-}
-
-/// A listener which is basically a wrapped optional receiver which looks
-/// for the load cancellation message. Some of the loading processes always keep
-/// an eye out for this message and stop loading stuff once they receive it.
-pub struct CancellationListener {
-    /// We'll be needing the resources only if we plan to cancel it
-    cancel_resource: Option<CancellableResource>,
-    /// This lets us know whether the request has already been cancelled
-    cancel_status: Cell<bool>,
-}
-
-impl CancellationListener {
-    pub fn new(resources: Option<CancellableResource>) -> CancellationListener {
-        CancellationListener {
-            cancel_resource: resources,
-            cancel_status: Cell::new(false),
-        }
-    }
-
-    pub fn is_cancelled(&self) -> bool {
-        let resource = match self.cancel_resource {
-            Some(ref resource) => resource,
-            None => return false,  // channel doesn't exist!
-        };
-        if resource.cancel_receiver.try_recv().is_ok() {
-            self.cancel_status.set(true);
-            true
-        } else {
-            self.cancel_status.get()
-        }
-    }
-}
-
-impl Drop for CancellationListener {
-    fn drop(&mut self) {
-        if let Some(ref resource) = self.cancel_resource {
-            // Ensure that the resource manager stops tracking this request now that it's terminated.
-            let _ = resource.resource_thread.send(CoreResourceMsg::Cancel(resource.resource_id));
-        }
-    }
-}
-
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct AuthCacheEntry {
     pub user_name: String,
@@ -451,28 +372,22 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     user_agent: Cow<'static, str>,
-    mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
-    profiler_chan: ProfilerChan,
     filemanager: FileManager,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
-    next_resource_id: ResourceId,
 }
 
 impl CoreResourceManager {
     pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               profiler_chan: ProfilerChan) -> CoreResourceManager {
+               _profiler_chan: ProfilerChan) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
-            mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
             swmanager_chan: None,
-            profiler_chan: profiler_chan,
             filemanager: FileManager::new(),
             cancel_load_map: HashMap::new(),
-            next_resource_id: ResourceId(0),
         }
     }
 
@@ -498,66 +413,6 @@ impl CoreResourceManager {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, source)
         }
-    }
-
-    fn load(&mut self,
-            load_data: LoadData,
-            consumer: LoadConsumer,
-            id_sender: Option<IpcSender<ResourceId>>,
-            resource_thread: CoreResourceThread,
-            resource_grp: &ResourceGroup) {
-        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MimeClassifier>, CancellationListener))
-                        -> Box<FnBox(LoadData,
-                                     LoadConsumer,
-                                     Arc<MimeClassifier>,
-                                     CancellationListener) + Send> {
-            box move |load_data, senders, classifier, cancel_listener| {
-                factory(load_data, senders, classifier, cancel_listener)
-            }
-        }
-
-        let cancel_resource = id_sender.map(|sender| {
-            let current_res_id = self.next_resource_id;
-            let _ = sender.send(current_res_id);
-            let (cancel_sender, cancel_receiver) = channel();
-            self.cancel_load_map.insert(current_res_id, cancel_sender);
-            self.next_resource_id.0 += 1;
-            CancellableResource::new(cancel_receiver, current_res_id, resource_thread)
-        });
-
-        let cancel_listener = CancellationListener::new(cancel_resource);
-        let loader = match load_data.url.scheme() {
-            "chrome" => from_factory(chrome_loader::factory),
-            "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" => {
-                let http_state = HttpState {
-                    blocked_content: BLOCKED_CONTENT_RULES.clone(),
-                    hsts_list: resource_grp.hsts_list.clone(),
-                    cookie_jar: resource_grp.cookie_jar.clone(),
-                    auth_cache: resource_grp.auth_cache.clone()
-                };
-                http_loader::factory(self.user_agent.clone(),
-                                     http_state,
-                                     self.devtools_chan.clone(),
-                                     self.profiler_chan.clone(),
-                                     self.swmanager_chan.clone(),
-                                     resource_grp.connector.clone())
-            },
-            "data" => from_factory(data_loader::factory),
-            "about" => from_factory(about_loader::factory),
-            "blob" => blob_loader::factory(self.filemanager.clone()),
-            _ => {
-                debug!("resource_thread: no loader for scheme {}", load_data.url.scheme());
-                send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
-                return
-            }
-        };
-        debug!("loading url: {}", load_data.url);
-
-        loader.call_box((load_data,
-                         consumer,
-                         self.mime_classifier.clone(),
-                         cancel_listener));
     }
 
     fn fetch(&self,

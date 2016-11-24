@@ -47,9 +47,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FilteredMetadata};
-use net_traits::{FetchResponseListener, LoadOrigin, NetworkError, ReferrerPolicy};
+use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
@@ -269,20 +268,6 @@ impl XMLHttpRequest {
             listener.notify_fetch(message.to().unwrap());
         });
         global.core_resource_thread().send(Fetch(init, action_sender)).unwrap();
-    }
-}
-
-impl LoadOrigin for XMLHttpRequest {
-    fn referrer_url(&self) -> Option<ServoUrl> {
-        return self.referrer_url.clone();
-    }
-
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy;
-    }
-
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.global().pipeline_id())
     }
 }
 
@@ -597,7 +582,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             origin: self.global().get_url(),
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
-            pipeline_id: self.pipeline_id(),
+            pipeline_id: Some(self.global().pipeline_id()),
             .. RequestInit::default()
         };
 

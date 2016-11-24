@@ -40,7 +40,6 @@ use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
-use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -132,61 +131,6 @@ pub enum ReferrerPolicy {
     StrictOrigin,
     /// "strict-origin-when-cross-origin"
     StrictOriginWhenCrossOrigin,
-}
-
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
-pub struct LoadData {
-    pub url: ServoUrl,
-    #[ignore_heap_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    pub method: Method,
-    #[ignore_heap_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    /// Headers that will apply to the initial request only
-    pub headers: Headers,
-    #[ignore_heap_size_of = "Defined in hyper"]
-    #[serde(deserialize_with = "::hyper_serde::deserialize",
-            serialize_with = "::hyper_serde::serialize")]
-    /// Headers that will apply to the initial request and any redirects
-    /// Unused in fetch
-    pub preserved_headers: Headers,
-    pub data: Option<Vec<u8>>,
-    pub cors: Option<ResourceCorsData>,
-    pub pipeline_id: Option<PipelineId>,
-    // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
-    pub credentials_flag: bool,
-    pub context: LoadContext,
-    /// The policy and referring URL for the originator of this request
-    pub referrer_policy: Option<ReferrerPolicy>,
-    pub referrer_url: Option<ServoUrl>
-}
-
-impl LoadData {
-    pub fn new(context: LoadContext,
-               url: ServoUrl,
-               load_origin: &LoadOrigin) -> LoadData {
-        LoadData {
-            url: url,
-            method: Method::Get,
-            headers: Headers::new(),
-            preserved_headers: Headers::new(),
-            data: None,
-            cors: None,
-            pipeline_id: load_origin.pipeline_id(),
-            credentials_flag: true,
-            context: context,
-            referrer_policy: load_origin.referrer_policy(),
-            referrer_url: load_origin.referrer_url().clone(),
-        }
-    }
-}
-
-pub trait LoadOrigin {
-    fn referrer_url(&self) -> Option<ServoUrl>;
-    fn referrer_policy(&self) -> Option<ReferrerPolicy>;
-    fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
 #[derive(Deserialize, Serialize)]
@@ -414,8 +358,6 @@ pub struct WebSocketConnectData {
 
 #[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
-    /// Request the data associated with a particular URL
-    Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),

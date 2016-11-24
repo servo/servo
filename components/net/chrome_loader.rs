@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use file_loader;
-use mime_classifier::MimeClassifier;
-use net_traits::{LoadConsumer, LoadData, NetworkError};
-use resource_thread::{CancellationListener, send_error};
 use servo_url::ServoUrl;
 use std::fs::canonicalize;
-use std::sync::Arc;
 use url::percent_encoding::percent_decode;
 use util::resource_files::resources_dir_path;
 
@@ -33,21 +28,4 @@ pub fn resolve_chrome_url(url: &ServoUrl) -> Result<ServoUrl, ()> {
         }
         _ => Err(())
     }
-}
-
-pub fn factory(mut load_data: LoadData,
-               start_chan: LoadConsumer,
-               classifier: Arc<MimeClassifier>,
-               cancel_listener: CancellationListener) {
-    let file_url = match resolve_chrome_url(&load_data.url) {
-        Ok(url) => url,
-        Err(_) => {
-            send_error(load_data.url,
-                       NetworkError::Internal("Invalid chrome URL.".to_owned()),
-                       start_chan);
-            return;
-        }
-    };
-    load_data.url = file_url;
-    file_loader::factory(load_data, start_chan, classifier, cancel_listener)
 }

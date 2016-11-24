@@ -125,7 +125,6 @@ pub enum LayoutControlMsg {
     GetWebFontLoadState(IpcSender<bool>),
 }
 
-/// Similar to `net::resource_thread::LoadData`
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Deserialize, Serialize)]
