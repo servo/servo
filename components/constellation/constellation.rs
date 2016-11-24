@@ -919,11 +919,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                        load_info.info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            FromScriptMsg::ScriptDidLoadURLInIFrame(load_info, lc) => {
-                debug!("constellation got did load iframe URL message {:?} {:?}",
+            FromScriptMsg::ScriptLoadedAboutBlankInIFrame(load_info, lc) => {
+                debug!("constellation got loaded `about:blank` in iframe message {:?} {:?}",
                        load_info.parent_pipeline_id,
                        load_info.new_pipeline_id);
-                self.handle_script_did_load_url_in_iframe_msg(load_info, lc);
+                self.handle_script_loaded_about_blank_in_iframe_msg(load_info, lc);
             }
             FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
@@ -1419,9 +1419,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         });
     }
 
-    fn handle_script_did_load_url_in_iframe_msg(&mut self,
-                                                load_info: IFrameLoadInfo,
-                                                layout_sender: IpcSender<LayoutControlMsg>) {
+    fn handle_script_loaded_about_blank_in_iframe_msg(&mut self,
+                                                      load_info: IFrameLoadInfo,
+                                                      layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,

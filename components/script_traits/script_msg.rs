@@ -108,8 +108,8 @@ pub enum ScriptMsg {
     VisibilityChangeComplete(PipelineId, bool),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
-    /// A load has been completed in an IFrame.
-    ScriptDidLoadURLInIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    /// A load of `about:blank` has been completed in an IFrame.
+    ScriptLoadedAboutBlankInIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
