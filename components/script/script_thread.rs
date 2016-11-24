@@ -1201,10 +1201,14 @@ impl ScriptThread {
         });
 
         // Pick a layout thread, any layout thread
-        match self.documents.borrow().iter().next() {
+        let current_layout_chan = self.documents.borrow().iter().next()
+            .map(|(_, document)| document.window().layout_chan().clone())
+            .or_else(|| self.incomplete_loads.borrow().first().map(|load| load.layout_chan.clone()));
+
+        match current_layout_chan {
             None => panic!("Layout attached to empty script thread."),
             // Tell the layout thread factory to actually spawn the thread.
-            Some((_, document)) => document.window().layout_chan().send(msg).unwrap(),
+            Some(layout_chan) => layout_chan.send(msg).unwrap(),
         };
 
         // Kick off the fetch for the new resource.
