@@ -52,7 +52,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.4"
+offscreen_gl_context = "0.5.0"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
@@ -83,4 +83,4 @@ xml5ever = {version = "0.2", features = ["unstable"]}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["nightly", "serde_derive"]
+features = ["nightly", "serde_derive", "ipc"]

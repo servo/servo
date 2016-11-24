@@ -8,10 +8,10 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Matrix4D, Point2D, Rect, Size2D, TypedRect};
+use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
-use gfx_traits::{FragmentType, ScrollPolicy, StackingContextId, ScrollRootId};
+use gfx_traits::{FragmentType, ScrollPolicy, ScrollRootId};
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
@@ -346,22 +346,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     ScrollPolicy::FixedPosition => webrender_traits::ScrollPolicy::Fixed,
                 };
 
-                let scroll_layer_id = if stacking_context.id == StackingContextId::root() {
-                    Some(frame_builder.next_scroll_layer_id(ScrollRootId::root()))
-                } else {
-                    None
-                };
-
                 let context =
                     webrender_traits::StackingContext::new(
-                        scroll_layer_id,
                         webrender_scroll_policy,
                         stacking_context.bounds.to_rectf(),
                         stacking_context.overflow.to_rectf(),
                         stacking_context.z_index,
                         &stacking_context.transform,
                         &stacking_context.perspective,
-                        stacking_context.establishes_3d_context,
                         stacking_context.blend_mode.to_blend_mode(),
                         stacking_context.filters.to_filter_ops(),
                         &mut frame_builder.auxiliary_lists_builder);
@@ -370,22 +362,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::PushScrollRoot(ref item) => {
-                let overflow = TypedRect::new(Point2D::zero(), item.scroll_root.size);
-                let context = webrender_traits::StackingContext::new(
-                        Some(frame_builder.next_scroll_layer_id(item.scroll_root.id)),
-                        webrender_traits::ScrollPolicy::Scrollable,
-                        item.scroll_root.clip.to_rectf(),
-                        overflow.to_rectf(),
-                        0,
-                        &Matrix4D::identity(),
-                        &Matrix4D::identity(),
-                        true,
-                        mix_blend_mode::T::normal.to_blend_mode(),
-                        filter::T::new(Vec::new()).to_filter_ops(),
-                        &mut frame_builder.auxiliary_lists_builder);
-                builder.push_stacking_context(context);
+                builder.push_scroll_layer(item.scroll_root.clip.to_rectf(),
+                                          item.scroll_root.size.to_sizef(),
+                                          frame_builder.next_scroll_layer_id(item.scroll_root.id));
             }
-            DisplayItem::PopScrollRoot(_) => builder.pop_stacking_context(),
+            DisplayItem::PopScrollRoot(_) => builder.pop_scroll_layer(),
         }
     }
 }

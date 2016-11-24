@@ -25,7 +25,7 @@ layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = "0.4"
+offscreen_gl_context = "0.5.0"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
@@ -39,7 +39,7 @@ util = {path = "../util"}
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_derive"]
+features = ["serde_derive", "ipc"]
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

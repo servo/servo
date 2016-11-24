@@ -70,7 +70,7 @@ features = ["serde_derive"]
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false
-features = ["serde_derive"]
+features = ["serde_derive", "ipc"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"

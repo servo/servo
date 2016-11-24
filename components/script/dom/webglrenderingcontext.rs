@@ -44,6 +44,7 @@ use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
+use webrender_traits;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLParameter};
 use webrender_traits::WebGLError::*;
 
@@ -597,7 +598,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Finish(&self) {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Finish(sender)))
             .unwrap();
@@ -606,7 +607,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferWidth(&self) -> i32 {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferWidth(sender)))
             .unwrap();
@@ -615,7 +616,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferHeight(&self) -> i32 {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferHeight(sender)))
             .unwrap();
@@ -625,7 +626,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetBufferParameter(target, parameter, sender)))
             .unwrap();
@@ -681,7 +682,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => {}
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
             .unwrap();
@@ -719,7 +720,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
     fn GetContextAttributes(&self) -> Option<WebGLContextAttributes> {
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
 
         // If the send does not succeed, assume context lost
         if let Err(_) = self.ipc_renderer
@@ -1626,7 +1627,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return result.get()
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
 
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
@@ -1671,7 +1672,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn IsEnabled(&self, cap: u32) -> bool {
         if self.validate_feature_enum(cap) {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::IsEnabled(cap, sender)))
                 .unwrap();
@@ -1873,7 +1874,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return Ok(self.webgl_error(InvalidOperation)),
         };
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender)))
             .unwrap();
