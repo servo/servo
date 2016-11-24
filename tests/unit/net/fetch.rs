@@ -163,6 +163,26 @@ fn test_fetch_file() {
 }
 
 #[test]
+fn test_fetch_ftp() {
+    let url = ServoUrl::parse("ftp://not-supported").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+    let fetch_response = fetch_sync(request, None);
+    assert!(fetch_response.is_network_error());
+}
+
+#[test]
+fn test_fetch_bogus_scheme() {
+    let url = ServoUrl::parse("bogus://whatever").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+    let fetch_response = fetch_sync(request, None);
+    assert!(fetch_response.is_network_error());
+}
+
+#[test]
 fn test_cors_preflight_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
