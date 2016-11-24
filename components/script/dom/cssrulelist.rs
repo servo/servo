@@ -16,7 +16,6 @@ use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::{CssRules, KeyframesRule, RulesMutateError};
-use style::stylesheets::CssRule as StyleCssRule;
 
 no_jsmanaged_fields!(RulesSource);
 no_jsmanaged_fields!(CssRules);
@@ -97,37 +96,14 @@ impl CSSRuleList {
         Ok((idx))
     }
 
-    // https://drafts.csswg.org/cssom/#remove-a-css-rule
-    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule
     // In case of a keyframe rule, index must be valid.
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                // https://drafts.csswg.org/cssom/#remove-a-css-rule
-                {
-                    let rules = css_rules.0.read();
-
-                    // Step 1, 2
-                    if index >= rules.len() {
-                        return Err(Error::IndexSize);
-                    }
-
-                    // Step 3
-                    let ref rule = rules[index];
-
-                    // Step 4
-                    if let StyleCssRule::Namespace(..) = *rule {
-                        if !CssRules::only_ns_or_import(&rules) {
-                            return Err(Error::InvalidState);
-                        }
-                    }
-                }
-
-                // Step 5, 6
+                css_rules.remove_rule(index)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
-                css_rules.0.write().remove(index);
                 dom_rules[index].get().map(|r| r.detach());
                 dom_rules.remove(index);
                 Ok(())

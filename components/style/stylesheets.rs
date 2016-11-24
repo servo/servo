@@ -119,7 +119,7 @@ impl CssRules {
         }
     }
 
-    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
+    // https://drafts.csswg.org/cssom/#insert-a-css-rule
     pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
         let mut rules = self.0.write();
@@ -157,6 +157,32 @@ impl CssRules {
 
         rules.insert(index, new_rule.clone());
         Ok(new_rule)
+    }
+
+    // https://drafts.csswg.org/cssom/#remove-a-css-rule
+    pub fn remove_rule(&self, index: usize) -> Result<(), RulesMutateError> {
+        let mut rules = self.0.write();
+
+        // Step 1, 2
+        if index >= rules.len() {
+            return Err(RulesMutateError::IndexSize);
+        }
+
+        {
+            // Step 3
+            let ref rule = rules[index];
+
+            // Step 4
+            if let CssRule::Namespace(..) = *rule {
+                if !CssRules::only_ns_or_import(&rules) {
+                    return Err(RulesMutateError::InvalidState);
+                }
+            }
+        }
+
+        // Step 5, 6
+        rules.remove(index);
+        Ok(())
     }
 }
 
