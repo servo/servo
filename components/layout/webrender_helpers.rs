@@ -361,7 +361,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         stacking_context.z_index,
                         &stacking_context.transform,
                         &stacking_context.perspective,
-                        stacking_context.establishes_3d_context,
                         stacking_context.blend_mode.to_blend_mode(),
                         stacking_context.filters.to_filter_ops(),
                         &mut frame_builder.auxiliary_lists_builder);
@@ -379,7 +378,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         0,
                         &Matrix4D::identity(),
                         &Matrix4D::identity(),
-                        true,
                         mix_blend_mode::T::normal.to_blend_mode(),
                         filter::T::new(Vec::new()).to_filter_ops(),
                         &mut frame_builder.auxiliary_lists_builder);
