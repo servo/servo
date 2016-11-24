@@ -95,11 +95,14 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
                          -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
+
+        // Step 1.
         let uuid = match BluetoothUUID::characteristic(characteristic) {
             Ok(uuid) => uuid.to_string(),
             Err(e) => {
@@ -107,14 +110,23 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 return p;
             }
         };
+
+        // Step 2.
         if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
             p.reject_error(p_cx, Security);
             return p;
         }
+
+        // Step 3 - 4.
         if !self.Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 5: Implement representedService internal slot for BluetootRemoteGATTService.
+
+        // Note: Steps 6 - 7 are implemented is components/bluetooth/lib.rs in get_characteristic function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
@@ -123,6 +135,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetCharacteristics(&self,
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Rc<Promise> {
@@ -130,6 +143,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         let p_cx = p.global().get_cx();
         let mut uuid: Option<String> = None;
         if let Some(c) = characteristic {
+            // Step 1.
             uuid = match BluetoothUUID::characteristic(c) {
                 Ok(uuid) => Some(uuid.to_string()),
                 Err(e) => {
@@ -138,16 +152,24 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 }
             };
             if let Some(ref uuid) = uuid {
+                // Step 2.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                     p.reject_error(p_cx, Security);
                     return p;
                 }
             }
         };
+
+        // Step 3 - 4.
         if !self.Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 5: Implement representedService internal slot for BluetootRemoteGATTService.
+
+        // Note: Steps 6 - 7 are implemented is components/bluetooth/lib.rs in get_characteristics function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
@@ -156,11 +178,14 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetIncludedService(&self,
                           service: BluetoothServiceUUID)
                           -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
+
+        // Step 1.
         let uuid = match BluetoothUUID::service(service) {
             Ok(uuid) => uuid.to_string(),
             Err(e) => {
@@ -168,14 +193,23 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 return p;
             }
         };
+
+        // Step 2.
         if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
             p.reject_error(p_cx, Security);
             return p;
         }
+
+        // Step 3 - 4.
         if !self.Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 5: Implement representedService internal slot for BluetootRemoteGATTService.
+
+        // Note: Steps 6 - 7 are implemented is components/bluetooth/lib.rs in get_included_service function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetIncludedService(self.get_instance_id(),
@@ -187,6 +221,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetIncludedServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
@@ -194,6 +229,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         let p_cx = p.global().get_cx();
         let mut uuid: Option<String> = None;
         if let Some(s) = service {
+            // Step 1.
             uuid = match BluetoothUUID::service(s) {
                 Ok(uuid) => Some(uuid.to_string()),
                 Err(e) => {
@@ -202,16 +238,24 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 }
             };
             if let Some(ref uuid) = uuid {
+                // Step 2.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                     p.reject_error(p_cx, Security);
                     return p;
                 }
             }
         };
+
+        // Step 3 - 4.
         if !self.Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 5: Implement representedService internal slot for BluetootRemoteGATTService.
+
+        // Note: Steps 6 - 7 are implemented is components/bluetooth/lib.rs in get_included_services function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::GetIncludedServices(self.get_instance_id(),
@@ -233,6 +277,9 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+            // Step 7.
             BluetoothResponse::GetCharacteristic(characteristic) => {
                 let context = self.device.get().get_context();
                 let mut characteristic_map = context.get_characteristic_map().borrow_mut();
@@ -258,6 +305,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 characteristic_map.insert(characteristic.instance_id, MutHeap::new(&bt_characteristic));
                 promise.resolve_native(promise_cx, &bt_characteristic);
             },
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+            // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec) => {
                 let mut characteristics = vec!();
                 let context = self.device.get().get_context();
@@ -292,6 +342,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 }
                 promise.resolve_native(promise_cx, &characteristics);
             },
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+            // Step 7.
             BluetoothResponse::GetIncludedService(service) => {
                 let s =
                     BluetoothRemoteGATTService::new(&self.global(),
@@ -301,6 +354,9 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                                                     service.instance_id);
                 promise.resolve_native(promise_cx, &s);
             },
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+            // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec) => {
                 let s: Vec<Root<BluetoothRemoteGATTService>> =
                     services_vec.into_iter()
