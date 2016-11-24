@@ -78,6 +78,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
     fn Gatt(&self) -> Root<BluetoothRemoteGATTServer> {
+        // TODO: Step 1 - 2: Implement the Permission API.
         self.gatt.or_init(|| {
             BluetoothRemoteGATTServer::new(&self.global(), self)
         })
