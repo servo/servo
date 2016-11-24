@@ -101,6 +101,8 @@ impl PseudoElementCascadeType {
 
 pub trait ElementExt: Element<Impl=SelectorImpl> {
     fn is_link(&self) -> bool;
+
+    fn matches_user_and_author_rules(&self) -> bool;
 }
 
 impl SelectorImpl {

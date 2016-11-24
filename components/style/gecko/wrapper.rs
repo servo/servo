@@ -28,6 +28,7 @@ use gecko_bindings::bindings::Gecko_StoreStyleDifference;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
+use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
@@ -623,5 +624,10 @@ impl<'le> ElementExt for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
+    }
+
+    #[inline]
+    fn matches_user_and_author_rules(&self) -> bool {
+        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) == 0
     }
 }
