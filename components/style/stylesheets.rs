@@ -60,6 +60,22 @@ impl From<Vec<CssRule>> for CssRules {
     }
 }
 
+pub enum RulesMutateError {
+    Syntax,
+    IndexSize,
+    HierarchyRequest,
+    InvalidState,
+}
+
+impl From<SingleRuleParseError> for RulesMutateError {
+    fn from(other: SingleRuleParseError) -> Self {
+        match other {
+            SingleRuleParseError::Syntax => RulesMutateError::Syntax,
+            SingleRuleParseError::Hierarchy => RulesMutateError::HierarchyRequest,
+        }
+    }
+}
+
 impl CssRules {
     // used in CSSOM
     pub fn only_ns_or_import(rules: &[CssRule]) -> bool {
@@ -101,6 +117,46 @@ impl CssRules {
         } else {
             State::Body
         }
+    }
+
+    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
+    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+                       -> Result<CssRule, RulesMutateError> {
+        let mut rules = self.0.write();
+
+        // Step 1, 2
+        if index > rules.len() {
+            return Err(RulesMutateError::IndexSize);
+        }
+
+        let state = if nested {
+            None
+        } else {
+            Some(CssRules::state_at_index(&rules, index))
+        };
+
+        // Step 3, 4
+        // XXXManishearth should we also store the namespace map?
+        let (new_rule, new_state) = try!(CssRule::parse(&rule, Origin::Author, base_url,
+                                                        ParserContextExtraData::default(), state));
+
+        // Step 5
+        let rev_state = CssRules::state_at_index_rev(&rules, index);
+        if new_state > rev_state {
+            // We inserted a rule too early, e.g. inserting
+            // a regular style rule before @namespace rules
+            return Err(RulesMutateError::HierarchyRequest);
+        }
+
+        // Step 6
+        if let CssRule::Namespace(..) = new_rule {
+            if !CssRules::only_ns_or_import(&rules) {
+                return Err(RulesMutateError::InvalidState);
+            }
+        }
+
+        rules.insert(index, new_rule.clone());
+        Ok(new_rule)
     }
 }
 
