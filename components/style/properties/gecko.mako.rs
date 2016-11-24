@@ -1817,7 +1817,8 @@ fn static_assert() {
 
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing">
+                  skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
+                                  -webkit-text-fill-color -webkit-text-stroke-color -webkit-text-stroke-width">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -1963,6 +1964,21 @@ fn static_assert() {
         }
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
     }
+
+    <%call expr="impl_color_setter('_webkit_text_fill_color', 'mWebkitTextFillColor')"></%call>
+    <%call expr="impl_color_copy('_webkit_text_fill_color', 'mWebkitTextFillColor')"></%call>
+    <%call expr="impl_color_clone('_webkit_text_fill_color', 'mWebkitTextFillColor')"></%call>
+
+    <%call expr="impl_color_setter('_webkit_text_stroke_color', 'mWebkitTextStrokeColor')"></%call>
+    <%call expr="impl_color_copy('_webkit_text_stroke_color', 'mWebkitTextStrokeColor')"></%call>
+    <%call expr="impl_color_clone('_webkit_text_stroke_color', 'mWebkitTextStrokeColor')"></%call>
+
+    #[allow(non_snake_case)]
+    pub fn set__webkit_text_stroke_width(&mut self, v: longhands::_webkit_text_stroke_width::computed_value::T) {
+        self.gecko.mWebkitTextStrokeWidth.set_value(CoordDataValue::Coord(v.0));
+    }
+
+    <%call expr="impl_coord_copy('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth')"></%call>
 
 </%self:impl_trait>
 
