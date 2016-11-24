@@ -39677,6 +39677,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom/shorthand-serialization.html": [
+          {
+            "path": "cssom/shorthand-serialization.html",
+            "url": "/cssom/shorthand-serialization.html"
+          }
+        ],
         "html/semantics/forms/form-submission-0/submit-entity-body.html": [
           {
             "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
