@@ -112,11 +112,10 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         construct_flows_at(&self.context, self.root, node);
     }
 
-    fn should_traverse_child(child: N, restyled_previous_sibling_element: bool) -> bool {
+    fn should_traverse_child(child: N) -> bool {
         match child.as_element() {
             // Elements should be traversed if they need styling or flow construction.
-            Some(el) => restyled_previous_sibling_element ||
-                        el.styling_mode() != StylingMode::Stop ||
+            Some(el) => el.styling_mode() != StylingMode::Stop ||
                         el.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
 
             // Text nodes never need styling. However, there are two cases they may need

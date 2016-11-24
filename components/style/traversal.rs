@@ -6,8 +6,8 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::{ElementData, RestyleData};
-use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
+use data::{ElementData, RestyleData, StoredRestyleHint};
+use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF};
 use selectors::bloom::BloomFilter;
@@ -168,7 +168,7 @@ pub trait DomTraversalContext<N: TNode> {
     fn needs_postorder_traversal(&self) -> bool { true }
 
     /// Returns true if traversal should visit the given child.
-    fn should_traverse_child(child: N, restyled_previous_element_sibling: bool) -> bool;
+    fn should_traverse_child(child: N) -> bool;
 
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
@@ -180,16 +180,9 @@ pub trait DomTraversalContext<N: TNode> {
             return;
         }
 
-        // Parallel traversal enqueues all the children before processing any
-        // of them. This means that we need to conservatively enqueue all the
-        // later siblings of an element needing restyle, since computing its
-        // restyle hint may cause us to flag a restyle for later siblings.
-        let mut restyled_element = false;
-
         for kid in parent.as_node().children() {
-            if Self::should_traverse_child(kid, restyled_element) {
+            if Self::should_traverse_child(kid) {
                 if kid.as_element().map_or(false, |el| el.styling_mode() == Restyle) {
-                    restyled_element = true;
                     unsafe { parent.set_dirty_descendants(); }
                 }
                 f(kid);
@@ -279,12 +272,27 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     // redesign the bloom filter.
     let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
 
+    let mode = element.styling_mode();
     let should_compute = element.borrow_data().map_or(true, |d| d.get_current_styles().is_none());
     debug!("recalc_style_at: {:?} (should_compute={:?} mode={:?}, data={:?})",
-           element, should_compute, element.styling_mode(), element.borrow_data());
+           element, should_compute, mode, element.borrow_data());
 
-    if should_compute {
-        compute_style::<_, _, D>(context, element, &*bf);
+    let (computed_display_none, propagated_hint) = if should_compute {
+        compute_style::<_, _, D>(context, element, &*bf)
+    } else {
+        (false, StoredRestyleHint::empty())
+    };
+
+    // Preprocess children, computing restyle hints and handling sibling relationships.
+    //
+    // We don't need to do this if we're not traversing children, or if we're performing
+    // initial styling.
+    let will_traverse_children = !computed_display_none &&
+                                 (mode == StylingMode::Restyle ||
+                                  mode == StylingMode::Traverse);
+    if will_traverse_children {
+        preprocess_children::<_, _, D>(context, element, propagated_hint,
+                                       mode == StylingMode::Restyle);
     }
 
     let unsafe_layout_node = element.as_node().to_unsafe();
@@ -300,16 +308,13 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
 fn compute_style<'a, E, C, D>(context: &'a C,
                               element: E,
-                              bloom_filter: &BloomFilter)
+                              bloom_filter: &BloomFilter) -> (bool, StoredRestyleHint)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
 {
     let mut data = unsafe { D::ensure_element_data(&element).borrow_mut() };
     debug_assert!(!data.is_persistent());
-
-    // Grab a reference to the shared style system state.
-    let stylist = &context.shared_context().stylist;
 
     // Check to see whether we can share a style with someone.
     let style_sharing_candidate_cache =
@@ -366,26 +371,25 @@ fn compute_style<'a, E, C, D>(context: &'a C,
         }
     }
 
-    // Determine what kind of restyling we need to perform for our children. If
-    // we're performing initial styling on this element, we are also performing
-    // initial styling on any children, so we're done here.
-    if data.is_initial() {
-        return;
-    }
-    debug_assert!(data.is_restyle());
-
     // If we're restyling this element to display:none, throw away all style data
-    // in the subtree, and return.
-    if data.current_styles().is_display_none() {
+    // in the subtree, notify the caller to early-return.
+    let display_none = data.current_styles().is_display_none();
+    if display_none {
         debug!("New element style is display:none - clearing data from descendants.");
         clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
-        return;
     }
 
-    // Compute the hint to propagate. We may modify this during the loop if
-    // we encounter RESTYLE_LATER_SIBLINGS.
-    let mut propagated_hint = data.as_restyle().unwrap().hint.propagate();
+    (display_none, data.as_restyle().map_or(StoredRestyleHint::empty(), |r| r.hint.propagate()))
+}
 
+fn preprocess_children<'a, E, C, D>(context: &'a C,
+                                    element: E,
+                                    mut propagated_hint: StoredRestyleHint,
+                                    restyled_parent: bool)
+    where E: TElement,
+          C: StyleContext<'a>,
+          D: DomTraversalContext<E::ConcreteNode>
+{
     // Loop over all the children.
     for child in element.as_node().children() {
         // FIXME(bholley): Add TElement::element_children instead of this.
@@ -406,7 +410,8 @@ fn compute_style<'a, E, C, D>(context: &'a C,
         if child_data.has_snapshot() {
             // Compute the restyle hint.
             let mut restyle_data = child_data.ensure().unwrap();
-            let mut hint = stylist.compute_restyle_hint(&child,
+            let mut hint = context.shared_context().stylist
+                                  .compute_restyle_hint(&child,
                                                         restyle_data.snapshot.as_ref().unwrap(),
                                                         child.get_state());
 
@@ -426,7 +431,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
         // If we restyled this node, conservatively mark all our children as
         // needing a re-cascade. Once we have the rule tree, we will be able
         // to distinguish between re-matching and re-cascading.
-        if data.is_restyle() {
+        if restyled_parent {
             child_data.ensure();
         }
     }
