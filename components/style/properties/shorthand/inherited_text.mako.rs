@@ -78,3 +78,58 @@
         }
     }
 </%helpers:shorthand>
+
+// CSS Compatibility
+// https://compat.spec.whatwg.org/#the-webkit-text-stroke
+<%helpers:shorthand name="-webkit-text-stroke"
+                    sub_properties="-webkit-text-stroke-color
+                                    -webkit-text-stroke-width"
+                    products="gecko">
+    use cssparser::Color as CSSParserColor;
+    use properties::longhands::{_webkit_text_stroke_color, _webkit_text_stroke_width};
+    use values::specified::CSSColor;
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        use values::specified::{BorderWidth, Length};
+        use app_units::Au;
+
+        let (mut color, mut width, mut any) = (None, None, false);
+        % for value in "color width".split():
+            if ${value}.is_none() {
+                if let Ok(value) = input.try(|input| _webkit_text_stroke_${value}::parse(context, input)) {
+                    ${value} = Some(value);
+                    any = true;
+                }
+            }
+        % endfor
+
+        if !any {
+            return Err(());
+        }
+
+        Ok(Longhands {
+            _webkit_text_stroke_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
+                                                                authored: None })),
+            _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::Absolute(Au::from_px(0))))),
+        })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let mut style_present = false;
+            if let DeclaredValue::Value(ref width) = *self._webkit_text_stroke_width {
+                style_present = true;
+                try!(width.to_css(dest));
+            }
+
+            if let DeclaredValue::Value(ref color) = *self._webkit_text_stroke_color {
+                if style_present {
+                    try!(write!(dest, " "));
+                }
+                try!(color.to_css(dest));
+            }
+
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
