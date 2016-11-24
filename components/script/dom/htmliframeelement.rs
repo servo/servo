@@ -751,12 +751,14 @@ impl VirtualMethods for HTMLIFrameElement {
 
 struct IframeLoadEventSteps {
     frame_element: Trusted<HTMLIFrameElement>,
+    pipeline_id: PipelineId,
 }
 
 impl IframeLoadEventSteps {
     fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
         IframeLoadEventSteps {
             frame_element: Trusted::new(frame_element),
+            pipeline_id: frame_element.pipeline_id().unwrap(),
         }
     }
 }
@@ -764,6 +766,6 @@ impl IframeLoadEventSteps {
 impl Runnable for IframeLoadEventSteps {
     fn handler(self: Box<IframeLoadEventSteps>) {
         let this = self.frame_element.root();
-        this.iframe_load_event_steps(this.pipeline_id().unwrap());
+        this.iframe_load_event_steps(self.pipeline_id);
     }
 }
