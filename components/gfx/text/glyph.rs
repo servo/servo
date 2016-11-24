@@ -254,10 +254,10 @@ impl<'a> DetailedGlyphStore {
 
         let i = self.detail_lookup.binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
-
-        assert!(i + (count as usize) <= self.detail_buffer.len());
+        let main_detail_offset = self.detail_lookup[i].detail_offset;
+        assert!(main_detail_offset + (count as usize) <= self.detail_buffer.len());
         // return a slice into the buffer
-        &self.detail_buffer[i .. i + count as usize]
+        &self.detail_buffer[main_detail_offset .. main_detail_offset + count as usize]
     }
 
     fn detailed_glyph_with_index(&'a self,
@@ -274,9 +274,9 @@ impl<'a> DetailedGlyphStore {
 
         let i = self.detail_lookup.binary_search(&key)
             .expect("Invalid index not found in detailed glyph lookup table!");
-
-        assert!(i + (detail_offset as usize) < self.detail_buffer.len());
-        &self.detail_buffer[i + (detail_offset as usize)]
+        let main_detail_offset = self.detail_lookup[i].detail_offset;
+        assert!(main_detail_offset + (detail_offset as usize) < self.detail_buffer.len());
+        &self.detail_buffer[main_detail_offset + (detail_offset as usize)]
     }
 
     fn ensure_sorted(&mut self) {
