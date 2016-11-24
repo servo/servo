@@ -87,38 +87,6 @@ impl CssRules {
         })
     }
 
-    // Provides the parser state at a given insertion index
-    pub fn state_at_index(rules: &[CssRule], at: usize) -> State {
-        let mut state = State::Start;
-        if at > 0 {
-            if let Some(rule) = rules.get(at - 1) {
-                state = match *rule {
-                    // CssRule::Charset(..) => State::Start,
-                    // CssRule::Import(..) => State::Imports,
-                    CssRule::Namespace(..) => State::Namespaces,
-                    _ => State::Body,
-                };
-            }
-        }
-        state
-    }
-
-    // Provides the maximum allowed parser state at a given index,
-    // searching in reverse. If inserting at this index, the parser
-    // must not be in a state greater than this post-insertion.
-    pub fn state_at_index_rev(rules: &[CssRule], at: usize) -> State {
-        if let Some(rule) = rules.get(at) {
-            match *rule {
-                // CssRule::Charset(..) => State::Start,
-                // CssRule::Import(..) => State::Imports,
-                CssRule::Namespace(..) => State::Namespaces,
-                _ => State::Body,
-            }
-        } else {
-            State::Body
-        }
-    }
-
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
     pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
@@ -129,10 +97,13 @@ impl CssRules {
             return Err(RulesMutateError::IndexSize);
         }
 
+        // Computes the parser state at the given index
         let state = if nested {
             None
+        } else if index == 0 {
+            Some(State::Start)
         } else {
-            Some(CssRules::state_at_index(&rules, index))
+            rules.get(index - 1).map(CssRule::rule_state)
         };
 
         // Step 3, 4
@@ -141,7 +112,8 @@ impl CssRules {
                                                         ParserContextExtraData::default(), state));
 
         // Step 5
-        let rev_state = CssRules::state_at_index_rev(&rules, index);
+        // Computes the maximum allowed parser state at a given index.
+        let rev_state = rules.get(index).map_or(State::Body, CssRule::rule_state);
         if new_state > rev_state {
             // We inserted a rule too early, e.g. inserting
             // a regular style rule before @namespace rules
@@ -271,6 +243,15 @@ impl CssRule {
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
             CssRule::Viewport(_)  => CssRuleType::Viewport,
+        }
+    }
+
+    fn rule_state(&self) -> State {
+        match *self {
+            // CssRule::Charset(..) => State::Start,
+            // CssRule::Import(..) => State::Imports,
+            CssRule::Namespace(..) => State::Namespaces,
+            _ => State::Body,
         }
     }
 
