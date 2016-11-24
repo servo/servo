@@ -18,25 +18,7 @@ ${helpers.predefined_type("opacity",
     use style_traits::ToCss;
     use values::HasViewportPercentage;
 
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue {
-        pub offset_x: specified::Length,
-        pub offset_y: specified::Length,
-        pub blur_radius: specified::Length,
-        pub spread_radius: specified::Length,
-        pub color: Option<specified::CSSColor>,
-        pub inset: bool,
-    }
-
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            self.offset_x.has_viewport_percentage() ||
-            self.offset_y.has_viewport_percentage() ||
-            self.blur_radius.has_viewport_percentage() ||
-            self.spread_radius.has_viewport_percentage()
-        }
-    }
+    pub type SpecifiedValue = specified::Shadow;
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -63,17 +45,9 @@ ${helpers.predefined_type("opacity",
         use app_units::Au;
         use std::fmt;
         use values::computed;
+        use values::computed::Shadow;
 
-        #[derive(Clone, PartialEq, Copy, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T {
-            pub offset_x: Au,
-            pub offset_y: Au,
-            pub blur_radius: Au,
-            pub spread_radius: Au,
-            pub color: computed::CSSColor,
-            pub inset: bool,
-        }
+        pub type T = Shadow;
     }
 
     impl ToCss for computed_value::T {
@@ -94,95 +68,8 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T {
-                offset_x: self.offset_x.to_computed_value(context),
-                offset_y: self.offset_y.to_computed_value(context),
-                blur_radius: self.blur_radius.to_computed_value(context),
-                spread_radius: self.spread_radius.to_computed_value(context),
-                color: self.color
-                            .as_ref()
-                            .map(|color| color.parsed)
-                            .unwrap_or(cssparser::Color::CurrentColor),
-                inset: self.inset,
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue {
-                offset_x: ToComputedValue::from_computed_value(&computed.offset_x),
-                offset_y: ToComputedValue::from_computed_value(&computed.offset_y),
-                blur_radius: ToComputedValue::from_computed_value(&computed.blur_radius),
-                spread_radius: ToComputedValue::from_computed_value(&computed.spread_radius),
-                color: Some(ToComputedValue::from_computed_value(&computed.color)),
-                inset: computed.inset,
-            }
-        }
-    }
-
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use app_units::Au;
-        let mut lengths = [specified::Length::Absolute(Au(0)); 4];
-        let mut lengths_parsed = false;
-        let mut color = None;
-        let mut inset = false;
-
-        loop {
-            if !inset {
-                if input.try(|input| input.expect_ident_matching("inset")).is_ok() {
-                    inset = true;
-                    continue
-                }
-            }
-            if !lengths_parsed {
-                if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
-                    lengths[0] = value;
-                    let mut length_parsed_count = 1;
-                    while length_parsed_count < 4 {
-                        if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
-                            lengths[length_parsed_count] = value
-                        } else {
-                            break
-                        }
-                        length_parsed_count += 1;
-                    }
-
-                    // The first two lengths must be specified.
-                    if length_parsed_count < 2 {
-                        return Err(())
-                    }
-
-                    lengths_parsed = true;
-                    continue
-                }
-            }
-            if color.is_none() {
-                if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
-                    color = Some(value);
-                    continue
-                }
-            }
-            break
-        }
-
-        // Lengths must be specified.
-        if !lengths_parsed {
-            return Err(())
-        }
-
-        Ok(SpecifiedValue {
-            offset_x: lengths[0],
-            offset_y: lengths[1],
-            blur_radius: lengths[2],
-            spread_radius: lengths[3],
-            color: color,
-            inset: inset,
-        })
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<specified::Shadow, ()> {
+        specified::Shadow::parse(context, input, false)
     }
 </%helpers:vector_longhand>
 
@@ -406,7 +293,7 @@ ${helpers.predefined_type("opacity",
     use std::fmt;
     use style_traits::{self, ToCss};
     use values::{CSSFloat, HasViewportPercentage};
-    use values::specified::{Angle, CSSColor, Length};
+    use values::specified::{Angle, CSSColor, Length, Shadow};
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -442,14 +329,14 @@ ${helpers.predefined_type("opacity",
         Saturate(CSSFloat),
         Sepia(CSSFloat),
         % if product == "gecko":
-        DropShadow(Length, Length, Length, Option<CSSColor>),
+        DropShadow(Shadow),
         % endif
     }
 
     pub mod computed_value {
         use app_units::Au;
         use values::CSSFloat;
-        use values::computed::CSSColor;
+        use values::computed::{CSSColor, Shadow};
         use values::specified::{Angle};
 
         #[derive(Clone, PartialEq, Debug)]
@@ -465,7 +352,7 @@ ${helpers.predefined_type("opacity",
             Saturate(CSSFloat),
             Sepia(CSSFloat),
             % if product == "gecko":
-            DropShadow(Au, Au, Au, CSSColor),
+            DropShadow(Shadow),
             % endif
         }
 
@@ -565,15 +452,15 @@ ${helpers.predefined_type("opacity",
                 computed_value::Filter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
                 computed_value::Filter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
-                computed_value::Filter::DropShadow(offset_x, offset_y, blur_radius, ref color) => {
+                computed_value::Filter::DropShadow(shadow) => {
                     try!(dest.write_str("drop-shadow("));
-                    try!(offset_x.to_css(dest));
+                    try!(shadow.offset_x.to_css(dest));
                     try!(dest.write_str(", "));
-                    try!(offset_y.to_css(dest));
+                    try!(shadow.offset_y.to_css(dest));
                     try!(dest.write_str(", "));
-                    try!(blur_radius.to_css(dest));
+                    try!(shadow.blur_radius.to_css(dest));
                     try!(dest.write_str(", "));
-                    try!(color.to_css(dest));
+                    try!(shadow.color.to_css(dest));
                     try!(dest.write_str(")"));
                 }
                 % endif
@@ -603,14 +490,14 @@ ${helpers.predefined_type("opacity",
                 SpecifiedFilter::Saturate(value) => try!(write!(dest, "saturate({})", value)),
                 SpecifiedFilter::Sepia(value) => try!(write!(dest, "sepia({})", value)),
                 % if product == "gecko":
-                SpecifiedFilter::DropShadow(offset_x, offset_y, blur_radius, ref color) => {
+                SpecifiedFilter::DropShadow(ref shadow) => {
                     try!(dest.write_str("drop-shadow("));
-                    try!(offset_x.to_css(dest));
+                    try!(shadow.offset_x.to_css(dest));
                     try!(dest.write_str(", "));
-                    try!(offset_y.to_css(dest));
+                    try!(shadow.offset_y.to_css(dest));
                     try!(dest.write_str(", "));
-                    try!(blur_radius.to_css(dest));
-                    if let &Some(ref color) = color {
+                    try!(shadow.blur_radius.to_css(dest));
+                    if let Some(ref color) = shadow.color {
                         try!(dest.write_str(", "));
                         try!(color.to_css(dest));
                     }
@@ -646,7 +533,8 @@ ${helpers.predefined_type("opacity",
                         "saturate" => parse_factor(input).map(SpecifiedFilter::Saturate),
                         "sepia" => parse_factor(input).map(SpecifiedFilter::Sepia),
                         % if product == "gecko":
-                        "drop-shadow" => parse_drop_shadow(context, input),
+                        "drop-shadow" => specified::Shadow::parse(context, input, true)
+                                             .map(SpecifiedFilter::DropShadow),
                         % endif
                         _ => Err(())
                     }
@@ -668,17 +556,6 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    % if product == "gecko":
-    fn parse_drop_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedFilter, ()> {
-        let offset_x = try!(specified::Length::parse(context, input));
-        let offset_y = try!(specified::Length::parse(context, input));
-        let blur_radius = input.try(|i| specified::Length::parse(context, i))
-                               .unwrap_or(specified::Length::from_px(0.0));
-        let color = input.try(|i| specified::CSSColor::parse(context, i)).ok();
-        Ok(SpecifiedFilter::DropShadow(offset_x, offset_y, blur_radius, color))
-    }
-    % endif
-
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -696,16 +573,9 @@ ${helpers.predefined_type("opacity",
                     SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
                     SpecifiedFilter::Sepia(factor) => computed_value::Filter::Sepia(factor),
                     % if product == "gecko":
-                    SpecifiedFilter::DropShadow(offset_x, offset_y, blur_radius, ref color) => {
-                        computed_value::Filter::DropShadow(
-                            offset_x.to_computed_value(context),
-                            offset_y.to_computed_value(context),
-                            blur_radius.to_computed_value(context),
-                            color.as_ref()
-                                 .map(|color| color.parsed)
-                                 .unwrap_or(cssparser::Color::CurrentColor),
-                        )
-                    }
+                    SpecifiedFilter::DropShadow(ref shadow) => {
+                        computed_value::Filter::DropShadow(shadow.to_computed_value(context))
+                    },
                     % endif
                 }
             }).collect() }
@@ -725,12 +595,9 @@ ${helpers.predefined_type("opacity",
                     computed_value::Filter::Saturate(factor) => SpecifiedFilter::Saturate(factor),
                     computed_value::Filter::Sepia(factor) => SpecifiedFilter::Sepia(factor),
                     % if product == "gecko":
-                    computed_value::Filter::DropShadow(offset_x, offset_y, blur_radius, color) => {
+                    computed_value::Filter::DropShadow(shadow) => {
                         SpecifiedFilter::DropShadow(
-                            ToComputedValue::from_computed_value(&offset_x),
-                            ToComputedValue::from_computed_value(&offset_y),
-                            ToComputedValue::from_computed_value(&blur_radius),
-                            Some(ToComputedValue::from_computed_value(&color)),
+                            ToComputedValue::from_computed_value(&shadow),
                         )
                     }
                     % endif
