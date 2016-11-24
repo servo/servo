@@ -163,7 +163,7 @@ impl HTMLIFrameElement {
                 load_data: load_data.unwrap(),
                 pipeline_port: pipeline_receiver,
                 content_process_shutdown_chan: None,
-                window_size: window.window_size(),
+                window_size: None,
                 layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
 
@@ -331,7 +331,9 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
             .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
             .and_then(|document| {
-                if self.global().get_url().origin() == document.global().get_url().origin() {
+                let contained_url = document.global().get_url();
+                if self.global().get_url().origin() == contained_url.origin() ||
+                   contained_url.as_str() == "about:blank" {
                     Some(Root::from_ref(document.window()))
                 } else {
                     None

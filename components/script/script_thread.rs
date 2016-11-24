@@ -435,6 +435,7 @@ pub struct ScriptThread {
     /// For communicating load url messages to the constellation
     constellation_chan: IpcSender<ConstellationMsg>,
 
+    /// A sender for new layout threads to communicate to the constellation.
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// The port on which we receive messages from the image cache
