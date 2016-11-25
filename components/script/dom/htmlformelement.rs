@@ -35,6 +35,7 @@ use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -470,12 +471,22 @@ impl HTMLFormElement {
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
         let invalid_controls = node.traverse_preorder().filter_map(|field| {
-            if let Some(_el) = field.downcast::<Element>() {
-                None // Remove this line if you decide to refactor
-
-                // XXXKiChjang: Form control elements should each have a candidate_for_validation
-                //              and satisfies_constraints methods
-
+            if let Some(el) = field.downcast::<Element>() {
+                if el.disabled_state() {
+                    None
+                } else {
+                    let validatable = match el.as_maybe_validatable() {
+                        Some(v) => v,
+                        None => return None
+                    };
+                    if !validatable.is_instance_validatable() {
+                        None
+                    } else if validatable.validate(ValidationFlags::empty()) {
+                        None
+                    } else {
+                        Some(FormSubmittableElement::from_element(&el))
+                    }
+                }
             } else {
                 None
             }
@@ -697,7 +708,7 @@ pub enum FormSubmittableElement {
     // KeygenElement(&'a HTMLKeygenElement),
     ObjectElement(Root<HTMLObjectElement>),
     SelectElement(Root<HTMLSelectElement>),
-    TextAreaElement(Root<HTMLTextAreaElement>)
+    TextAreaElement(Root<HTMLTextAreaElement>),
 }
 
 impl FormSubmittableElement {
@@ -708,6 +719,26 @@ impl FormSubmittableElement {
             FormSubmittableElement::ObjectElement(ref object) => object.upcast(),
             FormSubmittableElement::SelectElement(ref select) => select.upcast(),
             FormSubmittableElement::TextAreaElement(ref textarea) => textarea.upcast()
+        }
+    }
+
+    fn from_element(element: &Element) -> FormSubmittableElement {
+        if let Some(input) = element.downcast::<HTMLInputElement>() {
+            FormSubmittableElement::InputElement(Root::from_ref(&input))
+        }
+        else if let Some(input) = element.downcast::<HTMLButtonElement>() {
+            FormSubmittableElement::ButtonElement(Root::from_ref(&input))
+        }
+        else if let Some(input) = element.downcast::<HTMLObjectElement>() {
+            FormSubmittableElement::ObjectElement(Root::from_ref(&input))
+        }
+        else if let Some(input) = element.downcast::<HTMLSelectElement>() {
+            FormSubmittableElement::SelectElement(Root::from_ref(&input))
+        }
+        else if let Some(input) = element.downcast::<HTMLTextAreaElement>() {
+            FormSubmittableElement::TextAreaElement(Root::from_ref(&input))
+        } else {
+            unreachable!()
         }
     }
 }

@@ -31,6 +31,7 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc::{self, IpcSender};
@@ -1131,7 +1132,16 @@ impl VirtualMethods for HTMLInputElement {
 
 impl FormControl for HTMLInputElement {}
 
-impl Validatable for HTMLInputElement {}
+impl Validatable for HTMLInputElement {
+    fn is_instance_validatable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
+        true
+    }
+    fn validate(&self, _validate_flags: ValidationFlags) -> bool {
+        // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
+        true
+    }
+}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {

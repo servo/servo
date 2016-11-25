@@ -15,7 +15,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
 use dom::validation::Validatable;
-use dom::validitystate::ValidityState;
+use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use net_traits::image::base::Image;
@@ -89,7 +89,16 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     }
 }
 
-impl Validatable for HTMLObjectElement {}
+impl Validatable for HTMLObjectElement {
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+    fn validate(&self, validate_flags: ValidationFlags) -> bool {
+        if validate_flags.is_empty() {}
+        // Need more flag check for different validation types later
+        true
+    }
+}
 
 impl VirtualMethods for HTMLObjectElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
