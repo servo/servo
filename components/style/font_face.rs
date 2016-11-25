@@ -8,7 +8,7 @@
 
 use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use parser::{ParserContext, log_css_error};
+use parser::{ParserContext, log_css_error, Parse};
 use properties::longhands::font_family::parse_one_family;
 use std::fmt;
 use std::iter;
