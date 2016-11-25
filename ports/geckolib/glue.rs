@@ -568,32 +568,19 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
+    property: *mut nsIAtom, is_custom: bool,
     buffer: *mut nsString)
 {
-    let mut string = String::new();
-
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    declarations.read().to_css(&mut string).unwrap();
-    // FIXME: We are expecting |declarations| to be a declaration block with either a single
-    // longhand property-declaration or a series of longhand property-declarations that make
-    // up a single shorthand property. As a result, it should be possible to serialize
-    // |declarations| as a single declaration. However, we only want to return the *value* from
-    // that single declaration. For now, we just manually strip the property name, colon,
-    // leading spacing, and trailing space. In future we should find a more robust way to do
-    // this.
-    //
-    // See https://github.com/servo/servo/issues/13423
-    debug_assert!(string.find(':').is_some());
-    let position = string.find(':').unwrap();
-    // Get the value after the first colon and any following whitespace.
-    let value = &string[(position + 1)..].trim_left();
-    debug_assert!(value.ends_with(';'));
-    let length = value.len() - 1; // Strip last semicolon.
+    let property = get_property_name_from_atom(property, is_custom);
+    let mut string = String::new();
+    let rv = declarations.read().single_value_to_css(&property, &mut string);
+    debug_assert!(rv.is_ok());
 
     // FIXME: Once we have nsString bindings for Servo (bug 1294742), we should be able to drop
     // this and fill in |buffer| directly.
     unsafe {
-        Gecko_Utf8SliceToString(buffer, value.as_ptr(), length);
+        Gecko_Utf8SliceToString(buffer, string.as_ptr(), string.len());
     }
 }
 
