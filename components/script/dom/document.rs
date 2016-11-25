@@ -281,6 +281,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
+    ignore_destructive_writes_counter: Cell<u32>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -372,15 +374,16 @@ impl Document {
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
+    // https://html.spec.whatwg.org/multipage/#active-document
+    pub fn is_active(&self) -> bool {
+        self.browsing_context().map_or(false, |context| {
+            self == &*context.active_document()
+        })
+    }
+
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let browsing_context = match self.browsing_context() {
-            Some(browsing_context) => browsing_context,
-            None => return false,
-        };
-        let active_document = browsing_context.active_document();
-
-        if self != &*active_document {
+        if !self.is_active() {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -1877,6 +1880,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            ignore_destructive_writes_counter: Default::default(),
         }
     }
 
@@ -2052,6 +2056,16 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::ElementStateChanged);
+    }
+
+    pub fn incr_ignore_destructive_writes_counter(&self) {
+        self.ignore_destructive_writes_counter.set(
+            self.ignore_destructive_writes_counter.get() + 1);
+    }
+
+    pub fn decr_ignore_destructive_writes_counter(&self) {
+        self.ignore_destructive_writes_counter.set(
+            self.ignore_destructive_writes_counter.get() - 1);
     }
 }
 
@@ -3017,6 +3031,55 @@ impl DocumentMethods for Document {
 
         // Step 5
         elements
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-write
+    fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
+        if !self.is_html_document() {
+            // Step 1.
+            return Err(Error::InvalidState);
+        }
+
+        // Step 2.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+
+        if !self.is_active() {
+            // Step 3.
+            return Ok(());
+        }
+
+        let parser = self.get_current_parser();
+        let parser = match parser.as_ref() {
+            Some(parser) if parser.script_nesting_level() > 0 => parser,
+            _ => {
+                // Either there is no parser, which means the parsing ended;
+                // or script nesting level is 0, which means the method was
+                // called from outside a parser-executed script.
+                if self.ignore_destructive_writes_counter.get() > 0 {
+                    // Step 4.
+                    // TODO: handle ignore-opens-during-unload counter.
+                    return Ok(());
+                }
+                // Step 5.
+                // TODO: call document.open().
+                return Err(Error::InvalidState);
+            }
+        };
+
+        // Step 7.
+        // TODO: handle reload override buffer.
+
+        // Steps 6-8.
+        parser.write(text);
+
+        // Step 9.
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-writeln
+    fn Writeln(&self, mut text: Vec<DOMString>) -> ErrorResult {
+        text.push("\n".into());
+        self.Write(text)
     }
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
