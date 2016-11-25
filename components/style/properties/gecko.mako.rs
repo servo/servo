@@ -19,6 +19,7 @@ use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
+use gecko_bindings::bindings::Gecko_Construct_nsStyleVariables;
 use gecko_bindings::bindings::Gecko_CopyCursorArrayFrom;
 use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
@@ -40,6 +41,7 @@ use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
 use gecko_bindings::structs;
+use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use gecko::values::convert_nscolor_to_rgba;
@@ -2459,6 +2461,23 @@ ${impl_style_struct(style_struct)}
 % endif
 ${define_ffi_struct_accessor(style_struct)}
 % endfor
+
+lazy_static! {
+    static ref EMPTY_VARIABLES_STRUCT: nsStyleVariables = {
+        unsafe {
+            let mut variables: nsStyleVariables = unsafe { zeroed() };
+            Gecko_Construct_nsStyleVariables(&mut variables);
+            variables
+        }
+    };
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowedOrNull)
+                                                 -> *const nsStyleVariables {
+    &*EMPTY_VARIABLES_STRUCT
+}
 
 // To avoid UB, we store the initial values as a atomic. It would be nice to
 // store them as AtomicPtr, but we can't have static AtomicPtr without const
