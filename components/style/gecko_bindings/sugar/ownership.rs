@@ -208,6 +208,7 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
 }
 
 #[repr(C)]
+#[derive(Debug)]
 /// Gecko-FFI-safe owned pointer
 /// Cannot be null
 /// Leaks on drop. Please don't drop this.

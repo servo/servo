@@ -5,13 +5,12 @@
 #![allow(unsafe_code)]
 
 
-use atomic_refcell::{AtomicRef, AtomicRefCell};
+use atomic_refcell::AtomicRefCell;
 use data::ElementData;
 use dom::{LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
-use gecko::restyle_damage::GeckoRestyleDamage;
 use gecko::selector_parser::{SelectorImpl, NonTSPseudoClass, PseudoElement};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
@@ -20,20 +19,19 @@ use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetLastChild, Gecko_Get
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
+use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
-use gecko_bindings::bindings::Gecko_SetNodeFlags;
-use gecko_bindings::bindings::Gecko_StoreStyleDifference;
 use gecko_bindings::structs;
-use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
+use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
-use selector_parser::ElementExt;
+use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
@@ -60,6 +58,22 @@ impl<'ln> GeckoNode<'ln> {
     fn node_info(&self) -> &structs::NodeInfo {
         debug_assert!(!self.0.mNodeInfo.mRawPtr.is_null());
         unsafe { &*self.0.mNodeInfo.mRawPtr }
+    }
+
+    fn first_child(&self) -> Option<GeckoNode<'ln>> {
+        unsafe { self.0.mFirstChild.as_ref().map(GeckoNode::from_content) }
+    }
+
+    fn last_child(&self) -> Option<GeckoNode<'ln>> {
+        unsafe { Gecko_GetLastChild(self.0).map(GeckoNode) }
+    }
+
+    fn prev_sibling(&self) -> Option<GeckoNode<'ln>> {
+        unsafe { self.0.mPreviousSibling.as_ref().map(GeckoNode::from_content) }
+    }
+
+    fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
+        unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
 }
 
@@ -115,14 +129,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         OpaqueNode(ptr)
     }
 
-    fn layout_parent_element(self, reflow_root: OpaqueNode) -> Option<GeckoElement<'ln>> {
-        if self.opaque() == reflow_root {
-            None
-        } else {
-            self.parent_node().and_then(|x| x.as_element())
-        }
-    }
-
     fn debug_id(self) -> usize {
         unimplemented!()
     }
@@ -146,24 +152,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
         // Maybe this isn’t useful for Gecko?
     }
 
-    fn parent_node(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mParent.as_ref().map(GeckoNode) }
-    }
-
-    fn first_child(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mFirstChild.as_ref().map(GeckoNode::from_content) }
-    }
-
-    fn last_child(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { Gecko_GetLastChild(self.0).map(GeckoNode) }
-    }
-
-    fn prev_sibling(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mPreviousSibling.as_ref().map(GeckoNode::from_content) }
-    }
-
-    fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
-        unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
+    fn parent_node(&self) -> Option<Self> {
+        unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
     }
 
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
@@ -221,7 +211,7 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
         if let Some(id) = self.get_id() {
             try!(write!(f, " id={}", id));
         }
-        write!(f, ">")
+        write!(f, "> ({:?})", self.0 as *const _)
     }
 }
 
@@ -251,11 +241,16 @@ impl<'le> GeckoElement<'le> {
         unsafe { Gecko_SetNodeFlags(self.as_node().0, flags) }
     }
 
+    fn unset_flags(&self, flags: u32) {
+        unsafe { Gecko_UnsetNodeFlags(self.as_node().0, flags) }
+    }
+
     pub fn clear_data(&self) {
-        let ptr = self.raw_node().mServoData.get();
+        let ptr = self.0.mServoData.get();
         if !ptr.is_null() {
-            let data = unsafe { Box::from_raw(self.raw_node().mServoData.get()) };
-            self.raw_node().mServoData.set(ptr::null_mut());
+            debug!("Dropping ElementData for {:?}", self);
+            let data = unsafe { Box::from_raw(self.0.mServoData.get()) };
+            self.0.mServoData.set(ptr::null_mut());
 
             // Perform a mutable borrow of the data in debug builds. This
             // serves as an assertion that there are no outstanding borrows
@@ -265,19 +260,30 @@ impl<'le> GeckoElement<'le> {
     }
 
     pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
-        self.borrow_data().and_then(|data| data.current_styles().pseudos
-                                               .get(pseudo).map(|c| c.0.clone()))
+        // NB: Gecko sometimes resolves pseudos after an element has already been
+        // marked for restyle. We should consider fixing this, but for now just allow
+        // it with current_or_previous_styles.
+        self.borrow_data().and_then(|data| data.current_or_previous_styles().pseudos
+                                               .get(pseudo).map(|c| c.values.clone()))
     }
 
-    pub fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
+    // Only safe to call with exclusive access to the element.
+    pub unsafe fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
         match self.get_data() {
             Some(x) => x,
             None => {
-                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new())));
-                self.raw_node().mServoData.set(ptr);
+                debug!("Creating ElementData for {:?}", self);
+                let existing = self.get_styles_from_frame();
+                let ptr = Box::into_raw(Box::new(AtomicRefCell::new(ElementData::new(existing))));
+                self.0.mServoData.set(ptr);
                 unsafe { &* ptr }
             },
         }
+    }
+
+    /// Creates a blank snapshot for this element.
+    pub fn create_snapshot(&self) -> Snapshot {
+        Snapshot::new(*self)
     }
 }
 
@@ -325,14 +331,6 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn set_restyle_damage(self, damage: GeckoRestyleDamage) {
-        // FIXME(bholley): Gecko currently relies on the dirty bit being set to
-        // drive the post-traversal. This will go away soon.
-        unsafe { self.set_flags(NODE_IS_DIRTY_FOR_SERVO as u32) }
-
-        unsafe { Gecko_StoreStyleDifference(self.as_node().0, damage.as_change_hint()) }
-    }
-
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_cv: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
@@ -350,21 +348,16 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn deprecated_dirty_bit_is_set(&self) -> bool {
-        self.flags() & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
-    }
-
     fn has_dirty_descendants(&self) -> bool {
-        // Return true unconditionally if we're not yet styled. This is a hack
-        // and should go away soon.
-        if self.get_data().is_none() {
-            return true;
-        }
         self.flags() & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
     unsafe fn set_dirty_descendants(&self) {
         self.set_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+    }
+
+    unsafe fn unset_dirty_descendants(&self) {
+        self.unset_flags(NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
     }
 
     fn store_children_to_process(&self, _: isize) {
@@ -375,14 +368,9 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_data().map(|x| x.borrow())
-    }
-
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
-        unsafe { self.raw_node().mServoData.get().as_ref() }
+        unsafe { self.0.mServoData.get().as_ref() }
     }
-
 }
 
 impl<'le> PartialEq for GeckoElement<'le> {
@@ -401,8 +389,7 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
 
 impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn parent_element(&self) -> Option<Self> {
-        let parent = self.as_node().parent_node();
-        parent.and_then(|parent| parent.as_element())
+        unsafe { bindings::Gecko_GetParentElement(self.0).map(GeckoElement) }
     }
 
     fn first_child_element(&self) -> Option<Self> {

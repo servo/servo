@@ -30,7 +30,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     }
 
     fn process_preorder(&self, node: GeckoNode<'ln>) {
-        if node.is_element() {
+        if node.is_element() && (!self.context.shared_context().skip_root || node.opaque() != self.root) {
             let el = node.as_element().unwrap();
             recalc_style_at::<_, _, Self>(&self.context, self.root, el);
         }
@@ -43,11 +43,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal(&self) -> bool { false }
 
-    fn should_traverse_child(parent: GeckoElement<'ln>, child: GeckoNode<'ln>) -> bool {
-        if parent.is_display_none() {
-            return false;
-        }
-
+    fn should_traverse_child(child: GeckoNode<'ln>) -> bool {
         match child.as_element() {
             Some(el) => el.styling_mode() != StylingMode::Stop,
             None => false, // Gecko restyle doesn't need to traverse text nodes.

@@ -51,8 +51,6 @@ use libc::c_void;
 use std::sync::atomic::AtomicIsize;
 use style::atomic_refcell::AtomicRefCell;
 use style::data::ElementData;
-use style::dom::TRestyleDamage;
-use style::selector_parser::RestyleDamage;
 
 pub struct PartialPersistentLayoutData {
     /// Data that the style system associates with a node. When the
@@ -61,9 +59,6 @@ pub struct PartialPersistentLayoutData {
     /// transmutations between ElementData and PersistentLayoutData.
     pub style_data: ElementData,
 
-    /// Description of how to account for recent style changes.
-    pub restyle_damage: RestyleDamage,
-
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
 }
@@ -71,11 +66,7 @@ pub struct PartialPersistentLayoutData {
 impl PartialPersistentLayoutData {
     pub fn new() -> Self {
         PartialPersistentLayoutData {
-            style_data: ElementData::new(),
-            // FIXME(bholley): This is needed for now to make sure we do frame
-            // construction after initial styling. This will go away shortly when
-            // we move restyle damage into the style system.
-            restyle_damage: RestyleDamage::rebuild_and_reflow(),
+            style_data: ElementData::new(None),
             parallel: DomParallelInfo::new(),
         }
     }
@@ -142,7 +133,7 @@ pub struct SVGSVGData {
 }
 
 /// The address of a node known to be valid. These are sent from script to layout.
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
 #[allow(unsafe_code)]

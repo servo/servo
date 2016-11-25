@@ -4,7 +4,7 @@
 
 //! Implements sequential traversal over the DOM tree.
 
-use dom::{StylingMode, TElement, TNode};
+use dom::TNode;
 use traversal::DomTraversalContext;
 
 pub fn traverse_dom<N, C>(root: N,
@@ -26,7 +26,6 @@ pub fn traverse_dom<N, C>(root: N,
         }
     }
 
-    debug_assert!(root.as_element().unwrap().styling_mode() != StylingMode::Stop);
     let context = C::new(shared, root.opaque());
     doit::<N, C>(&context, root);
 

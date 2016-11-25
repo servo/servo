@@ -2687,9 +2687,46 @@ fn bindgen_test_layout_SourceHook() {
     assert_eq!(::std::mem::align_of::<SourceHook>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIRunnable {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsIRunnable_COMTypeInfo<T, U> {
+    pub _address: u8,
+    pub _phantom_0: ::std::marker::PhantomData<T>,
+    pub _phantom_1: ::std::marker::PhantomData<U>,
+}
+#[test]
+fn bindgen_test_layout_nsIRunnable() {
+    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
+}
+impl Clone for nsIRunnable {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+pub struct DispatcherTrait__bindgen_vtable {
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct DispatcherTrait {
+    pub vtable_: *const DispatcherTrait__bindgen_vtable,
+}
+#[test]
+fn bindgen_test_layout_DispatcherTrait() {
+    assert_eq!(::std::mem::size_of::<DispatcherTrait>() , 8usize);
+    assert_eq!(::std::mem::align_of::<DispatcherTrait>() , 8usize);
+}
+impl Clone for DispatcherTrait {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
 #[derive(Debug)]
 pub struct nsIGlobalObject {
     pub _base: nsISupports,
+    pub _base_1: DispatcherTrait,
     pub mHostObjectURIs: nsTArray<nsCString>,
     pub mIsDying: bool,
 }
@@ -2702,7 +2739,7 @@ pub struct nsIGlobalObject_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsIGlobalObject() {
-    assert_eq!(::std::mem::size_of::<nsIGlobalObject>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsIGlobalObject>() , 32usize);
     assert_eq!(::std::mem::align_of::<nsIGlobalObject>() , 8usize);
 }
 #[repr(C)]
@@ -2746,6 +2783,7 @@ fn bindgen_test_layout_nsPIDOMWindowInner() {
 #[derive(Debug)]
 pub struct nsIDocument {
     pub _base: nsINode,
+    pub _base_1: DispatcherTrait,
     pub mDeprecationWarnedAbout: u64,
     pub mDocWarningWarnedAbout: u64,
     pub mSelectorCache: [u64; 15usize],
@@ -3665,7 +3703,6 @@ pub struct nsINode {
     pub mFirstChild: *mut nsIContent,
     pub __bindgen_anon_1: nsINode__bindgen_ty_1,
     pub mSlots: *mut nsINode_nsSlots,
-    pub mServoData: ServoCell<*mut ServoNodeData>,
 }
 pub type nsINode_BoxQuadOptions = BoxQuadOptions;
 pub type nsINode_ConvertCoordinateOptions = ConvertCoordinateOptions;
@@ -3815,7 +3852,7 @@ impl Clone for nsINode__bindgen_ty_1 {
 }
 #[test]
 fn bindgen_test_layout_nsINode() {
-    assert_eq!(::std::mem::size_of::<nsINode>() , 104usize);
+    assert_eq!(::std::mem::size_of::<nsINode>() , 96usize);
     assert_eq!(::std::mem::align_of::<nsINode>() , 8usize);
 }
 #[repr(C)]
@@ -4091,7 +4128,7 @@ pub struct nsIScriptGlobalObject_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsIScriptGlobalObject() {
-    assert_eq!(::std::mem::size_of::<nsIScriptGlobalObject>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsIScriptGlobalObject>() , 32usize);
     assert_eq!(::std::mem::align_of::<nsIScriptGlobalObject>() , 8usize);
 }
 #[repr(C)]
@@ -4112,26 +4149,6 @@ fn bindgen_test_layout_nsIVariant() {
     assert_eq!(::std::mem::align_of::<nsIVariant>() , 8usize);
 }
 impl Clone for nsIVariant {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIRunnable {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsIRunnable_COMTypeInfo<T, U> {
-    pub _address: u8,
-    pub _phantom_0: ::std::marker::PhantomData<T>,
-    pub _phantom_1: ::std::marker::PhantomData<U>,
-}
-#[test]
-fn bindgen_test_layout_nsIRunnable() {
-    assert_eq!(::std::mem::size_of::<nsIRunnable>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsIRunnable>() , 8usize);
-}
-impl Clone for nsIRunnable {
     fn clone(&self) -> Self { *self }
 }
 pub type TimeStampValue = u64;
@@ -5084,6 +5101,7 @@ fn bindgen_test_layout_RestyleManagerHandle() {
 impl Clone for RestyleManagerHandle {
     fn clone(&self) -> Self { *self }
 }
+pub const nsChangeHint_nsChangeHint_Empty: nsChangeHint = nsChangeHint(0);
 pub const nsChangeHint_nsChangeHint_RepaintFrame: nsChangeHint =
     nsChangeHint(1);
 pub const nsChangeHint_nsChangeHint_NeedReflow: nsChangeHint =
@@ -5464,7 +5482,7 @@ extern "C" {
 }
 #[test]
 fn bindgen_test_layout_nsIContent() {
-    assert_eq!(::std::mem::size_of::<nsIContent>() , 104usize);
+    assert_eq!(::std::mem::size_of::<nsIContent>() , 96usize);
     assert_eq!(::std::mem::align_of::<nsIContent>() , 8usize);
 }
 /**
@@ -5518,6 +5536,7 @@ impl Clone for DocGroup {
 pub struct Element {
     pub _base: FragmentOrElement,
     pub mState: EventStates,
+    pub mServoData: ServoCell<*mut ServoNodeData>,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5728,7 +5747,7 @@ extern "C" {
 }
 #[test]
 fn bindgen_test_layout_FragmentOrElement() {
-    assert_eq!(::std::mem::size_of::<FragmentOrElement>() , 128usize);
+    assert_eq!(::std::mem::size_of::<FragmentOrElement>() , 120usize);
     assert_eq!(::std::mem::align_of::<FragmentOrElement>() , 8usize);
 }
 pub const ReferrerPolicy_RP_Default: ReferrerPolicy =
@@ -5736,15 +5755,15 @@ pub const ReferrerPolicy_RP_Default: ReferrerPolicy =
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ReferrerPolicy {
-    RP_No_Referrer = 1,
-    RP_Origin = 2,
-    RP_No_Referrer_When_Downgrade = 0,
-    RP_Origin_When_Crossorigin = 3,
-    RP_Unsafe_URL = 4,
-    RP_Same_Origin = 5,
-    RP_Strict_Origin = 6,
-    RP_Strict_Origin_When_Cross_Origin = 7,
-    RP_Unset = 4294967295,
+    RP_No_Referrer = 2,
+    RP_Origin = 3,
+    RP_No_Referrer_When_Downgrade = 1,
+    RP_Origin_When_Crossorigin = 4,
+    RP_Unsafe_URL = 5,
+    RP_Same_Origin = 6,
+    RP_Strict_Origin = 7,
+    RP_Strict_Origin_When_Cross_Origin = 8,
+    RP_Unset = 0,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -6587,10 +6606,11 @@ pub struct nsIPresShell_PointerInfo {
     pub mPointerType: u16,
     pub mActiveState: bool,
     pub mPrimaryState: bool,
+    pub mPreventMouseEventByContent: bool,
 }
 #[test]
 fn bindgen_test_layout_nsIPresShell_PointerInfo() {
-    assert_eq!(::std::mem::size_of::<nsIPresShell_PointerInfo>() , 4usize);
+    assert_eq!(::std::mem::size_of::<nsIPresShell_PointerInfo>() , 6usize);
     assert_eq!(::std::mem::align_of::<nsIPresShell_PointerInfo>() , 2usize);
 }
 impl Clone for nsIPresShell_PointerInfo {
@@ -6972,10 +6992,8 @@ pub const NODE_SHARED_RESTYLE_BIT_1: _bindgen_ty_23 =
     _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
 pub const NODE_SHARED_RESTYLE_BIT_2: _bindgen_ty_23 =
     _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_2;
-pub const NODE_IS_DIRTY_FOR_SERVO: _bindgen_ty_23 =
-    _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
 pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: _bindgen_ty_23 =
-    _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_2;
+    _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
 pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: _bindgen_ty_23 =
     _bindgen_ty_23::NODE_TYPE_SPECIFIC_BITS_OFFSET;
 #[repr(u32)]
@@ -7342,7 +7360,7 @@ extern "C" {
 }
 #[test]
 fn bindgen_test_layout_Attr() {
-    assert_eq!(::std::mem::size_of::<Attr>() , 152usize);
+    assert_eq!(::std::mem::size_of::<Attr>() , 144usize);
     assert_eq!(::std::mem::align_of::<Attr>() , 8usize);
 }
 #[repr(C)]
@@ -7360,7 +7378,7 @@ pub struct nsIAttribute_COMTypeInfo<T, U> {
 }
 #[test]
 fn bindgen_test_layout_nsIAttribute() {
-    assert_eq!(::std::mem::size_of::<nsIAttribute>() , 112usize);
+    assert_eq!(::std::mem::size_of::<nsIAttribute>() , 104usize);
     assert_eq!(::std::mem::align_of::<nsIAttribute>() , 8usize);
 }
 #[repr(C)]
@@ -7571,8 +7589,6 @@ pub struct ServoElementSnapshot {
     pub mContains: ServoElementSnapshot_Flags,
     pub mAttrs: nsTArray<ServoAttrSnapshot>,
     pub mState: ServoElementSnapshot_ServoStateType,
-    pub mExplicitRestyleHint: nsRestyleHint,
-    pub mExplicitChangeHint: nsChangeHint,
     pub mIsHTMLElementInHTMLDocument: bool,
     pub mIsInChromeDocument: bool,
 }
@@ -7582,7 +7598,7 @@ pub type ServoElementSnapshot_ServoStateType = EventStates_ServoType;
 pub type ServoElementSnapshot_Flags = ServoElementSnapshotFlags;
 #[test]
 fn bindgen_test_layout_ServoElementSnapshot() {
-    assert_eq!(::std::mem::size_of::<ServoElementSnapshot>() , 32usize);
+    assert_eq!(::std::mem::size_of::<ServoElementSnapshot>() , 24usize);
     assert_eq!(::std::mem::align_of::<ServoElementSnapshot>() , 8usize);
 }
 #[repr(C)]

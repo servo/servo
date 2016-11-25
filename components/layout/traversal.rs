@@ -112,12 +112,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         construct_flows_at(&self.context, self.root, node);
     }
 
-    fn should_traverse_child(parent: N::ConcreteElement, child: N) -> bool {
-        // If the parent is display:none, we don't need to do anything.
-        if parent.is_display_none() {
-            return false;
-        }
-
+    fn should_traverse_child(child: N) -> bool {
         match child.as_element() {
             // Elements should be traversed if they need styling or flow construction.
             Some(el) => el.styling_mode() != StylingMode::Stop ||
@@ -128,7 +123,7 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
             // (1) They child doesn't yet have layout data (preorder traversal initializes it).
             // (2) The parent element has restyle damage (so the text flow also needs fixup).
             None => child.get_raw_data().is_none() ||
-                    parent.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
+                    child.parent_node().unwrap().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
         }
     }
 
@@ -156,6 +151,8 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: OpaqueNode, node: N) {
+    debug!("construct_flows_at: {:?}", node);
+
     // Construct flows for this node.
     {
         let tnode = node.to_threadsafe();
@@ -167,16 +164,18 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
-                debug!("Constructed flow for {:x}: {:x}",
-                       tnode.debug_id(),
+                debug!("Constructed flow for {:?}: {:x}",
+                       tnode,
                        tnode.flow_debug_id());
             }
         }
-
-        tnode.clear_restyle_damage();
     }
 
-    unsafe { node.clear_dirty_bits(); }
+    if let Some(el) = node.as_element() {
+        el.mutate_data().unwrap().persist();
+        unsafe { el.unset_dirty_descendants(); }
+    }
+
     remove_from_bloom_filter(context, root, node);
 }
 

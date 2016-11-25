@@ -12,6 +12,7 @@ extern crate euclid;
 extern crate libc;
 #[macro_use] extern crate log;
 extern crate parking_lot;
+extern crate selectors;
 extern crate servo_url;
 extern crate style_traits;
 

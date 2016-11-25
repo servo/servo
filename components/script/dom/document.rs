@@ -434,7 +434,6 @@ impl Document {
         // that workable.
         match self.GetDocumentElement() {
             Some(root) => {
-                root.upcast::<Node>().is_dirty() ||
                 root.upcast::<Node>().has_dirty_descendants() ||
                 !self.pending_restyles.borrow().is_empty() ||
                 self.needs_paint()

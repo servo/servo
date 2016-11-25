@@ -57,6 +57,12 @@ pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = Option<&'a mut StyleChildr
 pub type StyleChildrenIteratorOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
 enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
+pub type ServoElementSnapshotBorrowed<'a> = &'a ServoElementSnapshot;
+pub type ServoElementSnapshotBorrowedMut<'a> = &'a mut ServoElementSnapshot;
+pub type ServoElementSnapshotOwned = ::gecko_bindings::sugar::ownership::Owned<ServoElementSnapshot>;
+pub type ServoElementSnapshotBorrowedOrNull<'a> = Option<&'a ServoElementSnapshot>;
+pub type ServoElementSnapshotBorrowedMutOrNull<'a> = Option<&'a mut ServoElementSnapshot>;
+pub type ServoElementSnapshotOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<ServoElementSnapshot>;
 use gecko_bindings::structs::Element;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
@@ -196,6 +202,15 @@ use gecko_bindings::structs::nsStyleXUL;
 unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
 
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ConsumeStyleBehavior { Consume = 0, DontConsume = 1, }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LazyComputeBehavior { Allow = 0, Assert = 1, }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SkipRootBehavior { Skip = 0, DontSkip = 1, }
 pub type RawGeckoNode = nsINode;
 pub type RawGeckoElement = Element;
 pub type RawGeckoDocument = nsIDocument;
@@ -395,49 +410,51 @@ extern "C" {
                                   classList: *mut *mut *mut nsIAtom) -> u32;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAtomAttrValue(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAtomAttrValue(element: *const ServoElementSnapshot,
                                        attribute: *mut nsIAtom)
      -> *mut nsIAtom;
 }
 extern "C" {
-    pub fn Gecko_SnapshotHasAttr(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotHasAttr(element: *const ServoElementSnapshot,
                                  ns: *mut nsIAtom, name: *mut nsIAtom)
      -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrEquals(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrEquals(element: *const ServoElementSnapshot,
                                     ns: *mut nsIAtom, name: *mut nsIAtom,
                                     str: *mut nsIAtom, ignoreCase: bool)
      -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrDashEquals(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrDashEquals(element: *const ServoElementSnapshot,
                                         ns: *mut nsIAtom, name: *mut nsIAtom,
                                         str: *mut nsIAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrIncludes(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrIncludes(element: *const ServoElementSnapshot,
                                       ns: *mut nsIAtom, name: *mut nsIAtom,
                                       str: *mut nsIAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrHasSubstring(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrHasSubstring(element:
+                                              *const ServoElementSnapshot,
                                           ns: *mut nsIAtom,
                                           name: *mut nsIAtom,
                                           str: *mut nsIAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrHasPrefix(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrHasPrefix(element: *const ServoElementSnapshot,
                                        ns: *mut nsIAtom, name: *mut nsIAtom,
                                        str: *mut nsIAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotAttrHasSuffix(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotAttrHasSuffix(element: *const ServoElementSnapshot,
                                        ns: *mut nsIAtom, name: *mut nsIAtom,
                                        str: *mut nsIAtom) -> bool;
 }
 extern "C" {
-    pub fn Gecko_SnapshotClassOrClassList(element: *mut ServoElementSnapshot,
+    pub fn Gecko_SnapshotClassOrClassList(element:
+                                              *const ServoElementSnapshot,
                                           class_: *mut *mut nsIAtom,
                                           classList: *mut *mut *mut nsIAtom)
      -> u32;
@@ -580,8 +597,11 @@ extern "C" {
      -> nsChangeHint;
 }
 extern "C" {
-    pub fn Gecko_StoreStyleDifference(node: RawGeckoNodeBorrowed,
-                                      change: nsChangeHint);
+    pub fn Gecko_CreateElementSnapshot(element: RawGeckoElementBorrowed)
+     -> ServoElementSnapshotOwned;
+}
+extern "C" {
+    pub fn Gecko_DropElementSnapshot(snapshot: ServoElementSnapshotOwned);
 }
 extern "C" {
     pub fn Gecko_ClearStyleContents(content: *mut nsStyleContent);
@@ -952,7 +972,7 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
 }
 extern "C" {
-    pub fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed);
+    pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSheet_Empty(parsing_mode: SheetParsingMode)
@@ -1125,10 +1145,6 @@ extern "C" {
                              value: *const nsACString_internal) -> bool;
 }
 extern "C" {
-    pub fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
-     -> ServoComputedValuesStrong;
-}
-extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
                                                        ServoComputedValuesBorrowedOrNull,
                                                    pseudoTag: *mut nsIAtom,
@@ -1159,14 +1175,32 @@ extern "C" {
     pub fn Servo_Shutdown();
 }
 extern "C" {
-    pub fn Servo_ComputeRestyleHint(element: RawGeckoElementBorrowed,
-                                    snapshot: *mut ServoElementSnapshot,
-                                    set: RawServoStyleSetBorrowed)
-     -> nsRestyleHint;
+    pub fn Servo_Element_GetSnapshot(element: RawGeckoElementBorrowed)
+     -> *mut ServoElementSnapshot;
 }
 extern "C" {
-    pub fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
-                                set: RawServoStyleSetBorrowed);
+    pub fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
+                                   restyle_hint: nsRestyleHint,
+                                   change_hint: nsChangeHint);
+}
+extern "C" {
+    pub fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed)
+     -> nsChangeHint;
+}
+extern "C" {
+    pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
+                              set: RawServoStyleSetBorrowed,
+                              consume: ConsumeStyleBehavior,
+                              compute: LazyComputeBehavior)
+     -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
+                                 set: RawServoStyleSetBorrowed,
+                                 skip_root: SkipRootBehavior);
+}
+extern "C" {
+    pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
 }
 extern "C" {
     pub fn Servo_GetStyleFont(computed_values:

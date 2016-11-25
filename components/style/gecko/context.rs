@@ -22,6 +22,10 @@ fn create_or_get_local_context(shared: &SharedStyleContext) -> Rc<LocalStyleCont
     })
 }
 
+pub fn clear_local_context() {
+    LOCAL_CONTEXT_KEY.with(|r| *r.borrow_mut() = None);
+}
+
 pub struct StandaloneStyleContext<'a> {
     pub shared: &'a SharedStyleContext,
     cached_local_context: Rc<LocalStyleContext>,
