@@ -38,10 +38,14 @@ impl ImageResponder {
     }
 }
 
+/// The unique id for an image that has previously been requested.
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+pub struct PendingImageId(pub u64);
+
 /// The current state of an image in the cache.
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum ImageState {
-    Pending,
+    Pending(PendingImageId),
     LoadError,
     NotRequested,
 }

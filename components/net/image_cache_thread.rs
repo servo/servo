@@ -9,7 +9,7 @@ use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::image_cache_thread::{ImageResponder, ImageCacheResultResponse};
+use net_traits::image_cache_thread::{ImageResponder, ImageCacheResultResponse, PendingImageId};
 use net_traits::request::{Destination, RequestInit, Type as RequestType};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
@@ -545,9 +545,10 @@ impl ImageCache {
                               -> Result<Arc<Image>, ImageState> {
        let img_or_metadata = self.get_image_or_meta_if_available(url, placeholder);
        match img_or_metadata {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => Ok(image),
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(_)) => Err(ImageState::Pending),
-            Err(err) => Err(err),
+           Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => Ok(image),
+           Ok(ImageOrMetadataAvailable::MetadataAvailable(_)) =>
+               Err(ImageState::Pending(PendingImageId(0))),
+           Err(err) => Err(err),
        }
     }
 
@@ -577,7 +578,7 @@ impl ImageCache {
 
                 let meta = match pl.metadata {
                     Some(ref meta) => meta,
-                    None => return Err(ImageState::Pending),
+                    None => return Err(ImageState::Pending(PendingImageId(0))),
                 };
 
                 Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))

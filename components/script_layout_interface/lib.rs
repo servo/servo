@@ -50,6 +50,9 @@ use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
+use net_traits::image_cache_thread::PendingImageId;
+use servo_url::ServoUrl;
+use script_traits::UntrustedNodeAddress;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -143,4 +146,16 @@ unsafe impl Send for TrustedNodeAddress {}
 pub fn is_image_data(uri: &str) -> bool {
     static TYPES: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     TYPES.iter().any(|&type_| uri.starts_with(type_))
+}
+
+///
+pub enum PendingImageState {
+    Unrequested(ServoUrl),
+    PendingResponse(PendingImageId),
+}
+
+///
+pub struct PendingImage {
+    pub state: PendingImageState,
+    pub node: UntrustedNodeAddress,
 }

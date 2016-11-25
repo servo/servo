@@ -1116,6 +1116,8 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
+        let pending_images = self.layout_rpc.pending_images();
+
         true
     }
 

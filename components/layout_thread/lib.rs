@@ -104,6 +104,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -474,6 +475,7 @@ impl LayoutThread {
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
+                    pending_images: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -532,6 +534,7 @@ impl LayoutThread {
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
+            pending_images: Mutex::new(vec![]),
         }
     }
 
@@ -1219,6 +1222,9 @@ impl LayoutThread {
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
                                      shared: &mut SharedLayoutContext) {
+        rw_data.pending_images =
+            std_mem::replace(&mut shared.pending_images.lock().unwrap(), vec![]);
+
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
             None => return,

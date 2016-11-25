@@ -5,17 +5,19 @@
 //! Data needed by the layout thread.
 
 use fnv::FnvHasher;
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc;
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder, PendingImageId};
+use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
 use servo_config::opts;
 use servo_url::ServoUrl;
+use script_layout_interface::{PendingImage, PendingImageState};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -100,6 +102,15 @@ pub struct SharedLayoutContext {
     pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
+
+    ///
+    pub pending_images: Mutex<Vec<PendingImage>>
+}
+
+impl Drop for SharedLayoutContext {
+    fn drop(&mut self) {
+        assert!(self.pending_images.lock().unwrap().is_empty());
+    }
 }
 
 pub struct LayoutContext<'a> {
@@ -138,7 +149,10 @@ impl<'a> LayoutContext<'a> {
 }
 
 impl SharedLayoutContext {
-    pub fn get_or_request_image_or_meta(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
+    pub fn get_or_request_image_or_meta(&self,
+                                        node: OpaqueNode,
+                                        url: ServoUrl,
+                                        use_placeholder: UsePlaceholder)
                                 -> Option<ImageOrMetadataAvailable> {
         // See if the image is already available
         let result = self.image_cache_thread.lock().unwrap()
@@ -150,18 +164,28 @@ impl SharedLayoutContext {
             Err(ImageState::LoadError) => None,
             // Not yet requested, async mode - request image or metadata from the cache
             Err(ImageState::NotRequested) => {
-                let sender = self.image_cache_sender.lock().unwrap().clone();
-                self.image_cache_thread.lock().unwrap()
-                                       .request_image_and_metadata(url, sender, None);
+                let image = PendingImage {
+                    state: PendingImageState::Unrequested(url),
+                    node: node.to_untrusted_node_address(),
+                };
+                self.pending_images.lock().unwrap().push(image);
                 None
             }
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
-            Err(ImageState::Pending) => None,
+            Err(ImageState::Pending(id)) => {
+                let image = PendingImage {
+                    state: PendingImageState::PendingResponse(id),
+                    node: node.to_untrusted_node_address(),
+                };
+                self.pending_images.lock().unwrap().push(image);
+                None
+            }
         }
     }
 
     pub fn get_webrender_image_for_url(&self,
+                                       node: OpaqueNode,
                                        url: ServoUrl,
                                        use_placeholder: UsePlaceholder)
                                        -> Option<WebRenderImageInfo> {
@@ -171,7 +195,7 @@ impl SharedLayoutContext {
             return Some((*existing_webrender_image).clone())
         }
 
-        match self.get_or_request_image_or_meta(url.clone(), use_placeholder) {
+        match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {

@@ -16,6 +16,7 @@ use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffs
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
+use script_layout_interface::PendingImage;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
@@ -26,6 +27,7 @@ use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
 use std::cmp::{min, max};
+use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values;
@@ -85,6 +87,9 @@ pub struct LayoutThreadData {
 
     /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
     pub stacking_context_scroll_offsets: ScrollOffsetMap,
+
+    ///
+    pub pending_images: Vec<PendingImage>,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -205,6 +210,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.margin_style_response.clone()
+    }
+
+    fn pending_images(&self) -> Vec<PendingImage> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let mut rw_data = rw_data.lock().unwrap();
+        mem::replace(&mut rw_data.pending_images, vec![])
     }
 }
 
