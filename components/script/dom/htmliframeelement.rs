@@ -331,6 +331,8 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
             .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
             .and_then(|document| {
+                // FIXME(#10964): this should use the Document's origin and the
+                //                origin of the incumbent settings object.
                 let contained_url = document.global().get_url();
                 if self.global().get_url().origin() == contained_url.origin() ||
                    contained_url.as_str() == "about:blank" {
@@ -519,18 +521,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.get_content_window().and_then(|window| {
-            // FIXME(#10964): this should use the Document's origin and the
-            //                origin of the incumbent settings object.
-            let self_url = self.get_url();
-            let win_url = window_from_node(self).get_url();
-
-            if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
-            } else {
-                None
-            }
-        })
+        self.get_content_window().map(|window| window.Document())
     }
 
     // Experimental mozbrowser implementation is based on the webidl
