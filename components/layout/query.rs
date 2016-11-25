@@ -613,6 +613,15 @@ fn ensure_node_data_initialized<N: LayoutNode>(node: &N) {
     let mut cur = Some(node.clone());
     while let Some(current) = cur {
         if current.borrow_layout_data().is_some() {
+            if cfg!(debug_assertions) {
+                cur = current.parent_node();
+                while let Some(current) = cur {
+                    assert!(current.borrow_layout_data().is_some(),
+                            "Broken invariant: Child has data without parent \
+                             having it");
+                    cur = current.parent_node();
+                }
+            }
             break;
         }
 
