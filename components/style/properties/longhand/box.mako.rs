@@ -1546,7 +1546,7 @@ ${helpers.single_keyword("-moz-appearance",
                          animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
-${helpers.predefined_type("-moz-binding", "UrlOrNone", "computed_value::T::None",
+${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           needs_context=True,
                           products="gecko",
                           animatable="False",

@@ -20,6 +20,7 @@
     <%call expr="longhand(name, predefined_type=type, **kwargs)">
         #[allow(unused_imports)]
         use app_units::Au;
+        use parser::ParseWithContext;
         use cssparser::{Color as CSSParserColor, RGBA};
         pub use values::specified::${type} as SpecifiedValue;
         pub mod computed_value {

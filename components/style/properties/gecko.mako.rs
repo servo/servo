@@ -1593,14 +1593,14 @@ fn static_assert() {
                   skip_additionals="*">
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
-        use values::computed::UrlOrNone;
+        use values::Either;
         match image {
-            UrlOrNone::None => {
+            Either::Second(_) => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            UrlOrNone::Url(ref url) => {
+            Either::First(ref url) => {
                 let (ptr, len) = url.as_slice_components();
                 let extra_data = url.extra_data();
                 unsafe {

@@ -7,7 +7,7 @@
 //! [values]: https://drafts.csswg.org/css-values/
 
 pub use cssparser::{RGBA, Parser};
-use parser::Parse;
+use parser::{Parse, ParseWithContext, ParserContext};
 use std::fmt::{self, Debug};
 use style_traits::ToCss;
 
@@ -88,6 +88,13 @@ macro_rules! define_keyword_type {
             }
         }
 
+        impl ParseWithContext for $name {
+            fn parse(_: &::parser::ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
+                input.expect_ident_matching($css).map(|_| $name)
+            }
+        }
+
+
         impl ComputedValueAsSpecified for $name {}
         impl NoViewportPercentage for $name {}
     };
@@ -137,6 +144,16 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
             Ok(Either::First(v))
         } else {
             B::parse(input).map(Either::Second)
+        }
+    }
+}
+
+impl<A: ParseWithContext, B: ParseWithContext> ParseWithContext for Either<A, B> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Either<A, B>, ()> {
+        if let Ok(v) = input.try(|i| A::parse(context, i)) {
+            Ok(Either::First(v))
+        } else {
+            B::parse(context, input).map(Either::Second)
         }
     }
 }
