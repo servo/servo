@@ -72,3 +72,7 @@ pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str
 pub trait Parse {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> where Self: Sized;
 }
+
+pub trait ParseWithContext {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> where Self: Sized;
+}
