@@ -86,6 +86,7 @@ impl HTMLStyleElement {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(&window_from_node(self),
+                                   self.upcast::<Element>(),
                                    "text/css".into(),
                                    None, // todo handle location
                                    None, // todo handle title

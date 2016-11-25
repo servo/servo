@@ -169,7 +169,7 @@ impl Stylist {
     }
 
     fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if !stylesheet.is_effective_for_device(&self.device) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
             return;
         }
 

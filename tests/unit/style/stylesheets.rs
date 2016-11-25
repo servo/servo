@@ -57,6 +57,7 @@ fn test_parse_stylesheet() {
         origin: Origin::UserAgent,
         media: Default::default(),
         dirty_on_viewport_size_change: AtomicBool::new(false),
+        disabled: AtomicBool::new(false),
         rules: vec![
             CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
