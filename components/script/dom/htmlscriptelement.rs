@@ -469,19 +469,20 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if script.external {
-            debug!("loading external script, url = {}", script.url);
-        }
-
         // TODO(#12446): beforescriptexecute.
         if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
             return;
         }
 
         // Step 3.
-        // TODO: If the script is from an external file, then increment the
-        // ignore-destructive-writes counter of the script element's node
-        // document. Let neutralised doc be that Document.
+        let neutralized_doc = if script.external {
+            debug!("loading external script, url = {}", script.url);
+            let doc = document_from_node(self);
+            doc.incr_ignore_destructive_writes_counter();
+            Some(doc)
+        } else {
+            None
+        };
 
         // Step 4.
         let document = document_from_node(self);
@@ -500,8 +501,9 @@ impl HTMLScriptElement {
         document.set_current_script(old_script.r());
 
         // Step 7.
-        // TODO: Decrement the ignore-destructive-writes counter of neutralised
-        // doc, if it was incremented in the earlier step.
+        if let Some(doc) = neutralized_doc {
+            doc.decr_ignore_destructive_writes_counter();
+        }
 
         // TODO(#12446): afterscriptexecute.
         self.dispatch_after_script_execute_event();

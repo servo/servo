@@ -33,6 +33,7 @@ use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cell::Cell;
+use std::mem;
 use util::resource_files::read_resource_file;
 
 mod html;
@@ -46,9 +47,12 @@ pub struct ServoParser {
     /// The pipeline associated with this parse, unavailable if this parse
     /// does not correspond to a page load.
     pipeline: Option<PipelineId>,
-    /// Input chunks received but not yet passed to the parser.
+    /// Input received from network.
     #[ignore_heap_size_of = "Defined in html5ever"]
-    pending_input: DOMRefCell<BufferQueue>,
+    network_input: DOMRefCell<BufferQueue>,
+    /// Input received from script. Used only to support document.write().
+    #[ignore_heap_size_of = "Defined in html5ever"]
+    script_input: DOMRefCell<BufferQueue>,
     /// The tokenizer of this parser.
     tokenizer: DOMRefCell<Tokenizer>,
     /// Whether to expect any further input from the associated network request.
@@ -140,6 +144,72 @@ impl ServoParser {
         self.script_nesting_level.get()
     }
 
+    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
+        assert!(self.suspended.get());
+        self.suspended.set(false);
+
+        // This prepends the script input to the network input.
+        mem::swap(&mut *self.script_input.borrow_mut(), &mut *self.network_input.borrow_mut());
+        while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
+            self.network_input.borrow_mut().push_back(chunk);
+        }
+
+        let script_nesting_level = self.script_nesting_level.get();
+        assert_eq!(script_nesting_level, 0);
+
+        self.script_nesting_level.set(script_nesting_level + 1);
+        script.execute();
+        self.script_nesting_level.set(script_nesting_level);
+
+        if !self.suspended.get() {
+            self.parse_sync();
+        }
+    }
+
+    pub fn write(&self, text: Vec<DOMString>) {
+        assert!(self.script_nesting_level.get() > 0);
+
+        if self.document.get_pending_parsing_blocking_script().is_some() {
+            for chunk in text {
+                self.script_input.borrow_mut().push_back(String::from(chunk).into());
+            }
+            return;
+        }
+
+        let mut input = BufferQueue::new();
+        for chunk in text {
+            input.push_back(String::from(chunk).into());
+        }
+
+        loop {
+            assert!(!self.suspended.get());
+
+            self.document.reflow_if_reflow_timer_expired();
+            let script = match self.tokenizer.borrow_mut().feed(&mut input) {
+                Ok(()) => break,
+                Err(script) => script,
+            };
+
+            let script_nesting_level = self.script_nesting_level.get();
+
+            self.script_nesting_level.set(script_nesting_level + 1);
+            script.prepare();
+            self.script_nesting_level.set(script_nesting_level);
+
+            if self.document.get_pending_parsing_blocking_script().is_some() {
+                self.suspended.set(true);
+
+                while let Some(chunk) = input.pop_front() {
+                    self.script_input.borrow_mut().push_back(chunk);
+                }
+
+                break;
+            }
+        }
+
+        assert!(input.is_empty());
+    }
+
     #[allow(unrooted_must_root)]
     fn new_inherited(
             document: &Document,
@@ -151,7 +221,8 @@ impl ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
             pipeline: pipeline,
-            pending_input: DOMRefCell::new(BufferQueue::new()),
+            network_input: DOMRefCell::new(BufferQueue::new()),
+            script_input: DOMRefCell::new(BufferQueue::new()),
             tokenizer: DOMRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
@@ -172,84 +243,33 @@ impl ServoParser {
             ServoParserBinding::Wrap)
     }
 
-    pub fn document(&self) -> &Document {
-        &self.document
-    }
-
-    pub fn pipeline(&self) -> Option<PipelineId> {
-        self.pipeline
-    }
-
-    fn has_pending_input(&self) -> bool {
-        !self.pending_input.borrow().is_empty()
-    }
-
     fn push_input_chunk(&self, chunk: String) {
-        self.pending_input.borrow_mut().push_back(chunk.into());
-    }
-
-    fn last_chunk_received(&self) -> bool {
-        self.last_chunk_received.get()
-    }
-
-    fn mark_last_chunk_received(&self) {
-        self.last_chunk_received.set(true)
-    }
-
-    fn set_plaintext_state(&self) {
-        self.tokenizer.borrow_mut().set_plaintext_state()
-    }
-
-    pub fn suspend(&self) {
-        assert!(!self.suspended.get());
-        self.suspended.set(true);
-    }
-
-    pub fn resume(&self) {
-        assert!(self.suspended.get());
-        self.suspended.set(false);
-        self.parse_sync();
-    }
-
-    pub fn is_suspended(&self) -> bool {
-        self.suspended.get()
-    }
-
-    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
-        assert!(self.suspended.get());
-        self.suspended.set(false);
-
-        let script_nesting_level = self.script_nesting_level.get();
-        assert_eq!(script_nesting_level, 0);
-
-        self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute();
-        self.script_nesting_level.set(script_nesting_level);
-
-        if !self.suspended.get() {
-            self.parse_sync();
-        }
+        self.network_input.borrow_mut().push_back(chunk.into());
     }
 
     fn parse_sync(&self) {
         let metadata = TimerMetadata {
-            url: self.document().url().as_str().into(),
+            url: self.document.url().as_str().into(),
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
         let profiler_category = self.tokenizer.borrow().profiler_category();
         profile(profiler_category,
                 Some(metadata),
-                self.document().window().upcast::<GlobalScope>().time_profiler_chan().clone(),
+                self.document.window().upcast::<GlobalScope>().time_profiler_chan().clone(),
                 || self.do_parse_sync())
     }
 
     fn do_parse_sync(&self) {
+        assert!(self.script_input.borrow().is_empty());
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
+
         loop {
-            self.document().reflow_if_reflow_timer_expired();
-            let script = match self.tokenizer.borrow_mut().feed(&mut *self.pending_input.borrow_mut()) {
+            assert!(!self.suspended.get());
+
+            self.document.reflow_if_reflow_timer_expired();
+            let script = match self.tokenizer.borrow_mut().feed(&mut *self.network_input.borrow_mut()) {
                 Ok(()) => break,
                 Err(script) => script,
             };
@@ -261,36 +281,38 @@ impl ServoParser {
             self.script_nesting_level.set(script_nesting_level);
 
             if self.document.get_pending_parsing_blocking_script().is_some() {
-                self.suspend();
+                self.suspended.set(true);
                 return;
             }
-
-            assert!(!self.suspended.get());
         }
 
-        if self.last_chunk_received() {
+        assert!(self.network_input.borrow().is_empty());
+
+        if !self.suspended.get() && self.last_chunk_received.get() {
             self.finish();
         }
     }
 
     fn parse_chunk(&self, input: String) {
-        self.document().set_current_parser(Some(self));
+        self.document.set_current_parser(Some(self));
         self.push_input_chunk(input);
-        if !self.is_suspended() {
+        if !self.suspended.get() {
             self.parse_sync();
         }
     }
 
     fn finish(&self) {
         assert!(!self.suspended.get());
-        assert!(!self.has_pending_input());
+        assert!(self.last_chunk_received.get());
+        assert!(self.script_input.borrow().is_empty());
+        assert!(self.network_input.borrow().is_empty());
 
         self.tokenizer.borrow_mut().end();
         debug!("finished parsing");
 
-        self.document().set_current_parser(None);
+        self.document.set_current_parser(None);
 
-        if let Some(pipeline) = self.pipeline() {
+        if let Some(pipeline) = self.pipeline {
             ScriptThread::parsing_complete(pipeline);
         }
     }
@@ -398,7 +420,7 @@ impl FetchResponseListener for ParserContext {
                 parser.push_input_chunk(page);
                 parser.parse_sync();
 
-                let doc = parser.document();
+                let doc = &parser.document;
                 let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
                 let img = HTMLImageElement::new(local_name!("img"), None, doc);
                 img.SetSrc(DOMString::from(self.url.to_string()));
@@ -410,7 +432,7 @@ impl FetchResponseListener for ParserContext {
                 let page = "<pre>\n".into();
                 parser.push_input_chunk(page);
                 parser.parse_sync();
-                parser.set_plaintext_state();
+                parser.tokenizer.borrow_mut().set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => { // Handle text/html
                 if let Some(reason) = ssl_error {
@@ -475,11 +497,11 @@ impl FetchResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        parser.document()
+        parser.document
             .finish_load(LoadType::PageSource(self.url.clone()));
 
-        parser.mark_last_chunk_received();
-        if !parser.is_suspended() {
+        parser.last_chunk_received.set(true);
+        if !parser.suspended.get() {
             parser.parse_sync();
         }
     }
