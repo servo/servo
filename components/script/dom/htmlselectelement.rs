@@ -31,6 +31,7 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
+use std::iter;
 use style::attr::AttrValue;
 use style::element_state::*;
 
@@ -86,9 +87,18 @@ impl HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
     fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
-        ListOfOptions {
-            curr: self.upcast::<Node>().children().next(),
-        }
+        self.upcast::<Node>()
+            .children()
+            .flat_map(|node| {
+                if node.is::<HTMLOptionElement>() {
+                    let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
+                    Choice3::First(iter::once(node))
+                } else if node.is::<HTMLOptGroupElement>() {
+                    Choice3::Second(node.children().filter_map(Root::downcast))
+                } else {
+                    Choice3::Third(iter::empty())
+                }
+            })
     }
 
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
@@ -390,64 +400,22 @@ impl Validatable for HTMLSelectElement {
     }
 }
 
-struct ListOfOptions {
-    curr: Option<Root<Node>>,
+enum ListOfOptionsChild<I, J, K> {
+    First(I),
+    Second(J),
+    Third(K)
 }
 
-impl Iterator for ListOfOptions {
-    type Item = Root<HTMLOptionElement>;
+impl<I, J, K, T> Iterator for Choice3<I, J, K>
+    where I: Iterator<Item=T>, J: Iterator<Item=T>, K: Iterator<Item=T>
+{
+    type Item = T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let (ret, curr) = find_next_option(&self.curr);
-        self.curr = curr;
-        ret
-    }
-}
-
-fn find_next_option(curr: &Option<Root<Node>>) -> (Option<Root<HTMLOptionElement>>, Option<Root<Node>>) {
-    let curr: &Node = match *curr {
-        Some(ref node) => node,
-        None => return (None, None),
-    };
-    let parent = curr.GetParentNode().unwrap();
-    // Handle children of an <optgroup>
-    if parent.is::<HTMLOptGroupElement>() {
-        if let Some(option) = next_option_sibling(&curr) {
-            return (Some(option.clone()), Some(Root::upcast(option)));
+    fn next(&mut self) -> Option<T> {
+        match *self {
+            Choice3::First(ref mut i) => i.next(),
+            Choice3::Second(ref mut j) => j.next(),
+            Choice3::Third(ref mut k) => k.next(),
         }
-        let curr = parent.following_siblings().next();
-        return find_next_option(&curr);
     }
-    // Handle children of a <select>
-    for sibling in curr.inclusively_following_siblings() {
-        if let Some(option) = Root::downcast::<HTMLOptionElement>(sibling.clone()) {
-            return (Some(option), sibling.following_siblings().next());
-        }
-        if !sibling.is::<HTMLOptGroupElement>() {
-            continue;
-        }
-        // Retrieve first child of <optgroup>
-        let child = match sibling.children().next() {
-            Some(node) => node,
-            None => continue,
-        };
-        // Retrieve <option> child of <optgroup>
-        let option = match next_option_sibling(&child) {
-            Some(node) => node,
-            None => continue,
-        };
-        let curr = match option.upcast::<Node>().following_siblings().next() {
-            Some(node) => Some(node),
-            None => sibling.following_siblings().next(),
-        };
-        return (Some(option), curr);
-    }
-    (None, None)
-}
-
-// Iterates over the node's siblings (inclusively) and finds the next <option> node
-fn next_option_sibling(node: &Node) -> Option<Root<HTMLOptionElement>> {
-    node.inclusively_following_siblings()
-        .filter_map(Root::downcast::<HTMLOptionElement>)
-        .next()
 }

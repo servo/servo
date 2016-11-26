@@ -15,8 +15,11 @@
   <optgroup>
     <option value=0></option>
   </optgroup>
+  <optgroup></optgroup>
   <optgroup>
-    <option selected value=1></option>
+    <option></option>
+    <option value=1></option>
+    <option selected value=2></option>
   </optgroup>
 </select>
 
@@ -32,7 +35,7 @@ test(function() {
 
 test(function() {
   var select = document.getElementById('sel2');
-  assert_equals(select.value, '1');
+  assert_equals(select.value, '2');
 });
 
 test(function() {
