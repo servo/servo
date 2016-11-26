@@ -33,12 +33,12 @@
 test(function() {
   var select = document.getElementById('sel1');
   assert_equals(select.value, '1');
-});
+}, 'options');
 
 test(function() {
   var select = document.getElementById('sel2');
   assert_equals(select.value, '2');
-});
+}, 'optgroups');
 
 test(function() {
   var select = document.getElementById('sel3');
@@ -47,10 +47,10 @@ test(function() {
   select.appendChild(div);
   div.appendChild(option);
   assert_equals(select.value, '');
-});
+}, 'option is child of div');
 
 test(function() {
   var select = document.getElementById('sel4');
   assert_equals(select.value, '');
-});
+}, 'no options');
 </script>
