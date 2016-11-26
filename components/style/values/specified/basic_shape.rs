@@ -61,19 +61,20 @@ impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
         } else if let Ok(url) = input.try(|input| SpecifiedUrl::parse(context, input)) {
             Ok(ShapeSource::Url(url))
         } else {
-            fn parse_component<U: Parse>(input: &mut Parser, component: &mut Option<U>) -> bool {
+            fn parse_component<U: Parse>(context: &ParserContext, input: &mut Parser,
+                                         component: &mut Option<U>) -> bool {
                 if component.is_some() {
                     return false; // already parsed this component
                 }
-                *component = input.try(U::parse).ok();
+                *component = input.try(|i| U::parse(context, i)).ok();
                 component.is_some()
             }
 
             let mut shape = None;
             let mut reference = None;
             loop {
-                if !parse_component(input, &mut shape) &&
-                   !parse_component(input, &mut reference) {
+                if !parse_component(context, input, &mut shape) &&
+                   !parse_component(context, input, &mut reference) {
                     break;
                 }
             }
@@ -136,23 +137,23 @@ pub enum BasicShape {
 }
 
 impl Parse for BasicShape {
-    fn parse(input: &mut Parser) -> Result<BasicShape, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<BasicShape, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
             "inset" => {
                 Ok(BasicShape::Inset(
-                   try!(input.parse_nested_block(InsetRect::parse_function_arguments))))
+                   try!(input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)))))
             },
             "circle" => {
                 Ok(BasicShape::Circle(
-                   try!(input.parse_nested_block(Circle::parse_function_arguments))))
+                   try!(input.parse_nested_block(|i| Circle::parse_function_arguments(context, i)))))
             },
             "ellipse" => {
                 Ok(BasicShape::Ellipse(
-                   try!(input.parse_nested_block(Ellipse::parse_function_arguments))))
+                   try!(input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i)))))
             },
             "polygon" => {
                 Ok(BasicShape::Polygon(
-                   try!(input.parse_nested_block(Polygon::parse_function_arguments))))
+                   try!(input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i)))))
             },
             _ => Err(())
         }
@@ -213,8 +214,8 @@ pub struct InsetRect {
 }
 
 impl InsetRect {
-    pub fn parse_function_arguments(input: &mut Parser) -> Result<InsetRect, ()> {
-        let (t, r, b, l) = try!(parse_four_sides(input, LengthOrPercentage::parse));
+    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<InsetRect, ()> {
+        let (t, r, b, l) = try!(parse_four_sides(input, |i| LengthOrPercentage::parse(context, i)));
         let mut rect = InsetRect {
             top: t,
             right: r,
@@ -223,19 +224,19 @@ impl InsetRect {
             round: None,
         };
         if let Ok(_) = input.try(|input| input.expect_ident_matching("round")) {
-            rect.round = Some(try!(BorderRadius::parse(input)));
+            rect.round = Some(try!(BorderRadius::parse(context, input)));
         }
         Ok(rect)
     }
 }
 
 impl Parse for InsetRect {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
-                                   "inset" => {
-                                       Ok(try!(input.parse_nested_block(InsetRect::parse_function_arguments)))
-                                   },
-                                   _ => Err(())
+           "inset" => {
+               Ok(try!(input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))))
+           },
+           _ => Err(())
         }
     }
 }
@@ -377,10 +378,10 @@ pub struct Circle {
 }
 
 impl Circle {
-    pub fn parse_function_arguments(input: &mut Parser) -> Result<Circle, ()> {
-        let radius = input.try(ShapeRadius::parse).ok().unwrap_or_else(Default::default);
+    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Circle, ()> {
+        let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_else(Default::default);
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
-            try!(Position::parse(input))
+            try!(Position::parse(context, input))
         } else {
             // Defaults to origin
             Position {
@@ -398,12 +399,12 @@ impl Circle {
 }
 
 impl Parse for Circle {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
-                                   "circle" => {
-                                       Ok(try!(input.parse_nested_block(Circle::parse_function_arguments)))
-                                   },
-                                   _ => Err(())
+           "circle" => {
+               Ok(try!(input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))))
+           },
+           _ => Err(())
         }
     }
 }
@@ -452,12 +453,12 @@ pub struct Ellipse {
 
 
 impl Ellipse {
-    pub fn parse_function_arguments(input: &mut Parser) -> Result<Ellipse, ()> {
+    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Ellipse, ()> {
         let (a, b) = input.try(|input| -> Result<_, ()> {
-            Ok((try!(ShapeRadius::parse(input)), try!(ShapeRadius::parse(input))))
+            Ok((try!(ShapeRadius::parse(context, input)), try!(ShapeRadius::parse(context, input))))
         }).ok().unwrap_or_default();
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
-            try!(Position::parse(input))
+            try!(Position::parse(context, input))
         } else {
             // Defaults to origin
             Position {
@@ -476,12 +477,12 @@ impl Ellipse {
 }
 
 impl Parse for Ellipse {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
-                                   "ellipse" => {
-                                       Ok(try!(input.parse_nested_block(Ellipse::parse_function_arguments)))
-                                   },
-                                   _ => Err(())
+           "ellipse" => {
+               Ok(try!(input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))))
+           },
+           _ => Err(())
         }
     }
 }
@@ -533,16 +534,16 @@ pub struct Polygon {
 }
 
 impl Polygon {
-    pub fn parse_function_arguments(input: &mut Parser) -> Result<Polygon, ()> {
+    pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Polygon, ()> {
         let fill = input.try(|input| {
-            let fill = FillRule::parse(input);
+            let fill = FillRule::parse(context, input);
             // only eat the comma if there is something before it
             try!(input.expect_comma());
             fill
         }).ok().unwrap_or_else(Default::default);
         let buf = try!(input.parse_comma_separated(|input| {
-            Ok((try!(LengthOrPercentage::parse(input)),
-                try!(LengthOrPercentage::parse(input))))
+            Ok((try!(LengthOrPercentage::parse(context, input)),
+                try!(LengthOrPercentage::parse(context, input))))
         }));
         Ok(Polygon {
             fill: fill,
@@ -552,12 +553,12 @@ impl Polygon {
 }
 
 impl Parse for Polygon {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
-                                   "polygon" => {
-                                       Ok(try!(input.parse_nested_block(Polygon::parse_function_arguments)))
-                                   },
-                                   _ => Err(())
+           "polygon" => {
+               Ok(try!(input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))))
+           },
+           _ => Err(())
         }
     }
 }
@@ -629,9 +630,8 @@ impl Default for ShapeRadius {
 }
 
 impl Parse for ShapeRadius {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        input.try(LengthOrPercentage::parse).map(ShapeRadius::Length)
-                                            .or_else(|_| {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(|i| LengthOrPercentage::parse(context, i)).map(ShapeRadius::Length).or_else(|_| {
             match_ignore_ascii_case! { try!(input.expect_ident()),
                 "closest-side" => Ok(ShapeRadius::ClosestSide),
                 "farthest-side" => Ok(ShapeRadius::FarthestSide),
@@ -716,10 +716,10 @@ impl ToCss for BorderRadius {
 }
 
 impl Parse for BorderRadius {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        let widths = try!(parse_one_set_of_border_values(input));
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let widths = try!(parse_one_set_of_border_values(context, input));
         let heights = if input.try(|input| input.expect_delim('/')).is_ok() {
-            try!(parse_one_set_of_border_values(input))
+            try!(parse_one_set_of_border_values(context, input))
         } else {
             widths.clone()
         };
@@ -732,23 +732,23 @@ impl Parse for BorderRadius {
     }
 }
 
-fn parse_one_set_of_border_values(mut input: &mut Parser)
+fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parser)
                                  -> Result<[LengthOrPercentage; 4], ()> {
-    let a = try!(LengthOrPercentage::parse(input));
+    let a = try!(LengthOrPercentage::parse(context, input));
 
-    let b = if let Ok(b) = input.try(LengthOrPercentage::parse) {
+    let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         b
     } else {
         return Ok([a, a, a, a])
     };
 
-    let c = if let Ok(c) = input.try(LengthOrPercentage::parse) {
+    let c = if let Ok(c) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         c
     } else {
         return Ok([a, b, a, b])
     };
 
-    if let Ok(d) = input.try(LengthOrPercentage::parse) {
+    if let Ok(d) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         Ok([a, b, c, d])
     } else {
         Ok([a, b, c, b])
@@ -794,7 +794,7 @@ pub enum FillRule {
 impl ComputedValueAsSpecified for FillRule {}
 
 impl Parse for FillRule {
-    fn parse(input: &mut Parser) -> Result<FillRule, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<FillRule, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "nonzero" => Ok(FillRule::NonZero),
             "evenodd" => Ok(FillRule::EvenOdd),
@@ -829,8 +829,8 @@ pub enum GeometryBox {
 }
 
 impl Parse for GeometryBox {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(shape_box) = input.try(ShapeBox::parse) {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(shape_box) = input.try(|i| ShapeBox::parse(context, i)) {
             Ok(GeometryBox::ShapeBox(shape_box))
         } else {
             match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -868,7 +868,7 @@ pub enum ShapeBox {
 }
 
 impl Parse for ShapeBox {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "margin-box" => Ok(ShapeBox::Margin),
             "border-box" => Ok(ShapeBox::Border),

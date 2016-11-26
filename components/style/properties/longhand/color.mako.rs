@@ -37,9 +37,9 @@
     pub fn get_initial_value() -> computed_value::T {
         RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
     }
-    pub fn parse_specified(_context: &ParserContext, input: &mut Parser)
+    pub fn parse_specified(context: &ParserContext, input: &mut Parser)
                            -> Result<DeclaredValue<SpecifiedValue>, ()> {
-        let value = try!(CSSColor::parse(input));
+        let value = try!(CSSColor::parse(context, input));
         let rgba = match value.parsed {
             CSSParserColor::RGBA(rgba) => rgba,
             CSSParserColor::CurrentColor => return Ok(DeclaredValue::Inherit)

@@ -58,7 +58,17 @@ macro_rules! try_parse_one {
                 continue;
             }
         }
-    }
+    };
+    ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
+        if $var.is_none() {
+            if let Ok(value) = $input.try(|i| {
+                $prop_module::computed_value::SingleComputedValue::parse($context, i)
+            }) {
+                $var = Some(value);
+                continue;
+            }
+        }
+    };
 }
 
 <%helpers:shorthand name="transition"
@@ -69,7 +79,7 @@ macro_rules! try_parse_one {
     use properties::longhands::{transition_delay, transition_duration, transition_property};
     use properties::longhands::{transition_timing_function};
 
-    pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         struct SingleTransition {
             transition_property: transition_property::SingleSpecifiedValue,
             transition_duration: transition_duration::SingleSpecifiedValue,
@@ -77,14 +87,14 @@ macro_rules! try_parse_one {
             transition_delay: transition_delay::SingleSpecifiedValue,
         }
 
-        fn parse_one_transition(input: &mut Parser) -> Result<SingleTransition,()> {
+        fn parse_one_transition(context: &ParserContext, input: &mut Parser) -> Result<SingleTransition,()> {
             let (mut property, mut duration) = (None, None);
             let (mut timing_function, mut delay) = (None, None);
             loop {
                 try_parse_one!(input, property, transition_property);
-                try_parse_one!(input, duration, transition_duration);
-                try_parse_one!(input, timing_function, transition_timing_function);
-                try_parse_one!(input, delay, transition_delay);
+                try_parse_one!(context, input, duration, transition_duration);
+                try_parse_one!(context, input, timing_function, transition_timing_function);
+                try_parse_one!(context, input, delay, transition_delay);
 
                 break
             }
@@ -113,7 +123,7 @@ macro_rules! try_parse_one {
             })
         }
 
-        let results = try!(input.parse_comma_separated(parse_one_transition));
+        let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
         let (mut properties, mut durations) = (Vec::new(), Vec::new());
         let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
         for result in results {
@@ -159,7 +169,7 @@ macro_rules! try_parse_one {
     use properties::longhands::{animation_delay, animation_iteration_count, animation_direction};
     use properties::longhands::{animation_fill_mode, animation_play_state};
 
-    pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         struct SingleAnimation {
             animation_name: animation_name::SingleSpecifiedValue,
             animation_duration: animation_duration::SingleSpecifiedValue,
@@ -171,7 +181,7 @@ macro_rules! try_parse_one {
             animation_play_state: animation_play_state::SingleSpecifiedValue,
         }
 
-        fn parse_one_animation(input: &mut Parser) -> Result<SingleAnimation,()> {
+        fn parse_one_animation(context: &ParserContext, input: &mut Parser) -> Result<SingleAnimation,()> {
             let mut duration = None;
             let mut timing_function = None;
             let mut delay = None;
@@ -187,14 +197,14 @@ macro_rules! try_parse_one {
             // Also, duration must be before delay, see
             // https://drafts.csswg.org/css-animations/#typedef-single-animation
             loop {
-                try_parse_one!(input, duration, animation_duration);
-                try_parse_one!(input, timing_function, animation_timing_function);
-                try_parse_one!(input, delay, animation_delay);
-                try_parse_one!(input, iteration_count, animation_iteration_count);
+                try_parse_one!(context, input, duration, animation_duration);
+                try_parse_one!(context, input, timing_function, animation_timing_function);
+                try_parse_one!(context, input, delay, animation_delay);
+                try_parse_one!(context, input, iteration_count, animation_iteration_count);
                 try_parse_one!(input, direction, animation_direction);
                 try_parse_one!(input, fill_mode, animation_fill_mode);
                 try_parse_one!(input, play_state, animation_play_state);
-                try_parse_one!(input, name, animation_name);
+                try_parse_one!(context, input, name, animation_name);
 
                 break
             }
@@ -235,7 +245,7 @@ macro_rules! try_parse_one {
             })
         }
 
-        let results = try!(input.parse_comma_separated(parse_one_animation));
+        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
 
         let mut names = vec![];
         let mut durations = vec![];

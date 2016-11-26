@@ -96,7 +96,7 @@
     }
 
     impl Parse for computed_value::Keyword {
-        fn parse(input: &mut Parser) -> Result<computed_value::Keyword, ()> {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<computed_value::Keyword, ()> {
             use std::ascii::AsciiExt;
             use style_traits::cursor::Cursor;
             let ident = try!(input.expect_ident());
@@ -120,8 +120,8 @@
     }
 
     #[cfg(not(feature = "gecko"))]
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        computed_value::Keyword::parse(input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        computed_value::Keyword::parse(context, input)
     }
 
     /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]
@@ -138,7 +138,7 @@
 
         Ok(computed_value::T {
             images: images,
-            keyword: try!(computed_value::Keyword::parse(input)),
+            keyword: try!(computed_value::Keyword::parse(context, input)),
         })
     }
 </%helpers:longhand>

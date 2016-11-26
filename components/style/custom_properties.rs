@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType};
-use parser::Parse;
+use parser::{Parse, ParserContext};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -113,7 +113,7 @@ impl ComputedValue {
 }
 
 impl Parse for SpecifiedValue {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let mut references = Some(HashSet::new());
         let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
         Ok(SpecifiedValue {

@@ -47,16 +47,16 @@
             second: None
         }
     }
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let first = try!(Side::parse(input));
-        let second = Side::parse(input).ok();
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let first = try!(Side::parse(context, input));
+        let second = Side::parse(context, input).ok();
         Ok(SpecifiedValue {
             first: first,
             second: second,
         })
     }
     impl Parse for Side {
-        fn parse(input: &mut Parser) -> Result<Side, ()> {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Side, ()> {
             if let Ok(ident) = input.try(|input| input.expect_ident()) {
                 match_ignore_ascii_case! { ident,
                     "clip" => Ok(Side::Clip),

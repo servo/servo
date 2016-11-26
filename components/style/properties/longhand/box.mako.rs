@@ -183,8 +183,8 @@ ${helpers.single_keyword("clear", "none left right both",
   }
   /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
   /// | <percentage> | <length>
-  pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-      input.try(specified::LengthOrPercentage::parse)
+  pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+      input.try(|i| specified::LengthOrPercentage::parse(context, i))
       .map(SpecifiedValue::LengthOrPercentage)
       .or_else(|()| {
           match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -359,8 +359,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(vec![get_initial_single_value()])
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(Time::parse))))
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| Time::parse(context, i)))))
     }
 </%helpers:longhand>
 
@@ -416,7 +416,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub mod computed_value {
         use euclid::point::Point2D;
-        use parser::Parse;
+        use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
         use values::specified;
@@ -432,7 +432,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl Parse for TransitionTimingFunction {
-            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
                 if let Ok(function_name) = input.try(|input| input.expect_function()) {
                     return match_ignore_ascii_case! { function_name,
                         "cubic-bezier" => {
@@ -559,8 +559,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(vec![get_initial_single_value()])
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(TransitionTimingFunction::parse))))
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
+            TransitionTimingFunction::parse(context, i)
+        }))))
     }
 </%helpers:longhand>
 
@@ -606,7 +608,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(Vec::new())
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
 
@@ -633,7 +635,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub mod computed_value {
         use Atom;
-        use parser::Parse;
+        use parser::{Parse, ParserContext};
         use std::fmt;
         use std::ops::Deref;
         use style_traits::ToCss;
@@ -651,7 +653,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         pub use self::AnimationName as SingleComputedValue;
 
         impl Parse for AnimationName {
-            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
                 use cssparser::Token;
                 Ok(match input.next() {
                     Ok(Token::Ident(ref value)) if value != "none" => AnimationName(Atom::from(&**value)),
@@ -692,9 +694,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(vec![])
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| SingleSpecifiedValue::parse(context, i)))))
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -728,7 +730,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use parser::Parse;
+        use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
 
@@ -742,7 +744,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
 
         impl Parse for AnimationIterationCount {
-            fn parse(input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
                 if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
                     return Ok(AnimationIterationCount::Infinite)
                 }
@@ -796,8 +798,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     #[inline]
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(AnimationIterationCount::parse))))
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
+            AnimationIterationCount::parse(context, i)
+        }))))
     }
 
     #[inline]
@@ -997,13 +1001,13 @@ ${helpers.single_keyword("animation-fill-mode",
 
     pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
 
-    fn parse_two_lengths_or_percentages(input: &mut Parser)
+    fn parse_two_lengths_or_percentages(context: &ParserContext, input: &mut Parser)
                                         -> Result<(specified::LengthOrPercentage,
                                                    specified::LengthOrPercentage),()> {
-        let first = try!(specified::LengthOrPercentage::parse(input));
+        let first = try!(specified::LengthOrPercentage::parse(context, input));
         let second = input.try(|input| {
             try!(input.expect_comma());
-            specified::LengthOrPercentage::parse(input)
+            specified::LengthOrPercentage::parse(context, input)
         }).unwrap_or(specified::LengthOrPercentage::zero());
         Ok((first, second))
     }
@@ -1017,11 +1021,12 @@ ${helpers.single_keyword("animation-fill-mode",
         Ok((first, second))
     }
 
-    fn parse_two_angles(input: &mut Parser) -> Result<(specified::Angle, specified::Angle),()> {
-        let first = try!(specified::Angle::parse(input));
+    fn parse_two_angles(context: &ParserContext, input: &mut Parser)
+                       -> Result<(specified::Angle, specified::Angle),()> {
+        let first = try!(specified::Angle::parse(context, input));
         let second = input.try(|input| {
             try!(input.expect_comma());
-            specified::Angle::parse(input)
+            specified::Angle::parse(context, input)
         }).unwrap_or(specified::Angle(0.0));
         Ok((first, second))
     }
@@ -1160,7 +1165,7 @@ ${helpers.single_keyword("animation-fill-mode",
         computed_value::T(None)
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(Vec::new()))
         }
@@ -1211,7 +1216,7 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "translate" => {
                     try!(input.parse_nested_block(|input| {
-                        let (tx, ty) = try!(parse_two_lengths_or_percentages(input));
+                        let (tx, ty) = try!(parse_two_lengths_or_percentages(context, input));
                         result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
                                                                   tx,
                                                                   ty,
@@ -1221,7 +1226,7 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "translatex" => {
                     try!(input.parse_nested_block(|input| {
-                        let tx = try!(specified::LengthOrPercentage::parse(input));
+                        let tx = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
                             TranslateKind::TranslateX,
                             tx,
@@ -1232,7 +1237,7 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "translatey" => {
                     try!(input.parse_nested_block(|input| {
-                        let ty = try!(specified::LengthOrPercentage::parse(input));
+                        let ty = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
                             TranslateKind::TranslateY,
                             specified::LengthOrPercentage::zero(),
@@ -1243,7 +1248,7 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "translatez" => {
                     try!(input.parse_nested_block(|input| {
-                        let tz = try!(specified::Length::parse(input));
+                        let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
                             TranslateKind::TranslateZ,
                             specified::LengthOrPercentage::zero(),
@@ -1254,11 +1259,11 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "translate3d" => {
                     try!(input.parse_nested_block(|input| {
-                        let tx = try!(specified::LengthOrPercentage::parse(input));
+                        let tx = try!(specified::LengthOrPercentage::parse(context, input));
                         try!(input.expect_comma());
-                        let ty = try!(specified::LengthOrPercentage::parse(input));
+                        let ty = try!(specified::LengthOrPercentage::parse(context, input));
                         try!(input.expect_comma());
-                        let tz = try!(specified::Length::parse(input));
+                        let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
                             TranslateKind::Translate3D,
                             tx,
@@ -1309,28 +1314,28 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "rotate" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(input));
+                        let theta = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
                         Ok(())
                     }))
                 },
                 "rotatex" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(input));
+                        let theta = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Rotate(1.0, 0.0, 0.0, theta));
                         Ok(())
                     }))
                 },
                 "rotatey" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(input));
+                        let theta = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Rotate(0.0, 1.0, 0.0, theta));
                         Ok(())
                     }))
                 },
                 "rotatez" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(input));
+                        let theta = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
                         Ok(())
                     }))
@@ -1343,7 +1348,7 @@ ${helpers.single_keyword("animation-fill-mode",
                         try!(input.expect_comma());
                         let az = try!(specified::parse_number(input));
                         try!(input.expect_comma());
-                        let theta = try!(specified::Angle::parse(input));
+                        let theta = try!(specified::Angle::parse(context,input));
                         // TODO(gw): Check the axis can be normalized!!
                         result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
                         Ok(())
@@ -1351,28 +1356,28 @@ ${helpers.single_keyword("animation-fill-mode",
                 },
                 "skew" => {
                     try!(input.parse_nested_block(|input| {
-                        let (theta_x, theta_y) = try!(parse_two_angles(input));
+                        let (theta_x, theta_y) = try!(parse_two_angles(context, input));
                         result.push(SpecifiedOperation::Skew(theta_x, theta_y));
                         Ok(())
                     }))
                 },
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_x = try!(specified::Angle::parse(input));
+                        let theta_x = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
                         Ok(())
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_y = try!(specified::Angle::parse(input));
+                        let theta_y = try!(specified::Angle::parse(context,input));
                         result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
                         Ok(())
                     }))
                 },
                 "perspective" => {
                     try!(input.parse_nested_block(|input| {
-                        let d = try!(specified::Length::parse(input));
+                        let d = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Perspective(d));
                         Ok(())
                     }))
@@ -1547,7 +1552,6 @@ ${helpers.single_keyword("-moz-appearance",
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
 ${helpers.predefined_type("-moz-binding", "UrlOrNone", "computed_value::T::None",
-                          needs_context=True,
                           products="gecko",
                           animatable="False",
                           disable_when_testing="True")}

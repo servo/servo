@@ -27,7 +27,6 @@ ${helpers.single_keyword("list-style-type", """
     animatable=False)}
 
 ${helpers.predefined_type("list-style-image", "UrlOrNone", "computed_value::T::None",
-                          needs_context=True,
                           animatable="False")}
 
 <%helpers:longhand name="quotes" animatable="False">

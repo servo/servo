@@ -67,7 +67,7 @@
         Ok((grow, shrink))
     }
 
-    pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut grow = None;
         let mut shrink = None;
         let mut basis = None;
@@ -88,7 +88,7 @@
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(LengthOrPercentageOrAutoOrContent::parse) {
+                if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
                     basis = Some(value);
                     continue
                 }

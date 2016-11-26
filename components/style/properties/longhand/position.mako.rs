@@ -95,10 +95,12 @@ ${helpers.single_keyword("align-content", "stretch flex-start flex-end center sp
 // Flex item properties
 ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
+                          needs_context=False,
                           animatable=True)}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
+                          needs_context=False,
                           animatable=True)}
 
 ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
@@ -140,6 +142,7 @@ ${helpers.predefined_type("flex-basis",
                               "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
+                              needs_context=False,
                               animatable=True, logical = logical)}
 
     // min-width, min-height, min-block-size, min-inline-size
@@ -147,6 +150,7 @@ ${helpers.predefined_type("flex-basis",
                               "LengthOrPercentage",
                               "computed::LengthOrPercentage::Length(Au(0))",
                               "parse_non_negative",
+                              needs_context=False,
                               animatable=True, logical = logical)}
 
     // max-width, max-height, max-block-size, max-inline-size
@@ -154,6 +158,7 @@ ${helpers.predefined_type("flex-basis",
                               "LengthOrPercentageOrNone",
                               "computed::LengthOrPercentageOrNone::None",
                               "parse_non_negative",
+                              needs_context=False,
                               animatable=True, logical = logical)}
 % endfor
 

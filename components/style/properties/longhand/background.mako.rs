@@ -120,9 +120,9 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
 
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
+        pub fn parse(context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            Ok(try!(Position::parse(input)))
+            Ok(try!(Position::parse(context, input)))
         }
 </%helpers:vector_longhand>
 
@@ -302,7 +302,7 @@ ${helpers.single_keyword("background-origin",
         })
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let width;
         if let Ok(value) = input.try(|input| {
             match input.next() {
@@ -318,7 +318,7 @@ ${helpers.single_keyword("background-origin",
         }) {
             return Ok(value)
         } else {
-            width = try!(specified::LengthOrPercentageOrAuto::parse(input))
+            width = try!(specified::LengthOrPercentageOrAuto::parse(context, input))
         }
 
         let height;
@@ -330,7 +330,7 @@ ${helpers.single_keyword("background-origin",
         }) {
             height = value
         } else {
-            height = try!(specified::LengthOrPercentageOrAuto::parse(input));
+            height = try!(specified::LengthOrPercentageOrAuto::parse(context, input));
         }
 
         Ok(SpecifiedValue::Explicit(ExplicitSize {

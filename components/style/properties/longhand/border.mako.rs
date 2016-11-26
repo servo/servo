@@ -18,7 +18,8 @@
 % for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
-                              need_clone=True, animatable=False, logical = side[1])}
+                              needs_context=False, need_clone=True,
+                              animatable=False, logical = side[1])}
 % endfor
 
 % for side in ALL_SIDES:
@@ -32,9 +33,9 @@
         pub type SpecifiedValue = BorderWidth;
 
         #[inline]
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
+        pub fn parse(context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            BorderWidth::parse(input)
+            BorderWidth::parse(context, input)
         }
 
         pub mod computed_value {
@@ -503,12 +504,12 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 
     impl Parse for SingleSpecifiedValue {
-        fn parse(input: &mut Parser) -> Result<Self, ()> {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SingleSpecifiedValue::Auto);
             }
 
-            if let Ok(len) = input.try(|input| LengthOrPercentage::parse(input)) {
+            if let Ok(len) = input.try(|input| LengthOrPercentage::parse(context, input)) {
                 return Ok(SingleSpecifiedValue::LengthOrPercentage(len));
             }
 
@@ -517,10 +518,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| SingleSpecifiedValue::parse(input));
+            let value = input.try(|input| SingleSpecifiedValue::parse(context, input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,
@@ -709,8 +710,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 
     impl Parse for PercentageOrNumber {
-        fn parse(input: &mut Parser) -> Result<Self, ()> {
-            if let Ok(per) = input.try(|input| Percentage::parse(input)) {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            if let Ok(per) = input.try(|input| Percentage::parse(context, input)) {
                 return Ok(PercentageOrNumber::Percentage(per));
             }
 
@@ -719,12 +720,12 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut fill = input.try(|input| input.expect_ident_matching("fill")).is_ok();
 
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| PercentageOrNumber::parse(input));
+            let value = input.try(|input| PercentageOrNumber::parse(context, input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,

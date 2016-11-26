@@ -15,4 +15,5 @@ ${helpers.single_keyword("-moz-box-align", "stretch start center baseline end",
 
 ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative",
                           products="gecko", gecko_ffi_name="mBoxFlex",
+                          needs_context=False,
                           animatable=False)}

@@ -42,7 +42,7 @@ impl Image {
             return Ok(Image::Url(url));
         }
 
-        Ok(Image::Gradient(try!(Gradient::parse_function(input))))
+        Ok(Image::Gradient(try!(Gradient::parse_function(context, input))))
     }
 
     /// Creates an already specified image value from an already resolved URL
@@ -92,13 +92,13 @@ impl ToCss for Gradient {
 
 impl Gradient {
     /// Parses a gradient from the given arguments.
-    pub fn parse_function(input: &mut Parser) -> Result<Gradient, ()> {
+    pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Gradient, ()> {
         let mut repeating = false;
         let (gradient_kind, stops) = match_ignore_ascii_case! { try!(input.expect_function()),
             "linear-gradient" => {
                 try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(input));
-                        let stops = try!(input.parse_comma_separated(ColorStop::parse));
+                        let kind = try!(GradientKind::parse_linear(context, input));
+                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
                         Ok((kind, stops))
                     })
                 )
@@ -106,16 +106,16 @@ impl Gradient {
             "repeating-linear-gradient" => {
                 repeating = true;
                 try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_linear(input));
-                        let stops = try!(input.parse_comma_separated(ColorStop::parse));
+                        let kind = try!(GradientKind::parse_linear(context, input));
+                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
                         Ok((kind, stops))
                     })
                 )
             },
             "radial-gradient" => {
                 try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(input));
-                        let stops = try!(input.parse_comma_separated(ColorStop::parse));
+                        let kind = try!(GradientKind::parse_radial(context, input));
+                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
                         Ok((kind, stops))
                     })
                 )
@@ -123,8 +123,8 @@ impl Gradient {
             "repeating-radial-gradient" => {
                 repeating = true;
                 try!(input.parse_nested_block(|input| {
-                        let kind = try!(GradientKind::parse_radial(input));
-                        let stops = try!(input.parse_comma_separated(ColorStop::parse));
+                        let kind = try!(GradientKind::parse_radial(context, input));
+                        let stops = try!(input.parse_comma_separated(|i| ColorStop::parse(context, i)));
                         Ok((kind, stops))
                     })
                 )
@@ -151,29 +151,29 @@ pub enum GradientKind {
 
 impl GradientKind {
     /// Parses a linear gradient kind from the given arguments.
-    pub fn parse_linear(input: &mut Parser) -> Result<GradientKind, ()> {
-        let angle_or_corner = try!(AngleOrCorner::parse(input));
+    pub fn parse_linear(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
+        let angle_or_corner = try!(AngleOrCorner::parse(context, input));
         Ok(GradientKind::Linear(angle_or_corner))
     }
 
     /// Parses a radial gradient from the given arguments.
-    pub fn parse_radial(input: &mut Parser) -> Result<GradientKind, ()> {
+    pub fn parse_radial(context: &ParserContext, input: &mut Parser) -> Result<GradientKind, ()> {
         let mut needs_comma = true;
 
         // Ending shape and position can be in various order. Checks all probabilities.
-        let (shape, position) = if let Ok(position) = input.try(parse_position) {
+        let (shape, position) = if let Ok(position) = input.try(|i| parse_position(context, i)) {
             // Handle just <position>
             (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)), position)
-        } else if let Ok((first, second)) = input.try(parse_two_length) {
+        } else if let Ok((first, second)) = input.try(|i| parse_two_length(context, i)) {
             // Handle <LengthOrPercentage> <LengthOrPercentage> <shape>? <position>?
             let _ = input.try(|input| input.expect_ident_matching("ellipse"));
             (EndingShape::Ellipse(LengthOrPercentageOrKeyword::LengthOrPercentage(first, second)),
-             input.try(parse_position).unwrap_or(Position::center()))
-        } else if let Ok(length) = input.try(Length::parse) {
+             input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
+        } else if let Ok(length) = input.try(|i| Length::parse(context, i)) {
             // Handle <Length> <circle>? <position>?
             let _ = input.try(|input| input.expect_ident_matching("circle"));
             (EndingShape::Circle(LengthOrKeyword::Length(length)),
-             input.try(parse_position).unwrap_or(Position::center()))
+             input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
         } else if let Ok(keyword) = input.try(SizeKeyword::parse) {
             // Handle <keyword> <shape-keyword>? <position>?
             let shape = if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
@@ -182,24 +182,26 @@ impl GradientKind {
                 let _ = input.try(|input| input.expect_ident_matching("ellipse"));
                 EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(keyword))
             };
-            (shape, input.try(parse_position).unwrap_or(Position::center()))
+            (shape, input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
         } else {
             // Handle <shape-keyword> <length>? <position>?
             if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
                 // Handle <ellipse> <LengthOrPercentageOrKeyword>? <position>?
-                let length = input.try(LengthOrPercentageOrKeyword::parse)
+                let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
                                   .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
-                (EndingShape::Ellipse(length), input.try(parse_position).unwrap_or(Position::center()))
+                (EndingShape::Ellipse(length),
+                 input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
             } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
                 // Handle <ellipse> <LengthOrKeyword>? <position>?
-                let length = input.try(LengthOrKeyword::parse)
+                let length = input.try(|i| LengthOrKeyword::parse(context, i))
                                   .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
-                (EndingShape::Circle(length), input.try(parse_position).unwrap_or(Position::center()))
+                (EndingShape::Circle(length), input.try(|i| parse_position(context, i))
+                                                   .unwrap_or(Position::center()))
             } else {
                 // If there is no shape keyword, it should set to default.
                 needs_comma = false;
                 (EndingShape::Ellipse(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner)),
-                 input.try(parse_position).unwrap_or(Position::center()))
+                 input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
             }
         };
 
@@ -211,15 +213,16 @@ impl GradientKind {
     }
 }
 
-fn parse_two_length(input: &mut Parser) -> Result<(LengthOrPercentage, LengthOrPercentage), ()> {
-    let first = try!(LengthOrPercentage::parse(input));
-    let second = try!(LengthOrPercentage::parse(input));
+fn parse_two_length(context: &ParserContext, input: &mut Parser)
+                    -> Result<(LengthOrPercentage, LengthOrPercentage), ()> {
+    let first = try!(LengthOrPercentage::parse(context, input));
+    let second = try!(LengthOrPercentage::parse(context, input));
     Ok((first, second))
 }
 
-fn parse_position(input: &mut Parser) -> Result<Position, ()> {
+fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Position, ()> {
     try!(input.expect_ident_matching("at"));
-    input.try(Position::parse)
+    input.try(|i| Position::parse(context, i))
 }
 
 /// Specified values for an angle or a corner in a linear gradient.
@@ -246,7 +249,7 @@ impl ToCss for AngleOrCorner {
 }
 
 impl Parse for AngleOrCorner {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if input.try(|input| input.expect_ident_matching("to")).is_ok() {
             let (horizontal, vertical) =
             if let Ok(value) = input.try(HorizontalDirection::parse) {
@@ -274,7 +277,7 @@ impl Parse for AngleOrCorner {
                 }
                 (None, None) => unreachable!(),
             }
-        } else if let Ok(angle) = input.try(Angle::parse) {
+        } else if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
             try!(input.expect_comma());
             Ok(AngleOrCorner::Angle(angle))
         } else {
@@ -313,10 +316,10 @@ define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
 define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
 
 impl Parse for ColorStop {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         Ok(ColorStop {
-            color: try!(CSSColor::parse(input)),
-            position: input.try(LengthOrPercentage::parse).ok(),
+            color: try!(CSSColor::parse(context, input)),
+            position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
         })
     }
 }
@@ -357,11 +360,11 @@ pub enum LengthOrKeyword {
 }
 
 impl Parse for LengthOrKeyword {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(keyword) = input.try(SizeKeyword::parse) {
             Ok(LengthOrKeyword::Keyword(keyword))
         } else {
-            Ok(LengthOrKeyword::Length(try!(Length::parse(input))))
+            Ok(LengthOrKeyword::Length(try!(Length::parse(context, input))))
         }
     }
 }
@@ -385,12 +388,13 @@ pub enum LengthOrPercentageOrKeyword {
 
 
 impl Parse for LengthOrPercentageOrKeyword {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(keyword) = input.try(SizeKeyword::parse) {
             Ok(LengthOrPercentageOrKeyword::Keyword(keyword))
         } else {
-            Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(try!(LengthOrPercentage::parse(input)),
-                                                               try!(LengthOrPercentage::parse(input))))
+            Ok(LengthOrPercentageOrKeyword::LengthOrPercentage(
+                try!(LengthOrPercentage::parse(context, input)),
+                try!(LengthOrPercentage::parse(context, input))))
         }
     }
 }

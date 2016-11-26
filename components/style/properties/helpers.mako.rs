@@ -16,7 +16,7 @@
     </%call>
 </%def>
 
-<%def name="predefined_type(name, type, initial_value, parse_method='parse', needs_context=False, **kwargs)">
+<%def name="predefined_type(name, type, initial_value, parse_method='parse', needs_context=True, **kwargs)">
     <%call expr="longhand(name, predefined_type=type, **kwargs)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -283,7 +283,7 @@
         % if not property.derived_from:
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                match input.try(CSSWideKeyword::parse) {
+                match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
                     Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
                     Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::${
@@ -515,7 +515,7 @@
     % endif
 </%def>
 
-<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">
+<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function, needs_context=True)">
     <%self:shorthand name="${name}" sub_properties="${
             ' '.join(sub_property_pattern % side
                      for side in ['top', 'right', 'bottom', 'left'])}">
@@ -524,8 +524,14 @@
         use super::parse_four_sides;
         use values::specified;
 
-        pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-            let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
+        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            let (top, right, bottom, left) =
+            % if needs_context:
+                try!(parse_four_sides(input, |i| ${parser_function}(context, i)));
+            % else:
+                try!(parse_four_sides(input, ${parser_function}));
+                let _unused = context;
+            % endif
             Ok(Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
                     ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
