@@ -42,7 +42,7 @@ impl Default for MediaList {
 pub enum Range<T> {
     Min(T),
     Max(T),
-    Eq(T),    // FIXME: Implement parsing support for equality then re-enable this.
+    Eq(T),
 }
 
 impl Range<specified::Length> {
