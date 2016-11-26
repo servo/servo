@@ -3,55 +3,67 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use brotli::Decompressor;
-use connector::Connector;
+use connector::{Connector, create_http_connector};
 use content_blocker_parser::RuleList;
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
+use fetch::cors_cache::CorsCache;
+use fetch::methods::{Data, DoneChannel, FetchContext, Target, is_simple_header, is_simple_method, main_fetch};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
-use hyper::client::{Pool, Request, Response};
-use hyper::header::{AcceptEncoding, AcceptLanguage, Basic, ContentEncoding, ContentLength};
-use hyper::header::{Encoding, Header, Headers, Quality, QualityItem, Referer};
-use hyper::header::{SetCookie, qitem};
-use hyper::http::RawStatus;
+use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
+use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredentials};
+use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
+use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
+use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentEncoding};
+use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
+use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
+use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;
 use hyper::net::Fresh;
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::PipelineId;
-use net_traits::{CookieSource, Metadata, ReferrerPolicy};
+use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::hosts::replace_hosts;
+use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
 use openssl::ssl::error::{OpensslError, SslError};
 use resource_thread::AuthCache;
 use servo_url::ServoUrl;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::io::{self, Read, Write};
+use std::iter::FromIterator;
+use std::mem::swap;
+use std::ops::Deref;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{channel, Sender};
 use time;
 use time::Tm;
-use url::Origin;
+use unicase::UniCase;
+use url::Origin as UrlOrigin;
+use util::thread::spawn_named;
+use uuid;
 
-pub enum ReadResult {
-    Payload(Vec<u8>),
-    EOF,
-}
-
-pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
+fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
     let mut buf = vec![0; 1024];
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
             buf.truncate(len);
-            Ok(ReadResult::Payload(buf))
+            Ok(Data::Payload(buf))
         }
-        Ok(_) => Ok(ReadResult::EOF),
+        Ok(_) => Ok(Data::Done),
         Err(_) => Err(()),
     }
 }
@@ -79,7 +91,7 @@ fn precise_time_ms() -> u64 {
 }
 
 pub struct WrappedHttpResponse {
-    pub response: Response
+    pub response: HyperResponse
 }
 
 impl Read for WrappedHttpResponse {
@@ -89,13 +101,11 @@ impl Read for WrappedHttpResponse {
     }
 }
 
-pub trait HttpResponse: Read {
-    fn headers(&self) -> &Headers;
-    fn status(&self) -> StatusCode;
-    fn status_raw(&self) -> &RawStatus;
-    fn http_version(&self) -> String {
-        "HTTP/1.1".to_owned()
+impl WrappedHttpResponse {
+    fn headers(&self) -> &Headers {
+        &self.response.headers
     }
+
     fn content_encoding(&self) -> Option<Encoding> {
         let encodings = match self.headers().get::<ContentEncoding>() {
             Some(&ContentEncoding(ref encodings)) => encodings,
@@ -113,42 +123,16 @@ pub trait HttpResponse: Read {
     }
 }
 
-impl HttpResponse for WrappedHttpResponse {
-    fn headers(&self) -> &Headers {
-        &self.response.headers
-    }
-
-    fn status(&self) -> StatusCode {
-        self.response.status
-    }
-
-    fn status_raw(&self) -> &RawStatus {
-        self.response.status_raw()
-    }
-
-    fn http_version(&self) -> String {
-        self.response.version.to_string()
-    }
-}
-
-pub trait HttpRequestFactory {
-    type R: HttpRequest;
-
-    fn create(&self, url: ServoUrl, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
-}
-
-pub struct NetworkHttpRequestFactory {
+struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
 
-impl HttpRequestFactory for NetworkHttpRequestFactory {
-    type R = WrappedHttpRequest;
-
+impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
-              -> Result<WrappedHttpRequest, LoadError> {
-        let connection = Request::with_connector(method,
-                                                 url.clone().into_url().unwrap(),
-                                                 &*self.connector);
+              -> Result<HyperRequest<Fresh>, LoadError> {
+        let connection = HyperRequest::with_connector(method,
+                                                      url.clone().into_url().unwrap(),
+                                                      &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
@@ -180,51 +164,12 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
         };
         *request.headers_mut() = headers;
 
-        Ok(WrappedHttpRequest { request: request })
-    }
-}
-
-pub trait HttpRequest {
-    type R: HttpResponse + 'static;
-
-    fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
-}
-
-pub struct WrappedHttpRequest {
-    request: Request<Fresh>
-}
-
-impl HttpRequest for WrappedHttpRequest {
-    type R = WrappedHttpResponse;
-
-    fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
-        let url = ServoUrl::from_url(self.request.url.clone());
-        let mut request_writer = match self.request.start() {
-            Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
-        };
-
-        if let Some(ref data) = *body {
-            if let Err(e) = request_writer.write_all(&data) {
-                return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() }))
-            }
-        }
-
-        let response = match request_writer.send() {
-            Ok(w) => w,
-            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                let error_type = LoadErrorType::ConnectionAborted { reason: io_error.description().to_owned() };
-                return Err(LoadError::new(url, error_type));
-            },
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
-        };
-
-        Ok(WrappedHttpResponse { response: response })
+        Ok(request)
     }
 }
 
 #[derive(Debug)]
-pub struct LoadError {
+struct LoadError {
     pub url: ServoUrl,
     pub error: LoadErrorType,
 }
@@ -239,10 +184,8 @@ impl LoadError {
 }
 
 #[derive(Eq, PartialEq, Debug)]
-pub enum LoadErrorType {
+enum LoadErrorType {
     Connection { reason: String },
-    ConnectionAborted { reason: String },
-    Decoding { reason: String },
     Ssl { reason: String },
 }
 
@@ -256,14 +199,12 @@ impl Error for LoadErrorType {
     fn description(&self) -> &str {
         match *self {
             LoadErrorType::Connection { ref reason } => reason,
-            LoadErrorType::ConnectionAborted { ref reason } => reason,
-            LoadErrorType::Decoding { ref reason } => reason,
             LoadErrorType::Ssl { ref reason } => reason,
         }
     }
 }
 
-pub fn set_default_accept_encoding(headers: &mut Headers) {
+fn set_default_accept_encoding(headers: &mut Headers) {
     if headers.has::<AcceptEncoding>() {
         return
     }
@@ -383,7 +324,7 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     }
 }
 
-pub fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = headers.get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
@@ -395,9 +336,8 @@ pub fn set_cookies_from_headers(url: &ServoUrl, headers: &Headers, cookie_jar: &
     }
 }
 
-pub struct StreamedResponse {
+struct StreamedResponse {
     decoder: Decoder,
-    pub metadata: Metadata
 }
 
 
@@ -414,21 +354,10 @@ impl Read for StreamedResponse {
 }
 
 impl StreamedResponse {
-    fn new(m: Metadata, d: Decoder) -> StreamedResponse {
-        StreamedResponse { metadata: m, decoder: d }
-    }
-
-    pub fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    fn from_http_response(response: WrappedHttpResponse) -> io::Result<StreamedResponse> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
-                let result = GzDecoder::new(response);
-                match result {
-                    Ok(response_decoding) => Decoder::Gzip(response_decoding),
-                    Err(err) => {
-                        return Err(
-                            LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() }))
-                    }
-                }
+                Decoder::Gzip(try!(GzDecoder::new(response)))
             }
             Some(Encoding::Deflate) => {
                 Decoder::Deflate(DeflateDecoder::new(response))
@@ -440,15 +369,15 @@ impl StreamedResponse {
                 Decoder::Plain(response)
             }
         };
-        Ok(StreamedResponse::new(m, decoder))
+        Ok(StreamedResponse { decoder: decoder })
     }
 }
 
 enum Decoder {
-    Gzip(GzDecoder<Box<HttpResponse>>),
-    Deflate(DeflateDecoder<Box<HttpResponse>>),
-    Brotli(Decompressor<Box<HttpResponse>>),
-    Plain(Box<HttpResponse>)
+    Gzip(GzDecoder<WrappedHttpResponse>),
+    Deflate(DeflateDecoder<WrappedHttpResponse>),
+    Brotli(Decompressor<WrappedHttpResponse>),
+    Plain(WrappedHttpResponse)
 }
 
 fn prepare_devtools_request(request_id: String,
@@ -478,12 +407,12 @@ fn prepare_devtools_request(request_id: String,
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-pub fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
+fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
                             devtools_chan: &Sender<DevtoolsControlMsg>) {
     devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
-pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
+fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
                              status: Option<(u16, Vec<u8>)>,
@@ -495,7 +424,7 @@ pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
     let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
-pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &Origin) -> Option<Basic> {
+fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &UrlOrigin) -> Option<Basic> {
     if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());
@@ -505,23 +434,19 @@ pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &Origin) -> 
     }
 }
 
-pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
-                          url: &ServoUrl,
-                          method: &Method,
-                          request_headers: &Headers,
-                          data: &Option<Vec<u8>>,
-                          load_data_method: &Method,
-                          pipeline_id: &Option<PipelineId>,
-                          iters: u32,
-                          request_id: Option<&str>,
-                          is_xhr: bool)
-                          -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
-                          where A: HttpRequest + 'static  {
+fn obtain_response(request_factory: &NetworkHttpRequestFactory,
+                   url: &ServoUrl,
+                   method: &Method,
+                   request_headers: &Headers,
+                   data: &Option<Vec<u8>>,
+                   load_data_method: &Method,
+                   pipeline_id: &Option<PipelineId>,
+                   iters: u32,
+                   request_id: Option<&str>,
+                   is_xhr: bool)
+                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), LoadError> {
     let null_data = None;
-    let response;
     let connection_url = replace_hosts(&url);
-    let mut msg;
-
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -561,18 +486,39 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
         let connect_start = precise_time_ms();
 
-        let req = try!(request_factory.create(connection_url.clone(), method.clone(),
-                                              headers.clone()));
+        let request = try!(request_factory.create(connection_url.clone(), method.clone(),
+                                                  headers.clone()));
 
         let connect_end = precise_time_ms();
 
         let send_start = precise_time_ms();
 
-        let maybe_response = req.send(request_body);
+        let mut request_writer = match request.start() {
+            Ok(streaming) => streaming,
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
+        };
+
+        if let Some(ref data) = *request_body {
+            if let Err(e) = request_writer.write_all(&data) {
+                return Err(LoadError::new(connection_url,
+                                          LoadErrorType::Connection { reason: e.description().to_owned() }))
+            }
+        }
+
+        let response = match request_writer.send() {
+            Ok(w) => w,
+            Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
+                debug!("connection aborted ({:?}), possibly stale, trying new connection", io_error.description());
+                continue;
+            },
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
+        };
 
         let send_end = precise_time_ms();
 
-        msg = if let Some(request_id) = request_id {
+        let msg = if let Some(request_id) = request_id {
             if let Some(pipeline_id) = *pipeline_id {
                 Some(prepare_devtools_request(
                     request_id.into(),
@@ -588,23 +534,8 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
             None
         };
 
-        response = match maybe_response {
-            Ok(r) => r,
-            Err(e) => {
-                if let LoadErrorType::ConnectionAborted { reason } = e.error {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
-                    continue;
-                } else {
-                    return Err(e)
-                }
-            },
-        };
-
-        // if no ConnectionAborted, break the loop
-        break;
+        return Ok((WrappedHttpResponse { response: response }, msg));
     }
-
-    Ok((response, msg))
 }
 
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
@@ -634,4 +565,825 @@ fn format_ssl_error(error: &OpensslError) -> String {
             format!("{}: {} - {}", library, function, reason)
         }
     }
+}
+
+/// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
+pub fn http_fetch(request: Rc<Request>,
+                  cache: &mut CorsCache,
+                  cors_flag: bool,
+                  cors_preflight_flag: bool,
+                  authentication_fetch_flag: bool,
+                  target: &mut Target,
+                  done_chan: &mut DoneChannel,
+                  context: &FetchContext)
+                  -> Response {
+    // This is a new async fetch, reset the channel we are waiting on
+    *done_chan = None;
+    // Step 1
+    let mut response: Option<Response> = None;
+
+    // Step 2
+    // nothing to do, since actual_response is a function on response
+
+    // Step 3
+    if !request.skip_service_worker.get() && !request.is_service_worker_global_scope {
+        // Substep 1
+        // TODO (handle fetch unimplemented)
+
+        if let Some(ref res) = response {
+            // Substep 2
+            // nothing to do, since actual_response is a function on response
+
+            // Substep 3
+            if (res.response_type == ResponseType::Opaque &&
+                request.mode != RequestMode::NoCors) ||
+               (res.response_type == ResponseType::OpaqueRedirect &&
+                request.redirect_mode.get() != RedirectMode::Manual) ||
+               (res.url_list.borrow().len() > 1 &&
+                request.redirect_mode.get() != RedirectMode::Follow) ||
+               res.is_network_error() {
+                return Response::network_error(NetworkError::Internal("Request failed".into()));
+            }
+
+            // Substep 4
+            // TODO: set response's CSP list on actual_response
+        }
+    }
+
+    // Step 4
+    let credentials = match request.credentials_mode {
+        CredentialsMode::Include => true,
+        CredentialsMode::CredentialsSameOrigin if request.response_tainting.get() == ResponseTainting::Basic
+            => true,
+        _ => false
+    };
+    // Step 5
+    if response.is_none() {
+        // Substep 1
+        if cors_preflight_flag {
+            let method_cache_match = cache.match_method(&*request,
+                                                        request.method.borrow().clone());
+
+            let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
+                                                          request.use_cors_preflight);
+            let header_mismatch = request.headers.borrow().iter().any(|view|
+                !cache.match_header(&*request, view.name()) && !is_simple_header(&view)
+            );
+
+            // Sub-substep 1
+            if method_mismatch || header_mismatch {
+                let preflight_result = cors_preflight_fetch(request.clone(), cache, context);
+                // Sub-substep 2
+                if let Some(e) = preflight_result.get_network_error() {
+                    return Response::network_error(e.clone());
+                }
+            }
+        }
+
+        // Substep 2
+        request.skip_service_worker.set(true);
+
+        // Substep 3
+        let fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag,
+                                                       done_chan, context);
+
+        // Substep 4
+        if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
+            return Response::network_error(NetworkError::Internal("CORS check failed".into()));
+        }
+
+        fetch_result.return_internal.set(false);
+        response = Some(fetch_result);
+    }
+
+    // response is guaranteed to be something by now
+    let mut response = response.unwrap();
+
+    // Step 5
+    match response.actual_response().status {
+        // Code 301, 302, 303, 307, 308
+        Some(StatusCode::MovedPermanently) |
+        Some(StatusCode::Found) |
+        Some(StatusCode::SeeOther) |
+        Some(StatusCode::TemporaryRedirect) |
+        Some(StatusCode::PermanentRedirect) => {
+            response = match request.redirect_mode.get() {
+                RedirectMode::Error => Response::network_error(NetworkError::Internal("Redirect mode error".into())),
+                RedirectMode::Manual => {
+                    response.to_filtered(ResponseType::OpaqueRedirect)
+                },
+                RedirectMode::Follow => {
+                    // set back to default
+                    response.return_internal.set(true);
+                    http_redirect_fetch(request, cache, response,
+                                        cors_flag, target, done_chan, context)
+                }
+            }
+        },
+
+        // Code 401
+        Some(StatusCode::Unauthorized) => {
+            // Step 1
+            // FIXME: Figure out what to do with request window objects
+            if cors_flag || !credentials {
+                return response;
+            }
+
+            // Step 2
+            // TODO: Spec says requires testing on multiple WWW-Authenticate headers
+
+            // Step 3
+            if !request.use_url_credentials || authentication_fetch_flag {
+                // TODO: Prompt the user for username and password from the window
+                // Wrong, but will have to do until we are able to prompt the user
+                // otherwise this creates an infinite loop
+                // We basically pretend that the user declined to enter credentials
+                return response;
+            }
+
+            // Step 4
+            return http_fetch(request, cache, cors_flag, cors_preflight_flag,
+                              true, target, done_chan, context);
+        }
+
+        // Code 407
+        Some(StatusCode::ProxyAuthenticationRequired) => {
+            // Step 1
+            // TODO: Figure out what to do with request window objects
+
+            // Step 2
+            // TODO: Spec says requires testing on Proxy-Authenticate headers
+
+            // Step 3
+            // TODO: Prompt the user for proxy authentication credentials
+            // Wrong, but will have to do until we are able to prompt the user
+            // otherwise this creates an infinite loop
+            // We basically pretend that the user declined to enter credentials
+            return response;
+
+            // Step 4
+            // return http_fetch(request, cache,
+            //                   cors_flag, cors_preflight_flag,
+            //                   authentication_fetch_flag, target,
+            //                   done_chan, context);
+        }
+
+        _ => { }
+    }
+
+    // Step 6
+    if authentication_fetch_flag {
+        // TODO: Create authentication entry for this request
+    }
+
+    // set back to default
+    response.return_internal.set(true);
+    // Step 7
+    response
+}
+
+/// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
+fn http_redirect_fetch(request: Rc<Request>,
+                       cache: &mut CorsCache,
+                       response: Response,
+                       cors_flag: bool,
+                       target: &mut Target,
+                       done_chan: &mut DoneChannel,
+                       context: &FetchContext)
+                       -> Response {
+    // Step 1
+    assert_eq!(response.return_internal.get(), true);
+
+    // Step 2
+    if !response.actual_response().headers.has::<Location>() {
+        return response;
+    }
+
+    // Step 3
+    let location = match response.actual_response().headers.get::<Location>() {
+        Some(&Location(ref location)) => location.clone(),
+        _ => return Response::network_error(NetworkError::Internal("Location header parsing failure".into()))
+    };
+    let response_url = response.actual_response().url().unwrap();
+    let location_url = response_url.join(&*location);
+    let location_url = match location_url {
+        Ok(url) => url,
+        _ => return Response::network_error(NetworkError::Internal("Location URL parsing failure".into()))
+    };
+
+    // Step 4
+    // TODO implement return network_error if not HTTP(S)
+
+    // Step 5
+    if request.redirect_count.get() >= 20 {
+        return Response::network_error(NetworkError::Internal("Too many redirects".into()));
+    }
+
+    // Step 6
+    request.redirect_count.set(request.redirect_count.get() + 1);
+
+    // Step 7
+    let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
+        *origin == request.current_url().origin()
+    } else {
+        false
+    };
+    let has_credentials = has_credentials(&location_url);
+
+    if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
+        return Response::network_error(NetworkError::Internal("Cross-origin credentials check failed".into()));
+    }
+
+    // Step 8
+    if cors_flag && has_credentials {
+        return Response::network_error(NetworkError::Internal("Credentials check failed".into()));
+    }
+
+    // Step 9
+    if cors_flag && !same_origin {
+        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::new_opaque());
+    }
+
+    // Step 10
+    let status_code = response.actual_response().status.unwrap();
+    if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
+        *request.method.borrow() == Method::Post) ||
+        status_code == StatusCode::SeeOther {
+        *request.method.borrow_mut() = Method::Get;
+        *request.body.borrow_mut() = None;
+    }
+
+    // Step 11
+    request.url_list.borrow_mut().push(location_url);
+
+    // Step 12
+    // TODO implement referrer policy
+
+    // Step 13
+    main_fetch(request, cache, cors_flag, true, target, done_chan, context)
+}
+
+/// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
+fn http_network_or_cache_fetch(request: Rc<Request>,
+                               credentials_flag: bool,
+                               authentication_fetch_flag: bool,
+                               done_chan: &mut DoneChannel,
+                               context: &FetchContext)
+                               -> Response {
+    // TODO: Implement Window enum for Request
+    let request_has_no_window = true;
+
+    // Step 1
+    let http_request = if request_has_no_window &&
+        request.redirect_mode.get() == RedirectMode::Error {
+        request
+    } else {
+        Rc::new((*request).clone())
+    };
+
+    let content_length_value = match *http_request.body.borrow() {
+        None =>
+            match *http_request.method.borrow() {
+                // Step 3
+                Method::Head | Method::Post | Method::Put =>
+                    Some(0),
+                // Step 2
+                _ => None
+            },
+        // Step 4
+        Some(ref http_request_body) => Some(http_request_body.len() as u64)
+    };
+
+    // Step 5
+    if let Some(content_length_value) = content_length_value {
+        http_request.headers.borrow_mut().set(ContentLength(content_length_value));
+    }
+
+    // Step 6
+    match *http_request.referrer.borrow() {
+        Referrer::NoReferrer => (),
+        Referrer::ReferrerUrl(ref http_request_referrer) =>
+            http_request.headers.borrow_mut().set(Referer(http_request_referrer.to_string())),
+        Referrer::Client =>
+            // it should be impossible for referrer to be anything else during fetching
+            // https://fetch.spec.whatwg.org/#concept-request-referrer
+            unreachable!()
+    };
+
+    // Step 7
+    if http_request.omit_origin_header.get() == false {
+        // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
+        // http_request.headers.borrow_mut().set_raw("origin", origin);
+    }
+
+    // Step 8
+    if !http_request.headers.borrow().has::<UserAgent>() {
+        let user_agent = context.user_agent.clone().into_owned();
+        http_request.headers.borrow_mut().set(UserAgent(user_agent));
+    }
+
+    match http_request.cache_mode.get() {
+        // Step 9
+        CacheMode::Default if is_no_store_cache(&http_request.headers.borrow()) => {
+            http_request.cache_mode.set(CacheMode::NoStore);
+        },
+
+        // Step 10
+        CacheMode::NoCache if !http_request.headers.borrow().has::<CacheControl>() => {
+            http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::MaxAge(0)]));
+        },
+
+        // Step 11
+        CacheMode::Reload => {
+            // Substep 1
+            if !http_request.headers.borrow().has::<Pragma>() {
+                http_request.headers.borrow_mut().set(Pragma::NoCache);
+            }
+
+            // Substep 2
+            if !http_request.headers.borrow().has::<CacheControl>() {
+                http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::NoCache]));
+            }
+        },
+
+        _ => {}
+    }
+
+    let current_url = http_request.current_url();
+    // Step 12
+    // todo: pass referrer url and policy
+    // this can only be uncommented when the referrer header is set, else it crashes
+    // in the meantime, we manually set the headers in the block below
+    // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
+    //                        None, None, None);
+    {
+        let headers = &mut *http_request.headers.borrow_mut();
+        let host = Host {
+            hostname: current_url.host_str().unwrap().to_owned(),
+            port: current_url.port_or_known_default()
+        };
+        headers.set(host);
+        // unlike http_loader, we should not set the accept header
+        // here, according to the fetch spec
+        set_default_accept_encoding(headers);
+    }
+
+    // Step 13
+    // TODO some of this step can't be implemented yet
+    if credentials_flag {
+        // Substep 1
+        // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
+        // XXXManishearth http_loader has block_cookies: support content blocking here too
+        set_request_cookies(&current_url,
+                            &mut *http_request.headers.borrow_mut(),
+                            &context.state.cookie_jar);
+        // Substep 2
+        if !http_request.headers.borrow().has::<Authorization<String>>() {
+            // Substep 3
+            let mut authorization_value = None;
+
+            // Substep 4
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
+                if !http_request.use_url_credentials || !has_credentials(&current_url) {
+                    authorization_value = Some(basic);
+                }
+            }
+
+            // Substep 5
+            if authentication_fetch_flag && authorization_value.is_none() {
+                if has_credentials(&current_url) {
+                    authorization_value = Some(Basic {
+                        username: current_url.username().to_owned(),
+                        password: current_url.password().map(str::to_owned)
+                    })
+                }
+            }
+
+            // Substep 6
+            if let Some(basic) = authorization_value {
+                http_request.headers.borrow_mut().set(Authorization(basic));
+            }
+        }
+    }
+
+    // Step 14
+    // TODO this step can't be implemented yet
+
+    // Step 15
+    let mut response: Option<Response> = None;
+
+    // Step 16
+    // TODO have a HTTP cache to check for a completed response
+    let complete_http_response_from_cache: Option<Response> = None;
+    if http_request.cache_mode.get() != CacheMode::NoStore &&
+        http_request.cache_mode.get() != CacheMode::Reload &&
+        complete_http_response_from_cache.is_some() {
+        // Substep 1
+        if http_request.cache_mode.get() == CacheMode::ForceCache {
+            // TODO pull response from HTTP cache
+            // response = http_request
+        }
+
+        let revalidation_needed = match response {
+            Some(ref response) => response_needs_revalidation(&response),
+            _ => false
+        };
+
+        // Substep 2
+        if !revalidation_needed && http_request.cache_mode.get() == CacheMode::Default {
+            // TODO pull response from HTTP cache
+            // response = http_request
+            // response.cache_state = CacheState::Local;
+        }
+
+        // Substep 3
+        if revalidation_needed && http_request.cache_mode.get() == CacheMode::Default ||
+            http_request.cache_mode.get() == CacheMode::NoCache {
+            // TODO this substep
+        }
+
+    // Step 17
+    // TODO have a HTTP cache to check for a partial response
+    } else if http_request.cache_mode.get() == CacheMode::Default ||
+        http_request.cache_mode.get() == CacheMode::ForceCache {
+        // TODO this substep
+    }
+
+    // Step 18
+    if response.is_none() {
+        response = Some(http_network_fetch(http_request.clone(), credentials_flag,
+                                           done_chan, context));
+    }
+    let response = response.unwrap();
+
+    // Step 19
+    if let Some(status) = response.status {
+        if status == StatusCode::NotModified &&
+            (http_request.cache_mode.get() == CacheMode::Default ||
+            http_request.cache_mode.get() == CacheMode::NoCache) {
+            // Substep 1
+            // TODO this substep
+            // let cached_response: Option<Response> = None;
+
+            // Substep 2
+            // if cached_response.is_none() {
+            //     return Response::network_error();
+            // }
+
+            // Substep 3
+
+            // Substep 4
+            // response = cached_response;
+
+            // Substep 5
+            // TODO cache_state is immutable?
+            // response.cache_state = CacheState::Validated;
+        }
+    }
+
+    // Step 20
+    response
+}
+
+/// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
+fn http_network_fetch(request: Rc<Request>,
+                      credentials_flag: bool,
+                      done_chan: &mut DoneChannel,
+                      context: &FetchContext)
+                      -> Response {
+    // TODO: Implement HTTP network fetch spec
+
+    // Step 1
+    // nothing to do here, since credentials_flag is already a boolean
+
+    // Step 2
+    // TODO be able to create connection using current url's origin and credentials
+    let connection = create_http_connector();
+
+    // Step 3
+    // TODO be able to tell if the connection is a failure
+
+    // Step 4
+    let factory = NetworkHttpRequestFactory {
+        connector: connection,
+    };
+    let url = request.current_url();
+
+    let request_id = context.devtools_chan.as_ref().map(|_| {
+        uuid::Uuid::new_v4().simple().to_string()
+    });
+
+    // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
+    // do not. Once we support other kinds of fetches we'll need to be more fine grained here
+    // since things like image fetches are classified differently by devtools
+    let is_xhr = request.destination == Destination::None;
+    let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
+                                           &request.headers.borrow(),
+                                           &request.body.borrow(), &request.method.borrow(),
+                                           &request.pipeline_id.get(), request.redirect_count.get() + 1,
+                                           request_id.as_ref().map(Deref::deref), is_xhr);
+
+    let pipeline_id = request.pipeline_id.get();
+    let (res, msg) = match wrapped_response {
+        Ok(wrapped_response) => wrapped_response,
+        Err(error) => {
+            let error = match error.error {
+                LoadErrorType::Ssl { reason } => NetworkError::SslValidation(error.url, reason),
+                e => NetworkError::Internal(e.description().to_owned())
+            };
+            return Response::network_error(error);
+        }
+    };
+
+    let mut response = Response::new(url.clone());
+    response.status = Some(res.response.status);
+    response.raw_status = Some((res.response.status_raw().0,
+                                res.response.status_raw().1.as_bytes().to_vec()));
+    response.headers = res.response.headers.clone();
+    response.referrer = request.referrer.borrow().to_url().cloned();
+
+    let res_body = response.body.clone();
+
+    // We're about to spawn a thread to be waited on here
+    let (done_sender, done_receiver) = channel();
+    *done_chan = Some((done_sender.clone(), done_receiver));
+    let meta = match response.metadata().expect("Response metadata should exist at this stage") {
+        FetchMetadata::Unfiltered(m) => m,
+        FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+    };
+    let devtools_sender = context.devtools_chan.clone();
+    let meta_status = meta.status.clone();
+    let meta_headers = meta.headers.clone();
+    spawn_named(format!("fetch worker thread"), move || {
+        match StreamedResponse::from_http_response(res) {
+            Ok(mut res) => {
+                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+
+                if let Some(ref sender) = devtools_sender {
+                    if let Some(m) = msg {
+                        send_request_to_devtools(m, &sender);
+                    }
+
+                    // --- Tell devtools that we got a response
+                    // Send an HttpResponse message to devtools with the corresponding request_id
+                    if let Some(pipeline_id) = pipeline_id {
+                        send_response_to_devtools(
+                            &sender, request_id.unwrap(),
+                            meta_headers.map(Serde::into_inner),
+                            meta_status,
+                            pipeline_id);
+                    }
+                }
+
+                loop {
+                    match read_block(&mut res) {
+                        Ok(Data::Payload(chunk)) => {
+                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                                body.extend_from_slice(&chunk);
+                                let _ = done_sender.send(Data::Payload(chunk));
+                            }
+                        },
+                        Ok(Data::Done) | Err(_) => {
+                            let mut empty_vec = Vec::new();
+                            let completed_body = match *res_body.lock().unwrap() {
+                                ResponseBody::Receiving(ref mut body) => {
+                                    // avoid cloning the body
+                                    swap(body, &mut empty_vec);
+                                    empty_vec
+                                },
+                                _ => empty_vec,
+                            };
+                            *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
+                            let _ = done_sender.send(Data::Done);
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(_) => {
+                // XXXManishearth we should propagate this error somehow
+                *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                let _ = done_sender.send(Data::Done);
+            }
+        }
+    });
+
+        // TODO these substeps aren't possible yet
+        // Substep 1
+
+        // Substep 2
+
+    // TODO Determine if response was retrieved over HTTPS
+    // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
+    response.https_state = HttpsState::None;
+
+    // TODO Read request
+
+    // Step 5-9
+    // (needs stream bodies)
+
+    // Step 10
+    // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
+    // is resolved, this step will become uneccesary
+    // TODO this step
+    if let Some(encoding) = response.headers.get::<ContentEncoding>() {
+        if encoding.contains(&Encoding::Gzip) {
+        }
+
+        else if encoding.contains(&Encoding::Compress) {
+        }
+    };
+
+    // Step 11
+    // TODO this step isn't possible yet (CSP)
+
+    // Step 12
+    if response.is_network_error() && request.cache_mode.get() == CacheMode::NoStore {
+        // TODO update response in the HTTP cache for request
+    }
+
+    // TODO this step isn't possible yet
+    // Step 13
+
+    // Step 14.
+    if credentials_flag {
+        set_cookies_from_headers(&url, &response.headers, &context.state.cookie_jar);
+    }
+
+    // TODO these steps
+    // Step 15
+        // Substep 1
+        // Substep 2
+            // Sub-substep 1
+            // Sub-substep 2
+            // Sub-substep 3
+            // Sub-substep 4
+        // Substep 3
+
+    // Step 16
+    response
+}
+
+/// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
+fn cors_preflight_fetch(request: Rc<Request>,
+                        cache: &mut CorsCache,
+                        context: &FetchContext)
+                        -> Response {
+    // Step 1
+    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()),
+                                     request.is_service_worker_global_scope, request.pipeline_id.get());
+    *preflight.method.borrow_mut() = Method::Options;
+    preflight.initiator = request.initiator.clone();
+    preflight.type_ = request.type_.clone();
+    preflight.destination = request.destination.clone();
+    *preflight.referrer.borrow_mut() = request.referrer.borrow().clone();
+    preflight.referrer_policy.set(request.referrer_policy.get());
+
+    // Step 2
+    preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(
+        AccessControlRequestMethod(request.method.borrow().clone()));
+
+    // Step 3, 4
+    let mut value = request.headers.borrow().iter()
+                                            .filter_map(|ref view| if is_simple_header(view) {
+                                                None
+                                            } else {
+                                                Some(UniCase(view.name().to_owned()))
+                                            }).collect::<Vec<UniCase<String>>>();
+    value.sort();
+
+    // Step 5
+    preflight.headers.borrow_mut().set::<AccessControlRequestHeaders>(
+        AccessControlRequestHeaders(value));
+
+    // Step 6
+    let preflight = Rc::new(preflight);
+    let response = http_network_or_cache_fetch(preflight.clone(), false, false, &mut None, context);
+
+    // Step 7
+    if cors_check(request.clone(), &response).is_ok() &&
+       response.status.map_or(false, |status| status.is_success()) {
+        // Substep 1
+        let mut methods = if response.headers.has::<AccessControlAllowMethods>() {
+            match response.headers.get::<AccessControlAllowMethods>() {
+                Some(&AccessControlAllowMethods(ref m)) => m.clone(),
+                // Substep 3
+                None => return Response::network_error(NetworkError::Internal("CORS ACAM check failed".into()))
+            }
+        } else {
+            vec![]
+        };
+
+        // Substep 2
+        let header_names = if response.headers.has::<AccessControlAllowHeaders>() {
+            match response.headers.get::<AccessControlAllowHeaders>() {
+                Some(&AccessControlAllowHeaders(ref hn)) => hn.clone(),
+                // Substep 3
+                None => return Response::network_error(NetworkError::Internal("CORS ACAH check failed".into()))
+            }
+        } else {
+            vec![]
+        };
+
+        // Substep 4
+        if methods.is_empty() && request.use_cors_preflight {
+            methods = vec![request.method.borrow().clone()];
+        }
+
+        // Substep 5
+        debug!("CORS check: Allowed methods: {:?}, current method: {:?}",
+                methods, request.method.borrow());
+        if methods.iter().all(|method| *method != *request.method.borrow()) &&
+            !is_simple_method(&*request.method.borrow()) {
+            return Response::network_error(NetworkError::Internal("CORS method check failed".into()));
+        }
+
+        // Substep 6
+        debug!("CORS check: Allowed headers: {:?}, current headers: {:?}",
+                header_names, request.headers.borrow());
+        let set: HashSet<&UniCase<String>> = HashSet::from_iter(header_names.iter());
+        if request.headers.borrow().iter().any(|ref hv| !set.contains(&UniCase(hv.name().to_owned())) &&
+                                                        !is_simple_header(hv)) {
+            return Response::network_error(NetworkError::Internal("CORS headers check failed".into()));
+        }
+
+        // Substep 7, 8
+        let max_age = response.headers.get::<AccessControlMaxAge>().map(|acma| acma.0).unwrap_or(0);
+
+        // TODO: Substep 9 - Need to define what an imposed limit on max-age is
+
+        // Substep 11, 12
+        for method in &methods {
+            cache.match_method_and_update(&*request, method.clone(), max_age);
+        }
+
+        // Substep 13, 14
+        for header_name in &header_names {
+            cache.match_header_and_update(&*request, &*header_name, max_age);
+        }
+
+        // Substep 15
+        return response;
+    }
+
+    // Step 8
+    Response::network_error(NetworkError::Internal("CORS check failed".into()))
+}
+
+/// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
+fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
+    // Step 1
+    let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
+
+    // Step 2
+    let origin = try!(origin.ok_or(()));
+
+    // Step 3
+    if request.credentials_mode != CredentialsMode::Include &&
+       origin == AccessControlAllowOrigin::Any {
+        return Ok(());
+    }
+
+    // Step 4
+    let origin = match origin {
+        AccessControlAllowOrigin::Value(origin) => origin,
+        // if it's Any or Null at this point, there's nothing to do but return Err(())
+        _ => return Err(())
+    };
+
+    match *request.origin.borrow() {
+        Origin::Origin(ref o) if o.ascii_serialization() == origin => {},
+        _ => return Err(())
+    }
+
+    // Step 5
+    if request.credentials_mode != CredentialsMode::Include {
+        return Ok(());
+    }
+
+    // Step 6
+    let credentials = request.headers.borrow().get::<AccessControlAllowCredentials>().cloned();
+
+    // Step 7
+    if credentials.is_some() {
+        return Ok(());
+    }
+
+    // Step 8
+    Err(())
+}
+
+fn has_credentials(url: &ServoUrl) -> bool {
+    !url.username().is_empty() || url.password().is_some()
+}
+
+fn is_no_store_cache(headers: &Headers) -> bool {
+    headers.has::<IfModifiedSince>() | headers.has::<IfNoneMatch>() |
+    headers.has::<IfUnmodifiedSince>() | headers.has::<IfMatch>() |
+    headers.has::<IfRange>()
+}
+
+fn response_needs_revalidation(_response: &Response) -> bool {
+    // TODO this function
+    false
 }
