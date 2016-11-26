@@ -996,6 +996,48 @@ ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           products="gecko",animatable=True,
                           complex_color=True, need_clone=True)}
 
+// CSS Compatibility
+// https://compat.spec.whatwg.org/#the-webkit-text-fill-color
+${helpers.predefined_type(
+    "-webkit-text-fill-color", "CSSColor",
+    "CSSParserColor::CurrentColor",
+    products="gecko", animatable=True,
+    complex_color=True, need_clone=True)}
+
+// CSS Compatibility
+// https://compat.spec.whatwg.org/#the-webkit-text-stroke-color
+${helpers.predefined_type(
+    "-webkit-text-stroke-color", "CSSColor",
+    "CSSParserColor::CurrentColor",
+    products="gecko", animatable=True,
+    complex_color=True, need_clone=True)}
+
+// CSS Compatibility
+// https://compat.spec.whatwg.org/#the-webkit-text-stroke-width
+<%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animatable="False">
+    use app_units::Au;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::BorderWidth;
+
+    pub type SpecifiedValue = BorderWidth;
+
+    #[inline]
+    pub fn parse(_context: &ParserContext, input: &mut Parser)
+                 -> Result<SpecifiedValue, ()> {
+        BorderWidth::parse(input)
+    }
+
+    pub mod computed_value {
+        use app_units::Au;
+        pub type T = Au;
+    }
+    #[inline] pub fn get_initial_value() -> computed_value::T {
+        Au::from_px(0)
+    }
+</%helpers:longhand>
+
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
