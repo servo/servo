@@ -131,7 +131,10 @@ impl ToCss for MediaQuery {
                 Expression::Width(Range::Max(ref l)) => ("max", l),
                 Expression::Width(Range::Eq(ref l)) => ("eq", l),
             };
-            try!(write!(dest, "{}-width: ", mm));
+            match mm {
+              "min" | "max" => try!(write!(dest, "{}-width: ", mm)),
+              _ => try!(write!(dest, "width: ")),
+            };
             try!(l.to_css(dest));
             if i == self.expressions.len() - 1 {
                 try!(write!(dest, ")"));

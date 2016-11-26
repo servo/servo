@@ -270,7 +270,7 @@ fn test_mq_expressions() {
 
 #[test]
 fn test_to_css() {
-  test_media_rule("@media print and (width: 43px) { }", |list, css| {
+  test_media_rule("@media print and (width: 43px) { }", |list, _| {
       let q = &list.media_queries[0];
       let mut dest = String::new();
       assert_eq!(Ok(()), q.to_css(&mut dest));
