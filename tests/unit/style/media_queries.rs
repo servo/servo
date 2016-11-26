@@ -13,6 +13,7 @@ use style::media_queries::*;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin, CssRule};
 use style::values::specified;
+use style_traits::ToCss;
 
 pub struct CSSErrorReporterTest;
 
@@ -242,6 +243,18 @@ fn test_mq_expressions() {
         }
     });
 
+    test_media_rule("@media print and (width: 43px) { }", |list, css| {
+        assert!(list.media_queries.len() == 1, css.to_owned());
+        let q = &list.media_queries[0];
+        assert!(q.qualifier == None, css.to_owned());
+        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.expressions.len() == 1, css.to_owned());
+        match q.expressions[0] {
+            Expression::Width(Range::Eq(w)) => assert!(w == specified::Length::Absolute(Au::from_px(43))),
+            _ => panic!("wrong expression type"),
+        }
+    });
+
     test_media_rule("@media fridge and (max-width: 52px) { }", |list, css| {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
@@ -253,6 +266,16 @@ fn test_mq_expressions() {
             _ => panic!("wrong expression type"),
         }
     });
+}
+
+#[test]
+fn test_to_css() {
+  test_media_rule("@media print and (width: 43px) { }", |list, _| {
+      let q = &list.media_queries[0];
+      let mut dest = String::new();
+      assert_eq!(Ok(()), q.to_css(&mut dest));
+      assert_eq!(dest, "print and (width: 43px)");
+  });
 }
 
 #[test]
