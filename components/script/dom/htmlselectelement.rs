@@ -400,7 +400,7 @@ impl Validatable for HTMLSelectElement {
     }
 }
 
-enum ListOfOptionsChild<I, J, K> {
+enum Choice3<I, J, K> {
     First(I),
     Second(J),
     Third(K)
