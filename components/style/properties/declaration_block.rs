@@ -81,6 +81,7 @@ impl PropertyDeclarationBlock {
         if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1
             let mut list = Vec::new();
+            let mut important_count = 0;
 
             // Step 2.2
             for longhand in shorthand.longhands() {
@@ -89,13 +90,26 @@ impl PropertyDeclarationBlock {
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(&(ref declaration, _importance)) => list.push(declaration),
+                    Some(&(ref declaration, importance)) => {
+                        list.push(declaration);
+                        if importance.important() {
+                            important_count += 1;
+                        }
+                    },
                     None => return Ok(()),
                 }
             }
 
+            // Step 3.3.2.4
+            // If there is one or more longhand with important, and one or more
+            // without important, we don't serialize it as a shorthand.
+            if important_count > 0 && important_count != list.len() {
+                return Ok(());
+            }
+
             // Step 2.3
-            // TODO: importance is hardcoded because method does not implement it yet
+            // We don't print !important when serializing individual properties,
+            // so we treat this as a normal-importance property
             let importance = Importance::Normal;
             let appendable_value = shorthand.get_shorthand_appendable_value(list).unwrap();
             return append_declaration_value(dest, appendable_value, importance)
@@ -286,15 +300,20 @@ impl ToCss for PropertyDeclarationBlock {
                     if is_important && important_count != current_longhands.len() {
                         continue;
                     }
+                    let importance = if is_important {
+                        Importance::Important
+                    } else {
+                        Importance::Normal
+                    };
 
-                    // TODO: serialize shorthand does not take is_important into account currently
                     // Substep 5
                     let was_serialized =
                         try!(
                             shorthand.serialize_shorthand_to_buffer(
                                 dest,
                                 current_longhands.iter().cloned(),
-                                &mut is_first_serialization
+                                &mut is_first_serialization,
+                                importance
                             )
                         );
                     // If serialization occured, Substep 7 & 8 will have been completed
