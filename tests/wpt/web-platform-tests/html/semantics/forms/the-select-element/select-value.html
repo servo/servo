@@ -27,6 +27,8 @@
   <option selected value=1></option>
 </select>
 
+<select id=sel4></select>
+
 <script>
 test(function() {
   var select = document.getElementById('sel1');
@@ -44,6 +46,11 @@ test(function() {
   var div = document.createElement('div');
   select.appendChild(div);
   div.appendChild(option);
+  assert_equals(select.value, '');
+});
+
+test(function() {
+  var select = document.getElementById('sel4');
   assert_equals(select.value, '');
 });
 </script>
