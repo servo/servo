@@ -28,7 +28,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse, ImageListenerResponse};
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
+use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable};
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::Runnable;
@@ -73,18 +74,18 @@ impl HTMLImageElement {
 struct ImageRequestRunnable {
     element: Trusted<HTMLImageElement>,
     img_url: ServoUrl,
-    responder_sender: IpcSender<ImageListenerResponse>,
+    id: PendingImageId,
 }
 
 impl ImageRequestRunnable {
     fn new(element: Trusted<HTMLImageElement>,
            img_url: ServoUrl,
-           responder_sender: IpcSender<ImageListenerResponse>)
+           id: PendingImageId)
            -> ImageRequestRunnable {
         ImageRequestRunnable {
             element: element,
             img_url: img_url,
-            responder_sender: responder_sender,
+            id: id,
         }
     }
 }
@@ -104,7 +105,7 @@ impl Runnable for ImageRequestRunnable {
             metadata: None,
             url: this.img_url.clone(),
             status: Ok(()),
-            responder: this.responder_sender,
+            id: this.id,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -151,13 +152,13 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Update the image field
         let element = self.element.root();
         let (image, metadata, trigger_image_load, trigger_image_error) = match self.image {
-            ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
+            ImageResponse::Loaded(_, image) | ImageResponse::PlaceholderLoaded(_, image) => {
                 (Some(image.clone()), Some(ImageMetadata { height: image.height, width: image.width } ), true, false)
             }
-            ImageResponse::MetadataLoaded(meta) => {
+            ImageResponse::MetadataLoaded(_, meta) => {
                 (None, Some(meta), false, false)
             }
-            ImageResponse::None => (None, None, false, true)
+            ImageResponse::None(_) => (None, None, false, true)
         };
         element.current_request.borrow_mut().image = image;
         element.current_request.borrow_mut().metadata = metadata;
@@ -197,7 +198,7 @@ struct ImageContext {
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     ///
-    responder: IpcSender<ImageListenerResponse>,
+    id: PendingImageId,
 }
 
 impl FetchResponseListener for ImageContext {
@@ -235,11 +236,7 @@ impl FetchResponseListener for ImageContext {
         let document = document_from_node(&*elem);
         let window = document.window();
         let image_cache = window.image_cache_thread();
-        image_cache.store_complete_image_bytes(self.url.clone(), self.data.clone());
-        /*let responder = self.responder.clone();
-        image_cache.request_image_and_metadata(self.url.clone(),
-                                               window.image_cache_chan(),
-                                               Some(ImageResponder::new(responder)));*/
+        image_cache.store_complete_image_bytes(self.id, self.data.clone());
         document.finish_load(LoadType::Image(self.url.clone()));
     }
 }
@@ -277,25 +274,31 @@ impl HTMLImageElement {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
                         let image_response = message.to().unwrap();
-                        match image_response {
-                            ImageListenerResponse::InitiateRequest => {
-                                let runnable = ImageRequestRunnable::new(
-                                    trusted_node.clone(), img_url.clone(), responder_sender.clone());
-                                let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
-                            }
-                            ImageListenerResponse::Complete(image_response) => {
-                                let runnable = ImageResponseHandlerRunnable::new(
-                                    trusted_node.clone(), image_response);
-                                let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
-                            }
-                        }
+                        let runnable = ImageResponseHandlerRunnable::new(
+                            trusted_node.clone(), image_response);
+                        let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
                     });
 
                     let image_cache = window.image_cache_thread();
-                    image_cache.request_image_and_metadata(img_url_cloned.into(),
-                                                           window.image_cache_chan(),
-                                                           Some(ImageResponder::new(
-                                                               responder_sender_cloned)));
+                    let response =
+                        image_cache.find_image_or_metadata(img_url_cloned.into(), UsePlaceholder::Yes);
+                    match response {
+                        Ok(ImageOrMetadataAvailable::ImageAvailable(_image)) => {}
+
+                        Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => {}
+
+                        Err(ImageState::Pending(id)) => {
+                            image_cache.add_listener(id, ImageResponder::new(responder_sender));
+                        }
+
+                        Err(ImageState::LoadError) => {}
+
+                        Err(ImageState::NotRequested(id)) => {
+                            let runnable = box ImageRequestRunnable::new(
+                                Trusted::new(self), img_url, id);
+                            runnable.handler();
+                        }
+                    }
                 } else {
                     // https://html.spec.whatwg.org/multipage/#update-the-image-data
                     // Step 11 (error substeps)

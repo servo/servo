@@ -82,7 +82,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, PipelineId};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::image_cache_thread::UsePlaceholder;
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -142,12 +142,6 @@ pub struct LayoutThread {
 
     /// The port on which we receive messages from the constellation.
     pipeline_port: Receiver<LayoutControlMsg>,
-
-    /// The port on which we receive messages from the image cache
-    image_cache_receiver: Receiver<ImageCacheResult>,
-
-    /// The channel on which the image cache can send messages to ourself.
-    image_cache_sender: ImageCacheChan,
 
     /// The port on which we receive messages from the font cache thread.
     font_cache_receiver: Receiver<()>,
@@ -410,11 +404,6 @@ impl LayoutThread {
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
 
-        // Ask the router to proxy IPC messages from the image cache thread to the layout thread.
-        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
-        let image_cache_receiver =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
-
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
         let font_cache_receiver =
@@ -443,8 +432,6 @@ impl LayoutThread {
             image_cache_thread: image_cache_thread,
             font_cache_thread: font_cache_thread,
             first_reflow: true,
-            image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             parallel_traversal: parallel_traversal,
@@ -531,7 +518,6 @@ impl LayoutThread {
                 quirks_mode: self.quirks_mode.unwrap(),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
-            image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
@@ -543,14 +529,12 @@ impl LayoutThread {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
-            FromImageCache,
             FromFontCache,
         }
 
         let request = {
             let port_from_script = &self.port;
             let port_from_pipeline = &self.pipeline_port;
-            let port_from_image_cache = &self.image_cache_receiver;
             let port_from_font_cache = &self.font_cache_receiver;
             select! {
                 msg = port_from_pipeline.recv() => {
@@ -558,10 +542,6 @@ impl LayoutThread {
                 },
                 msg = port_from_script.recv() => {
                     Request::FromScript(msg.unwrap())
-                },
-                msg = port_from_image_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromImageCache
                 },
                 msg = port_from_font_cache.recv() => {
                     msg.unwrap();
@@ -591,9 +571,6 @@ impl LayoutThread {
             },
             Request::FromScript(msg) => {
                 self.handle_request_helper(msg, possibly_locked_rw_data)
-            },
-            Request::FromImageCache => {
-                self.repaint(possibly_locked_rw_data)
             },
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();

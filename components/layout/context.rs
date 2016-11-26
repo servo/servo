@@ -11,7 +11,7 @@ use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc;
 use net_traits::image::base::Image;
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
+use net_traits::image_cache_thread::{ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder, PendingImageId};
 use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
@@ -92,9 +92,6 @@ pub struct SharedLayoutContext {
     /// The shared image cache thread.
     pub image_cache_thread: Mutex<ImageCacheThread>,
 
-    /// A channel for the image cache to send responses to.
-    pub image_cache_sender: Mutex<ImageCacheChan>,
-
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
 
@@ -163,10 +160,11 @@ impl SharedLayoutContext {
             // Image failed to load, so just return nothing
             Err(ImageState::LoadError) => None,
             // Not yet requested, async mode - request image or metadata from the cache
-            Err(ImageState::NotRequested) => {
+            Err(ImageState::NotRequested(id)) => {
                 let image = PendingImage {
                     state: PendingImageState::Unrequested(url),
                     node: node.to_untrusted_node_address(),
+                    id: id,
                 };
                 self.pending_images.lock().unwrap().push(image);
                 None
@@ -175,8 +173,9 @@ impl SharedLayoutContext {
             // When the image loads it will trigger a reflow and/or repaint.
             Err(ImageState::Pending(id)) => {
                 let image = PendingImage {
-                    state: PendingImageState::PendingResponse(id),
+                    state: PendingImageState::PendingResponse,
                     node: node.to_untrusted_node_address(),
+                    id: id,
                 };
                 self.pending_images.lock().unwrap().push(image);
                 None

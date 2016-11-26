@@ -148,14 +148,17 @@ pub fn is_image_data(uri: &str) -> bool {
     TYPES.iter().any(|&type_| uri.starts_with(type_))
 }
 
-///
+/// Whether the pending image needs to be fetched or is waiting on an existing fetch.
 pub enum PendingImageState {
     Unrequested(ServoUrl),
-    PendingResponse(PendingImageId),
+    PendingResponse,
 }
 
-///
+/// The data associated with an image that is not yet present in the image cache.
+/// Used by the script thread to hold on to DOM elements that need to be repainted
+/// when an image fetch is complete.
 pub struct PendingImage {
     pub state: PendingImageState,
     pub node: UntrustedNodeAddress,
+    pub id: PendingImageId,
 }

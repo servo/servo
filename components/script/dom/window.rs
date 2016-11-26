@@ -55,7 +55,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::image_cache_thread::{ImageResponse, ImageCacheThread, PendingImageId};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
@@ -63,7 +63,7 @@ use origin::Origin;
 use profile_traits::mem;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_layout_interface::TrustedNodeAddress;
+use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
@@ -161,7 +161,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
-    image_cache_chan: ImageCacheChan,
+    image_cache_chan: IpcSender<ImageResponse>,
     browsing_context: MutNullableJS<BrowsingContext>,
     history: MutNullableJS<History>,
     performance: MutNullableJS<Performance>,
@@ -240,6 +240,9 @@ pub struct Window {
     media_query_lists: WeakMediaQueryListVec,
 
     test_runner: MutNullableJS<TestRunner>,
+
+    ///
+    pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<JS<Node>>>>,
 }
 
 impl Window {
@@ -281,7 +284,7 @@ impl Window {
         &self.script_chan.0
     }
 
-    pub fn image_cache_chan(&self) -> ImageCacheChan {
+    pub fn image_cache_chan(&self) -> IpcSender<ImageResponse> {
         self.image_cache_chan.clone()
     }
 
@@ -319,6 +322,10 @@ impl Window {
 
     pub fn current_viewport(&self) -> Rect<Au> {
         self.current_viewport.clone().get()
+    }
+
+    pub fn pending_image_notification(&self, _response: ImageResponse) {
+        //XXXjdm
     }
 }
 
@@ -1117,6 +1124,22 @@ impl Window {
         }
 
         let pending_images = self.layout_rpc.pending_images();
+        for image in pending_images {
+            if let PendingImageState::Unrequested(url) = image.state {
+                    panic!() //XXXjdm
+            };
+            let id = image.id;
+            let js_runtime = self.js_runtime.borrow();
+            let js_runtime = js_runtime.as_ref().unwrap();
+            let node = from_untrusted_node_address(js_runtime.rt(), image.node);
+
+            let mut images = self.pending_layout_images.borrow_mut();
+            let nodes = images.entry(id).or_insert(vec![]);
+            if nodes.iter().find(|n| **n == JS::from_ref(&*node)).is_none() {
+                self.image_cache_thread.add_listener(id, panic!()); //XXXjdm
+                nodes.push(JS::from_ref(&*node));
+            }
+        }
 
         true
     }
@@ -1549,7 +1572,7 @@ impl Window {
                network_task_source: NetworkingTaskSource,
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
-               image_cache_chan: ImageCacheChan,
+               image_cache_chan: IpcSender<ImageResponse>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -1626,6 +1649,7 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
             test_runner: Default::default(),
+            pending_layout_images: DOMRefCell::new(HashMap::new()),
         };
 
         unsafe {
