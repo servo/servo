@@ -2377,8 +2377,8 @@ class CGAbstractMethod(CGThing):
 
         if self.catchPanic:
             body = CGWrapper(CGIndenter(body),
-                             pre="return wrap_panic(|| {\n",
-                             post=("""}, %s);""" % ("()" if self.returnType == "void" else "false")))
+                             pre="return wrap_panic(panic::AssertUnwindSafe(|| {\n",
+                             post=("""}), %s);""" % ("()" if self.returnType == "void" else "false")))
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -2537,7 +2537,7 @@ class CGWrapMethod(CGAbstractMethod):
         return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
-assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
 rooted!(in(cx) let mut proto = ptr::null_mut());
 let _ac = JSAutoCompartment::new(cx, scope.get());
@@ -2954,7 +2954,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""
-assert!(((*JS_GetClass(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
+assert!(((*get_object_class(global.get())).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
 let proto_or_iface_array = get_proto_or_iface_array(global.get());
@@ -5448,7 +5448,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_DefineProperty',
         'js::jsapi::JS_DefinePropertyById2',
         'js::jsapi::JS_ForwardGetPropertyTo',
-        'js::jsapi::JS_GetClass',
         'js::jsapi::JS_GetErrorPrototype',
         'js::jsapi::JS_GetFunctionPrototype',
         'js::jsapi::JS_GetGlobalForObject',
@@ -5496,9 +5495,12 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::glue::RUST_JSID_IS_STRING',
         'js::glue::RUST_SYMBOL_TO_JSID',
         'js::glue::int_to_jsid',
+        'js::panic::maybe_resume_unwind',
+        'js::panic::wrap_panic',
         'js::rust::GCMethods',
         'js::rust::define_methods',
         'js::rust::define_properties',
+        'js::rust::get_object_class',
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
@@ -5547,7 +5549,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::resolve_global',
         'dom::bindings::utils::set_dictionary_property',
         'dom::bindings::utils::trace_global',
-        'dom::bindings::utils::wrap_panic',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
         'dom::bindings::callback::CallSetup',
@@ -5599,7 +5600,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'mem::heap_size_of_raw_self_and_children',
         'libc',
         'util::prefs::PREFS',
-        'script_runtime::maybe_take_panic_result',
         'std::borrow::ToOwned',
         'std::cmp',
         'std::mem',
@@ -6596,9 +6596,7 @@ class CallbackMethod(CallbackMember):
             "        length_: ${argc} as ::libc::size_t,\n"
             "        elements_: ${argv}\n"
             "    }, rval.handle_mut());\n"
-            "if let Some(error) = maybe_take_panic_result() {\n"
-            "    panic::resume_unwind(error);\n"
-            "}\n"
+            "maybe_resume_unwind();\n"
             "if !ok {\n"
             "    return Err(JSFailed);\n"
             "}\n").substitute(replacements)

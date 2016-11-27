@@ -46,14 +46,14 @@ use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, JSClass, JSContext};
-use js::jsapi::{JSObject, JSString, JS_GetArrayBufferViewType, JS_GetClass};
+use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext};
+use js::jsapi::{JSObject, JSString, JS_GetArrayBufferViewType};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetObjectAsArrayBuffer, JS_GetObjectAsArrayBufferView};
-use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength, ToWindowProxyIfWindow};
+use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength};
 use js::jsapi::{JS_IsArrayObject, JS_NewStringCopyN, JS_StringHasLatin1Chars};
-use js::jsapi::{JS_WrapValue, MutableHandleValue, Type, IsObjectInContextCompartment};
+use js::jsapi::{MutableHandleValue, Type};
 use js::jsval::{ObjectValue, StringValue};
-use js::rust::ToString;
+use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
 use libc;
 use num_traits::Float;
 use std::{char, mem, ptr, slice};
@@ -308,23 +308,8 @@ impl ToJSValConvertible for Reflector {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
-        let same_compartment = IsObjectInContextCompartment(obj, cx);
-        if same_compartment {
-            rval.set(ObjectValue(ToWindowProxyIfWindow(obj)));
-        } else {
-            rval.set(ObjectValue(obj));
-
-            if !JS_WrapValue(cx, rval) {
-                panic!("JS_WrapValue failed.");
-            }
-        }
-    }
-}
-
-/// Returns whether the given `clasp` is one for a DOM object.
-pub fn is_dom_class(clasp: *const JSClass) -> bool {
-    unsafe {
-        ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
+        rval.set(ObjectValue(obj));
+        maybe_wrap_value(cx, rval);
     }
 }
 
@@ -332,7 +317,7 @@ pub fn is_dom_class(clasp: *const JSClass) -> bool {
 pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
     use js::glue::IsProxyHandlerFamily;
     unsafe {
-        let clasp = JS_GetClass(obj);
+        let clasp = get_object_class(obj);
         ((*clasp).flags & js::JSCLASS_IS_PROXY) != 0 && IsProxyHandlerFamily(obj) != 0
     }
 }
@@ -345,8 +330,7 @@ pub const DOM_OBJECT_SLOT: u32 = 0;
 
 /// Get the private pointer of a DOM object from a given reflector.
 pub unsafe fn private_from_object(obj: *mut JSObject) -> *const libc::c_void {
-    let clasp = JS_GetClass(obj);
-    let value = if is_dom_class(clasp) {
+    let value = if is_dom_object(obj) {
         JS_GetReservedSlot(obj, DOM_OBJECT_SLOT)
     } else {
         debug_assert!(is_dom_proxy(obj));
@@ -364,7 +348,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
     use dom::bindings::utils::DOMJSClass;
     use js::glue::GetProxyHandlerExtra;
 
-    let clasp = JS_GetClass(obj);
+    let clasp = get_object_class(obj);
     if is_dom_class(&*clasp) {
         trace!("plain old dom object");
         let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
