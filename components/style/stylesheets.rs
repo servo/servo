@@ -60,6 +60,22 @@ impl From<Vec<CssRule>> for CssRules {
     }
 }
 
+pub enum RulesMutateError {
+    Syntax,
+    IndexSize,
+    HierarchyRequest,
+    InvalidState,
+}
+
+impl From<SingleRuleParseError> for RulesMutateError {
+    fn from(other: SingleRuleParseError) -> Self {
+        match other {
+            SingleRuleParseError::Syntax => RulesMutateError::Syntax,
+            SingleRuleParseError::Hierarchy => RulesMutateError::HierarchyRequest,
+        }
+    }
+}
+
 impl CssRules {
     // used in CSSOM
     pub fn only_ns_or_import(rules: &[CssRule]) -> bool {
@@ -71,36 +87,74 @@ impl CssRules {
         })
     }
 
-    // Provides the parser state at a given insertion index
-    pub fn state_at_index(rules: &[CssRule], at: usize) -> State {
-        let mut state = State::Start;
-        if at > 0 {
-            if let Some(rule) = rules.get(at - 1) {
-                state = match *rule {
-                    // CssRule::Charset(..) => State::Start,
-                    // CssRule::Import(..) => State::Imports,
-                    CssRule::Namespace(..) => State::Namespaces,
-                    _ => State::Body,
-                };
+    // https://drafts.csswg.org/cssom/#insert-a-css-rule
+    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+                       -> Result<CssRule, RulesMutateError> {
+        let mut rules = self.0.write();
+
+        // Step 1, 2
+        if index > rules.len() {
+            return Err(RulesMutateError::IndexSize);
+        }
+
+        // Computes the parser state at the given index
+        let state = if nested {
+            None
+        } else if index == 0 {
+            Some(State::Start)
+        } else {
+            rules.get(index - 1).map(CssRule::rule_state)
+        };
+
+        // Step 3, 4
+        // XXXManishearth should we also store the namespace map?
+        let (new_rule, new_state) = try!(CssRule::parse(&rule, Origin::Author, base_url,
+                                                        ParserContextExtraData::default(), state));
+
+        // Step 5
+        // Computes the maximum allowed parser state at a given index.
+        let rev_state = rules.get(index).map_or(State::Body, CssRule::rule_state);
+        if new_state > rev_state {
+            // We inserted a rule too early, e.g. inserting
+            // a regular style rule before @namespace rules
+            return Err(RulesMutateError::HierarchyRequest);
+        }
+
+        // Step 6
+        if let CssRule::Namespace(..) = new_rule {
+            if !CssRules::only_ns_or_import(&rules) {
+                return Err(RulesMutateError::InvalidState);
             }
         }
-        state
+
+        rules.insert(index, new_rule.clone());
+        Ok(new_rule)
     }
 
-    // Provides the maximum allowed parser state at a given index,
-    // searching in reverse. If inserting at this index, the parser
-    // must not be in a state greater than this post-insertion.
-    pub fn state_at_index_rev(rules: &[CssRule], at: usize) -> State {
-        if let Some(rule) = rules.get(at) {
-            match *rule {
-                // CssRule::Charset(..) => State::Start,
-                // CssRule::Import(..) => State::Imports,
-                CssRule::Namespace(..) => State::Namespaces,
-                _ => State::Body,
-            }
-        } else {
-            State::Body
+    // https://drafts.csswg.org/cssom/#remove-a-css-rule
+    pub fn remove_rule(&self, index: usize) -> Result<(), RulesMutateError> {
+        let mut rules = self.0.write();
+
+        // Step 1, 2
+        if index >= rules.len() {
+            return Err(RulesMutateError::IndexSize);
         }
+
+        {
+            // Step 3
+            let ref rule = rules[index];
+
+            // Step 4
+            if let CssRule::Namespace(..) = *rule {
+                if !CssRules::only_ns_or_import(&rules) {
+                    return Err(RulesMutateError::InvalidState);
+                }
+            }
+        }
+
+        // Step 5, 6
+        rules.remove(index);
+        Ok(())
     }
 }
 
@@ -190,6 +244,15 @@ impl CssRule {
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
             CssRule::Viewport(_)  => CssRuleType::Viewport,
+        }
+    }
+
+    fn rule_state(&self) -> State {
+        match *self {
+            // CssRule::Charset(..) => State::Start,
+            // CssRule::Import(..) => State::Imports,
+            CssRule::Namespace(..) => State::Namespaces,
+            _ => State::Body,
         }
     }
 
