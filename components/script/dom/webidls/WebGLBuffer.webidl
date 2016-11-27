@@ -6,5 +6,6 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.4
 //
 
+[Exposed=Window]
 interface WebGLBuffer : WebGLObject {
 };

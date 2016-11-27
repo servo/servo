@@ -6,6 +6,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.7
 //
 
+[Exposed=Window]
 interface WebGLShaderPrecisionFormat {
     readonly attribute GLint rangeMin;
     readonly attribute GLint rangeMax;

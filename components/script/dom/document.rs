@@ -2426,7 +2426,7 @@ impl DocumentMethods for Document {
                     )
                 )),
             "webglcontextevent" =>
-                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(&self.window))),
             "storageevent" => {
                 let USVString(url) = self.URL();
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))

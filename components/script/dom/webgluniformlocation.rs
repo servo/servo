@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use webrender_traits::WebGLProgramId;
 
 #[dom_struct]
@@ -27,12 +27,12 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                id: i32,
                program_id: WebGLProgramId)
                -> Root<WebGLUniformLocation> {
         reflect_dom_object(box WebGLUniformLocation::new_inherited(id, program_id),
-                           global,
+                           window,
                            WebGLUniformLocationBinding::Wrap)
     }
 

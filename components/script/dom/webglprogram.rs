@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
+use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use webrender_traits;
@@ -49,21 +49,21 @@ impl WebGLProgram {
         }
     }
 
-    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLProgram>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateProgram(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|program_id| WebGLProgram::new(global, renderer, program_id))
+        result.map(|program_id| WebGLProgram::new(window, renderer, program_id))
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLProgramId)
                -> Root<WebGLProgram> {
         reflect_dom_object(box WebGLProgram::new_inherited(renderer, id),
-                           global,
+                           window,
                            WebGLProgramBinding::Wrap)
     }
 }
@@ -231,7 +231,7 @@ impl WebGLProgram {
             .unwrap();
 
         receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(&self.global(), size, ty, DOMString::from(name)))
+            WebGLActiveInfo::new(self.global().as_window(), size, ty, DOMString::from(name)))
     }
 
     /// glGetActiveAttrib
@@ -245,7 +245,7 @@ impl WebGLProgram {
             .unwrap();
 
         receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(&self.global(), size, ty, DOMString::from(name)))
+            WebGLActiveInfo::new(self.global().as_window(), size, ty, DOMString::from(name)))
     }
 
     /// glGetAttribLocation
