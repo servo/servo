@@ -3378,12 +3378,13 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
             Argument('*mut JSVal', 'vp'),
         ]
         CGAbstractMethod.__init__(self, descriptor, name, "bool", args, extern=True)
+        self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = CGGeneric("""\
-let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());
-""")
-        return CGList([preamble, self.generate_code()])
+        preamble = "let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"
+        if len(self.exposureSet) == 1:
+            preamble += "let global = Root::downcast::<dom::types::%s>(global).unwrap();\n" % list(self.exposureSet)[0]
+        return CGList([CGGeneric(preamble), self.generate_code()])
 
     def generate_code(self):
         raise NotImplementedError  # Override me!

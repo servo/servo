@@ -6,7 +6,7 @@ use cssparser::serialize_identifier;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 
 #[dom_struct]
 pub struct CSS {
@@ -15,7 +15,7 @@ pub struct CSS {
 
 impl CSS {
     // http://dev.w3.org/csswg/cssom/#serialize-an-identifier
-    pub fn Escape(_: &GlobalScope, ident: DOMString) -> Fallible<DOMString> {
+    pub fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();
         Ok(DOMString::from(escaped))
