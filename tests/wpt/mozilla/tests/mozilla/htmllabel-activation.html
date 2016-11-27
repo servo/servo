@@ -37,7 +37,7 @@
         label.click();
         assert_false(disabledcb.checked, "checkbox should not be checked")
         assert_false(checkbox.checked, "checkbox should not be checked")
-    }, "If label's 1st child is disabled, click should have no impact");
+    }, "If label's 1st child (checkbox) is disabled, click should have no impact");
 
     test(function() {
         document.querySelector("#test").innerHTML = '<label id="label">hi \
@@ -81,7 +81,7 @@
         label.click();
         assert_false(disabledRadio.checked, "disabled radio should not be checked")
         assert_false(checkbox.checked, "checkbox should not be checked")
-    }, "If label's 1st child is disabled, click should have no impact");
+    }, "If label's 1st child (radio) is disabled, click should have no impact");
 
 
     test(function() {
@@ -110,13 +110,13 @@
             disabledSubmit = document.getElementById('disabledSubmit'),
             checkbox = document.getElementById('checkbox');
 
-        disabledSubmit.onclick = function() {
+        disabledSubmit.onclick = this.step_func(function() {
             assert_unreached("disabled submit should not have been activated")
-        };
+        });
 
         label.click();
         assert_false(checkbox.checked, "checkbox should not be checked")
-    }, "If label's 1st child is disabled, click should have no impact");
+    }, "If label's 1st child (submit) is disabled, click should have no impact");
 
     test(function() {
         document.querySelector("#test").innerHTML = '<label id="label" for="checkbox2">hi \

@@ -214,15 +214,16 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
     JS_ClearPendingException(cx);
     let error_info = if value.is_object() {
         rooted!(in(cx) let object = value.to_object());
-        let error_info = ErrorInfo::from_native_error(cx, object.handle())
-            .or_else(|| ErrorInfo::from_dom_exception(object.handle()));
-        match error_info {
-            Some(error_info) => error_info,
-            None => {
-                error!("Uncaught exception: failed to extract information");
-                return;
-            }
-        }
+        ErrorInfo::from_native_error(cx, object.handle())
+            .or_else(|| ErrorInfo::from_dom_exception(object.handle()))
+            .unwrap_or_else(|| {
+                ErrorInfo {
+                    message: format!("uncaught exception: unknown (can't convert to string)"),
+                    filename: String::new(),
+                    lineno: 0,
+                    column: 0,
+                }
+            })
     } else {
         match USVString::from_jsval(cx, value.handle(), ()) {
             Ok(ConversionResult::Success(USVString(string))) => {
