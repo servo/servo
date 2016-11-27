@@ -288,3 +288,9 @@ ${helpers.predefined_type("-moz-column-rule-color", "CSSColor",
 // https://drafts.csswg.org/css-multicol-1/#column-span
 ${helpers.single_keyword("column-span", "none all",
                          products="none", animatable=False)}
+
+${helpers.single_keyword("column-rule-style",
+                         "none hidden dotted dashed solid double groove ridge inset outset",
+                         products="gecko",
+                         gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
+                         animatable=False)}
