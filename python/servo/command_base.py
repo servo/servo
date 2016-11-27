@@ -209,6 +209,26 @@ def is_macosx():
     return sys.platform == 'darwin'
 
 
+def is_linux():
+    return sys.platform.startswith('linux')
+
+
+def set_osmesa_env(bin_path, env):
+    """Set proper LD_LIBRARY_PATH and DRIVE for software rendering on Linux and OSX"""
+    if is_linux():
+        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path), "out", "lib", "gallium")
+        env["LD_LIBRARY_PATH"] = osmesa_path
+        env["GALLIUM_DRIVER"] = "softpipe"
+    elif is_macosx():
+        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
+                                "out", "src", "gallium", "targets", "osmesa", ".libs")
+        glapi_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
+                               "out", "src", "mapi", "shared-glapi", ".libs")
+        env["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
+        env["GALLIUM_DRIVER"] = "softpipe"
+    return env
+
+
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message

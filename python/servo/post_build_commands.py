@@ -22,7 +22,11 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, call, check_call, find_dep_path_newest, is_windows, is_macosx
+from servo.command_base import (
+    CommandBase,
+    call, check_call, find_dep_path_newest,
+    is_windows, is_macosx, set_osmesa_env,
+)
 
 
 def read_file(filename, if_exists=False):
@@ -52,10 +56,13 @@ class PostBuildCommands(CommandBase):
                      help='Name of debugger to use.')
     @CommandArgument('--browserhtml', '-b', action='store_true',
                      help='Launch with Browser.html')
+    @CommandArgument('--headless', '-z', action='store_true',
+                     help='Launch in headless mode')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False):
+    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
+            headless=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -106,6 +113,10 @@ class PostBuildCommands(CommandBase):
                            '--pref', 'dom.forcetouch.enabled',
                            '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                            path.join(browserhtml_path, 'out', 'index.html')]
+
+        if headless:
+            set_osmesa_env(args[0], env)
+            args.append('-z')
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
