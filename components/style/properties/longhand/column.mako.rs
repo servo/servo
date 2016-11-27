@@ -273,8 +273,8 @@ ${helpers.single_keyword("column-fill", "auto balance",
         Au::from_px(3) // medium
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        BorderWidth::parse(input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        BorderWidth::parse(context, input)
     }
 </%helpers:longhand>
 

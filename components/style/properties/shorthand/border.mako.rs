@@ -6,17 +6,20 @@
 <% from data import to_rust_ident, ALL_SIDES %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
+
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
-                       "specified::BorderStyle::parse")}
+                               "specified::BorderStyle::parse",
+                               needs_context=False)}
+
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
                  for side in ['top', 'right', 'bottom', 'left'])}">
     use super::parse_four_sides;
+    use parser::Parse;
     use values::specified;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let _unused = context;
-        let (top, right, bottom, left) = try!(parse_four_sides(input, specified::BorderWidth::parse));
+        let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
         Ok(Longhands {
             % for side in ["top", "right", "bottom", "left"]:
                 ${to_rust_ident('border-%s-width' % side)}: Some(${side}),
@@ -58,7 +61,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     let mut any = false;
     loop {
         if color.is_none() {
-            if let Ok(value) = input.try(specified::CSSColor::parse) {
+            if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
                 color = Some(value);
                 any = true;
                 continue
@@ -72,7 +75,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }
         if width.is_none() {
-            if let Ok(value) = input.try(specified::BorderWidth::parse) {
+            if let Ok(value) = input.try(|i| specified::BorderWidth::parse(context, i)) {
                 width = Some(value);
                 any = true;
                 continue
@@ -152,9 +155,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     use parser::Parse;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let _ignored = context;
-
-        let radii = try!(BorderRadius::parse(input));
+        let radii = try!(BorderRadius::parse(context, input));
         Ok(Longhands {
             border_top_left_radius: Some(radii.top_left),
             border_top_right_radius: Some(radii.top_right),

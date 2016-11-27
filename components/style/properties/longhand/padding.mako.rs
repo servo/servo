@@ -10,6 +10,7 @@
     ${helpers.predefined_type("padding-%s" % side[0], "LengthOrPercentage",
                                "computed::LengthOrPercentage::Length(Au(0))",
                                "parse_non_negative",
+                               needs_context=False,
                                animatable=True,
                                logical = side[1])}
 % endfor

@@ -69,8 +69,6 @@ pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str
 
 // XXXManishearth Replace all specified value parse impls with impls of this
 // trait. This will make it easy to write more generic values in the future.
-// There may need to be two traits -- one for parsing with context, and one
-// for parsing without
 pub trait Parse {
-    fn parse(input: &mut Parser) -> Result<Self, ()> where Self: Sized;
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> where Self: Sized;
 }

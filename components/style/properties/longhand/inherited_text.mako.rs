@@ -200,8 +200,7 @@
     #[inline] pub fn get_initial_value() -> computed_value::T {
         computed_value::T::start
     }
-    pub fn parse(_context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         computed_value::T::parse(input)
     }
 </%helpers:longhand>
@@ -645,15 +644,15 @@ ${helpers.single_keyword("text-align-last",
         computed_value::T(Vec::new())
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             Ok(SpecifiedValue(Vec::new()))
         } else {
-            input.parse_comma_separated(parse_one_text_shadow).map(SpecifiedValue)
+            input.parse_comma_separated(|i| parse_one_text_shadow(context, i)).map(SpecifiedValue)
         }
     }
 
-    fn parse_one_text_shadow(input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
+    fn parse_one_text_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
         use app_units::Au;
         let mut lengths = [specified::Length::Absolute(Au(0)); 3];
         let mut lengths_parsed = false;
@@ -661,11 +660,11 @@ ${helpers.single_keyword("text-align-last",
 
         loop {
             if !lengths_parsed {
-                if let Ok(value) = input.try(specified::Length::parse) {
+                if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
                     lengths[0] = value;
                     let mut length_parsed_count = 1;
                     while length_parsed_count < 3 {
-                        if let Ok(value) = input.try(specified::Length::parse) {
+                        if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
                             lengths[length_parsed_count] = value
                         } else {
                             break
@@ -683,7 +682,7 @@ ${helpers.single_keyword("text-align-last",
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(specified::CSSColor::parse) {
+                if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
                     color = Some(value);
                     continue
                 }
@@ -1024,9 +1023,8 @@ ${helpers.predefined_type(
     pub type SpecifiedValue = BorderWidth;
 
     #[inline]
-    pub fn parse(_context: &ParserContext, input: &mut Parser)
-                 -> Result<SpecifiedValue, ()> {
-        BorderWidth::parse(input)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        BorderWidth::parse(context, input)
     }
 
     pub mod computed_value {

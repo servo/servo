@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use cssparser::{Parser, Token};
-use parser::Parse;
+use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
@@ -181,14 +181,14 @@ impl Position {
 }
 
 impl Parse for Position {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        let first = try!(PositionComponent::parse(input));
-        let second = input.try(PositionComponent::parse)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        let first = try!(PositionComponent::parse(context, input));
+        let second = input.try(|i| PositionComponent::parse(context, i))
             .unwrap_or(PositionComponent::Keyword(Keyword::Center));
 
         // Try to parse third and fourth values
-        if let Ok(third) = input.try(PositionComponent::parse) {
-            if let Ok(fourth) = input.try(PositionComponent::parse) {
+        if let Ok(third) = input.try(|i| PositionComponent::parse(context, i)) {
+            if let Ok(fourth) = input.try(|i| PositionComponent::parse(context, i)) {
                 // Handle 4 value background position
                 Position::new(Some(second), Some(fourth), Some(first), Some(third))
             } else {
@@ -375,8 +375,8 @@ impl PositionComponent {
 }
 
 impl Parse for PositionComponent {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
-        input.try(LengthOrPercentage::parse)
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(|i| LengthOrPercentage::parse(context, i))
             .map(PositionComponent::Length)
             .or_else(|()| {
                 match try!(input.next()) {

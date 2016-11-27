@@ -38,7 +38,7 @@ pub struct CSSColor {
 }
 
 impl Parse for CSSColor {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned()),
@@ -197,7 +197,7 @@ impl BorderRadiusSize {
 
 impl Parse for BorderRadiusSize {
     #[inline]
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let first = try!(LengthOrPercentage::parse_non_negative(input));
         let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
         Ok(BorderRadiusSize(Size2D::new(first, second)))
@@ -241,7 +241,7 @@ const RAD_PER_TURN: CSSFloat = PI * 2.0;
 
 impl Parse for Angle {
     /// Parses an angle according to CSS-VALUES § 6.1.
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
             Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
@@ -265,8 +265,8 @@ impl Angle {
     }
 }
 
-pub fn parse_border_radius(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
-    input.try(BorderRadiusSize::parse).or_else(|()| {
+pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+    input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|()| {
             match_ignore_ascii_case! { try!(input.expect_ident()),
                 "thin" => Ok(BorderRadiusSize::circle(
                                  LengthOrPercentage::Length(Length::from_px(1.)))),
@@ -299,12 +299,8 @@ pub enum BorderWidth {
     Width(Length),
 }
 
-impl BorderWidth {
-    pub fn from_length(length: Length) -> Self {
-        BorderWidth::Width(length)
-    }
-
-    pub fn parse(input: &mut Parser) -> Result<BorderWidth, ()> {
+impl Parse for BorderWidth {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
         match input.try(Length::parse_non_negative) {
             Ok(length) => Ok(BorderWidth::Width(length)),
             Err(_) => match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -314,6 +310,12 @@ impl BorderWidth {
                _ => Err(())
             }
         }
+    }
+}
+
+impl BorderWidth {
+    pub fn from_length(length: Length) -> Self {
+        BorderWidth::Width(length)
     }
 }
 
@@ -409,7 +411,7 @@ impl Time {
 impl ComputedValueAsSpecified for Time {}
 
 impl Parse for Time {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match input.next() {
             Ok(Token::Dimension(ref value, ref unit)) => {
                 Time::parse_dimension(value.value, &unit)
@@ -435,7 +437,7 @@ pub struct Number(pub CSSFloat);
 impl NoViewportPercentage for Number {}
 
 impl Parse for Number {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Number)
     }
 }
@@ -482,7 +484,7 @@ pub struct Opacity(pub CSSFloat);
 impl NoViewportPercentage for Opacity {}
 
 impl Parse for Opacity {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         parse_number(input).map(Opacity)
     }
 }

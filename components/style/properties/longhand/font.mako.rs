@@ -510,7 +510,7 @@ ${helpers.single_keyword("font-variant-position",
 
     pub mod computed_value {
         use cssparser::Parser;
-        use parser::Parse;
+        use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
 
@@ -560,7 +560,7 @@ ${helpers.single_keyword("font-variant-position",
         impl Parse for FeatureTagValue {
             /// https://www.w3.org/TR/css-fonts-3/#propdef-font-feature-settings
             /// <string> [ on | off | <integer> ]
-            fn parse(input: &mut Parser) -> Result<Self, ()> {
+            fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
                 let tag = try!(input.expect_string());
 
                 // allowed strings of length 4 containing chars: <U+20, U+7E>
@@ -597,11 +597,11 @@ ${helpers.single_keyword("font-variant-position",
     }
 
     /// normal | <feature-tag-value>#
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(computed_value::T::Normal)
         } else {
-            input.parse_comma_separated(computed_value::FeatureTagValue::parse)
+            input.parse_comma_separated(|i| computed_value::FeatureTagValue::parse(context, i))
                  .map(computed_value::T::Tag)
         }
     }

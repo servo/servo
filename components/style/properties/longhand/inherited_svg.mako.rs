@@ -50,6 +50,7 @@ ${helpers.single_keyword("stroke-linejoin", "miter round bevel",
 
 ${helpers.predefined_type("stroke-miterlimit", "Number", "4.0",
                           "parse_at_least_one", products="gecko",
+                          needs_context=False,
                           animatable=False)}
 
 ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",

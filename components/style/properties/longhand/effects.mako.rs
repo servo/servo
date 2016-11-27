@@ -125,7 +125,7 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use app_units::Au;
         let mut lengths = [specified::Length::Absolute(Au(0)); 4];
         let mut lengths_parsed = false;
@@ -140,11 +140,11 @@ ${helpers.predefined_type("opacity",
                 }
             }
             if !lengths_parsed {
-                if let Ok(value) = input.try(specified::Length::parse) {
+                if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
                     lengths[0] = value;
                     let mut length_parsed_count = 1;
                     while length_parsed_count < 4 {
-                        if let Ok(value) = input.try(specified::Length::parse) {
+                        if let Ok(value) = input.try(|i| specified::Length::parse(context, i)) {
                             lengths[length_parsed_count] = value
                         } else {
                             break
@@ -162,7 +162,7 @@ ${helpers.predefined_type("opacity",
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(specified::CSSColor::parse) {
+                if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
                     color = Some(value);
                     continue
                 }
@@ -352,16 +352,16 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use app_units::Au;
         use std::ascii::AsciiExt;
         use values::specified::Length;
 
-        fn parse_argument(input: &mut Parser) -> Result<Option<Length>, ()> {
+        fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(None)
             } else {
-                Length::parse(input).map(Some)
+                Length::parse(context, input).map(Some)
             }
         }
 
@@ -373,21 +373,21 @@ ${helpers.predefined_type("opacity",
         }
 
         input.parse_nested_block(|input| {
-            let top = try!(parse_argument(input));
+            let top = try!(parse_argument(context, input));
             let right;
             let bottom;
             let left;
 
             if input.try(|input| input.expect_comma()).is_ok() {
-                right = try!(parse_argument(input));
+                right = try!(parse_argument(context, input));
                 try!(input.expect_comma());
-                bottom = try!(parse_argument(input));
+                bottom = try!(parse_argument(context, input));
                 try!(input.expect_comma());
-                left = try!(parse_argument(input));
+                left = try!(parse_argument(context, input));
             } else {
-                right = try!(parse_argument(input));
-                bottom = try!(parse_argument(input));
-                left = try!(parse_argument(input));
+                right = try!(parse_argument(context, input));
+                bottom = try!(parse_argument(context, input));
+                left = try!(parse_argument(context, input));
             }
             Ok(SpecifiedValue(Some(SpecifiedClipRect {
                 top: top.unwrap_or(Length::Absolute(Au(0))),
@@ -627,7 +627,7 @@ ${helpers.predefined_type("opacity",
         computed_value::T::new(Vec::new())
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut filters = Vec::new();
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(SpecifiedValue(filters))
@@ -640,13 +640,13 @@ ${helpers.predefined_type("opacity",
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                         "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
                         "grayscale" => parse_factor(input).map(SpecifiedFilter::Grayscale),
-                        "hue-rotate" => Angle::parse(input).map(SpecifiedFilter::HueRotate),
+                        "hue-rotate" => Angle::parse(context, input).map(SpecifiedFilter::HueRotate),
                         "invert" => parse_factor(input).map(SpecifiedFilter::Invert),
                         "opacity" => parse_factor(input).map(SpecifiedFilter::Opacity),
                         "saturate" => parse_factor(input).map(SpecifiedFilter::Saturate),
                         "sepia" => parse_factor(input).map(SpecifiedFilter::Sepia),
                         % if product == "gecko":
-                        "drop-shadow" => parse_drop_shadow(input),
+                        "drop-shadow" => parse_drop_shadow(context, input),
                         % endif
                         _ => Err(())
                     }
@@ -669,11 +669,12 @@ ${helpers.predefined_type("opacity",
     }
 
     % if product == "gecko":
-    fn parse_drop_shadow(input: &mut Parser) -> Result<SpecifiedFilter, ()> {
-        let offset_x = try!(specified::Length::parse(input));
-        let offset_y = try!(specified::Length::parse(input));
-        let blur_radius = input.try(specified::Length::parse).unwrap_or(specified::Length::from_px(0.0));
-        let color = input.try(specified::CSSColor::parse).ok();
+    fn parse_drop_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedFilter, ()> {
+        let offset_x = try!(specified::Length::parse(context, input));
+        let offset_y = try!(specified::Length::parse(context, input));
+        let blur_radius = input.try(|i| specified::Length::parse(context, i))
+                               .unwrap_or(specified::Length::from_px(0.0));
+        let color = input.try(|i| specified::CSSColor::parse(context, i)).ok();
         Ok(SpecifiedFilter::DropShadow(offset_x, offset_y, blur_radius, color))
     }
     % endif
@@ -745,7 +746,7 @@ pub struct OriginParseResult {
     pub depth: Option<specified::Length>
 }
 
-pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
+pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
     use values::specified::{LengthOrPercentage, Percentage};
     let (mut horizontal, mut vertical, mut depth) = (None, None, None);
     loop {
@@ -794,7 +795,7 @@ pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParse
             }
             Ok(())
         }) {
-            match LengthOrPercentage::parse(input) {
+            match LengthOrPercentage::parse(context, input) {
                 Ok(value) => {
                     if horizontal.is_none() {
                         horizontal = Some(value);

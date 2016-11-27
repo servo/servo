@@ -6,7 +6,7 @@ use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::size::Size2D;
 use font_metrics::FontMetrics;
-use parser::Parse;
+use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::cmp;
 use std::fmt;
@@ -338,7 +338,7 @@ impl Length {
 }
 
 impl Parse for Length {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         Length::parse_internal(input, AllowedNumericType::All)
     }
 }
@@ -753,7 +753,7 @@ impl ToCss for Percentage {
 
 impl Parse for Percentage {
     #[inline]
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let context = AllowedNumericType::All;
         match try!(input.next()) {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
@@ -821,7 +821,7 @@ impl LengthOrPercentage {
 
 impl Parse for LengthOrPercentage {
     #[inline]
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         LengthOrPercentage::parse_internal(input, AllowedNumericType::All)
     }
 }
@@ -884,7 +884,7 @@ impl LengthOrPercentageOrAuto {
 
 impl Parse for LengthOrPercentageOrAuto {
     #[inline]
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::All)
     }
 }
@@ -946,7 +946,7 @@ impl LengthOrPercentageOrNone {
 
 impl Parse for LengthOrPercentageOrNone {
     #[inline]
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::All)
     }
 }
@@ -986,7 +986,7 @@ impl ToCss for LengthOrPercentageOrAutoOrContent {
 }
 
 impl Parse for LengthOrPercentageOrAutoOrContent {
-    fn parse(input: &mut Parser) -> Result<Self, ()> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let context = AllowedNumericType::NonNegative;
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
@@ -1012,7 +1012,7 @@ pub type LengthOrNumber = Either<Length, Number>;
 
 impl LengthOrNumber {
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(v) = input.try(|i| Length::parse_non_negative(i)) {
+        if let Ok(v) = input.try(Length::parse_non_negative) {
             Ok(Either::First(v))
         } else {
             Number::parse_non_negative(input).map(Either::Second)

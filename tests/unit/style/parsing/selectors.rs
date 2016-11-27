@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ToCss};
+use media_queries::CSSErrorReporterTest;
 use selectors::parser::SelectorList;
+use style::parser::ParserContext;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Origin, Namespaces};
 
-fn parse(input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
+fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
     let mut ns = Namespaces::default();
     ns.prefixes.insert("svg".into(), ns!(svg));
     let parser = SelectorParser {
@@ -19,8 +21,8 @@ fn parse(input: &mut Parser) -> Result<SelectorList<SelectorImpl>, ()> {
 
 #[test]
 fn test_selectors() {
-    assert_roundtrip!(parse, "div");
-    assert_roundtrip!(parse, "svg|circle");
-    assert_roundtrip!(parse, "p:before", "p::before");
-    assert_roundtrip!(parse, "[border = \"0\"]:-servo-nonzero-border ~ ::-servo-details-summary");
+    assert_roundtrip_with_context!(parse, "div");
+    assert_roundtrip_with_context!(parse, "svg|circle");
+    assert_roundtrip_with_context!(parse, "p:before", "p::before");
+    assert_roundtrip_with_context!(parse, "[border = \"0\"]:-servo-nonzero-border ~ ::-servo-details-summary");
 }
