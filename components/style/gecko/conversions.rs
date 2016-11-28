@@ -18,7 +18,7 @@ use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use stylesheets::{CssRule, Stylesheet, StyleRule};
+use stylesheets::{CssRules, Stylesheet, StyleRule};
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
 
 unsafe impl HasFFI for Stylesheet {
@@ -35,10 +35,10 @@ unsafe impl HasFFI for RwLock<PropertyDeclarationBlock> {
 }
 unsafe impl HasArcFFI for RwLock<PropertyDeclarationBlock> {}
 
-unsafe impl HasFFI for RwLock<Vec<CssRule>> {
+unsafe impl HasFFI for RwLock<CssRules> {
     type FFIType = ServoCssRules;
 }
-unsafe impl HasArcFFI for RwLock<Vec<CssRule>> {}
+unsafe impl HasArcFFI for RwLock<CssRules> {}
 
 unsafe impl HasFFI for RwLock<StyleRule> {
     type FFIType = RawServoStyleRule;

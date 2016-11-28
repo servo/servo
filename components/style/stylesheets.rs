@@ -52,13 +52,7 @@ pub struct Namespaces {
 }
 
 #[derive(Debug, Clone)]
-pub struct CssRules(pub Arc<RwLock<Vec<CssRule>>>);
-
-impl From<Vec<CssRule>> for CssRules {
-    fn from(other: Vec<CssRule>) -> Self {
-        CssRules(Arc::new(RwLock::new(other)))
-    }
-}
+pub struct CssRules(pub Vec<CssRule>);
 
 pub enum RulesMutateError {
     Syntax,
@@ -76,21 +70,24 @@ impl From<SingleRuleParseError> for RulesMutateError {
     }
 }
 
+fn only_ns_or_import(rules: &[CssRule]) -> bool {
+    rules.iter().all(|r| {
+        match *r {
+            CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
+            _ => false
+        }
+    })
+}
+
 impl CssRules {
-    // used in CSSOM
-    pub fn only_ns_or_import(rules: &[CssRule]) -> bool {
-        rules.iter().all(|r| {
-            match *r {
-                CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
-                _ => false
-            }
-        })
+    pub fn new(rules: Vec<CssRule>) -> Arc<RwLock<CssRules>> {
+        Arc::new(RwLock::new(CssRules(rules)))
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+    pub fn insert_rule(&mut self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
-        let mut rules = self.0.write();
+        let rules = &mut self.0;
 
         // Step 1, 2
         if index > rules.len() {
@@ -122,7 +119,7 @@ impl CssRules {
 
         // Step 6
         if let CssRule::Namespace(..) = new_rule {
-            if !CssRules::only_ns_or_import(&rules) {
+            if !only_ns_or_import(&rules) {
                 return Err(RulesMutateError::InvalidState);
             }
         }
@@ -132,8 +129,8 @@ impl CssRules {
     }
 
     // https://drafts.csswg.org/cssom/#remove-a-css-rule
-    pub fn remove_rule(&self, index: usize) -> Result<(), RulesMutateError> {
-        let mut rules = self.0.write();
+    pub fn remove_rule(&mut self, index: usize) -> Result<(), RulesMutateError> {
+        let rules = &mut self.0;
 
         // Step 1, 2
         if index >= rules.len() {
@@ -146,7 +143,7 @@ impl CssRules {
 
             // Step 4
             if let CssRule::Namespace(..) = *rule {
-                if !CssRules::only_ns_or_import(&rules) {
+                if !only_ns_or_import(&rules) {
                     return Err(RulesMutateError::InvalidState);
                 }
             }
@@ -162,7 +159,7 @@ impl CssRules {
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: CssRules,
+    pub rules: Arc<RwLock<CssRules>>,
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
@@ -272,8 +269,8 @@ impl CssRule {
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
-                let rules = media_rule.rules.0.read();
-                f(&rules, Some(&mq))
+                let rules = &media_rule.rules.read().0;
+                f(rules, Some(&mq))
             }
         }
     }
@@ -372,7 +369,7 @@ impl ToCss for KeyframesRule {
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
-    pub rules: CssRules,
+    pub rules: Arc<RwLock<CssRules>>,
 }
 
 impl ToCss for MediaRule {
@@ -382,7 +379,7 @@ impl ToCss for MediaRule {
         try!(dest.write_str("@media ("));
         try!(self.media_queries.read().to_css(dest));
         try!(dest.write_str(") {"));
-        for rule in self.rules.0.read().iter() {
+        for rule in self.rules.read().0.iter() {
             try!(dest.write_str(" "));
             try!(rule.to_css(dest));
         }
@@ -463,7 +460,7 @@ impl Stylesheet {
 
         Stylesheet {
             origin: origin,
-            rules: rules.into(),
+            rules: CssRules::new(rules),
             media: Arc::new(RwLock::new(media)),
             dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
             disabled: AtomicBool::new(false),
@@ -505,7 +502,7 @@ impl Stylesheet {
     /// examined.
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.0.read(), device, &mut f);
+        effective_rules(&self.rules.read().0, device, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the CSSOM.
@@ -691,7 +688,7 @@ struct NestedRuleParser<'a, 'b: 'a> {
 }
 
 impl<'a, 'b> NestedRuleParser<'a, 'b> {
-    fn parse_nested_rules(&self, input: &mut Parser) -> CssRules {
+    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<RwLock<CssRules>> {
         let mut iter = RuleListParser::new_for_nested_rule(input, self.clone());
         let mut rules = Vec::new();
         while let Some(result) = iter.next() {
@@ -704,7 +701,7 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 }
             }
         }
-        rules.into()
+        CssRules::new(rules)
     }
 }
 
