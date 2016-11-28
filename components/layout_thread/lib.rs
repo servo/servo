@@ -1518,7 +1518,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         let res = try!(read_resource_file(filename).map_err(|_| filename));
         Ok(Stylesheet::from_bytes(
             &res,
-            ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
+            &ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
             None,
             None,
             Origin::UserAgent,
@@ -1535,7 +1535,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
-            &contents, url.clone(), None, None, Origin::User, Default::default(),
+            &contents, url, None, None, Origin::User, Default::default(),
             Box::new(StdoutErrorReporter), ParserContextExtraData::default()));
     }
 

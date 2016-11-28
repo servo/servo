@@ -88,7 +88,7 @@ impl CssRules {
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+    pub fn insert_rule(&self, rule: &str, base_url: &ServoUrl, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
         let mut rules = self.0.write();
 
@@ -281,12 +281,12 @@ impl CssRule {
     // input state is None for a nested rule
     // Returns a parsed CSS rule and the final state of the parser
     pub fn parse(css: &str, origin: Origin,
-                    base_url: ServoUrl,
+                    base_url: &ServoUrl,
                     extra_data: ParserContextExtraData,
                     state: Option<State>) -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = Box::new(MemoryHoleReporter);
         let mut namespaces = Namespaces::default();
-        let context = ParserContext::new_with_extra_data(origin, &base_url,
+        let context = ParserContext::new_with_extra_data(origin, base_url,
                                                          error_reporter.clone(),
                                                          extra_data);
         let mut input = Parser::new(css);
@@ -418,7 +418,7 @@ impl ToCss for StyleRule {
 
 impl Stylesheet {
     pub fn from_bytes(bytes: &[u8],
-                      base_url: ServoUrl,
+                      base_url: &ServoUrl,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
                       origin: Origin,
@@ -431,14 +431,14 @@ impl Stylesheet {
         Stylesheet::from_str(&string, base_url, origin, media, error_reporter, extra_data)
     }
 
-    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin, media: MediaList,
+    pub fn from_str(css: &str, base_url: &ServoUrl, origin: Origin, media: MediaList,
                     error_reporter: Box<ParseErrorReporter + Send>,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let mut namespaces = Namespaces::default();
         let rule_parser = TopLevelRuleParser {
             stylesheet_origin: origin,
             namespaces: &mut namespaces,
-            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
+            context: ParserContext::new_with_extra_data(origin, base_url, error_reporter.clone(),
                                                         extra_data),
             state: Cell::new(State::Start),
         };
@@ -454,7 +454,7 @@ impl Stylesheet {
                     Err(range) => {
                         let pos = range.start;
                         let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        let context = ParserContext::new(origin, &base_url, error_reporter.clone());
+                        let context = ParserContext::new(origin, base_url, error_reporter.clone());
                         log_css_error(iter.input, pos, &*message, &context);
                     }
                 }
