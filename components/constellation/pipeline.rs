@@ -253,8 +253,6 @@ impl Pipeline {
                                      state.window_size,
                                      state.prev_visibility.unwrap_or(true));
 
-        pipeline.notify_visibility();
-
         Ok((pipeline, child_process))
     }
 
@@ -269,7 +267,7 @@ impl Pipeline {
            size: Option<TypedSize2D<f32, PagePx>>,
            visible: bool)
            -> Pipeline {
-        Pipeline {
+        let pipeline = Pipeline {
             id: id,
             frame_id: frame_id,
             parent_info: parent_info,
@@ -283,7 +281,11 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
-        }
+        };
+
+        pipeline.notify_visibility();
+
+        pipeline
     }
 
     pub fn exit(&self) {
