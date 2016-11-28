@@ -536,11 +536,11 @@ mod shorthand_serialization {
     #[test]
     fn columns_should_serialize_correctly() {
         use style::properties::longhands::column_count::SpecifiedValue as ColumnCount;
-        use style::properties::longhands::column_width::SpecifiedValue as ColumnWidth;
+        use style::values::{Auto, Either};
 
         let mut properties = Vec::new();
 
-        let width = DeclaredValue::Value(ColumnWidth::Auto);
+        let width = DeclaredValue::Value(Either::Second(Auto));
         let count = DeclaredValue::Value(ColumnCount::Auto);
 
         properties.push(PropertyDeclaration::ColumnWidth(width));

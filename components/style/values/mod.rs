@@ -104,6 +104,19 @@ pub enum Either<A, B> {
     Second(B),
 }
 
+impl<A, B> Either<A, B> {
+    pub fn is_first(&self) -> bool {
+        match self {
+            &Either::First(_) => true,
+            &Either::Second(_) => false,
+        }
+    }
+
+    pub fn is_second(&self) -> bool {
+        !self.is_first()
+    }
+}
+
 impl<A: Debug, B: Debug> Debug for Either<A, B> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {

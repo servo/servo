@@ -1145,7 +1145,7 @@ impl ComputedValues {
     #[inline]
     pub fn is_multicol(&self) -> bool {
         let style = self.get_column();
-        style.column_count.0.is_some() || style.column_width.0.is_some()
+        style.column_count.0.is_some() || style.column_width.is_first()
     }
 
     /// Resolves the currentColor keyword.
