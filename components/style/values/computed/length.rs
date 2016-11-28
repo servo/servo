@@ -7,7 +7,7 @@ use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
-use values::{CSSFloat, Either, None_, specified};
+use values::{Auto, CSSFloat, Either, None_, specified};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -470,6 +470,8 @@ impl ToCss for LengthOrPercentageOrNone {
 }
 
 pub type LengthOrNone = Either<Length, None_>;
+
+pub type LengthOrAuto = Either<Length, Auto>;
 
 pub type LengthOrNumber = Either<Length, Number>;
 

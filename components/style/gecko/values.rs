@@ -10,7 +10,7 @@ use gecko_bindings::structs::{NS_RADIUS_CLOSEST_SIDE, NS_RADIUS_FARTHEST_SIDE};
 use gecko_bindings::structs::nsStyleCoord;
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
-use values::Either;
+use values::{Auto, Either};
 use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
@@ -181,6 +181,20 @@ impl GeckoStyleCoordConvertible for Angle {
         if let CoordDataValue::Radian(r) = coord.as_value() {
             Some(Angle::from_radians(r))
             // XXXManishearth should this handle Degree too?
+        } else {
+            None
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for Auto {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Auto)
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        if let CoordDataValue::Auto = coord.as_value() {
+            Some(Auto)
         } else {
             None
         }
