@@ -44,7 +44,7 @@ pub enum Origin {
     User,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Namespaces {
     pub default: Option<Namespace>,
@@ -166,6 +166,8 @@ pub struct Stylesheet {
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
+    pub base_url: ServoUrl,
+    pub namespaces: RwLock<Namespaces>,
     pub dirty_on_viewport_size_change: AtomicBool,
     pub disabled: AtomicBool,
 }
@@ -435,37 +437,40 @@ impl Stylesheet {
                     error_reporter: Box<ParseErrorReporter + Send>,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let mut namespaces = Namespaces::default();
-        let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
-            namespaces: &mut namespaces,
-            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
-                                                        extra_data),
-            state: Cell::new(State::Start),
-        };
-        let mut input = Parser::new(css);
-        input.look_for_viewport_percentages();
-
         let mut rules = vec![];
+        let dirty_on_viewport_size_change;
         {
-            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
-            while let Some(result) = iter.next() {
-                match result {
-                    Ok(rule) => rules.push(rule),
-                    Err(range) => {
-                        let pos = range.start;
-                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        let context = ParserContext::new(origin, &base_url, error_reporter.clone());
-                        log_css_error(iter.input, pos, &*message, &context);
+            let rule_parser = TopLevelRuleParser {
+                stylesheet_origin: origin,
+                namespaces: &mut namespaces,
+                context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter, extra_data),
+                state: Cell::new(State::Start),
+            };
+            let mut input = Parser::new(css);
+            input.look_for_viewport_percentages();
+            {
+                let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+                while let Some(result) = iter.next() {
+                    match result {
+                        Ok(rule) => rules.push(rule),
+                        Err(range) => {
+                            let pos = range.start;
+                            let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                            log_css_error(iter.input, pos, &*message, &iter.parser.context);
+                        }
                     }
                 }
             }
+            dirty_on_viewport_size_change = input.seen_viewport_percentages();
         }
 
         Stylesheet {
             origin: origin,
+            base_url: base_url,
+            namespaces: RwLock::new(namespaces),
             rules: rules.into(),
             media: Arc::new(RwLock::new(media)),
-            dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
+            dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
         }
     }
