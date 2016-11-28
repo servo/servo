@@ -427,8 +427,6 @@ class CommandBase(object):
 
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
 
-        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
-
         if extra_lib:
             if sys.platform == "darwin":
                 env["DYLD_LIBRARY_PATH"] = "%s%s%s" % \

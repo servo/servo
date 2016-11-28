@@ -9,6 +9,9 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
+[features]
+testing = ["style/testing"]
+
 [dependencies]
 app_units = "0.3"
 cssparser = {version = "0.7", features = ["heap_size"]}

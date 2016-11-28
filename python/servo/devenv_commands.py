@@ -21,12 +21,6 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd, call
 
-CARGO_PATHS = [
-    path.join('ports', 'cef'),
-    path.join('ports', 'geckolib'),
-    path.join('ports', 'servo'),
-]
-
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -89,11 +83,9 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped()
 
-        for cargo_path in CARGO_PATHS:
-            with cd(cargo_path):
-                print(cargo_path)
-                call(["cargo", "update"] + params,
-                     env=self.build_env())
+        with cd(self.context.topdir):
+            call(["cargo", "update"] + params,
+                 env=self.build_env())
 
     @Command('clippy',
              description='Run Clippy',
@@ -165,10 +157,8 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
 
         # Fetch Cargo dependencies
-        for cargo_path in CARGO_PATHS:
-            with cd(cargo_path):
-                print(cargo_path)
-                call(["cargo", "fetch"], env=self.build_env())
+        with cd(self.context.topdir):
+            call(["cargo", "fetch"], env=self.build_env())
 
     @Command('wptrunner-upgrade',
              description='upgrade wptrunner.',
