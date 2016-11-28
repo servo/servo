@@ -16,6 +16,7 @@ use dom::location::Location;
 use dom::node::Node;
 use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
+use origin::Origin;
 use servo_url::ServoUrl;
 
 // https://dom.spec.whatwg.org/#xmldocument
@@ -28,6 +29,7 @@ impl XMLDocument {
     fn new_inherited(window: &Window,
                      browsing_context: Option<&BrowsingContext>,
                      url: Option<ServoUrl>,
+                     origin: Origin,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<String>,
@@ -37,6 +39,7 @@ impl XMLDocument {
             document: Document::new_inherited(window,
                                               browsing_context,
                                               url,
+                                              origin,
                                               is_html_document,
                                               content_type,
                                               last_modified,
@@ -50,6 +53,7 @@ impl XMLDocument {
     pub fn new(window: &Window,
                browsing_context: Option<&BrowsingContext>,
                url: Option<ServoUrl>,
+               origin: Origin,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
@@ -60,6 +64,7 @@ impl XMLDocument {
             box XMLDocument::new_inherited(window,
                                            browsing_context,
                                            url,
+                                           origin,
                                            doctype,
                                            content_type,
                                            last_modified,

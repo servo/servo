@@ -1204,6 +1204,7 @@ impl XMLHttpRequest {
         Document::new(win,
                       None,
                       parsed_url,
+                      doc.origin().alias(),
                       is_html_document,
                       content_type,
                       None,

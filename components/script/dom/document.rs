@@ -1822,6 +1822,7 @@ impl Document {
     pub fn new_inherited(window: &Window,
                          browsing_context: Option<&BrowsingContext>,
                          url: Option<ServoUrl>,
+                         origin: Origin,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
@@ -1836,15 +1837,6 @@ impl Document {
             (DocumentReadyState::Loading, false)
         } else {
             (DocumentReadyState::Complete, true)
-        };
-
-        // Incomplete implementation of Document origin specification at
-        // https://html.spec.whatwg.org/multipage/#origin:document
-        let origin = if url_has_network_scheme(&url) {
-            Origin::new(&url)
-        } else {
-            // Default to DOM standard behaviour
-            Origin::opaque_identifier()
         };
 
         Document {
@@ -1932,6 +1924,7 @@ impl Document {
         Ok(Document::new(window,
                          None,
                          None,
+                         doc.origin().alias(),
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
@@ -1944,6 +1937,7 @@ impl Document {
     pub fn new(window: &Window,
                browsing_context: Option<&BrowsingContext>,
                url: Option<ServoUrl>,
+               origin: Origin,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
@@ -1955,6 +1949,7 @@ impl Document {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       browsing_context,
                                                                       url,
+                                                                      origin,
                                                                       doctype,
                                                                       content_type,
                                                                       last_modified,
@@ -2026,6 +2021,8 @@ impl Document {
             let new_doc = Document::new(self.window(),
                                         None,
                                         None,
+                                        // https://github.com/whatwg/html/issues/2109
+                                        Origin::opaque_identifier(),
                                         doctype,
                                         None,
                                         None,
