@@ -256,17 +256,19 @@ impl Pipeline {
         Ok((pipeline, child_process))
     }
 
-    fn new(id: PipelineId,
-           frame_id: FrameId,
-           parent_info: Option<(PipelineId, FrameType)>,
-           script_chan: Rc<ScriptChan>,
-           layout_chan: IpcSender<LayoutControlMsg>,
-           compositor_proxy: Box<CompositorProxy + 'static + Send>,
-           is_private: bool,
-           url: ServoUrl,
-           size: Option<TypedSize2D<f32, PagePx>>,
-           visible: bool)
-           -> Pipeline {
+    /// Creates a new `Pipeline`, after the script and layout threads have been
+    /// spawned.
+    pub fn new(id: PipelineId,
+               frame_id: FrameId,
+               parent_info: Option<(PipelineId, FrameType)>,
+               script_chan: Rc<ScriptChan>,
+               layout_chan: IpcSender<LayoutControlMsg>,
+               compositor_proxy: Box<CompositorProxy + 'static + Send>,
+               is_private: bool,
+               url: ServoUrl,
+               size: Option<TypedSize2D<f32, PagePx>>,
+               visible: bool)
+               -> Pipeline {
         let pipeline = Pipeline {
             id: id,
             frame_id: frame_id,

@@ -71,7 +71,8 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
-use net_traits::{CoreResourceMsg, IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
+use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
+use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
@@ -601,6 +602,17 @@ impl ScriptThread {
                 let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
                     ScriptThreadEventCategory::DomEvent,
                     box task));
+            }
+        });
+    }
+
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
+                    script_thread.handle_new_layout(new_layout_info);
+                })
             }
         });
     }
@@ -1219,7 +1231,11 @@ impl ScriptThread {
         let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
                                            layout_chan, window_size,
                                            load_data.url.clone());
-        self.start_page_load(new_load, load_data);
+        if load_data.url.as_str() == "about:blank" {
+            self.start_page_load_about_blank(new_load);
+        } else {
+            self.start_page_load(new_load, load_data);
+        }
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
@@ -1645,7 +1661,8 @@ impl ScriptThread {
 
     /// Notify the containing document of a child frame that has completed loading.
     fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
-        match self.documents.borrow().find_iframe(parent_id, frame_id) {
+        let iframe = self.documents.borrow().find_iframe(parent_id, frame_id);
+        match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
@@ -2018,7 +2035,8 @@ impl ScriptThread {
                               replace: bool) {
         match frame_id {
             Some(frame_id) => {
-                if let Some(iframe) = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id) {
+                let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
+                if let Some(iframe) = iframe {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data), replace);
                 }
             }
@@ -2094,6 +2112,23 @@ impl ScriptThread {
 
         self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
+    /// argument until a notification is received that the fetch is complete.
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad) {
+        let id = incomplete.pipeline_id;
+
+        self.incomplete_loads.borrow_mut().push(incomplete);
+
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let mut context = ParserContext::new(id, url.clone());
+
+        let mut meta = Metadata::default(url);
+        meta.set_content_type(Some(&mime!(Text / Html)));
+        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response_chunk(vec![]);
+        context.process_response_eof(Ok(()));
     }
 
     fn handle_parsing_complete(&self, id: PipelineId) {
