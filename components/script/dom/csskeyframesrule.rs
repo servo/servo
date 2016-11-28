@@ -19,7 +19,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::parser::ParserContextExtraData;
-use style::stylesheets::{KeyframesRule, Origin};
+use style::stylesheets::KeyframesRule;
 use style_traits::ToCss;
 
 #[dom_struct]
@@ -83,8 +83,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     fn AppendRule(&self, rule: DOMString) {
         let global = self.global();
         let window = global.as_window();
-        let doc = window.Document();
-        let rule = Keyframe::parse(&rule, Origin::Author, doc.url().clone(),
+        let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet(),
                                    ParserContextExtraData::default());
         if let Ok(rule) = rule {
             self.keyframesrule.write().keyframes.push(rule);

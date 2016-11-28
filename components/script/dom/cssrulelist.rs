@@ -84,10 +84,10 @@ impl CSSRuleList {
 
         let global = self.global();
         let window = global.as_window();
-        let doc = window.Document();
         let index = idx as usize;
 
-        let new_rule = css_rules.insert_rule(rule, doc.url().clone(), index, nested)?;
+        let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
+        let new_rule = css_rules.insert_rule(rule, parent_stylesheet, index, nested)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);

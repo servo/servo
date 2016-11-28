@@ -88,7 +88,7 @@ impl CssRules {
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+    pub fn insert_rule(&self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
         let mut rules = self.0.write();
 
@@ -108,7 +108,7 @@ impl CssRules {
 
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
-        let (new_rule, new_state) = try!(CssRule::parse(&rule, Origin::Author, base_url,
+        let (new_rule, new_state) = try!(CssRule::parse(&rule, parent_stylesheet,
                                                         ParserContextExtraData::default(), state));
 
         // Step 5
@@ -282,13 +282,15 @@ impl CssRule {
 
     // input state is None for a nested rule
     // Returns a parsed CSS rule and the final state of the parser
-    pub fn parse(css: &str, origin: Origin,
-                    base_url: ServoUrl,
-                    extra_data: ParserContextExtraData,
-                    state: Option<State>) -> Result<(Self, State), SingleRuleParseError> {
+    pub fn parse(css: &str,
+                 parent_stylesheet: &Stylesheet,
+                 extra_data: ParserContextExtraData,
+                 state: Option<State>)
+                 -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = Box::new(MemoryHoleReporter);
-        let mut namespaces = Namespaces::default();
-        let context = ParserContext::new_with_extra_data(origin, &base_url,
+        let mut namespaces = parent_stylesheet.namespaces.write();
+        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
+                                                         &parent_stylesheet.base_url,
                                                          error_reporter.clone(),
                                                          extra_data);
         let mut input = Parser::new(css);
@@ -296,7 +298,7 @@ impl CssRule {
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
+            stylesheet_origin: parent_stylesheet.origin,
             context: context,
             state: Cell::new(state),
             namespaces: &mut namespaces,

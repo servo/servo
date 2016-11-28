@@ -9,11 +9,10 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
-use servo_url::ServoUrl;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
-use stylesheets::{MemoryHoleReporter, Origin};
+use stylesheets::{MemoryHoleReporter, Stylesheet};
 
 /// A number from 1 to 100, indicating the percentage of the animation where
 /// this keyframe should run.
@@ -108,11 +107,11 @@ impl ToCss for Keyframe {
 
 
 impl Keyframe {
-    pub fn parse(css: &str, origin: Origin,
-                 base_url: ServoUrl,
-                 extra_data: ParserContextExtraData) -> Result<Arc<RwLock<Self>>, ()> {
+    pub fn parse(css: &str, parent_stylesheet: &Stylesheet, extra_data: ParserContextExtraData)
+                 -> Result<Arc<RwLock<Self>>, ()> {
         let error_reporter = Box::new(MemoryHoleReporter);
-        let context = ParserContext::new_with_extra_data(origin, &base_url,
+        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
+                                                         &parent_stylesheet.base_url,
                                                          error_reporter,
                                                          extra_data);
         let mut input = Parser::new(css);

@@ -67,6 +67,10 @@ impl CSSStyleSheet {
             self.global().as_window().Document().invalidate_stylesheets();
         }
     }
+
+    pub fn style_stylesheet(&self) -> &StyleStyleSheet {
+        &self.style_stylesheet
+    }
 }
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
