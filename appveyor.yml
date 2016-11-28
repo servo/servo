@@ -39,8 +39,8 @@ platform:
   - x64
 
 cache:
-  - .servo -> rust-nightly-date, cargo-nightly-build
-  - .cargo -> rust-nightly-date, cargo-nightly-build
+  - .servo -> rust-nightly-date, cargo-commit-hash
+  - .cargo -> rust-nightly-date, cargo-commit-hash
 
 install:
   - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc

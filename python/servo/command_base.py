@@ -336,7 +336,7 @@ class CommandBase(object):
 
     def cargo_build_id(self):
         if self._cargo_build_id is None:
-            filename = path.join(self.context.topdir, "cargo-nightly-build")
+            filename = path.join(self.context.topdir, "cargo-commit-hash")
             with open(filename) as f:
                 self._cargo_build_id = f.read().strip()
         return self._cargo_build_id

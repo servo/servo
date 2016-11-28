@@ -295,7 +295,7 @@ class MachCommands(CommandBase):
         os.makedirs(cargo_dir)
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
-        nightly_url = "https://static-rust-lang-org.s3.amazonaws.com/cargo-dist/%s/%s" % \
+        nightly_url = "https://s3.amazonaws.com/rust-lang-ci/cargo-builds/%s/%s" % \
             (self.cargo_build_id(), tgz_file)
 
         download_file("Cargo nightly", nightly_url, tgz_file)
