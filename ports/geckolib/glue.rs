@@ -57,7 +57,7 @@ use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, Origin, Stylesheet, StyleRule};
+use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{recalc_style_at, PerLevelTraversalData};
@@ -293,12 +293,12 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
-    !Stylesheet::as_arc(&raw_sheet).rules.0.read().is_empty()
+    !Stylesheet::as_arc(&raw_sheet).rules.read().0.is_empty()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -> ServoCssRulesStrong {
-    Stylesheet::as_arc(&sheet).rules.0.clone().into_strong()
+    Stylesheet::as_arc(&sheet).rules.clone().into_strong()
 }
 
 #[no_mangle]
@@ -314,8 +314,8 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                            result: nsTArrayBorrowed_uintptr_t) -> () {
-    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
-    let iter = rules.iter().map(|rule| rule.rule_type() as usize);
+    let rules = RwLock::<CssRules>::as_arc(&rules).read();
+    let iter = rules.0.iter().map(|rule| rule.rule_type() as usize);
     let (size, upper) = iter.size_hint();
     debug_assert_eq!(size, upper.unwrap());
     unsafe { result.set_len(size as u32) };
@@ -325,8 +325,8 @@ pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, index: u32)
                                                 -> RawServoStyleRuleStrong {
-    let rules = RwLock::<Vec<CssRule>>::as_arc(&rules).read();
-    match rules[index as usize] {
+    let rules = RwLock::<CssRules>::as_arc(&rules).read();
+    match rules.0[index as usize] {
         CssRule::Style(ref rule) => rule.clone().into_strong(),
         _ => {
             unreachable!("GetStyleRuleAt should only be called on a style rule");
@@ -336,12 +336,12 @@ pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, in
 
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
-    unsafe { RwLock::<Vec<CssRule>>::addref(rules) };
+    unsafe { RwLock::<CssRules>::addref(rules) };
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_Release(rules: ServoCssRulesBorrowed) -> () {
-    unsafe { RwLock::<Vec<CssRule>>::release(rules) };
+    unsafe { RwLock::<CssRules>::release(rules) };
 }
 
 #[no_mangle]

@@ -31,7 +31,7 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaList, &str) {
         css, url, Origin::Author, Default::default(),
         Box::new(CSSErrorReporterTest), ParserContextExtraData::default());
     let mut rule_count = 0;
-    media_queries(&stylesheet.rules.0.read(), &mut |mq| {
+    media_queries(&stylesheet.rules.read().0, &mut |mq| {
         rule_count += 1;
         callback(mq, css);
     });
