@@ -139,7 +139,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
             BluetoothResponse::WriteValue(result) => {
                 let value = ByteString::new(result);
                 *self.value.borrow_mut() = Some(value.clone());
-                promise.resolve_native(promise_cx, &value);
+                promise.resolve_native(promise_cx, &());
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
         }
