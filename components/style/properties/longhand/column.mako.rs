@@ -7,86 +7,13 @@
 <% data.new_style_struct("Column", inherited=False) %>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-width" experimental="True" animatable="False">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::HasViewportPercentage;
+${helpers.predefined_type("column-width",
+                          "length::LengthOrAuto",
+                          "Either::Second(Auto)",
+                          parse_method="parse_non_negative_length",
+                          animatable=False,
+                          experimental=True)}
 
-    impl HasViewportPercentage for SpecifiedValue {
-        fn has_viewport_percentage(&self) -> bool {
-            match *self {
-                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Auto,
-        Specified(specified::Length),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::Specified(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    pub mod computed_value {
-        use app_units::Au;
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self.0 {
-                None => dest.write_str("auto"),
-                Some(l) => l.to_css(dest),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Auto => computed_value::T(None),
-                SpecifiedValue::Specified(l) =>
-                    computed_value::T(Some(l.to_computed_value(context)))
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            match *computed {
-                computed_value::T(None) => SpecifiedValue::Auto,
-                computed_value::T(Some(l)) =>
-                    SpecifiedValue::Specified(ToComputedValue::from_computed_value(&l))
-            }
-        }
-    }
-
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(SpecifiedValue::Auto)
-        } else {
-            specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
-        }
-    }
-</%helpers:longhand>
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="column-count" experimental="True" animatable="False">
