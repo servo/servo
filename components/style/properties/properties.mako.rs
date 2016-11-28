@@ -1687,6 +1687,9 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                     align_items::flex_start => align_self::flex_start,
                     align_items::flex_end => align_self::flex_end,
                     align_items::center => align_self::center,
+                    % if product == "gecko":
+                        align_items::normal => align_self::normal,
+                    % endif
                 };
             style.mutate_position().set_align_self(self_align);
         }

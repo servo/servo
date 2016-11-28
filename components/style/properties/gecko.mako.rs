@@ -1571,7 +1571,8 @@ fn static_assert() {
 <% skip_background_longhands = """background-repeat
                                   background-image background-clip
                                   background-origin background-attachment
-                                  background-size background-position""" %>
+                                  background-size background-position
+                                  background-blend-mode""" %>
 <%self:impl_trait style_struct_name="Background"
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
@@ -1584,6 +1585,29 @@ fn static_assert() {
             T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
             T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
             T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
+        }
+    </%self:simple_image_array_property>
+
+    <%self:simple_image_array_property name="blend_mode" shorthand="background" field_name="mBlendMode">
+        use properties::longhands::background_blend_mode::single_value::computed_value::T;
+
+        match servo {
+            T::normal => structs::NS_STYLE_BLEND_NORMAL as u8,
+            T::multiply => structs::NS_STYLE_BLEND_MULTIPLY as u8,
+            T::screen => structs::NS_STYLE_BLEND_SCREEN as u8,
+            T::overlay => structs::NS_STYLE_BLEND_OVERLAY as u8,
+            T::darken => structs::NS_STYLE_BLEND_DARKEN as u8,
+            T::lighten => structs::NS_STYLE_BLEND_LIGHTEN as u8,
+            T::color_dodge => structs::NS_STYLE_BLEND_COLOR_DODGE as u8,
+            T::color_burn => structs::NS_STYLE_BLEND_COLOR_BURN as u8,
+            T::hard_light => structs::NS_STYLE_BLEND_HARD_LIGHT as u8,
+            T::soft_light => structs::NS_STYLE_BLEND_SOFT_LIGHT as u8,
+            T::difference => structs::NS_STYLE_BLEND_DIFFERENCE as u8,
+            T::exclusion => structs::NS_STYLE_BLEND_EXCLUSION as u8,
+            T::hue => structs::NS_STYLE_BLEND_HUE as u8,
+            T::saturation => structs::NS_STYLE_BLEND_SATURATION as u8,
+            T::color => structs::NS_STYLE_BLEND_COLOR as u8,
+            T::luminosity => structs::NS_STYLE_BLEND_LUMINOSITY as u8,
         }
     </%self:simple_image_array_property>
 </%self:impl_trait>
