@@ -15,7 +15,6 @@ use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
 use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
-use euclid::point::TypedPoint2D;
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -98,6 +97,7 @@ pub struct DisplayListBuildState<'a> {
     pub scroll_roots: HashMap<ScrollRootId, ScrollRoot>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
     pub scroll_root_id_stack: Vec<ScrollRootId>,
+    pub processing_scroll_root_element: bool,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -111,6 +111,7 @@ impl<'a> DisplayListBuildState<'a> {
             scroll_roots: HashMap::new(),
             stacking_context_id_stack: vec!(stacking_context_id),
             scroll_root_id_stack: vec!(ScrollRootId::root()),
+            processing_scroll_root_element: false,
         }
     }
 
@@ -162,6 +163,14 @@ impl<'a> DisplayListBuildState<'a> {
                                 cursor: Option<Cursor>,
                                 section: DisplayListSection)
                                 -> BaseDisplayItem {
+        let scroll_root_id = if (section == DisplayListSection::BackgroundAndBorders ||
+                                 section == DisplayListSection::BlockBackgroundsAndBorders) &&
+                                 self.processing_scroll_root_element {
+            self.parent_scroll_root_id()
+        } else {
+            self.scroll_root_id()
+        };
+
         BaseDisplayItem::new(&bounds,
                              DisplayItemMetadata {
                                  node: node,
@@ -170,7 +179,7 @@ impl<'a> DisplayListBuildState<'a> {
                              &clip,
                              section,
                              self.stacking_context_id(),
-                             self.scroll_root_id())
+                             scroll_root_id)
     }
 
     pub fn to_display_list(mut self) -> DisplayList {
@@ -1977,21 +1986,25 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         if self.has_scrolling_overflow() {
             let size = self.base.overflow.scroll.size;
-            let mut clip = self.fragment.stacking_relative_border_box(
+            let coordinate_system = if establishes_stacking_context {
+                CoordinateSystem::Own
+            } else {
+                CoordinateSystem::Parent
+            };
+
+            let border_box = self.fragment.stacking_relative_border_box(
                 &self.base.stacking_relative_position,
                 &self.base.early_absolute_position_info.relative_containing_block_size,
                 self.base.early_absolute_position_info.relative_containing_block_mode,
-                CoordinateSystem::Parent);
-            if establishes_stacking_context {
-                clip = Rect::new(TypedPoint2D::zero(), clip.size);
-            }
+                coordinate_system);
 
             let parent_id = state.parent_scroll_root_id();
+            state.processing_scroll_root_element = true;
             state.add_scroll_root(
                 ScrollRoot {
                     id: self.base.scroll_root_id,
                     parent_id: parent_id,
-                    clip: clip,
+                    clip: self.fragment.stacking_relative_content_box(&border_box),
                     size: size,
                 }
             );
@@ -2012,6 +2025,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                 &self.base.clip);
 
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);
+
+        state.processing_scroll_root_element = false;
     }
 
     fn switch_coordinate_system_if_necessary(&mut self) {
