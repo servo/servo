@@ -166,7 +166,7 @@ impl Pipeline {
                     window_size: window_size,
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
-                    content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
+                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
@@ -448,7 +448,7 @@ impl UnprivilegedPipelineContent {
                     self.font_cache_thread,
                     self.time_profiler_chan,
                     self.mem_profiler_chan,
-                    self.layout_content_process_shutdown_chan,
+                    Some(self.layout_content_process_shutdown_chan),
                     self.webrender_api_sender,
                     self.prefs.get("layout.threads").expect("exists").value()
                         .as_u64().expect("count") as usize);

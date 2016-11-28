@@ -246,7 +246,7 @@ impl LayoutThreadFactory for LayoutThread {
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              content_process_shutdown_chan: IpcSender<()>,
+              content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_traits::RenderApiSender,
               layout_threads: usize) {
         thread::spawn_named(format!("LayoutThread {:?}", id),
@@ -278,7 +278,9 @@ impl LayoutThreadFactory for LayoutThread {
                     layout.start();
                 }, reporter_name, sender, Msg::CollectReports);
             }
-            let _ = content_process_shutdown_chan.send(());
+            if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
+                let _ = content_process_shutdown_chan.send(());
+            }
         });
     }
 }
