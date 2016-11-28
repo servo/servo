@@ -31,7 +31,7 @@ pub struct BluetoothDeviceMsg {
     // Bluetooth Device properties
     pub id: String,
     pub name: Option<String>,
-    // Advertisiong Data properties
+    // Advertising Data properties
     pub appearance: Option<u16>,
     pub tx_power: Option<i8>,
     pub rssi: Option<i8>,
