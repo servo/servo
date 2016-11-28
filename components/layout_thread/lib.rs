@@ -1131,6 +1131,7 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
+        let dom_depth = Some(0); // This is always the root node.
         if element.styling_mode() != StylingMode::Stop {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
@@ -1145,7 +1146,7 @@ impl LayoutThread {
                     }
                     Some(ref mut traversal) => {
                         parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            element.as_node(), &shared_layout_context, traversal);
+                            element.as_node(), dom_depth, &shared_layout_context, traversal);
                     }
                 }
             });

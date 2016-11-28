@@ -9,13 +9,14 @@
 use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
 use rayon;
 use std::sync::atomic::Ordering;
+use traversal::{DomTraversalContext, PerLevelTraversalData};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
-use traversal::DomTraversalContext;
 use util::opts;
 
 pub const CHUNK_SIZE: usize = 64;
 
 pub fn traverse_dom<N, C>(root: N,
+                          known_root_dom_depth: Option<usize>,
                           shared_context: &C::SharedContext,
                           queue: &rayon::ThreadPool)
     where N: TNode,
@@ -27,11 +28,14 @@ pub fn traverse_dom<N, C>(root: N,
     }
 
     let nodes = vec![root.to_unsafe()].into_boxed_slice();
+    let data = PerLevelTraversalData {
+        current_dom_depth: known_root_dom_depth,
+    };
     let root = root.opaque();
     queue.install(|| {
         rayon::scope(|scope| {
             let nodes = nodes;
-            top_down_dom::<N, C>(&nodes, root, scope, shared_context);
+            top_down_dom::<N, C>(&nodes, root, data, scope, shared_context);
         });
     });
 
@@ -50,6 +54,7 @@ pub fn traverse_dom<N, C>(root: N,
 #[allow(unsafe_code)]
 fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
                                   root: OpaqueNode,
+                                  mut data: PerLevelTraversalData,
                                   scope: &'a rayon::Scope<'scope>,
                                   shared_context: &'scope C::SharedContext)
     where N: TNode,
@@ -64,7 +69,7 @@ fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
 
         // Perform the appropriate traversal.
         let mut children_to_process = 0isize;
-        context.process_preorder(node);
+        context.process_preorder(node, &mut data);
         if let Some(el) = node.as_element() {
             C::traverse_children(el, |kid| {
                 children_to_process += 1;
@@ -90,11 +95,16 @@ fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
     // be able to access it without races.
     context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 
+    if let Some(ref mut depth) = data.current_dom_depth {
+        *depth += 1;
+    }
+
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
         let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
+        let data = data.clone();
         scope.spawn(move |scope| {
             let nodes = nodes;
-            top_down_dom::<N, C>(&nodes, root, scope, shared_context)
+            top_down_dom::<N, C>(&nodes, root, data, scope, shared_context)
         })
     }
 }
@@ -125,8 +135,12 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
         // Perform the appropriate operation.
         context.process_postorder(node);
 
-        let parent = match node.layout_parent_element(root) {
-            None => break,
+        if node.opaque() == root {
+            break;
+        }
+
+        let parent = match node.parent_element() {
+            None => unreachable!("How can this happen after the break above?"),
             Some(parent) => parent,
         };
 

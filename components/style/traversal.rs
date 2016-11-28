@@ -5,17 +5,16 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use bloom::StyleBloom;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::{ElementData, RestyleData, StoredRestyleHint};
-use dom::{OpaqueNode, StylingMode, TElement, TNode, UnsafeNode};
+use dom::{OpaqueNode, StylingMode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF};
-use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
-use tid::tid;
 use util::opts;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
@@ -27,125 +26,74 @@ pub type Generation = u32;
 pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
 pub static STYLE_SHARING_CACHE_MISSES: AtomicUsize = ATOMIC_USIZE_INIT;
 
-/// A pair of the bloom filter used for css selector matching, and the node to
-/// which it applies. This is used to efficiently do `Descendant` selector
-/// matches. Thanks to the bloom filter, we can avoid walking up the tree
-/// looking for ancestors that aren't there in the majority of cases.
-///
-/// As we walk down the DOM tree a thread-local bloom filter is built of all the
-/// CSS `SimpleSelector`s which are part of a `Descendant` compound selector
-/// (i.e. paired with a `Descendant` combinator, in the `next` field of a
-/// `CompoundSelector`.
-///
-/// Before a `Descendant` selector match is tried, it's compared against the
-/// bloom filter. If the bloom filter can exclude it, the selector is quickly
-/// rejected.
-///
-/// When done styling a node, all selectors previously inserted into the filter
-/// are removed.
-///
-/// Since a work-stealing queue is used for styling, sometimes, the bloom filter
-/// will no longer be the for the parent of the node we're currently on. When
-/// this happens, the thread local bloom filter will be thrown away and rebuilt.
 thread_local!(
-    static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeNode, Generation)>> = RefCell::new(None));
+    static STYLE_BLOOM: RefCell<Option<StyleBloom>> = RefCell::new(None));
 
 /// Returns the thread local bloom filter.
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-pub fn take_thread_local_bloom_filter<E>(parent_element: Option<E>,
-                                         root: OpaqueNode,
-                                         context: &SharedStyleContext)
-                                         -> Box<BloomFilter>
-                                         where E: TElement {
+pub fn take_thread_local_bloom_filter(context: &SharedStyleContext)
+                                      -> StyleBloom
+{
+    debug!("{} taking bf", ::tid::tid());
+
     STYLE_BLOOM.with(|style_bloom| {
-        match (parent_element, style_bloom.borrow_mut().take()) {
-            // Root node. Needs new bloom filter.
-            (None,     _  ) => {
-                debug!("[{}] No parent, but new bloom filter!", tid());
-                Box::new(BloomFilter::new())
-            }
-            // No bloom filter for this thread yet.
-            (Some(parent), None) => {
-                let mut bloom_filter = Box::new(BloomFilter::new());
-                insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, root);
-                bloom_filter
-            }
-            // Found cached bloom filter.
-            (Some(parent), Some((mut bloom_filter, old_node, old_generation))) => {
-                if old_node == parent.as_node().to_unsafe() &&
-                    old_generation == context.generation {
-                    // Hey, the cached parent is our parent! We can reuse the bloom filter.
-                    debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
-                } else {
-                    // Oh no. the cached parent is stale. I guess we need a new one. Reuse the existing
-                    // allocation to avoid malloc churn.
-                    bloom_filter.clear();
-                    insert_ancestors_into_bloom_filter(&mut bloom_filter, parent, root);
-                }
-                bloom_filter
-            },
-        }
+        style_bloom.borrow_mut().take()
+            .unwrap_or_else(|| StyleBloom::new(context.generation))
     })
 }
 
-pub fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
-                                     context: &SharedStyleContext) {
+pub fn put_thread_local_bloom_filter(bf: StyleBloom) {
+    debug!("[{}] putting bloom filter back", ::tid::tid());
+
     STYLE_BLOOM.with(move |style_bloom| {
-        assert!(style_bloom.borrow().is_none(),
-                "Putting into a never-taken thread-local bloom filter");
-        *style_bloom.borrow_mut() = Some((bf, *unsafe_node, context.generation));
+        debug_assert!(style_bloom.borrow().is_none(),
+                     "Putting into a never-taken thread-local bloom filter");
+        *style_bloom.borrow_mut() = Some(bf);
     })
 }
 
-/// "Ancestors" in this context is inclusive of ourselves.
-fn insert_ancestors_into_bloom_filter<E>(bf: &mut Box<BloomFilter>,
-                                         mut el: E,
-                                         root: OpaqueNode)
-                                         where E: TElement {
-    debug!("[{}] Inserting ancestors.", tid());
-    let mut ancestors = 0;
-    loop {
-        ancestors += 1;
-
-        el.insert_into_bloom_filter(&mut **bf);
-        el = match el.layout_parent_element(root) {
-            None => break,
-            Some(p) => p,
-        };
-    }
-    debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
-}
-
-pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N)
-    where N: TNode,
+/// Remove `element` from the bloom filter if it's the last element we inserted.
+///
+/// Restores the bloom filter if this is not the root of the reflow.
+///
+/// This is mostly useful for sequential traversal, where the element will
+/// always be the last one.
+pub fn remove_from_bloom_filter<'a, E, C>(context: &C, root: OpaqueNode, element: E)
+    where E: TElement,
           C: StyleContext<'a>
 {
-    let unsafe_layout_node = node.to_unsafe();
+    debug!("[{}] remove_from_bloom_filter", ::tid::tid());
 
-    let (mut bf, old_node, old_generation) =
-        STYLE_BLOOM.with(|style_bloom| {
-            style_bloom.borrow_mut()
-                       .take()
-                       .expect("The bloom filter should have been set by style recalc.")
-        });
+    // We may have arrived to `reconstruct_flows` without entering in style
+    // recalc at all due to our optimizations, nor that it's up to date, so we
+    // can't ensure there's a bloom filter at all.
+    let bf = STYLE_BLOOM.with(|style_bloom| {
+        style_bloom.borrow_mut().take()
+    });
 
-    assert_eq!(old_node, unsafe_layout_node);
-    assert_eq!(old_generation, context.shared_context().generation);
+    if let Some(mut bf) = bf {
+        if context.shared_context().generation == bf.generation() {
+            bf.maybe_pop(element);
 
-    match node.layout_parent_element(root) {
-        None => {
-            debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
-            // If this is the reflow root, eat the thread-local bloom filter.
+            // If we're the root of the reflow, just get rid of the bloom
+            // filter.
+            //
+            // FIXME: We might want to just leave it in TLS? You don't do 4k
+            // allocations every day. Also, this just clears one thread's bloom
+            // filter, which is... not great?
+            if element.as_node().opaque() != root {
+                put_thread_local_bloom_filter(bf);
+            }
         }
-        Some(parent) => {
-            // Otherwise, put it back, but remove this node.
-            node.as_element().map(|x| x.remove_from_bloom_filter(&mut *bf));
-            let unsafe_parent = parent.as_node().to_unsafe();
-            put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
-        },
-    };
+    }
+}
+
+// NB: Keep this as small as possible, please!
+#[derive(Clone, Debug)]
+pub struct PerLevelTraversalData {
+    pub current_dom_depth: Option<usize>,
 }
 
 pub trait DomTraversalContext<N: TNode> {
@@ -154,7 +102,7 @@ pub trait DomTraversalContext<N: TNode> {
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N);
+    fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
@@ -258,27 +206,19 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
-                                    root: OpaqueNode,
+                                    data: &mut PerLevelTraversalData,
                                     element: E)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
 {
-    // Get the style bloom filter.
-    //
-    // FIXME(bholley): We need to do these even in the StylingMode::Stop case
-    // to handshake with the unconditional pop during servo's bottom-up
-    // traversal. We should avoid doing work here in the Stop case when we
-    // redesign the bloom filter.
-    let mut bf = take_thread_local_bloom_filter(element.parent_element(), root, context.shared_context());
-
     let mode = element.styling_mode();
     let should_compute = element.borrow_data().map_or(true, |d| d.get_current_styles().is_none());
     debug!("recalc_style_at: {:?} (should_compute={:?} mode={:?}, data={:?})",
            element, should_compute, mode, element.borrow_data());
 
     let (computed_display_none, propagated_hint) = if should_compute {
-        compute_style::<_, _, D>(context, element, &*bf)
+        compute_style::<_, _, D>(context, data, element)
     } else {
         (false, StoredRestyleHint::empty())
     };
@@ -294,25 +234,30 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
         preprocess_children::<_, _, D>(context, element, propagated_hint,
                                        mode == StylingMode::Restyle);
     }
-
-    let unsafe_layout_node = element.as_node().to_unsafe();
-
-    // Before running the children, we need to insert our nodes into the bloom
-    // filter.
-    debug!("[{}] + {:X}", tid(), unsafe_layout_node.0);
-    element.insert_into_bloom_filter(&mut *bf);
-
-    // NB: flow construction updates the bloom filter on the way up.
-    put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 }
 
 fn compute_style<'a, E, C, D>(context: &'a C,
-                              element: E,
-                              bloom_filter: &BloomFilter) -> (bool, StoredRestyleHint)
+                              data: &mut PerLevelTraversalData,
+                              element: E) -> (bool, StoredRestyleHint)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
 {
+    let shared_context = context.shared_context();
+    let mut bf = take_thread_local_bloom_filter(shared_context);
+    // Ensure the bloom filter is up to date.
+    let dom_depth = bf.insert_parents_recovering(element,
+                                                 data.current_dom_depth,
+                                                 shared_context.generation);
+
+    // Update the dom depth with the up-to-date dom depth.
+    //
+    // Note that this is always the same than the pre-existing depth, but it can
+    // change from unknown to known at this step.
+    data.current_dom_depth = Some(dom_depth);
+
+    bf.assert_complete(element);
+
     let mut data = unsafe { D::ensure_element_data(&element).borrow_mut() };
     debug_assert!(!data.is_persistent());
 
@@ -324,7 +269,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
         StyleSharingResult::CannotShare
     } else {
         unsafe { element.share_style_if_possible(style_sharing_candidate_cache,
-                                                 context.shared_context(), &mut data) }
+                                                 shared_context, &mut data) }
     };
 
     // Otherwise, match and cascade selectors.
@@ -337,7 +282,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
                 }
 
                 // Perform the CSS selector matching.
-                match_results = element.match_element(context, Some(bloom_filter));
+                match_results = element.match_element(context, Some(bf.filter()));
                 if match_results.primary_is_shareable() {
                     Some(element)
                 } else {
@@ -378,6 +323,13 @@ fn compute_style<'a, E, C, D>(context: &'a C,
         debug!("New element style is display:none - clearing data from descendants.");
         clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
     }
+
+    // TODO(emilio): It's pointless to insert the element in the parallel
+    // traversal, but it may be worth todo it for sequential restyling. What we
+    // do now is trying to recover it which in that case is really cheap, so
+    // we'd save a few instructions, but probably not worth given the added
+    // complexity.
+    put_thread_local_bloom_filter(bf);
 
     (display_none, data.as_restyle().map_or(StoredRestyleHint::empty(), |r| r.hint.propagate()))
 }

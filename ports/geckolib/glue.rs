@@ -60,7 +60,7 @@ use style::string_cache::Atom;
 use style::stylesheets::{CssRule, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::recalc_style_at;
+use style::traversal::{recalc_style_at, PerLevelTraversalData};
 use style_traits::ToCss;
 
 /*
@@ -148,10 +148,12 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let mut shared_style_context = create_shared_context(&mut per_doc_data);
     shared_style_context.skip_root = skip_root;
+    let known_depth = None;
+
     if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
         sequential::traverse_dom::<_, RecalcStyleOnly>(element.as_node(), &shared_style_context);
     } else {
-        parallel::traverse_dom::<_, RecalcStyleOnly>(element.as_node(), &shared_style_context,
+        parallel::traverse_dom::<_, RecalcStyleOnly>(element.as_node(), known_depth, &shared_style_context,
                                                      per_doc_data.work_queue.as_mut().unwrap());
     }
 }
@@ -793,7 +795,11 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
             let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
             let shared_style_context = create_shared_context(&mut per_doc_data);
             let context = StandaloneStyleContext::new(&shared_style_context);
-            recalc_style_at::<_, _, RecalcStyleOnly>(&context, element.as_node().opaque(), element);
+
+            let mut data = PerLevelTraversalData {
+                current_dom_depth: None,
+            };
+            recalc_style_at::<_, _, RecalcStyleOnly>(&context, &mut data, element);
 
             // The element was either unstyled or needed restyle. If it was unstyled, it may have
             // additional unstyled children that subsequent traversals won't find now that the style
