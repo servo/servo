@@ -79,13 +79,13 @@ ${helpers.single_keyword("justify-content", "flex-start flex-end center space-be
                          products="servo",
                          animatable=False)}
 
+// https://drafts.csswg.org/css-flexbox-1/#propdef-align-items
 // FIXME(heycam): Disable align-items in geckolib since we don't support the Gecko initial value
 // 'normal' yet.
 ${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline",
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
-                         animatable=False,
-                         products="servo")}
+                         animatable=False)}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
