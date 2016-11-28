@@ -82,7 +82,7 @@ use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryTyp
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -434,6 +434,9 @@ pub struct ScriptThread {
     /// For communicating load url messages to the constellation
     constellation_chan: IpcSender<ConstellationMsg>,
 
+    /// A sender for new layout threads to communicate to the constellation.
+    layout_to_constellation_chan: IpcSender<LayoutMsg>,
+
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
 
@@ -681,6 +684,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             promise_job_queue: PromiseJobQueue::new(),
+
+            layout_to_constellation_chan: state.layout_to_constellation_chan,
         }
     }
 
@@ -1179,7 +1184,6 @@ impl ScriptThread {
             load_data,
             window_size,
             pipeline_port,
-            layout_to_constellation_chan,
             content_process_shutdown_chan,
             layout_threads,
         } = new_layout_info;
@@ -1193,7 +1197,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            constellation_chan: layout_to_constellation_chan,
+            constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,

@@ -165,7 +165,6 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
@@ -424,6 +423,7 @@ impl UnprivilegedPipelineContent {
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
             constellation_chan: self.constellation_chan,
+            layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan,
             bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,

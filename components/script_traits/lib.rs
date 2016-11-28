@@ -177,8 +177,6 @@ pub struct NewLayoutInfo {
     pub window_size: Option<WindowSizeData>,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A sender for the layout thread to communicate to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: Option<IpcSender<()>>,
     /// Number of threads to use for layout.
@@ -450,6 +448,8 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: IpcSender<ScriptMsg>,
+    /// A sender for the layout thread to communicate to the constellation.
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
