@@ -563,13 +563,15 @@
             side = maybe_side[0]
         elif len(maybe_size) == 1:
             size = maybe_size[0]
+        def phys_ident(side, phy_side):
+            return to_rust_ident(name.replace(side, phy_side).replace("offset-", ""))
     %>
     % if side is not None:
         use logical_geometry::PhysicalSide;
         match wm.${to_rust_ident(side)}_physical_side() {
             % for phy_side in PHYSICAL_SIDES:
                 PhysicalSide::${phy_side.title()} => {
-                    ${caller.inner(physical_ident=to_rust_ident(name.replace(side, phy_side)))}
+                    ${caller.inner(physical_ident=phys_ident(side, phy_side))}
                 }
             % endfor
         }
@@ -581,9 +583,9 @@
                 physical_size = ("width", "height")
         %>
         if wm.is_vertical() {
-            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[1])))}
+            ${caller.inner(physical_ident=phys_ident(size, physical_size[1]))}
         } else {
-            ${caller.inner(physical_ident=to_rust_ident(name.replace(size, physical_size[0])))}
+            ${caller.inner(physical_ident=phys_ident(size, physical_size[0]))}
         }
     % else:
         <% raise Exception("Don't know what to do with logical property %s" % name) %>
