@@ -345,7 +345,7 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Enable debug assertions in release')
-    def build_cef(self, jobs=None, verbose=True, release=False,
+    def build_cef(self, jobs=None, verbose=False, release=False,
                   with_debug_assertions=False):
         self.ensure_bootstrapped()
 
