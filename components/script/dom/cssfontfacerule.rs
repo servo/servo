@@ -22,17 +22,18 @@ pub struct CSSFontFaceRule {
 }
 
 impl CSSFontFaceRule {
-    fn new_inherited(parent: Option<&CSSStyleSheet>, fontfacerule: Arc<RwLock<FontFaceRule>>) -> CSSFontFaceRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, fontfacerule: Arc<RwLock<FontFaceRule>>)
+                     -> CSSFontFaceRule {
         CSSFontFaceRule {
-            cssrule: CSSRule::new_inherited(parent),
+            cssrule: CSSRule::new_inherited(parent_stylesheet),
             fontfacerule: fontfacerule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                fontfacerule: Arc<RwLock<FontFaceRule>>) -> Root<CSSFontFaceRule> {
-        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent, fontfacerule),
+        reflect_dom_object(box CSSFontFaceRule::new_inherited(parent_stylesheet, fontfacerule),
                            window,
                            CSSFontFaceRuleBinding::Wrap)
     }
