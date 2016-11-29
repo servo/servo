@@ -270,11 +270,12 @@ impl HTMLImageElement {
                     let wrapper = window.get_runnable_wrapper();
                     let img_url_cloned = img_url.clone();
                     let responder_sender_cloned = responder_sender.clone();
+                    let trusted_node_clone = trusted_node.clone();
                     ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
                         let runnable = ImageResponseHandlerRunnable::new(
-                            trusted_node.clone(), message.to().unwrap());
+                            trusted_node_clone.clone(), message.to().unwrap());
                         let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
                     });
 
@@ -282,15 +283,27 @@ impl HTMLImageElement {
                     let response =
                         image_cache.find_image_or_metadata(img_url_cloned.into(), UsePlaceholder::Yes);
                     match response {
-                        Ok(ImageOrMetadataAvailable::ImageAvailable(_image)) => {/*XXXjdm*/}
+                        Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::Loaded(image));
+                            event.handler();
+                        }
 
-                        Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => {/*XXXjdm*/}
+                        Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::MetadataLoaded(m));
+                            event.handler();
+                        }
 
                         Err(ImageState::Pending(id)) => {
                             image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
                         }
 
-                        Err(ImageState::LoadError) => {/*XXXjdm*/}
+                        Err(ImageState::LoadError) => {
+                            let event = box ImageResponseHandlerRunnable::new(
+                                trusted_node, ImageResponse::None);
+                            event.handler();
+                        }
 
                         Err(ImageState::NotRequested(id)) => {
                             let runnable = box ImageRequestRunnable::new(
