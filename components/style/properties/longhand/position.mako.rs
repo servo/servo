@@ -3,14 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import ALL_SIZES %>
+<% from data import ALL_SIZES, PHYSICAL_SIDES, LOGICAL_SIDES %>
 
 <% data.new_style_struct("Position", inherited=False) %>
 
-% for side in ["top", "right", "bottom", "left"]:
+// "top" / "left" / "bottom" / "right"
+% for side in PHYSICAL_SIDES:
     ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               animatable=True)}
+% endfor
+// offset-* logical properties, map to "top" / "left" / "bottom" / "right"
+% for side in LOGICAL_SIDES:
+    ${helpers.predefined_type("offset-" + side, "LengthOrPercentageOrAuto",
+                              "computed::LengthOrPercentageOrAuto::Auto",
+                              animatable=True, logical=True)}
 % endfor
 
 <%helpers:longhand name="z-index" animatable="True">

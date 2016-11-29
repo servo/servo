@@ -321,6 +321,14 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString right;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString left;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString bottom;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offset-block-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetBlockStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offset-block-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetBlockEnd;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offset-inline-start;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetInlineStart;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offset-inline-end;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetInlineEnd;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString height;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString minHeight;
