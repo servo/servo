@@ -9,6 +9,7 @@ import itertools
 import json
 import os
 import subprocess
+from functools import partial
 from statistics import median, StatisticsError
 
 
@@ -25,7 +26,9 @@ def parse_manifest(text):
 
 def execute_test(url, command, timeout):
     try:
-        return subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
+        return subprocess.check_output(
+            command, stderr=subprocess.STDOUT, timeout=timeout
+        )
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
@@ -36,22 +39,31 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def get_servo_command(url):
+def run_servo_test(url, timeout):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
-    return ["../../../target/release/servo", url,
-            "--userscripts", ua_script_path,
-            "--headless",
-            "-x", "-o", "output.png"]
+    command = [
+        "../../../target/release/servo", url,
+        "--userscripts", ua_script_path,
+        "--headless",
+        "-x", "-o", "output.png"
+    ]
+    log = ""
+    try:
+        log = subprocess.check_output(
+            command, stderr=subprocess.STDOUT, timeout=timeout
+        )
+    except subprocess.CalledProcessError as e:
+        print("Unexpected Fail:")
+        print(e)
+        print("You may want to re-run the test manually:\n{}".format(
+            ' '.join(command)
+        ))
+    except subprocess.TimeoutExpired:
+        print("Test FAILED due to timeout: {}".format(url))
+    return parse_log(log, url)
 
 
-def get_gecko_command(url):
-    return ["./firefox/firefox/firefox",
-            " --display=:0", "--no-remote"
-            " -profile", "./firefox/servo",
-            url]
-
-
-def parse_log(log, testcase=None):
+def parse_log(log, testcase):
     blocks = []
     block = []
     copy = False
@@ -67,48 +79,19 @@ def parse_log(log, testcase=None):
         elif copy and line.strip().startswith("[PERF]"):
             block.append(line)
 
-    # We need to still include the failed tests, otherwise Treeherder will
-    # consider the result to be a new test series, and thus a new graph. So we
-    # use a placeholder with values = -1 to make Treeherder happy, and still be
-    # able to identify failed tests (successful tests have time >=0).
-    placeholder = {
-        "navigationStart": 0,
-        "unloadEventStart": -1,
-        "domLoading": -1,
-        "fetchStart": -1,
-        "responseStart": -1,
-        "loadEventEnd": -1,
-        "connectStart": -1,
-        "domainLookupStart": -1,
-        "redirectStart": -1,
-        "domContentLoadedEventEnd": -1,
-        "requestStart": -1,
-        "secureConnectionStart": -1,
-        "connectEnd": -1,
-        "loadEventStart": -1,
-        "domInteractive": -1,
-        "domContentLoadedEventStart": -1,
-        "redirectEnd": -1,
-        "domainLookupEnd": -1,
-        "unloadEventEnd": -1,
-        "responseEnd": -1,
-        "testcase": testcase,
-        "domComplete": -1,
-    }
-
     def parse_block(block):
         timing = {}
         for line in block:
             try:
                 (_, key, value) = line.split(",")
             except:
-                print("[DEBUG] failed to parse the following block:")
-                print(block)
+                print("[DEBUG] failed to parse the following line:")
+                print(line)
                 print('[DEBUG] log:')
                 print('-----')
                 print(log)
                 print('-----')
-                return placeholder
+                return None
 
             if key == "testcase" or key == "title":
                 timing[key] = value
@@ -117,20 +100,57 @@ def parse_log(log, testcase=None):
 
         return timing
 
-    def valid_timing(timing):
-        return (timing.get('title') != 'Error response') and (testcase is None or timing.get('testcase') == testcase)
+    def valid_timing(timing, testcase=None):
+        if (timing is None or
+                testcase is None or
+                timing.get('title') == 'Error response' or
+                timing.get('testcase') != testcase):
+            return False
+        else:
+            return True
 
-    timings = list(filter(valid_timing, map(parse_block, blocks)))
+    # We need to still include the failed tests, otherwise Treeherder will
+    # consider the result to be a new test series, and thus a new graph. So we
+    # use a placeholder with values = -1 to make Treeherder happy, and still be
+    # able to identify failed tests (successful tests have time >=0).
+    def create_placeholder(testcase):
+        return {
+            "testcase": testcase,
+            "title": "",
+            "navigationStart": 0,
+            "unloadEventStart": -1,
+            "domLoading": -1,
+            "fetchStart": -1,
+            "responseStart": -1,
+            "loadEventEnd": -1,
+            "connectStart": -1,
+            "domainLookupStart": -1,
+            "redirectStart": -1,
+            "domContentLoadedEventEnd": -1,
+            "requestStart": -1,
+            "secureConnectionStart": -1,
+            "connectEnd": -1,
+            "loadEventStart": -1,
+            "domInteractive": -1,
+            "domContentLoadedEventStart": -1,
+            "redirectEnd": -1,
+            "domainLookupEnd": -1,
+            "unloadEventEnd": -1,
+            "responseEnd": -1,
+            "domComplete": -1,
+        }
+
+    valid_timing_for_case = partial(valid_timing, testcase=testcase)
+    timings = list(filter(valid_timing_for_case, map(parse_block, blocks)))
 
     if len(timings) == 0:
         print("Didn't find any perf data in the log, test timeout?")
-        print("Fillng in a dummy perf data")
         print('[DEBUG] log:')
         print('-----')
         print(log)
         print('-----')
 
-        return [placeholder]
+        return [create_placeholder(testcase)]
     else:
         return timings
 
@@ -229,27 +249,24 @@ def main():
                               " servo and gecko are supported."))
     args = parser.parse_args()
     if args.engine == 'servo':
-        command_factory = get_servo_command
+        run_test = run_servo_test
     elif args.engine == 'gecko':
-        command_factory = get_gecko_command
+        import gecko_driver  # Load this only when we need gecko test
+        run_test = gecko_driver.run_gecko_test
     try:
         # Assume the server is up and running
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            command = (["timeout", "{}s".format(args.timeout)] +
-                       command_factory(testcase))
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
                                                         testcase))
-                log = execute_test(testcase, command, args.timeout)
+                # results will be a mixure of timings dict and testcase strings
+                # testcase string indicates a failed test
+                results += run_test(testcase, args.timeout)
                 print("Finished")
-                result = parse_log(log, testcase)
                 # TODO: Record and analyze other performance.timing properties
-                results += result
-            print("To reproduce the above test, run the following command:")
-            print("    {0}\n".format(' '.join(command)))
 
         print(format_result_summary(results))
         save_result_json(results, args.output_file, testcases, args.runs)

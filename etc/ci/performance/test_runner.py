@@ -9,6 +9,7 @@ import pytest
 
 
 def test_log_parser():
+    mock_url = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
     mock_log = b'''
 [PERF] perf block start
 [PERF],testcase,http://localhost:8000/page_load_test/56.com/www.56.com/index.html
@@ -61,7 +62,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
         "loadEventStart": None,
         "loadEventEnd": None
     }]
-    result = runner.parse_log(mock_log)
+    result = runner.parse_log(mock_log, mock_url)
     assert(expected == list(result))
 
 
@@ -119,30 +120,8 @@ Some other js error logs here
 [PERF] perf block end
 Shutting down the Constellation after generating an output file or exit flag specified
 '''
+    mock_url = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
     expected = [{
-        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/content.html",
-        "navigationStart": 1460358300,
-        "unloadEventStart": None,
-        "unloadEventEnd": None,
-        "redirectStart": None,
-        "redirectEnd": None,
-        "fetchStart": None,
-        "domainLookupStart": None,
-        "domainLookupEnd": None,
-        "connectStart": None,
-        "connectEnd": None,
-        "secureConnectionStart": None,
-        "requestStart": None,
-        "responseStart": None,
-        "responseEnd": None,
-        "domLoading": 1460358376000,
-        "domInteractive": 1460358388000,
-        "domContentLoadedEventStart": 1460358388000,
-        "domContentLoadedEventEnd": 1460358388000,
-        "domComplete": 1460358389000,
-        "loadEventStart": None,
-        "loadEventEnd": None
-    }, {
         "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
         "navigationStart": 1460358376,
         "unloadEventStart": None,
@@ -166,7 +145,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
         "loadEventStart": None,
         "loadEventEnd": None
     }]
-    result = runner.parse_log(mock_log)
+    result = runner.parse_log(mock_log, mock_url)
     assert(expected == list(result))
 
 
