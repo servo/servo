@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.two_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        return gattServer.getPrimaryServices()
+        .then(s => {
+            let services = s;
+            assert_greater_than(services.length, 1);
+            gattServer.disconnect();
+            return gattServer.connect()
+            .then(() => services);
+        });
+    })
+    .then(services => {
+        let promises = [];
+        for (let service of services) {
+            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristic(body_sensor_location.name)));
+            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristics(body_sensor_location.name)));
+            promises.push(promise_rejects(t, 'InvalidStateError', service.getCharacteristics()));
+        }
+        return Promise.all(promises);
+    });
+}, 'Calls on services after we disconnect and connect again. Should reject with InvalidStateError.');
+</script>

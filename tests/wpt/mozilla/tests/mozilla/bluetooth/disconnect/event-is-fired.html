@@ -1,0 +1,33 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => {
+        return device.gatt.connect()
+        .then(gattServer => {
+            let event = 'gattserverdisconnected';
+            let disconnected = new Promise((resolve, reject) => {
+                let event_listener = (e) => {
+                    device.removeEventListener(event, event_listener);
+                    resolve(e);
+                };
+                device.addEventListener(event, event_listener);
+            });
+            gattServer.disconnect();
+            return disconnected
+        })
+        .then(disconnected => {
+            assert_equals(disconnected.target.name, mock_device_name.heart_rate);
+            assert_true(disconnected.bubbles);
+        });
+    });
+}, 'A device disconnecting while connected should fire the gattserverdisconnected event.');
+</script>

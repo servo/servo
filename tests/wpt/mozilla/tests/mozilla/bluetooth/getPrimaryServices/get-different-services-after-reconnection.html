@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.two_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        let services1;
+        return gattServer.getPrimaryServices()
+        .then(services => services1 = services)
+        .then(() => gattServer.disconnect())
+        .then(() => gattServer.connect())
+        .then(() => gattServer.getPrimaryServices())
+        .then(services2 => [services1, services2])
+    })
+    .then(services_arrays => {
+        for (let i = 1; i < services_arrays.length; i++) {
+            assert_equals(services_arrays[0].length, services_arrays[i].length);
+        }
+        let base_set = new Set(services_arrays.shift());
+        for (let services of services_arrays) {
+            services.forEach(service => assert_false(base_set.has(service)));
+        }
+    });
+}, 'Calls to getPrimaryServices after a disconnection should return different objects.');
+</script>

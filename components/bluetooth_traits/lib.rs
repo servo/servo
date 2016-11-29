@@ -85,12 +85,14 @@ pub type BluetoothResponseResult = Result<BluetoothResponse, BluetoothError>;
 pub enum BluetoothRequest {
     RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseResult>),
     GATTServerConnect(String, IpcSender<BluetoothResponseResult>),
-    GATTServerDisconnect(String, IpcSender<BluetoothResult<bool>>),
+    GATTServerDisconnect(String, IpcSender<BluetoothResult<()>>),
     GetGATTChildren(String, Option<String>, bool, GATTType, IpcSender<BluetoothResponseResult>),
     ReadValue(String, IpcSender<BluetoothResponseResult>),
     WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseResult>),
     EnableNotification(String, bool, IpcSender<BluetoothResponseResult>),
     WatchAdvertisements(String, IpcSender<BluetoothResponseResult>),
+    SetRepresentedToNull(Vec<String>, Vec<String>, Vec<String>),
+    IsRepresentedDeviceNull(String, IpcSender<bool>),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }

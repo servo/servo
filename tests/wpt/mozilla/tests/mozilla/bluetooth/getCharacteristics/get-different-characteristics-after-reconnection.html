@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        let characteristics1;
+        return gattServer.getPrimaryService(heart_rate.name)
+        .then(service => service.getCharacteristics())
+        .then(characteristics => characteristics1 = characteristics)
+        .then(() => gattServer.disconnect())
+        .then(() => gattServer.connect())
+        .then(() => gattServer.getPrimaryService(heart_rate.name))
+        .then(service => service.getCharacteristics())
+        .then(characteristics2 => [characteristics1, characteristics2])
+    })
+    .then(characteristics_arrays => {
+        for (let i = 1; i < characteristics_arrays.length; i++) {
+            assert_equals(characteristics_arrays[0].length, characteristics_arrays[i].length);
+        }
+        let base_set = new Set(characteristics_arrays.shift());
+        for (let characteristics of characteristics_arrays) {
+            characteristics.forEach(characteristic => assert_false(base_set.has(characteristic)));
+        }
+    });
+}, 'Calls to getCharacteristics after a disconnection should return different objects.');
+</script>
