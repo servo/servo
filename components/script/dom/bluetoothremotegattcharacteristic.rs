@@ -307,9 +307,8 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 promise.resolve_native(promise_cx, &value);
             },
             BluetoothResponse::WriteValue(result) => {
-                let value = ByteString::new(result);
-                *self.value.borrow_mut() = Some(value.clone());
-                promise.resolve_native(promise_cx, &value);
+                *self.value.borrow_mut() = Some(ByteString::new(result));
+                promise.resolve_native(promise_cx, &());
             },
             BluetoothResponse::EnableNotification(_result) => {
                 promise.resolve_native(promise_cx, self);
