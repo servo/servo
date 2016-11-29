@@ -484,13 +484,13 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('summary',
                      help="Error summary log to take un")
-    @CommandArgument('--log-filteredsummary', default=None,
+    @CommandArgument('--output', default=None,
                      help='Print filtered log to file')
     @CommandArgument('--auth', default=None,
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
     @CommandArgument('--use-tracker', default=False, action='store_true',
                      help='Use https://www.joshmatthews.net/intermittent-tracker')
-    def filter_intermittents(self, summary, log_filteredsummary, auth, use_tracker):
+    def filter_intermittents(self, summary, output, auth, use_tracker):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -525,7 +525,7 @@ class MachCommands(CommandBase):
         if len(actual_failures) == 0:
             return 0
 
-        output = open(log_filteredsummary, "w") if log_filteredsummary else sys.stdout
+        output = open(output, "w") if output else sys.stdout
         for failure in actual_failures:
             json.dump(failure, output)
             print("\n", end='', file=output)
