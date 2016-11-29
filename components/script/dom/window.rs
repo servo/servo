@@ -58,8 +58,8 @@ use js::rust::Runtime;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy, FetchResponseListener, FetchMetadata};
 use net_traits::NetworkError;
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
-use net_traits::image_cache_thread::ImageResponder;
 use net_traits::request::{Type as RequestType, RequestInit as FetchRequestInit};
 use net_traits::storage_thread::StorageType;
 use network_listener::{NetworkListener, PreInvoke};
@@ -341,7 +341,13 @@ impl Window {
         for node in nodes.get() {
             node.dirty(NodeDamage::OtherNodeDamage);
         }
-        nodes.remove();
+        match response.response {
+            ImageResponse::MetadataLoaded(_) => {}
+            ImageResponse::Loaded(_) |
+            ImageResponse::PlaceholderLoaded(_) |
+            ImageResponse::None => { nodes.remove(); }
+        }
+        self.add_pending_reflow();
     }
 }
 
@@ -1146,8 +1152,8 @@ impl Window {
             let js_runtime = js_runtime.as_ref().unwrap();
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
-            if let PendingImageState::Unrequested(url) = image.state {
-                fetch_image_for_layout(url, &*node, self.image_cache_thread.clone(), id);
+            if let PendingImageState::Unrequested(ref url) = image.state {
+                fetch_image_for_layout(url.clone(), &*node, self.image_cache_thread.clone(), id);
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -1223,7 +1229,8 @@ impl Window {
 
             let ready_state = document.ReadyState();
 
-            if ready_state == DocumentReadyState::Complete && !reftest_wait {
+            let pending_images = self.pending_layout_images.borrow().is_empty();
+            if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
                 let global_scope = self.upcast::<GlobalScope>();
                 let event = ConstellationMsg::SetDocumentState(global_scope.pipeline_id(), DocumentState::Idle);
                 global_scope.constellation_chan().send(event).unwrap();

@@ -306,6 +306,7 @@ impl HTMLImageElement {
                         }
 
                         Err(ImageState::NotRequested(id)) => {
+                            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
                             let runnable = box ImageRequestRunnable::new(
                                 Trusted::new(self), img_url, id);
                             runnable.handler();

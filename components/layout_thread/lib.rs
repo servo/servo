@@ -1329,6 +1329,14 @@ impl LayoutThread {
                                                      None,
                                                      &mut *rw_data,
                                                      &mut layout_context);
+
+        let mut pending_images = layout_context.pending_images.lock().unwrap();
+        if pending_images.len() > 0 {
+            //XXXjdm we drop all the images on the floor, but there's no guarantee that
+            //       the node references are valid since the script thread isn't paused.
+            //       need to figure out what to do here!
+            pending_images.truncate(0);
+        }
     }
 
     fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
