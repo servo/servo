@@ -257,6 +257,7 @@ impl InlineFragmentsAccumulator {
                 style: node.style(style_context),
                 selected_style: node.selected_style(),
                 flags: FIRST_FRAGMENT_OF_ELEMENT | LAST_FRAGMENT_OF_ELEMENT,
+                quirks_mode: node.quirks_mode(),
             }),
             bidi_control_chars: None,
             restyle_damage: node.restyle_damage(),
@@ -555,7 +556,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                                     whitespace_style,
                                                                     node.selected_style(),
                                                                     whitespace_damage,
-                                                                    fragment_info);
+                                                                    fragment_info,
+                                                                    Some(node.quirks_mode()));
                 inline_fragment_accumulator.fragments.fragments.push_back(fragment);
             }
             ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
@@ -685,18 +687,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             _ => properties::modify_style_for_text(&mut style)
         }
 
-        let selected_style = node.selected_style();
-
         match text_content {
             TextContent::Text(string) => {
                 let info = box UnscannedTextFragmentInfo::new(string, node.selection());
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
-                fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
-                        node.opaque(),
-                        node.get_pseudo_element_type().strip(),
+                fragments.fragments.push_back(Fragment::from_node_and_style(
+                        node,
                         style,
-                        selected_style,
-                        node.restyle_damage(),
                         specific_fragment_info))
             }
             TextContent::GeneratedContent(content_items) => {
@@ -711,12 +708,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             SpecificFragmentInfo::GeneratedContent(content_item)
                         }
                     };
-                    fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
-                            node.opaque(),
-                            node.get_pseudo_element_type().strip(),
+                    fragments.fragments.push_back(Fragment::from_node_and_style(
+                            node,
                             style.clone(),
-                            selected_style.clone(),
-                            node.restyle_damage(),
                             specific_fragment_info))
                 }
             }
@@ -797,7 +791,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 kid_style,
                                 kid_selected_style,
                                 kid_restyle_damage,
-                                fragment_info));
+                                fragment_info,
+                                Some(node.quirks_mode())));
                         fragment_accumulator.fragments
                                             .absolute_descendants
                                             .push_descendants(kid_abs_descendants);
@@ -833,7 +828,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                              whitespace_style,
                                                              node.selected_style(),
                                                              whitespace_damage,
-                                                             fragment_info);
+                                                             fragment_info,
+                                                             Some(node.quirks_mode()));
                     fragment_accumulator.fragments.fragments.push_back(fragment)
                 }
                 ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
@@ -851,12 +847,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             let mut modified_style = node_style.clone();
             properties::modify_style_for_replaced_content(&mut modified_style);
             properties::modify_style_for_text(&mut modified_style);
-            let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                                node.get_pseudo_element_type().strip(),
-                                                                modified_style,
-                                                                node.selected_style(),
-                                                                node.restyle_damage(),
-                                                                info);
+            let fragment = Fragment::from_node_and_style(node, modified_style, info);
             fragment_accumulator.fragments.fragments.push_back(fragment)
         }
 
@@ -945,12 +936,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
         let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
                 block_flow));
-        let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                            node.get_pseudo_element_type().strip(),
-                                                            modified_style,
-                                                            node.selected_style(),
-                                                            node.restyle_damage(),
-                                                            fragment_info);
+        let fragment = Fragment::from_node_and_style(node, modified_style, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::new();
         fragment_accumulator.fragments.fragments.push_back(fragment);
@@ -985,7 +971,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                             style,
                                                             node.selected_style(),
                                                             node.restyle_damage(),
-                                                            fragment_info);
+                                                            fragment_info,
+                                                            Some(node.quirks_mode()));
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node, self.style_context());
         fragment_accumulator.fragments.fragments.push_back(fragment);
@@ -1097,7 +1084,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                  wrapper_style,
                                                  node.selected_style(),
                                                  node.restyle_damage(),
-                                                 SpecificFragmentInfo::TableWrapper);
+                                                 SpecificFragmentInfo::TableWrapper,
+                                                 Some(node.quirks_mode()));
         let wrapper_float_kind = FloatKind::from_property(float_value);
         let mut wrapper_flow =
             FlowRef::new(Arc::new(TableWrapperFlow::from_fragment_and_float_kind(wrapper_fragment,
@@ -1835,7 +1823,8 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
                                          style.clone(),
                                          node.selected_style.clone(),
                                          restyle_damage,
-                                         info)
+                                         info,
+                                         Some(node.quirks_mode))
 }
 
 /// Convenience methods for computed CSS values

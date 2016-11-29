@@ -9,6 +9,7 @@ use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
 use gfx_traits::ByteIndex;
+use html5ever::tree_builder::QuirksMode;
 use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
@@ -264,6 +265,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn iframe_pipeline_id(&self) -> PipelineId;
 
     fn get_colspan(&self) -> u32;
+
+    #[inline]
+    fn quirks_mode(&self) -> QuirksMode;
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.

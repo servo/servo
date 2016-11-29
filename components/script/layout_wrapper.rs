@@ -40,6 +40,7 @@ use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESC
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
+use html5ever::tree_builder::QuirksMode;
 use html5ever_atoms::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
 use parking_lot::RwLock;
@@ -906,6 +907,13 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn get_colspan(&self) -> u32 {
         unsafe {
             self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
+        }
+    }
+
+    #[inline]
+    fn quirks_mode(&self) -> QuirksMode {
+        unsafe {
+            self.node.node.owner_doc_for_layout().quirks_mode()
         }
     }
 }

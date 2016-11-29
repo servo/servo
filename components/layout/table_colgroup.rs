@@ -46,7 +46,8 @@ impl TableColGroupFlow {
         TableColGroupFlow {
             base: BaseFlow::new(Some(fragment.style()),
                                 writing_mode,
-                                ForceNonfloatedFlag::ForceNonfloated),
+                                ForceNonfloatedFlag::ForceNonfloated,
+                                fragment.quirks_mode()),
             fragment: Some(fragment),
             cols: fragments,
             inline_sizes: vec!(),

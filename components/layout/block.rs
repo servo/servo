@@ -538,11 +538,13 @@ impl BlockFlow {
     pub fn from_fragment_and_float_kind(fragment: Fragment, float_kind: Option<FloatKind>)
                                         -> BlockFlow {
         let writing_mode = fragment.style().writing_mode;
+        let quirks_mode = fragment.quirks_mode();
+
         BlockFlow {
             base: BaseFlow::new(Some(fragment.style()), writing_mode, match float_kind {
                 Some(_) => ForceNonfloatedFlag::FloatIfNecessary,
                 None => ForceNonfloatedFlag::ForceNonfloated,
-            }),
+            }, quirks_mode),
             fragment: fragment,
             float: float_kind.map(|kind| box FloatedBlockInfo::new(kind)),
             flags: BlockFlowFlags::empty(),

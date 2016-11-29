@@ -442,7 +442,8 @@ fn render_text(layout_context: &LayoutContext,
                                                              style.clone(),
                                                              style,
                                                              RestyleDamage::rebuild_and_reflow(),
-                                                             info));
+                                                             info,
+                                                             None));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.
     let fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
