@@ -486,11 +486,13 @@ class MachCommands(CommandBase):
                      help="Error summary log to take un")
     @CommandArgument('--log-filteredsummary', default=None,
                      help='Print filtered log to file')
+    @CommandArgument('--log-intermittents', default=None,
+                     help='Print intermittents to file')
     @CommandArgument('--auth', default=None,
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
     @CommandArgument('--use-tracker', default=False, action='store_true',
                      help='Use https://www.joshmatthews.net/intermittent-tracker')
-    def filter_intermittents(self, summary, log_filteredsummary, auth, use_tracker):
+    def filter_intermittents(self, summary, log_filteredsummary, log_intermittents, auth, use_tracker):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -502,6 +504,7 @@ class MachCommands(CommandBase):
                 if 'status' in line_json:
                     failures += [line_json]
         actual_failures = []
+        intermittents = []
         for failure in failures:
             if use_tracker:
                 query = urllib2.quote(failure['test'], safe='')
@@ -510,6 +513,8 @@ class MachCommands(CommandBase):
                 data = json.load(search)
                 if len(data) == 0:
                     actual_failures += [failure]
+                else:
+                    intermittents += [failure]
             else:
                 qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
                 # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
@@ -521,6 +526,14 @@ class MachCommands(CommandBase):
                 data = json.load(search)
                 if data['total_count'] == 0:
                     actual_failures += [failure]
+                else:
+                    intermittents += [failure]
+
+        if log_intermittents:
+            with open(log_intermittents, "w") as intermittents_file:
+                for intermittent in intermittents:
+                    json.dump(intermittent, intermittents_file)
+                    print("\n", end='', file=intermittents_file)
 
         if len(actual_failures) == 0:
             return 0
