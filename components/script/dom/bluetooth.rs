@@ -11,12 +11,13 @@ use core::clone::Clone;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
@@ -24,6 +25,7 @@ use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
@@ -84,7 +86,7 @@ impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener f
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 #[dom_struct]
 pub struct Bluetooth {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     device_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothDevice>>>>,
     service_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>>,
     characteristic_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>>,
@@ -94,7 +96,7 @@ pub struct Bluetooth {
 impl Bluetooth {
     pub fn new_inherited() -> Bluetooth {
         Bluetooth {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             device_instance_map: DOMRefCell::new(HashMap::new()),
             service_instance_map: DOMRefCell::new(HashMap::new()),
             characteristic_instance_map: DOMRefCell::new(HashMap::new()),
@@ -382,6 +384,9 @@ impl BluetoothMethods for Bluetooth {
         // TODO(#4282): Step 3-5: Reject and resolve promise.
         return p;
     }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-onavailabilitychanged
+    event_handler!(availabilitychanged, GetOnavailabilitychanged, SetOnavailabilitychanged);
 }
 
 impl AsyncBluetoothListener for Bluetooth {

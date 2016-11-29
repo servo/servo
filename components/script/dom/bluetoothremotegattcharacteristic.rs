@@ -13,15 +13,18 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use ipc_channel::ipc::IpcSender;
@@ -35,7 +38,7 @@ pub const MAXIMUM_ATTRIBUTE_LENGTH: usize = 512;
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
 #[dom_struct]
 pub struct BluetoothRemoteGATTCharacteristic {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     service: MutHeap<JS<BluetoothRemoteGATTService>>,
     uuid: DOMString,
     properties: MutHeap<JS<BluetoothCharacteristicProperties>>,
@@ -50,7 +53,7 @@ impl BluetoothRemoteGATTCharacteristic {
                          instance_id: String)
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             service: MutHeap::new(service),
             uuid: uuid,
             properties: MutHeap::new(properties),
@@ -255,6 +258,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                                                  sender)).unwrap();
         return p;
     }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-characteristiceventhandlers-oncharacteristicvaluechanged
+    event_handler!(characteristicvaluechanged, GetOncharacteristicvaluechanged, SetOncharacteristicvaluechanged);
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
@@ -297,6 +303,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
             BluetoothResponse::ReadValue(result) => {
                 let value = ByteString::new(result);
                 *self.value.borrow_mut() = Some(value.clone());
+                self.upcast::<EventTarget>().fire_bubbling_event(atom!("characteristicvaluechanged"));
                 promise.resolve_native(promise_cx, &value);
             },
             BluetoothResponse::WriteValue(result) => {

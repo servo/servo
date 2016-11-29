@@ -5,7 +5,7 @@
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 
 [Pref="dom.bluetooth.enabled"]
-interface BluetoothRemoteGATTService {
+interface BluetoothRemoteGATTService : EventTarget {
     readonly attribute BluetoothDevice device;
     readonly attribute DOMString uuid;
     readonly attribute boolean isPrimary;
@@ -15,3 +15,14 @@ interface BluetoothRemoteGATTService {
     Promise<BluetoothRemoteGATTService> getIncludedService(BluetoothServiceUUID service);
     Promise<sequence<BluetoothRemoteGATTService>> getIncludedServices(optional BluetoothServiceUUID service);
 };
+
+[NoInterfaceObject]
+interface ServiceEventHandlers {
+  attribute EventHandler onserviceadded;
+  attribute EventHandler onservicechanged;
+  attribute EventHandler onserviceremoved;
+};
+
+// BluetoothRemoteGATTService implements EventTarget;
+// BluetoothRemoteGATTService implements CharacteristicEventHandlers;
+BluetoothRemoteGATTService implements ServiceEventHandlers;

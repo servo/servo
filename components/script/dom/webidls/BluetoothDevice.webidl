@@ -5,7 +5,7 @@
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 
 [Pref="dom.bluetooth.enabled"]
-interface BluetoothDevice {
+interface BluetoothDevice : EventTarget {
     readonly attribute DOMString id;
     readonly attribute DOMString? name;
     // TODO: remove this after BluetoothAdvertisingEvent implemented.
@@ -17,7 +17,12 @@ interface BluetoothDevice {
     // readonly attribute boolean watchingAdvertisements;
 };
 
+[NoInterfaceObject]
+interface BluetoothDeviceEventHandlers {
+  attribute EventHandler ongattserverdisconnected;
+};
+
 // BluetoothDevice implements EventTarget;
-// BluetoothDevice implements BluetoothDeviceEventHandlers;
+BluetoothDevice implements BluetoothDeviceEventHandlers;
 // BluetoothDevice implements CharacteristicEventHandlers;
 // BluetoothDevice implements ServiceEventHandlers;
