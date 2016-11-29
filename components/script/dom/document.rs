@@ -1768,6 +1768,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)>;
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
+    unsafe fn quirks_mode(&self) -> QuirksMode;
 }
 
 #[allow(unsafe_code)]
@@ -1793,6 +1794,11 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[inline]
     unsafe fn will_paint(&self) {
         (*self.unsafe_get()).needs_paint.set(false)
+    }
+
+    #[inline]
+    unsafe fn quirks_mode(&self) -> QuirksMode {
+        (*self.unsafe_get()).quirks_mode()
     }
 }
 

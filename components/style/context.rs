@@ -9,6 +9,7 @@ use app_units::Au;
 use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+use html5ever::tree_builder::QuirksMode;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -71,6 +72,9 @@ pub struct SharedStyleContext {
     /// The current timer for transitions and animations. This is needed to test
     /// them.
     pub timer: Timer,
+
+    /// The QuirksMode state which the document needs to be rendered with
+    pub quirks_mode: QuirksMode,
 }
 
 pub struct LocalStyleContext {
