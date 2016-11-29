@@ -46,6 +46,34 @@ impl BluetoothRemoteGATTServer {
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
+
+    pub fn set_connected(&self, connected: bool) {
+        self.connected.set(connected);
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
+    #[allow(unrooted_must_root)]
+    fn garbage_collect_the_connection(&self) -> ErrorResult {
+        // Step 1: TODO: Check if other systems using this device.
+
+        // Step 2.
+        let context = self.device.get().get_context();
+        for (id, device) in context.get_device_map().borrow().iter() {
+            // Step 2.1 - 2.2.
+            if id == &self.Device().Id().to_string() {
+                if device.get().Gatt().Connected() {
+                    return Ok(());
+                }
+                // TODO: Step 2.3: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
+            }
+        }
+
+        // Step 3.
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothRequest::GATTServerDisconnect(String::from(self.Device().Id()), sender)).unwrap();
+        receiver.recv().unwrap().map_err(Error::from)
+    }
 }
 
 impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
@@ -86,27 +114,14 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
         // Step 2.
         if !self.Connected() {
-            return Ok(());
+            return Ok(())
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::GATTServerDisconnect(String::from(self.Device().Id()), sender)).unwrap();
-        let server = receiver.recv().unwrap();
 
-        // TODO: Step 3: Implement the `clean up the disconnected device` algorithm.
+        // Step 3.
+        self.Device().clean_up_disconnected_device();
 
-        // TODO: Step 4: Implement representedDevice internal slot for BluetoothDevice.
-
-        // TODO: Step 5: Implement the `garbage-collect the connection` algorithm.
-        match server {
-            Ok(connected) => {
-                self.connected.set(connected);
-                Ok(())
-            },
-            Err(error) => {
-                Err(Error::from(error))
-            },
-        }
+        // Step 4 - 5:
+        self.garbage_collect_the_connection()
     }
 
     #[allow(unrooted_must_root)]
@@ -134,6 +149,14 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
+                // Step 5.2.3
+                if self.Device().is_represented_device_null() {
+                    if let Err(e) = self.garbage_collect_the_connection() {
+                        promise.reject_error(promise_cx, Error::from(e));
+                    }
+                    promise.reject_error(promise_cx, Error::Network);
+                }
+
                 // Step 5.2.4.
                 self.connected.set(connected);
 

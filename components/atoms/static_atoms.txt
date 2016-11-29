@@ -65,3 +65,4 @@ fetch
 characteristicvaluechanged
 fullscreenchange
 fullscreenerror
+gattserverdisconnected

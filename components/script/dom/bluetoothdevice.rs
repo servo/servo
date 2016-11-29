@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMet
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutJS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -22,7 +23,7 @@ use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -72,6 +73,10 @@ impl BluetoothDevice {
                            BluetoothDeviceBinding::Wrap)
     }
 
+    pub fn get_context(&self) -> Root<Bluetooth> {
+        self.context.get()
+    }
+
     pub fn get_or_create_service(&self,
                                  service: &BluetoothServiceMsg,
                                  server: &BluetoothRemoteGATTServer)
@@ -119,6 +124,13 @@ impl BluetoothDevice {
         return bt_characteristic;
     }
 
+    pub fn is_represented_device_null(&self) -> bool {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothRequest::IsRepresentedDeviceNull(self.Id().to_string(), sender)).unwrap();
+        receiver.recv().unwrap()
+    }
+
     pub fn get_or_create_descriptor(&self,
                                     descriptor: &BluetoothDescriptorMsg,
                                     characteristic: &BluetoothRemoteGATTCharacteristic)
@@ -138,6 +150,36 @@ impl BluetoothDevice {
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
+    #[allow(unrooted_must_root)]
+    pub fn clean_up_disconnected_device(&self) {
+        // Step 1.
+        self.Gatt().set_connected(false);
+
+        // TODO: Step 2: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
+
+        // Step 3: We don't need `context`, we get the attributeInstanceMap from the device.
+        // https://github.com/WebBluetoothCG/web-bluetooth/issues/330
+
+        // Step 4.
+        let mut service_map = self.attribute_instance_map.0.borrow_mut();
+        let service_ids = service_map.drain().map(|(id, _)| id).collect();
+
+        let mut characteristic_map = self.attribute_instance_map.1.borrow_mut();
+        let characteristic_ids = characteristic_map.drain().map(|(id, _)| id).collect();
+
+        let mut descriptor_map = self.attribute_instance_map.2.borrow_mut();
+        let descriptor_ids = descriptor_map.drain().map(|(id, _)| id).collect();
+
+        // Step 5, 6.4, 7.
+        // TODO: Step 6: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic.
+        let _ = self.get_bluetooth_thread().send(
+                     BluetoothRequest::SetRepresentedToNull(service_ids, characteristic_ids, descriptor_ids));
+
+        // Step 8.
+        self.upcast::<EventTarget>().fire_bubbling_event(atom!("gattserverdisconnected"));
     }
 }
 
