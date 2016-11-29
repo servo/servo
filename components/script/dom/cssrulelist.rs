@@ -41,7 +41,7 @@ pub struct CSSRuleList {
 }
 
 pub enum RulesSource {
-    Rules(CssRules),
+    Rules(Arc<RwLock<CssRules>>),
     Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
@@ -50,7 +50,7 @@ impl CSSRuleList {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
-                rules.0.read().iter().map(|_| MutNullableHeap::new(None)).collect()
+                rules.read().0.iter().map(|_| MutNullableHeap::new(None)).collect()
             }
             RulesSource::Keyframes(ref rules) => {
                 rules.read().keyframes.iter().map(|_| MutNullableHeap::new(None)).collect()
@@ -87,7 +87,7 @@ impl CSSRuleList {
         let index = idx as usize;
 
         let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
-        let new_rule = css_rules.insert_rule(rule, parent_stylesheet, index, nested)?;
+        let new_rule = css_rules.write().insert_rule(rule, parent_stylesheet, index, nested)?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
@@ -101,7 +101,7 @@ impl CSSRuleList {
 
         match self.rules {
             RulesSource::Rules(ref css_rules) => {
-                css_rules.remove_rule(index)?;
+                css_rules.write().remove_rule(index)?;
                 let mut dom_rules = self.dom_rules.borrow_mut();
                 dom_rules[index].get().map(|r| r.detach());
                 dom_rules.remove(index);
@@ -133,7 +133,7 @@ impl CSSRuleList {
                     RulesSource::Rules(ref rules) => {
                         CSSRule::new_specific(self.global().as_window(),
                                              parent_stylesheet,
-                                             rules.0.read()[idx as usize].clone())
+                                             rules.read().0[idx as usize].clone())
                     }
                     RulesSource::Keyframes(ref rules) => {
                         Root::upcast(CSSKeyframeRule::new(self.global().as_window(),

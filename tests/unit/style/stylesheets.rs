@@ -20,7 +20,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredV
 use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Origin, Namespaces};
-use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, StyleRule, KeyframesRule};
+use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 
 #[test]
@@ -63,7 +63,7 @@ fn test_parse_stylesheet() {
         base_url: url,
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
-        rules: vec![
+        rules: CssRules::new(vec![
             CssRule::Namespace(Arc::new(RwLock::new(NamespaceRule {
                 prefix: None,
                 url: NsAtom::from("http://www.w3.org/1999/xhtml")
@@ -263,7 +263,7 @@ fn test_parse_stylesheet() {
                 ]
             })))
 
-        ].into(),
+        ]),
     };
 
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));

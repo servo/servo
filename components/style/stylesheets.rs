@@ -51,14 +51,8 @@ pub struct Namespaces {
     pub prefixes: FnvHashMap<Prefix , Namespace>,
 }
 
-#[derive(Debug, Clone)]
-pub struct CssRules(pub Arc<RwLock<Vec<CssRule>>>);
-
-impl From<Vec<CssRule>> for CssRules {
-    fn from(other: Vec<CssRule>) -> Self {
-        CssRules(Arc::new(RwLock::new(other)))
-    }
-}
+#[derive(Debug)]
+pub struct CssRules(pub Vec<CssRule>);
 
 pub enum RulesMutateError {
     Syntax,
@@ -77,9 +71,12 @@ impl From<SingleRuleParseError> for RulesMutateError {
 }
 
 impl CssRules {
-    // used in CSSOM
-    pub fn only_ns_or_import(rules: &[CssRule]) -> bool {
-        rules.iter().all(|r| {
+    pub fn new(rules: Vec<CssRule>) -> Arc<RwLock<CssRules>> {
+        Arc::new(RwLock::new(CssRules(rules)))
+    }
+
+    fn only_ns_or_import(&self) -> bool {
+        self.0.iter().all(|r| {
             match *r {
                 CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
                 _ => false
@@ -88,12 +85,10 @@ impl CssRules {
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
+    pub fn insert_rule(&mut self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
-        let mut rules = self.0.write();
-
         // Step 1, 2
-        if index > rules.len() {
+        if index > self.0.len() {
             return Err(RulesMutateError::IndexSize);
         }
 
@@ -103,7 +98,7 @@ impl CssRules {
         } else if index == 0 {
             Some(State::Start)
         } else {
-            rules.get(index - 1).map(CssRule::rule_state)
+            self.0.get(index - 1).map(CssRule::rule_state)
         };
 
         // Step 3, 4
@@ -113,7 +108,7 @@ impl CssRules {
 
         // Step 5
         // Computes the maximum allowed parser state at a given index.
-        let rev_state = rules.get(index).map_or(State::Body, CssRule::rule_state);
+        let rev_state = self.0.get(index).map_or(State::Body, CssRule::rule_state);
         if new_state > rev_state {
             // We inserted a rule too early, e.g. inserting
             // a regular style rule before @namespace rules
@@ -122,38 +117,36 @@ impl CssRules {
 
         // Step 6
         if let CssRule::Namespace(..) = new_rule {
-            if !CssRules::only_ns_or_import(&rules) {
+            if !self.only_ns_or_import() {
                 return Err(RulesMutateError::InvalidState);
             }
         }
 
-        rules.insert(index, new_rule.clone());
+        self.0.insert(index, new_rule.clone());
         Ok(new_rule)
     }
 
     // https://drafts.csswg.org/cssom/#remove-a-css-rule
-    pub fn remove_rule(&self, index: usize) -> Result<(), RulesMutateError> {
-        let mut rules = self.0.write();
-
+    pub fn remove_rule(&mut self, index: usize) -> Result<(), RulesMutateError> {
         // Step 1, 2
-        if index >= rules.len() {
+        if index >= self.0.len() {
             return Err(RulesMutateError::IndexSize);
         }
 
         {
             // Step 3
-            let ref rule = rules[index];
+            let ref rule = self.0[index];
 
             // Step 4
             if let CssRule::Namespace(..) = *rule {
-                if !CssRules::only_ns_or_import(&rules) {
+                if !self.only_ns_or_import() {
                     return Err(RulesMutateError::InvalidState);
                 }
             }
         }
 
         // Step 5, 6
-        rules.remove(index);
+        self.0.remove(index);
         Ok(())
     }
 }
@@ -162,7 +155,7 @@ impl CssRules {
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
-    pub rules: CssRules,
+    pub rules: Arc<RwLock<CssRules>>,
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
@@ -274,8 +267,8 @@ impl CssRule {
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
-                let rules = media_rule.rules.0.read();
-                f(&rules, Some(&mq))
+                let rules = &media_rule.rules.read().0;
+                f(rules, Some(&mq))
             }
         }
     }
@@ -376,7 +369,7 @@ impl ToCss for KeyframesRule {
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
-    pub rules: CssRules,
+    pub rules: Arc<RwLock<CssRules>>,
 }
 
 impl ToCss for MediaRule {
@@ -386,7 +379,7 @@ impl ToCss for MediaRule {
         try!(dest.write_str("@media ("));
         try!(self.media_queries.read().to_css(dest));
         try!(dest.write_str(") {"));
-        for rule in self.rules.0.read().iter() {
+        for rule in self.rules.read().0.iter() {
             try!(dest.write_str(" "));
             try!(rule.to_css(dest));
         }
@@ -470,7 +463,7 @@ impl Stylesheet {
             origin: origin,
             base_url: base_url,
             namespaces: RwLock::new(namespaces),
-            rules: rules.into(),
+            rules: CssRules::new(rules),
             media: Arc::new(RwLock::new(media)),
             dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
@@ -512,7 +505,7 @@ impl Stylesheet {
     /// examined.
     #[inline]
     pub fn effective_rules<F>(&self, device: &Device, mut f: F) where F: FnMut(&CssRule) {
-        effective_rules(&self.rules.0.read(), device, &mut f);
+        effective_rules(&self.rules.read().0, device, &mut f);
     }
 
     /// Returns whether the stylesheet has been explicitly disabled through the CSSOM.
@@ -698,7 +691,7 @@ struct NestedRuleParser<'a, 'b: 'a> {
 }
 
 impl<'a, 'b> NestedRuleParser<'a, 'b> {
-    fn parse_nested_rules(&self, input: &mut Parser) -> CssRules {
+    fn parse_nested_rules(&self, input: &mut Parser) -> Arc<RwLock<CssRules>> {
         let mut iter = RuleListParser::new_for_nested_rule(input, self.clone());
         let mut rules = Vec::new();
         while let Some(result) = iter.next() {
@@ -711,7 +704,7 @@ impl<'a, 'b> NestedRuleParser<'a, 'b> {
                 }
             }
         }
-        rules.into()
+        CssRules::new(rules)
     }
 }
 

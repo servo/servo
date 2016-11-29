@@ -24,7 +24,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use style::attr::AttrValue;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{Stylesheet, CssRule, Origin};
+use style::stylesheets::{Stylesheet, CssRule, CssRules, Origin};
 use style::viewport::ViewportRule;
 
 #[dom_struct]
@@ -98,7 +98,7 @@ impl HTMLMetaElement {
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: vec![CssRule::Viewport(Arc::new(RwLock::new(translated_rule)))].into(),
+                        rules: CssRules::new(vec![CssRule::Viewport(Arc::new(RwLock::new(translated_rule)))]),
                         origin: Origin::Author,
                         base_url: window_from_node(self).get_url(),
                         namespaces: Default::default(),
