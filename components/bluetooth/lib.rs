@@ -960,6 +960,7 @@ impl BluetoothManager {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn get_descriptors(&mut self,
                        characteristic_id: String,
                        uuid: Option<String>,
