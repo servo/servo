@@ -87,7 +87,7 @@ impl CSSRuleList {
         let doc = window.Document();
         let index = idx as usize;
 
-        let new_rule = css_rules.insert_rule(rule, doc.url().clone(), index, nested)?;
+        let new_rule = css_rules.insert_rule(rule, &doc.url(), index, nested)?;
 
         let sheet = self.sheet.get();
         let sheet = sheet.as_ref().map(|sheet| &**sheet);

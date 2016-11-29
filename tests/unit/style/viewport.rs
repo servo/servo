@@ -21,7 +21,7 @@ macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
         Box::new(Stylesheet::from_str(
             $css,
-            ServoUrl::parse("http://localhost").unwrap(),
+            &ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
             Default::default(),
             $error_reporter,
