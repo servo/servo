@@ -16,7 +16,7 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
-use style::context::{ThreadLocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext, StyleContext};
+use style::context::{ThreadLocalStyleContextCreationInfo, QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
 use style::data::{ElementData, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
@@ -114,6 +114,8 @@ fn create_shared_context(mut per_doc_data: &mut AtomicRefMut<PerDocumentStyleDat
         error_reporter: Box::new(StdoutErrorReporter),
         local_context_creation_data: Mutex::new(local_context_data),
         timer: Timer::new(),
+        // FIXME Find the real QuirksMode information for this document
+        quirks_mode: QuirksMode::NoQuirks,
     }
 }
 
