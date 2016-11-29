@@ -488,9 +488,7 @@ class MachCommands(CommandBase):
                      help='Print filtered log to file')
     @CommandArgument('--auth', default=None,
                      help='File containing basic authorization credentials for Github API (format `username:password`)')
-    @CommandArgument('--use-tracker', default=False, action='store_true',
-                     help='Use https://www.joshmatthews.net/intermittent-tracker')
-    def filter_intermittents(self, summary, output, auth, use_tracker):
+    def filter_intermittents(self, summary, output, auth):
         encoded_auth = None
         if auth:
             with open(auth, "r") as file:
@@ -503,24 +501,16 @@ class MachCommands(CommandBase):
                     failures += [line_json]
         actual_failures = []
         for failure in failures:
-            if use_tracker:
-                query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("https://www.joshmatthews.net/intermittent-tracker/query.py?name=%s" % query)
-                search = urllib2.urlopen(request)
-                data = json.load(search)
-                if len(data) == 0:
-                    actual_failures += [failure]
-            else:
-                qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
-                # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
-                query = urllib2.quote(qstr, safe='+')
-                request = urllib2.Request("https://api.github.com/search/issues?q=%s" % query)
-                if encoded_auth:
-                    request.add_header("Authorization", "Basic %s" % encoded_auth)
-                search = urllib2.urlopen(request)
-                data = json.load(search)
-                if data['total_count'] == 0:
-                    actual_failures += [failure]
+            qstr = "repo:servo/servo+label:I-intermittent+type:issue+state:open+%s" % failure['test']
+            # we want `/` to get quoted, but not `+` (github's API doesn't like that), so we set `safe` to `+`
+            query = urllib2.quote(qstr, safe='+')
+            request = urllib2.Request("https://api.github.com/search/issues?q=%s" % query)
+            if encoded_auth:
+                request.add_header("Authorization", "Basic %s" % encoded_auth)
+            search = urllib2.urlopen(request)
+            data = json.load(search)
+            if data['total_count'] == 0:
+                actual_failures += [failure]
 
         if len(actual_failures) == 0:
             return 0
