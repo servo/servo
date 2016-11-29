@@ -40,7 +40,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, window_from_node, document_from_node};
+use dom::node::{Node, from_untrusted_node_address, window_from_node, document_from_node, NodeDamage};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -91,6 +91,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
@@ -326,8 +327,21 @@ impl Window {
         self.current_viewport.clone().get()
     }
 
-    pub fn pending_image_notification(&self, _response: PendingImageResponse) {
-        //XXXjdm
+    #[allow(unrooted_must_root)]
+    pub fn pending_image_notification(&self, response: PendingImageResponse) {
+        //XXXjdm could be more efficient to send the responses to the layout thread,
+        //       rather than making the layout thread talk to the image cache to
+        //       obtain the same data.
+        let mut images = self.pending_layout_images.borrow_mut();
+        let nodes = images.entry(response.id);
+        let mut nodes = match nodes {
+            Entry::Occupied(nodes) => nodes,
+            Entry::Vacant(_) => return,
+        };
+        for node in nodes.get() {
+            node.dirty(NodeDamage::OtherNodeDamage);
+        }
+        nodes.remove();
     }
 }
 

@@ -19,8 +19,8 @@ pub struct ImageResponder {
 
 #[derive(Deserialize, Serialize)]
 pub struct PendingImageResponse {
-    response: ImageResponse,
-    id: PendingImageId,
+    pub response: ImageResponse,
+    pub id: PendingImageId,
 }
 
 impl ImageResponder {
