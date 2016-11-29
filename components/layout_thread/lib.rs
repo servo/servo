@@ -75,7 +75,7 @@ use layout::query::{process_node_geometry_request, process_node_scroll_area_requ
 use layout::query::process_offset_parent_query;
 use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
-use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
+use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
@@ -947,10 +947,7 @@ impl LayoutThread {
             debug!("Layout done!");
 
             // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-            let pipeline_id = self.id.to_webrender();
-            let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
-            let built_display_list = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                &mut frame_builder);
+            let builder = rw_data.display_list.as_ref().unwrap().convert_to_webrender(self.id);
 
             let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                             self.viewport_size.height.to_f32_px());
@@ -961,10 +958,8 @@ impl LayoutThread {
             self.webrender_api.set_root_display_list(
                 get_root_flow_background_color(layout_root),
                 webrender_traits::Epoch(epoch_number),
-                pipeline_id,
                 viewport_size,
-                built_display_list,
-                frame_builder.auxiliary_lists_builder.finalize());
+                builder);
         });
     }
 
