@@ -71,7 +71,6 @@ use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleClipPath;
-use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSValue;
@@ -200,6 +199,8 @@ unsafe impl Sync for nsStyleVisibility {}
 use gecko_bindings::structs::nsStyleXUL;
 unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
+use gecko_bindings::structs::nscoord;
+use gecko_bindings::structs::nsresult;
 
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -1024,6 +1025,17 @@ extern "C" {
     pub fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed,
                                          index: u32)
      -> RawServoStyleRuleStrong;
+}
+extern "C" {
+    pub fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
+                                     sheet: RawServoStyleSheetBorrowed,
+                                     rule: *const nsACString_internal,
+                                     index: u32, nested: bool,
+                                     rule_type: *mut u16) -> nsresult;
+}
+extern "C" {
+    pub fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index: u32)
+     -> nsresult;
 }
 extern "C" {
     pub fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed,

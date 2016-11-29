@@ -14,11 +14,12 @@ use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoDeclarationBlock, RawServoStyleRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
+use gecko_bindings::structs::nsresult;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use stylesheets::{CssRules, Stylesheet, StyleRule};
+use stylesheets::{CssRules, RulesMutateError, Stylesheet, StyleRule};
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
 
 unsafe impl HasFFI for Stylesheet {
@@ -494,6 +495,17 @@ pub mod basic_shape {
                 Stroke => GeometryBox::Stroke,
                 View => GeometryBox::View,
             }
+        }
+    }
+}
+
+impl From<RulesMutateError> for nsresult {
+    fn from(other: RulesMutateError) -> Self {
+        match other {
+            RulesMutateError::Syntax => nsresult::NS_ERROR_DOM_SYNTAX_ERR,
+            RulesMutateError::IndexSize => nsresult::NS_ERROR_DOM_INDEX_SIZE_ERR,
+            RulesMutateError::HierarchyRequest => nsresult::NS_ERROR_DOM_HIERARCHY_REQUEST_ERR,
+            RulesMutateError::InvalidState => nsresult::NS_ERROR_DOM_INVALID_STATE_ERR,
         }
     }
 }
