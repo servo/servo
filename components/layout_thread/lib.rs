@@ -20,6 +20,7 @@ extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
+extern crate html5ever;
 extern crate ipc_channel;
 #[macro_use]
 extern crate layout;
@@ -58,6 +59,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{Epoch, FragmentType, ScrollRootId};
 use heapsize::HeapSizeOf;
+use html5ever::tree_builder::QuirksMode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
@@ -228,6 +230,9 @@ pub struct LayoutThread {
     // Number of layout threads. This is copied from `util::opts`, but we'd
     // rather limit the dependency on that module here.
     layout_threads: usize,
+
+    /// Which quirks mode are we rendering the document in?
+    quirks_mode: Option<QuirksMode>
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -481,6 +486,7 @@ impl LayoutThread {
                     Timer::new()
                 },
             layout_threads: layout_threads,
+            quirks_mode: None,
         }
     }
 
@@ -517,6 +523,7 @@ impl LayoutThread {
                 error_reporter: self.error_reporter.clone(),
                 local_context_creation_data: Mutex::new(local_style_context_creation_data),
                 timer: self.timer.clone(),
+                quirks_mode: self.quirks_mode.unwrap(),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
@@ -971,6 +978,7 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+        self.quirks_mode = Some(document.quirks_mode());
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
         debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&
