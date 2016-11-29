@@ -22,17 +22,18 @@ pub struct CSSKeyframeRule {
 }
 
 impl CSSKeyframeRule {
-    fn new_inherited(parent: Option<&CSSStyleSheet>, keyframerule: Arc<RwLock<Keyframe>>) -> CSSKeyframeRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframerule: Arc<RwLock<Keyframe>>)
+                     -> CSSKeyframeRule {
         CSSKeyframeRule {
-            cssrule: CSSRule::new_inherited(parent),
+            cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframerule: keyframerule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                keyframerule: Arc<RwLock<Keyframe>>) -> Root<CSSKeyframeRule> {
-        reflect_dom_object(box CSSKeyframeRule::new_inherited(parent, keyframerule),
+        reflect_dom_object(box CSSKeyframeRule::new_inherited(parent_stylesheet, keyframerule),
                            window,
                            CSSKeyframeRuleBinding::Wrap)
     }

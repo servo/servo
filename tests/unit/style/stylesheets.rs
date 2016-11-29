@@ -19,7 +19,8 @@ use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
-use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, StyleRule, KeyframesRule, Origin};
+use style::stylesheets::{Origin, Namespaces};
+use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, StyleRule, KeyframesRule};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 
 #[test]
@@ -50,12 +51,16 @@ fn test_parse_stylesheet() {
             }
         }";
     let url = ServoUrl::parse("about::test").unwrap();
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
+    let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
+    let mut namespaces = Namespaces::default();
+    namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
         origin: Origin::UserAgent,
         media: Default::default(),
+        namespaces: RwLock::new(namespaces),
+        base_url: url,
         dirty_on_viewport_size_change: AtomicBool::new(false),
         disabled: AtomicBool::new(false),
         rules: vec![

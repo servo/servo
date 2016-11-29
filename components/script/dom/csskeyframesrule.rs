@@ -5,7 +5,6 @@
 use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
-use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -20,7 +19,7 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::parser::ParserContextExtraData;
-use style::stylesheets::{KeyframesRule, Origin};
+use style::stylesheets::KeyframesRule;
 use style_traits::ToCss;
 
 #[dom_struct]
@@ -32,28 +31,28 @@ pub struct CSSKeyframesRule {
 }
 
 impl CSSKeyframesRule {
-    fn new_inherited(parent: Option<&CSSStyleSheet>, keyframesrule: Arc<RwLock<KeyframesRule>>) -> CSSKeyframesRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, keyframesrule: Arc<RwLock<KeyframesRule>>)
+                     -> CSSKeyframesRule {
         CSSKeyframesRule {
-            cssrule: CSSRule::new_inherited(parent),
+            cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframesrule: keyframesrule,
             rulelist: MutNullableHeap::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                keyframesrule: Arc<RwLock<KeyframesRule>>) -> Root<CSSKeyframesRule> {
-        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent, keyframesrule),
+        reflect_dom_object(box CSSKeyframesRule::new_inherited(parent_stylesheet, keyframesrule),
                            window,
                            CSSKeyframesRuleBinding::Wrap)
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
         self.rulelist.or_init(|| {
-            let sheet = self.upcast::<CSSRule>().GetParentStyleSheet();
-            let sheet = sheet.as_ref().map(|s| &**s);
+            let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
             CSSRuleList::new(self.global().as_window(),
-                             sheet,
+                             parent_stylesheet,
                              RulesSource::Keyframes(self.keyframesrule.clone()))
         })
     }
@@ -84,8 +83,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     fn AppendRule(&self, rule: DOMString) {
         let global = self.global();
         let window = global.as_window();
-        let doc = window.Document();
-        let rule = Keyframe::parse(&rule, Origin::Author, doc.url().clone(),
+        let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet(),
                                    ParserContextExtraData::default());
         if let Ok(rule) = rule {
             self.keyframesrule.write().keyframes.push(rule);

@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding;
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
-use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -25,27 +24,26 @@ pub struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub fn new_inherited(parent: Option<&CSSStyleSheet>,
+    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet,
                          rules: StyleCssRules) -> CSSGroupingRule {
         CSSGroupingRule {
-            cssrule: CSSRule::new_inherited(parent),
+            cssrule: CSSRule::new_inherited(parent_stylesheet),
             rules: rules,
             rulelist: MutNullableHeap::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>, rules: StyleCssRules) -> Root<CSSGroupingRule> {
-        reflect_dom_object(box CSSGroupingRule::new_inherited(parent, rules),
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet, rules: StyleCssRules) -> Root<CSSGroupingRule> {
+        reflect_dom_object(box CSSGroupingRule::new_inherited(parent_stylesheet, rules),
                            window,
                            CSSGroupingRuleBinding::Wrap)
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {
-        let sheet = self.upcast::<CSSRule>().GetParentStyleSheet();
-        let sheet = sheet.as_ref().map(|s| &**s);
+        let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  sheet,
+                                                  parent_stylesheet,
                                                   RulesSource::Rules(self.rules.clone())))
     }
 }

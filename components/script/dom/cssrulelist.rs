@@ -34,7 +34,7 @@ impl From<RulesMutateError> for Error {
 #[dom_struct]
 pub struct CSSRuleList {
     reflector_: Reflector,
-    sheet: MutNullableHeap<JS<CSSStyleSheet>>,
+    parent_stylesheet: JS<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     rules: RulesSource,
     dom_rules: DOMRefCell<Vec<MutNullableHeap<JS<CSSRule>>>>
@@ -47,7 +47,7 @@ pub enum RulesSource {
 
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(sheet: Option<&CSSStyleSheet>, rules: RulesSource) -> CSSRuleList {
+    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
                 rules.0.read().iter().map(|_| MutNullableHeap::new(None)).collect()
@@ -59,16 +59,16 @@ impl CSSRuleList {
 
         CSSRuleList {
             reflector_: Reflector::new(),
-            sheet: MutNullableHeap::new(sheet),
+            parent_stylesheet: JS::from_ref(parent_stylesheet),
             rules: rules,
             dom_rules: DOMRefCell::new(dom_rules),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, sheet: Option<&CSSStyleSheet>,
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                rules: RulesSource) -> Root<CSSRuleList> {
-        reflect_dom_object(box CSSRuleList::new_inherited(sheet, rules),
+        reflect_dom_object(box CSSRuleList::new_inherited(parent_stylesheet, rules),
                            window,
                            CSSRuleListBinding::Wrap)
     }
@@ -84,14 +84,13 @@ impl CSSRuleList {
 
         let global = self.global();
         let window = global.as_window();
-        let doc = window.Document();
         let index = idx as usize;
 
-        let new_rule = css_rules.insert_rule(rule, doc.url().clone(), index, nested)?;
+        let parent_stylesheet = self.parent_stylesheet.style_stylesheet();
+        let new_rule = css_rules.insert_rule(rule, parent_stylesheet, index, nested)?;
 
-        let sheet = self.sheet.get();
-        let sheet = sheet.as_ref().map(|sheet| &**sheet);
-        let dom_rule = CSSRule::new_specific(&window, sheet, new_rule);
+        let parent_stylesheet = &*self.parent_stylesheet;
+        let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
         self.dom_rules.borrow_mut().insert(index, MutNullableHeap::new(Some(&*dom_rule)));
         Ok((idx))
     }
@@ -129,17 +128,16 @@ impl CSSRuleList {
     pub fn item(&self, idx: u32) -> Option<Root<CSSRule>> {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
-                let sheet = self.sheet.get();
-                let sheet = sheet.as_ref().map(|sheet| &**sheet);
+                let parent_stylesheet = &self.parent_stylesheet;
                 match self.rules {
                     RulesSource::Rules(ref rules) => {
                         CSSRule::new_specific(self.global().as_window(),
-                                             sheet,
+                                             parent_stylesheet,
                                              rules.0.read()[idx as usize].clone())
                     }
                     RulesSource::Keyframes(ref rules) => {
                         Root::upcast(CSSKeyframeRule::new(self.global().as_window(),
-                                                          sheet,
+                                                          parent_stylesheet,
                                                           rules.read()
                                                                 .keyframes[idx as usize]
                                                                 .clone()))

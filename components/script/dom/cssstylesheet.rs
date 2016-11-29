@@ -53,7 +53,7 @@ impl CSSStyleSheet {
 
     fn rulelist(&self) -> Root<CSSRuleList> {
         self.rulelist.or_init(|| CSSRuleList::new(self.global().as_window(),
-                                                  Some(self),
+                                                  self,
                                                   RulesSource::Rules(self.style_stylesheet
                                                                          .rules.clone())))
     }
@@ -66,6 +66,10 @@ impl CSSStyleSheet {
         if self.style_stylesheet.set_disabled(disabled) {
             self.global().as_window().Document().invalidate_stylesheets();
         }
+    }
+
+    pub fn style_stylesheet(&self) -> &StyleStyleSheet {
+        &self.style_stylesheet
     }
 }
 

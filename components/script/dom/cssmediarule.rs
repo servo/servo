@@ -23,18 +23,19 @@ pub struct CSSMediaRule {
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent: Option<&CSSStyleSheet>, mediarule: Arc<RwLock<MediaRule>>) -> CSSMediaRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<RwLock<MediaRule>>)
+                     -> CSSMediaRule {
         let list = mediarule.read().rules.clone();
         CSSMediaRule {
-            cssrule: CSSGroupingRule::new_inherited(parent, list),
+            cssrule: CSSGroupingRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent: Option<&CSSStyleSheet>,
+    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
                mediarule: Arc<RwLock<MediaRule>>) -> Root<CSSMediaRule> {
-        reflect_dom_object(box CSSMediaRule::new_inherited(parent, mediarule),
+        reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
                            window,
                            CSSMediaRuleBinding::Wrap)
     }

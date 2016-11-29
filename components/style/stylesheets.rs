@@ -44,7 +44,7 @@ pub enum Origin {
     User,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Namespaces {
     pub default: Option<Namespace>,
@@ -88,7 +88,7 @@ impl CssRules {
     }
 
     // https://drafts.csswg.org/cssom/#insert-a-css-rule
-    pub fn insert_rule(&self, rule: &str, base_url: ServoUrl, index: usize, nested: bool)
+    pub fn insert_rule(&self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
         let mut rules = self.0.write();
 
@@ -108,7 +108,7 @@ impl CssRules {
 
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
-        let (new_rule, new_state) = try!(CssRule::parse(&rule, Origin::Author, base_url,
+        let (new_rule, new_state) = try!(CssRule::parse(&rule, parent_stylesheet,
                                                         ParserContextExtraData::default(), state));
 
         // Step 5
@@ -166,6 +166,8 @@ pub struct Stylesheet {
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
     pub origin: Origin,
+    pub base_url: ServoUrl,
+    pub namespaces: RwLock<Namespaces>,
     pub dirty_on_viewport_size_change: AtomicBool,
     pub disabled: AtomicBool,
 }
@@ -280,13 +282,15 @@ impl CssRule {
 
     // input state is None for a nested rule
     // Returns a parsed CSS rule and the final state of the parser
-    pub fn parse(css: &str, origin: Origin,
-                    base_url: ServoUrl,
-                    extra_data: ParserContextExtraData,
-                    state: Option<State>) -> Result<(Self, State), SingleRuleParseError> {
+    pub fn parse(css: &str,
+                 parent_stylesheet: &Stylesheet,
+                 extra_data: ParserContextExtraData,
+                 state: Option<State>)
+                 -> Result<(Self, State), SingleRuleParseError> {
         let error_reporter = Box::new(MemoryHoleReporter);
-        let mut namespaces = Namespaces::default();
-        let context = ParserContext::new_with_extra_data(origin, &base_url,
+        let mut namespaces = parent_stylesheet.namespaces.write();
+        let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
+                                                         &parent_stylesheet.base_url,
                                                          error_reporter.clone(),
                                                          extra_data);
         let mut input = Parser::new(css);
@@ -294,7 +298,7 @@ impl CssRule {
         // nested rules are in the body state
         let state = state.unwrap_or(State::Body);
         let mut rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
+            stylesheet_origin: parent_stylesheet.origin,
             context: context,
             state: Cell::new(state),
             namespaces: &mut namespaces,
@@ -435,37 +439,40 @@ impl Stylesheet {
                     error_reporter: Box<ParseErrorReporter + Send>,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let mut namespaces = Namespaces::default();
-        let rule_parser = TopLevelRuleParser {
-            stylesheet_origin: origin,
-            namespaces: &mut namespaces,
-            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
-                                                        extra_data),
-            state: Cell::new(State::Start),
-        };
-        let mut input = Parser::new(css);
-        input.look_for_viewport_percentages();
-
         let mut rules = vec![];
+        let dirty_on_viewport_size_change;
         {
-            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
-            while let Some(result) = iter.next() {
-                match result {
-                    Ok(rule) => rules.push(rule),
-                    Err(range) => {
-                        let pos = range.start;
-                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                        let context = ParserContext::new(origin, &base_url, error_reporter.clone());
-                        log_css_error(iter.input, pos, &*message, &context);
+            let rule_parser = TopLevelRuleParser {
+                stylesheet_origin: origin,
+                namespaces: &mut namespaces,
+                context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter, extra_data),
+                state: Cell::new(State::Start),
+            };
+            let mut input = Parser::new(css);
+            input.look_for_viewport_percentages();
+            {
+                let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+                while let Some(result) = iter.next() {
+                    match result {
+                        Ok(rule) => rules.push(rule),
+                        Err(range) => {
+                            let pos = range.start;
+                            let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                            log_css_error(iter.input, pos, &*message, &iter.parser.context);
+                        }
                     }
                 }
             }
+            dirty_on_viewport_size_change = input.seen_viewport_percentages();
         }
 
         Stylesheet {
             origin: origin,
+            base_url: base_url,
+            namespaces: RwLock::new(namespaces),
             rules: rules.into(),
             media: Arc::new(RwLock::new(media)),
-            dirty_on_viewport_size_change: AtomicBool::new(input.seen_viewport_percentages()),
+            dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
             disabled: AtomicBool::new(false),
         }
     }
