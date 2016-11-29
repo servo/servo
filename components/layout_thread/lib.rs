@@ -104,7 +104,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
-use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
+use style::context::{LocalStyleContextCreationInfo, QuirksMode, ReflowGoal, SharedStyleContext};
 use style::data::StoredRestyleHint;
 use style::dom::{StylingMode, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
@@ -231,6 +231,9 @@ pub struct LayoutThread {
     // Number of layout threads. This is copied from `util::opts`, but we'd
     // rather limit the dependency on that module here.
     layout_threads: usize,
+
+    /// Which quirks mode are we rendering the document in?
+    quirks_mode: Option<QuirksMode>
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -484,6 +487,7 @@ impl LayoutThread {
                     Timer::new()
                 },
             layout_threads: layout_threads,
+            quirks_mode: None,
         }
     }
 
@@ -520,6 +524,7 @@ impl LayoutThread {
                 error_reporter: self.error_reporter.clone(),
                 local_context_creation_data: Mutex::new(local_style_context_creation_data),
                 timer: self.timer.clone(),
+                quirks_mode: self.quirks_mode.unwrap(),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
@@ -974,6 +979,7 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+        self.quirks_mode = Some(document.quirks_mode());
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
         debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&

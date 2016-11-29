@@ -70,7 +70,6 @@ use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
@@ -87,6 +86,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::QuirksMode;
 use style::dom::TRestyleDamage;
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -1072,8 +1072,8 @@ impl Element {
         let quirks_mode = document_from_node(self).quirks_mode();
         let is_equal = |lhs: &Atom, rhs: &Atom| {
             match quirks_mode {
-                NoQuirks | LimitedQuirks => lhs == rhs,
-                Quirks => lhs.eq_ignore_ascii_case(&rhs),
+                QuirksMode::NoQuirks | QuirksMode::LimitedQuirks => lhs == rhs,
+                QuirksMode::Quirks => lhs.eq_ignore_ascii_case(&rhs),
             }
         };
         self.get_attribute(&ns!(), &local_name!("class"))
@@ -1253,7 +1253,7 @@ impl Element {
 
         // Step 7
         if *self.root_element() == *self {
-            if doc.quirks_mode() != Quirks {
+            if doc.quirks_mode() != QuirksMode::Quirks {
                 win.scroll(x, y, behavior);
             }
 
@@ -1262,7 +1262,7 @@ impl Element {
 
         // Step 9
         if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-           doc.quirks_mode() == Quirks &&
+           doc.quirks_mode() == QuirksMode::Quirks &&
            !self.potentially_scrollable() {
                win.scroll(x, y, behavior);
                return;
@@ -1624,7 +1624,7 @@ impl ElementMethods for Element {
 
         // Step 5
         if *self.root_element() == *self {
-            if doc.quirks_mode() == Quirks {
+            if doc.quirks_mode() == QuirksMode::Quirks {
                 return 0.0;
             }
 
@@ -1634,7 +1634,7 @@ impl ElementMethods for Element {
 
         // Step 7
         if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-           doc.quirks_mode() == Quirks &&
+           doc.quirks_mode() == QuirksMode::Quirks &&
            !self.potentially_scrollable() {
                return win.ScrollY() as f64;
         }
@@ -1675,7 +1675,7 @@ impl ElementMethods for Element {
 
         // Step 7
         if *self.root_element() == *self {
-            if doc.quirks_mode() != Quirks {
+            if doc.quirks_mode() != QuirksMode::Quirks {
                 win.scroll(win.ScrollX() as f64, y, behavior);
             }
 
@@ -1684,7 +1684,7 @@ impl ElementMethods for Element {
 
         // Step 9
         if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-           doc.quirks_mode() == Quirks &&
+           doc.quirks_mode() == QuirksMode::Quirks &&
            !self.potentially_scrollable() {
                win.scroll(win.ScrollX() as f64, y, behavior);
                return;
@@ -1716,7 +1716,7 @@ impl ElementMethods for Element {
 
         // Step 5
         if *self.root_element() == *self {
-            if doc.quirks_mode() != Quirks {
+            if doc.quirks_mode() != QuirksMode::Quirks {
                 // Step 6
                 return win.ScrollX() as f64;
             }
@@ -1726,7 +1726,7 @@ impl ElementMethods for Element {
 
         // Step 7
         if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-           doc.quirks_mode() == Quirks &&
+           doc.quirks_mode() == QuirksMode::Quirks &&
            !self.potentially_scrollable() {
                return win.ScrollX() as f64;
         }
@@ -1767,7 +1767,7 @@ impl ElementMethods for Element {
 
         // Step 7
         if *self.root_element() == *self {
-            if doc.quirks_mode() == Quirks {
+            if doc.quirks_mode() == QuirksMode::Quirks {
                 return;
             }
 
@@ -1777,7 +1777,7 @@ impl ElementMethods for Element {
 
         // Step 9
         if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-           doc.quirks_mode() == Quirks &&
+           doc.quirks_mode() == QuirksMode::Quirks &&
            !self.potentially_scrollable() {
                win.scroll(x, win.ScrollY() as f64, behavior);
                return;
