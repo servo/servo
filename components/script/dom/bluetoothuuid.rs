@@ -267,7 +267,7 @@ const BASE_UUID: &'static str = "-0000-1000-8000-00805f9b34fb";
 const SERVICE_PREFIX: &'static str = "org.bluetooth.service";
 const CHARACTERISTIC_PREFIX: &'static str = "org.bluetooth.characteristic";
 const DESCRIPTOR_PREFIX: &'static str = "org.bluetooth.descriptor";
-const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=314
 const UUID_ERROR_MESSAGE: &'static str = "It must be a valid UUID alias (e.g. 0x1234), \
     UUID (lowercase hex characters e.g. '00001234-0000-1000-8000-00805f9b34fb'),\nor recognized standard name from";
