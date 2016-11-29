@@ -103,6 +103,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
@@ -140,6 +141,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetDescriptors(&self,
                       descriptor: Option<BluetoothDescriptorUUID>)
                       -> Rc<Promise> {
@@ -330,6 +332,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetDescriptor(descriptor) => {
                 let context = self.service.get().get_device().get_context();
@@ -345,6 +348,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 promise.resolve_native(promise_cx, &bt_descriptor);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetDescriptors(descriptors_vec) => {
                 let mut descriptors = vec!();

@@ -95,6 +95,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
                          -> Rc<Promise> {
@@ -134,6 +135,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetCharacteristics(&self,
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Rc<Promise> {
@@ -176,6 +178,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetIncludedService(&self,
                           service: BluetoothServiceUUID)
                           -> Rc<Promise> {
@@ -218,6 +221,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn GetIncludedServices(&self,
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
@@ -274,6 +278,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetCharacteristic(characteristic) => {
                 let context = self.device.get().get_context();
@@ -301,6 +306,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 promise.resolve_native(promise_cx, &bt_characteristic);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec) => {
                 let mut characteristics = vec!();
@@ -337,6 +343,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 promise.resolve_native(promise_cx, &characteristics);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetIncludedService(service) => {
                 let s =
@@ -348,6 +355,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
                 promise.resolve_native(promise_cx, &s);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec) => {
                 let s: Vec<Root<BluetoothRemoteGATTService>> =
