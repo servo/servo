@@ -387,7 +387,7 @@ impl ImageCache {
                                                          height: dimensions.height };
                         pending_load.metadata = Some(img_metadata.clone());
                         for listener in &pending_load.listeners {
-                            listener.notify(ImageResponse::MetadataLoaded(msg.key, img_metadata.clone()));
+                            listener.notify(ImageResponse::MetadataLoaded(img_metadata.clone()));
                         }
                     }
                 }
@@ -452,9 +452,9 @@ impl ImageCache {
         }
 
         let image_response = match load_result {
-            LoadResult::Loaded(image) => ImageResponse::Loaded(key, Arc::new(image)),
-            LoadResult::PlaceholderLoaded(image) => ImageResponse::PlaceholderLoaded(key, image),
-            LoadResult::None => ImageResponse::None(key),
+            LoadResult::Loaded(image) => ImageResponse::Loaded(Arc::new(image)),
+            LoadResult::PlaceholderLoaded(image) => ImageResponse::PlaceholderLoaded(image),
+            LoadResult::None => ImageResponse::None,
         };
 
         let completed_load = CompletedLoad::new(image_response.clone(), key);
@@ -471,7 +471,7 @@ impl ImageCache {
         let listener = ImageListener::new(responder);
         if let Some(load) = self.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
-                listener.notify(ImageResponse::MetadataLoaded(id, metadata.clone()));
+                listener.notify(ImageResponse::MetadataLoaded(metadata.clone()));
             }
             load.add_listener(listener);
             return;
@@ -490,13 +490,13 @@ impl ImageCache {
         match self.completed_loads.get(&url) {
             Some(completed_load) => {
                 match (completed_load.image_response.clone(), placeholder) {
-                    (ImageResponse::Loaded(_, image), _) |
-                    (ImageResponse::PlaceholderLoaded(_, image), UsePlaceholder::Yes) => {
+                    (ImageResponse::Loaded(image), _) |
+                    (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
                         Ok(ImageOrMetadataAvailable::ImageAvailable(image))
                     }
-                    (ImageResponse::PlaceholderLoaded(_, _), UsePlaceholder::No) |
-                    (ImageResponse::None(_), _) |
-                    (ImageResponse::MetadataLoaded(_, _), _) => {
+                    (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
+                    (ImageResponse::None, _) |
+                    (ImageResponse::MetadataLoaded(_), _) => {
                         Err(ImageState::LoadError)
                     }
                 }

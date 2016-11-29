@@ -13,18 +13,29 @@ use std::sync::Arc;
 /// and/or repaint.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImageResponder {
-    sender: IpcSender<ImageResponse>,
+    id: PendingImageId,
+    sender: IpcSender<PendingImageResponse>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct PendingImageResponse {
+    response: ImageResponse,
+    id: PendingImageId,
 }
 
 impl ImageResponder {
-    pub fn new(sender: IpcSender<ImageResponse>) -> ImageResponder {
+    pub fn new(sender: IpcSender<PendingImageResponse>, id: PendingImageId) -> ImageResponder {
         ImageResponder {
             sender: sender,
+            id: id,
         }
     }
 
     pub fn respond(&self, response: ImageResponse) {
-        let _ = self.sender.send(response);
+        let _ = self.sender.send(PendingImageResponse {
+            response: response,
+            id: self.id,
+        });
     }
 }
 
@@ -44,13 +55,13 @@ pub enum ImageState {
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum ImageResponse {
     /// The requested image was loaded.
-    Loaded(PendingImageId, Arc<Image>),
+    Loaded(Arc<Image>),
     /// The request image metadata was loaded.
-    MetadataLoaded(PendingImageId, ImageMetadata),
+    MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(PendingImageId, Arc<Image>),
+    PlaceholderLoaded(Arc<Image>),
     /// Neither the requested image nor the placeholder could be loaded.
-    None(PendingImageId),
+    None,
 }
 
 /// Indicating either entire image or just metadata availability

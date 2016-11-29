@@ -73,7 +73,7 @@ use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
-use net_traits::image_cache_thread::{ImageResponse, ImageCacheThread};
+use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
 use network_listener::NetworkListener;
@@ -116,6 +116,8 @@ use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSour
 use time::Tm;
 use url::Position;
 use webdriver_handlers;
+
+pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
@@ -229,7 +231,7 @@ enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache(ImageResponse),
+    FromImageCache((PipelineId, PendingImageResponse)),
     FromScheduler(TimerEvent)
 }
 
@@ -443,10 +445,10 @@ pub struct ScriptThread {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// The port on which we receive messages from the image cache
-    image_cache_port: Receiver<ImageResponse>,
+    image_cache_port: Receiver<ImageCacheMsg>,
 
     /// The channel on which the image cache can send messages to ourself.
-    image_cache_channel: IpcSender<ImageResponse>,
+    image_cache_channel: Sender<ImageCacheMsg>,
 
     /// For providing contact with the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -642,17 +644,14 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
-        // Ask the router to proxy IPC messages from the image cache thread to us.
-        let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
-        let image_cache_port =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
-
         let (timer_event_chan, timer_event_port) = channel();
 
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
         let boxed_script_sender = MainThreadScriptChan(chan.clone()).clone();
+
+        let (image_cache_channel, image_cache_port) = channel();
 
         ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
@@ -661,7 +660,7 @@ impl ScriptThread {
             job_queue_map: Rc::new(JobQueue::new()),
 
             image_cache_thread: state.image_cache_thread,
-            image_cache_channel: ipc_image_cache_channel,
+            image_cache_channel: image_cache_channel,
             image_cache_port: image_cache_port,
 
             resource_threads: state.resource_threads,
@@ -862,7 +861,7 @@ impl ScriptThread {
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
-                    FromImageCache(inner_msg) => self.handle_msg_from_image_cache(panic!(), inner_msg), //XXXjdm
+                    FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }
 
                 None
@@ -1097,7 +1096,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, id: PipelineId, response: ImageResponse) {
+    fn handle_msg_from_image_cache(&self, (id, response): (PipelineId, PendingImageResponse)) {
         if let Some(ref window) = self.documents.borrow().find_window(id) {
             window.pending_image_notification(response);
         }

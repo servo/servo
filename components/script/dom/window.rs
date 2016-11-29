@@ -6,6 +6,7 @@ use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
 use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -39,7 +40,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, from_untrusted_node_address, window_from_node, document_from_node};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -49,14 +50,19 @@ use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{FrameType, PipelineId};
-use net_traits::{ResourceThreads, ReferrerPolicy};
-use net_traits::image_cache_thread::{ImageResponse, ImageCacheThread, PendingImageId};
+use net_traits::{ResourceThreads, ReferrerPolicy, FetchResponseListener, FetchMetadata};
+use net_traits::NetworkError;
+use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
+use net_traits::image_cache_thread::ImageResponder;
+use net_traits::request::{Type as RequestType, RequestInit as FetchRequestInit};
 use net_traits::storage_thread::StorageType;
+use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use open;
 use origin::Origin;
@@ -71,7 +77,7 @@ use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse
 use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::SendableMainThreadScriptChan;
+use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
@@ -161,7 +167,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
-    image_cache_chan: IpcSender<ImageResponse>,
+    image_cache_chan: Sender<ImageCacheMsg>,
     browsing_context: MutNullableJS<BrowsingContext>,
     history: MutNullableJS<History>,
     performance: MutNullableJS<Performance>,
@@ -284,10 +290,6 @@ impl Window {
         &self.script_chan.0
     }
 
-    pub fn image_cache_chan(&self) -> IpcSender<ImageResponse> {
-        self.image_cache_chan.clone()
-    }
-
     pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
         self.parent_info
     }
@@ -324,7 +326,7 @@ impl Window {
         self.current_viewport.clone().get()
     }
 
-    pub fn pending_image_notification(&self, _response: ImageResponse) {
+    pub fn pending_image_notification(&self, _response: PendingImageResponse) {
         //XXXjdm
     }
 }
@@ -1125,18 +1127,25 @@ impl Window {
 
         let pending_images = self.layout_rpc.pending_images();
         for image in pending_images {
-            if let PendingImageState::Unrequested(url) = image.state {
-                    panic!() //XXXjdm
-            };
             let id = image.id;
             let js_runtime = self.js_runtime.borrow();
             let js_runtime = js_runtime.as_ref().unwrap();
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
+            if let PendingImageState::Unrequested(url) = image.state {
+                fetch_image_for_layout(url, &*node, self.image_cache_thread.clone(), id);
+            }
+
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
             if nodes.iter().find(|n| **n == JS::from_ref(&*node)).is_none() {
-                self.image_cache_thread.add_listener(id, panic!()); //XXXjdm
+                let (responder, responder_listener) = ipc::channel().unwrap();
+                let pipeline = self.upcast::<GlobalScope>().pipeline_id();
+                let image_cache_chan = self.image_cache_chan.clone();
+                ROUTER.add_route(responder_listener.to_opaque(), box move |message| {
+                    let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
+                });
+                self.image_cache_thread.add_listener(id, ImageResponder::new(responder, id));
                 nodes.push(JS::from_ref(&*node));
             }
         }
@@ -1572,7 +1581,7 @@ impl Window {
                network_task_source: NetworkingTaskSource,
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
-               image_cache_chan: IpcSender<ImageResponse>,
+               image_cache_chan: Sender<ImageCacheMsg>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -1767,4 +1776,67 @@ impl Runnable for PostMessageHandler {
                                      window.upcast(),
                                      message.handle());
     }
+}
+
+struct LayoutImageContext {
+    node: Trusted<Node>,
+    data: Vec<u8>,
+    image_cache: ImageCacheThread,
+    id: PendingImageId,
+    url: Url,
+}
+
+impl FetchResponseListener for LayoutImageContext {
+    fn process_request_body(&mut self) {}
+    fn process_request_eof(&mut self) {}
+    fn process_response(&mut self, _metadata: Result<FetchMetadata, NetworkError>) {/*XXXjdm*/}
+
+    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
+        self.data.append(&mut payload);
+    }
+
+    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+        let node = self.node.root();
+        let document = document_from_node(&*node);
+        let window = document.window();
+        let image_cache = window.image_cache_thread();
+        image_cache.store_complete_image_bytes(self.id, self.data.clone());
+        document.finish_load(LoadType::Image(self.url.clone()));
+    }
+}
+
+impl PreInvoke for LayoutImageContext {}
+
+fn fetch_image_for_layout(url: Url, node: &Node, image_cache: ImageCacheThread, id: PendingImageId) {
+    let context = Arc::new(Mutex::new(LayoutImageContext {
+        node: Trusted::new(node),
+        data: vec![],
+        image_cache: image_cache,
+        id: id,
+        url: url.clone(),
+    }));
+
+    let document = document_from_node(node);
+    let window = window_from_node(node);
+
+    let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let listener = NetworkListener {
+        context: context,
+        task_source: window.networking_task_source(),
+        wrapper: Some(window.get_runnable_wrapper()),
+    };
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        listener.notify_fetch(message.to().unwrap());
+    });
+
+    let request = FetchRequestInit {
+        url: url.clone(),
+        origin: document.url().clone(),
+        type_: RequestType::Image,
+        pipeline_id: Some(document.global().pipeline_id()),
+        .. FetchRequestInit::default()
+    };
+
+    //XXXjdm should not block load event
+    document.fetch_async(LoadType::Image(url), request, action_sender);
 }

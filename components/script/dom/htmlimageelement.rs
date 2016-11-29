@@ -152,13 +152,13 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Update the image field
         let element = self.element.root();
         let (image, metadata, trigger_image_load, trigger_image_error) = match self.image {
-            ImageResponse::Loaded(_, image) | ImageResponse::PlaceholderLoaded(_, image) => {
+            ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                 (Some(image.clone()), Some(ImageMetadata { height: image.height, width: image.width } ), true, false)
             }
-            ImageResponse::MetadataLoaded(_, meta) => {
+            ImageResponse::MetadataLoaded(meta) => {
                 (None, Some(meta), false, false)
             }
-            ImageResponse::None(_) => (None, None, false, true)
+            ImageResponse::None => (None, None, false, true)
         };
         element.current_request.borrow_mut().image = image;
         element.current_request.borrow_mut().metadata = metadata;
@@ -273,9 +273,8 @@ impl HTMLImageElement {
                     ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
-                        let image_response = message.to().unwrap();
                         let runnable = ImageResponseHandlerRunnable::new(
-                            trusted_node.clone(), image_response);
+                            trusted_node.clone(), message.to().unwrap());
                         let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
                     });
 
@@ -283,15 +282,15 @@ impl HTMLImageElement {
                     let response =
                         image_cache.find_image_or_metadata(img_url_cloned.into(), UsePlaceholder::Yes);
                     match response {
-                        Ok(ImageOrMetadataAvailable::ImageAvailable(_image)) => {}
+                        Ok(ImageOrMetadataAvailable::ImageAvailable(_image)) => {/*XXXjdm*/}
 
-                        Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => {}
+                        Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => {/*XXXjdm*/}
 
                         Err(ImageState::Pending(id)) => {
-                            image_cache.add_listener(id, ImageResponder::new(responder_sender));
+                            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
                         }
 
-                        Err(ImageState::LoadError) => {}
+                        Err(ImageState::LoadError) => {/*XXXjdm*/}
 
                         Err(ImageState::NotRequested(id)) => {
                             let runnable = box ImageRequestRunnable::new(
