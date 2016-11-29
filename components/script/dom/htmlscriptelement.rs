@@ -274,12 +274,10 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
 
 impl HTMLScriptElement {
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script
-    ///
-    /// Returns true if tokenization should continue, false otherwise.
-    pub fn prepare(&self) -> bool {
+    pub fn prepare(&self) {
         // Step 1.
         if self.already_started.get() {
-            return true;
+            return;
         }
 
         // Step 2.
@@ -297,17 +295,17 @@ impl HTMLScriptElement {
         // Step 4.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
-            return true;
+            return;
         }
 
         // Step 5.
         if !self.upcast::<Node>().is_in_doc() {
-            return true;
+            return;
         }
 
         // Step 6.
         if !self.is_javascript() {
-            return true;
+            return;
         }
 
         // Step 7.
@@ -322,12 +320,12 @@ impl HTMLScriptElement {
         // Step 9.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*self.parser_document != &*doc {
-            return true;
+            return;
         }
 
         // Step 10.
         if !doc.is_scripting_enabled() {
-            return true;
+            return;
         }
 
         // TODO(#4577): Step 11: CSP.
@@ -340,13 +338,13 @@ impl HTMLScriptElement {
                 let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
-                    return true;
+                    return;
                 }
 
                 let event_value = event_attribute.value().to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
-                    return true;
+                    return;
                 }
             },
             (_, _) => (),
@@ -381,7 +379,7 @@ impl HTMLScriptElement {
                 // Step 18.2.
                 if src.is_empty() {
                     self.queue_error_event();
-                    return true;
+                    return;
                 }
 
                 // Step 18.4-18.5.
@@ -389,7 +387,7 @@ impl HTMLScriptElement {
                     Err(_) => {
                         warn!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
-                        return true;
+                        return;
                     }
                     Ok(url) => url,
                 };
@@ -412,7 +410,6 @@ impl HTMLScriptElement {
            !async {
             doc.add_deferred_script(self);
             // Second part implemented in Document::process_deferred_scripts.
-            return true;
         // Step 20.b: classic, has src, was parser-inserted, is not async.
         } else if is_external &&
                   was_parser_inserted &&
@@ -432,7 +429,7 @@ impl HTMLScriptElement {
         // Step 20.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
         } else if !is_external &&
                   was_parser_inserted &&
-                  // TODO: check for script nesting levels.
+                  doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                   doc.get_script_blocking_stylesheets_count() > 0 {
             doc.set_pending_parsing_blocking_script(Some(self));
             *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
@@ -443,16 +440,7 @@ impl HTMLScriptElement {
             self.ready_to_be_parser_executed.set(true);
             *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.execute();
-            return true;
         }
-
-        // TODO: make this suspension happen automatically.
-        if was_parser_inserted {
-            if let Some(parser) = doc.get_current_parser() {
-                parser.suspend();
-            }
-        }
-        false
     }
 
     pub fn is_ready_to_be_executed(&self) -> bool {
@@ -481,19 +469,20 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        if script.external {
-            debug!("loading external script, url = {}", script.url);
-        }
-
         // TODO(#12446): beforescriptexecute.
         if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
             return;
         }
 
         // Step 3.
-        // TODO: If the script is from an external file, then increment the
-        // ignore-destructive-writes counter of the script element's node
-        // document. Let neutralised doc be that Document.
+        let neutralized_doc = if script.external {
+            debug!("loading external script, url = {}", script.url);
+            let doc = document_from_node(self);
+            doc.incr_ignore_destructive_writes_counter();
+            Some(doc)
+        } else {
+            None
+        };
 
         // Step 4.
         let document = document_from_node(self);
@@ -512,8 +501,9 @@ impl HTMLScriptElement {
         document.set_current_script(old_script.r());
 
         // Step 7.
-        // TODO: Decrement the ignore-destructive-writes counter of neutralised
-        // doc, if it was incremented in the earlier step.
+        if let Some(doc) = neutralized_doc {
+            doc.decr_ignore_destructive_writes_counter();
+        }
 
         // TODO(#12446): afterscriptexecute.
         self.dispatch_after_script_execute_event();

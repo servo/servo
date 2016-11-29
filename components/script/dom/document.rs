@@ -142,12 +142,6 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
-#[derive(PartialEq)]
-enum ParserBlockedByScript {
-    Blocked,
-    Unblocked,
-}
-
 #[derive(JSTraceable, HeapSizeOf)]
 #[must_root]
 pub struct StylesheetInDocument {
@@ -287,6 +281,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
+    ignore_destructive_writes_counter: Cell<u32>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -378,15 +374,16 @@ impl Document {
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
+    // https://html.spec.whatwg.org/multipage/#active-document
+    pub fn is_active(&self) -> bool {
+        self.browsing_context().map_or(false, |context| {
+            self == &*context.active_document()
+        })
+    }
+
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let browsing_context = match self.browsing_context() {
-            Some(browsing_context) => browsing_context,
-            None => return false,
-        };
-        let active_document = browsing_context.active_document();
-
-        if self != &*active_document {
+        if !self.is_active() {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -1545,15 +1542,13 @@ impl Document {
             self.process_asap_scripts();
         }
 
-        if self.maybe_execute_parser_blocking_script() == ParserBlockedByScript::Blocked {
-            return;
-        }
-
-        // A finished resource load can potentially unblock parsing. In that case, resume the
-        // parser so its loop can find out.
         if let Some(parser) = self.get_current_parser() {
-            if parser.is_suspended() {
-                parser.resume();
+            if let Some(script) = self.pending_parsing_blocking_script.get() {
+                if self.script_blocking_stylesheets_count.get() > 0 || !script.is_ready_to_be_executed() {
+                    return;
+                }
+                self.pending_parsing_blocking_script.set(None);
+                parser.resume_with_pending_parsing_blocking_script(&script);
             }
         } else if self.reflow_timeout.get().is_none() {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
@@ -1574,23 +1569,6 @@ impl Document {
                 win.upcast::<GlobalScope>().pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
-    }
-
-    /// If document parsing is blocked on a script, and that script is ready to run,
-    /// execute it.
-    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
-        let script = match self.pending_parsing_blocking_script.get() {
-            None => return ParserBlockedByScript::Unblocked,
-            Some(script) => script,
-        };
-
-        if self.script_blocking_stylesheets_count.get() == 0 && script.is_ready_to_be_executed() {
-            self.pending_parsing_blocking_script.set(None);
-            script.execute();
-            return ParserBlockedByScript::Unblocked;
-        }
-        ParserBlockedByScript::Blocked
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3
@@ -1901,6 +1879,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            ignore_destructive_writes_counter: Default::default(),
         }
     }
 
@@ -2076,6 +2055,16 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::ElementStateChanged);
+    }
+
+    pub fn incr_ignore_destructive_writes_counter(&self) {
+        self.ignore_destructive_writes_counter.set(
+            self.ignore_destructive_writes_counter.get() + 1);
+    }
+
+    pub fn decr_ignore_destructive_writes_counter(&self) {
+        self.ignore_destructive_writes_counter.set(
+            self.ignore_destructive_writes_counter.get() - 1);
     }
 }
 
@@ -3041,6 +3030,55 @@ impl DocumentMethods for Document {
 
         // Step 5
         elements
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-write
+    fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
+        if !self.is_html_document() {
+            // Step 1.
+            return Err(Error::InvalidState);
+        }
+
+        // Step 2.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+
+        if !self.is_active() {
+            // Step 3.
+            return Ok(());
+        }
+
+        let parser = self.get_current_parser();
+        let parser = match parser.as_ref() {
+            Some(parser) if parser.script_nesting_level() > 0 => parser,
+            _ => {
+                // Either there is no parser, which means the parsing ended;
+                // or script nesting level is 0, which means the method was
+                // called from outside a parser-executed script.
+                if self.ignore_destructive_writes_counter.get() > 0 {
+                    // Step 4.
+                    // TODO: handle ignore-opens-during-unload counter.
+                    return Ok(());
+                }
+                // Step 5.
+                // TODO: call document.open().
+                return Err(Error::InvalidState);
+            }
+        };
+
+        // Step 7.
+        // TODO: handle reload override buffer.
+
+        // Steps 6-8.
+        parser.write(text);
+
+        // Step 9.
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-writeln
+    fn Writeln(&self, mut text: Vec<DOMString>) -> ErrorResult {
+        text.push("\n".into());
+        self.Write(text)
     }
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
