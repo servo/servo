@@ -273,6 +273,11 @@ ${helpers.single_keyword("column-fill", "auto balance",
         Au::from_px(3) // medium
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        BorderWidth::Medium
+    }
+
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         BorderWidth::parse(context, input)
     }
@@ -289,8 +294,9 @@ ${helpers.predefined_type("-moz-column-rule-color", "CSSColor",
 ${helpers.single_keyword("column-span", "none all",
                          products="none", animatable=False)}
 
-${helpers.single_keyword("column-rule-style",
+${helpers.single_keyword("-moz-column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",
                          products="gecko",
+                         gecko_ffi_name="mColumnRuleStyle",
                          gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
                          animatable=False)}
