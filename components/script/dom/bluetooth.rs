@@ -310,8 +310,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                     Err(err) => return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err))),
                 };
 
-                // Step 7.3: This step is missing,
-                // because we don't necesarry need to make the conversion to an IDL value.
+                // Step 7.3: No need to convert to IDL values since this is only used by native code.
 
                 // Step 7.4 - 7.5.
                 map.insert(manufacturer_id, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
@@ -345,8 +344,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                     return Err(Security);
                 }
 
-                // Step 9.6: This step is missing,
-                // because we don't need necesarry to make the conversion to an IDL value.
+                // Step 9.6: No need to convert to IDL values since this is only used by native code.
 
                 // Step 9.7 - 9.8.
                 map.insert(service, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
