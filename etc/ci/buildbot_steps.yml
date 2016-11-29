@@ -1,8 +1,7 @@
 mac-rel-wpt1:
   - ./mach build --release
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --output filtered-wpt-errorsummary.log
+  - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
   - ./mach build-cef --release
   - bash ./etc/ci/lockfile_changed.sh
@@ -22,8 +21,7 @@ mac-dev-unit:
 
 mac-rel-css:
   - ./mach build --release
-  - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --output filtered-css-errorsummary.log
+  - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log
   - ./mach build-geckolib --release
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -59,14 +57,12 @@ linux-dev:
 linux-rel-wpt:
   - ./mach build --release --with-debug-assertions
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
-  - ./mach filter-intermittents wpt-errorsummary.log --output filtered-wpt-errorsummary.log
+  - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
   - ./mach build --release --with-debug-assertions
-  - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
-  - ./mach filter-intermittents css-errorsummary.log --output filtered-css-errorsummary.log
+  - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log
   - ./mach build-cef --release --with-debug-assertions
   - ./mach build-geckolib --release
   - ./mach test-stylo --release

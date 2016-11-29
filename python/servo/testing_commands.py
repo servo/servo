@@ -68,8 +68,6 @@ def create_parser_wpt():
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
-    parser.add_argument('--always-succeed', default=False, action="store_true",
-                        help="Always yield exit code of zero")
     return parser
 
 
@@ -401,11 +399,7 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
-        ret = self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
-        if kwargs["always_succeed"]:
-            return 0
-        else:
-            return ret
+        return self.run_test_list_or_dispatch(kwargs["test_list"], "wpt", self._test_wpt, **kwargs)
 
     def _test_wpt(self, **kwargs):
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
@@ -562,11 +556,7 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_css(self, **kwargs):
         self.ensure_bootstrapped()
-        ret = self.run_test_list_or_dispatch(kwargs["test_list"], "css", self._test_css, **kwargs)
-        if kwargs["always_succeed"]:
-            return 0
-        else:
-            return ret
+        return self.run_test_list_or_dispatch(kwargs["test_list"], "css", self._test_css, **kwargs)
 
     def _test_css(self, **kwargs):
         run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
