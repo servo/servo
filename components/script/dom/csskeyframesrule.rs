@@ -5,7 +5,6 @@
 use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
@@ -82,7 +81,6 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
     // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule
     fn AppendRule(&self, rule: DOMString) {
         let global = self.global();
-        let window = global.as_window();
         let rule = Keyframe::parse(&rule, self.cssrule.parent_stylesheet().style_stylesheet(),
                                    ParserContextExtraData::default());
         if let Ok(rule) = rule {

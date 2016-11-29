@@ -44,22 +44,19 @@ impl LateLintPass for InheritancePass {
                                     .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields().iter().enumerate().filter_map(|(ctr, f)| {
-                if let hir::TyPath(..) = f.ty.node {
-                    if let Some(&def::PathResolution { base_def: def, .. }) =
-                            cx.tcx.def_map.borrow().get(&f.ty.id) {
-                        if let def::Def::PrimTy(_) = def {
-                            return None;
+                if let hir::TyPath(hir::QPath::Resolved(_, ref path)) = f.ty.node {
+                    if let def::Def::PrimTy(_) = path.def {
+                        return None;
+                    }
+                    if cx.tcx.has_attr(path.def.def_id(), "_dom_struct_marker") {
+                        // If the field is not the first, it's probably
+                        // being misused (a)
+                        if ctr > 0 {
+                            cx.span_lint(INHERITANCE_INTEGRITY, f.span,
+                                         "Bare DOM structs should only be used as the first field of a \
+                                          DOM struct. Consider using JS<T> instead.");
                         }
-                        if cx.tcx.has_attr(def.def_id(), "_dom_struct_marker") {
-                            // If the field is not the first, it's probably
-                            // being misused (a)
-                            if ctr > 0 {
-                                cx.span_lint(INHERITANCE_INTEGRITY, f.span,
-                                             "Bare DOM structs should only be used as the first field of a \
-                                              DOM struct. Consider using JS<T> instead.");
-                            }
-                            return Some(f.span)
-                        }
+                        return Some(f.span)
                     }
                 }
                 None

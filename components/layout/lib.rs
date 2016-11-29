@@ -38,9 +38,6 @@ extern crate net_traits;
 extern crate ordered_float;
 extern crate parking_lot;
 #[macro_use]
-#[no_link]
-extern crate plugins as servo_plugins;
-#[macro_use]
 extern crate profile_traits;
 #[macro_use]
 extern crate range;

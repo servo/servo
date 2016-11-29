@@ -25,15 +25,15 @@ impl LateLintPass for TransmutePass {
         match ex.node {
             hir::ExprCall(ref expr, ref args) => {
                 match expr.node {
-                    hir::ExprPath(_, ref path) => {
+                    hir::ExprPath(hir::QPath::Resolved(_, ref path)) => {
                         if path.segments.last()
-                                        .map_or(false, |ref segment| segment.name.as_str() == "transmute") &&
+                                        .map_or(false, |ref segment| &*segment.name.as_str() == "transmute") &&
                            args.len() == 1 {
                             let tcx = cx.tcx;
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
                                          &format!("Transmute to {:?} from {:?} detected",
-                                                  tcx.expr_ty(ex),
-                                                  tcx.expr_ty(&**args.get(0).unwrap())
+                                                  tcx.tables().expr_ty(ex),
+                                                  tcx.tables().expr_ty(&args.get(0).unwrap())
                                         ));
                         }
                     }

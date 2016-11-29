@@ -5,7 +5,6 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
