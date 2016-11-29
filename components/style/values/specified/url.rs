@@ -7,7 +7,7 @@
 use cssparser::{CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use parser::{ParseWithContext, ParserContext};
+use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
 use servo_url::ServoUrl;
@@ -73,7 +73,7 @@ pub struct SpecifiedUrl {
     extra_data: UrlExtraData,
 }
 
-impl ParseWithContext for SpecifiedUrl {
+impl Parse for SpecifiedUrl {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         SpecifiedUrl::parse(context, input)
     }

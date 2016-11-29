@@ -5,7 +5,7 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-use parser::Parse;
+use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
