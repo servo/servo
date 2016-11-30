@@ -339,3 +339,10 @@ ${helpers.single_keyword("background-origin",
         }))
     }
 </%helpers:vector_longhand>
+
+// https://drafts.fxtf.org/compositing/#background-blend-mode
+${helpers.single_keyword("background-blend-mode",
+                         """normal multiply screen overlay darken lighten color-dodge
+                            color-burn hard-light soft-light difference exclusion hue
+                            saturation color luminosity""",
+                         vector="true", products="gecko", animatable=False)}

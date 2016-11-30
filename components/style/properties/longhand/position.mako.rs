@@ -86,13 +86,13 @@ ${helpers.single_keyword("justify-content", "flex-start flex-end center space-be
                          products="servo",
                          animatable=False)}
 
-// FIXME(heycam): Disable align-items in geckolib since we don't support the Gecko initial value
-// 'normal' yet.
-${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline",
+// https://drafts.csswg.org/css-flexbox/#propdef-align-items
+// FIXME: This is a workaround for 'normal' value. We don't support the Gecko initial value 'normal' yet.
+${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline" if product == "servo"
+                         else "normal stretch flex-start flex-end center baseline",
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
-                         animatable=False,
-                         products="servo")}
+                         animatable=False)}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
@@ -110,8 +110,11 @@ ${helpers.predefined_type("flex-shrink", "Number",
                           needs_context=False,
                           animatable=True)}
 
+// https://drafts.csswg.org/css-align/#align-self-property
+// FIXME: We don't support the Gecko value 'normal' yet.
 ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
                          need_clone=True,
+                         extra_gecko_values="normal",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          animatable=False)}
 
