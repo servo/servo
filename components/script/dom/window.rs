@@ -1804,7 +1804,7 @@ struct LayoutImageContext {
     data: Vec<u8>,
     image_cache: ImageCacheThread,
     id: PendingImageId,
-    url: Url,
+    url: ServoUrl,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -1828,7 +1828,7 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-fn fetch_image_for_layout(url: Url, node: &Node, image_cache: ImageCacheThread, id: PendingImageId) {
+fn fetch_image_for_layout(url: ServoUrl, node: &Node, image_cache: ImageCacheThread, id: PendingImageId) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         node: Trusted::new(node),
         data: vec![],
