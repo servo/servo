@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 
 use {Atom, LocalName};
-use animation;
+use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use cache::LRUCache;
 use cascade_info::CascadeInfo;
@@ -395,10 +395,10 @@ trait PrivateMatchMethods: TElement {
                                             parent_style: Option<&Arc<ComputedValues>>,
                                             old_style: Option<&Arc<ComputedValues>>,
                                             rule_node: &StrongRuleNode,
+                                            possibly_expired_animations: &[PropertyAnimation],
                                             booleans: CascadeBooleans)
                                             -> Arc<ComputedValues>
-        where Ctx: StyleContext<'a>
-    {
+                                            where Ctx: StyleContext<'a> {
         let shared_context = context.shared_context();
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
@@ -445,7 +445,8 @@ trait PrivateMatchMethods: TElement {
                     self.as_node().to_unsafe(),
                     &**style,
                     &mut this_style,
-                    &shared_context.timer);
+                    &shared_context.timer,
+                    &possibly_expired_animations);
             }
         }
 
@@ -454,11 +455,11 @@ trait PrivateMatchMethods: TElement {
 
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext,
-                                     style: &mut Arc<ComputedValues>) -> bool {
+                                     style: &mut Arc<ComputedValues>,
+                                     possibly_expired_animations: &mut Vec<PropertyAnimation>) {
         // Finish any expired transitions.
         let this_opaque = self.as_node().opaque();
-        let had_animations_to_expire =
-            animation::complete_expired_transitions(this_opaque, style, context);
+        animation::complete_expired_transitions(this_opaque, style, context);
 
         // Merge any running transitions into the current style, and cancel them.
         let had_running_animations = context.running_animations
@@ -467,7 +468,7 @@ trait PrivateMatchMethods: TElement {
                                             .is_some();
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write();
-            for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+            for running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
                 // This shouldn't happen frequently, but under some
                 // circumstances mainly huge load or debug builds, the
                 // constellation might be delayed in sending the
@@ -483,12 +484,12 @@ trait PrivateMatchMethods: TElement {
                     animation::update_style_for_animation(context,
                                                           running_animation,
                                                           style);
-                    running_animation.mark_as_expired();
+                    if let Animation::Transition(_, _, _, ref frame, _) = *running_animation {
+                        possibly_expired_animations.push(frame.property_animation.clone())
+                    }
                 }
             }
         }
-
-        had_animations_to_expire || had_running_animations
     }
 
     fn share_style_with_candidate_if_possible(&self,
@@ -729,6 +730,7 @@ pub trait MatchMethods : TElement {
         let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary.values);
 
         let mut new_styles;
+        let mut possibly_expired_animations = vec![];
 
         let damage = {
             let (old_primary, old_pseudos) = match data.previous_styles_mut() {
@@ -737,7 +739,8 @@ pub trait MatchMethods : TElement {
                     // Update animations before the cascade. This may modify the
                     // value of the old primary style.
                     self.update_animations_for_cascade(context.shared_context(),
-                                                       &mut previous.primary.values);
+                                                       &mut previous.primary.values,
+                                                       &mut possibly_expired_animations);
                     (Some(&previous.primary.values), Some(&mut previous.pseudos))
                 }
             };
@@ -747,6 +750,7 @@ pub trait MatchMethods : TElement {
                                                  parent_style,
                                                  old_primary,
                                                  &primary_rule_node,
+                                                 &possibly_expired_animations,
                                                  CascadeBooleans {
                                                      shareable: primary_is_shareable,
                                                      animate: true,
@@ -761,7 +765,8 @@ pub trait MatchMethods : TElement {
                                                         &new_styles.primary.values,
                                                         &mut new_styles.pseudos,
                                                         context,
-                                                        pseudo_rule_nodes);
+                                                        pseudo_rule_nodes,
+                                                        &mut possibly_expired_animations);
 
             self.as_node().set_can_be_fragmented(parent.map_or(false, |p| {
                 p.as_node().can_be_fragmented() ||
@@ -774,14 +779,16 @@ pub trait MatchMethods : TElement {
         data.finish_styling(new_styles, damage);
     }
 
-    fn compute_damage_and_cascade_pseudos<'a, Ctx>(&self,
-                                                   old_primary: Option<&Arc<ComputedValues>>,
-                                                   mut old_pseudos: Option<&mut PseudoStyles>,
-                                                   new_primary: &Arc<ComputedValues>,
-                                                   new_pseudos: &mut PseudoStyles,
-                                                   context: &Ctx,
-                                                   mut pseudo_rule_nodes: PseudoRuleNodes)
-                                                   -> RestyleDamage
+    fn compute_damage_and_cascade_pseudos<'a, Ctx>(
+            &self,
+            old_primary: Option<&Arc<ComputedValues>>,
+            mut old_pseudos: Option<&mut PseudoStyles>,
+            new_primary: &Arc<ComputedValues>,
+            new_pseudos: &mut PseudoStyles,
+            context: &Ctx,
+            mut pseudo_rule_nodes: PseudoRuleNodes,
+            possibly_expired_animations: &mut Vec<PropertyAnimation>)
+            -> RestyleDamage
         where Ctx: StyleContext<'a>
     {
         // Here we optimise the case of the style changing but both the
@@ -838,14 +845,18 @@ pub trait MatchMethods : TElement {
                         // Update animations before the cascade. This may modify
                         // the value of old_pseudo_style.
                         self.update_animations_for_cascade(context.shared_context(),
-                                                           &mut old_pseudo_style.values);
+                                                           &mut old_pseudo_style.values,
+                                                           possibly_expired_animations);
                     }
                 }
 
                 let new_pseudo_values =
-                    self.cascade_node_pseudo_element(context, Some(new_primary),
-                                                     maybe_old_pseudo_style.as_ref().map(|s| &s.values),
+                    self.cascade_node_pseudo_element(context,
+                                                     Some(new_primary),
+                                                     maybe_old_pseudo_style.as_ref()
+                                                                           .map(|s| &s.values),
                                                      &new_rule_node,
+                                                     &possibly_expired_animations,
                                                      CascadeBooleans {
                                                          shareable: false,
                                                          animate: animate,
