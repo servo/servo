@@ -13,6 +13,8 @@ use std::cmp::max;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use values::computed::{MinLength};
+use values::{ExtremumLength};
 use values::computed::basic_shape::ShapeRadius;
 
 pub trait StyleCoordHelpers {
@@ -184,6 +186,48 @@ impl GeckoStyleCoordConvertible for Angle {
         } else {
             None
         }
+    }
+}
+
+impl GeckoStyleCoordConvertible for ExtremumLength {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Enumerated(
+            match *self {
+                ExtremumLength::MaxContent => 0,
+                ExtremumLength::MinContent => 1,
+                ExtremumLength::FitContent => 2,
+                ExtremumLength::FillAvailable => 3,
+            }
+        ))
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Enumerated(0) => Some(ExtremumLength::MaxContent),
+            CoordDataValue::Enumerated(1) => Some(ExtremumLength::MinContent),
+            CoordDataValue::Enumerated(2) => Some(ExtremumLength::FitContent),
+            CoordDataValue::Enumerated(3) => Some(ExtremumLength::FillAvailable),
+            _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for MinLength {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            MinLength::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+            MinLength::Auto => coord.set_value(CoordDataValue::Auto),
+            MinLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        LengthOrPercentage::from_gecko_style_coord(coord).map(MinLength::LengthOrPercentage)
+            .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MinLength::ExtremumLength))
+            .or_else(|| match coord.as_value() {
+                CoordDataValue::Auto => Some(MinLength::Auto),
+                _ => None,
+            })
     }
 }
 

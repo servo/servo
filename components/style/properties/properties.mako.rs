@@ -1181,13 +1181,21 @@ impl ComputedValues {
     #[inline]
     pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
         let position_style = self.get_position();
-        if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
+        let size = if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width };
+        match size {
+            computed::MinLength::LengthOrPercentage(lop) => lop,
+            _ => panic!("layout doesn't work!")
+        }
     }
 
     #[inline]
     pub fn min_block_size(&self) -> computed::LengthOrPercentage {
         let position_style = self.get_position();
-        if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
+        let size = if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height };
+        match size {
+            computed::MinLength::LengthOrPercentage(lop) => lop,
+            _ => panic!("layout doesn't work!")
+        }
     }
 
     #[inline]

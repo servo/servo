@@ -497,6 +497,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
+        "MinLength": impl_style_coord,
         "Number": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
