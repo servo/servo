@@ -81,8 +81,8 @@ impl Attr {
     }
 
     #[inline]
-    pub fn prefix(&self) -> &Option<Prefix> {
-        &self.identifier.prefix
+    pub fn prefix(&self) -> Option<&Prefix> {
+        self.identifier.prefix.as_ref()
     }
 }
 
@@ -153,7 +153,7 @@ impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
         // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        self.prefix().as_ref().map(|p| DOMString::from(&**p))
+        self.prefix().map(|p| DOMString::from(&**p))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement

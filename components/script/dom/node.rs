@@ -1768,7 +1768,7 @@ impl Node {
                                                  attr.value().clone(),
                                                  attr.name().clone(),
                                                  attr.namespace().clone(),
-                                                 attr.prefix().clone());
+                                                 attr.prefix().cloned());
                 }
             },
             _ => ()
@@ -1815,10 +1815,10 @@ impl Node {
                                   defined_prefix: &Option<LocalName>) -> bool {
             *attr.namespace() == ns!(xmlns) &&
                 match (attr.prefix(), defined_prefix) {
-                    (&Some(ref attr_prefix), &Some(ref defined_prefix)) =>
+                    (Some(attr_prefix), &Some(ref defined_prefix)) =>
                         attr_prefix == &namespace_prefix!("xmlns") &&
                             attr.local_name() == defined_prefix,
-                    (&None, &None) => *attr.local_name() == local_name!("xmlns"),
+                    (None, &None) => *attr.local_name() == local_name!("xmlns"),
                     _ => false
                 }
         }
