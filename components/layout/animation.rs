@@ -88,7 +88,8 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
             if let Animation::Transition(_, unsafe_node, _, ref frame, _) = running_animation {
                 script_chan.send(ConstellationControlMsg::TransitionEnd(unsafe_node,
-                                                                        frame.property_animation.property_name(),
+                                                                        frame.property_animation
+                                                                             .property_name(),
                                                                         frame.duration))
                            .unwrap();
             }
@@ -113,7 +114,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
     for new_running_animation in new_running_animations {
         running_animations.entry(*new_running_animation.node())
                           .or_insert_with(Vec::new)
-                          .push(new_running_animation);
+                          .push(new_running_animation)
     }
 
     let animation_state = if running_animations.is_empty() {
@@ -122,7 +123,8 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
         AnimationState::AnimationsPresent
     };
 
-    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id,
+                                                                           animation_state))
                       .unwrap();
 }
 

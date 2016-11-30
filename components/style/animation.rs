@@ -359,7 +359,9 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
-        let property_animations = PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
+        let property_animations = PropertyAnimation::from_transition(i,
+                                                                     old_style,
+                                                                     Arc::make_mut(new_style));
         for property_animation in property_animations {
             // Per [1], don't trigger a new transition if the end state for that transition is
             // the same as that of a transition that's already running on the same node.
