@@ -508,7 +508,7 @@ class MachCommands(CommandBase):
         for failure in failures:
             if use_tracker:
                 query = urllib2.quote(failure['test'], safe='')
-                request = urllib2.Request("https://www.joshmatthews.net/intermittent-tracker/query.py?name=%s" % query)
+                request = urllib2.Request("http://build.servo.org/intermittent-tracker/query.py?name=%s" % query)
                 search = urllib2.urlopen(request)
                 data = json.load(search)
                 if len(data) == 0:
