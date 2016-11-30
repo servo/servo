@@ -328,7 +328,8 @@ impl Flow for TableWrapperFlow {
         for kid in self.block_flow.base.child_iter_mut() {
             debug_assert!(kid.is_table_caption() || kid.is_table());
             if kid.is_table() {
-                self.column_intrinsic_inline_sizes = kid.column_intrinsic_inline_sizes().clone()
+                let table = kid.as_table();
+                self.column_intrinsic_inline_sizes = table.column_intrinsic_inline_sizes.clone();
             }
         }
 

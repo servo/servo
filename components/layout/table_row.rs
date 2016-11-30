@@ -235,14 +235,6 @@ impl Flow for TableRowFlow {
         &self.block_flow
     }
 
-    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
-        panic!("can't call column_intrinsic_inline_sizes() on table row")
-    }
-
-    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
-        &mut self.column_computed_inline_sizes
-    }
-
     /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When
     /// called on this context, all child contexts have had their min/pref inline-sizes set. This
     /// function must decide min/pref inline-sizes based on child context inline-sizes and
