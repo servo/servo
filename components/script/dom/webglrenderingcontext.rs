@@ -173,7 +173,7 @@ impl WebGLRenderingContext {
             Ok(ctx) => Some(reflect_dom_object(box ctx, global, WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
-                let event = WebGLContextEvent::new(global,
+                let event = WebGLContextEvent::new(global.as_window(),
                                                    atom!("webglcontextcreationerror"),
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,

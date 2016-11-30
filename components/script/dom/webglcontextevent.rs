@@ -13,6 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use servo_atoms::Atom;
 
 #[dom_struct]
@@ -52,14 +53,14 @@ impl WebGLContextEvent {
                         WebGLContextEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                status_message: DOMString) -> Root<WebGLContextEvent> {
         let event = reflect_dom_object(
                         box WebGLContextEvent::new_inherited(status_message),
-                        global,
+                        window,
                         WebGLContextEventBinding::Wrap);
 
         {
@@ -70,7 +71,7 @@ impl WebGLContextEvent {
         event
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
@@ -82,7 +83,7 @@ impl WebGLContextEvent {
 
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
-        Ok(WebGLContextEvent::new(global,
+        Ok(WebGLContextEvent::new(window,
                                   Atom::from(type_),
                                   bubbles,
                                   cancelable,
