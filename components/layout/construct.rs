@@ -54,7 +54,7 @@ use style::properties::{self, ServoComputedValues};
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW};
 use style::stylist::Stylist;
-use style::values::Either;
+use style::values::{Either, None_};
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -1212,7 +1212,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
-            Either::Second(_) => {
+            Either::Second(None_) => {
                 match ListStyleTypeContent::from_list_style_type(node.style(self.style_context())
                                                                      .get_list()
                                                                      .list_style_type) {
