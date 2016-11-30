@@ -820,7 +820,7 @@ impl Element {
 
                     // Step 2.
                     for attr in element.attrs.borrow().iter() {
-                        if *attr.prefix() == Some(namespace_prefix!("xmlns")) &&
+                        if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                            **attr.value() == *namespace {
                             return Some(attr.LocalName());
                         }
