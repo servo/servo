@@ -20,7 +20,7 @@ use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, InitialScriptState};
+use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
@@ -276,7 +276,7 @@ impl Pipeline {
         pipeline
     }
 
-    pub fn exit(&self) {
+    pub fn exit(&self, discard_bc: DiscardBrowsingContext) {
         debug!("pipeline {:?} exiting", self.id);
 
         // The compositor wants to know when pipelines shut down too.
@@ -293,7 +293,8 @@ impl Pipeline {
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::ExitPipeline(self.id)) {
+        let msg = ConstellationControlMsg::ExitPipeline(self.id, discard_bc);
+        if let Err(e) = self.event_loop.send(msg) {
             warn!("Sending script exit message failed ({}).", e);
         }
     }
@@ -310,8 +311,9 @@ impl Pipeline {
         }
     }
 
-    pub fn force_exit(&self) {
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::ExitPipeline(self.id)) {
+    pub fn force_exit(&self, discard_bc: DiscardBrowsingContext) {
+        let msg = ConstellationControlMsg::ExitPipeline(self.id, discard_bc);
+        if let Err(e) = self.event_loop.send(msg) {
             warn!("Sending script exit message failed ({}).", e);
         }
         if let Err(e) = self.layout_chan.send(LayoutControlMsg::ExitNow) {
