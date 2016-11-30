@@ -14,11 +14,12 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, NodeSiblingIterator};
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -96,17 +97,15 @@ impl ServoParser {
     }
 
     // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
-    pub fn parse_html_fragment(
-            context_node: &Node,
-            input: DOMString,
-            output: &Node) {
-        let window = window_from_node(context_node);
-        let context_document = document_from_node(context_node);
+    pub fn parse_html_fragment(context: &Element, input: DOMString) -> FragmentParsingResult {
+        let context_node = context.upcast::<Node>();
+        let context_document = context_node.owner_doc();
+        let window = context_document.window();
         let url = context_document.url();
 
         // Step 1.
         let loader = DocumentLoader::new(&*context_document.loader());
-        let document = Document::new(&window, None, Some(url.clone()),
+        let document = Document::new(window, None, Some(url.clone()),
                                      IsHTMLDocument::HTMLDocument,
                                      None, None,
                                      DocumentSource::FromParser,
@@ -134,9 +133,7 @@ impl ServoParser {
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
-        for child in root_element.upcast::<Node>().children() {
-            output.AppendChild(&child).unwrap();
-        }
+        FragmentParsingResult { inner: root_element.upcast::<Node>().children() }
     }
 
     pub fn parse_xml_document(
@@ -346,6 +343,23 @@ impl ServoParser {
         if let Some(pipeline) = self.pipeline {
             ScriptThread::parsing_complete(pipeline);
         }
+    }
+}
+
+pub struct FragmentParsingResult {
+    inner: NodeSiblingIterator,
+}
+
+impl Iterator for FragmentParsingResult {
+    type Item = Root<Node>;
+
+    fn next(&mut self) -> Option<Root<Node>> {
+        let next = match self.inner.next() {
+            Some(next) => next,
+            None => return None,
+        };
+        next.remove_self();
+        Some(next)
     }
 }
 

@@ -22,7 +22,6 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::element::Element;
-use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
@@ -901,6 +900,7 @@ impl RangeMethods for Range {
     fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<Root<DocumentFragment>> {
         // Step 1.
         let node = self.StartContainer();
+        let owner_doc = node.owner_doc();
         let element = match node.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
             NodeTypeId::Element(_) => Some(Root::downcast::<Element>(node).unwrap()),
@@ -911,15 +911,7 @@ impl RangeMethods for Range {
         };
 
         // Step 2.
-        let should_create_body = element.as_ref().map_or(true, |elem| {
-            let elem = elem.downcast::<Element>().unwrap();
-            elem.local_name() == &local_name!("html") && elem.html_element_in_html_document()
-        });
-        let element: Root<Node> = if should_create_body {
-            Root::upcast(HTMLBodyElement::new(local_name!("body"), None, &self.StartContainer().owner_doc()))
-        } else {
-            Root::upcast(element.unwrap())
-        };
+        let element = Element::fragment_parsing_context(&owner_doc, element.r());
 
         // Step 3.
         let fragment_node = try!(element.parse_fragment(fragment));
