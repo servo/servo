@@ -9,10 +9,10 @@ use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::js::{HeapGCValue, JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
-use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webgltexture::WebGLTexture;
+use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use webrender_traits;
@@ -66,21 +66,21 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLFramebuffer>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|fb_id| WebGLFramebuffer::new(global, renderer, fb_id))
+        result.map(|fb_id| WebGLFramebuffer::new(window, renderer, fb_id))
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLFramebufferId)
                -> Root<WebGLFramebuffer> {
         reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
-                           global,
+                           window,
                            WebGLFramebufferBinding::Wrap)
     }
 }

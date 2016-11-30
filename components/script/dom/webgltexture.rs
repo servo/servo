@@ -9,9 +9,9 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::globalscope::GlobalScope;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
+use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;
@@ -61,21 +61,21 @@ impl WebGLTexture {
         }
     }
 
-    pub fn maybe_new(global: &GlobalScope, renderer: IpcSender<CanvasMsg>)
+    pub fn maybe_new(window: &Window, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLTexture>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|texture_id| WebGLTexture::new(global, renderer, texture_id))
+        result.map(|texture_id| WebGLTexture::new(window, renderer, texture_id))
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLTextureId)
                -> Root<WebGLTexture> {
         reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),
-                           global,
+                           window,
                            WebGLTextureBinding::Wrap)
     }
 }

@@ -11,10 +11,9 @@
  */
 
 [Constructor,
-// Constructor(DOMString transformList)
-Constructor(sequence<unrestricted double> numberSequence),
-// Exposed=(Window,Worker)
-]
+ // Constructor(DOMString transformList)
+ Constructor(sequence<unrestricted double> numberSequence),
+ Exposed=(Window,Worker)]
 interface DOMMatrixReadOnly {
 
     [NewObject, Throws] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other);

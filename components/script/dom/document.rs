@@ -1884,11 +1884,10 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Document>> {
-        let win = global.as_window();
-        let doc = win.Document();
+    pub fn Constructor(window: &Window) -> Fallible<Root<Document>> {
+        let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
-        Ok(Document::new(win,
+        Ok(Document::new(window,
                          None,
                          None,
                          IsHTMLDocument::NonHTMLDocument,
@@ -2426,7 +2425,7 @@ impl DocumentMethods for Document {
                     )
                 )),
             "webglcontextevent" =>
-                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(&self.window))),
             "storageevent" => {
                 let USVString(url) = self.URL();
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))

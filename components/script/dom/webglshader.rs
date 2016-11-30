@@ -10,8 +10,8 @@ use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
+use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
@@ -66,23 +66,24 @@ impl WebGLShader {
         }
     }
 
-    pub fn maybe_new(global: &GlobalScope,
+    pub fn maybe_new(window: &Window,
                      renderer: IpcSender<CanvasMsg>,
-                     shader_type: u32) -> Option<Root<WebGLShader>> {
+                     shader_type: u32)
+                     -> Option<Root<WebGLShader>> {
         let (sender, receiver) = webrender_traits::channel::msg_channel().unwrap();
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateShader(shader_type, sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|shader_id| WebGLShader::new(global, renderer, shader_id, shader_type))
+        result.map(|shader_id| WebGLShader::new(window, renderer, shader_id, shader_type))
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                renderer: IpcSender<CanvasMsg>,
                id: WebGLShaderId,
                shader_type: u32)
                -> Root<WebGLShader> {
         reflect_dom_object(box WebGLShader::new_inherited(renderer, id, shader_type),
-                           global,
+                           window,
                            WebGLShaderBinding::Wrap)
     }
 }

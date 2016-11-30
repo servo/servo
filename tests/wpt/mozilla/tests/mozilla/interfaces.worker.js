@@ -11,6 +11,8 @@ test_interfaces([
   "Blob",
   "CloseEvent",
   "CSSStyleDeclaration",
+  "DOMMatrix",
+  "DOMMatrixReadOnly",
   "DOMPoint",
   "DOMPointReadOnly",
   "DOMQuad",

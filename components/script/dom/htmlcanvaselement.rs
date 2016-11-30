@@ -177,7 +177,7 @@ impl HTMLCanvasElement {
                 GLContextAttributes::default()
             };
 
-            let maybe_ctx = WebGLRenderingContext::new(window.upcast(), self, size, attrs);
+            let maybe_ctx = WebGLRenderingContext::new(&window, self, size, attrs);
 
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
         }

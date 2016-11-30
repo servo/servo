@@ -17,7 +17,6 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
-use dom::globalscope::GlobalScope;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
 
@@ -41,8 +40,8 @@ impl DOMParser {
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<Root<DOMParser>> {
-        Ok(DOMParser::new(global.as_window()))
+    pub fn Constructor(window: &Window) -> Fallible<Root<DOMParser>> {
+        Ok(DOMParser::new(window))
     }
 }
 

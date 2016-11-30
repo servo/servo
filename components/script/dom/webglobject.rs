@@ -6,7 +6,7 @@
 use dom::bindings::codegen::Bindings::WebGLObjectBinding;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 
 #[dom_struct]
 pub struct WebGLObject {
@@ -20,7 +20,7 @@ impl WebGLObject {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> Root<WebGLObject> {
-        reflect_dom_object(box WebGLObject::new_inherited(), global, WebGLObjectBinding::Wrap)
+    pub fn new(window: &Window) -> Root<WebGLObject> {
+        reflect_dom_object(box WebGLObject::new_inherited(), window, WebGLObjectBinding::Wrap)
     }
 }

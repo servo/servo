@@ -7,7 +7,7 @@ use dom::bindings::error::Error::Syntax;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use regex::Regex;
 
 pub type UUID = DOMString;
@@ -271,22 +271,22 @@ const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 
 impl BluetoothUUID {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
-    pub fn CanonicalUUID(_: &GlobalScope, alias: u32) -> UUID {
+    pub fn CanonicalUUID(_: &Window, alias: u32) -> UUID {
         canonical_uuid(alias)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
-    pub fn GetService(_: &GlobalScope, name: BluetoothServiceUUID) -> Fallible<UUID> {
+    pub fn GetService(_: &Window, name: BluetoothServiceUUID) -> Fallible<UUID> {
         Self::service(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
-    pub fn GetCharacteristic(_: &GlobalScope, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
+    pub fn GetCharacteristic(_: &Window, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         Self::characteristic(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
-    pub fn GetDescriptor(_: &GlobalScope, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
+    pub fn GetDescriptor(_: &Window, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         Self::descriptor(name)
     }
 }

@@ -6,5 +6,6 @@
 // https://www.khronos.org/registry/webgl/specs/latest/#5.9
 //
 
+[Exposed=Window]
 interface WebGLTexture : WebGLObject {
 };
