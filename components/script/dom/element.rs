@@ -30,6 +30,7 @@ use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
 use dom::create::create_element;
 use dom::document::{Document, LayoutDocumentHelpers};
+use dom::documentfragment::DocumentFragment;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
@@ -61,6 +62,7 @@ use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::servoparser::ServoParser;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -1230,6 +1232,37 @@ impl Element {
         // Step 11
         win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
     }
+
+    // https://w3c.github.io/DOM-Parsing/#parsing
+    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
+        // Steps 1-2.
+        let context_document = document_from_node(self);
+        let new_children = if context_document.is_html_document() {
+            ServoParser::parse_html_fragment(self, markup)
+        } else {
+            // FIXME: XML case
+            unimplemented!()
+        };
+        // Step 3.
+        let fragment = DocumentFragment::new(&context_document);
+        // Step 4.
+        for child in new_children {
+            fragment.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+        // Step 5.
+        Ok(fragment)
+    }
+
+    pub fn fragment_parsing_context(owner_doc: &Document, element: Option<&Self>) -> Root<Self> {
+        match element {
+            Some(elem) if elem.local_name() != &local_name!("html") || !elem.html_element_in_html_document() => {
+                Root::from_ref(elem)
+            },
+            _ => {
+                Root::upcast(HTMLBodyElement::new(local_name!("body"), None, &owner_doc))
+            }
+        }
+    }
 }
 
 impl ElementMethods for Element {
@@ -1757,15 +1790,14 @@ impl ElementMethods for Element {
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
-        let context_node = self.upcast::<Node>();
         // Step 1.
-        let frag = try!(context_node.parse_fragment(value));
+        let frag = try!(self.parse_fragment(value));
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             Root::upcast(template.Content())
         } else {
-            Root::from_ref(context_node)
+            Root::from_ref(self.upcast())
         };
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
@@ -1776,7 +1808,7 @@ impl ElementMethods for Element {
         self.serialize(IncludeNode)
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
+    // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
     fn SetOuterHTML(&self, value: DOMString) -> ErrorResult {
         let context_document = document_from_node(self);
         let context_node = self.upcast::<Node>();
@@ -1800,7 +1832,7 @@ impl ElementMethods for Element {
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },
-            _ => context_node.GetParentNode().unwrap()
+            _ => Root::downcast::<Element>(context_node.GetParentNode().unwrap()).unwrap()
         };
 
         // Step 5.
@@ -1957,14 +1989,11 @@ impl ElementMethods for Element {
         };
 
         // Step 2.
-        let context = match context.downcast::<Element>() {
-            Some(elem) if elem.local_name() != &local_name!("html") ||
-                          !elem.html_element_in_html_document() => Root::from_ref(elem),
-            _ => Root::upcast(HTMLBodyElement::new(local_name!("body"), None, &*context.owner_doc())),
-        };
+        let context = Element::fragment_parsing_context(
+            &context.owner_doc(), context.downcast::<Element>());
 
         // Step 3.
-        let fragment = try!(context.upcast::<Node>().parse_fragment(text));
+        let fragment = try!(context.parse_fragment(text));
 
         // Step 4.
         self.insert_adjacent(position, fragment.upcast()).map(|_| ())

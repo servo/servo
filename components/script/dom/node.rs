@@ -51,7 +51,6 @@ use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHel
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
-use dom::servoparser::ServoParser;
 use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -797,19 +796,6 @@ impl Node {
             shortValue: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
-    }
-
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
-    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
-        let context_document = document_from_node(self);
-        let fragment = DocumentFragment::new(&context_document);
-        if context_document.is_html_document() {
-            ServoParser::parse_html_fragment(self.upcast(), markup, fragment.upcast());
-        } else {
-            // FIXME: XML case
-            unimplemented!();
-        }
-        Ok(fragment)
     }
 
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
