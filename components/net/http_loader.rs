@@ -772,7 +772,10 @@ fn http_redirect_fetch(request: Rc<Request>,
     };
 
     // Step 4
-    // TODO implement return network_error if not HTTP(S)
+    match location_url.scheme() {
+        "http" | "https" => { },
+        _ => return Response::network_error(NetworkError::Internal("Not an HTTP(S) Scheme".into()))
+    }
 
     // Step 5
     if request.redirect_count.get() >= 20 {
