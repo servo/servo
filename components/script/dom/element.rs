@@ -73,6 +73,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use parking_lot::RwLock;
+use ref_filter_map::ref_filter_map;
 use selectors::matching::{ElementFlags, MatchingReason, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -720,6 +721,44 @@ impl Element {
 
     pub fn attrs(&self) -> Ref<[JS<Attr>]> {
         Ref::map(self.attrs.borrow(), |attrs| &**attrs)
+    }
+
+    // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
+    pub fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
+        let prefix = prefix.map(String::from).map(LocalName::from);
+
+        let inclusive_ancestor_elements =
+            self.upcast::<Node>()
+                .inclusive_ancestors()
+                .filter_map(Root::downcast::<Self>);
+
+        // Steps 3-4.
+        for element in inclusive_ancestor_elements {
+            // Step 1.
+            if element.namespace() != &ns!() && element.prefix().map(|p| &**p) == prefix.as_ref().map(|p| &**p) {
+                return element.namespace().clone();
+            }
+
+            // Step 2.
+            let attr = ref_filter_map(self.attrs(), |attrs| attrs.iter().find(|attr| {
+                if attr.namespace() != &ns!(xmlns) {
+                    return false;
+                }
+                match (attr.prefix(), prefix.as_ref()) {
+                    (Some(&namespace_prefix!("xmlns")), Some(prefix)) => {
+                        attr.local_name() == prefix
+                    },
+                    (None, None) => attr.local_name() == &local_name!("xmlns"),
+                    _ => false,
+                }
+            }));
+
+            if let Some(attr) = attr {
+                return (**attr.value()).into();
+            }
+        }
+
+        ns!()
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>> {
