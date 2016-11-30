@@ -554,8 +554,8 @@ impl CalcLengthOrPercentage {
         CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
     }
 
-    fn parse(input: &mut Parser,
-             expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
+    pub fn parse(input: &mut Parser,
+                 expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
 
         let mut simplified = Vec::new();
@@ -576,7 +576,6 @@ impl CalcLengthOrPercentage {
         let mut ch = None;
         let mut rem = None;
         let mut percentage = None;
-        let mut number = None;
 
         for value in simplified {
             match value {
@@ -606,7 +605,7 @@ impl CalcLengthOrPercentage {
                         FontRelativeLength::Rem(val) =>
                             rem = Some(rem.unwrap_or(0.) + val),
                     },
-                SimplifiedValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
+                // TODO Add support for top level number in calc(). See servo/servo#14421.
                 _ => return Err(()),
             }
         }
