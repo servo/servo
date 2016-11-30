@@ -335,6 +335,11 @@ impl PropertyAnimation {
     fn does_animate(&self) -> bool {
         self.property.does_animate() && self.duration != Time(0.0)
     }
+
+    #[inline]
+    pub fn has_the_same_end_value_as(&self, other: &PropertyAnimation) -> bool {
+        self.property.has_the_same_end_value_as(&other.property)
+    }
 }
 
 /// Inserts transitions into the queue of running animations as applicable for

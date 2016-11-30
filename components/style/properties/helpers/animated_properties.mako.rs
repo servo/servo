@@ -124,6 +124,20 @@ impl AnimatedProperty {
         }
     }
 
+    pub fn has_the_same_end_value_as(&self, other: &AnimatedProperty) -> bool {
+        match (self, other) {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    (&AnimatedProperty::${prop.camel_case}(_, ref this_end_value),
+                     &AnimatedProperty::${prop.camel_case}(_, ref other_end_value)) => {
+                        this_end_value == other_end_value
+                    }
+                % endif
+            % endfor
+            _ => false,
+        }
+    }
+
     pub fn update(&self, style: &mut ComputedValues, progress: f64) {
         match *self {
             % for prop in data.longhands:

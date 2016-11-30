@@ -30,19 +30,49 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
-        if let Animation::Keyframes(ref node, ref name, ref state) = animation {
-            // If the animation was already present in the list for the
-            // node, just update its state, else push the new animation to
-            // run.
-            if let Some(ref mut animations) = running_animations.get_mut(node) {
-                // TODO: This being linear is probably not optimal.
-                for mut anim in animations.iter_mut() {
-                    if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
-                        if *name == *anim_name {
-                            debug!("update_animation_state: Found other animation {}", name);
-                            anim_state.update_from_other(&state, timer);
-                            should_push = false;
-                            break;
+        // If the animation was already present in the list for the
+        // node, just update its state, else push the new animation to
+        // run.
+        match animation {
+            Animation::Keyframes(ref node, ref name, ref state) => {
+                if let Some(ref mut animations) = running_animations.get_mut(node) {
+                    // TODO: This being linear is probably not optimal.
+                    for mut anim in animations.iter_mut() {
+                        if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
+                            if *name == *anim_name {
+                                debug!("update_animation_state: Found other animation {}", name);
+                                anim_state.update_from_other(&state, timer);
+                                should_push = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            Animation::Transition(ref node, _, _, ref frame, _) => {
+                // Per [1], don't trigger a new transition if the end state for that transition is
+                // the same as that of a transition that's already running on the same node.
+                //
+                // [1]: https://drafts.csswg.org/css-transitions/#starting
+                if let Some(ref mut animations) = running_animations.get_mut(node) {
+                    // TODO(pcwalton): This being linear is probably not optimal.
+                    for mut animation in animations.iter_mut() {
+                        if let Animation::Transition(_,
+                                                     _,
+                                                     _,
+                                                     ref animation_frame,
+                                                     ref mut animation_state) = *animation {
+                            if frame.property_animation.has_the_same_end_value_as(
+                                    &animation_frame.property_animation) {
+                                // Don't trigger the transition, but mark it as non-expired if it
+                                // was expired.
+                                //
+                                // FIXME(pcwalton): It's kind of ugly to un-expire transitions like
+                                // this. Is there a better way?
+                                *animation_state = false;
+                                should_push = false;
+                                break;
+                            }
                         }
                     }
                 }
