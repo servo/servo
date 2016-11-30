@@ -7,8 +7,6 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -60,7 +58,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
-use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
+use html5ever_atoms::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
@@ -1811,68 +1809,20 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
-        fn attr_defines_namespace(attr: &Attr,
-                                  defined_prefix: &Option<LocalName>) -> bool {
-            *attr.namespace() == ns!(xmlns) &&
-                match (attr.prefix(), defined_prefix) {
-                    (Some(attr_prefix), &Some(ref defined_prefix)) =>
-                        attr_prefix == &namespace_prefix!("xmlns") &&
-                            attr.local_name() == defined_prefix,
-                    (None, &None) => *attr.local_name() == local_name!("xmlns"),
-                    _ => false
-                }
-        }
-
         match node.type_id() {
             NodeTypeId::Element(_) => {
-                let element = node.downcast::<Element>().unwrap();
-                // Step 1.
-                if *element.namespace() != ns!() && element.prefix() == prefix.as_ref() {
-                    return element.namespace().clone()
-                }
-
-                // Even though this is conceptually a namespace prefix,
-                // in the `xmlns:foo="https://example.net/namespace" declaration
-                // it is a local name.
-                // FIXME(ajeffrey): directly convert DOMString to LocalName
-                let prefix_atom = prefix.as_ref().map(|s| LocalName::from(&**s));
-
-                // Step 2.
-                let attrs = element.attrs();
-                let namespace_attr = attrs.iter().find(|attr| {
-                    attr_defines_namespace(attr, &prefix_atom)
-                });
-
-                // Steps 2.1-2.
-                if let Some(attr) = namespace_attr {
-                    return namespace_from_domstring(Some(attr.Value()));
-                }
-
-                match node.GetParentElement() {
-                    // Step 3.
-                    None => ns!(),
-                    // Step 4.
-                    Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
-                }
+                node.downcast::<Element>().unwrap().locate_namespace(prefix)
             },
             NodeTypeId::Document(_) => {
-                match node.downcast::<Document>().unwrap().GetDocumentElement().r() {
-                    // Step 1.
-                    None => ns!(),
-                    // Step 2.
-                    Some(document_element) => {
-                        Node::locate_namespace(document_element.upcast(), prefix)
-                    }
-                }
+                node.downcast::<Document>().unwrap()
+                    .GetDocumentElement().as_ref()
+                    .map_or(ns!(), |elem| elem.locate_namespace(prefix))
             },
-            NodeTypeId::DocumentType => ns!(),
-            NodeTypeId::DocumentFragment => ns!(),
-            _ => match node.GetParentElement() {
-                     // Step 1.
-                     None => ns!(),
-                     // Step 2.
-                     Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
-                 }
+            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => ns!(),
+            _ => {
+                node.GetParentElement().as_ref()
+                    .map_or(ns!(), |elem| elem.locate_namespace(prefix))
+            }
         }
     }
 }
