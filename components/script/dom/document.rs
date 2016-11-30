@@ -190,6 +190,7 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
     is_html_document: bool,
+    is_fully_active: Cell<bool>,
     url: DOMRefCell<ServoUrl>,
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
@@ -385,20 +386,17 @@ impl Document {
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
-    // https://html.spec.whatwg.org/multipage/#active-document
-    pub fn is_active(&self) -> bool {
-        self.browsing_context().map_or(false, |context| {
-            self == &*context.active_document()
-        })
-    }
-
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        if !self.is_active() {
-            return false;
-        }
-        // FIXME: It should also check whether the browser context is top-level or not
-        true
+        self.is_fully_active.get()
+    }
+
+    pub fn fully_activate(&self) {
+        self.is_fully_active.set(true)
+    }
+
+    pub fn fully_deactivate(&self) {
+        self.is_fully_active.set(false)
     }
 
     pub fn origin(&self) -> &Origin {
@@ -1693,11 +1691,16 @@ impl Document {
         self.current_parser.get()
     }
 
-    /// Find an iframe element in the document.
-    pub fn find_iframe(&self, frame_id: FrameId) -> Option<Root<HTMLIFrameElement>> {
+    /// Iterate over all iframes in the document.
+    pub fn iter_iframes(&self) -> impl Iterator<Item=Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
+    }
+
+    /// Find an iframe element in the document.
+    pub fn find_iframe(&self, frame_id: FrameId) -> Option<Root<HTMLIFrameElement>> {
+        self.iter_iframes()
             .find(|node| node.frame_id() == frame_id)
     }
 
@@ -1864,6 +1867,7 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(UTF_8),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
+            is_fully_active: Cell::new(false),
             id_map: DOMRefCell::new(HashMap::new()),
             tag_map: DOMRefCell::new(HashMap::new()),
             tagns_map: DOMRefCell::new(HashMap::new()),
@@ -2261,19 +2265,12 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
-        match self.browsing_context() {
-            Some(browsing_context) => {
-                // Step 2.
-                let candidate = browsing_context.active_document();
-                // Step 3.
-                if &*candidate == self {
-                    true
-                } else {
-                    false //TODO  Step 4.
-                }
-            }
-            None => false,
+        // Step 1-2.
+        if self.window().parent_info().is_none() && self.is_fully_active() {
+            return true;
         }
+        // TODO Step 3.
+        false
     }
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
@@ -3190,8 +3187,8 @@ impl DocumentMethods for Document {
 
         // Step 2.
         // TODO: handle throw-on-dynamic-markup-insertion counter.
-
-        if !self.is_active() {
+        // FIXME: this should check for being active rather than fully active
+        if !self.is_fully_active() {
             // Step 3.
             return Ok(());
         }

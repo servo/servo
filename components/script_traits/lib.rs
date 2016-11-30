@@ -184,6 +184,15 @@ pub struct NewLayoutInfo {
     pub layout_threads: usize,
 }
 
+/// When a pipeline is closed, should its browsing context be discarded too?
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum DiscardBrowsingContext {
+    /// Discard the browsing context
+    Yes,
+    /// Don't discard the browsing context
+    No,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -194,7 +203,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipeline(PipelineId),
+    ExitPipeline(PipelineId, DiscardBrowsingContext),
     /// Notifies the script that the whole thread should be closed.
     ExitScriptThread,
     /// Sends a DOM event.
