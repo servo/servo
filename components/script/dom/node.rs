@@ -1738,7 +1738,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| Prefix::from(&**p)),
+                    element.prefix().map(|p| Prefix::from(&**p)),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
@@ -1827,7 +1827,7 @@ impl Node {
             NodeTypeId::Element(_) => {
                 let element = node.downcast::<Element>().unwrap();
                 // Step 1.
-                if *element.namespace() != ns!() && *element.prefix() == prefix {
+                if *element.namespace() != ns!() && element.prefix() == prefix.as_ref() {
                     return element.namespace().clone()
                 }
 
@@ -2236,7 +2236,7 @@ impl NodeMethods for Node {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
             (*element.namespace() == *other_element.namespace()) &&
-            (*element.prefix() == *other_element.prefix()) &&
+            (element.prefix() == other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }

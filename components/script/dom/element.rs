@@ -714,8 +714,8 @@ impl Element {
         &self.namespace
     }
 
-    pub fn prefix(&self) -> &Option<DOMString> {
-        &self.prefix
+    pub fn prefix(&self) -> Option<&DOMString> {
+        self.prefix.as_ref()
     }
 
     pub fn attrs(&self) -> Ref<[JS<Attr>]> {
