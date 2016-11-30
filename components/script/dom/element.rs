@@ -718,8 +718,8 @@ impl Element {
         &self.prefix
     }
 
-    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
-        self.attrs.borrow()
+    pub fn attrs(&self) -> Ref<[JS<Attr>]> {
+        Ref::map(self.attrs.borrow(), |attrs| &**attrs)
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>> {
