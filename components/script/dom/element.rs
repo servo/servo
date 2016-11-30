@@ -1278,12 +1278,8 @@ impl Element {
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         // Steps 1-2.
         let context_document = document_from_node(self);
-        let new_children = if context_document.is_html_document() {
-            ServoParser::parse_html_fragment(self, markup)
-        } else {
-            // FIXME: XML case
-            unimplemented!()
-        };
+        // TODO(#11995): XML case.
+        let new_children = ServoParser::parse_html_fragment(self, markup);
         // Step 3.
         let fragment = DocumentFragment::new(&context_document);
         // Step 4.
