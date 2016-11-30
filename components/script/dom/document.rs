@@ -136,7 +136,7 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
-#[derive(JSTraceable, PartialEq, HeapSizeOf)]
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
