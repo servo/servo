@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class=reftest-wait>
 <link rel=match href=stacking_context_ref.html>
 <style>
 iframe {
@@ -11,4 +12,6 @@ iframe {
     transform: translateX(0px); /* form a stacking context */
 }
 </style>
-<iframe src="data:text/html,%3Cspan%3EJust%20a%20simple%20little%20iframe.%3C%2Fspan%3E">
+<iframe src="data:text/html,%3Cspan%3EJust%20a%20simple%20little%20iframe.%3C%2Fspan%3E"
+        onload="document.documentElement.classList.remove('reftest-wait')">
+</iframe>
