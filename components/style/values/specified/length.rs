@@ -15,6 +15,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
+use values::ExtremumLength;
 use values::computed::Context;
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -1020,5 +1021,49 @@ impl LengthOrNumber {
         } else {
             Number::parse_non_negative(input).map(Either::Second)
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum MinLength {
+    LengthOrPercentage(LengthOrPercentage),
+    Auto,
+    ExtremumLength(ExtremumLength),
+}
+
+impl HasViewportPercentage for MinLength {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            MinLength::LengthOrPercentage(lop) => lop.has_viewport_percentage(),
+            _ => false
+        }
+    }
+}
+
+impl ToCss for MinLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MinLength::LengthOrPercentage(ref lop) =>
+                lop.to_css(dest),
+            MinLength::Auto =>
+                dest.write_str("auto"),
+            MinLength::ExtremumLength(ref ext) =>
+                ext.to_css(dest),
+        }
+    }
+}
+
+impl Parse for MinLength {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
+            .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MinLength::LengthOrPercentage))
+            .or_else(|()| {
+                match_ignore_ascii_case! { try!(input.expect_ident()),
+                    "auto" =>
+                        Ok(MinLength::Auto),
+                    _ => Err(())
+                }
+            })
     }
 }

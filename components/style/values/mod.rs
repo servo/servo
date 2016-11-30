@@ -6,7 +6,7 @@
 //!
 //! [values]: https://drafts.csswg.org/css-values/
 
-pub use cssparser::{RGBA, Parser};
+pub use cssparser::{RGBA, Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Debug};
 use style_traits::ToCss;
@@ -161,3 +161,11 @@ impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
         }
     }
 }
+
+// A type for possible values for min- and max- flavors of width,
+// height, block-size, and inline-size.
+define_css_keyword_enum!(ExtremumLength:
+                         "max-content" => MaxContent,
+                         "min-content" => MinContent,
+                         "fit-content" => FitContent,
+                         "fill-available" => FillAvailable);

@@ -156,13 +156,20 @@ ${helpers.predefined_type("flex-basis",
                               needs_context=False,
                               animatable=True, logical = logical)}
 
-    // min-width, min-height, min-block-size, min-inline-size
-    ${helpers.predefined_type("min-%s" % size,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
-                              "parse_non_negative",
-                              needs_context=False,
-                              animatable=True, logical = logical)}
+    % if product == "gecko":
+        // min-width, min-height, min-block-size, min-inline-size
+        ${helpers.predefined_type("min-%s" % size,
+                                  "MinLength",
+                                  "computed::MinLength::LengthOrPercentage(computed::LengthOrPercentage::Length(Au(0)))",
+                                  animatable=True, logical = logical)}
+    % else:
+        ${helpers.predefined_type("min-%s" % size,
+                                  "LengthOrPercentage",
+                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  animatable=True, logical = logical)}
+    % endif
 
     // max-width, max-height, max-block-size, max-inline-size
     ${helpers.predefined_type("max-%s" % size,
