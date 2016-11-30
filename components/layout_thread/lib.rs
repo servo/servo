@@ -1287,6 +1287,10 @@ impl LayoutThread {
     }
 
     fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+        if opts::get().relayout_event {
+            println!("**** pipeline={}\tForDisplay\tSpecial\tAnimationTick", self.id);
+        }
+
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: max_rect(),
