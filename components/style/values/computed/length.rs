@@ -9,7 +9,7 @@ use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
-use values::{Auto, CSSFloat, Either, None_, Normal, specified};
+use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
 
 pub use cssparser::Color as CSSColor;
@@ -540,3 +540,58 @@ pub type LengthOrNumber = Either<Length, Number>;
 
 /// Either a computed `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
+
+/// A value suitable for a `min-width` or `min-height` property.
+/// See specified/values/length.rs for more details.
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum MinLength {
+    LengthOrPercentage(LengthOrPercentage),
+    Auto,
+    ExtremumLength(ExtremumLength),
+}
+
+impl ToComputedValue for specified::MinLength {
+    type ComputedValue = MinLength;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> MinLength {
+        match *self {
+            specified::MinLength::LengthOrPercentage(ref lop) => {
+                MinLength::LengthOrPercentage(lop.to_computed_value(context))
+            }
+            specified::MinLength::Auto => {
+                MinLength::Auto
+            }
+            specified::MinLength::ExtremumLength(ref ext) => {
+                MinLength::ExtremumLength(ext.clone())
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &MinLength) -> Self {
+        match *computed {
+            MinLength::Auto =>
+                specified::MinLength::Auto,
+            MinLength::LengthOrPercentage(ref lop) =>
+                specified::MinLength::LengthOrPercentage(specified::LengthOrPercentage::from_computed_value(&lop)),
+            MinLength::ExtremumLength(ref ext) =>
+                specified::MinLength::ExtremumLength(ext.clone()),
+        }
+    }
+}
+
+impl ToCss for MinLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MinLength::LengthOrPercentage(lop) =>
+                lop.to_css(dest),
+            MinLength::Auto =>
+                dest.write_str("auto"),
+            MinLength::ExtremumLength(ext) =>
+                ext.to_css(dest),
+        }
+    }
+}
