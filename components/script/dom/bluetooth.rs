@@ -21,9 +21,6 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
-use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
-use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -90,9 +87,6 @@ impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener f
 pub struct Bluetooth {
     eventtarget: EventTarget,
     device_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothDevice>>>>,
-    service_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>>,
-    characteristic_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>>,
-    descriptor_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>>,
 }
 
 impl Bluetooth {
@@ -100,9 +94,6 @@ impl Bluetooth {
         Bluetooth {
             eventtarget: EventTarget::new_inherited(),
             device_instance_map: DOMRefCell::new(HashMap::new()),
-            service_instance_map: DOMRefCell::new(HashMap::new()),
-            characteristic_instance_map: DOMRefCell::new(HashMap::new()),
-            descriptor_instance_map: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -110,19 +101,6 @@ impl Bluetooth {
         reflect_dom_object(box Bluetooth::new_inherited(),
                            global,
                            BluetoothBinding::Wrap)
-    }
-
-    pub fn get_service_map(&self) -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>> {
-        &self.service_instance_map
-    }
-
-    pub fn get_characteristic_map(&self)
-            -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>> {
-        &self.characteristic_instance_map
-    }
-
-    pub fn get_descriptor_map(&self) -> &DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>> {
-        &self.descriptor_instance_map
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
