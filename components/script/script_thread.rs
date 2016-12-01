@@ -71,7 +71,8 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
-use net_traits::{CoreResourceMsg, IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
+use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
+use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
@@ -82,7 +83,7 @@ use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryTyp
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
@@ -434,6 +435,9 @@ pub struct ScriptThread {
     /// For communicating load url messages to the constellation
     constellation_chan: IpcSender<ConstellationMsg>,
 
+    /// A sender for new layout threads to communicate to the constellation.
+    layout_to_constellation_chan: IpcSender<LayoutMsg>,
+
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
 
@@ -602,6 +606,17 @@ impl ScriptThread {
         });
     }
 
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
+                script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
+                    script_thread.handle_new_layout(new_layout_info);
+                })
+            }
+        });
+    }
+
     pub fn find_document(id: PipelineId) -> Option<Root<Document>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
@@ -681,6 +696,8 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             promise_job_queue: PromiseJobQueue::new(),
+
+            layout_to_constellation_chan: state.layout_to_constellation_chan,
         }
     }
 
@@ -1179,7 +1196,6 @@ impl ScriptThread {
             load_data,
             window_size,
             pipeline_port,
-            layout_to_constellation_chan,
             content_process_shutdown_chan,
             layout_threads,
         } = new_layout_info;
@@ -1193,7 +1209,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            constellation_chan: layout_to_constellation_chan,
+            constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
@@ -1215,7 +1231,11 @@ impl ScriptThread {
         let new_load = InProgressLoad::new(new_pipeline_id, frame_id, parent_info,
                                            layout_chan, window_size,
                                            load_data.url.clone());
-        self.start_page_load(new_load, load_data);
+        if load_data.url.as_str() == "about:blank" {
+            self.start_page_load_about_blank(new_load);
+        } else {
+            self.start_page_load(new_load, load_data);
+        }
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
@@ -1641,7 +1661,8 @@ impl ScriptThread {
 
     /// Notify the containing document of a child frame that has completed loading.
     fn handle_frame_load_event(&self, parent_id: PipelineId, frame_id: FrameId, child_id: PipelineId) {
-        match self.documents.borrow().find_iframe(parent_id, frame_id) {
+        let iframe = self.documents.borrow().find_iframe(parent_id, frame_id);
+        match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
@@ -2014,7 +2035,8 @@ impl ScriptThread {
                               replace: bool) {
         match frame_id {
             Some(frame_id) => {
-                if let Some(iframe) = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id) {
+                let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
+                if let Some(iframe) = iframe {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data), replace);
                 }
             }
@@ -2090,6 +2112,23 @@ impl ScriptThread {
 
         self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
+    /// argument until a notification is received that the fetch is complete.
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad) {
+        let id = incomplete.pipeline_id;
+
+        self.incomplete_loads.borrow_mut().push(incomplete);
+
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let mut context = ParserContext::new(id, url.clone());
+
+        let mut meta = Metadata::default(url);
+        meta.set_content_type(Some(&mime!(Text / Html)));
+        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response_chunk(vec![]);
+        context.process_response_eof(Ok(()));
     }
 
     fn handle_parsing_complete(&self, id: PipelineId) {

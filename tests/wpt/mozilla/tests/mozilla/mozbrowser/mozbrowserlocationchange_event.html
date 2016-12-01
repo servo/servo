@@ -14,24 +14,29 @@ async_test(function(t) {
 
   var received_events = []
   var expected_events = [
-    url1, false, false,
+    "about:blank", false, false,
+    url1, true,  false,
     url2, true,  false,
     url3, true,  false,
     url2, true,  true,
-    url1, false, true,
+    url1, true,  true,
+    "about:blank", false, true,
+    url1, true,  true,
     url2, true,  true,
     url3, true,  false,
   ];
 
   var iframe = document.createElement("iframe");
   iframe.mozbrowser = "true";
-  iframe.src = url1;
 
   var actions = [
+    function() {iframe.src = url1},
     function() {iframe.src = url2},
     function() {iframe.src = url3},
     function() {iframe.goBack()},
     function() {iframe.goBack()},
+    function() {iframe.goBack()},
+    function() {iframe.goForward()},
     function() {iframe.goForward()},
     function() {iframe.goForward()},
   ];

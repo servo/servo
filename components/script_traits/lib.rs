@@ -177,10 +177,8 @@ pub struct NewLayoutInfo {
     pub window_size: Option<WindowSizeData>,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A sender for the layout thread to communicate to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
-    pub content_process_shutdown_chan: IpcSender<()>,
+    pub content_process_shutdown_chan: Option<IpcSender<()>>,
     /// Number of threads to use for layout.
     pub layout_threads: usize,
 }
@@ -450,6 +448,8 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: IpcSender<ScriptMsg>,
+    /// A sender for the layout thread to communicate to the constellation.
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
@@ -492,21 +492,15 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-/// Specifies the information required to load a URL in an iframe.
+/// Specifies the information required to load an iframe.
 #[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
-    /// Load data containing the url to load
-    pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
     /// The ID for this iframe.
     pub frame_id: FrameId,
-    /// The old pipeline ID for this iframe, if a page was previously loaded.
-    pub old_pipeline_id: Option<PipelineId>,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
-    /// Sandbox type of this iframe
-    pub sandbox: IFrameSandboxState,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
     /// Whether this iframe is a mozbrowser iframe
@@ -514,6 +508,19 @@ pub struct IFrameLoadInfo {
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub replace: bool,
+}
+
+/// Specifies the information required to load a URL in an iframe.
+#[derive(Deserialize, Serialize)]
+pub struct IFrameLoadInfoWithData {
+    /// The information required to load an iframe.
+    pub info: IFrameLoadInfo,
+    /// Load data containing the url to load
+    pub load_data: Option<LoadData>,
+    /// The old pipeline ID for this iframe, if a page was previously loaded.
+    pub old_pipeline_id: Option<PipelineId>,
+    /// Sandbox type of this iframe
+    pub sandbox: IFrameSandboxState,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
