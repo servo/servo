@@ -44,7 +44,6 @@ use style::computed_values::{overflow_wrap, overflow_x, position, text_decoratio
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::computed_values::content::ContentItem;
 use style::context::SharedStyleContext;
-use style::dom::TRestyleDamage;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;

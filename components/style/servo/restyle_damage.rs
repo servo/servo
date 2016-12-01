@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use computed_values::display;
-use dom::TRestyleDamage;
 use heapsize::HeapSizeOf;
 use properties::ServoComputedValues;
 use std::fmt;
@@ -53,15 +52,8 @@ impl HeapSizeOf for ServoRestyleDamage {
     fn heap_size_of_children(&self) -> usize { 0 }
 }
 
-impl TRestyleDamage for ServoRestyleDamage {
-    /// For Servo the style source is always the computed values.
-    type PreExistingComputedValues = Arc<ServoComputedValues>;
-
-    fn empty() -> Self {
-        ServoRestyleDamage::empty()
-    }
-
-    fn compute(old: &Arc<ServoComputedValues>,
+impl ServoRestyleDamage {
+    pub fn compute(old: &Arc<ServoComputedValues>,
                new: &Arc<ServoComputedValues>) -> ServoRestyleDamage {
         compute_damage(old, new)
     }
@@ -72,13 +64,11 @@ impl TRestyleDamage for ServoRestyleDamage {
     /// Use this instead of `ServoRestyleDamage::all()` because
     /// `ServoRestyleDamage::all()` will result in unnecessary sequential resolution
     /// of generated content.
-    fn rebuild_and_reflow() -> ServoRestyleDamage {
+    pub fn rebuild_and_reflow() -> ServoRestyleDamage {
         REPAINT | REPOSITION | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW |
             RECONSTRUCT_FLOW
     }
-}
 
-impl ServoRestyleDamage {
     /// Supposing a flow has the given `position` property and this damage,
     /// returns the damage that we should add to the *parent* of this flow.
     pub fn damage_for_parent(self, child_is_absolutely_positioned: bool) -> ServoRestyleDamage {

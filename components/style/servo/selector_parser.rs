@@ -13,6 +13,7 @@ use selectors::{Element, MatchAttrGeneric};
 use selectors::parser::AttrSelector;
 use std::borrow::Cow;
 use std::fmt;
+use std::fmt::Debug;
 
 /// NB: If you add to this list, be sure to update `each_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -394,7 +395,7 @@ impl MatchAttrGeneric for ServoElementSnapshot {
     }
 }
 
-impl<E: Element<Impl=SelectorImpl>> ElementExt for E {
+impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

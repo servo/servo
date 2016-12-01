@@ -8,17 +8,15 @@
 
 use {Atom, Namespace, LocalName};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use data::{ElementStyles, ElementData};
+use data::ElementData;
 use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
-use selector_parser::{ElementExt, PseudoElement, RestyleDamage};
+use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use sink::Push;
 use std::fmt::Debug;
-use std::ops::{BitOr, BitOrAssign};
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
-use util::opts;
 
 pub use style_traits::UnsafeNode;
 
@@ -40,42 +38,6 @@ impl OpaqueNode {
     #[inline]
     pub fn id(&self) -> usize {
         self.0
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum StylingMode {
-    /// The node has never been styled before, and needs a full style computation.
-    Initial,
-    /// The node has been styled before, but needs some amount of recomputation.
-    Restyle,
-    /// The node does not need any style processing, but one or more of its
-    /// descendants do.
-    Traverse,
-    /// No nodes in this subtree require style processing.
-    Stop,
-}
-
-pub trait TRestyleDamage : BitOr<Output=Self> + BitOrAssign + Copy + Debug + PartialEq {
-    /// The source for our current computed values in the cascade. This is a
-    /// ComputedValues in Servo and a StyleContext in Gecko.
-    ///
-    /// This is needed because Gecko has a few optimisations for the calculation
-    /// of the difference depending on which values have been used during
-    /// layout.
-    ///
-    /// This should be obtained via TNode::existing_style_for_restyle_damage
-    type PreExistingComputedValues;
-
-    fn compute(old: &Self::PreExistingComputedValues,
-               new: &Arc<ComputedValues>) -> Self;
-
-    fn empty() -> Self;
-
-    fn rebuild_and_reflow() -> Self;
-
-    fn is_empty(&self) -> bool {
-        *self == Self::empty()
     }
 }
 
@@ -174,7 +136,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_computed_values: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
-        -> Option<&'a <RestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
+                                             -> Option<&'a PreExistingComputedValues>;
 
     /// Returns true if this element may have a descendant needing style processing.
     ///
@@ -201,60 +163,11 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
-    /// Returns true if this element's current style is display:none. Only valid
-    /// to call after styling.
+    /// Returns true if this element's style is display:none.
     fn is_display_none(&self) -> bool {
-        self.borrow_data().unwrap().current_styles().is_display_none()
-    }
-
-    /// Returns true if this node has a styled layout frame that owns the style.
-    fn frame_has_style(&self) -> bool { false }
-
-    /// Returns the styles from the layout frame that owns them, if any.
-    ///
-    /// FIXME(bholley): Once we start dropping ElementData from nodes when
-    /// creating frames, we'll want to teach this method to actually get
-    /// style data from the frame.
-    fn get_styles_from_frame(&self) -> Option<ElementStyles> { None }
-
-    /// Returns the styling mode for this node. This is only valid to call before
-    /// and during restyling, before finish_styling is invoked.
-    ///
-    /// See the comments around StylingMode.
-    fn styling_mode(&self) -> StylingMode {
-        use self::StylingMode::*;
-
-        // Non-incremental layout impersonates Initial.
-        if opts::get().nonincremental_layout {
-            return Initial;
-        }
-
-        // Compute the default result if this node doesn't require processing.
-        let mode_for_descendants = if self.has_dirty_descendants() {
-            Traverse
-        } else {
-            Stop
-        };
-
-        match self.borrow_data() {
-            // No element data, no style on the frame.
-            None if !self.frame_has_style() => Initial,
-            // No element data, style on the frame.
-            None => mode_for_descendants,
-            // We have element data. Decide below.
-            Some(d) => match *d {
-                ElementData::Restyle(_) => Restyle,
-                ElementData::Persistent(_) => mode_for_descendants,
-                ElementData::Initial(None) => Initial,
-                // We previously computed the initial style for this element
-                // and then never consumed it. This is arguably a bug, since
-                // it means we either styled an element unnecessarily, or missed
-                // an opportunity to coalesce style traversals. However, this
-                // happens now for various reasons, so we just let it slide and
-                // treat it as persistent for now.
-                ElementData::Initial(Some(_)) => mode_for_descendants,
-            },
-        }
+        let data = self.borrow_data().unwrap();
+        debug_assert!(data.has_current_styles());
+        data.styles().is_display_none()
     }
 
     /// Gets a reference to the ElementData container.

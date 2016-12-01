@@ -13,7 +13,7 @@ use cache::LRUCache;
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, PseudoStyles};
-use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{TElement, TNode, UnsafeNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
@@ -186,7 +186,8 @@ fn element_matches_candidate<E: TElement>(element: &E,
     }
 
     let data = candidate_element.borrow_data().unwrap();
-    let current_styles = data.current_styles();
+    debug_assert!(data.has_current_styles());
+    let current_styles = data.styles();
 
     Ok(current_styles.primary.clone())
 }
@@ -597,7 +598,8 @@ pub trait MatchMethods : TElement {
                     // can decide more easily if it knows that it's a child of
                     // replaced content, or similar stuff!
                     let damage = {
-                        let previous_values = data.previous_styles().map(|x| &x.primary.values);
+                        debug_assert!(!data.has_current_styles());
+                        let previous_values = data.get_styles().map(|x| &x.primary.values);
                         match self.existing_style_for_restyle_damage(previous_values, None) {
                             Some(ref source) => RestyleDamage::compute(source, &shared_style.values),
                             None => RestyleDamage::rebuild_and_reflow(),
@@ -727,13 +729,17 @@ pub trait MatchMethods : TElement {
     {
         // Get our parent's style.
         let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
-        let parent_style = parent_data.as_ref().map(|x| &x.current_styles().primary.values);
+        let parent_style = parent_data.as_ref().map(|d| {
+            debug_assert!(d.has_current_styles());
+            &d.styles().primary.values
+        });
 
         let mut new_styles;
         let mut possibly_expired_animations = vec![];
 
         let damage = {
-            let (old_primary, old_pseudos) = match data.previous_styles_mut() {
+            debug_assert!(!data.has_current_styles());
+            let (old_primary, old_pseudos) = match data.get_styles_mut() {
                 None => (None, None),
                 Some(previous) => {
                     // Update animations before the cascade. This may modify the

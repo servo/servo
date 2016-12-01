@@ -5,7 +5,7 @@
 use atomic_refcell::AtomicRefCell;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use data::ElementData;
-use dom::{NodeInfo, OpaqueNode, StylingMode, TElement, TNode};
+use dom::{NodeInfo, OpaqueNode, TNode};
 use gecko::context::StandaloneStyleContext;
 use gecko::wrapper::{GeckoElement, GeckoNode};
 use std::mem;
@@ -13,26 +13,25 @@ use traversal::{DomTraversalContext, PerLevelTraversalData, recalc_style_at};
 
 pub struct RecalcStyleOnly<'lc> {
     context: StandaloneStyleContext<'lc>,
-    root: OpaqueNode,
 }
 
 impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     type SharedContext = SharedStyleContext;
     #[allow(unsafe_code)]
-    fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
+    fn new<'a>(shared: &'a Self::SharedContext, _root: OpaqueNode) -> Self {
         // See the comment in RecalcStyleAndConstructFlows::new for an explanation of why this is
         // necessary.
         let shared_lc: &'lc Self::SharedContext = unsafe { mem::transmute(shared) };
         RecalcStyleOnly {
             context: StandaloneStyleContext::new(shared_lc),
-            root: root,
         }
     }
 
-    fn process_preorder(&self, node: GeckoNode<'ln>, data: &mut PerLevelTraversalData) {
-        if node.is_element() && (!self.context.shared_context().skip_root || node.opaque() != self.root) {
+    fn process_preorder(&self, node: GeckoNode<'ln>, traversal_data: &mut PerLevelTraversalData) {
+        if node.is_element() {
             let el = node.as_element().unwrap();
-            recalc_style_at::<_, _, Self>(&self.context, data, el);
+            let mut data = unsafe { el.ensure_data() }.borrow_mut();
+            recalc_style_at::<_, _, Self>(&self.context, traversal_data, el, &mut data);
         }
     }
 
@@ -41,14 +40,7 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     }
 
     /// We don't use the post-order traversal for anything.
-    fn needs_postorder_traversal(&self) -> bool { false }
-
-    fn should_traverse_child(child: GeckoNode<'ln>) -> bool {
-        match child.as_element() {
-            Some(el) => el.styling_mode() != StylingMode::Stop,
-            None => false, // Gecko restyle doesn't need to traverse text nodes.
-        }
-    }
+    fn needs_postorder_traversal() -> bool { false }
 
     unsafe fn ensure_element_data<'a>(element: &'a GeckoElement<'ln>) -> &'a AtomicRefCell<ElementData> {
         element.ensure_data()

@@ -303,7 +303,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         if self.get_style_data()
                .unwrap()
                .borrow()
-               .current_styles().pseudos
+               .styles().pseudos
                .contains_key(&PseudoElement::Before) {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
@@ -316,7 +316,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         if self.get_style_data()
                .unwrap()
                .borrow()
-               .current_styles().pseudos
+               .styles().pseudos
                .contains_key(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
@@ -357,7 +357,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     fn style(&self, context: &SharedStyleContext) -> Arc<ServoComputedValues> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => self.get_style_data().unwrap().borrow()
-                                             .current_styles().primary.values.clone(),
+                                             .styles().primary.values.clone(),
             other => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
@@ -369,14 +369,14 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                         if !self.get_style_data()
                                 .unwrap()
                                 .borrow()
-                                .current_styles().pseudos.contains_key(&style_pseudo) {
+                                .styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist.precomputed_values_for_pseudo(
                                     &style_pseudo,
-                                    Some(&data.current_styles().primary.values),
+                                    Some(&data.styles().primary.values),
                                     false);
-                            data.current_styles_mut().pseudos
+                            data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
@@ -384,22 +384,22 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                         if !self.get_style_data()
                                 .unwrap()
                                 .borrow()
-                                .current_styles().pseudos.contains_key(&style_pseudo) {
+                                .styles().pseudos.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist
                                        .lazily_compute_pseudo_element_style(
                                            self,
                                            &style_pseudo,
-                                           &data.current_styles().primary.values);
-                            data.current_styles_mut().pseudos
+                                           &data.styles().primary.values);
+                            data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }
                     }
                 }
 
                 self.get_style_data().unwrap().borrow()
-                    .current_styles().pseudos.get(&style_pseudo)
+                    .styles().pseudos.get(&style_pseudo)
                     .unwrap().values.clone()
             }
         }
@@ -408,9 +408,9 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     #[inline]
     fn selected_style(&self) -> Arc<ServoComputedValues> {
         let data = self.get_style_data().unwrap().borrow();
-        data.current_styles().pseudos
+        data.styles().pseudos
             .get(&PseudoElement::Selection).map(|s| s)
-            .unwrap_or(&data.current_styles().primary)
+            .unwrap_or(&data.styles().primary)
             .values.clone()
     }
 
@@ -426,9 +426,9 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
         let data = self.get_style_data().unwrap().borrow();
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal
-                => data.current_styles().primary.values.clone(),
+                => data.styles().primary.values.clone(),
             other
-                => data.current_styles().pseudos
+                => data.styles().pseudos
                        .get(&other.style_pseudo_element()).unwrap().values.clone(),
         }
     }

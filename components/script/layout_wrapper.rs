@@ -811,7 +811,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         debug_assert!(self.is_text_node());
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
-        parent_data.current_styles().primary.values.clone()
+        parent_data.styles().primary.values.clone()
     }
 
     fn debug_id(self) -> usize {

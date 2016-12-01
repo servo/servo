@@ -7,14 +7,18 @@
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use data::{ElementData, RestyleData, StoredRestyleHint};
-use dom::{OpaqueNode, StylingMode, TElement, TNode};
+use data::{ElementData, StoredRestyleHint};
+use dom::{OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
-use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
+use selector_parser::RestyleDamage;
+use selectors::Element;
 use selectors::matching::StyleRelations;
+use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::marker::PhantomData;
+use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
+use stylist::Stylist;
 use util::opts;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
@@ -36,7 +40,7 @@ thread_local!(
 pub fn take_thread_local_bloom_filter(context: &SharedStyleContext)
                                       -> StyleBloom
 {
-    debug!("{} taking bf", ::tid::tid());
+    trace!("{} taking bf", ::tid::tid());
 
     STYLE_BLOOM.with(|style_bloom| {
         style_bloom.borrow_mut().take()
@@ -45,7 +49,7 @@ pub fn take_thread_local_bloom_filter(context: &SharedStyleContext)
 }
 
 pub fn put_thread_local_bloom_filter(bf: StyleBloom) {
-    debug!("[{}] putting bloom filter back", ::tid::tid());
+    trace!("[{}] putting bloom filter back", ::tid::tid());
 
     STYLE_BLOOM.with(move |style_bloom| {
         debug_assert!(style_bloom.borrow().is_none(),
@@ -64,7 +68,7 @@ pub fn remove_from_bloom_filter<'a, E, C>(context: &C, root: OpaqueNode, element
     where E: TElement,
           C: StyleContext<'a>
 {
-    debug!("[{}] remove_from_bloom_filter", ::tid::tid());
+    trace!("[{}] remove_from_bloom_filter", ::tid::tid());
 
     // We may have arrived to `reconstruct_flows` without entering in style
     // recalc at all due to our optimizations, nor that it's up to date, so we
@@ -96,8 +100,23 @@ pub struct PerLevelTraversalData {
     pub current_dom_depth: Option<usize>,
 }
 
+pub struct PreTraverseToken {
+    traverse: bool,
+    skip_root: bool,
+}
+
+impl PreTraverseToken {
+    pub fn should_traverse(&self) -> bool {
+        self.traverse
+    }
+
+    pub fn should_skip_root(&self) -> bool {
+        self.skip_root
+    }
+}
+
 pub trait DomTraversalContext<N: TNode> {
-    type SharedContext: Sync + 'static;
+    type SharedContext: Sync + 'static + Borrow<SharedStyleContext>;
 
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
 
@@ -113,24 +132,113 @@ pub trait DomTraversalContext<N: TNode> {
     /// performed.
     ///
     /// If it's false, then process_postorder has no effect at all.
-    fn needs_postorder_traversal(&self) -> bool { true }
+    fn needs_postorder_traversal() -> bool { true }
 
-    /// Returns true if traversal should visit the given child.
-    fn should_traverse_child(child: N) -> bool;
+    /// Must be invoked before traversing the root element to determine whether
+    /// a traversal is needed. Returns a token that allows the caller to prove
+    /// that the call happened.
+    ///
+    /// The skip_root parameter is used in Gecko to style newly-appended children
+    /// without restyling the parent.
+    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist, skip_root: bool)
+                    -> PreTraverseToken
+    {
+        // If we should skip the root, traverse unconditionally.
+        if skip_root {
+            return PreTraverseToken {
+                traverse: true,
+                skip_root: true,
+            };
+        }
+
+        // Expand the snapshot, if any. This is normally handled by the parent, so
+        // we need a special case for the root.
+        //
+        // Expanding snapshots here may create a LATER_SIBLINGS restyle hint, which
+        // we will drop on the floor. This is fine, because we don't traverse roots
+        // with siblings.
+        debug_assert!(root.next_sibling_element().is_none());
+        if let Some(mut data) = root.mutate_data() {
+            if let Some(r) = data.as_restyle_mut() {
+                let _later_siblings = r.expand_snapshot(root, stylist);
+            }
+        }
+
+        PreTraverseToken {
+            traverse: Self::node_needs_traversal(root.as_node()),
+            skip_root: false,
+        }
+    }
+
+    /// Returns true if traversal should visit a text node. The style system never
+    /// processes text nodes, but Servo overrides this to visit them for flow
+    /// construction when necessary.
+    fn text_node_needs_traversal(_: N) -> bool { false }
+
+    /// Returns true if traversal is needed for the given node and subtree.
+    fn node_needs_traversal(node: N) -> bool {
+        // Non-incremental layout visits every node.
+        if cfg!(feature = "servo") && opts::get().nonincremental_layout {
+            return true;
+        }
+
+        match node.as_element() {
+            None => Self::text_node_needs_traversal(node),
+            Some(el) => {
+                // If the dirty descendants bit is set, we need to traverse no
+                // matter what. Skip examining the ElementData.
+                if el.has_dirty_descendants() {
+                    return true;
+                }
+
+                // Check the element data. If it doesn't exist, we need to visit
+                // the element.
+                let data = match el.borrow_data() {
+                    Some(d) => d,
+                    None => return true,
+                };
+
+                // Check what kind of element data we have. If it's Initial or Persistent,
+                // we're done.
+                let restyle = match *data {
+                    ElementData::Initial(ref i) => return i.is_none(),
+                    ElementData::Persistent(_) => return false,
+                    ElementData::Restyle(ref r) => r,
+                };
+
+                // Check whether we have any selector matching or re-cascading to
+                // do in this subtree. Snapshots should already be expanded.
+                debug_assert!(restyle.snapshot.is_none());
+                if !restyle.hint.is_empty() || restyle.recascade {
+                    return true;
+                }
+
+                // Servo uses the post-order traversal for flow construction, so
+                // we need to traverse any element with damage so that we can perform
+                // fixup / reconstruction on our way back up the tree.
+                if cfg!(feature = "servo") && restyle.damage != RestyleDamage::empty() {
+                    return true;
+                }
+
+                false
+            },
+        }
+    }
 
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
     fn traverse_children<F: FnMut(N)>(parent: N::ConcreteElement, mut f: F)
     {
-        use dom::StylingMode::Restyle;
-
         if parent.is_display_none() {
             return;
         }
 
         for kid in parent.as_node().children() {
-            if Self::should_traverse_child(kid) {
-                if kid.as_element().map_or(false, |el| el.styling_mode() == Restyle) {
+            if Self::node_needs_traversal(kid) {
+                let el = kid.as_element();
+                if el.as_ref().and_then(|el| el.borrow_data())
+                              .map_or(false, |d| d.is_restyle())
+                {
                     unsafe { parent.set_dirty_descendants(); }
                 }
                 f(kid);
@@ -206,60 +314,70 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
-                                    data: &mut PerLevelTraversalData,
-                                    element: E)
+                                    traversal_data: &mut PerLevelTraversalData,
+                                    element: E,
+                                    mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
 {
-    let mode = element.styling_mode();
-    let should_compute = element.borrow_data().map_or(true, |d| d.get_current_styles().is_none());
-    debug!("recalc_style_at: {:?} (should_compute={:?} mode={:?}, data={:?})",
-           element, should_compute, mode, element.borrow_data());
+    debug_assert!(data.as_restyle().map_or(true, |r| r.snapshot.is_none()),
+                  "Snapshots should be expanded by the caller");
 
-    let (computed_display_none, propagated_hint) = if should_compute {
-        compute_style::<_, _, D>(context, data, element)
-    } else {
-        (false, StoredRestyleHint::empty())
+    let compute_self = !data.has_current_styles();
+    let mut inherited_style_changed = false;
+
+    debug!("recalc_style_at: {:?} (compute_self={:?}, dirty_descendants={:?}, data={:?})",
+           element, compute_self, element.has_dirty_descendants(), data);
+
+    // Compute style for this element if necessary.
+    if compute_self {
+        inherited_style_changed = compute_style::<_, _, D>(context, &mut data, traversal_data, element);
+    }
+
+    // Now that matching and cascading is done, clear the bits corresponding to
+    // those operations and compute the propagated restyle hint.
+    let empty_hint = StoredRestyleHint::empty();
+    let propagated_hint = match data.as_restyle_mut() {
+        None => empty_hint,
+        Some(r) => {
+            r.recascade = false;
+            mem::replace(&mut r.hint, empty_hint).propagate()
+        },
     };
+    debug_assert!(data.has_current_styles());
+    trace!("propagated_hint={:?}, inherited_style_changed={:?}", propagated_hint, inherited_style_changed);
 
-    // Preprocess children, computing restyle hints and handling sibling relationships.
-    //
-    // We don't need to do this if we're not traversing children, or if we're performing
-    // initial styling.
-    let will_traverse_children = !computed_display_none &&
-                                 (mode == StylingMode::Restyle ||
-                                  mode == StylingMode::Traverse);
-    if will_traverse_children {
-        preprocess_children::<_, _, D>(context, element, propagated_hint,
-                                       mode == StylingMode::Restyle);
+    // Preprocess children, propagating restyle hints and handling sibling relationships.
+    if !data.styles().is_display_none() &&
+       (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
+        preprocess_children::<_, _, D>(context, element, propagated_hint, inherited_style_changed);
     }
 }
-
+// FIXME(bholley): This should differentiate between matching and cascading,
+// since we have separate bits for each now.
 fn compute_style<'a, E, C, D>(context: &'a C,
-                              data: &mut PerLevelTraversalData,
-                              element: E) -> (bool, StoredRestyleHint)
+                              mut data: &mut AtomicRefMut<ElementData>,
+                              traversal_data: &mut PerLevelTraversalData,
+                              element: E) -> bool
     where E: TElement,
           C: StyleContext<'a>,
-          D: DomTraversalContext<E::ConcreteNode>
+          D: DomTraversalContext<E::ConcreteNode>,
 {
     let shared_context = context.shared_context();
     let mut bf = take_thread_local_bloom_filter(shared_context);
     // Ensure the bloom filter is up to date.
     let dom_depth = bf.insert_parents_recovering(element,
-                                                 data.current_dom_depth,
+                                                 traversal_data.current_dom_depth,
                                                  shared_context.generation);
 
     // Update the dom depth with the up-to-date dom depth.
     //
     // Note that this is always the same than the pre-existing depth, but it can
     // change from unknown to known at this step.
-    data.current_dom_depth = Some(dom_depth);
+    traversal_data.current_dom_depth = Some(dom_depth);
 
     bf.assert_complete(element);
-
-    let mut data = unsafe { D::ensure_element_data(&element).borrow_mut() };
-    debug_assert!(!data.is_persistent());
 
     // Check to see whether we can share a style with someone.
     let style_sharing_candidate_cache =
@@ -304,7 +422,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
             // Add ourselves to the LRU cache.
             if let Some(element) = shareable_element {
                 style_sharing_candidate_cache.insert_if_possible(&element,
-                                                                 &data.current_styles().primary.values,
+                                                                 &data.styles().primary.values,
                                                                  relations);
             }
         }
@@ -318,7 +436,7 @@ fn compute_style<'a, E, C, D>(context: &'a C,
 
     // If we're restyling this element to display:none, throw away all style data
     // in the subtree, notify the caller to early-return.
-    let display_none = data.current_styles().is_display_none();
+    let display_none = data.styles().is_display_none();
     if display_none {
         debug!("New element style is display:none - clearing data from descendants.");
         clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
@@ -331,13 +449,16 @@ fn compute_style<'a, E, C, D>(context: &'a C,
     // complexity.
     put_thread_local_bloom_filter(bf);
 
-    (display_none, data.as_restyle().map_or(StoredRestyleHint::empty(), |r| r.hint.propagate()))
+    // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
+    let inherited_styles_changed = true;
+
+    inherited_styles_changed
 }
 
 fn preprocess_children<'a, E, C, D>(context: &'a C,
                                     element: E,
                                     mut propagated_hint: StoredRestyleHint,
-                                    restyled_parent: bool)
+                                    parent_inherited_style_changed: bool)
     where E: TElement,
           C: StyleContext<'a>,
           D: DomTraversalContext<E::ConcreteNode>
@@ -350,41 +471,31 @@ fn preprocess_children<'a, E, C, D>(context: &'a C,
             None => continue,
         };
 
-        // Set up our lazy child restyle data.
-        let mut child_data = unsafe { LazyRestyleData::<E, D>::new(&child) };
+        let mut child_data = unsafe { D::ensure_element_data(&child).borrow_mut() };
+        if child_data.is_unstyled_initial() {
+            continue;
+        }
+
+        let mut restyle_data = match child_data.restyle() {
+            Some(d) => d,
+            None => continue,
+        };
 
         // Propagate the parent and sibling restyle hint.
         if !propagated_hint.is_empty() {
-            child_data.ensure().map(|d| d.hint.insert(&propagated_hint));
+            restyle_data.hint.insert(&propagated_hint);
         }
 
-        // Handle element snashots.
-        if child_data.has_snapshot() {
-            // Compute the restyle hint.
-            let mut restyle_data = child_data.ensure().unwrap();
-            let mut hint = context.shared_context().stylist
-                                  .compute_restyle_hint(&child,
-                                                        restyle_data.snapshot.as_ref().unwrap(),
-                                                        child.get_state());
-
-            // If the hint includes a directive for later siblings, strip
-            // it out and modify the base hint for future siblings.
-            if hint.contains(RESTYLE_LATER_SIBLINGS) {
-                hint.remove(RESTYLE_LATER_SIBLINGS);
-                propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());
-            }
-
-            // Insert the hint.
-            if !hint.is_empty() {
-                restyle_data.hint.insert(&hint.into());
-            }
+        // Handle element snapshots.
+        let stylist = &context.shared_context().stylist;
+        let later_siblings = restyle_data.expand_snapshot(child, stylist);
+        if later_siblings {
+            propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());
         }
 
-        // If we restyled this node, conservatively mark all our children as
-        // needing a re-cascade. Once we have the rule tree, we will be able
-        // to distinguish between re-matching and re-cascading.
-        if restyled_parent {
-            child_data.ensure();
+        // If the parent's inherited properties changed, we need to recascade.
+        if parent_inherited_style_changed {
+            restyle_data.recascade = true;
         }
     }
 }
@@ -403,61 +514,4 @@ pub fn clear_descendant_data<E: TElement, F: Fn(E)>(el: E, clear_data: &F) {
     }
 
     unsafe { el.unset_dirty_descendants(); }
-}
-
-/// Various steps in the child preparation algorithm above may cause us to lazily
-/// instantiate the ElementData on the child. Encapsulate that logic into a
-/// convenient abstraction.
-struct LazyRestyleData<'b, E: TElement + 'b, D: DomTraversalContext<E::ConcreteNode>> {
-    data: Option<AtomicRefMut<'b, ElementData>>,
-    element: &'b E,
-    phantom: PhantomData<D>,
-}
-
-impl<'b, E: TElement, D: DomTraversalContext<E::ConcreteNode>> LazyRestyleData<'b, E, D> {
-    /// This may lazily instantiate ElementData, and is therefore only safe to
-    /// call on an element for which we have exclusive access.
-    unsafe fn new(element: &'b E) -> Self {
-        LazyRestyleData {
-            data: None,
-            element: element,
-            phantom: PhantomData,
-        }
-    }
-
-    fn ensure(&mut self) -> Option<&mut RestyleData> {
-        if self.data.is_none() {
-            let mut d = unsafe { D::ensure_element_data(self.element).borrow_mut() };
-            d.restyle();
-            self.data = Some(d);
-        }
-
-        self.data.as_mut().unwrap().as_restyle_mut()
-    }
-
-    /// Checks for the existence of an element snapshot without lazily instantiating
-    /// anything. This allows the traversal to cheaply pass through already-styled
-    /// nodes when they don't need a restyle.
-    fn has_snapshot(&self) -> bool {
-        // If there's no element data, we're done.
-        let raw_data = self.element.get_data();
-        if raw_data.is_none() {
-            debug_assert!(self.data.is_none());
-            return false;
-        }
-
-        // If there is element data, we still may not have committed to processing
-        // the node. Carefully get a reference to the data.
-        let maybe_tmp_borrow;
-        let borrow_ref = match self.data {
-            Some(ref d) => d,
-            None => {
-                maybe_tmp_borrow = raw_data.unwrap().borrow_mut();
-                &maybe_tmp_borrow
-            }
-        };
-
-        // Check for a snapshot.
-        borrow_ref.as_restyle().map_or(false, |d| d.snapshot.is_some())
-    }
 }

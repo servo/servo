@@ -9,15 +9,16 @@
 use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
 use rayon;
 use std::sync::atomic::Ordering;
-use traversal::{DomTraversalContext, PerLevelTraversalData};
+use traversal::{DomTraversalContext, PerLevelTraversalData, PreTraverseToken};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 use util::opts;
 
 pub const CHUNK_SIZE: usize = 64;
 
-pub fn traverse_dom<N, C>(root: N,
+pub fn traverse_dom<N, C>(root: N::ConcreteElement,
                           known_root_dom_depth: Option<usize>,
                           shared_context: &C::SharedContext,
+                          token: PreTraverseToken,
                           queue: &rayon::ThreadPool)
     where N: TNode,
           C: DomTraversalContext<N>
@@ -27,15 +28,26 @@ pub fn traverse_dom<N, C>(root: N,
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
     }
 
-    let nodes = vec![root.to_unsafe()].into_boxed_slice();
-    let data = PerLevelTraversalData {
-        current_dom_depth: known_root_dom_depth,
+    // Handle root skipping. We don't currently support it in conjunction with
+    // bottom-up traversal. If we did, we'd need to put it on the context to make
+    // it available to the bottom-up phase.
+    debug_assert!(!token.should_skip_root() || !C::needs_postorder_traversal());
+    let (nodes, depth) = if token.should_skip_root() {
+        let mut children = vec![];
+        C::traverse_children(root, |kid| children.push(kid.to_unsafe()));
+        (children, known_root_dom_depth.map(|x| x + 1))
+    } else {
+        (vec![root.as_node().to_unsafe()], known_root_dom_depth)
     };
-    let root = root.opaque();
+
+    let data = PerLevelTraversalData {
+        current_dom_depth: depth,
+    };
+
+    let root = root.as_node().opaque();
     queue.install(|| {
         rayon::scope(|scope| {
-            let nodes = nodes;
-            top_down_dom::<N, C>(&nodes, root, data, scope, shared_context);
+            traverse_nodes::<_, C>(nodes, root, data, scope, shared_context);
         });
     });
 
@@ -79,7 +91,7 @@ fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
 
         // Reset the count of children if we need to do a bottom-up traversal
         // after the top up.
-        if context.needs_postorder_traversal() {
+        if C::needs_postorder_traversal() {
             if children_to_process == 0 {
                 // If there were no more children, start walking back up.
                 bottom_up_dom::<N, C>(root, *unsafe_node, shared_context)
@@ -99,7 +111,30 @@ fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
         *depth += 1;
     }
 
-    for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
+    traverse_nodes::<_, C>(discovered_child_nodes, root, data, scope, shared_context);
+}
+
+fn traverse_nodes<'a, 'scope, N, C>(nodes: Vec<UnsafeNode>, root: OpaqueNode,
+                                    data: PerLevelTraversalData,
+                                    scope: &'a rayon::Scope<'scope>,
+                                    shared_context: &'scope C::SharedContext)
+    where N: TNode,
+          C: DomTraversalContext<N>,
+{
+    if nodes.is_empty() {
+        return;
+    }
+
+    // Optimization: traverse directly and avoid a heap-allocating spawn() call if
+    // we're only pushing one work unit.
+    if nodes.len() <= CHUNK_SIZE {
+        let nodes = nodes.into_boxed_slice();
+        top_down_dom::<N, C>(&nodes, root, data, scope, shared_context);
+        return;
+    }
+
+    // General case.
+    for chunk in nodes.chunks(CHUNK_SIZE) {
         let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
         let data = data.clone();
         scope.spawn(move |scope| {

@@ -106,7 +106,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::StoredRestyleHint;
-use style::dom::{StylingMode, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
@@ -116,6 +116,7 @@ use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
+use style::traversal::DomTraversalContext;
 use util::geometry::max_rect;
 use util::opts;
 use util::prefs::PREFS;
@@ -1109,7 +1110,7 @@ impl LayoutThread {
                     None => continue,
                 };
                 let mut style_data = &mut data.base.style_data;
-                debug_assert!(!style_data.is_restyle());
+                debug_assert!(style_data.has_current_styles());
                 let mut restyle_data = match style_data.restyle() {
                     Some(d) => d,
                     None => continue,
@@ -1118,7 +1119,9 @@ impl LayoutThread {
                 // Stash the data on the element for processing by the style system.
                 restyle_data.hint = restyle.hint.into();
                 restyle_data.damage = restyle.damage;
-                restyle_data.snapshot = restyle.snapshot;
+                if let Some(s) = restyle.snapshot {
+                    restyle_data.snapshot.ensure(move || s);
+                }
                 debug!("Noting restyle for {:?}: {:?}", el, restyle_data);
             }
         }
@@ -1129,7 +1132,9 @@ impl LayoutThread {
                                                                          data.reflow_info.goal);
 
         let dom_depth = Some(0); // This is always the root node.
-        if element.styling_mode() != StylingMode::Stop {
+        let token = <RecalcStyleAndConstructFlows as DomTraversalContext<ServoLayoutNode>>
+            ::pre_traverse(element, &shared_layout_context.style_context.stylist, /* skip_root = */ false);
+        if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1139,11 +1144,11 @@ impl LayoutThread {
                 match self.parallel_traversal {
                     None => {
                         sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            element.as_node(), &shared_layout_context);
+                            element, &shared_layout_context, token);
                     }
                     Some(ref mut traversal) => {
                         parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            element.as_node(), dom_depth, &shared_layout_context, traversal);
+                            element, dom_depth, &shared_layout_context, token, traversal);
                     }
                 }
             });
