@@ -37,14 +37,12 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
-use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
-use style::gecko_bindings::structs::nsString;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
@@ -567,7 +565,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
     property: *mut nsIAtom, is_custom: bool,
-    buffer: *mut nsString)
+    buffer: *mut nsAString)
 {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let property = get_property_name_from_atom(property, is_custom);
@@ -575,11 +573,7 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     let rv = declarations.read().single_value_to_css(&property, &mut string);
     debug_assert!(rv.is_ok());
 
-    // FIXME: Once we have nsString bindings for Servo (bug 1294742), we should be able to drop
-    // this and fill in |buffer| directly.
-    unsafe {
-        Gecko_Utf8SliceToString(buffer, string.as_ptr(), string.len());
-    }
+    write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
 }
 
 #[no_mangle]

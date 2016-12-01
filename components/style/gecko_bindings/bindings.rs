@@ -86,7 +86,6 @@ use gecko_bindings::structs::nsIPrincipal;
 use gecko_bindings::structs::nsIURI;
 use gecko_bindings::structs::nsMainThreadPtrHolder;
 use gecko_bindings::structs::nsRestyleHint;
-use gecko_bindings::structs::nsString;
 use gecko_bindings::structs::nsStyleBackground;
 unsafe impl Send for nsStyleBackground {}
 unsafe impl Sync for nsStyleBackground {}
@@ -487,10 +486,6 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
-}
-extern "C" {
-    pub fn Gecko_Utf8SliceToString(aString: *mut nsString, aBuffer: *const u8,
-                                   aBufferLen: usize);
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
@@ -1095,7 +1090,7 @@ extern "C" {
                                                         RawServoDeclarationBlockBorrowed,
                                                     property: *mut nsIAtom,
                                                     is_custom: bool,
-                                                    buffer: *mut nsString);
+                                                    buffer: *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Count(declarations:
