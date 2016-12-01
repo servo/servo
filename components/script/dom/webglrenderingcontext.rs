@@ -133,6 +133,10 @@ pub struct WebGLRenderingContext {
     current_program: MutNullableHeap<JS<WebGLProgram>>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
+    #[ignore_heap_size_of = "Because it's small"]
+    current_scissor: Cell<(i32, i32, i32, i32)>,
+    #[ignore_heap_size_of = "Because it's small"]
+    current_clear_color: Cell<(f32, f32, f32, f32)>,
 }
 
 impl WebGLRenderingContext {
@@ -163,6 +167,8 @@ impl WebGLRenderingContext {
                 bound_renderbuffer: MutNullableHeap::new(None),
                 current_program: MutNullableHeap::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
+                current_scissor: Cell::new((0, 0, size.width, size.height)),
+                current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0))
             }
         })
     }
@@ -203,6 +209,22 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+
+        // ClearColor needs to be restored because after a resize the GLContext is recreated
+        // and the framebuffer is cleared using the default black transparent color.
+        let color = self.current_clear_color.get();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3)))
+            .unwrap();
+
+        // WebGL Spec: Scissor rect must not change if the canvas is resized.
+        // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
+        // NativeContext handling library changes the scissor after a resize, so we need to reset the
+        // default scissor when the canvas was created or the last scissor that the user set.
+        let rect = self.current_scissor.get();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3)))
+            .unwrap()
     }
 
     pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
@@ -1136,6 +1158,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
+        self.current_clear_color.set((red, green, blue, alpha));
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(red, green, blue, alpha)))
             .unwrap()
@@ -1903,6 +1926,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue)
         }
 
+        self.current_scissor.set((x, y, width, height));
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
             .unwrap()
