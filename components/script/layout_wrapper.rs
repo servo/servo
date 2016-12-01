@@ -375,6 +375,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
         unsafe { self.document.will_paint(); }
     }
 
+    pub fn quirks_mode(&self) -> QuirksMode {
+        unsafe { self.document.quirks_mode() }
+    }
+
     pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
