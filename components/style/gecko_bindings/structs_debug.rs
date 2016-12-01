@@ -3047,6 +3047,20 @@ pub mod root {
         impl Clone for StyleComplexColor {
             fn clone(&self) -> Self { *self }
         }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct PropertyStyleAnimationValuePair {
+            pub mProperty: root::nsCSSPropertyID,
+            pub mValue: [u64; 2usize],
+            pub mServoValue: root::RefPtr<root::RawServoAnimationValue>,
+        }
+        #[test]
+        fn bindgen_test_layout_PropertyStyleAnimationValuePair() {
+            assert_eq!(::std::mem::size_of::<PropertyStyleAnimationValuePair>()
+                       , 32usize);
+            assert_eq!(::std::mem::align_of::<PropertyStyleAnimationValuePair>()
+                       , 8usize);
+        }
         #[test]
         fn __bindgen_test_layout_template_1() {
             assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::RawServoStyleSet>>()
@@ -11596,6 +11610,24 @@ pub mod root {
         assert_eq!(::std::mem::size_of::<nsCSSValueFloatColor>() , 32usize);
         assert_eq!(::std::mem::align_of::<nsCSSValueFloatColor>() , 8usize);
     }
+    #[test]
+    fn __bindgen_test_layout_template_8_TEMPORARY() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
+                                               root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
+                   , 8usize);
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
+                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
+                   , 8usize);
+    }
+    #[test]
+    fn __bindgen_test_layout_template_9_TEMPORARY() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
+                                               root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
+                   , 8usize);
+        assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
+                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
+                   , 8usize);
+    }
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsCSSValue {
@@ -11669,6 +11701,14 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
+    pub struct RawServoAnimationValue {
+        pub _address: u8,
+    }
+    impl Clone for RawServoAnimationValue {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
     pub struct RawServoStyleSet {
         pub _address: u8,
     }
@@ -11679,6 +11719,8 @@ pub mod root {
     pub type RawGeckoElement = root::mozilla::dom::Element;
     pub type RawGeckoDocument = root::nsIDocument;
     pub type RawGeckoPresContext = [u64; 162usize];
+    pub type RawGeckoAnimationValueList =
+        root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
     pub type RawGeckoElementBorrowed = *const root::RawGeckoElement;
@@ -11686,6 +11728,8 @@ pub mod root {
     pub type RawGeckoDocumentBorrowed = *const root::RawGeckoDocument;
     pub type RawGeckoDocumentBorrowedOrNull = *const root::RawGeckoDocument;
     pub type RawGeckoPresContextBorrowed = *const [u64; 162usize];
+    pub type RawGeckoAnimationValueListBorrowedMut =
+        *mut root::RawGeckoAnimationValueList;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {
