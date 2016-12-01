@@ -5,5 +5,5 @@
 // https://drafts.csswg.org/cssom/#the-cssmediarule-interface
 [Exposed=Window]
 interface CSSMediaRule : CSSGroupingRule {
-  // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
+  [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
 };

@@ -85,7 +85,7 @@ pub enum Qualifier {
     Not,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
     pub qualifier: Option<Qualifier>,
@@ -206,7 +206,7 @@ impl Expression {
 }
 
 impl MediaQuery {
-    fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
+    pub fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
         let mut expressions = vec![];
 
         let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {
