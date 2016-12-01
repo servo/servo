@@ -70,10 +70,6 @@ impl BluetoothDevice {
                            BluetoothDeviceBinding::Wrap)
     }
 
-    pub fn get_context(&self) -> Root<Bluetooth> {
-        self.context.get()
-    }
-
     pub fn get_or_create_service(&self,
                                  service: &BluetoothServiceMsg,
                                  server: &BluetoothRemoteGATTServer)
