@@ -96,8 +96,9 @@ impl Tokenizer {
     }
 }
 
-impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
-    fn trace(&self, trc: *mut JSTracer) {
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
         struct Tracer(*mut JSTracer);
         let tracer = Tracer(trc);
 
@@ -105,7 +106,7 @@ impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
             type Handle = JS<Node>;
             #[allow(unrooted_must_root)]
             fn trace_handle(&self, node: &JS<Node>) {
-                node.trace(self.0);
+                unsafe { node.trace(self.0); }
             }
         }
 

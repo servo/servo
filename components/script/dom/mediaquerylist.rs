@@ -143,8 +143,9 @@ impl WeakMediaQueryListVec {
     }
 }
 
-impl JSTraceable for WeakMediaQueryListVec {
-    fn trace(&self, _: *mut JSTracer) {
+#[allow(unsafe_code)]
+unsafe impl JSTraceable for WeakMediaQueryListVec {
+    unsafe fn trace(&self, _: *mut JSTracer) {
         self.cell.borrow_mut().retain_alive()
     }
 }

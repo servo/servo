@@ -302,37 +302,41 @@ macro_rules! make_nonzero_dimension_setter(
 
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
-macro_rules! no_jsmanaged_fields(
+macro_rules! unsafe_no_jsmanaged_fields(
     ([$ty:ident; $count:expr]) => (
-        impl $crate::dom::bindings::trace::JSTraceable for [$ty; $count] {
+        #[allow(unsafe_code)]
+        unsafe impl $crate::dom::bindings::trace::JSTraceable for [$ty; $count] {
             #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+            unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing
             }
         }
     );
     ($($ty:ident),+) => (
         $(
-            impl $crate::dom::bindings::trace::JSTraceable for $ty {
+            #[allow(unsafe_code)]
+            unsafe impl $crate::dom::bindings::trace::JSTraceable for $ty {
                 #[inline]
-                fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+                unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                     // Do nothing
                 }
             }
         )+
     );
     ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+        #[allow(unsafe_code)]
+        unsafe impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
             #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+            unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing
             }
         }
     );
     ($ty:ident<$($gen:ident: $bound:ident),+>) => (
-        impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+        #[allow(unsafe_code)]
+        unsafe impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
             #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+            unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing
             }
         }
