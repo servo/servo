@@ -56,7 +56,7 @@ use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
 use style::values::computed::LengthOrPercentageOrAuto;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
+use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
 use table_colgroup::TableColGroupFlow;
@@ -178,18 +178,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell(&self) -> &TableCellFlow {
         panic!("called as_table_cell() on a non-tablecell flow")
-    }
-
-    /// If this is a table row, table rowgroup, or table flow, returns column intrinsic
-    /// inline-sizes. Fails otherwise.
-    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
-        panic!("called column_intrinsic_inline_sizes() on non-table flow")
-    }
-
-    /// If this is a table row, table rowgroup, or table flow, returns column computed
-    /// inline-sizes. Fails otherwise.
-    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
-        panic!("called column_intrinsic_inline_sizes() on non-table flow")
     }
 
     // Main methods

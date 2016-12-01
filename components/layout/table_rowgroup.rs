@@ -123,14 +123,6 @@ impl Flow for TableRowGroupFlow {
         &self.block_flow
     }
 
-    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
-        &mut self.column_intrinsic_inline_sizes
-    }
-
-    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
-        &mut self.column_computed_inline_sizes
-    }
-
     fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_rowgroup::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());

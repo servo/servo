@@ -217,14 +217,6 @@ impl Flow for TableFlow {
         self.block_flow.mark_as_root();
     }
 
-    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
-        &mut self.column_intrinsic_inline_sizes
-    }
-
-    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
-        &mut self.column_computed_inline_sizes
-    }
-
     /// The specified column inline-sizes are set from column group and the first row for the fixed
     /// table layout calculation.
     /// The maximum min/pref inline-sizes of each column are set from the rows for the automatic
