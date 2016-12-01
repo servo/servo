@@ -114,7 +114,7 @@ impl<'a> TreeSink for Sink {
         let elem = target.downcast::<Element>()
             .expect("tried to get name of non-Element in XML parsing");
         QName {
-            prefix: elem.prefix().as_ref().map_or(namespace_prefix!(""), |p| Prefix::from(&**p)),
+            prefix: elem.prefix().map_or(namespace_prefix!(""), |p| Prefix::from(&**p)),
             namespace_url: elem.namespace().clone(),
             local: elem.local_name().clone(),
         }

@@ -1751,9 +1751,12 @@ impl ScriptThread {
                                                       Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
+            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
+                if sub_level.ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
+
             Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
-            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) =>
-                IsHTMLDocument::NonHTMLDocument,
+            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => IsHTMLDocument::NonHTMLDocument,
+
             _ => IsHTMLDocument::HTMLDocument,
         };
 
@@ -1844,17 +1847,7 @@ impl ScriptThread {
 
         document.set_https_state(metadata.https_state);
 
-        let is_xml = match metadata.content_type {
-            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
-                if sub_level.ends_with("+xml") => true,
-
-            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
-            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => true,
-
-            _ => false,
-        };
-
-        if is_xml {
+        if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(
                 &document,
                 parse_input,

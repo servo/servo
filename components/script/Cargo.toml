@@ -61,6 +61,7 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 range = {path = "../range"}
+ref_filter_map = "1.0.1"
 ref_slice = "1.0"
 regex = "0.1.43"
 rustc-serialize = "0.3"

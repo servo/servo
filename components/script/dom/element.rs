@@ -30,6 +30,7 @@ use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
 use dom::create::create_element;
 use dom::document::{Document, LayoutDocumentHelpers};
+use dom::documentfragment::DocumentFragment;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
@@ -61,6 +62,7 @@ use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::servoparser::ServoParser;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -71,6 +73,7 @@ use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use parking_lot::RwLock;
+use ref_filter_map::ref_filter_map;
 use selectors::matching::{ElementFlags, MatchingReason, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -712,12 +715,52 @@ impl Element {
         &self.namespace
     }
 
-    pub fn prefix(&self) -> &Option<DOMString> {
-        &self.prefix
+    pub fn prefix(&self) -> Option<&DOMString> {
+        self.prefix.as_ref()
     }
 
-    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
-        self.attrs.borrow()
+    pub fn attrs(&self) -> Ref<[JS<Attr>]> {
+        Ref::map(self.attrs.borrow(), |attrs| &**attrs)
+    }
+
+    // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
+    pub fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
+        let prefix = prefix.map(String::from).map(LocalName::from);
+
+        let inclusive_ancestor_elements =
+            self.upcast::<Node>()
+                .inclusive_ancestors()
+                .filter_map(Root::downcast::<Self>);
+
+        // Steps 3-4.
+        for element in inclusive_ancestor_elements {
+            // Step 1.
+            if element.namespace() != &ns!() && element.prefix().map(|p| &**p) == prefix.as_ref().map(|p| &**p) {
+                return element.namespace().clone();
+            }
+
+            // Step 2.
+            let attr = ref_filter_map(self.attrs(), |attrs| {
+                attrs.iter().find(|attr| {
+                    if attr.namespace() != &ns!(xmlns) {
+                        return false;
+                    }
+                    match (attr.prefix(), prefix.as_ref()) {
+                        (Some(&namespace_prefix!("xmlns")), Some(prefix)) => {
+                            attr.local_name() == prefix
+                        },
+                        (None, None) => attr.local_name() == &local_name!("xmlns"),
+                        _ => false,
+                    }
+                })
+            });
+
+            if let Some(attr) = attr {
+                return (**attr.value()).into();
+            }
+        }
+
+        ns!()
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>> {
@@ -818,7 +861,7 @@ impl Element {
 
                     // Step 2.
                     for attr in element.attrs.borrow().iter() {
-                        if *attr.prefix() == Some(namespace_prefix!("xmlns")) &&
+                        if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                            **attr.value() == *namespace {
                             return Some(attr.LocalName());
                         }
@@ -1229,6 +1272,33 @@ impl Element {
 
         // Step 11
         win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
+    }
+
+    // https://w3c.github.io/DOM-Parsing/#parsing
+    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
+        // Steps 1-2.
+        let context_document = document_from_node(self);
+        // TODO(#11995): XML case.
+        let new_children = ServoParser::parse_html_fragment(self, markup);
+        // Step 3.
+        let fragment = DocumentFragment::new(&context_document);
+        // Step 4.
+        for child in new_children {
+            fragment.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+        // Step 5.
+        Ok(fragment)
+    }
+
+    pub fn fragment_parsing_context(owner_doc: &Document, element: Option<&Self>) -> Root<Self> {
+        match element {
+            Some(elem) if elem.local_name() != &local_name!("html") || !elem.html_element_in_html_document() => {
+                Root::from_ref(elem)
+            },
+            _ => {
+                Root::upcast(HTMLBodyElement::new(local_name!("body"), None, owner_doc))
+            }
+        }
     }
 }
 
@@ -1757,15 +1827,14 @@ impl ElementMethods for Element {
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
-        let context_node = self.upcast::<Node>();
         // Step 1.
-        let frag = try!(context_node.parse_fragment(value));
+        let frag = try!(self.parse_fragment(value));
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             Root::upcast(template.Content())
         } else {
-            Root::from_ref(context_node)
+            Root::from_ref(self.upcast())
         };
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
@@ -1776,7 +1845,7 @@ impl ElementMethods for Element {
         self.serialize(IncludeNode)
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
+    // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
     fn SetOuterHTML(&self, value: DOMString) -> ErrorResult {
         let context_document = document_from_node(self);
         let context_node = self.upcast::<Node>();
@@ -1800,7 +1869,7 @@ impl ElementMethods for Element {
                                                 ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },
-            _ => context_node.GetParentNode().unwrap()
+            _ => context_node.GetParentElement().unwrap()
         };
 
         // Step 5.
@@ -1957,14 +2026,11 @@ impl ElementMethods for Element {
         };
 
         // Step 2.
-        let context = match context.downcast::<Element>() {
-            Some(elem) if elem.local_name() != &local_name!("html") ||
-                          !elem.html_element_in_html_document() => Root::from_ref(elem),
-            _ => Root::upcast(HTMLBodyElement::new(local_name!("body"), None, &*context.owner_doc())),
-        };
+        let context = Element::fragment_parsing_context(
+            &context.owner_doc(), context.downcast::<Element>());
 
         // Step 3.
-        let fragment = try!(context.upcast::<Node>().parse_fragment(text));
+        let fragment = try!(context.parse_fragment(text));
 
         // Step 4.
         self.insert_adjacent(position, fragment.upcast()).map(|_| ())

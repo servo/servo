@@ -7,8 +7,6 @@
 use app_units::Au;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
-use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -51,7 +49,6 @@ use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHel
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
-use dom::servoparser::ServoParser;
 use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -61,7 +58,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
-use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
+use html5ever_atoms::{Prefix, Namespace, QualName};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
@@ -797,19 +794,6 @@ impl Node {
             shortValue: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
-    }
-
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
-    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
-        let context_document = document_from_node(self);
-        let fragment = DocumentFragment::new(&context_document);
-        if context_document.is_html_document() {
-            ServoParser::parse_html_fragment(self.upcast(), markup, fragment.upcast());
-        } else {
-            // FIXME: XML case
-            unimplemented!();
-        }
-        Ok(fragment)
     }
 
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
@@ -1752,7 +1736,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| Prefix::from(&**p)),
+                    element.prefix().map(|p| Prefix::from(&**p)),
                     &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
@@ -1782,7 +1766,7 @@ impl Node {
                                                  attr.value().clone(),
                                                  attr.name().clone(),
                                                  attr.namespace().clone(),
-                                                 attr.prefix().clone());
+                                                 attr.prefix().cloned());
                 }
             },
             _ => ()
@@ -1825,68 +1809,20 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
-        fn attr_defines_namespace(attr: &Attr,
-                                  defined_prefix: &Option<LocalName>) -> bool {
-            *attr.namespace() == ns!(xmlns) &&
-                match (attr.prefix(), defined_prefix) {
-                    (&Some(ref attr_prefix), &Some(ref defined_prefix)) =>
-                        attr_prefix == &namespace_prefix!("xmlns") &&
-                            attr.local_name() == defined_prefix,
-                    (&None, &None) => *attr.local_name() == local_name!("xmlns"),
-                    _ => false
-                }
-        }
-
         match node.type_id() {
             NodeTypeId::Element(_) => {
-                let element = node.downcast::<Element>().unwrap();
-                // Step 1.
-                if *element.namespace() != ns!() && *element.prefix() == prefix {
-                    return element.namespace().clone()
-                }
-
-                // Even though this is conceptually a namespace prefix,
-                // in the `xmlns:foo="https://example.net/namespace" declaration
-                // it is a local name.
-                // FIXME(ajeffrey): directly convert DOMString to LocalName
-                let prefix_atom = prefix.as_ref().map(|s| LocalName::from(&**s));
-
-                // Step 2.
-                let attrs = element.attrs();
-                let namespace_attr = attrs.iter().find(|attr| {
-                    attr_defines_namespace(attr, &prefix_atom)
-                });
-
-                // Steps 2.1-2.
-                if let Some(attr) = namespace_attr {
-                    return namespace_from_domstring(Some(attr.Value()));
-                }
-
-                match node.GetParentElement() {
-                    // Step 3.
-                    None => ns!(),
-                    // Step 4.
-                    Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
-                }
+                node.downcast::<Element>().unwrap().locate_namespace(prefix)
             },
             NodeTypeId::Document(_) => {
-                match node.downcast::<Document>().unwrap().GetDocumentElement().r() {
-                    // Step 1.
-                    None => ns!(),
-                    // Step 2.
-                    Some(document_element) => {
-                        Node::locate_namespace(document_element.upcast(), prefix)
-                    }
-                }
+                node.downcast::<Document>().unwrap()
+                    .GetDocumentElement().as_ref()
+                    .map_or(ns!(), |elem| elem.locate_namespace(prefix))
             },
-            NodeTypeId::DocumentType => ns!(),
-            NodeTypeId::DocumentFragment => ns!(),
-            _ => match node.GetParentElement() {
-                     // Step 1.
-                     None => ns!(),
-                     // Step 2.
-                     Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
-                 }
+            NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => ns!(),
+            _ => {
+                node.GetParentElement().as_ref()
+                    .map_or(ns!(), |elem| elem.locate_namespace(prefix))
+            }
         }
     }
 }
@@ -2250,7 +2186,7 @@ impl NodeMethods for Node {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
             (*element.namespace() == *other_element.namespace()) &&
-            (*element.prefix() == *other_element.prefix()) &&
+            (element.prefix() == other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
