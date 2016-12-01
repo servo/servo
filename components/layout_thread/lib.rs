@@ -1093,7 +1093,7 @@ impl LayoutThread {
         }
 
         let restyles = document.drain_pending_restyles();
-        debug!("Draining restyles: {}", restyles.len());
+        debug!("Draining restyles: {} (needs dirtying? {:?})", restyles.len(), needs_dirtying);
         if !needs_dirtying {
             for (el, restyle) in restyles {
                 // Propagate the descendant bit up the ancestors. Do this before
@@ -1284,6 +1284,10 @@ impl LayoutThread {
     }
 
     fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+        if opts::get().relayout_event {
+            println!("**** pipeline={}\tForDisplay\tSpecial\tAnimationTick", self.id);
+        }
+
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: max_rect(),
